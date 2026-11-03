@@ -38,13 +38,6 @@ QString KifuLoadParser::startPositionProblem(const Position& position)
     return {};
 }
 
-bool KifuLoadParser::readFileText(const QString& path, KifuFormat format, QString& outText, QString* warn)
-{
-    if (format == KifuFormat::Csa) return CsaToSfenConverter::readFileText(path, outText, warn);
-    QString encoding;
-    return KifuTextDecoder::readAllTextAuto(path, outText, &encoding, warn);
-}
-
 KifuLoadResult KifuLoadParser::parseFile(const QString& path, std::optional<KifuFormat> requested, const CancelFlag& cancel)
 {
     if (canceled(cancel)) {
@@ -55,7 +48,8 @@ KifuLoadResult KifuLoadParser::parseFile(const QString& path, std::optional<Kifu
     const KifuFormat format = requested ? *requested : KifuFormats::detectFile(path);
     QString text;
     QString warning;
-    if (!readFileText(path, format, text, &warning)) {
+    // 文字コード（BOM・先頭の宣言・判別）は形式によらず KifuTextDecoder の1つの規則で決める
+    if (!KifuTextDecoder::readAllTextAuto(path, text, nullptr, &warning)) {
         KifuLoadResult result;
         result.filePath = path;
         result.warning = warning;

@@ -23,9 +23,6 @@ public:
     /// 棋譜を読む。開始局面の書き方は平手なら Handicap、それ以外は Specified
     static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 
-    /// CSA ファイルをテキストとして読む（"CSA encoding=" の宣言、なければ UTF-8 → Shift_JIS の順に判別）
-    static bool readFileText(const QString& path, QString& outText, QString* warn);
-
 private:
     /// テキストを1文ずつの行にする（カンマ区切りのマルチステートメントを展開し、2局目以降は読まない）
     static QStringList splitStatements(const QString& text, QString* warn);

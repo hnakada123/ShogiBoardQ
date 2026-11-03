@@ -950,7 +950,7 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
    → KifuLoader::loadFileAsync(filePath)
    → KifuLoadParser::parseFile()（ワーカースレッド）
        ├─ KifuFormats::detectFile() で形式を決める
-       ├─ readFileText() で文字コードを判別して1回読む
+       ├─ KifuTextDecoder::readAllTextAuto() で1回読む（文字コードは BOM → 先頭の宣言 → 判別。形式によらない）
        └─ parseContent() → KifTextParser::parseKif()（KifTextParser::parse(text, Dialect::Kif)）
    → KifuLoader::onLoadFinished() → applyLoadResult(result)
      （同期版の loadFile()・loadText() も applyLoadResult() を通る）

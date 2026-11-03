@@ -2,7 +2,7 @@
 #define KIFULOADPARSER_H
 
 /// @file kifuloadparser.h
-/// @brief 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け）
+/// @brief 棋譜の読み込み口（ファイルを1回読み、形式ごとの変換器へ振り分ける。文字コードは KifuTextDecoder）
 
 #include "kifuformat.h"
 #include "kifparsetypes.h"
@@ -27,7 +27,8 @@ struct KifuLoadResult {
 };
 
 namespace KifuLoadParser {
-/// ファイルを1回読み（文字コードは形式ごとに判別）、parseContent に渡す。形式がなければファイルから判定する
+/// ファイルを1回読み（文字コードは形式によらず KifuTextDecoder::readAllTextAuto。BOM → 先頭の宣言 → 判別）、
+/// parseContent に渡す。形式がなければファイルから判定する
 KifuLoadResult parseFile(const QString& path, std::optional<KifuFormat> format = std::nullopt,
                          const CancelFlag& cancel = {});
 /// 貼り付けたテキストの形式を判定して読む（判定できなければ KIF として読む）
@@ -37,8 +38,6 @@ KifuLoadResult parseText(const QString& content, const CancelFlag& cancel = {});
 /// sourceName は失敗時のメッセージに使う（ファイル名など。空でもよい）
 KifuLoadResult parseContent(const QString& content, KifuFormat format,
                             const CancelFlag& cancel = {}, const QString& sourceName = QString());
-/// 棋譜ファイルをテキストとして読む（CSA は CSA の文字コード宣言、それ以外は自動判別）
-bool readFileText(const QString& path, KifuFormat format, QString& outText, QString* warn);
 /**
  * @brief 開始局面にできない理由（訳した文。できれば空）
  *

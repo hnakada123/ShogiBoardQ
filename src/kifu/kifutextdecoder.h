@@ -8,16 +8,16 @@
 #include <QStringList>
 
 /**
- * @brief 棋譜ファイルの文字コード自動判別読み込み（KIF に限らず、全形式の読み込みで使う）
+ * @brief 棋譜ファイルの文字コード自動判別読み込み（全形式の棋譜の読み込みで使う。棋譜ファイルのバイト列をテキストにするのはここだけ）
  *
- * BOM判定 → UTF-8 → CP932/Shift_JIS → EUC-JP の順で
- * 文字コードを推定し、テキストを行単位で返す。
- *
+ * BOM → 先頭の行の文字コードの宣言（KIF・KI2 の "#KIF version=2.0 encoding=Shift_JIS"、CSA の
+ * "'CSA encoding=UTF-8"・"'encoding=..."。宣言どおりに読めるときだけ従う）→ UTF-8 → CP932/Shift_JIS → EUC-JP の順で
+ * 文字コードを決める。形式によらず同じ規則で、宣言の読み方も形式で分けない。
  */
 namespace KifuTextDecoder {
 
 /**
- * @brief 文字コードを自動判別してテキストを1行ずつ取得する
+ * @brief 文字コードを決めてテキストを1行ずつ取得する（decodeAuto の規則）
  * @param filePath 読み込み対象のファイルパス
  * @param outLines 出力先の行リスト
  * @param usedEncoding 実際に使われたエンコーディング名（例: "utf-8", "cp932"）
@@ -30,14 +30,14 @@ bool readAllLinesAuto(const QString& filePath,
                       QString* warn = nullptr);
 
 /**
- * @brief 文字コードを自動判別してバイト列をテキストにする（BOM → UTF-8 → CP932 → EUC-JP → ローカル 8bit）
- * @param usedEncoding 実際に使われたエンコーディング名
+ * @brief 文字コードを決めてバイト列をテキストにする（BOM → 宣言 → UTF-8 → CP932 → EUC-JP → ローカル 8bit）
+ * @param usedEncoding 実際に使われたエンコーディング名（宣言に従ったときは "cp932(declared)" のように付ける）
  * @param warn どれとも決められずにローカル 8bit で読んだときの注意を追記する先
  */
 QString decodeAuto(const QByteArray& bytes, QString* usedEncoding = nullptr, QString* warn = nullptr);
 
 /**
- * @brief 文字コードを自動判別してファイル全体をテキストとして取得する（改行は変換しない）
+ * @brief 文字コードを決めてファイル全体をテキストとして取得する（decodeAuto の規則。改行は変換しない）
  * @return 読み込み成功なら true
  */
 bool readAllTextAuto(const QString& filePath,

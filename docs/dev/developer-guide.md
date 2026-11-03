@@ -186,6 +186,7 @@
 | 2026-11-03 | 詰みの問い合わせを `MateOracle` の1系統にした（監査 2026-11-01 M1・U2）のに合わせて §7.1・§9.7 を更新（`MateOracle` は接続を持つか借りる。GUI の詰み探索 `AnalysisSession` は `Usi::session()` を借りた `MateOracle` で問い合わせ、`Usi::startMateSearch()`・`Usi::searchTimedOut` を消した。go mate に bestmove で答えるエンジンの答えは `MateOracle` が `Unknown` にし、CLI の `mate`・`verify-tsume`・詰将棋生成も待ち続けない） |
 | 2026-11-03 | 定跡手の表記を1つの関数にした（監査 2026-11-01 M3）（定跡ウィンドウの表・定跡手のダイアログの一覧とラベル・定跡に登録した知らせと右クリックのメニュー・定跡を外れた手は、どれも `JosekiTableModel::moveText` で作る。一覧の合法手は局面を読み直さない `moveText(Position, UsiMove)`） |
 | 2026-11-03 | position の文字列の語の分け方を `UsiPosition::split` だけにした（監査 2026-11-01 M4）（`UsiPosition::Words` に前に position を書いたか `positionCommand`・startpos で書いたか `startpos` を足した。局面集ファイルの行 `PositionCollectionFile::parseLine` はこれで分け、手数の欄と `moves` を省いた行も読む。USI 形式の棋譜のファイルの対象の行は split と `Position::fromSfen` で選び、仮の SFEN を組み立てて盤の欄を確かめる判定を消した） |
+| 2026-11-03 | 棋譜ファイルの読み込みの経路を1本にした（監査 2026-11-01 M5）のに合わせて §8 と付録を更新（CSA の変換器のファイルの読み込み `CsaToSfenConverter::readFileText()` と `KifuLoadParser::readFileText()` を消し、`KifuLoadParser::parseFile()` は形式によらず `KifuTextDecoder::readAllTextAuto()` で読む。文字コードの宣言（KIF・KI2 の `#KIF … encoding=`、CSA の `'CSA encoding=`・`'encoding=`）は `KifuTextDecoder::decodeAuto()` が BOM の次に見て、宣言どおりに読めるときだけ従う） |
 
 <!-- chapter-0-end -->
 
@@ -1221,14 +1222,14 @@ ShogiBoardQは6種類の棋譜フォーマットを読み込める（局面だ�
 
 #### 変換器の共通API
 
-形式ごとの変換器（KIF・KI2 は `KifTextParser`、ほかは `*ToSfenConverter`）はテキストを読むだけで、ファイルは読まない。ファイルは `KifuLoadParser`（`src/kifu/kifuloadparser.h`）が文字コードを判別して読み、形式を `KifuFormats::detectFile()`・`detect()`（`src/kifu/kifuformat.h`）で判定して、形式ごとの変換器に渡す。形式を表す列挙型は `KifuFormat` の1つで、読み込み・保存・変換で共通に使う。
+形式ごとの変換器（KIF・KI2 は `KifTextParser`、ほかは `*ToSfenConverter`）はテキストを読むだけで、ファイルは読まない。ファイルは `KifuLoadParser`（`src/kifu/kifuloadparser.h`）が1回読み（文字コードは形式によらず `KifuTextDecoder::readAllTextAuto()` の1つの規則で、BOM → 先頭のコメントの行の宣言（KIF・KI2 の `#KIF version=2.0 encoding=…`、CSA の `'CSA encoding=…`。宣言どおりに読めるときだけ従う）→ UTF-8・CP932・EUC-JP の判別の順に決める）、形式を `KifuFormats::detectFile()`・`detect()`（`src/kifu/kifuformat.h`）で判定して、形式ごとの変換器に渡す。形式を表す列挙型は `KifuFormat` の1つで、読み込み・保存・変換で共通に使う。
 
 変換器は形式ごとに1つの関数 `parse(text, options)`（`static`）だけを持つ。1回の解析で、棋譜（本譜 `mainline` と変化 `variations` の `KifParseResult`）・開始局面・手合割の名前・対局情報・警告をまとめて `KifuParseOutcome`（`src/kifu/kifparsetypes.h`）に入れて返す。
 
 | 形式 | 関数 |
 |------|------|
 | KIF・KI2 | `KifTextParser::parseKif()`・`parseKi2()`（どちらも `KifTextParser::parse(text, Dialect::Kif / Dialect::Ki2, options)` を呼ぶ） |
-| CSA | `CsaToSfenConverter::parse()`（CSA の文字コード宣言を見てファイルを読む `readFileText()` も持つ。宣言が無ければほかの形式と同じ `KifuTextDecoder::decodeAuto()` で判別する。手合割の名前も CSA の変換器が決める） |
+| CSA | `CsaToSfenConverter::parse()`（手合割の名前も CSA の変換器が決める） |
 | JKF | `JkfToSfenConverter::parse()`（JSON は1回だけ解析する） |
 | USEN | `UsenToSfenConverter::parse()`（指し手の3文字・開始局面・手順の復号は `UsenCodec`（`usencodec.h`）。書き出しの `UsenExporter` と同じ符号表） |
 | USI・SFEN | `UsiToSfenConverter::parse()`（指し手のない局面だけのテキストは `positionOnly` に入れる） |
@@ -1243,7 +1244,6 @@ ShogiBoardQは6種類の棋譜フォーマットを読み込める（局面だ�
 | `parseFile(path, format, cancel)` | ファイルを1回読み、`parseContent()` に渡す。形式を省くとファイルから判定する |
 | `parseText(content, cancel)` | 貼り付けたテキストの形式を判定して読む |
 | `parseContent(content, format, cancel, sourceName)` | 形式が決まっているテキストを読み、`KifuLoadResult`（形式・初期局面・対局情報・`KifParseResult`）を返す。形式ごとの `parse()` は `KifuFormat` から関数を引く表（`parserFor()`）で選び、結果の `KifuParseOutcome` を `KifuLoadResult` に写す |
-| `readFileText(path, format, outText, warn)` | 棋譜ファイルをテキストとして読む |
 
 ### 2.6 座標変換の早見表
 
@@ -4669,7 +4669,7 @@ loadFileAsync(filePath) / loadTextAsync(content)     ← KifuFileController か�
   │   （同期版の loadFile / loadText / loadPositionFromSfen は自動化 API・テスト用。同じ applyLoadResult() を通る）
   ▼
 KifuLoadParser::parseFile() / parseText()             ← 別スレッド（QtConcurrent::run）
-  │   parseFile: ファイルを1回だけ読み（readFileText。文字コードは形式ごとに判別）、形式を KifuFormats::detectFile() で決める
+  │   parseFile: ファイルを1回だけ読み（KifuTextDecoder::readAllTextAuto。文字コードは形式によらず BOM → 先頭の宣言 → 判別）、形式を KifuFormats::detectFile() で決める
   │   parseText: 形式を KifuFormats::detect() で判定
   │   → どちらも parseContent(content, format) が形式ごとの parse() を表（parserFor()）から選んで呼ぶ
   │     （KIF・KI2 は KifTextParser、BOD は KifTextParser::parseBod()。結果の KifuParseOutcome を写す）
@@ -4922,7 +4922,7 @@ KifuNavigationState
 static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 ```
 
-`KifuLoadParser::parseContent()` は `KifuFormat` から関数を引く表（`parserFor()`）でこの `parse()` を選び、結果（8.4 の `KifuParseOutcome`）を `KifuLoadResult` に写す（貼り付けも同じ経路で、一時ファイルは作らない）。BOD（局面図だけのテキスト）は `KifTextParser::parseBod()` が読む。そのほかに公開している関数は、CSA の文字コード宣言を見てファイルを読む `CsaToSfenConverter::readFileText()` と、USEN の開始局面を読む `UsenToSfenConverter::initialSfenOf()` だけである（USEN の符号の復号は `UsenCodec::decodeMoves()`・`decodePosition()` が受け持つ）。USEN は対局情報を持たない。指し手のない USI・SFEN は `UsiToSfenConverter::parse()` が局面を `positionOnly` に入れる。CSA の手合割の名前（「平手」「局面指定」）も CSA の変換器が決める。
+`KifuLoadParser::parseContent()` は `KifuFormat` から関数を引く表（`parserFor()`）でこの `parse()` を選び、結果（8.4 の `KifuParseOutcome`）を `KifuLoadResult` に写す（貼り付けも同じ経路で、一時ファイルは作らない）。BOD（局面図だけのテキスト）は `KifTextParser::parseBod()` が読む。そのほかに公開している関数は、USEN の開始局面を読む `UsenToSfenConverter::initialSfenOf()` だけである（USEN の符号の復号は `UsenCodec::decodeMoves()`・`decodePosition()` が受け持つ）。USEN は対局情報を持たない。指し手のない USI・SFEN は `UsiToSfenConverter::parse()` が局面を `positionOnly` に入れる。CSA の手合割の名前（「平手」「局面指定」）も CSA の変換器が決める。
 
 形式ごとの部品:
 
@@ -5000,7 +5000,7 @@ KI2 の文字列を作る。本譜と変化の指し手の行は同じループ�
 
 **ソース**: `src/kifu/kifutextdecoder.h/.cpp`
 
-棋譜ファイルを文字コード（BOM・UTF-8・CP932・EUC-JP の順）を自動判別して読み込む名前空間（判別の `decodeAuto()`、`readAllLinesAuto()`・`readAllTextAuto()`・`splitLines()`）。`KifuLoadParser::readFileText()` が CSA 以外の形式で使い、CSA も文字コードの宣言が無ければ `decodeAuto()` を使う。Shift_JIS の変換は `ShiftJisCodec`（`src/kifu/shiftjiscodec.h`）が受け持つ。
+棋譜ファイルの文字コードを決めて読み込む名前空間（判別の `decodeAuto()`、`readAllLinesAuto()`・`readAllTextAuto()`・`splitLines()`）。文字コードは形式によらず、BOM → 先頭のコメントの行の宣言（KIF・KI2 の `#KIF version=2.0 encoding=Shift_JIS`、CSA の `'CSA encoding=UTF-8`・`'encoding=…`。値は UTF-8 と Shift_JIS だけを読み、宣言どおりに読めるときだけ従う）→ UTF-8・CP932・EUC-JP の判別の順で決める。`KifuLoadParser::parseFile()` と形式の判定 `KifuFormats::detectFile()` が全形式で使う。Shift_JIS の変換は `ShiftJisCodec`（`src/kifu/shiftjiscodec.h`）が受け持つ。
 
 #### ShogiInfoRecord
 
