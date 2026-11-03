@@ -117,6 +117,8 @@ private:
     void updateBookDeviation();
     /// 棋譜を変えられない状態なので展開しないと知らせる
     void showExpandRefused() const;
+    /// 定跡手を盤に指せなかったことを知らせる
+    void showMoveFailed(const QString& usiMove) const;
 
     // 依存オブジェクト
     QWidget* m_parentWidget = nullptr;

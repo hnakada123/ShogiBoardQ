@@ -196,6 +196,7 @@
 | 2026-11-03 | 対局情報の表に出す文字をモデルの1か所で作るようにした（監査 2026-11-01 M13）のに合わせて §11.2・第18章を更新（`GameInfoEditModel::PresentedTextRole` を足し、表のデリゲートは項目名・内容の表記を自分で作らずにこれを描く。項目名の列幅もこれで測る。以前はモデルの `presentedText`（読み上げ・ツールチップ・列幅）とデリゲート（描画）が同じ処理を別々に持っていた） |
 | 2026-11-03 | 局面編集の右クリックの巡回も行き先を通すようにした（監査 2026-11-01 M14）のに合わせて §1.5・§10.3・§13.5・§13.6・第18章を更新（`BoardInputRoute::cycle(square)` を足し、`BoardInteractionController::onRightClick()` は局面編集中なら盤を変えずに行き先へ渡す。主画面の `BoardMoveController::cycle()` が `PositionEditSession::cycleEditPiece()` に渡し、詰将棋を解く画面は何もしない。`togglePiecePromotionOnClick()` を消した） |
 | 2026-11-03 | 盤の対局者名の決め方を1つにした（監査 2026-11-01 M15）のに合わせて §8.5・§10.2・§10.3・§12.7 を更新（`PlayerInfoPresenter::boardName(document, activity, side)` を足し、本体の盤と読み筋盤（`PvClickController::showPvBoard()`。`Deps` に `activity` を足した）がこれを使う。読み筋盤は対局中も対局情報の名前を出していたので、棋譜に先手・後手の行が無いまま途中から続けた対局などで本体の盤と名前が違った。「先手」「後手」の補いは `PvBoardDialog::setPlayerNames()` からも消した） |
+| 2026-11-03 | ui・app の知らせを NotificationPresenter の直接の呼び出しにそろえた（監査 2026-11-01 M16）のに合わせて §4.6・§9.4・§9.6・§9.7・§10.3・§15 を更新（検討・詰み探索・棋譜解析・棋譜の自動保存・対局開始の知らせは `ErrorBus` を通さず、題名付きの `NotificationPresenter::warning`・`critical` で出す。`ErrorBus` を使うのは core（`ShogiBoard::setSfen()`）だけで、`tst_structural_kpi` が ui・app から流していないかを検査する。定跡ウィンドウの `showMoveFailed()` と「着手」のメッセージボックスを消し、指せるかの確かめと知らせは `JosekiWindowController` が行う） |
 
 <!-- chapter-0-end -->
 
@@ -2148,11 +2149,13 @@ ErrorBus& ErrorBus::instance() {
 
 #### 使い方
 
-**エラーの発行**（どのレイヤーからでも可能）:
+**エラーの発行**（ui より下の層。今は core の `ShogiBoard::setSfen()` だけ）:
 
 ```cpp
-ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, tr("エンジンの起動に失敗しました"));
+ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, error);
 ```
+
+ui・app の部品は `ErrorBus` に流さず、`NotificationPresenter::information`・`warning`・`critical` を題名付きで直接呼ぶ（`ErrorBus` を通すと題名が「Warning」などの決まった語になる。`tst_structural_kpi` の `uiAndAppUseNotificationPresenter` が検査する）。
 
 **エラーの受信**（`MainWindowComposer::connectAnalysisAndUi()` で接続）:
 
@@ -2163,7 +2166,7 @@ connect(&ErrorBus::instance(), &ErrorBus::messagePosted,
 
 #### 設計上のポイント
 
-- ドメインサービス層（`engine/`, `kifu/` 等）がUIに依存せずにエラーを通知できる
+- ui より下の層（core など）が、UIに依存せずにエラーを通知できる
 - `NotificationPresenter` が `messagePosted` シグナルを受けて、深刻度に応じた表示を行う
 - `Q_DISABLE_COPY_MOVE` でコピー/ムーブを禁止し、シングルトンの一意性を保証する
 
@@ -5183,7 +5186,7 @@ ConsiderationUiController::startConsideration()
   ├── 1. バリデーション
   │     ├── session / navState / 検討タブが無い → return
   │     ├── エンジンの破棄中（AnalysisSession::isShutdownInProgress） → 無視
-  │     └── 検討タブの設定（settings().engineName）でエンジンが選ばれていない → ErrorBus でエラー通知して return
+  │     └── 検討タブの設定（settings().engineName）でエンジンが選ばれていない → NotificationPresenter でエラー通知して return
   │
   ├── 2. エンジンパス取得
   │     └── RegisteredEngines::load() の登録一覧から
@@ -5318,7 +5321,7 @@ CandidateArrowPresenter::refresh()
 | `navController` | `KifuNavigationController*` | — | 解析中・結果の行を選んだ手へ棋譜を移す（`goToPlyOnLine`） |
 | `evalGraph` | `EvaluationGraphPresenter*` | — | 評価値グラフの点（解析した局面の評価値を足す） |
 
-エラーは `ErrorBus` で知らせる（コールバックは持たない）。評価値グラフの解析の点のクリック（`EvaluationChartWidget::analysisPlyClicked`）は、合成ルートの `connectRecord()` が `KifuNavigationController::goToPlyOnLine` に直接つなぎ、棋譜が移ると `syncResultSelection()` が結果の行を合わせる。
+エラーは `NotificationPresenter::warning`（題名は「棋譜解析」）で知らせる（コールバックは持たない）。評価値グラフの解析の点のクリック（`EvaluationChartWidget::analysisPlyClicked`）は、合成ルートの `connectRecord()` が `KifuNavigationController::goToPlyOnLine` に直接つなぎ、棋譜が移ると `syncResultSelection()` が結果の行を合わせる。
 
 #### 棋譜解析の全体シーケンス
 
@@ -5395,7 +5398,7 @@ showDialogAndStart()
   │           │     └── 送るのは "position startpos moves 7g7f 3c3d ..." 形式
   │           └── 開始局面・手順なし → MateSearchPosition::attackerToMove(Position) を UsiPosition に
   │                 └── 送るのは "position sfen ..." 形式（玉の有無から攻方を決めて手番を合わせる）
-  │           空なら ErrorBus で警告して return
+  │           空なら NotificationPresenter で警告して return
   │
   ├── 2. TsumeShogiSearchDialog を表示（モーダル）
   │     ├── エンジン選択（EngineSelector。選んだエンジンは dialog.engine()）
@@ -5893,7 +5896,7 @@ onPvRowClicked(ShogiEngineThinkingModel* model, row)
 | `LanguageController` | 言語メニュー（システム・日本語・英語・簡体字・繁体字）と棋譜表記のメニューを処理し、言語を変えたら再起動を案内する |
 | `UsiCommandController` | `UsiLogPanel` の手動コマンド入力欄からのUSIコマンドを、エンジンの枠（`EngineSlots` の E1・E2）のエンジンに送る。エンジン未起動時は通信ログにエラーを表示する |
 | `NyugyokuDeclarationHandler` | 利用者の入玉宣言を行う（`handleDeclaration(GameChannel*)`。`GameSession::declareNyugyoku()` が `activeChannel()` を渡す。コンストラクタは親ウィジェットと `const KifuDocument*`）。対局中でなければ警告、人間の手番でなければ案内を出す。窓口が宣言を受け付けるか（`acceptsDeclaration()`。ローカル対局は対局の条件の持将棋ルール `MatchStartOptions::jishogiRule` が選ばれているときだけ）を確かめる。確認（宣言する側は `KifuDocument::usesHandicapNames()` で下手・上手とも呼ぶ）の後で `GameChannel::declareNyugyoku()` で宣言し、判定結果が返れば（ローカル対局は `MatchCoordinator::declareNyugyoku(declarer)` が盤面から対局の持将棋ルールで判定して終局する）ダイアログで知らせる。通信対局はサーバーが判定して終局を知らせる |
-| `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと USI 文字列を `UsiMove::parse()` で `UsiMove` にし、成りの選択を出さずに `BoardMoveController::playUsiMove()` で指す。指せたかは `playUsiMove()` の戻り値で判定し、指せなければ定跡ウィンドウに失敗を知らせる。人間の手番かどうかは `HumanTurnPolicy` に聞き、その判定を定跡ウィンドウに渡す（`setHumanCanPlayProvider`。「着手」を押したときもウィンドウがこの判定で確かめる）。「棋譜に展開...」では条件のダイアログ（`JosekiExpandDialog`）を出して展開する。定跡の表示（「■ 停止」）と「盤の手を登録」の checkable な `QAction` を持ち（表示は設定に保存する）、「盤に定跡手を表示」（`BoardArrowActions::joseki()`）と合わせて定跡ウィンドウ・盤の矢印・盤の手の登録に渡す |
+| `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと（定跡ウィンドウの `josekiMoveSelected`）、人間が今指せるかを確かめ、USI 文字列を `UsiMove::parse()` で `UsiMove` にし、成りの選択を出さずに `BoardMoveController::playUsiMove()` で指す。指せないとき（表を作った後で終局・手番交代した・読めない手・合法でない手）は自分で `NotificationPresenter` で知らせる（定跡ウィンドウはメッセージボックスを出さない）。人間の手番かどうかは `HumanTurnPolicy` に聞き、その判定を定跡ウィンドウに渡す（`setHumanCanPlayProvider`。表の「着手」のボタンを出すかに使い、押したときに指せなくなっていればボタンを消す）。「棋譜に展開...」では条件のダイアログ（`JosekiExpandDialog`）を出して展開する。定跡の表示（「■ 停止」）と「盤の手を登録」の checkable な `QAction` を持ち（表示は設定に保存する）、「盤に定跡手を表示」（`BoardArrowActions::joseki()`）と合わせて定跡ウィンドウ・盤の矢印・盤の手の登録に渡す |
 | `JosekiBookController` | 定跡ウィンドウの意図のシグナル（新規・開く・保存・履歴・マージ・ドロップ・定跡手の追加/編集/削除）を受けて、ダイアログを出して処理する。ファイルは `JosekiFileController`、定跡手は `JosekiEditController`、マージは `JosekiMergeController`（3つともここが持ち、ダイアログの親は定跡ウィンドウ）。「現在の棋譜から」は表示中の手順（`KifuNavigationState::currentRecordLine()`）を渡す。ドロップは定跡ファイル（.db）1つなら開き、それ以外は複数の棋譜から登録するダイアログに並べる（ドロップの処理の後で）。ドックを閉じるときとアプリを閉じるときに未保存の変更を確かめ（ドックを閉じて「破棄」なら保存した内容に戻す）、未保存の間はドックの題名に「*」を付ける。`JosekiWindowController` が作る |
 | `MenuWindowController` | メニューバーの項目をカテゴリごとに集めて `MenuWindow` を作る（初回だけ）。押されたボタンは `MenuWindow` がその `QAction` を実行する |
 | `BranchTreeEditController` | 分岐ツリーの右クリックメニューで分岐を編集する（本譜にする・並べ替え・削除）。対局していないときの盤上の着手を、現在の手の次の手（変化）として記録する |
@@ -7964,7 +7967,7 @@ sequenceDiagram
 | `Usi` | USIプロトコル通信ファサード。エンジンプロセスの起動と初期化を実行 |
 
 **補足:**
-- `GameStartOptionsBuilder::plan()` は開始する手順（現在の局面から始めるなら、表示中の手順の表示中の手数まで）を決める。始められないときは理由を返し、`GameSession` が `ErrorBus` で知らせる
+- `GameStartOptionsBuilder::plan()` は開始する手順（現在の局面から始めるなら、表示中の手順の表示中の手数まで）を決める。始められないときは理由を返し、`GameSession` が `NotificationPresenter::warning` で知らせる
 - 対局ダイアログからの開始・連続対局の次局（`ConsecutiveGameSeries::nextGameReady` → `GameSession::startNextGame()`）は、どれも `GameSession::startGame()` を通る。中断した対局の再開は `GameSession::resumeInterruptedGame()` が中断の行を除いて棋譜を直前の手へ戻し、`MatchCoordinator::resumeInterruptedGame()` で中断した局面・時計に戻して `beginPlay()` で時計を動かす
 - 盤・棋譜欄・手番の表示は、`GameSession` が個別に命じるのではなく、分岐ツリーと表示中の手が変わったときに各部品（`BoardSyncPresenter`・`KifuDisplayPresenter` など）が自分で合わせる。メニュー・ボタンの有効/無効は動作状態（`AppActivityState`）の変化を `UiStatePolicyManager` が受けて切り替える
 - `MatchCoordinator::start()` は `MatchStartOptions::players`（`MatchPlayers`）から Strategy を選ぶ。エンジン同士なら `EngineVsEngineStrategy`、片方がエンジンなら `HumanVsEngineStrategy`、人間同士なら `HumanVsHumanStrategy`（6.2 節）

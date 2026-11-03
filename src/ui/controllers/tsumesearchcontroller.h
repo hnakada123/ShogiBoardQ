@@ -17,7 +17,7 @@ class QWidget;
  * @brief 表示中の局面で詰み探索の条件を選ばせ、検討・詰み探索のセッションで探索を始める
  *
  * 探索中の表示とメニューの状態は、セッションが動作状態を「詰み探索中」にすることで決まる。
- * エラーは ErrorBus で知らせる。
+ * エラーは NotificationPresenter で知らせる。
  */
 class TsumeSearchController : public QObject
 {
@@ -25,7 +25,7 @@ class TsumeSearchController : public QObject
 
 public:
     struct Deps {
-        QWidget* parentWidget = nullptr;                ///< 条件ダイアログの親
+        QWidget* parentWidget = nullptr;                ///< 条件ダイアログと知らせの親
         const KifuNavigationState* navState = nullptr;  ///< 探索する局面（表示中の手。必須）
         AnalysisSession* session = nullptr;             ///< 探索するセッション（必須）
     };

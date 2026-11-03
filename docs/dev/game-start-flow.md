@@ -4,7 +4,7 @@
 
 ## 開始要求
 
-メニュー「対局」→「対局」は `GameSession::startGameFromDialog()`（`src/app/gamesession.cpp`）を呼ぶ。棋譜または直前の対局の開始局面が平手でない（局面編集した・棋譜の局面図から始めた）なら、ダイアログで「現在の局面」を選ばせる（`StartGameDialog::forceCurrentPositionSelection()`）。現在の局面以外から始めるときは、未保存の棋譜を捨ててよいかを `KifuFileController::confirmDiscardUnsaved()` で確かめる。ダイアログの値と表示中の手を `GameStartRequest` にまとめ、`GameStartOptionsBuilder::plan()`（`src/game/gamestartoptionsbuilder.cpp`）で開始の計画 `GameStartPlan` を作る。計画を作る間は棋譜も対局の状態も書き換えない。開始できなければ、理由を `ErrorBus` で知らせる。
+メニュー「対局」→「対局」は `GameSession::startGameFromDialog()`（`src/app/gamesession.cpp`）を呼ぶ。棋譜または直前の対局の開始局面が平手でない（局面編集した・棋譜の局面図から始めた）なら、ダイアログで「現在の局面」を選ばせる（`StartGameDialog::forceCurrentPositionSelection()`）。現在の局面以外から始めるときは、未保存の棋譜を捨ててよいかを `KifuFileController::confirmDiscardUnsaved()` で確かめる。ダイアログの値と表示中の手を `GameStartRequest` にまとめ、`GameStartOptionsBuilder::plan()`（`src/game/gamestartoptionsbuilder.cpp`）で開始の計画 `GameStartPlan` を作る。計画を作る間は棋譜も対局の状態も書き換えない。開始できなければ、理由を `NotificationPresenter::warning` で知らせる（題名は「対局開始」）。
 
 `GameStartRequest` は次を渡す。
 

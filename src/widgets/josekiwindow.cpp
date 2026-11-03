@@ -37,7 +37,6 @@
 #include <QLabel>
 #include <QLocale>
 #include <QMenu>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QShowEvent>
 #include <QTimer>
@@ -481,14 +480,6 @@ void JosekiWindow::updateHumanCanPlay()
     if (humanCanPlayNow() != m_model->humanCanPlay()) updateJosekiDisplay();
 }
 
-void JosekiWindow::showMoveFailed(const QString &usiMove)
-{
-    QMessageBox::warning(this, tr("着手エラー"),
-        tr("定跡手「%1」を指すことができませんでした。\n\n"
-           "この定跡手は現在の局面では合法手ではない可能性があります。\n"
-           "定跡ファイルのデータに誤りがある可能性があります。").arg(usiMove));
-}
-
 // ============================================================
 // 定跡手の操作
 // ============================================================
@@ -506,13 +497,10 @@ bool JosekiWindow::isDisplayEnabled() const
 void JosekiWindow::playMoveAt(int row)
 {
     if (row < 0 || row >= m_model->moves().size()) return;
-    // 最後に表を作った後で終局・手番交代していれば、着手ボタンを消して指さない
-    if (!humanCanPlayNow()) {
-        updateHumanCanPlay();
-        QMessageBox::information(this, tr("情報"), tr("定跡手は、対局中の自分の手番か、対局していないときに指せます。"));
-        return;
-    }
-    emit josekiMoveSelected(m_model->moves().at(row).move);
+    const QString usiMove = m_model->moves().at(row).move;
+    // 最後に表を作った後で終局・手番交代していれば、着手ボタンを消す（指せるかは受け手が確かめて知らせる）
+    if (!humanCanPlayNow()) updateHumanCanPlay();
+    emit josekiMoveSelected(usiMove);
 }
 
 void JosekiWindow::onAddMoveButtonClicked()

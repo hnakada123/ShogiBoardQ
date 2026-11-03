@@ -31,7 +31,6 @@
 #include "considerationuicontroller.h"
 #include "engineslots.h"
 #include "engine_profile_format_helper.h"
-#include "errorbus.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphpresenter.h"
 #include "evaluationseries.h"
@@ -44,6 +43,7 @@
 #include "branchtree_test_util.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
+#include "notificationpresenter.h"
 #include "settingscommon.h"
 #include "sfenutils.h"
 #include "shogiclock.h"
@@ -117,7 +117,8 @@ public:
     EngineSlots engines;
     Usi* usi = nullptr;
     std::unique_ptr<KifuAnalysisSession> session;   ///< controller() が作る解析の実行
-    QSignalSpy errors{&ErrorBus::instance(), &ErrorBus::messagePosted};
+    /// 棋譜解析の知らせ（NotificationPresenter。ダイアログを出さずに記録する）
+    NotificationPresenter::ScopedCapture capture;
 
     TestHelper()
     {
@@ -188,7 +189,7 @@ public:
         return request && ctrl.start(*request);
     }
 
-    QString lastError() const { return errors.isEmpty() ? QString() : errors.last().at(1).toString(); }
+    QString lastError() const { return capture.notices().isEmpty() ? QString() : capture.notices().last(); }
 
 private:
     Q_DISABLE_COPY(TestHelper)
@@ -924,10 +925,10 @@ private slots:
         deps.session = &h.session;
         deps.navState = &nav;
         ConsiderationUiController controller(deps);
-        QSignalSpy errors(&ErrorBus::instance(), &ErrorBus::messagePosted);
+        NotificationPresenter::ScopedCapture capture;
         controller.startConsideration();
-        QCOMPARE(errors.count(), 1);
-        QVERIFY(errors.last().at(1).toString().contains(QStringLiteral("検討エンジン")));
+        QCOMPARE(capture.notices().size(), 1);
+        QVERIFY(capture.notices().last().contains(QStringLiteral("検討エンジン")));
         QVERIFY(!h.session.isConsidering());
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
     }

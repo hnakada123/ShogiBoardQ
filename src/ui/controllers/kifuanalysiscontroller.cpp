@@ -4,7 +4,7 @@
 #include "kifuanalysiscontroller.h"
 
 #include "analysisresultspanel.h"
-#include "errorbus.h"
+#include "notificationpresenter.h"
 #include "evaluationgraphpresenter.h"
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
@@ -224,5 +224,5 @@ void KifuAnalysisController::onResultRowDoubleClicked(int row)
 
 void KifuAnalysisController::showError(const QString& message) const
 {
-    ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, message);
+    NotificationPresenter::warning(m_deps.parentWidget, tr("棋譜解析"), message);
 }

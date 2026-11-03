@@ -8,7 +8,7 @@
 #include "consecutivegameseries.h"
 #include "csagamechannel.h"
 #include "csagamecoordinator.h"
-#include "errorbus.h"
+#include "notificationpresenter.h"
 #include "gamechannel.h"
 #include "gameinfo.h"
 #include "gameinfokeys.h"
@@ -164,7 +164,8 @@ void GameSession::startGameFromDialog()
     QString error;
     std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
     if (!plan) {
-        if (!error.isEmpty()) ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, error);
+        if (!error.isEmpty()) NotificationPresenter::warning(m_deps.shogiView ? m_deps.shogiView->window() : nullptr,
+                                                             tr("対局開始"), error);
         return;
     }
     // 定跡を使うエンジンには、始めた時点の定跡の写しを渡す（対局中に定跡ウィンドウで変えても影響しない）

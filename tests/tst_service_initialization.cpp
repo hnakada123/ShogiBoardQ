@@ -58,6 +58,9 @@
 #include "boardchromewidget.h"
 #include "elidelabel.h"
 #include "gameinfokeys.h"
+#include "josekiwindow.h"
+#include "josekiwindowcontroller.h"
+#include "notificationpresenter.h"
 #include "playercard.h"
 #include "timecontrol.h"
 
@@ -537,6 +540,33 @@ private slots:
         parts.document->editHeader({});
         QVERIFY(namesMatch(QStringLiteral("先手"), QStringLiteral("後手")));
         parts.document->markSaved(QString());
+    }
+
+    /// 定跡ウィンドウの「着手」で指せなかったときの知らせは、JosekiWindowController が NotificationPresenter で
+    /// 出す（ウィンドウはメッセージボックスを出さない。監査 2026-11-01 M16）
+    void josekiMoveNoticesComeFromController()
+    {
+        MainWindow window;
+        auto& parts = window.composer().parts();
+        AppActivityState& activity = window.composer().activity();
+        JosekiWindow* joseki = parts.joseki->josekiWindow();
+        ShogiBoard* board = parts.gameBoard->board();
+        NotificationPresenter::ScopedCapture capture;
+
+        emit joseki->josekiMoveSelected(QStringLiteral("bad"));    // 読めない手
+        emit joseki->josekiMoveSelected(QStringLiteral("5e5d"));   // 平手の局面では指せない手
+        QCOMPARE(capture.notices().size(), 2);
+        QVERIFY(capture.notices().at(0).contains(QStringLiteral("「bad」")));
+        QVERIFY(capture.notices().at(1).contains(QStringLiteral("「5e5d」")));
+
+        // 人間が指せない動作状態（表を作った後で解析を始めたなど）は指さずに知らせる
+        QObject other;
+        ActivityLease analysis = activity.begin(AppActivityState::Activity::DuringAnalysis, &other);
+        emit joseki->josekiMoveSelected(QStringLiteral("7g7f"));
+        QCOMPARE(capture.notices().size(), 3);
+        QVERIFY(capture.notices().last().contains(QStringLiteral("指せます")));
+        QCOMPARE(board->pieceCharacter(7, 7), Piece::BlackPawn);
+        QVERIFY(capture.errors().isEmpty());
     }
 
     /// 盤の右クリックは、局面編集中だけ局面編集（PositionEditSession）が駒を巡らせる（監査 2026-11-01 M14）

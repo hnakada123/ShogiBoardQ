@@ -28,7 +28,7 @@ class QWidget;
  * 解析の実行（エンジン・動作状態「棋譜解析中」）は KifuAnalysisSession が画面と独立に進める（検討の
  * ConsiderationUiController と AnalysisSession と同じ形）。このクラスは利用者の操作（条件ダイアログ・中止・
  * 結果の行の選択）を受け、解析の進み具合を結果の表・評価値グラフ・棋譜欄（解析中の手へ移る）に反映する。
- * エラーは ErrorBus で知らせる。評価値グラフの解析の点のクリックは、合成ルートが棋譜の移動につなぐ。
+ * エラーは NotificationPresenter で知らせる。評価値グラフの解析の点のクリックは、合成ルートが棋譜の移動につなぐ。
  */
 class KifuAnalysisController : public QObject
 {
@@ -36,7 +36,7 @@ class KifuAnalysisController : public QObject
 
 public:
     struct Deps {
-        QWidget* parentWidget = nullptr;                    ///< 条件ダイアログの親
+        QWidget* parentWidget = nullptr;                    ///< 条件ダイアログと知らせの親
         KifuAnalysisSession* session = nullptr;             ///< 解析の実行（必須）
         KifuAnalysisListModel* analysisModel = nullptr;     ///< 解析結果の表（必須）
         AnalysisResultsPanel* resultsPanel = nullptr;   ///< 解析結果の表（必須。モデルは作るときに結ぶ）
@@ -51,7 +51,7 @@ public:
     explicit KifuAnalysisController(const Deps& deps, QObject* parent = nullptr);
     ~KifuAnalysisController() override;
 
-    /// 解析を始める（前の解析は止める）。始められなければ ErrorBus で知らせて false
+    /// 解析を始める（前の解析は止める）。始められなければ知らせて false
     bool start(AnalysisRequest request);
     /// 表示中の手順と条件ダイアログの値から解析の依頼を作る（エンジンが選ばれていなければ nullopt）
     std::optional<AnalysisRequest> requestFromDialog(const KifuAnalysisDialog& dialog) const;

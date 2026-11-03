@@ -175,15 +175,28 @@ void JosekiWindowController::onJosekiMoveSelected(const QString& usiMove)
         qCDebug(lcUi) << "onJosekiMoveSelected: empty move";
         return;
     }
-    // 指せるかは定跡ウィンドウが押したときに determineHumanCanPlay で確かめている
+    // 表を作った後で終局・手番交代していれば指さない（盤面クリックと同じ判定）
+    if (!determineHumanCanPlay()) {
+        NotificationPresenter::information(m_parentWidget, tr("情報"),
+                                           tr("定跡手は、対局中の自分の手番か、対局していないときに指せます。"));
+        return;
+    }
     const auto move = UsiMove::parse(usiMove);
     if (!move) {
         qCWarning(lcUi) << "onJosekiMoveSelected: invalid move format";
-        m_josekiWindow->showMoveFailed(usiMove);
+        showMoveFailed(usiMove);
         return;
     }
     // 定跡手は成り・不成が決まっているので、成りの選択を出さずにそのまま指す
     const bool moveSuccess = m_boardMoves->playUsiMove(*move);
     qCDebug(lcUi) << "Move result: success=" << moveSuccess;
-    if (!moveSuccess) m_josekiWindow->showMoveFailed(usiMove);
+    if (!moveSuccess) showMoveFailed(usiMove);
+}
+
+void JosekiWindowController::showMoveFailed(const QString& usiMove) const
+{
+    NotificationPresenter::warning(m_parentWidget, tr("着手エラー"),
+                                   tr("定跡手「%1」を指すことができませんでした。\n\n"
+                                      "この定跡手は現在の局面では合法手ではない可能性があります。\n"
+                                      "定跡ファイルのデータに誤りがある可能性があります。").arg(usiMove));
 }

@@ -7,7 +7,7 @@
 #include "changeenginesettingsdialog.h"
 #include "considerationpanel.h"
 #include "registeredengines.h"
-#include "errorbus.h"
+#include "notificationpresenter.h"
 #include "kifunavigationstate.h"
 #include "logcategories.h"
 
@@ -40,21 +40,21 @@ void ConsiderationUiController::startConsideration()
     }
     const ConsiderationSettings settings = m_considerationPanel->settings();
     if (settings.engineName.isEmpty()) {
-        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, tr("将棋エンジンが選択されていません。"));
+        NotificationPresenter::critical(m_parentWidget, tr("検討"), tr("将棋エンジンが選択されていません。"));
         return;
     }
     // エンジンは名前（検討タブで選んだもの）で引く。番号で引くと、タブの一覧を作った後に
     // 登録が変わったときに名前とパスが食い違う
     const std::optional<EngineEntry> engine = RegisteredEngines::load().findByName(settings.engineName);
     if (!engine || engine->path.isEmpty()) {
-        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, tr("検討エンジンの選択が不正です。"));
+        NotificationPresenter::warning(m_parentWidget, tr("検討"), tr("検討エンジンの選択が不正です。"));
         return;
     }
 
     // 表示中の手順（分岐ツリー）から、検討する局面と直前の手を決める
     const std::optional<UsiPosition> position = m_navState->currentUsiPosition();
     if (!position) {
-        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, tr("検討する局面を読めません。"));
+        NotificationPresenter::warning(m_parentWidget, tr("検討"), tr("検討する局面を読めません。"));
         return;
     }
 

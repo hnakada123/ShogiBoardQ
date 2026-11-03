@@ -28,7 +28,7 @@ class ConsiderationUiController : public QObject
 
 public:
     struct Deps {
-        QWidget* parentWidget = nullptr;                             ///< エンジン設定ダイアログの親
+        QWidget* parentWidget = nullptr;                             ///< エンジン設定ダイアログと知らせの親
         ConsiderationPanel* considerationPanel = nullptr;  ///< 検討タブ（必須、非所有）
         AnalysisSession* session = nullptr;                          ///< 検討のセッション（必須、非所有）
         const KifuNavigationState* navState = nullptr;               ///< 検討する局面（表示中の手）
