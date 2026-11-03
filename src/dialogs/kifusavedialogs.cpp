@@ -9,7 +9,6 @@
 #include <QApplication>
 #include <QAbstractButton>
 #include <QDir>
-#include <QDateTime>
 #include <QFileInfo>
 #include <QMessageBox>
 

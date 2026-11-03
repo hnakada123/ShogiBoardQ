@@ -3,7 +3,6 @@
 
 #include "josekimovedialog.h"
 #include "dialogfontscale.h"
-#include "buttonstyles.h"
 #include "josekimoveinputwidget.h"
 #include "josekisettings.h"
 #include "enginemovevalidator.h"

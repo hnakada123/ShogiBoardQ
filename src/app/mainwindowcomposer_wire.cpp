@@ -40,20 +40,17 @@
 #include "matchcoordinator.h"
 #include "menuactionswiring.h"
 #include "piecesoundplayer.h"
-#include "playerinfopresenter.h"
 #include "positioneditsession.h"
 #include "pvclickcontroller.h"
 #include "recordpane.h"
 #include "gameboard.h"
 #include "shogiview.h"
 #include "thinkingpanel.h"
-#include "timedisplaypresenter.h"
 #include "notificationpresenter.h"
 #include "uistatepolicymanager.h"
 #include "usicommandcontroller.h"
 #include "usilogpanel.h"
 
-#include <QPushButton>
 #include <QStatusBar>
 
 // ---------------------------------------------------------------------------

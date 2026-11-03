@@ -10,8 +10,6 @@
 
 #include <QAbstractButton>
 #include <QApplication>
-#include <QClipboard>
-#include <QImage>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMainWindow>

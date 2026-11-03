@@ -12,7 +12,6 @@
 #include "networksettings.h"
 #include <QDir>
 #include <QFileDialog>
-#include <QMessageBox>
 #include <QSignalBlocker>
 
 CsaGameDialog::CsaGameDialog(QWidget *parent)
