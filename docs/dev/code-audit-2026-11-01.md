@@ -385,15 +385,15 @@
 ## 5. 名残・小さな修正
 
 呼び出しが src・tests とも0のもの:
-- `PieceSoundPlayer::enabledChanged`・`volumeChanged`・`toneChanged`（`piecesoundplayer.h:65-71`。ui・app の範囲で接続が0のシグナルはこの3つだけ）
-- `Usi::search(const UsiSearchRequest&)`（`usi.h:89-90`。説明「棋譜解析の1局面など」も古い）
-- `CsaGameCoordinator` の `username()`・`completedGames()`・`gameLimit()`・`gameSummary()`（`csagamecoordinator.h:162,169,175,176`）
-- `MatchEngineSeat::side()` と `m_side`（`matchengineseat.h:49,81`。書くだけ）。CLAUDE.md は `MatchEngineSeat` が「手番」を持つと書くが、手番は送る局面で決まる
-- `MatchStrategyHost::currentPly()`（`gamemodestrategy.h:33`。どの Strategy も呼ばない）
-- `EngineRegistrationHandler::progressUpdated`（`engineregistrationhandler.h:64`。受け手がなく、訳文2つの行き先もない）
-- `TsumeGameSession::legalMoves()`（`tsumegamesession.h:44`）
-- `KifLineBuilder::lastIrregularity()`（`kiflinebuilder.h:74`）、`ParseReport::options()`（`kifparsetypes.h:147`）
-- `CsaGameCoordinator::startEngine` の、名前で登録一覧を引く分岐（`_setup.cpp:96-104`。ダイアログは常にパスを渡す）
+- `PieceSoundPlayer::enabledChanged`・`volumeChanged`・`toneChanged`（`piecesoundplayer.h:65-71`。ui・app の範囲で接続が0のシグナルはこの3つだけ） → 済（f5fd9f29）
+- `Usi::search(const UsiSearchRequest&)`（`usi.h:89-90`。説明「棋譜解析の1局面など」も古い） → 済（f5fd9f29）
+- `CsaGameCoordinator` の `username()`・`completedGames()`・`gameLimit()`・`gameSummary()`（`csagamecoordinator.h:162,169,175,176`） → 済（前に消えていた。f5fd9f29 の時点で無い）
+- `MatchEngineSeat::side()` と `m_side`（`matchengineseat.h:49,81`。書くだけ）。CLAUDE.md は `MatchEngineSeat` が「手番」を持つと書くが、手番は送る局面で決まる → 済（f5fd9f29。CLAUDE.md も直した）
+- `MatchStrategyHost::currentPly()`（`gamemodestrategy.h:33`。どの Strategy も呼ばない） → 済（f5fd9f29）
+- `EngineRegistrationHandler::progressUpdated`（`engineregistrationhandler.h:64`。受け手がなく、訳文2つの行き先もない） → 済（f5fd9f29）
+- `TsumeGameSession::legalMoves()`（`tsumegamesession.h:44`） → 済（f5fd9f29）
+- `KifLineBuilder::lastIrregularity()`（`kiflinebuilder.h:74`）、`ParseReport::options()`（`kifparsetypes.h:147`） → 済（f5fd9f29）
+- `CsaGameCoordinator::startEngine` の、名前で登録一覧を引く分岐（`_setup.cpp:96-104`。ダイアログは常にパスを渡す） → 済（f5fd9f29）
 
 テストからしか使われない公開の口（公開を外すか、テストを部品の外から確かめる形にする）:
 - engine・game・network・analysis: `Usi::sendSetOptionCommand`、`CsaGameCoordinator::record()`・`progress()`、`UsiBestMove::stopped`、`ThinkingInfoFormatter::processInfo` の公開、`KifuAnalysisSession::Deps::engine`、`CsaGameCoordinator()` の引数なしのコンストラクタ
