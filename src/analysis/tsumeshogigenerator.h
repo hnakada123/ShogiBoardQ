@@ -42,6 +42,9 @@ public:
         int maxPositionsToFind = 10; ///< 見つける局面数の上限（0=無制限）
         bool allowFinalMoveAlternatives = true; ///< 主手順の最終手の複数解を許容する（最終手余詰）
         TsumeshogiPositionGenerator::Settings posGenSettings;
+
+        /// 範囲（TsumeshogiSettings::GeneratorLimits。GUI と CLI で共通）に収め、目標手数を奇数にした値
+        Settings normalized() const;
     };
 
     explicit TsumeshogiGenerator(QObject* parent = nullptr);

@@ -178,6 +178,7 @@
 | 2026-11-03 | 読むファイルの検査を CLI と自動化 API で1つにした（監査 2026-11-01 F8）のに合わせて §1.5 のファイルの一覧を更新（headless に `InputPath::check`（絶対パス・存在・通常のファイル）を置き、CLI の `convert-kifu`・`analyze-kifu` の `input_path`（`KifuConversionService`）と `kifu.load` が使う。CLI も相対パスを断り、ディレクトリは `parse_error` でなく `invalid_argument` にした。MCP の `paths.py` と同じ分類） |
 | 2026-11-03 | 保存形式で失うものを形式の表から決めるようにした（監査 2026-11-01 F20）のに合わせて §8.8・§8.9 を更新（`KifuExport::capabilities()`（変化・消費時間・コメント・しおり）・`writesTerminal()`・`lossIn()` を置き、`KifuSaveDialogs::saveViaDialog` は形式ごとの switch の代わりに `lossOf` の失うものを並べて確認する（USEN・USI のコメント・しおり、変化の消費時間、CSA・USI の書けない終局も聞く）。`RecordContents` は消した。コピーの知らせも同じ表で、含まないものを出す。消費時間のない形式を読んだ手の 0 秒の時間は `RecordTime::isRecorded()` で数えない） |
 | 2026-11-03 | CLI の詰み探索の局面を GUI にそろえた（監査 2026-11-01 F16）のに合わせて §9.7 を更新（CLI の `mate` は指し手の無い局面に `MateSearchPosition::attackerToMove()` をかけ、攻方の玉の無い詰将棋の局面を、SFEN の手番によらず攻方の手番で調べる） |
+| 2026-11-03 | 詰将棋生成の条件の範囲を GUI と CLI で1つにした（監査 2026-11-01 F17）のに合わせて §9.11 を更新（範囲は `TsumeshogiSettings::GeneratorLimits`、設定は `BoundedSetting`。CLI の `generate-tsume` は GUI と同じ範囲と既定値（手数 1〜99、件数 1〜10000・既定 10、時間 1〜300 秒、守り駒 0〜10。件数の 0 = 無制限は GUI だけ）。MCP の `generate_tsume` は件数を 100 までに絞る。奇数の規則は `GeneratorLimits::isTargetMoves`・`oddTargetMoves` だけ） |
 
 <!-- chapter-0-end -->
 
@@ -5547,7 +5548,7 @@ analysis層の機能は、エンジンの使い方が2つに分かれている�
 |---|---|
 | `MateSearchRunner`（CLI の詰み探索） | `ask()` を1回。答えの種類は `kindName()` で `mate`・`nomate`・`unknown`・`notimplemented` にする |
 | `TsumeVerificationRunner`（CLI の余詰検査） | `TsumeVerificationJob` を `MateQueryLoop` で回す |
-| `TsumeshogiGenerator`（詰将棋の生成） | 候補ごとに `TsumeCandidateJob` を `MateQueryLoop` で回す。生成器は候補の待ち行列・問い合わせの中継・結果の集計（重複の除外・上限・進捗）だけを行う |
+| `TsumeshogiGenerator`（詰将棋の生成） | 候補ごとに `TsumeCandidateJob` を `MateQueryLoop` で回す。生成器は候補の待ち行列・問い合わせの中継・結果の集計（重複の除外・上限・進捗）だけを行う。条件の範囲・既定値・目標手数の奇数の規則は services の `TsumeshogiSettings::GeneratorLimits` と設定の宣言（`BoundedSetting`）だけで決め、生成ダイアログの欄・CLI の `generate-tsume` の引数・`Settings::normalized()`（`start()` が渡された条件を収める）が使う |
 | `TsumeMateEngine`（詰将棋の判定） | `askWithin()`（`go mate infinite` を期限まで待ち、stop は送らない） |
 
 `TsumeCandidateJob`（手数の確認 → 唯一解の検査 → 駒の除去 → 除いた局面の検査 → 採択／棄却）と `TsumeVerificationJob`（総予算と1回1秒の上限つきの唯一解の検査）は引き出し型の問い合わせ元 `MateQuerySource`（`nextQuery()`・`submit(answer, elapsedMs)`・`isDone()`）で、Qt のイベントループもエンジンも知らない。テスト（`tests/tst_tsumeshogi_verification.cpp`）は代用エンジンの答えで直接進める。手順と採択条件は [詰将棋局面自動生成機能](tsumeshogi-generator.md) を参照。

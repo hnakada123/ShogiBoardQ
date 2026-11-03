@@ -8,6 +8,7 @@
 #include "clistopwatcher.h"
 #include "sfenvalidator.h"
 #include "tsumeshogigenerator.h"
+#include "tsumeshogisettings.h"
 #include "tsumeverificationrunner.h"
 
 #include <QElapsedTimer>
@@ -138,7 +139,8 @@ int CliCommands::generateTsume(const QJsonObject& params)
     if (!engine) return CliOutput::failEvent(ErrorKind::EngineNotFound, error);
     // 範囲と既定値は CliCommandSpecs の表で決まる
     const int targetMoves = params.value(QStringLiteral("target_moves")).toInt();
-    if (targetMoves % 2 == 0) return CliOutput::failEvent(ErrorKind::InvalidArgument, QStringLiteral("target_moves must be odd"));
+    if (!TsumeshogiSettings::GeneratorLimits::isTargetMoves(targetMoves))
+        return CliOutput::failEvent(ErrorKind::InvalidArgument, QStringLiteral("target_moves must be odd"));
     const int maxPositions = params.value(QStringLiteral("max_positions")).toInt();
     const int timeoutMs = params.value(QStringLiteral("timeout_ms")).toInt();
     const int maxAttack = params.value(QStringLiteral("max_attack_pieces")).toInt();
@@ -192,7 +194,9 @@ int CliCommands::verifyTsume(const QJsonObject& params)
     const auto engine = CliArgs::resolveEngine(params, &error);
     if (!engine) return CliOutput::fail(ErrorKind::EngineNotFound, error);
     const int targetMoves = params.value(QStringLiteral("target_moves")).toInt();
-    if (targetMoves % 2 == 0) return CliOutput::fail(ErrorKind::InvalidArgument, QStringLiteral("target_moves must be odd"));
+    // 範囲は表（1〜39）で確かめてある。奇数の規則は生成と同じ
+    if (!TsumeshogiSettings::GeneratorLimits::isTargetMoves(targetMoves))
+        return CliOutput::fail(ErrorKind::InvalidArgument, QStringLiteral("target_moves must be odd"));
     const int timeoutMs = params.value(QStringLiteral("timeout_seconds")).toInt() * 1000;
 
     const SfenValidation validation = SfenValidator::validate(params.value(QStringLiteral("sfen")).toString());

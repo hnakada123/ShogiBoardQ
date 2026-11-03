@@ -331,7 +331,8 @@ PHASE1_TOOLS: list[types.Tool] = [
         "solver, checked with the engine's 'go mate', verified to have a unique solution and trimmed of "
         "unnecessary pieces. Returns a job id; poll tsume_generation_status for found positions and call "
         "stop_tsume_generation to end early. Requires an engine that supports 'go mate' (e.g. KomoringHeights).",
-        _spec("command", "generate-tsume", drop=["stdin_control"]),
+        # The ranges are the GUI's; the tool keeps at most 100 problems so that the status stays small
+        _spec("command", "generate-tsume", drop=["stdin_control"], override={"max_positions": {"maximum": 100}}),
         JOB_START_OUTPUT,
     ),
     _tool(

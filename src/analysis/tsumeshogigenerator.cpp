@@ -9,6 +9,7 @@
 #include "mateoracle.h"
 #include "logcategories.h"
 #include "matequeryloop.h"
+#include "tsumeshogisettings.h"
 
 namespace {
 /// プログレス更新間隔(ms)
@@ -34,11 +35,25 @@ TsumeshogiGenerator::~TsumeshogiGenerator()
     stop();
 }
 
+TsumeshogiGenerator::Settings TsumeshogiGenerator::Settings::normalized() const
+{
+    using Limits = TsumeshogiSettings::GeneratorLimits;
+    Settings result = *this;
+    result.targetMoves = Limits::oddTargetMoves(targetMoves);
+    result.timeoutMs = qBound(Limits::kMinTimeoutSec * 1000, timeoutMs, Limits::kMaxTimeoutSec * 1000);
+    result.maxPositionsToFind = qBound(0, maxPositionsToFind, Limits::kMaxPositions);
+    result.posGenSettings.maxAttackPieces =
+        qBound(Limits::kMinAttackPieces, posGenSettings.maxAttackPieces, Limits::kMaxAttackPieces);
+    result.posGenSettings.maxDefendPieces = qBound(0, posGenSettings.maxDefendPieces, Limits::kMaxDefendPieces);
+    result.posGenSettings.attackRange = qBound(Limits::kMinAttackRange, posGenSettings.attackRange, Limits::kMaxAttackRange);
+    return result;
+}
+
 void TsumeshogiGenerator::start(const Settings& settings)
 {
     if (m_running) return;
 
-    m_settings = settings;
+    m_settings = settings.normalized();
     m_running = true;
     m_generatedCount = 0;
     m_foundCount = 0;

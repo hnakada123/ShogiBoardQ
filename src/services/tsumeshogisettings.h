@@ -81,23 +81,60 @@ inline const Setting<QSize> tsumeshogiGeneratorDialogSize{"SizeRelated/tsumeshog
 inline const Setting<int> tsumeshogiGeneratorFontSize{"FontSize/tsumeshogiGenerator", 10};
 
 
-/// 目標手数（デフォルト: 3）
-inline const Setting<int> tsumeshogiGeneratorTargetMoves{"TsumeshogiGenerator/targetMoves", 3};
+/**
+ * @brief 詰将棋生成の条件の範囲（ここだけで決める）
+ *
+ * 生成ダイアログの欄・設定の宣言・CLI の generate-tsume の引数（MCP の generate_tsume）・
+ * TsumeshogiGenerator::Settings::normalized が使う。既定値は下の設定の宣言の既定値。
+ */
+struct GeneratorLimits {
+    static constexpr int kMinTargetMoves = 1;
+    static constexpr int kMaxTargetMoves = 99;
+    static constexpr int kMinAttackPieces = 1;
+    static constexpr int kMaxAttackPieces = 10;
+    static constexpr int kMaxDefendPieces = 10;   ///< 下限は 0
+    static constexpr int kMinAttackRange = 1;
+    static constexpr int kMaxAttackRange = 8;
+    static constexpr int kMinTimeoutSec = 1;
+    static constexpr int kMaxTimeoutSec = 300;
+    static constexpr int kMaxPositions = 10000;   ///< 下限の 0 は無制限（GUI だけ。CLI は終わるために 1 から）
+
+    /// 目標手数として使えるか（範囲内の奇数。詰将棋は攻方の手で終わる）
+    static constexpr bool isTargetMoves(int moves)
+    {
+        return moves >= kMinTargetMoves && moves <= kMaxTargetMoves && moves % 2 != 0;
+    }
+    /// 範囲に収めた奇数の目標手数（偶数は1つ小さい奇数。以前の版が偶数を保存した設定など）
+    static constexpr int oddTargetMoves(int moves)
+    {
+        const int bounded = qBound(kMinTargetMoves, moves, kMaxTargetMoves);
+        return bounded % 2 != 0 ? bounded : qMax(kMinTargetMoves, bounded - 1);
+    }
+};
+
+/// 目標手数（デフォルト: 3。奇数）
+inline const BoundedSetting<int> tsumeshogiGeneratorTargetMoves{
+    "TsumeshogiGenerator/targetMoves", 3, GeneratorLimits::kMinTargetMoves, GeneratorLimits::kMaxTargetMoves};
 
 /// 攻め駒上限（デフォルト: 4）
-inline const Setting<int> tsumeshogiGeneratorMaxAttackPieces{"TsumeshogiGenerator/maxAttackPieces", 4};
+inline const BoundedSetting<int> tsumeshogiGeneratorMaxAttackPieces{
+    "TsumeshogiGenerator/maxAttackPieces", 4, GeneratorLimits::kMinAttackPieces, GeneratorLimits::kMaxAttackPieces};
 
 /// 守り駒上限（デフォルト: 1）
-inline const Setting<int> tsumeshogiGeneratorMaxDefendPieces{"TsumeshogiGenerator/maxDefendPieces", 1};
+inline const BoundedSetting<int> tsumeshogiGeneratorMaxDefendPieces{
+    "TsumeshogiGenerator/maxDefendPieces", 1, 0, GeneratorLimits::kMaxDefendPieces};
 
 /// 配置範囲（デフォルト: 3）
-inline const Setting<int> tsumeshogiGeneratorAttackRange{"TsumeshogiGenerator/attackRange", 3};
+inline const BoundedSetting<int> tsumeshogiGeneratorAttackRange{
+    "TsumeshogiGenerator/attackRange", 3, GeneratorLimits::kMinAttackRange, GeneratorLimits::kMaxAttackRange};
 
 /// 探索時間・秒（デフォルト: 5）
-inline const Setting<int> tsumeshogiGeneratorTimeoutSec{"TsumeshogiGenerator/timeoutSec", 5};
+inline const BoundedSetting<int> tsumeshogiGeneratorTimeoutSec{
+    "TsumeshogiGenerator/timeoutSec", 5, GeneratorLimits::kMinTimeoutSec, GeneratorLimits::kMaxTimeoutSec};
 
 /// 生成上限（デフォルト: 10, 0=無制限）
-inline const Setting<int> tsumeshogiGeneratorMaxPositions{"TsumeshogiGenerator/maxPositions", 10};
+inline const BoundedSetting<int> tsumeshogiGeneratorMaxPositions{
+    "TsumeshogiGenerator/maxPositions", 10, 0, GeneratorLimits::kMaxPositions};
 
 /// ファイル保存・コピー時に詰み手順も出力するか（デフォルト: false）
 inline const Setting<bool> tsumeshogiGeneratorIncludePv{"TsumeshogiGenerator/includePv", false};
