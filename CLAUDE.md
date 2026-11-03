@@ -121,7 +121,7 @@ cmake --build build --target translations
   - `tsumecandidatejob.cpp/.h`・`tsumeverificationjob.cpp/.h` - 詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去）と、総予算つきの唯一解の検査（引き出し型の `MateQuerySource`。生成と CLI の検査で共通）
   - `tsumeshogigenerator.cpp/.h` - 詰将棋の生成（候補の待ち行列・問い合わせの中継・結果の集計）
   - `tsumecollectionsession.cpp/.h` - 詰将棋集の進捗・解析待ちの管理
-  - `matesearchposition.h` - 詰み探索に送る局面 `MateSearchPosition`（`forLine`: 途中局面は開始局面からの手順、開始局面は `attackerToMove` で玉の有無から決めた攻方の手番・手数1。`Position` で合わせ、文字列を組み立てない）
+  - `matesearchposition.h` - 詰み探索に送る局面 `MateSearchPosition`（`forLine`: 途中局面は開始局面からの手順、開始局面は `attackerToMove` で玉の有無から決めた攻方の手番・手数1。`Position` で合わせ、文字列を組み立てない。CLI の `mate` も指し手の無い局面に `attackerToMove` をかける）
 
 - **engine/**: USI (Universal Shogi Interface) エンジン連携（対局の仕組みに依存しない）
   - `usi.cpp/.h` - GUI から使うエンジン1台の窓口（局面の列の解析には `session()` の `UsiEngineSession` を渡す）
