@@ -2,6 +2,7 @@
 /// @brief 思考ドックの中身の実装
 
 #include "thinkingpanel.h"
+#include "actionbinding.h"
 #include "fontsizecontrol.h"
 
 #include "analysissettings.h"
@@ -16,35 +17,12 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
-namespace {
-/// actions に無い切り替えは、owner の子として作る（単独で使うとき）
-QAction* ensureAction(QAction* action, QObject* owner)
-{
-    if (action) return action;
-    auto* created = new QAction(owner);
-    created->setCheckable(true);
-    return created;
-}
-
-/// チェックと QAction を両方向に結ぶ
-void bindCheckBox(QCheckBox* checkBox, QAction* action)
-{
-    checkBox->setChecked(action->isChecked());
-    QObject::connect(checkBox, &QCheckBox::toggled, action, &QAction::setChecked);
-    QObject::connect(action, &QAction::toggled, checkBox, &QCheckBox::setChecked);
-}
-} // namespace
-
-ThinkingPanel::ThinkingPanel(QWidget* parent)
-    : ThinkingPanel(ArrowActions{}, parent)
-{
-}
-
 ThinkingPanel::ThinkingPanel(const ArrowActions& actions, QWidget* parent)
     : QWidget(parent)
     , m_fontSize(AnalysisSettings::thinkingFontSize, 8, 24)
-    , m_arrowActions{ensureAction(actions.match, this), ensureAction(actions.ponder, this)}
+    , m_arrowActions(actions)
 {
+    Q_ASSERT(m_arrowActions.match && m_arrowActions.ponder);
     auto* v = new QVBoxLayout(this);
     v->setContentsMargins(4, 4, 4, 4);
     v->setSpacing(4);
@@ -66,8 +44,8 @@ ThinkingPanel::ThinkingPanel(const ArrowActions& actions, QWidget* parent)
     m_arrowDescription->setObjectName(QStringLiteral("matchArrowDescription"));
     m_arrowDescription->setWordWrap(true);
     v->addWidget(m_arrowDescription);
-    bindCheckBox(m_matchArrows, m_arrowActions.match);
-    bindCheckBox(m_ponderArrows, m_arrowActions.ponder);
+    ActionBinding::bindCheckable(m_matchArrows, m_arrowActions.match);
+    ActionBinding::bindCheckable(m_ponderArrows, m_arrowActions.ponder);
     connect(m_arrowActions.match, &QAction::toggled, this, &ThinkingPanel::updateArrowControls);
     connect(m_arrowActions.ponder, &QAction::toggled, this, &ThinkingPanel::updateArrowControls);
     updateArrowControls();

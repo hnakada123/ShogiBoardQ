@@ -16,6 +16,7 @@
 #include "josekiwindow.h"
 #include "recordpane.h"
 #include "uistatepolicymanager.h"
+#include "checkable_action.h"
 
 class TestAppUiStatePolicy : public QObject
 {
@@ -586,7 +587,8 @@ private slots:
     {
         RecordPane pane;
         JosekiBookSession session;
-        JosekiWindow joseki(&session);
+        CheckableAction display(true), record, arrows;
+        JosekiWindow joseki(&session, {&display, &record, &arrows});
         UiStatePolicyManager::Deps deps;
         deps.recordPane = &pane;
         deps.joseki = &joseki;

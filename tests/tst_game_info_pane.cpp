@@ -34,6 +34,7 @@
 #include "appactivitystate.h"
 #include "sfenutils.h"
 #include "matchplayers.h"
+#include "checkable_action.h"
 
 class TestGameInfoPane : public QObject
 {
@@ -395,7 +396,8 @@ private slots:
     void thinkingPanelsFollowMatchMode()
     {
         QWidget parent;
-        ThinkingPanel tab(&parent);
+        CheckableAction match, ponder;
+        ThinkingPanel tab({&match, &ponder}, &parent);
         auto* page = &tab;
         const auto views = page->findChildren<QTableView*>(QString(), Qt::FindDirectChildrenOnly);
         QCOMPARE(views.size(), 2);
@@ -436,7 +438,8 @@ private slots:
     {
         AnalysisSettings::thinkingFontSize.set(10);
         QWidget parent;
-        ThinkingPanel tab(&parent);
+        CheckableAction match, ponder;
+        ThinkingPanel tab({&match, &ponder}, &parent);
         auto* page = &tab;
         auto* decrease = page->findChild<QToolButton*>(QStringLiteral("thinkingFontDecrease"));
         auto* increase = page->findChild<QToolButton*>(QStringLiteral("thinkingFontIncrease"));
@@ -470,7 +473,8 @@ private slots:
             QApplication::setFont(font);
             AnalysisSettings::thinkingFontSize.remove();
             QWidget parent;
-            ThinkingPanel tab(&parent);
+            CheckableAction match, ponder;
+            ThinkingPanel tab({&match, &ponder}, &parent);
             const auto views = tab.findChildren<QTableView*>(QString(), Qt::FindDirectChildrenOnly);
             QCOMPARE(views.size(), 2);
             for (QTableView* view : views) QCOMPARE(view->font().pointSize(), 10);

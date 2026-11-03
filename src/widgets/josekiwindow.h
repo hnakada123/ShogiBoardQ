@@ -49,7 +49,7 @@ class JosekiWindow : public QWidget
 #endif
 
 public:
-    /// 定跡ウィンドウのボタンとチェックが結ぶ切り替え（どれも checkable。無いものはウィンドウが作る）
+    /// 定跡ウィンドウのボタンとチェックが結ぶ切り替え（どれも必須で checkable。ウィンドウより長く生きる）
     struct Actions {
         QAction *display = nullptr;           ///< 定跡を表に出す（外すと「■ 停止」の状態。盤の矢印も出さない）
         QAction *recordBoardMoves = nullptr;  ///< 盤で指した手を登録する（「盤の手を登録」）
@@ -67,8 +67,6 @@ public:
 
     /// session は開いている定跡（必須。非所有で、ウィンドウより長く生きる）
     JosekiWindow(JosekiBookSession *session, const Actions &actions, QWidget *parent = nullptr);
-    /// 切り替えの QAction をすべてウィンドウが作る
-    explicit JosekiWindow(JosekiBookSession *session, QWidget *parent = nullptr);
     ~JosekiWindow() override;
 
     void setCurrentSfen(const QString &sfen);

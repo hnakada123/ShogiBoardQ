@@ -10,6 +10,7 @@
 #include "kifuanalysislistmodel.h"
 #include "numericrightaligncommadelegate.h"
 #include "shogienginethinkingmodel.h"
+#include "checkable_action.h"
 
 class TestMemoryLifecycle : public QObject
 {
@@ -43,7 +44,8 @@ private slots:
     void considerationSetupDoesNotAccumulateDelegates()
     {
         ShogiEngineThinkingModel model;
-        ConsiderationPanel manager;
+        CheckableAction arrows(true);
+        ConsiderationPanel manager(&arrows);
         for (int i = 0; i < 100; ++i)
             manager.setConsiderationThinkingModel(&model);
         QCOMPARE(manager.considerationView()->findChildren<NumericRightAlignCommaDelegate*>().size(), 1);
@@ -64,7 +66,8 @@ private slots:
     void considerationModelSwitchReleasesSelectionModels()
     {
         ShogiEngineThinkingModel first, second;
-        ConsiderationPanel manager;
+        CheckableAction arrows(true);
+        ConsiderationPanel manager(&arrows);
         for (int i = 0; i < 100; ++i) {
             manager.setConsiderationThinkingModel(i % 2 ? &first : &second);
             QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);

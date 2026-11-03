@@ -2,13 +2,13 @@
 /// @brief 検討タブ管理クラスの実装（状態管理・設定・イベント処理）
 
 #include "considerationpanel.h"
+#include "actionbinding.h"
 #include "fontsizecontrol.h"
 #include "engineselector.h"
 #include "engineinfowidget.h"
 #include "logcategories.h"
 #include "analysissettings.h"
 
-#include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QLabel>
@@ -27,22 +27,12 @@
 #include <QVBoxLayout>
 #include <initializer_list>
 
-ConsiderationPanel::ConsiderationPanel(QWidget* parent)
-    : ConsiderationPanel(nullptr, parent)
-{
-}
-
 ConsiderationPanel::ConsiderationPanel(QAction* arrows, QWidget* parent)
     : QWidget(parent)
     , m_arrowsAction(arrows)
     , m_considerationFontSize(AnalysisSettings::considerationFontSize, 8, 24)
 {
-    if (!m_arrowsAction) {
-        // 単独で使うとき
-        m_arrowsAction = new QAction(this);
-        m_arrowsAction->setCheckable(true);
-        m_arrowsAction->setChecked(true);
-    }
+    Q_ASSERT(m_arrowsAction);
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(4, 4, 4, 4);
     layout->setSpacing(4);
@@ -128,9 +118,7 @@ void ConsiderationPanel::loadEnginesAndSettings()
     connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ConsiderationPanel::onControlChanged);
     // 矢印のチェックは検討の条件ではなく、盤の矢印の切り替えに結ぶ
-    m_showArrowsCheckBox->setChecked(m_arrowsAction->isChecked());
-    connect(m_showArrowsCheckBox, &QCheckBox::toggled, m_arrowsAction, &QAction::setChecked);
-    connect(m_arrowsAction, &QAction::toggled, m_showArrowsCheckBox, &QCheckBox::setChecked);
+    ActionBinding::bindCheckable(m_showArrowsCheckBox, m_arrowsAction);
 }
 
 // ===================== エンジン名 =====================
@@ -345,10 +333,6 @@ void ConsiderationPanel::buildConsiderationView()
     connect(m_considerationView, &ThinkingTableView::pvRowClicked, this, &ConsiderationPanel::pvRowClicked);
     connect(m_considerationView, &ThinkingTableView::thinkingRowContextMenuAboutToShow,
             this, &ConsiderationPanel::rowContextMenuAboutToShow);
-
-    // buildConsiderationUi() より前に setConsiderationThinkingModel() が呼ばれた場合、
-    // 保存済みモデルをビューに適用する
-    if (m_considerationModel) m_considerationView->setThinkingModel(m_considerationModel);
 }
 
 // ===================== モデル設定 =====================

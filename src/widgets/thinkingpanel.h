@@ -30,15 +30,13 @@ class ThinkingPanel : public QWidget
     Q_OBJECT
 
 public:
-    /// 対局中の矢印のチェックが結ぶ切り替え（どれも checkable。無いものはパネルが作る）
+    /// 対局中の矢印のチェックが結ぶ切り替え（どれも必須で checkable。パネルより長く生きる）
     struct ArrowActions {
         QAction* match = nullptr;   ///< 手番側の読み（「対局中の矢印表示」）
         QAction* ponder = nullptr;  ///< 先読み側の読み（「先読み側も表示」）
     };
 
-    ThinkingPanel(const ArrowActions& actions, QWidget* parent = nullptr);
-    /// 矢印の切り替えの QAction をパネルが作る
-    explicit ThinkingPanel(QWidget* parent = nullptr);
+    explicit ThinkingPanel(const ArrowActions& actions, QWidget* parent = nullptr);
 
     /// 表に出す思考情報と、情報欄に出すエンジン名・状態（log）
     void setModels(ShogiEngineThinkingModel* thinking1, ShogiEngineThinkingModel* thinking2,

@@ -41,17 +41,28 @@
 #include "sfenutils.h"
 #include "test_replay.h"
 #include "header_drag_helper.h"
+#include "checkable_action.h"
 
 namespace {
+/// 定跡ウィンドウに渡す切り替え（アプリでは JosekiWindowController が作る。定跡は表に出し、
+/// 盤の手の登録と盤の矢印はオフ）。ウィンドウより先に作る
+struct WindowActions {
+    CheckableAction display{true};
+    CheckableAction recordBoardMoves;
+    CheckableAction boardArrows;
+    JosekiWindow::Actions actions() { return {&display, &recordBoardMoves, &boardArrows}; }
+};
+
 /// 定跡ウィンドウと、ウィンドウの定跡の操作（ファイル・定跡手・マージ・ドロップ・閉じるときの確認）を受ける部品。
 /// アプリでは JosekiWindowController が作る（「現在の棋譜から」の手順は空の棋譜）
 struct JosekiPanel {
     explicit JosekiPanel(JosekiBookSession *session)
-        : window(session)
+        : window(session, toggles.actions())
         , navState(&tree)
         , controller({session, &window, &navState})
     {
     }
+    WindowActions toggles;
     KifuBranchTree tree;
     JosekiWindow window;
     KifuNavigationState navState;
@@ -341,7 +352,8 @@ void TestJosekiWindow::testFontSizePreservedAfterHideShow()
     // SettingsServiceには 13 が保存済み
     {
         JosekiBookSession session2;
-        JosekiWindow window2(&session2);
+        WindowActions toggles2;
+        JosekiWindow window2(&session2, toggles2.actions());
         window2.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window2));
 
@@ -1154,7 +1166,8 @@ void TestJosekiWindow::testColumnWidthsSurviveRefresh()
         }
     }
     JosekiBookSession restoredBook;
-    JosekiWindow restored(&restoredBook);
+    WindowActions restoredToggles;
+    JosekiWindow restored(&restoredBook, restoredToggles.actions());
     restored.show();
     QVERIFY(QTest::qWaitForWindowExposed(&restored));
     QCOMPARE(restored.m_tableView->columnWidth(2), 280);
@@ -1379,13 +1392,9 @@ void TestJosekiWindow::testTogglesFollowActions()
 {
     JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
     JosekiBookSession session;
-    QAction display;
-    display.setCheckable(true);
-    display.setChecked(true);
-    QAction record;
-    record.setCheckable(true);
-    QAction arrows;
-    arrows.setCheckable(true);
+    CheckableAction display(true);
+    CheckableAction record;
+    CheckableAction arrows;
     JosekiWindow window(&session, {&display, &record, &arrows});
     QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("toggles.db"))));
 

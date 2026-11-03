@@ -29,9 +29,9 @@ class EngineSelector;
 class ThinkingTableView;
 
 /**
- * @brief 検討タブのUI構築・状態管理を担うマネージャ
+ * @brief 検討ドックの中身（ツールバー・情報・表）
  *
- * 検討ドックの中身（ツールバー・情報・表）。部品はコンストラクタで作る。
+ * 部品はコンストラクタで作る。
  * - 設定（エンジン・時間・候補手の数）は ConsiderationSettings を正本として持ち、利用者が変えると
  *   保存して settingsChanged で知らせる。ウィジェットはその値を出すだけ
  * - 「矢印表示」のチェックは渡された QAction（正本は ui の BoardArrowActions。盤の矢印もそれを読む）に結ぶだけ
@@ -52,9 +52,8 @@ public:
     Q_ENUM(RunState)
 
     /// ツールバー・情報・表を作り、保存した検討の条件を出す。arrows は「矢印表示」のチェックが結ぶ
-    /// 切り替え（checkable。無ければパネルが作る）
+    /// 切り替え（必須で checkable。パネルより長く生きる）
     explicit ConsiderationPanel(QAction* arrows, QWidget* parent = nullptr);
-    explicit ConsiderationPanel(QWidget* parent = nullptr);
     ~ConsiderationPanel() override;
     /// 検討の表が model を出していれば選択を外す（読み筋ダイアログを閉じたとき）
     void clearViewSelection(const ShogiEngineThinkingModel* model);
