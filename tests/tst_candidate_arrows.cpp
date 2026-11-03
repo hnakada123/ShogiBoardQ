@@ -1,7 +1,9 @@
 #include <QtTest>
 #include <QAction>
 #include <QCheckBox>
+#include <QPushButton>
 #include <QTemporaryDir>
+#include "actionbinding.h"
 #include "analysissession.h"
 #include "analysissettings.h"
 #include "appactivitystate.h"
@@ -239,6 +241,31 @@ private slots:
         QCOMPARE(settingsChanged.count(), 0);
         toggles.match()->setChecked(false);
         QVERIFY(!matchBox->isChecked());
+    }
+
+    /// チェックは QAction の今の値から始め、どちらを変えてももう片方が合う（監査 2026-11-01 M11。
+    /// 思考ドック・検討タブ・定跡ウィンドウが同じ関数で結ぶ）
+    void bindCheckableFollowsAction()
+    {
+        QAction action;
+        action.setCheckable(true);
+        action.setChecked(true);
+        QCheckBox box;
+        QPushButton button;
+        button.setCheckable(true);
+        ActionBinding::bindCheckable(&box, &action);
+        ActionBinding::bindCheckable(&button, &action);
+        QVERIFY(box.isChecked());
+        QVERIFY(button.isChecked());
+        QSignalSpy toggled(&action, &QAction::toggled);
+        box.click();
+        QVERIFY(!action.isChecked());
+        QVERIFY(!button.isChecked());
+        QCOMPARE(toggled.count(), 1);
+        action.setChecked(true);
+        QVERIFY(box.isChecked());
+        QVERIFY(button.isChecked());
+        QCOMPARE(toggled.count(), 2);
     }
 
     void sharedConversion()

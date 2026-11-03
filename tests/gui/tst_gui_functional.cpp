@@ -4111,7 +4111,9 @@ private slots:
             QVERIFY(view->columnWidth(col) >= view->fontMetrics().horizontalAdvance(model->headerData(col, Qt::Horizontal).toString()));
         QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Consideration)().at(2), 180);
 
-        ConsiderationPanel restored;
+        QAction arrows;
+        arrows.setCheckable(true);
+        ConsiderationPanel restored(&arrows);
         restored.setConsiderationThinkingModel(model);
         QCOMPARE(restored.considerationView()->columnWidth(2), 180);
         QCOMPARE(restored.considerationInfo()->columnWidths().at(0), 290);

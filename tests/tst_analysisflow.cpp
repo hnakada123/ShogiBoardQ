@@ -55,6 +55,7 @@
 #include "mateoracle.h"
 #include "usimodelbinding.h"
 #include "header_drag_helper.h"
+#include "checkable_action.h"
 
 namespace {
 /// 検討・詰み探索のセッションと、それが使うエンジンの枠
@@ -870,7 +871,8 @@ private slots:
         nav.setCurrentNode(first);
 
         ShogiEngineThinkingModel considerationModel;
-        ConsiderationPanel tab;
+        CheckableAction arrows(true);
+        ConsiderationPanel tab(&arrows);
         tab.setConsiderationThinkingModel(&considerationModel);
         // 利用者と同じく画面の欄で条件を変える
         tab.findChild<QRadioButton*>(QStringLiteral("considerationTimed"))->setChecked(true);
@@ -913,7 +915,8 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(SfenUtils::hirateSfen());
         KifuNavigationState nav(&tree);
-        ConsiderationPanel tab;
+        CheckableAction arrows(true);
+        ConsiderationPanel tab(&arrows);
         writeEngineSettings(mockEngine(), QStringLiteral("RenamedEngine"));   // タブの一覧を作った後に登録が変わった
 
         ConsiderationUiController::Deps deps;

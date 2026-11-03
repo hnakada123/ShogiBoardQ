@@ -677,6 +677,8 @@ set(SRC_VIEWS
 )
 
 set(SRC_WIDGETS
+    src/widgets/actionbinding.cpp
+    src/widgets/actionbinding.h
     src/widgets/analysisresultspanel.cpp
     src/widgets/analysisresultspanel.h
     src/widgets/apptooltipfilter.cpp

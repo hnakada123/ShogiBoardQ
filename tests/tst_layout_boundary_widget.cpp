@@ -18,6 +18,7 @@
 #include "usilogpanel.h"
 #include "engineinfowidget.h"
 #include "layoutboundarywidget.h"
+#include "checkable_action.h"
 
 /// 比べた結果が違えば、そのテストをそこで終える
 #define COMPARE_LAYOUTS(reference, bounded, step)                                                  \
@@ -311,8 +312,9 @@ private slots:
         QMainWindow window;
         window.setCentralWidget(new QWidget(&window));
         QMenu menu;
-        ThinkingPanel thinking(&window);
-        ConsiderationPanel consideration;
+        CheckableAction match, ponder, considerationArrows(true);
+        ThinkingPanel thinking({&match, &ponder}, &window);
+        ConsiderationPanel consideration(&considerationArrows);
         UsiLogPanel usiLog;
         CsaLogPanel csaLog;
         CommentEditorPanel comment;

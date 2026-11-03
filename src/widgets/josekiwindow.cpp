@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウ（ドックのパネル）の実装
 
 #include "josekiwindow.h"
+#include "actionbinding.h"
 #include "columnwidthmemory.h"
 #include "recentfilesmenu.h"
 #include "fontsizecontrol.h"
@@ -87,33 +88,17 @@ PositionInfo describePosition(const QString &sfen)
     if (info.ply == 1) info.handicap = Handicaps::of(*position);
     return info;
 }
-
-/// actions に無い切り替えは、owner の子として作る（単独で使うとき）
-QAction *ensureAction(QAction *action, bool checked, QObject *owner)
-{
-    if (action) return action;
-    auto *created = new QAction(owner);
-    created->setCheckable(true);
-    created->setChecked(checked);
-    return created;
-}
 } // namespace
-
-JosekiWindow::JosekiWindow(JosekiBookSession *session, QWidget *parent)
-    : JosekiWindow(session, Actions{}, parent)
-{
-}
 
 JosekiWindow::JosekiWindow(JosekiBookSession *session, const Actions &actions, QWidget *parent)
     : QWidget(parent)
     , m_session(session)
     , m_model(new JosekiTableModel(this))
+    , m_actions(actions)
     , m_fontHelper(JosekiSettings::josekiWindowFontSize, 6, 24, 1)
 {
     Q_ASSERT(m_session);
-    m_actions.display = ensureAction(actions.display, true, this);
-    m_actions.recordBoardMoves = ensureAction(actions.recordBoardMoves, false, this);
-    m_actions.boardArrows = ensureAction(actions.boardArrows, false, this);
+    Q_ASSERT(m_actions.display && m_actions.recordBoardMoves && m_actions.boardArrows);
     setAcceptDrops(true);
     setupUi();
     connect(m_session, &JosekiBookSession::modifiedChanged, this, &JosekiWindow::onModifiedChanged);
@@ -254,12 +239,8 @@ QWidget *JosekiWindow::buildToolbar()
     connect(m_expandButton, &QPushButton::clicked, this, &JosekiWindow::onExpandButtonClicked);
 
     // 切り替えの正本は QAction。チェックとボタンはそれに結ぶ（QAction を変えればこちらも変わる）
-    m_boardArrowsCheckBox->setChecked(m_actions.boardArrows->isChecked());
-    connect(m_boardArrowsCheckBox, &QCheckBox::toggled, m_actions.boardArrows, &QAction::setChecked);
-    connect(m_actions.boardArrows, &QAction::toggled, m_boardArrowsCheckBox, &QCheckBox::setChecked);
-    m_recordBoardMovesCheckBox->setChecked(m_actions.recordBoardMoves->isChecked());
-    connect(m_recordBoardMovesCheckBox, &QCheckBox::toggled, m_actions.recordBoardMoves, &QAction::setChecked);
-    connect(m_actions.recordBoardMoves, &QAction::toggled, m_recordBoardMovesCheckBox, &QCheckBox::setChecked);
+    ActionBinding::bindCheckable(m_boardArrowsCheckBox, m_actions.boardArrows);
+    ActionBinding::bindCheckable(m_recordBoardMovesCheckBox, m_actions.recordBoardMoves);
     connect(m_actions.recordBoardMoves, &QAction::toggled, this, &JosekiWindow::updateStatusDisplay);
     connect(m_stopButton, &QPushButton::clicked, this, &JosekiWindow::onStopButtonClicked);
     connect(m_actions.display, &QAction::toggled, this, &JosekiWindow::onDisplayToggled);

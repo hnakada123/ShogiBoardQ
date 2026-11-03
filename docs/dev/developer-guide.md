@@ -191,6 +191,7 @@
 | 2026-11-03 | 棋譜の文書の対局の時間の記録 `MatchTimeRecord` を消した（監査 2026-11-01 M8）のに合わせて §1.5・§8.5・§10.2・付録を更新（持ち時間と開始・終了の日時は対局情報にだけ書く。`KifuDocument::timeRecord()` を消し、棋譜の途中から続けた対局のメモ `GameSession::noteContinuedMatch()` は持ち時間を引数で受け取る） |
 | 2026-11-03 | 入玉宣言の駒の数と点数を core の1か所にした（監査 2026-11-01 M9）のに合わせて第18章を更新（`JishogiCalculator` に敵陣に要る駒の数 `kRequiredPiecesInCamp`・`hasEnoughPiecesInCamp()` と駒の点数 `kMajorPiecePoints`・`kMinorPiecePoints` を置き、持将棋の点数のダイアログと `NyugyokuJudgement` の説明文の数はこれと `winningPoints()`・`requiredPoints()` から入れる） |
 | 2026-11-03 | 1組の駒の枚数と敵陣の表を1つにした（監査 2026-11-01 M10）のに合わせて第1章・第2章・第5章を更新（`PieceRules::kSetCounts`・`setCount()` を駒箱 `Position::pieceBox()`・`PositionValidator`・`TsumeshogiPositionGenerator` が使う。詰将棋の候補局面の生成は自前の駒種・成れるかの表・行き所のない段の判定をやめ、`PieceKind`・`isPromotable`・`PieceRules::isDeadSquare` を使う。持将棋の敵陣は `PieceRules::inPromotionZone`） |
+| 2026-11-03 | パネルのチェックと切り替えの `QAction` の結び付けを1つにした（監査 2026-11-01 M11）のに合わせて §1.5・§11.2・§11.3・第18章を更新（widgets に `ActionBinding::bindCheckable()` を置き、思考ドック（`ThinkingPanel`）・検討タブ（`ConsiderationPanel`）・定跡ウィンドウ（`JosekiWindow`）のチェックはそれで結ぶ。QAction は必須にし、渡されなければパネルが作る分岐と、テストのためだけの引数なしのコンストラクタを消した） |
 
 <!-- chapter-0-end -->
 
@@ -601,6 +602,7 @@ src/
 │   ├── fontsizehelper.cpp/.h       #   A-/A+ の文字の大きさ（範囲・保存・変更の通知）
 │   ├── fontsizecontrol.cpp/.h      #   A-/A+ のボタンの組（文字・見た目・説明・範囲の端での無効化）
 │   ├── editactions.cpp/.h          #   元に戻す〜貼り付けの QAction の組（標準ショートカット。コメント欄・対局情報で共通）
+│   ├── actionbinding.cpp/.h        #   パネルのチェックと切り替えの QAction の結び付け（思考ドック・検討タブ・定跡ウィンドウで共通）
 │   ├── dialogfontscale.cpp/.h      #   ダイアログの A-/A+ と保存（全ダイアログ共通）
 │   ├── engineselector.cpp/.h       #   登録エンジンを選ぶ部品（コンボ・「設定」ボタン・未登録の案内・選択の保存）
 │   ├── recentfilesmenu.cpp/.h      #   「履歴」ボタンのメニュー（最近使ったファイル・履歴をクリア。定跡ウィンドウ・局面集ビューアで共通）
@@ -6333,10 +6335,10 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | クラス名 | 基底クラス | 配置場所 | 機能 |
 |---------|-----------|---------|------|
 | RecordPane | QWidget | 棋譜ドック（既定は右側） | 棋譜一覧（QTableView。指し手・消費時間・しおり・コメントの列と、列の表示の切り替え）＋分岐候補一覧（折りたたみ可）＋ナビゲーションボタン＋文字サイズ・しおり編集のボタン。コメントの編集欄は持たない（棋譜コメントのドック） |
-| ThinkingPanel | QWidget | 思考ドック | 対局・棋譜解析のエンジン2つ分の情報欄（`EngineInfoWidget`）と思考の表（`ThinkingTableView`）、文字の大きさのボタン、対局中の候補手の矢印のチェック（渡された `BoardArrowActions` の手番側・先読み側の `QAction` に結ぶだけ）。2つ目のエンジンは `setSecondEngineVisible()` で出す。読み筋の「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で通知する |
+| ThinkingPanel | QWidget | 思考ドック | 対局・棋譜解析のエンジン2つ分の情報欄（`EngineInfoWidget`）と思考の表（`ThinkingTableView`）、文字の大きさのボタン、対局中の候補手の矢印のチェック（渡された `BoardArrowActions` の手番側・先読み側の `QAction`（必須）に `ActionBinding::bindCheckable()` で結ぶだけ）。2つ目のエンジンは `setSecondEngineVisible()` で出す。読み筋の「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で通知する |
 | PvTableView | IncrementalTableView | 思考の表・棋譜解析の結果の表 | 読み筋の表。数値の列の右寄せ3桁区切り、「盤面」ボタン（クリックか Enter で `boardRequested(int)`）、読み筋の描き方、行の高さと文字の大きさ（`setFontPointSize()`）を受け持つ。列の役割は `Columns`（`numeric`・`board`・`pv`）で渡し、列幅は使う側が決める |
 | ThinkingTableView | PvTableView | 思考ドック・検討ドック | 思考の表。対局のエンジン2つと検討タブで共用し、列幅（保存と復元）を受け持つ。「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で知らせる |
-| ConsiderationPanel | QWidget | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。矢印のチェックは渡された `BoardArrowActions::consideration()` に結ぶだけ。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
+| ConsiderationPanel | QWidget | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。矢印のチェックは渡された `BoardArrowActions::consideration()`（必須）に `ActionBinding::bindCheckable()` で結ぶだけ。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
 | UsiLogPanel / CsaLogPanel / CommentEditorPanel | LogPanel / LogPanel / QWidget | USI通信ログ・CSA通信ログ・棋譜コメントの各ドック | 各ドックの中身。通信ログの2つは共通の基底 `LogPanel`（ログ・文字の大きさ・折り返し・最新へ・全てコピー・消去・コマンドの欄）の派生で、操作列に足す部品（エンジン名・接続状態）とコマンドの送り先だけを決める。`CsaLogPanel` は CSA通信対局の待機ダイアログ（`CsaWaitingDialog`）のログ窓にもそのまま入れる。同じ設定を使うパネル（ドックと待機ダイアログ）は、文字の大きさと折り返しを変えたら互いに合わせる（`LogPanel` が生きているパネルの一覧を持ち、設定のキーが同じパネルに伝える） |
 | BranchTreeView | QGraphicsView | 分岐ツリーのドック（ドックの中身そのもの。objectName は `branchTreeView`） | 分岐ツリーの図（`KifuBranchTree` を読むだけの観察者）。`setTree(tree)` でツリーの型付きの知らせを自分で受け、`nodeAppended` で手順の末尾に1手足しただけならその手だけを描き足し、それ以外（新しい変化・並べ替え・削除・作り直し）は作り直す。外とは `KifuBranchNode` の ID だけでやり取りする（`setCurrentNode(nodeId, center)`・`currentNodeId()`、シグナル `nodeActivated(nodeId)`・`nodeContextMenuAboutToShow(nodeId, menu)`、スロット `refreshNode(nodeId)`）。描く前に届いた表示中の手は、描いた時点で目立たせる。キー・マウス・ホイール・右クリックは `QGraphicsView` のイベント関数の上書きで受ける（イベントフィルタは使わない）。折りたたみもノード ID で指定する（`setCollapsed`・`isCollapsed`・`isCollapsible`・`expandAll`）。選べるかは `setClickEnabled()`（`UiStatePolicyManager` が決める）。テスト・自動化用に `isDrawn(nodeId)`・`laneOf(nodeId)`・`rebuildCount()` を持つ。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
 | BranchNodeItem | QGraphicsPathItem | BranchTreeView の中 | 図の1手（開始局面も同じクラスで、少し大きく太い枠で描く）。ノード ID・行・手数を型付きのメンバで持ち、`setCurrent()`・`setComment()`・`setCollapsedBadge()` で見た目を変える。`BranchTreeItemRoles`（`src/common/branchtreeitemroles.h`）の項目は自動化 API が読むためだけに付ける |
@@ -6364,6 +6366,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | FontSizeControl | QObject | A-/A+ のボタン2つを `FontSizeHelper` に結ぶ。ボタンの文字・見た目（`ButtonStyles::fontButton()`）・大きさ（ドックのパネルは `PanelButton`、ダイアログと定跡ウィンドウは `Sizing::Dialog` で文字に合わせる）・ツールチップと読み上げ名（「文字を小さくする」「文字を大きくする」）と、範囲の端で押せなくする処理はここだけで決める。ボタンは呼び出し側が置き、objectName も呼び出し側が決める。ボタンには役割のプロパティ `FontSizeControl::kRoleProperty`（`"fontSizeControl"`。値は `"decrease"`・`"increase"`）を付け、テストは表示の文字ではなくこれで探す |
 | DialogFontScale | QWidget | 全ダイアログ・メッセージボックスに A-/A+ と保存を付ける（`install(dialog, 宣言, options)`）。各部品を元の大きさからの差で拡大・縮小する |
 | EditActions | QObject | 元に戻す・やり直す・切り取り・コピー・貼り付けの5つの `QAction`（`enum Kind`、`action(kind)`・`setEnabled(kind, on)`）。標準ショートカット（`QKeySequence::Undo` など。`Qt::WidgetWithChildrenShortcut` で host に追加）・アイコン・実際のショートカットを添えたツールチップはここだけで決める。ボタンは `createButton(kind, parent)`（`setDefaultAction` した `QToolButton`。フォーカスを取らない。見た目と大きさは `PanelButton::setup` の既定で、ほかのパネルの小さなボタンと同じ。使う側は色を選ばない）。何をするか・有効にするかは呼び出し側が決める（`CommentEditorPanel` は `QTextEdit` の `undo()` などと `undoAvailable` などに、`GameInfoPane` は自分の編集の履歴とクリップボード操作に結ぶ） |
+| ActionBinding | （名前空間） | パネルのチェックを、呼び出し側が持つ切り替えの checkable な `QAction` に結ぶ（`bindCheckable(button, action)`。QAction は必須で正本。チェックは今の値から始め、どちらを変えてももう片方が合う）。思考ドック・検討タブ・定跡ウィンドウのチェックが使い、パネルは QAction を作らない |
 | EngineSelector | QObject | 登録エンジンを選ぶ部品（下記） |
 | PlayerSetupWidget | QWidget | 対局開始ダイアログの対局者1人の欄（下記） |
 | TimeControlEditor | QWidget | 片方の対局者の持ち時間（時間・分）・秒読み・加算の欄（下記） |
@@ -6476,7 +6479,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | VersionDialog | QDialog | versiondialog.ui | バージョン情報表示 |
 | PvBoardDialog | QDialog | なし | 読み筋（PV）再生ウィンドウ（ShogiView を内蔵、ナビゲーションボタン付き）。読み筋の値は `PvLine`（`pvline.h`。各手数の局面 `positions()`・手の表記 `moveText(ply)`・読み筋全体の表記 `displayPv()`・直前の手のハイライト `highlight(ply)`）で、表示する手数は `BoardViewerWidget` だけが持つ |
 | KifuPasteDialog | QDialog | なし | クリップボードからの棋譜テキスト取り込み（形式自動判定） |
-| JosekiWindow | QWidget | なし | 定跡ドックの中身（widgets）。表示中の局面の定跡手の表と、ファイル・定跡手・マージ・展開の操作。操作は意図のシグナルで知らせ、ダイアログは ui の `JosekiBookController`・`JosekiWindowController` が出す |
+| JosekiWindow | QWidget | なし | 定跡ドックの中身（widgets）。表示中の局面の定跡手の表と、ファイル・定跡手・マージ・展開の操作。操作は意図のシグナルで知らせ、ダイアログは ui の `JosekiBookController`・`JosekiWindowController` が出す。定跡の表示・盤の手の登録・盤の矢印の切り替えは `JosekiWindowController` が渡す `QAction`（`Actions`。必須）を正本にし、チェックは `ActionBinding::bindCheckable()` で結ぶ |
 | JosekiMoveDialog | QDialog | なし | 定跡手の追加・編集（やねうら王形式）。指し手は局面の合法手を画面の表記（`KifuPresentation::move`。定跡ウィンドウの表と同じく表記の設定に従う）で並べた一覧から選び（`JosekiMoveInputWidget`。一覧は `moveInputCombo`）、予想応手は着手後の局面の合法手と先頭の「なし」から選ぶ（`nextMoveInputCombo`）。値は `setEntry(const JosekiMove&)`・`entry()` で受け渡し、編集モードでは渡した指し手を変えない |
 | JosekiMergeDialog | QDialog | なし | 表示中の手順・棋譜ファイルの本譜（`RecordLine`）の手を、開いている定跡に1手ずつか全部登録する（`JosekiBookSession::importMoves`。保存はしない）。「登録済」は定跡に手があるか（`hasMove`）で決め、定跡が変わると表を作り直す |
 | MenuWindow | QWidget | なし | メニュー項目のボタン一覧表示（お気に入り・カテゴリ別タブ） |
@@ -9374,6 +9377,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | AnalysisResultsPanel | C | widgets | 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ） | 第9章, 第11章 |
 | AnalysisSession | C | analysis | 検討・詰み探索（1つのエンジンで局面を調べる）のセッション | 第9章 |
 | AnalysisSettings | NS | services | 解析・検討の設定の宣言の表 | 第9章, 第12章 |
+| ActionBinding | NS | widgets | パネルのチェックと切り替えの `QAction` の結び付け（思考ドック・検討タブ・定跡ウィンドウで共通） | 第11章 |
 | ActivityLease | C | common | 動作状態を持つ権利（`AppActivityState::begin()` が返す move-only の値。手放すと待機中に戻す） | 第3章, 第14章 |
 | AppActivityState | C | common | アプリの動作状態（待機・対局・解析・検討・詰み探索・通信対局・局面編集）の正本 | 第3章, 第14章 |
 | ApplicationTranslations | C | services | 起動時の言語の決定と翻訳ファイルの読み込み | 第16章 |
@@ -9932,6 +9936,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | fontsizehelper | 第11章, 第17章 | A-/A+ のフォントサイズ調整 |
 | fontsizecontrol | 第11章 | A-/A+ のボタンの組 |
 | editactions | 第11章 | 元に戻す〜貼り付けの QAction の組 |
+| actionbinding | 第11章 | パネルのチェックと切り替えの QAction の結び付け |
 | dialogfontscale | 第11章, 第17章 | ダイアログの A-/A+ と保存 |
 | engineselector | 第11章 | 登録エンジンを選ぶ部品 |
 | recentfilesmenu | 第11章 | 「履歴」ボタンのメニュー |
