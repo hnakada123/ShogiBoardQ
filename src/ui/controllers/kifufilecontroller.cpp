@@ -226,27 +226,16 @@ QString KifuFileController::defaultFileName(const QString& extension) const
 
 void KifuFileController::saveKifuToFile()
 {
+    // 入力中のコメントも、選んだ形式で失うものに数える
+    m_deps.document->commitPendingEdits();
     const KifuBranchTree* tree = m_deps.document->tree();
-    KifuSaveDialogs::RecordContents contents;
-    contents.branches = tree->lineCount() > 1;
-    for (const auto* node : tree->mainLine()) {
-        if (!node->timeText().isEmpty()) {
-            contents.times = true;
-            break;
-        }
-    }
-    const QList<BranchLine> lines = tree->allLines();
-    for (const BranchLine& line : lines) {
-        const KifuBranchNode* leaf = line.leaf;
-        if (leaf && leaf->isTerminal() && !contents.terminals.contains(leaf->terminalType()))
-            contents.terminals.append(leaf->terminalType());
-    }
 
     QString error;
     const QString path = KifuSaveDialogs::saveViaDialog(
         m_deps.parentWidget,
         std::bind(&KifuFileController::exportLines, this, std::placeholders::_1, std::placeholders::_2),
-        defaultFileName(QStringLiteral("kifu")), contents, &error);
+        defaultFileName(QStringLiteral("kifu")), std::bind(&KifuExport::lossIn, std::cref(*tree), std::placeholders::_1),
+        &error);
     if (!error.isEmpty()) NotificationPresenter::warning(m_deps.parentWidget, tr("KIF Save Error"), error);
     if (!path.isEmpty()) markSaved(path, tr("棋譜を保存しました: %1").arg(path));
 }
@@ -327,47 +316,20 @@ bool KifuFileController::setClipboardText(const QString& text, const QString& su
 
 bool KifuFileController::copyRecord(KifuFormat format)
 {
-    const bool mainLineOnly = m_deps.document->tree()->lineCount() > 1;
-    struct Messages {
-        QString empty;
-        QString copied;
-    };
-    Messages m;
-    switch (format) {
-    case KifuFormat::Kif:
-        m = {tr("KIF形式の棋譜データがありません"), tr("KIF形式の棋譜をクリップボードにコピーしました")};
-        break;
-    case KifuFormat::Sfen:
-    case KifuFormat::Bod:
-        // 局面だけの形式は棋譜としてはコピーしない（局面のコピーは別の操作）
-        return false;
-    case KifuFormat::Ki2:
-        m = {tr("KI2形式の棋譜データがありません"), tr("KI2形式の棋譜をクリップボードにコピーしました")};
-        break;
-    case KifuFormat::Csa:
-        // CSA・USI 形式は分岐を書けない
-        m = {tr("CSA形式の棋譜データがありません"),
-             mainLineOnly ? tr("CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）")
-                          : tr("CSA形式の棋譜をクリップボードにコピーしました")};
-        break;
-    case KifuFormat::Usi:
-        m = {tr("USI形式の棋譜データがありません"),
-             mainLineOnly ? tr("USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）")
-                          : tr("USI形式の棋譜をクリップボードにコピーしました")};
-        break;
-    case KifuFormat::Jkf:
-        m = {tr("JKF形式の棋譜データがありません"), tr("JKF形式の棋譜をクリップボードにコピーしました")};
-        break;
-    case KifuFormat::Usen:
-        m = {tr("USEN形式の棋譜データがありません"), tr("USEN形式の棋譜をクリップボードにコピーしました")};
-        break;
-    }
+    // 局面だけの形式は棋譜としてはコピーしない（局面のコピーは別の操作）
+    if (format == KifuFormat::Sfen || format == KifuFormat::Bod) return false;
+    const QString name = KifuSaveDialogs::formatName(format);
     const QStringList lines = exportLines(format);
     if (lines.isEmpty()) {
-        emit statusMessage(m.empty, 3000);
+        emit statusMessage(tr("%1形式の棋譜データがありません").arg(name), 3000);
         return false;
     }
-    return setClipboardText(lines.join(QStringLiteral("\n")), m.copied);
+    // 書き出しで確定した入力中のコメントも数える。失うものは保存の確認と同じ表（KifuExport::lossIn）で決める
+    const KifuExport::Loss loss = KifuExport::lossIn(*m_deps.document->tree(), format);
+    return setClipboardText(lines.join(QStringLiteral("\n")),
+                            loss.isEmpty() ? tr("%1形式の棋譜をクリップボードにコピーしました").arg(name)
+                                           : tr("%1形式の棋譜をクリップボードにコピーしました（%1形式は%2に対応していないため、含みません）")
+                                                 .arg(name, KifuSaveDialogs::lostItemsText(loss)));
 }
 
 bool KifuFileController::copyUsiCurrentToClipboard()

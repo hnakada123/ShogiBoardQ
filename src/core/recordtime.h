@@ -61,6 +61,13 @@ struct RecordTime {
         return result;
     }
 
+    /// 消費時間が書いてあるか。消費時間のない形式（KI2・USI・USEN など）を読んだ手と、消費時間を書いていない手には
+    /// 0 秒の時間が入るので、0 秒だけなら書いてないとみなす（読めない表記は取り込んだ文があれば書いてある）
+    bool isRecorded() const
+    {
+        return valid ? (elapsedMs > 0 || totalMs > 0) : !importedText.trimmed().isEmpty();
+    }
+
     QString toText() const
     {
         if (!importedText.isEmpty() || !valid) return importedText;

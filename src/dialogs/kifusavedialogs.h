@@ -9,8 +9,8 @@
 #include <QStringList>
 #include <functional>
 
+#include "kifuexport.h"
 #include "kifusavefile.h"
-#include "terminaltype.h"
 
 class QWidget;
 
@@ -24,24 +24,26 @@ class KifuSaveDialogs
     Q_DECLARE_TR_FUNCTIONS(KifuSaveDialogs)
 
 public:
-    /// 保存する棋譜にあるもの（選んだ形式で保存できないものがあれば確認する）
-    struct RecordContents {
-        bool branches = false;              ///< 変化がある
-        bool times = false;                 ///< 本譜に消費時間がある
-        QList<TerminalType> terminals;      ///< 手順の終局の行の種類（本譜と変化）
-    };
+    /// 保存する棋譜を format で書くと失うもの（KifuExport::lossIn。空の関数なら何も失わない）
+    using LossOf = std::function<KifuExport::Loss(KifuFormat)>;
 
     /// 未保存変更がある場合に保存・破棄・キャンセルを確認する。
     /// 保存失敗・キャンセルは false。破棄しても呼び出し元の dirty 状態は変更しない。
     static bool confirmDiscardUnsaved(QWidget* parent, bool isDirty, const std::function<bool()>& save);
 
     /// ダイアログを出して保存する（形式と文字コードは選んだ拡張子。KifuFormats::saveTargets）。
+    /// 選んだ形式で失うもの（lossOf）があれば、保存するかを確認する。
     /// 成功時は保存パス、失敗/キャンセルは空文字。defaultFileName は前回保存したフォルダに置く既定のファイル名
     static QString saveViaDialog(QWidget* parent,
                                  const KifuSaveFile::LineGenerator& generateLines,
                                  const QString& defaultFileName,
-                                 const RecordContents& contents,
+                                 const LossOf& lossOf,
                                  QString* outError = nullptr);
+
+    /// 失うものの一覧の文（「分岐、消費時間、コメント」。保存の確認とコピーの知らせで共通）
+    static QString lostItemsText(const KifuExport::Loss& loss);
+    /// 知らせの文に書く形式の名前（"KI2"・"USEN" など）
+    static QString formatName(KifuFormat format);
 
     /// 既存ファイルへ上書き保存する（行は拡張子の形式と文字コードで generateLines に作らせる）。.kif/.ki2 に
     /// Shift_JIS で表せない文字があれば UTF-8 で保存するか確認する（キャンセル時は outError が空で false）。
@@ -53,7 +55,7 @@ private:
     /// Shift_JIS で表せない文字があるとき、UTF-8 で保存するか確認する。保存するなら true
     static bool confirmUtf8Fallback(QWidget* parent, const QString& characters);
     /// 情報が失われる形式への保存を確認する。続行なら true
-    static bool confirmLossySave(QWidget* parent, const QString& title, const QString& message);
+    static bool confirmLossySave(QWidget* parent, KifuFormat format, const KifuExport::Loss& loss);
 };
 
 #endif // KIFUSAVEDIALOGS_H

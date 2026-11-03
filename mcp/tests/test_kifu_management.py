@@ -407,7 +407,10 @@ async def test_paste_font_persistence_and_mcp_validation(kifu_env, tmp_path):
 async def test_save_filter_warning_and_explicit_extension(kifu_env, tmp_path):
     async with mcp_session(kifu_env) as session:
         ui = KifuUi(session, tmp_path)
-        await ui.call("load_kifu", text="startpos moves 7g7f 3c3d")
+        # A record with times: KI2 cannot hold them, so saving asks first. A record read from a format
+        # without times (USI, USEN, KI2) gets zero times, which are not lost and do not ask.
+        await ui.call("load_kifu", text="手合割：平手\n手数----指手---------消費時間--\n"
+                                         "   1 ７六歩(77)   ( 0:10/0:00:10)\n   2 ３四歩(33)   ( 0:05/0:00:05)\n")
         for name, warning in (("時間省略.ki2u", True), ("拡張子優先.csa", False)):
             path = tmp_path / name
             await ui.call("trigger_action", name="actionSaveAs")
@@ -418,7 +421,7 @@ async def test_save_filter_warning_and_explicit_extension(kifu_env, tmp_path):
             button = next(w["text"] for w in widgets["widgets"] if w["class"] == "QPushButton" and ("保存" in w.get("text", "") or "Save" in w.get("text", "")))
             await ui.call("click_dialog_button", target="名前を付けて保存", text=button)
             if warning:
-                await ui.call("close_dialog", target=await ui.message_box("KI2形式は消費時間"))
+                await ui.call("close_dialog", target=await ui.message_box("KI2形式は次の情報に対応していない"))
                 assert not path.exists() and (await ui.call("get_app_state"))["dirty"]
             else:
                 await ui.wait("get_app_state", lambda d: d["kifu_file"] == str(path))

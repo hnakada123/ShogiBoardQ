@@ -3,7 +3,6 @@
 
 #include "kifusavedialogs.h"
 #include "kifufilefilter.h"
-#include "terminalcodes.h"
 #include "unsavedchangesprompt.h"
 
 #include <QFileDialog>
@@ -15,19 +14,6 @@
 #include <QMessageBox>
 
 #include "gamesettings.h"
-
-#include <algorithm>
-
-namespace {
-
-/// USEN に書けない終局の行（詰み・反則など符号の無い終局）があるか
-bool hasTerminalWithoutUsenCode(const QList<TerminalType>& terminals)
-{
-    return std::any_of(terminals.cbegin(), terminals.cend(),
-                       [](TerminalType type) { return TerminalCodes::usen(type).isEmpty(); });
-}
-
-} // namespace
 
 bool KifuSaveDialogs::confirmUtf8Fallback(QWidget* parent, const QString& characters)
 {
@@ -44,10 +30,36 @@ bool KifuSaveDialogs::confirmUtf8Fallback(QWidget* parent, const QString& charac
     return box.exec() == QMessageBox::Save;
 }
 
-bool KifuSaveDialogs::confirmLossySave(QWidget* parent, const QString& title, const QString& message)
+QString KifuSaveDialogs::formatName(KifuFormat format)
 {
+    return KifuFormats::name(format).toUpper();
+}
+
+QString KifuSaveDialogs::lostItemsText(const KifuExport::Loss& loss)
+{
+    QStringList items;
+    if (loss.variations) items << tr("分岐");
+    if (loss.times) items << tr("消費時間");
+    if (loss.comments) items << tr("コメント");
+    if (loss.bookmarks) items << tr("しおり");
+    if (!loss.terminals.isEmpty()) {
+        QStringList terminals;
+        for (const TerminalType type : std::as_const(loss.terminals)) {
+            const QString label = TerminalTypes::displayLabel(type);
+            terminals << (label.isEmpty() ? tr("独自の終局理由") : label);
+        }
+        items << tr("終局理由（%1）").arg(terminals.join(tr("・")));
+    }
+    return items.join(tr("、"));
+}
+
+bool KifuSaveDialogs::confirmLossySave(QWidget* parent, KifuFormat format, const KifuExport::Loss& loss)
+{
+    const QString name = formatName(format);
     const auto result = QMessageBox::warning(
-        parent, title, message,
+        parent, tr("%1形式で保存").arg(name),
+        tr("%1形式は次の情報に対応していないため、これらは保存されません：\n%2\n\n保存を続けますか？")
+            .arg(name, lostItemsText(loss)),
         QMessageBox::Ok | QMessageBox::Cancel,
         QMessageBox::Ok);
     return result == QMessageBox::Ok;
@@ -56,7 +68,7 @@ bool KifuSaveDialogs::confirmLossySave(QWidget* parent, const QString& title, co
 QString KifuSaveDialogs::saveViaDialog(QWidget* parent,
                       const KifuSaveFile::LineGenerator& generateLines,
                       const QString& defaultFileName,
-                      const RecordContents& contents,
+                      const LossOf& lossOf,
                       QString* outError)
 {
     // 既定ファイル名を生成
@@ -77,54 +89,11 @@ QString KifuSaveDialogs::saveViaDialog(QWidget* parent,
 
     GameSettings::lastKifuSaveDirectory.set(QFileInfo(path).absolutePath());
 
-    // 選択されたファイルの拡張子で保存形式を判断
+    // 選択されたファイルの拡張子で保存形式を判断し、その形式に書けないものがあれば確かめる
     const KifuFormat format = KifuSaveFile::saveFormatForPath(path);
-    switch (format) {
-    case KifuFormat::Ki2:
-        if (contents.times && !confirmLossySave(
-                parent,
-                tr("KI2形式で保存"),
-                tr("KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"))) {
-            return QString();
-        }
-        break;
-    case KifuFormat::Csa:
-        if (contents.branches && !confirmLossySave(
-                parent,
-                tr("CSA形式で保存"),
-                tr("CSA形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"))) {
-            return QString();
-        }
-        break;
-    case KifuFormat::Jkf:
-        break;
-    case KifuFormat::Usen:
-        if ((contents.times || hasTerminalWithoutUsenCode(contents.terminals)) && !confirmLossySave(
-                parent,
-                tr("USEN形式で保存"),
-                tr("USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。\n"
-                            "詰み・反則負け・反則勝ちなど一部の終局理由も保存されません。\n保存を続けますか？"))) {
-            return QString();
-        }
-        break;
-    case KifuFormat::Usi:
-        if (contents.branches && !confirmLossySave(
-                parent,
-                tr("USI形式で保存"),
-                tr("USI形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"))) {
-            return QString();
-        }
-        if (contents.times && !confirmLossySave(
-                parent,
-                tr("USI形式で保存"),
-                tr("USI形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"))) {
-            return QString();
-        }
-        break;
-    case KifuFormat::Kif:
-    case KifuFormat::Sfen:
-    case KifuFormat::Bod:
-        break;
+    if (lossOf) {
+        const KifuExport::Loss loss = lossOf(format);
+        if (!loss.isEmpty() && !confirmLossySave(parent, format, loss)) return QString();
     }
 
     if (!overwriteExisting(parent, path, generateLines, outError)) return QString();
