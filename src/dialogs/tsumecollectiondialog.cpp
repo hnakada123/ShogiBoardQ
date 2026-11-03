@@ -67,11 +67,11 @@ TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
 TsumeCollectionDialog::~TsumeCollectionDialog()
 {
     m_session->cancelEvaluation();
-    savePreferences();
 }
 
 void TsumeCollectionDialog::done(int result)
 {
+    // 閉じたら判定を止め、設定を保存する（保存はここの1回だけ）
     m_session->cancelEvaluation();
     savePreferences();
     QDialog::done(result);
@@ -469,7 +469,9 @@ void TsumeCollectionDialog::playProblemAt(int position, int timeoutSec)
     const int index = m_filtered[position];
     m_playPosition = position;
     if (!m_played.contains(index)) m_played.append(index);
-    m_play->setProblem(m_session->problem(index), index + 1, m_engine->currentData().toString(), m_session->store(),
+    // 判定エンジンは選択の部品から読む（内蔵なら空のパス。engineChanged と同じ）
+    const std::optional<EngineEntry> engine = m_engineSelector->selected();
+    m_play->setProblem(m_session->problem(index), index + 1, engine ? engine->path : QString(), m_session->store(),
                        timeoutSec);
     m_play->setProblemNavigation(position > 0, position + 1 < m_filtered.size());
 }

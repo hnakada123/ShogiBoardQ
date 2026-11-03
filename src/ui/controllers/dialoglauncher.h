@@ -42,10 +42,6 @@ public:
     explicit DialogLauncher(const Deps& deps, QObject* parent = nullptr);
     ~DialogLauncher() override = default;
 
-
-    /// 成りダイアログで成り・不成を選ばせる（成るなら true）。盤の操作（BoardInteractionController）の成りの選び方に使う
-    bool choosePromotion();
-
 public slots:
     void displayVersionInformation();
     void openProjectWebsite();

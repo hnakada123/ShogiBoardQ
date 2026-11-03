@@ -164,7 +164,6 @@ JosekiImportDialog::~JosekiImportDialog()
         m_watcher.cancel();
         m_watcher.waitForFinished();
     }
-    m_binding.save();
 }
 
 QStringList JosekiImportDialog::paths() const
@@ -232,6 +231,7 @@ void JosekiImportDialog::clearPaths()
 void JosekiImportDialog::start()
 {
     if (isRunning() || m_list->count() == 0) return;
+    // 条件は取り込みを始めたときだけ保存する（ほかの定跡のダイアログの OK と同じ。閉じただけでは保存しない）
     m_binding.save();
     m_progress->setRange(0, 0);
     m_status->setText(tr("棋譜を探しています..."));

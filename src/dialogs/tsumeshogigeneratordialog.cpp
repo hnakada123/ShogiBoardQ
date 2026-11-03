@@ -78,11 +78,11 @@ TsumeshogiGeneratorDialog::~TsumeshogiGeneratorDialog()
 {
     // ウィジェット破棄前に停止する。トリミング未完了の局面は出力しない。Idle なら何もしない
     m_generator->stop();
-    saveSettings();
 }
 
 void TsumeshogiGeneratorDialog::done(int result)
 {
+    // 閉じたら生成を止め、設定を保存する（保存はここの1回だけ）
     onStopClicked();
     saveSettings();
     QDialog::done(result);

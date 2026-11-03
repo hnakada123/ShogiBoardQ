@@ -170,7 +170,7 @@ void TestDockLayout::createAll_restoresSavedStateOfEveryDock()
         QVERIFY(QTest::qWaitForWindowExposed(&setup.mainWindow));
         setup.dock2->hide();
         setup.dock3->setFloating(true);
-        setup.manager->saveDockStates();
+        setup.registry->saveStates();
     }
     const DockSettings::DockState thinking = DockSettings::dockState(QStringLiteral("ThinkingDock"), true);
     QVERIFY(!thinking.visible);
@@ -437,7 +437,7 @@ void TestDockLayout::resetToDefault_restoresInitialState()
     setup.dock1->setFloating(true);
 
     // デフォルトにリセット
-    setup.manager->resetToDefault();
+    setup.registry->resetToDefault();
 
     // リセット後: 全ドックがフローティングではない
     QVERIFY(!setup.dock1->isFloating());
@@ -450,7 +450,7 @@ void TestDockLayout::saveDockStates_persistsState()
     TestSetup setup;
 
     // 状態を保存
-    setup.manager->saveDockStates();
+    setup.registry->saveStates();
 
     // 保存された値がドックの実際の状態と一致すること
     const auto record = DockSettings::dockState(QStringLiteral("RecordPaneDock"), false);
@@ -467,12 +467,11 @@ void TestDockLayout::saveDockStates_persistsState()
 void TestDockLayout::resetToDefault_resetsAnalysisResults()
 {
     FullSetup setup;
-    DockLayoutManager manager(&setup.window, setup.registry);
     setup.window.show();
     QDockWidget* results = setup.registry->dock(Id::AnalysisResults);
     results->setFloating(true);
     results->show();
-    manager.resetToDefault();
+    setup.registry->resetToDefault();
     QVERIFY(!results->isFloating());
     QVERIFY(results->isHidden());
     QCOMPARE(setup.window.dockWidgetArea(results), Qt::BottomDockWidgetArea);
@@ -482,7 +481,6 @@ void TestDockLayout::resetToDefault_resetsAnalysisResults()
 void TestDockLayout::resetToDefault_matchesStartupArrangement()
 {
     FullSetup setup;
-    DockLayoutManager manager(&setup.window, setup.registry);
     // 起動時とは違う配置にする
     const QList<QDockWidget*> docks = setup.registry->docks();
     for (QDockWidget* dock : docks) {
@@ -494,7 +492,7 @@ void TestDockLayout::resetToDefault_matchesStartupArrangement()
     QVERIFY(QTest::qWaitForWindowExposed(&setup.window));
     setup.registry->dock(Id::Thinking)->setFloating(true);
 
-    manager.resetToDefault();
+    setup.registry->resetToDefault();
     QCoreApplication::processEvents();
 
     // 右: 棋譜とメニュー（メニューは非表示）

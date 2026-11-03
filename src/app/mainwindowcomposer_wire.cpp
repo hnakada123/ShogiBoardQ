@@ -237,6 +237,7 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.pieceSound = m_c.pieceSoundPlayer;
     md.settingsReset = m_c.settingsReset;
     md.dockLayout = m_c.dockLayoutManager;
+    md.docks = m_c.dockRegistry;
     md.language = m_c.languageController;
     MenuActionsWiring::wire(md);
     // 保存したレイアウトの一覧の項目は、作る DockLayoutManager がつなぐ

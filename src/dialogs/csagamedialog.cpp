@@ -354,7 +354,6 @@ void CsaGameDialog::loadGameSettings()
         ui->comboBoxAutoSaveFormat->findData(NetworkSettings::csaAutoSaveFormat.valueOr(MatchAutoSave().extension));
     ui->comboBoxAutoSaveFormat->setCurrentIndex(qMax(0, formatIndex));
     ui->lineEditPassword->clear();
-    NetworkSettings::csaLegacyPassword.remove();
 }
 
 // 対局設定を設定ファイルに保存する
@@ -364,5 +363,4 @@ void CsaGameDialog::saveGameSettings()
     m_engineSelector->saveSelection();
     NetworkSettings::csaUseTls.set(useTls());
     NetworkSettings::csaAutoSaveFormat.set(ui->comboBoxAutoSaveFormat->currentData().toString());
-    NetworkSettings::csaLegacyPassword.remove();
 }

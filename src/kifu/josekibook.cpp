@@ -141,7 +141,7 @@ quint16 JosekiBook::encodeMove(QStringView text)
     if (const std::optional<quint16> code = findMoveCode(text)) return *code;
     // USI として読めない文字列は、ファイルの内容を失わないように表に入れて番号にする
     if (kTokenBase + m_tokens.size() >= kHeader) {
-        qCWarning(lcUi) << "Too many unreadable book moves; stored as none:" << text;
+        qCWarning(lcKifu) << "Too many unreadable book moves; stored as none:" << text;
         return kNoMove;
     }
     const auto code = static_cast<quint16>(kTokenBase + m_tokens.size());
@@ -629,12 +629,12 @@ JosekiLoadResult load(const QString &filePath)
         const QStringList parts = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
         if (parts.size() < 5) {
             ++invalidLineCount;
-            qCWarning(lcUi) << "Invalid line format at line" << lineNumber << ": expected 5+ fields, got" << parts.size();
+            qCWarning(lcKifu) << "Invalid line format at line" << lineNumber << ": expected 5+ fields, got" << parts.size();
             continue;
         }
         if (!UsiMove::parse(parts.at(0))) {
             ++invalidLineCount;
-            qCWarning(lcUi) << "Invalid move format at line" << lineNumber << ":" << parts.at(0);
+            qCWarning(lcKifu) << "Invalid move format at line" << lineNumber << ":" << parts.at(0);
         }
         hasMoveLine = true;
         const quint16 code = book.encodeMove(parts.at(0));
@@ -681,8 +681,8 @@ JosekiLoadResult load(const QString &filePath)
     }
 
     result.success = true;
-    qCInfo(lcUi) << "Parsed" << result.book.positionCount() << "positions from" << filePath;
-    if (invalidLineCount > 0) qCWarning(lcUi) << invalidLineCount << "lines had invalid format";
+    qCInfo(lcKifu) << "Parsed" << result.book.positionCount() << "positions from" << filePath;
+    if (invalidLineCount > 0) qCWarning(lcKifu) << invalidLineCount << "lines had invalid format";
     return result;
 }
 

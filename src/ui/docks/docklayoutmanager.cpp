@@ -45,11 +45,6 @@ void DockLayoutManager::showAllDocks()
     for (QDockWidget* d : docks) d->setVisible(true);
 }
 
-void DockLayoutManager::resetToDefault()
-{
-    m_docks->resetToDefault();
-}
-
 void DockLayoutManager::saveLayoutAs()
 {
     if (!m_mainWindow) return;
@@ -246,7 +241,3 @@ void DockLayoutManager::onDeleteLayoutTriggered()
     }
 }
 
-void DockLayoutManager::saveDockStates()
-{
-    m_docks->saveStates();
-}

@@ -17,10 +17,6 @@
 
 #include "networksettings.h"
 
-namespace {
-constexpr QSize kLogWindowDefaultSize{550, 450};
-} // namespace
-
 CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* parent)
     : QDialog(parent)
     , m_coordinator(coordinator)
@@ -190,12 +186,9 @@ void CsaWaitingDialog::createLogWindow()
     m_logWindow->setObjectName(QStringLiteral("csaWaitingLogWindow"));
     m_logWindow->setWindowTitle(tr("CSA通信ログ"));
     m_logWindow->setWindowFlags(m_logWindow->windowFlags() & ~Qt::WindowContextHelpButtonHint);
-    QSize savedLogSize = NetworkSettings::csaLogWindowSize();
-    if (savedLogSize.isValid() && savedLogSize.width() > 100 && savedLogSize.height() > 100) {
-        m_logWindow->resize(savedLogSize);
-    } else {
-        m_logWindow->resize(kLogWindowDefaultSize);
-    }
+    // 既定の大きさから始め、保存した大きさがあれば戻す（小さすぎる値は使わない）
+    m_logWindow->resize(NetworkSettings::csaLogWindowSize.defaultValue());
+    DialogUtils::restoreDialogSize(m_logWindow, NetworkSettings::csaLogWindowSize());
 
     // 中身は対局中の CSA 通信ログのドックと同じ部品（文字の大きさの設定も共有する）
     auto* layout = new QVBoxLayout(m_logWindow);

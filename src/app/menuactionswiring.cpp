@@ -8,6 +8,7 @@
 #include "boardinteractioncontroller.h"
 #include "csagamesession.h"
 #include "docklayoutmanager.h"
+#include "dockregistry.h"
 #include "dialoglauncher.h"
 #include "gamesession.h"
 #include "imageexportcontroller.h"
@@ -114,7 +115,7 @@ void wireDisplayMenu(const Deps& d)
               &MainWindowAppearanceController::onToolBarVisibilityToggled);
     // ドックの配置
     DockLayoutManager* layout = d.dockLayout;
-    QObject::connect(ui->actionResetDockLayout, &QAction::triggered, layout, &DockLayoutManager::resetToDefault);
+    QObject::connect(ui->actionResetDockLayout, &QAction::triggered, d.docks, &DockRegistry::resetToDefault);
     QObject::connect(ui->actionSaveDockLayout, &QAction::triggered, layout, &DockLayoutManager::saveLayoutAs);
     bindCheck(ui->actionLockDocks, layout->docksLocked(), layout, &DockLayoutManager::setDocksLocked);
     // ツールバーだけにある項目

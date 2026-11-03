@@ -21,8 +21,7 @@ static std::optional<RecordEntry> clickMove(GameBoard& gameBoard, const QPoint& 
 {
     ShogiView view;
     view.setBoard(gameBoard.board());
-    BoardInteractionController interaction(&view, gameBoard.board());
-    interaction.setPromotionChooser(chooser);
+    const BoardInteractionController interaction(&view, gameBoard.board(), chooser);
     const std::optional<UsiMove> move = interaction.moveFromClick(from, to);
     return move ? gameBoard.applyRecordedMove(*move, {}) : std::nullopt;
 }

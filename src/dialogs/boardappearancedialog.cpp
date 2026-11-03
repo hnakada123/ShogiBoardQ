@@ -208,11 +208,7 @@ void BoardAppearanceDialog::applyPreset(int index)
 {
     if (index < 0 || index >= m_presets.size()) return;
     AppearanceState state = BoardAppearance::instance().state();
-    const auto& selected = m_presets.at(index).colors;
-    state.colors.background = selected.background;
-    state.colors.board = selected.board;
-    state.colors.stand = selected.stand;
-    state.colors.grid = selected.grid;
+    state.colors.setBoardPalette(m_presets.at(index).colors);
     BoardAppearance::instance().apply(state);
 }
 

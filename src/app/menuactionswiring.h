@@ -10,6 +10,7 @@ class BoardInteractionController;
 class CsaGameSession;
 class DialogLauncher;
 class DockLayoutManager;
+class DockRegistry;
 class GameSession;
 class ImageExportController;
 class KifuAnalysisController;
@@ -53,7 +54,8 @@ struct Deps {
     BoardInteractionController* boardController = nullptr; ///< 合法手の表示
     PieceSoundPlayer* pieceSound = nullptr;            ///< 駒音
     SettingsResetController* settingsReset = nullptr;  ///< 設定の初期化
-    DockLayoutManager* dockLayout = nullptr;           ///< ドックの配置の初期化・保存・固定
+    DockLayoutManager* dockLayout = nullptr;           ///< 名前を付けたドックの配置の保存・ドックの固定
+    DockRegistry* docks = nullptr;                     ///< ドック（規定の配置に戻す）
     LanguageController* language = nullptr;            ///< 指し手の表記の移動元・読み方の説明
 };
 

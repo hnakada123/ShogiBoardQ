@@ -60,6 +60,14 @@ struct BoardColors {
         return result;
     }
 
+    /// 盤・駒台・背景・罫線の4色だけを other から写す（おすすめ配色の適用。比べるのは sameBoardPalette）
+    void setBoardPalette(const BoardColors& other)
+    {
+        background = other.background;
+        board = other.board;
+        stand = other.stand;
+        grid = other.grid;
+    }
     bool sameBoardPalette(const BoardColors& other) const
     {
         return background == other.background && board == other.board
