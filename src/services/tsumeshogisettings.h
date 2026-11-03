@@ -18,8 +18,6 @@ namespace TsumeshogiSettings {
 inline const Setting<QSize> playDialogSize{"TsumePlay/size", QSize(760, 760)};
 /// 解く画面の判定時間は問題一覧の値（CollectionPreferences::timeoutSec）だけで、ここには持たない
 struct PlayPreferences {
-    QString lastFile;
-    int problemIndex = 0;
     int squareSize = 42;       // 盤のマスの幅（範囲は BoardSquareSize）
     bool boardRotated = false; // 攻方を下にした標準の向きから回転しているか
 
@@ -32,9 +30,7 @@ struct PlayPreferences {
 };
 /// 詰将棋を解くダイアログの設定（既定値は PlayPreferences の既定値。マスの幅は範囲に収める）
 inline const StructSetting<PlayPreferences> playPreferences{
-    {SettingField<PlayPreferences>::of("TsumePlay/file", &PlayPreferences::lastFile),
-     SettingField<PlayPreferences>::of("TsumePlay/index", &PlayPreferences::problemIndex),
-     SettingField<PlayPreferences>::of("TsumePlay/squareSize", &PlayPreferences::squareSize),
+    {SettingField<PlayPreferences>::of("TsumePlay/squareSize", &PlayPreferences::squareSize),
      SettingField<PlayPreferences>::of("TsumePlay/boardRotated", &PlayPreferences::boardRotated)},
     &PlayPreferences::normalizedOf};
 
@@ -66,6 +62,10 @@ inline const StructSetting<CollectionPreferences> collectionPreferences{
      SettingField<CollectionPreferences>::of("TsumeCollection/filter", &CollectionPreferences::filter),
      SettingField<CollectionPreferences>::of("TsumeCollection/timeout", &CollectionPreferences::timeoutSec)},
     &CollectionPreferences::normalizedOf};
+
+/// 問題一覧が最後に開いたファイル（CollectionPreferences::lastFile）。保存していなければ、以前の版が
+/// 解く画面の設定（TsumePlay/file）に書いたファイル（読むだけ）
+QString lastCollectionFile();
 
 /// 詰将棋対局・問題一覧の文字サイズ（それぞれ独立、デフォルト: 10）
 inline const Setting<int> tsumePlayFontSize{"FontSize/tsumePlay", 10};
@@ -115,6 +115,10 @@ struct GeneratorLimits {
 /// 目標手数（デフォルト: 3。奇数）
 inline const BoundedSetting<int> tsumeshogiGeneratorTargetMoves{
     "TsumeshogiGenerator/targetMoves", 3, GeneratorLimits::kMinTargetMoves, GeneratorLimits::kMaxTargetMoves};
+
+/// 以前の版が保存した偶数の目標手数を、奇数に直して保存し直す（生成ダイアログが欄に読み込む前に呼ぶ。
+/// CLI は引数の表の既定値を読むだけなので呼ばない）
+void upgradeLegacyGeneratorTargetMoves();
 
 /// 攻め駒上限（デフォルト: 4）
 inline const BoundedSetting<int> tsumeshogiGeneratorMaxAttackPieces{

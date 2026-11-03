@@ -30,7 +30,13 @@ ListSetting<int> engineInfoColumnWidths(ThinkingTable table)
 
 ListSetting<int> thinkingViewColumnWidths(ThinkingTable table)
 {
-    return {tableKey(kThinkingViewColumnWidthsFmt, table), kArrayWidth};
+    const ListSetting<int> widths{tableKey(kThinkingViewColumnWidthsFmt, table), kArrayWidth};
+    // 上下限の列を足す前の保存（列が1つ少ない）は、盤面・読み筋の位置をずらして引き継ぐ
+    if (QList<int> saved = widths(); saved.size() == kThinkingViewColumnCount - 1) {
+        saved.insert(kThinkingViewBoundColumn, 0);
+        widths.set(saved);
+    }
+    return widths;
 }
 
 // --- 棋譜解析 ---

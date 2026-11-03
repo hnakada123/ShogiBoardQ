@@ -145,11 +145,10 @@ void TsumeshogiGeneratorDialog::bindSettings()
 
 void TsumeshogiGeneratorDialog::loadSettings()
 {
+    // 以前の版が保存した偶数の目標手数は、設定の側で奇数に直してから読む
+    TsumeshogiSettings::upgradeLegacyGeneratorTargetMoves();
     m_conditionsForm.load();
     m_displayForm.load();
-    // 以前の版で偶数が保存されていた場合に備えて奇数に補正する
-    m_settingsUi.targetMoves->setValue(
-        TsumeshogiSettings::GeneratorLimits::oddTargetMoves(m_settingsUi.targetMoves->value()));
 }
 
 void TsumeshogiGeneratorDialog::saveSettings()

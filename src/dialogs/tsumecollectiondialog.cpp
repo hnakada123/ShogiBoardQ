@@ -275,9 +275,8 @@ void TsumeCollectionDialog::reanalyzePage()
 void TsumeCollectionDialog::restoreLastFile()
 {
     if (!m_session->filePath().isEmpty()) return;
-    const auto preferences = TsumeshogiSettings::collectionPreferences();
-    const QString file = preferences.lastFile.isEmpty() ? TsumeshogiSettings::playPreferences().lastFile : preferences.lastFile;
-    if (QFileInfo::exists(file) && loadFile(file)) m_page->setValue(preferences.page);
+    const QString file = TsumeshogiSettings::lastCollectionFile();
+    if (QFileInfo::exists(file) && loadFile(file)) m_page->setValue(TsumeshogiSettings::collectionPreferences().page);
 }
 
 void TsumeCollectionDialog::openFile()

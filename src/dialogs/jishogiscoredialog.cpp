@@ -31,7 +31,7 @@ JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& r
 {
     setObjectName(QStringLiteral("jishogiScoreDialog"));
     setWindowTitle(tr("持将棋の点数"));
-    setMinimumSize(480, 360);
+    setMinimumSize(GameSettings::kJishogiScoreDialogMinimumSize);
     resize(kDefaultSize);
 
     auto* mainLayout = new QVBoxLayout(this);
@@ -114,11 +114,8 @@ JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& r
     fontOptions.decrease = m_fontDecrease;
     fontOptions.increase = m_fontIncrease;
     fontOptions.sizeLabel = m_fontSizeLabel;
-    // 旧レイアウト用の小さい保存サイズは捨て、比較表の標準サイズから始める
-    const QSize savedSize = GameSettings::jishogiScoreDialogSize();
-    if (savedSize.width() < minimumWidth() || savedSize.height() < minimumHeight())
-        GameSettings::jishogiScoreDialogSize.set(QSize());
-    fontOptions.size = &GameSettings::jishogiScoreDialogSize;
+    // 大きさ（以前の版の小さい保存は設定の側が捨てる）
+    fontOptions.size = &GameSettings::jishogiScoreDialogSize();
     const DialogFontScale* scale = DialogFontScale::install(this, GameSettings::jishogiScoreFontSize, fontOptions);
     connect(scale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &JishogiScoreDialog::fitValueCells);
     fitValueCells();

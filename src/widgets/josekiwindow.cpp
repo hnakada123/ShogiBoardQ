@@ -311,13 +311,10 @@ void JosekiWindow::setupUi()
     mainLayout->addWidget(m_tableView, 1);
     // 列幅は利用者がドラッグした列だけ保存する（文字の大きさに合わせた幅は保存しない。最後の列は残りの幅に伸ばす）
     auto *header = static_cast<TableHeaderView *>(m_tableView->horizontalHeader());
-    // 比率の列を足す前の保存（列が1つ少ない）は、比率より前の列の幅だけを使う
-    if (QList<int> saved = JosekiSettings::josekiWindowColumnWidths();
-        saved.size() == JosekiTableModel::ColumnCount - 1) {
-        saved.resize(JosekiTableModel::Ratio);
-        JosekiSettings::josekiWindowColumnWidths.set(saved);
-    }
-    m_columnWidths = new ColumnWidthMemory(header, JosekiSettings::josekiWindowColumnWidths, JosekiTableModel::ColumnCount);
+    // 列幅の保存は設定の側が列の番号を持つ（以前の版の保存の引き継ぎも設定の側）
+    static_assert(JosekiSettings::kJosekiWindowColumnCount == JosekiTableModel::ColumnCount);
+    static_assert(JosekiSettings::kJosekiWindowRatioColumn == JosekiTableModel::Ratio);
+    m_columnWidths = new ColumnWidthMemory(header, JosekiSettings::josekiWindowColumnWidths(), JosekiTableModel::ColumnCount);
 
     // --- 状態表示 ---
     auto *statusFrame = new QFrame(this);

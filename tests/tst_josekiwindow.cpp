@@ -1146,7 +1146,7 @@ void TestJosekiWindow::testColumnWidthsSurviveRefresh()
         window.m_tableView->setColumnWidth(4, 90);
         HeaderDrag::resizeSection(window.m_tableView->horizontalHeader(), 2, 280);
         HeaderDrag::resizeSection(window.m_tableView->horizontalHeader(), 3, 270);
-        const QList<int> saved = JosekiSettings::josekiWindowColumnWidths();
+        const QList<int> saved = JosekiSettings::josekiWindowColumnWidths()();
         QCOMPARE(saved.value(2), 280);
         QCOMPARE(saved.value(3), 270);
         QCOMPARE(saved.value(4), 0);
@@ -1179,7 +1179,7 @@ void TestJosekiWindow::testColumnWidthsSurviveRefresh()
 void TestJosekiWindow::testAutoColumnWidthsShrinkWithFont()
 {
     JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
-    JosekiSettings::josekiWindowColumnWidths.set({});
+    JosekiSettings::josekiWindowColumnWidths().set({});
     JosekiBookSession session;
     JosekiPanel panel(&session);
     JosekiWindow &window = panel.window;

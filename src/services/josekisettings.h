@@ -33,8 +33,14 @@ inline const Setting<bool> josekiWindowDisplayEnabled{"JosekiWindow/displayEnabl
 /// 定跡ウィンドウのSFEN詳細表示状態（デフォルト: false）
 inline const Setting<bool> josekiWindowSfenDetailVisible{"JosekiWindow/sfenDetailVisible", false};
 
-/// 定跡ウィンドウのテーブル列幅（利用者が列幅を変えたときに保存する）
-inline const ListSetting<int> josekiWindowColumnWidths{QStringLiteral("JosekiWindow/columnWidths"), "width"};
+/// 定跡ウィンドウの表の列の数と、比率の列の位置（models の JosekiTableModel::Column と同じ番号。
+/// services は models を include できないので、ここに番号を書き、定跡ウィンドウが static_assert で照らす）
+inline constexpr int kJosekiWindowColumnCount = 11;
+inline constexpr int kJosekiWindowRatioColumn = 9;
+
+/// 定跡ウィンドウのテーブル列幅（利用者が列幅を変えたときに保存する）。比率の列を足す前の版の保存
+/// （列が1つ少ない）は、初めて読むときに比率より前の列の幅だけを残して移す
+ListSetting<int> josekiWindowColumnWidths();
 
 /// 定跡手編集ダイアログのフォントサイズ（デフォルト: 10）
 inline const Setting<int> josekiMoveDialogFontSize{"JosekiWindow/moveDialogFontSize", 10};

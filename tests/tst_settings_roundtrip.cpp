@@ -55,6 +55,53 @@ private slots:
         QFile::remove(path);
     }
 
+    /// 以前の版の値の引き継ぎは設定の関数が行う（部品は引き継ぎを知らない）
+    void legacyValuesAreUpgradedBySettings()
+    {
+        QSettings& s = SettingsCommon::openSettings();
+        // 思考の表: 上下限の列を足す前の保存（列が1つ少ない）は、上下限の列に 0 を入れる
+        const auto engine2 = AnalysisSettings::ThinkingTable::Engine2;
+        AnalysisSettings::thinkingViewColumnWidths(engine2).set({60, 50, 80, 70, 40, 300});
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(engine2)(), (QList<int>{60, 50, 80, 70, 0, 40, 300}));
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(engine2)().size(), AnalysisSettings::kThinkingViewColumnCount);
+        AnalysisSettings::thinkingViewColumnWidths(engine2).set({});
+
+        // 定跡ウィンドウ: 比率の列を足す前の保存（列が1つ少ない）は、比率より前の列の幅だけを残す
+        QList<int> josekiWidths;
+        for (int i = 0; i < JosekiSettings::kJosekiWindowColumnCount - 1; ++i) josekiWidths.append(10 + i);
+        JosekiSettings::josekiWindowColumnWidths().set(josekiWidths);
+        QCOMPARE(JosekiSettings::josekiWindowColumnWidths()(), josekiWidths.mid(0, JosekiSettings::kJosekiWindowRatioColumn));
+        JosekiSettings::josekiWindowColumnWidths().set({});
+
+        // 持将棋の点数ダイアログ: 最小の大きさより小さい保存は捨てる
+        s.setValue(QStringLiteral("JishogiScore/dialogSize"), QSize(250, 280));
+        QCOMPARE(GameSettings::jishogiScoreDialogSize()(), QSize(660, 640));
+        QVERIFY(!s.contains(QStringLiteral("JishogiScore/dialogSize")));
+        s.setValue(QStringLiteral("JishogiScore/dialogSize"), GameSettings::kJishogiScoreDialogMinimumSize);
+        QCOMPARE(GameSettings::jishogiScoreDialogSize()(), GameSettings::kJishogiScoreDialogMinimumSize);
+        GameSettings::jishogiScoreDialogSize().remove();
+
+        // 詰将棋生成: 偶数の目標手数は奇数に直して保存し直す（保存していなければ書かない）
+        TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.remove();
+        TsumeshogiSettings::upgradeLegacyGeneratorTargetMoves();
+        QVERIFY(!TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.isSaved());
+        TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.set(8);
+        TsumeshogiSettings::upgradeLegacyGeneratorTargetMoves();
+        QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorTargetMoves(), 7);
+        TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.remove();
+
+        // 詰将棋問題一覧: 保存したファイルが無ければ、以前の版が解く画面の設定に書いたファイル
+        s.remove(QStringLiteral("TsumeCollection/file"));
+        s.setValue(QStringLiteral("TsumePlay/file"), QStringLiteral("/tmp/legacy.sfen"));
+        QCOMPARE(TsumeshogiSettings::lastCollectionFile(), QStringLiteral("/tmp/legacy.sfen"));
+        auto collection = TsumeshogiSettings::collectionPreferences();
+        collection.lastFile = QStringLiteral("/tmp/current.sfen");
+        TsumeshogiSettings::collectionPreferences.set(collection);
+        QCOMPARE(TsumeshogiSettings::lastCollectionFile(), QStringLiteral("/tmp/current.sfen"));
+        s.remove(QStringLiteral("TsumePlay"));
+        s.remove(QStringLiteral("TsumeCollection"));
+    }
+
     // ========================================
     // Setting<T>: 宣言の表の既定値と消去
     // ========================================
@@ -105,7 +152,6 @@ private slots:
         s.setValue(QStringLiteral("TsumePlay/squareSize"), 50);
         const TsumeshogiSettings::PlayPreferences partial = TsumeshogiSettings::playPreferences();
         QCOMPARE(partial.squareSize, 50);
-        QCOMPARE(partial.problemIndex, TsumeshogiSettings::PlayPreferences{}.problemIndex);
         QCOMPARE(partial.boardRotated, TsumeshogiSettings::PlayPreferences{}.boardRotated);
 
         TsumeshogiSettings::PlayPreferences preferences;
@@ -635,9 +681,9 @@ private slots:
         GameSettings::kifuPasteDialogFontSize.set(12);
         QCOMPARE(GameSettings::kifuPasteDialogFontSize(), 12);
 
-        QSize jishogiSize(300, 350);
-        GameSettings::jishogiScoreDialogSize.set(jishogiSize);
-        QCOMPARE(GameSettings::jishogiScoreDialogSize(), jishogiSize);
+        QSize jishogiSize(700, 650);   // 最小の大きさ（480×360）より小さい保存は捨てる
+        GameSettings::jishogiScoreDialogSize().set(jishogiSize);
+        QCOMPARE(GameSettings::jishogiScoreDialogSize()(), jishogiSize);
 
         GameSettings::jishogiScoreFontSize.set(14);
         QCOMPARE(GameSettings::jishogiScoreFontSize(), 14);
@@ -812,8 +858,8 @@ private slots:
         QCOMPARE(JosekiSettings::josekiWindowRecentFiles(), recentFiles);
 
         QList<int> colWidths = {50, 120, 80, 200};
-        JosekiSettings::josekiWindowColumnWidths.set(colWidths);
-        QCOMPARE(JosekiSettings::josekiWindowColumnWidths(), colWidths);
+        JosekiSettings::josekiWindowColumnWidths().set(colWidths);
+        QCOMPARE(JosekiSettings::josekiWindowColumnWidths()(), colWidths);
     }
 
     void josekiSettings_dialogs()
