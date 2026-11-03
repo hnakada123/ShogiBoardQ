@@ -70,7 +70,7 @@ cmake --build build --target translations
   - `boardsquaresize.h` - 盤のマスの幅の範囲 `BoardSquareSize`（20〜150、既定50。盤の描画・設定の宣言・CLI の盤面画像で共通）
   - `boardcoordinates.h` - 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応（表示の座標の駒・駒台と駒箱の枚数の読み `pieceAt`・`isAvailable` もここだけ）
   - `handicaps.h` - 手合割の表（名前・JKF の preset・開始局面）と局面の手合割（`Handicaps::of(Position)`・`ofStart(開始局面の文字列)`。盤・持ち駒・手番で決め、手数は見ない）。平手かどうかは `Handicaps::isHirate` だけで判定する
-  - `jishogicalculator.cpp/.h` - 持将棋の点数計算・判定
+  - `jishogicalculator.cpp/.h` - 持将棋の点数計算・判定 `JishogiCalculator`（駒の点数 `kMajorPiecePoints`・`kMinorPiecePoints`、敵陣に要る駒の数 `kRequiredPiecesInCamp`（`hasEnoughPiecesInCamp`）、点数の閾値 `winningPoints`・`requiredPoints` はここだけ。持将棋の点数のダイアログと入玉宣言の判定の説明 `NyugyokuJudgement` の数もここから入れる）
   - `matchplayers.h` - 対局者（先手・後手を人間とエンジンのどちらが指すかと名前。1人分は `seat(Turn)`）
   - `shogiclock.cpp/.h` - Game clock
   - `shoginotation.h` - 筋・段・駒の表記（漢字・全角・CSA）

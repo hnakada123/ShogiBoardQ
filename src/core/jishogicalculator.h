@@ -13,8 +13,8 @@
 /**
  * @brief 持将棋（入玉宣言法）の点数計算と宣言の判定
  *
- * 盤面と持ち駒から宣言点数を数え、24点法・27点法で宣言の成否を判定する。点数の閾値はここだけで決める
- * （判定の説明の文言は、対局の判定 NyugyokuJudgement と点数のダイアログが作る）。
+ * 盤面と持ち駒から宣言点数を数え、24点法・27点法で宣言の成否を判定する。駒の点数・敵陣の駒の数・点数の閾値は
+ * ここだけで決める（判定の説明の文言は、対局の判定 NyugyokuJudgement と点数のダイアログが作り、数はここから入れる）。
  */
 class JishogiCalculator
 {
@@ -49,12 +49,22 @@ public:
         Win,            ///< 宣言勝ち
     };
 
+    /// 宣言に要る、敵陣にある玉以外の駒の数
+    static constexpr int kRequiredPiecesInCamp = 10;
+    /// 大駒（飛・角・龍・馬）の点数
+    static constexpr int kMajorPiecePoints = 5;
+    /// 小駒（玉と大駒のほか。成駒は成る前の駒と同じ）の点数
+    static constexpr int kMinorPiecePoints = 1;
+
     // --- 公開API ---
 
     /// 局面（盤と持ち駒）から点数を計算する
     static JishogiResult calculate(const Position& position);
 
-    /// 宣言条件を満たしているか（玉が敵陣、敵陣に10枚以上、王手がかかっていない）
+    /// 敵陣に玉以外の駒が kRequiredPiecesInCamp 枚以上あるか（宣言条件の1つ）
+    static bool hasEnoughPiecesInCamp(const PlayerScore& score);
+
+    /// 宣言条件を満たしているか（玉が敵陣、敵陣に kRequiredPiecesInCamp 枚以上、王手がかかっていない）
     /// @param kingInCheck 玉が王手されているかどうか
     static bool meetsDeclarationConditions(const PlayerScore& score, bool kingInCheck);
 
@@ -70,7 +80,7 @@ public:
 private:
     // --- 内部ヘルパー ---
 
-    /// 駒の点数を取得する（大駒: 5点、小駒: 1点、玉: 0点）
+    /// 駒の点数を取得する（大駒: kMajorPiecePoints、小駒: kMinorPiecePoints、玉: 0点）
     static int piecePoints(Piece piece);
 
     /// 駒が大駒（飛車・角・龍・馬）かどうかを判定する

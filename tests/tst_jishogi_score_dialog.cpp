@@ -70,6 +70,12 @@ private slots:
         QVERIFY(report.contains(QStringLiteral("27点法\t条件未達 あと28点\t条件未達 あと27点")));
         QVERIFY(report.contains(QStringLiteral("盤上の全駒")));
         QVERIFY(!report.contains(QStringLiteral("負け")));
+        // 駒の数と点数は core の規則から入れる（説明文と表で同じ数）
+        QVERIFY2(report.contains(QStringLiteral("敵陣に玉以外の駒が10枚以上\t× 未達 0 / 10枚\t× 未達 0 / 10枚")),
+                 qPrintable(report));
+        QVERIFY(report.contains(QStringLiteral("点数：飛・角（龍・馬）は5点、その他は1点。")));
+        QVERIFY(report.contains(QStringLiteral("24点法：24〜30点で引き分け、31点以上で勝ち。")));
+        QVERIFY(report.contains(QStringLiteral("27点法：先手28点以上、後手27点以上で勝ち。")));
         QVERIFY(dialog.isVisible());
         capture(dialog, QStringLiteral("jishogi-score"));
         QTest::keyClick(&dialog, Qt::Key_Escape);
@@ -154,6 +160,11 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
         QCOMPARE(dialog.windowTitle(), QStringLiteral("Jishogi Points"));
         QCOMPARE(text(dialog, "sente_rule27"), QStringLiteral("Conditions unmet\n28 more points needed"));
+        QCOMPARE(text(dialog, "sente_piecesInCamp"), QStringLiteral("× Unmet\n0 / 10 pieces"));
+        bool notesFound = false;
+        for (const QLabel* label : dialog.findChildren<QLabel*>())
+            notesFound = notesFound || label->text().contains(QStringLiteral("24-point rule: 24–30 points to draw; 31 or more to win."));
+        QVERIFY(notesFound);
         capture(dialog, QStringLiteral("jishogi-score-en"));
         qApp->removeTranslator(&translator);
     }

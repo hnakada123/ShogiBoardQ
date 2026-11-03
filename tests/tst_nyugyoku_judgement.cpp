@@ -75,6 +75,9 @@ private slots:
         board.setSfen(kWin);
         auto result = NyugyokuJudgement::judgeDeclaration(board.position(), true, Rule::Points24);
         QVERIFY(result.success && result.isDraw);
+        // 駒の数と点数は core の規則から入れる
+        QVERIFY2(result.message.contains(QStringLiteral("② 敵陣に10枚以上: ○ (15枚)")), qPrintable(result.message));
+        QVERIFY2(result.message.contains(QStringLiteral("④ 宣言点数: 28点")), qPrintable(result.message));
 
         // 「なし」でもエンジンの宣言は取り消せないため、27点法で判定して説明する
         result = NyugyokuJudgement::judgeDeclaration(board.position(), true, std::nullopt);
