@@ -11,10 +11,18 @@
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
+/// 取り込んだ表記だけを持つ時間（数として読めない表記。保存するときはこの表記のまま書く）
+static RecordTime importedTime(const QString& text)
+{
+    RecordTime time;
+    time.importedText = text;
+    return time;
+}
+
 /// 指した手の行（指し手そのものは使わないテスト用）
 static RecordEntry playedEntry(const QString& text, const QString& sfen, const QString& time = QString())
 {
-    return RecordEntry::played(ShogiMove(), text, sfen, RecordTime::fromText(time));
+    return RecordEntry::played(ShogiMove(), text, sfen, importedTime(time));
 }
 
 class SessionObserver : public QObject
@@ -99,24 +107,14 @@ private slots:
         QCOMPARE(tree.nodeCount(), 3);
     }
 
-    void recordTimeParsesAtImportBoundary()
+    /// 数で持つ時間は「分:秒/時:分:秒」で書き、取り込んだ表記はそのまま書く
+    void recordTimeWritesTextBack()
     {
-        const auto time = RecordTime::fromText(QStringLiteral("( 1:02.345/12:34:56.789)"));
-        QVERIFY(time.valid);
-        QCOMPARE(time.elapsedMs, 62345);
-        QCOMPARE(time.totalMs, 45296789);
-        QCOMPARE(time.toText(), QStringLiteral("( 1:02.345/12:34:56.789)"));
-        const auto generated = RecordTime::fromMilliseconds(time.elapsedMs, time.totalMs);
+        const auto generated = RecordTime::fromMilliseconds(62345, 45296789);
         QCOMPARE(generated.toText(), QStringLiteral("01:02.345/12:34:56.789"));
-        const auto roundTrip = RecordTime::fromText(generated.toText());
-        QCOMPARE(roundTrip.elapsedMs, time.elapsedMs);
-        QCOMPARE(roundTrip.totalMs, time.totalMs);
-        for (const auto* invalid : {"-", "01:99/00:00:00", "-1:00/00:00:00", "1:00/1:2",
-                                   "9223372036854775807:00/00:00:00", "00:00/00:00:00.x"}) {
-            const auto unknown = RecordTime::fromText(QString::fromLatin1(invalid));
-            QVERIFY(!unknown.valid);
-            QCOMPARE(unknown.toText(), QString::fromLatin1(invalid));
-        }
+        const RecordTime unknown = importedTime(QStringLiteral("-"));
+        QVERIFY(!unknown.valid);
+        QCOMPARE(unknown.toText(), QStringLiteral("-"));
     }
 
     void startFromRoot()
@@ -344,7 +342,7 @@ private slots:
         KifuNavigationState nav(&tree);
         LiveGameSession session(&tree, &nav);
         session.startFromNode(n1);
-        session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::White, RecordTime::fromText(QStringLiteral("0:05"))));
+        session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::White, importedTime(QStringLiteral("0:05"))));
 
         KifuBranchNode* terminal = session.liveNode();
         QVERIFY(terminal != nullptr);
@@ -368,7 +366,7 @@ private slots:
         session.startFromNode(n1);
         QVERIFY(session.canAddMove());
 
-        session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::White, RecordTime::fromText(QString())));
+        session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::White, RecordTime{}));
         QVERIFY(!session.canAddMove());
         KifuBranchNode* terminal = session.liveNode();
         QVERIFY(terminal != nullptr && terminal->isTerminal());
@@ -395,7 +393,7 @@ private slots:
         KifuNavigationState nav(&tree);
         LiveGameSession session(&tree, &nav);
         session.startFromNode(n1);
-        session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::White, RecordTime::fromText(QString())));
+        session.appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::White, RecordTime{}));
 
         QCOMPARE(n1->childCount(), 1);
         QCOMPARE(session.liveNode(), resign);
@@ -423,7 +421,7 @@ private slots:
         // 後手：棋譜の累計 3 秒 + 今回 4 秒
         QCOMPARE(session.continuedTime(RecordTime::fromMilliseconds(4000, 4000)).totalMs, 7000);
         // 読めない表記はそのまま
-        const RecordTime unknown = session.continuedTime(RecordTime::fromText(QStringLiteral("-")));
+        const RecordTime unknown = session.continuedTime(importedTime(QStringLiteral("-")));
         QVERIFY(!unknown.valid);
         QCOMPARE(unknown.toText(), QStringLiteral("-"));
         // 最初に新しく作った手にメモが付く

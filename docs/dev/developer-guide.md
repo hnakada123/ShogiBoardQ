@@ -211,6 +211,7 @@
 | 2026-11-04 | 届かない分岐を消した（監査 2026-11-01 5章）のに合わせて §1.5・§5.1・§10.3・付録を更新（読み筋盤の盤の差分から直前の手を求める経路（`sfendiffutils.h`・`PvBoardDialog::setPrevSfenForHighlight`・`PvLine::setArrival` の第2引数・`showPvBoard` の `prevSfen`）、`JosekiWindow::setCurrentSfen` の入力の整え、定跡の取り込みの開始局面が空のときの分岐を削除。`KifuFileController::loadKifuText` も読み込みの後始末 `finishLoad` を通す） |
 | 2026-11-04 | 規則と式の写しを1つにした（監査 2026-11-01 5章）のに合わせて §5.7・第18章を更新（局面を比べるキーの1行の転送 `JosekiBook::positionKey`・`SennichiteDetector::positionKey` などを消して `SfenUtils::normalizeSfenKey` を直接呼ぶ。分岐ツリーのノードの表記は `KifuPresentation::nodeLabel(node)` の1つ（棋譜欄・分岐候補欄・分岐ツリー・手順の削除の確認）。開始局面の正規化は `GameStartOptionsBuilder::canonicalizeSfen` が `UsiPosition::sfenOf` で行い、`MatchCoordinator::start` は SFEN を受け取る。棋譜解析の候補手の数は検討と同じく探索の頼み（`UsiSearchRequest::options`）に載せる。検討の候補手の数の上限は `ConsiderationSettings::kMaxMultiPV`。詰将棋の挑戦状況の表記は `TsumeProgressStore::Progress::text()` の1つ。`JishogiCalculator::isSentePiece`・`isGotePiece` を消した） |
 | 2026-11-04 | 既定値の写し・二重の保存・転送だけの関数を片付けた（監査 2026-11-01 5章）のに合わせて §3.5・§5.4・§6.1・§6.6・§6.8・§10.5・§13.5・§14.3・§15.2 を更新（成りの選び方は盤の操作 `BoardInteractionController` を作るときに渡し、`setPromotionChooser`・`DialogLauncher::choosePromotion` を消した。`DockLayoutManager::resetToDefault`・`saveDockStates` を消して `DockRegistry` を直接呼ぶ。棋譜の貼り付け・持将棋の点数・CSA の通信ログの窓の既定の大きさ、先読みの既定、おすすめ配色の4色は宣言・値の型から読む（`BoardColors::setBoardPalette`）。詰将棋問題一覧と生成のダイアログは閉じたとき（`done`）に1回だけ保存し、定跡の取り込みは取り込みを始めたときだけ保存する） |
+| 2026-11-04 | テストからしか使われない公開の口を整理した（監査 2026-11-01 5章）のに合わせて §13.6 を更新（外から呼ぶ所の無い `PositionEditRules::cycled`・`cleared`・`canMove` を .cpp の中へ。中だけで使う `CandidateArrowPresenter::considerationActive`・`CommentEditorPanel::setCommentHtml`・`convertUrlsToLinks`・`ShogiViewHighlighting::arrowsPaintRect` を非公開に。定跡ウィンドウだけが使う `FontSizeHelper::applyTo` を消し（`fontsizehelper.h` は `dialogutils.h` を include しない）、接続の無い `MenuWindow::favoritesChanged` を消した。テストだけが使う `RecordTime::fromText` はテストの補助 `recordtime_test_util.h` へ移した。`RecordPane` の列の切り替えは private slots にし、GUI テストは列のボタンで切り替える） |
 
 <!-- chapter-0-end -->
 
@@ -7580,10 +7581,11 @@ finish():
 | 関数 | 内容 |
 |------|------|
 | `moved(position, from, to, pieceBoxSide)` | 盤・駒台・駒箱の間で駒を動かした局面（置けない形は `nullopt`。取った駒は取った側の持ち駒、行き所のない段の歩・香・桂は成駒） |
-| `cycled(position, square)` | 右クリックの成・不成・先後の巡回（先手の生駒 → 成駒 → 後手の生駒 → 成駒。行き所のない段・二歩になる形は飛ばす） |
-| `cleared(position)` | 盤上・両駒台を空にした局面（全駒が駒箱に戻る。手番と手数は残す） |
-| `canMove(position, source, dest, fileFrom, fileTo)` | 置ける形か（玉を持ち駒にしない・二歩でない・味方の駒の上でない・駒台に駒がある・玉を取らない） |
-| `apply`・`cyclePiece`・`clear`（`ShogiBoard&` を受ける） | 上の局面を盤に渡す（`replacePosition()`。盤を空にするときは全部の駒が動くので `setPosition()`） |
+| `apply(board, from, to, pieceBoxSide)` | `moved` の局面を盤に渡す（`replacePosition()`） |
+| `cyclePiece(board, square)` | 右クリックの成・不成・先後の巡回（先手の生駒 → 成駒 → 後手の生駒 → 成駒。行き所のない段・二歩になる形は飛ばす）の局面を盤に渡す |
+| `clear(board)` | 盤上・両駒台を空にする（全駒が駒箱に戻る。手番と手数は残す。全部の駒が動くので `setPosition()`） |
+
+置ける形かの判定（玉を持ち駒にしない・二歩でない・味方の駒の上でない・駒台に駒がある・玉を取らない）と、巡回・空にした局面を作る関数は .cpp の中だけに置く（外から呼ぶ所が無い）。
 
 二歩の判定は移動と巡回で同じ関数（同じ筋の同じ側の歩を数える）を使う。表示の座標（駒台は筋10・11、駒箱は筋12）の駒は `BoardCoordinates::pieceAt()`・`isAvailable()` で読む。
 

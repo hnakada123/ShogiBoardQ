@@ -149,6 +149,13 @@ class GuiAudit : public QObject
 
     ShogiView* board() const { return window->findChild<ShogiView*>(); }
     RecordPane* record() const { return window->findChild<RecordPane*>(); }
+    /// 棋譜欄の列の表示を、列のボタンのチェックで切り替える（利用者の操作と同じ経路）
+    void setRecordColumn(const char* button, bool visible)
+    {
+        auto* toggle = record()->findChild<QPushButton*>(QString::fromLatin1(button));
+        QVERIFY(toggle);
+        toggle->setChecked(visible);
+    }
     QString boardSfen() const { return board()->board()->position().boardSfen(); }
     BranchTreeView* branchTreeView() const { return window->findChild<BranchTreeView*>(); }
     /// 分岐ツリーで目立たせている手（手数と段）
@@ -630,9 +637,9 @@ private slots:
         click("actionOpenKifuFile");
         QVERIFY(dialogHandled);
         QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 1);
-        record()->onToggleBookmarkColumn(false);
-        record()->onToggleCommentColumn(false);
-        record()->onToggleTimeColumn(true);
+        setRecordColumn("kifuToggleBookmark", false);
+        setRecordColumn("kifuToggleComment", false);
+        setRecordColumn("kifuToggleTime", true);
         auto* table = record()->kifuView();
         auto* dock = window->findChild<QDockWidget*>("RecordPaneDock");
         QVERIFY(dock);
@@ -668,16 +675,16 @@ private slots:
         board()->reduceBoard();
         QTRY_COMPARE(window->width(), largeFontWidth);
 
-        record()->onToggleTimeColumn(false);
+        setRecordColumn("kifuToggleTime", false);
         QTRY_VERIFY(window->width() < largeFontWidth);
-        record()->onToggleTimeColumn(true);
+        setRecordColumn("kifuToggleTime", true);
         QTRY_COMPARE(window->width(), largeFontWidth);
         for (int i = 0; i < 6; ++i) QTest::mouseClick(record()->fontDecreaseButton(), Qt::LeftButton);
         QTRY_COMPARE(window->width(), initialWidth);
 
         // しおり・コメントを併用しても指し手と消費時間は全体を表示する。
-        record()->onToggleBookmarkColumn(true);
-        record()->onToggleCommentColumn(true);
+        setRecordColumn("kifuToggleBookmark", true);
+        setRecordColumn("kifuToggleComment", true);
         QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
         QVERIFY(table->visualRect(table->model()->index(1, 1)).right() < table->viewport()->width());
     }
@@ -699,9 +706,9 @@ private slots:
         QFETCH(bool, scrollsAfter);
         while (board()->squareSize() > squareSize) board()->reduceBoard();
         while (board()->squareSize() < squareSize) board()->enlargeBoard();
-        record()->onToggleBookmarkColumn(false);
-        record()->onToggleCommentColumn(false);
-        record()->onToggleTimeColumn(true);
+        setRecordColumn("kifuToggleBookmark", false);
+        setRecordColumn("kifuToggleComment", false);
+        setRecordColumn("kifuToggleTime", true);
         armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
         for (int i = 0; i < fontIncrease; ++i)
             QTest::mouseClick(record()->fontIncreaseButton(), Qt::LeftButton);
@@ -763,9 +770,9 @@ private slots:
     void promotionKeepsWindowGeometry()
     {
         QFETCH(bool, extraColumns);
-        record()->onToggleBookmarkColumn(extraColumns);
-        record()->onToggleCommentColumn(extraColumns);
-        record()->onToggleTimeColumn(true);
+        setRecordColumn("kifuToggleBookmark", extraColumns);
+        setRecordColumn("kifuToggleComment", extraColumns);
+        setRecordColumn("kifuToggleTime", true);
         QTest::mouseClick(record()->fontIncreaseButton(), Qt::LeftButton);
         armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
         const QStringList moves = QStringLiteral(
@@ -3831,8 +3838,8 @@ private slots:
         auto* table = record()->kifuView();
         QTRY_VERIFY(table->model()->rowCount() > 90);
         QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
-        record()->onToggleCommentColumn(true);
-        record()->onToggleBookmarkColumn(false);
+        setRecordColumn("kifuToggleComment", true);
+        setRecordColumn("kifuToggleBookmark", false);
         auto* edit = window->findChild<QTextEdit*>("kifuCommentEdit");
         QVERIFY(edit);
         auto* dock = qobject_cast<QDockWidget*>(edit->parentWidget()->parentWidget());

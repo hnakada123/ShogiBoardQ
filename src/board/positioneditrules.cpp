@@ -44,9 +44,8 @@ bool hasPawnOnFile(const Position& position, Piece pawn, int file, int exceptRan
     }
     return false;
 }
-} // namespace
-
-bool PositionEditRules::canMove(const Position& position, Piece source, Piece dest, int fileFrom, int fileTo)
+/// source（移動元の駒）を dest（移動先の駒。駒台なら駒台の駒種）の上へ動かせるか
+bool canMove(const Position& position, Piece source, Piece dest, int fileFrom, int fileTo)
 {
     const bool toBoard = isBoardFile(fileTo);
     // 王・玉は盤と駒箱の間で移せるが、持ち駒にはできない
@@ -64,6 +63,44 @@ bool PositionEditRules::canMove(const Position& position, Piece source, Piece de
         return false;
     return true;
 }
+
+/// 盤上のマスの駒を、先手の生駒 → 成駒 → 後手の生駒 → 成駒の順に巡らせた局面（行き所のない段・二歩になる形は
+/// 飛ばす）。駒が無い・盤外なら nullopt
+std::optional<Position> cycled(const Position& position, BoardSquare square)
+{
+    if (!square.isValid()) return std::nullopt;
+    const Piece current = position.pieceAt(square);
+    if (current == Piece::None) return std::nullopt;
+
+    // 巡回の順: 先手の生駒 → 先手の成駒 → 後手の生駒 → 後手の成駒（成れない駒は先手 → 後手）
+    const Piece base = toBlack(demote(current));
+    QList<Piece> cycle{base};
+    if (isPromotable(base)) cycle << promote(base);
+    cycle << toWhite(base);
+    if (isPromotable(base)) cycle << toWhite(promote(base));
+
+    // 行き所のない段と二歩になる形は飛ばす
+    const qsizetype index = cycle.indexOf(current);
+    for (qsizetype step = 1; step <= cycle.size(); ++step) {
+        const Piece candidate = cycle.at((index + step) % cycle.size());
+        if (PieceRules::isDeadSquare(candidate, square.rank)) continue;
+        if (hasPawnOnFile(position, candidate, square.file, square.rank)) continue;
+        Position next = position;
+        next.setPieceAt(square, candidate);
+        return next;
+    }
+    return std::nullopt;
+}
+
+/// 盤上・両駒台を空にした局面（全駒が駒箱に戻る。手番と手数は残す）
+Position cleared(const Position& position)
+{
+    Position empty;
+    empty.setSideToMove(position.sideToMove());
+    empty.setMoveNumber(position.moveNumber());
+    return empty;
+}
+} // namespace
 
 std::optional<Position> PositionEditRules::moved(const Position& position, const QPoint& from, const QPoint& to,
                                                  Turn pieceBoxSide)
@@ -96,40 +133,6 @@ std::optional<Position> PositionEditRules::moved(const Position& position, const
         next.setPieceAt(BoardSquare{fileTo, to.y()}, placed);
     }
     return next;
-}
-
-std::optional<Position> PositionEditRules::cycled(const Position& position, BoardSquare square)
-{
-    if (!square.isValid()) return std::nullopt;
-    const Piece current = position.pieceAt(square);
-    if (current == Piece::None) return std::nullopt;
-
-    // 巡回の順: 先手の生駒 → 先手の成駒 → 後手の生駒 → 後手の成駒（成れない駒は先手 → 後手）
-    const Piece base = toBlack(demote(current));
-    QList<Piece> cycle{base};
-    if (isPromotable(base)) cycle << promote(base);
-    cycle << toWhite(base);
-    if (isPromotable(base)) cycle << toWhite(promote(base));
-
-    // 行き所のない段と二歩になる形は飛ばす
-    const qsizetype index = cycle.indexOf(current);
-    for (qsizetype step = 1; step <= cycle.size(); ++step) {
-        const Piece candidate = cycle.at((index + step) % cycle.size());
-        if (PieceRules::isDeadSquare(candidate, square.rank)) continue;
-        if (hasPawnOnFile(position, candidate, square.file, square.rank)) continue;
-        Position next = position;
-        next.setPieceAt(square, candidate);
-        return next;
-    }
-    return std::nullopt;
-}
-
-Position PositionEditRules::cleared(const Position& position)
-{
-    Position empty;
-    empty.setSideToMove(position.sideToMove());
-    empty.setMoveNumber(position.moveNumber());
-    return empty;
 }
 
 bool PositionEditRules::apply(ShogiBoard& board, const QPoint& from, const QPoint& to, Turn pieceBoxSide)

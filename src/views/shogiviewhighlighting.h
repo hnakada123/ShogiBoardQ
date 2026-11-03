@@ -70,10 +70,10 @@ public:
     /// dirty（再描画範囲）に掛からないマスは描かない。
     void drawHighlights(QPainter& painter, const QRegion& dirty);
     void drawArrows(QPainter& painter);
-    /// 矢印（線・矢じり・順位の丸印）が掛かる範囲。描き直す範囲を矢印の分だけに絞るために使う
-    QRect arrowsPaintRect(const QList<Arrow>& arrows) const;
 
 private:
+    /// 矢印（線・矢じり・順位の丸印）が掛かる範囲。描き直す範囲を矢印の分だけに絞るために使う
+    QRect arrowsPaintRect(const QList<Arrow>& arrows) const;
     /// マスを描き直す（座標が盤の外なら盤全体）
     void updateSquares(const QList<QPoint>& squares);
 

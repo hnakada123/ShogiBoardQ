@@ -33,9 +33,6 @@ public:
     /// プレーンテキストでコメントを設定（URLをリンクに変換）
     void setCommentText(const QString& text);
 
-    /// 整形済みHTMLでコメントを設定
-    void setCommentHtml(const QString& html);
-
     /// 現在の手数インデックスを設定
     void setCurrentMoveIndex(int index);
 
@@ -50,9 +47,6 @@ public:
 
     /// 「コメント更新」と同じく、未更新の本文を commentUpdated で知らせる（未更新の本文がなければ何もしない）
     void commitPendingComment();
-
-    /// プレーンテキストをエスケープし、URLをHTMLリンクに変換
-    static QString convertUrlsToLinks(const QString& text);
 
 signals:
     /// コメント更新シグナル
@@ -69,6 +63,11 @@ private slots:
     void updatePasteAvailability();
 
 private:
+    /// 整形済みHTMLでコメントを設定
+    void setCommentHtml(const QString& html);
+    /// プレーンテキストをエスケープし、URLをHTMLリンクに変換
+    static QString convertUrlsToLinks(const QString& text);
+
     void buildCommentToolbar(QWidget* parentWidget);
     void updateEditingIndicator();
     void fixPositionLabelSize();

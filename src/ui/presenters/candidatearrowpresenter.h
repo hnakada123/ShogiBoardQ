@@ -57,7 +57,6 @@ public:
 
     static std::optional<ShogiViewHighlighting::Arrow> arrowForMove(const QString& move,
                                                       const QString& baseSfen, int priority);
-    bool considerationActive() const;
     QString ponderDescription() const { return m_ponderDescription; }
 
 public slots:
@@ -72,6 +71,8 @@ private slots:
     void bindEngines();
 
 private:
+    /// 検討の矢印を出す状態か
+    bool considerationActive() const;
     /// 矢印の切り替え toggle がオンか（切り替えが無ければ fallback）
     bool arrowsOn(QAction* (BoardArrowActions::*toggle)() const, bool fallback) const;
     void appendConsiderationArrows(QList<ShogiViewHighlighting::Arrow>& arrows, const QString& sfen) const;

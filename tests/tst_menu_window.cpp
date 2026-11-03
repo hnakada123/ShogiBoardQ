@@ -65,7 +65,7 @@ private slots:
     void setFavorites_roundTrip();
     void setFavorites_empty();
     void setFavorites_unknownAction_skipped();
-    void favoritesChanged_emittedOnAdd();
+    void favoritesSavedOnAdd();
     void setCategories_createsTabs();
     void setCategories_empty_noExtraTabs();
     void responsiveLayoutAndFilter();
@@ -88,11 +88,10 @@ void TestMenuWindow::setFavorites_roundTrip()
     w.setCategories(makeTestCategories(actions));
 
     QStringList favs = {QStringLiteral("actionNew"), QStringLiteral("actionSave")};
-    QSignalSpy spy(&w, &MenuWindow::favoritesChanged);
     w.setFavorites(favs);
 
     QCOMPARE(w.favorites(), favs);
-    QCOMPARE(spy.count(), 1);
+    QCOMPARE(AppSettings::menuWindowFavorites(), favs);
     MenuWindow reopened;
     QCOMPARE(reopened.favorites(), favs);
 }
@@ -137,23 +136,19 @@ void TestMenuWindow::setFavorites_unknownAction_skipped()
 // シグナルテスト
 // ----------------------------------------------------------
 
-void TestMenuWindow::favoritesChanged_emittedOnAdd()
+/// お気に入りに足した手は、そのまま設定に保存する（知らせを受ける部品は無い）
+void TestMenuWindow::favoritesSavedOnAdd()
 {
     MenuWindow w;
     auto actions = makeTestActions(&w);
     w.setCategories(makeTestCategories(actions));
 
-    QSignalSpy spy(&w, &MenuWindow::favoritesChanged);
-    QVERIFY(spy.isValid());
-
     // onAddToFavorites をトリガーする（private slot なので invokeMethod で呼び出し）
     QMetaObject::invokeMethod(&w, "onAddToFavorites",
                               Q_ARG(QString, QStringLiteral("actionNew")));
 
-    QCOMPARE(spy.count(), 1);
-    auto args = spy.first();
-    QStringList emitted = args.at(0).value<QStringList>();
-    QVERIFY(emitted.contains(QStringLiteral("actionNew")));
+    QVERIFY(w.favorites().contains(QStringLiteral("actionNew")));
+    QVERIFY(AppSettings::menuWindowFavorites().contains(QStringLiteral("actionNew")));
 }
 
 // ----------------------------------------------------------
