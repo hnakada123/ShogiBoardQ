@@ -7,6 +7,8 @@
 #include "changeenginesettingsdialog.h"
 #include "csalogin.h"
 #include "engineselector.h"
+#include "kifufilefilter.h"
+#include "matchautosave.h"
 #include "networksettings.h"
 #include <QDir>
 #include <QFileDialog>
@@ -110,13 +112,10 @@ void CsaGameDialog::refreshChoices()
 
 void CsaGameDialog::populateAutoSaveFormats()
 {
+    // 「名前を付けて保存」と同じ表・同じ見出し（項目のデータは拡張子）
     ui->comboBoxAutoSaveFormat->clear();
-    ui->comboBoxAutoSaveFormat->addItem(tr("KIF (Shift_JIS, .kif)"), QStringLiteral("kif"));
-    ui->comboBoxAutoSaveFormat->addItem(tr("KIF (UTF-8, .kifu)"), QStringLiteral("kifu"));
-    ui->comboBoxAutoSaveFormat->addItem(tr("KI2 (.ki2)"), QStringLiteral("ki2"));
-    ui->comboBoxAutoSaveFormat->addItem(tr("CSA (.csa)"), QStringLiteral("csa"));
-    ui->comboBoxAutoSaveFormat->addItem(tr("JKF (.jkf)"), QStringLiteral("jkf"));
-    ui->comboBoxAutoSaveFormat->addItem(tr("USI (.usi)"), QStringLiteral("usi"));
+    for (const KifuFormats::SaveTarget& target : KifuFormats::saveTargets())
+        ui->comboBoxAutoSaveFormat->addItem(KifuFileFilter::saveLabel(target), target.suffix);
 }
 
 QString CsaGameDialog::validationMessage() const
@@ -351,7 +350,9 @@ void CsaGameDialog::loadGameSettings()
 
     // 表で表せない欄（接続方式は TLS かどうか、保存の形式は項目のデータ）
     ui->comboBoxTransport->setCurrentIndex(NetworkSettings::csaUseTls() ? 1 : 0);
-    const int formatIndex = ui->comboBoxAutoSaveFormat->findData(NetworkSettings::csaAutoSaveFormat());
+    // 選んだことがなければ、ローカル対局と同じ既定の形式（MatchAutoSave）
+    const int formatIndex =
+        ui->comboBoxAutoSaveFormat->findData(NetworkSettings::csaAutoSaveFormat.valueOr(MatchAutoSave().extension));
     ui->comboBoxAutoSaveFormat->setCurrentIndex(qMax(0, formatIndex));
     ui->lineEditPassword->clear();
     NetworkSettings::csaLegacyPassword.remove();

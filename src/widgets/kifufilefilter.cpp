@@ -55,6 +55,11 @@ QString KifuFileFilter::forSaving()
     return filters.join(QStringLiteral(";;"));
 }
 
+QString KifuFileFilter::saveLabel(const KifuFormats::SaveTarget& target)
+{
+    return QStringLiteral("%1 (.%2)").arg(tr(target.label), target.suffix);
+}
+
 QString KifuFileFilter::pathForSaving(const QString& path, const QString& selectedFilter)
 {
     if (path.isEmpty() || !QFileInfo(path).suffix().isEmpty()) return path;
