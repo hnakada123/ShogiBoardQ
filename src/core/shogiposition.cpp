@@ -278,11 +278,11 @@ bool Position::handsEmpty() const
 
 QMap<Piece, int> Position::pieceBox() const
 {
-    QMap<Piece, int> counts = {
-        {Piece::BlackPawn, 18}, {Piece::BlackLance, 4}, {Piece::BlackKnight, 4},
-        {Piece::BlackSilver, 4}, {Piece::BlackGold, 4}, {Piece::BlackBishop, 2},
-        {Piece::BlackRook, 2}, {Piece::BlackKing, 2},
-    };
+    QMap<Piece, int> counts;
+    for (int kind = 0; kind < kHandKindCount; ++kind) {
+        const PieceKind pieceKind = static_cast<PieceKind>(kind);
+        counts.insert(makePiece(Turn::Black, pieceKind), PieceRules::setCount(pieceKind));
+    }
     // SFENに駒箱は含めない。局面から求めるので、編集の再開・棋譜読込でも失われない。
     for (const Piece piece : m_squares) {
         if (piece != Piece::None) --counts[toBlack(demote(piece))];

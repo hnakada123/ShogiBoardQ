@@ -4,6 +4,7 @@
 #include <QtTest>
 
 #include "matesearchposition.h"
+#include "piecerules.h"
 #include "tsumeshogipositiongenerator.h"
 #include "threadtypes.h"
 
@@ -155,6 +156,7 @@ private slots:
     void generate_respectsMaxAttackPieces();
     void generate_respectsMaxDefendPieces();
     void generate_noNifu();
+    void generate_usesOneSetOfPieces();
     void isDefenderKingInCheck_rookOnFile();
     void isDefenderKingInCheck_blockedByPawn();
     void isDefenderKingInCheck_promotedPawn();
@@ -351,6 +353,43 @@ void TestTsumeshogiGenerator::generate_noNifu()
         QVERIFY(!sfen.isEmpty());
         const QString board = sfen.section(QLatin1Char(' '), 0, 0);
         QVERIFY2(!hasNifu(board), qPrintable(QStringLiteral("Nifu in: %1").arg(sfen)));
+    }
+}
+
+/// 駒の枚数は1組の駒（PieceRules::setCount）で、残りは受方の持駒に入る。行き所のない段に生駒を置かない
+/// （PieceRules::isDeadSquare）。どちらも盤の規則と同じ表で決める
+void TestTsumeshogiGenerator::generate_usesOneSetOfPieces()
+{
+    TsumeshogiPositionGenerator gen;
+    TsumeshogiPositionGenerator::Settings settings;
+    settings.maxAttackPieces = 10;
+    settings.maxDefendPieces = 10;
+    settings.attackRange = 8;
+    settings.addRemainingToDefenderHand = true;
+    gen.setSettings(settings);
+
+    for (int i = 0; i < 300; ++i) {
+        const QString sfen = gen.generate();
+        const std::optional<Position> position = Position::fromSfen(sfen);
+        QVERIFY2(position, qPrintable(sfen));
+        std::array<int, kHandKindCount> counts{};
+        for (int file = 1; file <= 9; ++file) {
+            for (int rank = 1; rank <= 9; ++rank) {
+                const Piece piece = position->pieceAt(file, rank);
+                if (piece == Piece::None) continue;
+                QVERIFY2(!PieceRules::isDeadSquare(piece, rank), qPrintable(sfen));
+                ++counts[static_cast<std::size_t>(pieceKind(demote(piece)))];
+            }
+        }
+        for (const Turn side : {Turn::Black, Turn::White}) {
+            for (int kind = 0; kind < kHandKindCount; ++kind)
+                counts[static_cast<std::size_t>(kind)] += position->handCount(makePiece(side, static_cast<PieceKind>(kind)));
+        }
+        for (int kind = 0; kind < static_cast<int>(PieceKind::King); ++kind) {
+            QVERIFY2(counts[static_cast<std::size_t>(kind)] == PieceRules::setCount(static_cast<PieceKind>(kind)),
+                     qPrintable(QStringLiteral("kind %1 in %2").arg(kind).arg(sfen)));
+        }
+        QCOMPARE(counts[static_cast<std::size_t>(PieceKind::King)], 1);  // 玉方の玉だけ
     }
 }
 

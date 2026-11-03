@@ -1,4 +1,5 @@
 #include <QtTest>
+#include "piecerules.h"
 #include "positioneditrules.h"
 #include "position_test_helper.h"
 #include <QSignalSpy>
@@ -470,6 +471,9 @@ private slots:
             {Piece::BlackSilver, 4}, {Piece::BlackGold, 4}, {Piece::BlackBishop, 2},
             {Piece::BlackRook, 2}, {Piece::BlackKing, 2}};
         QCOMPARE(board.pieceBox(), allPieces);
+        // 駒箱の枚数は1組の駒の表（PieceRules::setCount）から作る
+        for (auto it = allPieces.cbegin(); it != allPieces.cend(); ++it)
+            QCOMPARE(PieceRules::setCount(pieceKind(it.key())), it.value());
         QCOMPARE(board.currentPlayer(), turn);
     }
 

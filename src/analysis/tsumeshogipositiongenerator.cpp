@@ -3,6 +3,7 @@
 
 #include "tsumeshogipositiongenerator.h"
 #include "enginemovevalidator.h"
+#include "piecerules.h"
 
 void TsumeshogiPositionGenerator::setSettings(const Settings& s)
 {
@@ -38,13 +39,13 @@ QString TsumeshogiPositionGenerator::generateOnce()
     const int numAttack = rng->bounded(1, m_settings.maxAttackPieces + 1);
     for (int i = 0; i < numAttack; ++i) {
         // 使用可能な駒種を選択
-        PieceType pt = randomPieceType();
-        if (!hasRemainingPiece(pt)) {
+        PieceKind kind = randomPieceKind();
+        if (!hasRemainingPiece(kind)) {
             // 使用上限に達した場合、別の駒種を探す
             bool found = false;
-            for (int j = 0; j < PieceTypeCount; ++j) {
-                pt = static_cast<PieceType>(j);
-                if (hasRemainingPiece(pt)) {
+            for (int j = 0; j < kPlacedKindCount; ++j) {
+                kind = static_cast<PieceKind>(j);
+                if (hasRemainingPiece(kind)) {
                     found = true;
                     break;
                 }
@@ -67,49 +68,50 @@ QString TsumeshogiPositionGenerator::generateOnce()
                 if (isOccupied(f, r)) continue;
 
                 // 段制約チェック → 成駒に変換 or 再配置
+                const bool canPromote = isPromotable(pieceOf(kind, true, false));
                 bool promote = false;
-                if (needsPromotion(pt, r, true)) {
-                    if (kCanPromote[pt]) {
+                if (needsPromotion(kind, r, true)) {
+                    if (canPromote) {
                         promote = true;
                     } else {
                         continue;  // 金は成れないので再試行
                     }
                 } else {
                     // ランダムに成る(盤上駒の30%)
-                    if (kCanPromote[pt] && rng->bounded(100) < 30) {
+                    if (canPromote && rng->bounded(100) < 30) {
                         promote = true;
                     }
                 }
 
                 // 二歩回避: 同じ筋に不成の歩があれば別のマスを試す
-                if (pt == Pawn && !promote && hasUnpromotedPawnInFile(f, true)) {
+                if (kind == PieceKind::Pawn && !promote && hasUnpromotedPawnInFile(f, true)) {
                     continue;
                 }
 
-                placeOnBoard(f, r, pieceOf(pt, true, promote));
-                usePiece(pt);
+                placeOnBoard(f, r, pieceOf(kind, true, promote));
+                usePiece(kind);
                 placed = true;
                 break;
             }
             if (!placed) {
                 // 盤上配置失敗 → 持駒に入れる
-                addToAttackerHand(pt);
+                addToAttackerHand(kind);
             }
         } else {
             // 持駒に追加（成駒は不可なので生駒として）
-            addToAttackerHand(pt);
+            addToAttackerHand(kind);
         }
     }
 
     // 3. 守り駒をランダム配置（玉以外の後手駒）
     const int numDefend = rng->bounded(m_settings.maxDefendPieces + 1);
     for (int i = 0; i < numDefend; ++i) {
-        PieceType pt = randomPieceType();
-        if (!hasRemainingPiece(pt)) {
+        PieceKind kind = randomPieceKind();
+        if (!hasRemainingPiece(kind)) {
             bool found = false;
-            for (int j = 0; j < PieceTypeCount; ++j) {
-                pt = static_cast<PieceType>(j);
-                if (hasRemainingPiece(pt)) {
+            for (int j = 0; j < kPlacedKindCount; ++j) {
+                kind = static_cast<PieceKind>(j);
+                if (hasRemainingPiece(kind)) {
                     found = true;
                     break;
                 }
@@ -127,8 +129,8 @@ QString TsumeshogiPositionGenerator::generateOnce()
             if (isOccupied(f, r)) continue;
 
             bool promote = false;
-            if (needsPromotion(pt, r, false)) {
-                if (kCanPromote[pt]) {
+            if (needsPromotion(kind, r, false)) {
+                if (isPromotable(pieceOf(kind, false, false))) {
                     promote = true;
                 } else {
                     continue;
@@ -136,12 +138,12 @@ QString TsumeshogiPositionGenerator::generateOnce()
             }
 
             // 二歩回避: 同じ筋に不成の歩があれば別のマスを試す
-            if (pt == Pawn && !promote && hasUnpromotedPawnInFile(f, false)) {
+            if (kind == PieceKind::Pawn && !promote && hasUnpromotedPawnInFile(f, false)) {
                 continue;
             }
 
-            placeOnBoard(f, r, pieceOf(pt, false, promote));
-            usePiece(pt);
+            placeOnBoard(f, r, pieceOf(kind, false, promote));
+            usePiece(kind);
             break;
         }
     }
@@ -157,9 +159,7 @@ QString TsumeshogiPositionGenerator::generateOnce()
 void TsumeshogiPositionGenerator::clearState()
 {
     m_board = Position();
-    for (int i = 0; i < PieceTypeCount; ++i) {
-        m_usedCounts[i] = 0;
-    }
+    m_usedCounts.fill(0);
 }
 
 bool TsumeshogiPositionGenerator::isOccupied(int file, int rank) const
@@ -184,51 +184,37 @@ void TsumeshogiPositionGenerator::placeOnBoard(int file, int rank, Piece piece)
     m_board.setPieceAt(BoardSquare{file + 1, rank + 1}, piece);
 }
 
-TsumeshogiPositionGenerator::PieceType TsumeshogiPositionGenerator::randomPieceType()
+PieceKind TsumeshogiPositionGenerator::randomPieceKind()
 {
-    return static_cast<PieceType>(QRandomGenerator::global()->bounded(PieceTypeCount));
+    return static_cast<PieceKind>(QRandomGenerator::global()->bounded(kPlacedKindCount));
 }
 
-bool TsumeshogiPositionGenerator::hasRemainingPiece(PieceType pt) const
+bool TsumeshogiPositionGenerator::hasRemainingPiece(PieceKind kind) const
 {
-    return m_usedCounts[pt] < kMaxCounts[pt];
+    return m_usedCounts[static_cast<std::size_t>(kind)] < PieceRules::setCount(kind);
 }
 
-void TsumeshogiPositionGenerator::usePiece(PieceType pt)
+void TsumeshogiPositionGenerator::usePiece(PieceKind kind)
 {
-    m_usedCounts[pt]++;
+    m_usedCounts[static_cast<std::size_t>(kind)]++;
 }
 
-void TsumeshogiPositionGenerator::addToAttackerHand(PieceType pt)
+void TsumeshogiPositionGenerator::addToAttackerHand(PieceKind kind)
 {
-    m_board.addToHand(kBlackPieces[pt]);
-    usePiece(pt);
+    m_board.addToHand(makePiece(Turn::Black, kind));
+    usePiece(kind);
 }
 
-Piece TsumeshogiPositionGenerator::pieceOf(PieceType pt, bool isAttacker, bool promote)
+Piece TsumeshogiPositionGenerator::pieceOf(PieceKind kind, bool isAttacker, bool promote)
 {
-    const Piece piece = isAttacker ? kBlackPieces[pt] : toWhite(kBlackPieces[pt]);
+    const Piece piece = makePiece(isAttacker ? Turn::Black : Turn::White, kind);
     return promote ? ::promote(piece) : piece;
 }
 
-bool TsumeshogiPositionGenerator::needsPromotion(PieceType pt, int rank, bool isAttacker) const
+bool TsumeshogiPositionGenerator::needsPromotion(PieceKind kind, int rank, bool isAttacker)
 {
-    // 先手(攻方)視点: rank 0 = 1段目(相手陣最奥)
-    // 後手(守方)視点: rank 8 = 9段目(自陣最奥) → 反転して rank 0 が9段目
-    // SFEN的には rank 0 = 1段目（上側）
-    // 先手の歩・香: 1段目(rank=0)は不可 → 成る必要あり
-    // 先手の桂: 1-2段目(rank=0,1)は不可 → 成る必要あり
-    // 後手の歩・香: 9段目(rank=8)は不可
-    // 後手の桂: 8-9段目(rank=7,8)は不可
-
-    if (isAttacker) {
-        if (pt == Pawn || pt == Lance) return rank == 0;
-        if (pt == Knight) return rank <= 1;
-    } else {
-        if (pt == Pawn || pt == Lance) return rank == 8;
-        if (pt == Knight) return rank >= 7;
-    }
-    return false;
+    // 攻方は先手、守方は後手。rank 0 が1段目（行き所のない段の規則は盤の着手・駒打ちと同じ）
+    return PieceRules::isDeadSquare(pieceOf(kind, isAttacker, false), rank + 1);
 }
 
 bool TsumeshogiPositionGenerator::isKingInCheck() const
@@ -247,8 +233,10 @@ QString TsumeshogiPositionGenerator::buildSfen()
 {
     // 後手持駒（守方）: 未使用駒を全て追加する
     if (m_settings.addRemainingToDefenderHand) {
-        for (int pt = 0; pt < PieceTypeCount; ++pt) {
-            m_board.addToHand(toWhite(kBlackPieces[pt]), kMaxCounts[pt] - m_usedCounts[pt]);
+        for (int index = 0; index < kPlacedKindCount; ++index) {
+            const PieceKind kind = static_cast<PieceKind>(index);
+            m_board.addToHand(makePiece(Turn::White, kind),
+                              PieceRules::setCount(kind) - m_usedCounts[static_cast<std::size_t>(index)]);
         }
     }
 

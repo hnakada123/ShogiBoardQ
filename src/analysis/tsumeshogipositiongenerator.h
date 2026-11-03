@@ -8,6 +8,7 @@
 #include <QRandomGenerator>
 #include <QStringList>
 #include <QList>
+#include <array>
 #include "shogiposition.h"
 #include "shogitypes.h"
 #include "threadtypes.h"
@@ -42,38 +43,29 @@ public:
 private:
     Settings m_settings;
 
-    /// 駒種（生駒）
-    enum PieceType { Pawn, Lance, Knight, Silver, Gold, Bishop, Rook, PieceTypeCount };
-
-    /// 各駒種の最大数
-    static constexpr int kMaxCounts[PieceTypeCount] = {18, 4, 4, 4, 4, 2, 2};
-
-    /// 駒種の先手の生駒
-    static constexpr Piece kBlackPieces[PieceTypeCount] = {
-        Piece::BlackPawn, Piece::BlackLance, Piece::BlackKnight, Piece::BlackSilver,
-        Piece::BlackGold, Piece::BlackBishop, Piece::BlackRook};
-
-    /// 成駒があるか（金は成れない）
-    static constexpr bool kCanPromote[PieceTypeCount] = {true, true, true, true, false, true, true};
+    /// 置く駒の種類の数（成る前の駒の PieceKind の歩〜飛。玉は別に置く）。枚数は1組の駒
+    /// （PieceRules::setCount）、成れるかは isPromotable、行き所のない段は PieceRules::isDeadSquare で決める
+    static constexpr int kPlacedKindCount = static_cast<int>(PieceKind::King);
 
     /// 局面（盤と持駒）。file・rank は 0〜8 で、盤の筋・段の 1〜9 にあたる
     Position m_board;
 
-    /// 駒使用数カウンタ（各駒種の使用数。盤上の両者の駒と攻方の持駒）
-    int m_usedCounts[PieceTypeCount] = {};
+    /// 駒の種類（PieceKind の歩〜飛）ごとの使った数（盤上の両者の駒と攻方の持駒）
+    std::array<int, kPlacedKindCount> m_usedCounts{};
 
     QString generateOnce();
     void clearState();
     bool isOccupied(int file, int rank) const;
     bool hasUnpromotedPawnInFile(int file, bool isAttacker) const;
     void placeOnBoard(int file, int rank, Piece piece);
-    PieceType randomPieceType();
-    bool hasRemainingPiece(PieceType pt) const;
-    void usePiece(PieceType pt);
-    void addToAttackerHand(PieceType pt);
-    /// 駒種の駒（isAttacker なら先手、そうでなければ後手。promote なら成駒）
-    static Piece pieceOf(PieceType pt, bool isAttacker, bool promote);
-    bool needsPromotion(PieceType pt, int rank, bool isAttacker) const;
+    static PieceKind randomPieceKind();
+    bool hasRemainingPiece(PieceKind kind) const;
+    void usePiece(PieceKind kind);
+    void addToAttackerHand(PieceKind kind);
+    /// 種類 kind の駒（isAttacker なら先手、そうでなければ後手。promote なら成駒）
+    static Piece pieceOf(PieceKind kind, bool isAttacker, bool promote);
+    /// 成らずに置くと行き所のない段か（rank は 0〜8）
+    static bool needsPromotion(PieceKind kind, int rank, bool isAttacker);
     bool isKingInCheck() const;
     QString buildSfen();
 };

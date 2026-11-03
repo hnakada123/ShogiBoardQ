@@ -58,7 +58,7 @@ cmake --build build --target translations
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
   - `shogiposition.cpp/.h` - 局面の値 `Position`（盤81マス・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用（`apply`）はここだけ。手番側の手として局面に合うか（動かす駒の色・自分の駒を取らないか・打つ駒と打つ先）は `mismatchOf` だけで決める（棋譜の1行の `MoveRecord::play` と読み筋の `PvText` が使う）。計算のための局面はこの値で持つ
   - `shogiboard.cpp/.h` - 表示・局面編集に使う盤。`Position` を1つ持ち（`position()`）、変更をシグナルで知らせる QObject（局面の包みと知らせだけ。局面を変える規則は持たず、着手と局面編集は次の局面を `Position` で作って `replacePosition(next)` で渡す。変わったマス・駒台・手番だけを知らせる）
-  - `shogitypes.h`・`piecerules.h` - 手番と駒（`Piece` は種類＋後手なら16。並びは fmv と同じ）。行き所のない駒・成れる段・持ち駒の並びの規則
+  - `shogitypes.h`・`piecerules.h` - 手番と駒（`Piece` は種類＋後手なら16。並びは fmv と同じ）。1組の駒の枚数 `PieceRules::setCount`（駒箱 `Position::pieceBox`・局面の駒の数の上限 `PositionValidator`・詰将棋の候補局面 `TsumeshogiPositionGenerator` で共通）・行き所のない駒 `isDeadSquare`・成れる段（敵陣） `inPromotionZone`（持将棋の敵陣も）・持ち駒の並びの規則
   - `positionvalidator.cpp/.h` - 局面の検査 `PositionValidator`（`check()`：駒の数・駒台の玉・玉の重複と有無・手番でない側への王手と、手番側の王手・合法手の数。`boardProblem()` は盤と持ち駒だけ）。validate-sfen（`SfenValidator`）・局面集・詰将棋問題一覧・対局の開始で同じ規則を使う。合法手だけを指すのは `EngineMoveValidator::applyIfLegal`。Hayanagi は詰み探索だけに使う
   - `sfenvalidator.cpp/.h` - SFEN の検査 `SfenValidator::validate`（手番・手数の欄と `Position::fromSfen`・`PositionValidator` の結果を値 `SfenValidation` にし、読めた局面 `position` も返す）と、合法手だけを指した後の SFEN `applyUsiMoves`。JSON にするのは headless の `SfenValidationJson`
   - `pvtext.cpp/.h` - 読み筋の値 `PvText`（`PvText::play(開始局面, USI の語, 至った手の移動先)` が局面の上で1回だけ指し、指せた手（指した側・動かした駒）と指せなかった語を持つ）。思考の表・棋譜解析・読み筋盤・詰将棋の正解手順で共通。表記は kifu の `KifuPresentation::pv`・`pvMove` が表示のたびに作る
@@ -70,7 +70,7 @@ cmake --build build --target translations
   - `boardsquaresize.h` - 盤のマスの幅の範囲 `BoardSquareSize`（20〜150、既定50。盤の描画・設定の宣言・CLI の盤面画像で共通）
   - `boardcoordinates.h` - 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応（表示の座標の駒・駒台と駒箱の枚数の読み `pieceAt`・`isAvailable` もここだけ）
   - `handicaps.h` - 手合割の表（名前・JKF の preset・開始局面）と局面の手合割（`Handicaps::of(Position)`・`ofStart(開始局面の文字列)`。盤・持ち駒・手番で決め、手数は見ない）。平手かどうかは `Handicaps::isHirate` だけで判定する
-  - `jishogicalculator.cpp/.h` - 持将棋の点数計算・判定 `JishogiCalculator`（駒の点数 `kMajorPiecePoints`・`kMinorPiecePoints`、敵陣に要る駒の数 `kRequiredPiecesInCamp`（`hasEnoughPiecesInCamp`）、点数の閾値 `winningPoints`・`requiredPoints` はここだけ。持将棋の点数のダイアログと入玉宣言の判定の説明 `NyugyokuJudgement` の数もここから入れる）
+  - `jishogicalculator.cpp/.h` - 持将棋の点数計算・判定 `JishogiCalculator`（駒の点数 `kMajorPiecePoints`・`kMinorPiecePoints`、敵陣に要る駒の数 `kRequiredPiecesInCamp`（`hasEnoughPiecesInCamp`）、点数の閾値 `winningPoints`・`requiredPoints` はここだけ。持将棋の点数のダイアログと入玉宣言の判定の説明 `NyugyokuJudgement` の数もここから入れる。敵陣は `PieceRules::inPromotionZone`）
   - `matchplayers.h` - 対局者（先手・後手を人間とエンジンのどちらが指すかと名前。1人分は `seat(Turn)`）
   - `shogiclock.cpp/.h` - Game clock
   - `shoginotation.h` - 筋・段・駒の表記（漢字・全角・CSA）
