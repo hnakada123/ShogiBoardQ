@@ -19,7 +19,7 @@ public:
     void moveNow() override;
     bool isHumanToMove() const override;
     Turn sideToMove() const override;
-    bool judgesDeclaration() const override { return false; }
+    bool acceptsDeclaration() const override { return true; }
     std::optional<NyugyokuJudgement::Result> declareNyugyoku() override;
 
 private:

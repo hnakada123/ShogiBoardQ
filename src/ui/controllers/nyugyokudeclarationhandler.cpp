@@ -31,14 +31,12 @@ bool NyugyokuDeclarationHandler::handleDeclaration(GameChannel* channel)
         return false;
     }
 
-    // こちらで判定する対局は、持将棋ルール（対局ダイアログの設定）が要る
-    if (channel->judgesDeclaration()) {
-        if (!NyugyokuJudgement::configuredRule()) {
-            NotificationPresenter::warning(m_parentWidget, tr("入玉宣言"),
-                tr("持将棋ルールが「なし」に設定されています。\n"
-                   "対局ダイアログで「24点法」または「27点法」を選択してください。"));
-            return false;
-        }
+    // ローカル対局は、対局を始めたときに対局ダイアログで選んだ持将棋ルールが要る
+    if (!channel->acceptsDeclaration()) {
+        NotificationPresenter::warning(m_parentWidget, tr("入玉宣言"),
+            tr("持将棋ルールが「なし」に設定されています。\n"
+               "対局ダイアログで「24点法」または「27点法」を選択してください。"));
+        return false;
     }
 
     // 誤操作で負けないよう確認する。駒落ちは対局情報の見出しに合わせて下手・上手と呼ぶ

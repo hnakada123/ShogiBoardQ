@@ -4,22 +4,7 @@
 #include "nyugyokujudgement.h"
 
 #include "enginemovevalidator.h"
-#include "gamesettings.h"
 #include "shogiposition.h"
-
-std::optional<JishogiCalculator::Rule> NyugyokuJudgement::ruleFromSetting(int value)
-{
-    switch (value) {
-    case 1: return JishogiCalculator::Rule::Points24;
-    case 2: return JishogiCalculator::Rule::Points27;
-    default: return std::nullopt;
-    }
-}
-
-std::optional<JishogiCalculator::Rule> NyugyokuJudgement::configuredRule()
-{
-    return ruleFromSetting(GameSettings::StartGame::jishogiRule());
-}
 
 QString NyugyokuJudgement::declarerName(bool declarerIsSente, bool handicapNames)
 {
@@ -81,13 +66,12 @@ NyugyokuJudgement::Result NyugyokuJudgement::judge(const Position& position, boo
     return result;
 }
 
-NyugyokuJudgement::Result NyugyokuJudgement::judgeEngineDeclaration(const Position& position, bool declarerIsSente,
-                                                                    bool handicapNames)
+NyugyokuJudgement::Result NyugyokuJudgement::judgeDeclaration(const Position& position, bool declarerIsSente,
+                                                              std::optional<JishogiCalculator::Rule> rule,
+                                                              bool handicapNames)
 {
-    const std::optional<JishogiCalculator::Rule> configured = configuredRule();
-    Result result = judge(position, declarerIsSente, configured.value_or(JishogiCalculator::Rule::Points27),
-                          handicapNames);
-    if (!configured) {
+    Result result = judge(position, declarerIsSente, rule.value_or(JishogiCalculator::Rule::Points27), handicapNames);
+    if (!rule) {
         result.message = tr("持将棋ルールが「なし」のため、27点法で判定しました。") + QStringLiteral("\n\n")
                          + result.message;
     }

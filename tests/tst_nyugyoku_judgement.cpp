@@ -2,12 +2,8 @@
 /// @brief 入玉宣言の判定（人間の宣言とエンジンの bestmove win で共通）のテスト
 
 #include <QtTest>
-#include <QSettings>
-#include <QStandardPaths>
-#include <QTemporaryDir>
 
 #include "nyugyokujudgement.h"
-#include "settingscommon.h"
 #include "shogiboard.h"
 
 namespace {
@@ -29,30 +25,7 @@ class TestNyugyokuJudgement : public QObject
 {
     Q_OBJECT
 
-private:
-    QTemporaryDir m_config;
-
-    // 対局ダイアログの持将棋ルールの設定値（GameSettings::StartGame::jishogiRule）
-    static constexpr int kSettingNone = 0;
-    static constexpr int kSetting24 = 1;
-    static constexpr int kSetting27 = 2;
-
-    static void setRule(int rule)
-    {
-        QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        settings.setValue(QStringLiteral("GameSettings/jishogiRule"), rule);
-        settings.sync();
-    }
-
 private slots:
-    void initTestCase()
-    {
-        QVERIFY(m_config.isValid());
-        QStandardPaths::setTestModeEnabled(true);
-        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
-        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
-    }
-
     void judge_data()
     {
         QTest::addColumn<QString>("sfen");
@@ -94,25 +67,25 @@ private slots:
         QVERIFY(handicap.message.startsWith(sente ? QStringLiteral("下手の入玉宣言") : QStringLiteral("上手の入玉宣言")));
     }
 
-    void engineDeclarationUsesConfiguredRule()
+    /// 宣言は対局の持将棋ルールで判定する（設定は読まない）
+    void declarationUsesTheRuleOfTheGame()
     {
+        using Rule = JishogiCalculator::Rule;
         ShogiBoard board;
         board.setSfen(kWin);
-        setRule(kSetting24);
-        auto result = NyugyokuJudgement::judgeEngineDeclaration(board.position(), true);
+        auto result = NyugyokuJudgement::judgeDeclaration(board.position(), true, Rule::Points24);
         QVERIFY(result.success && result.isDraw);
 
         // 「なし」でもエンジンの宣言は取り消せないため、27点法で判定して説明する
-        setRule(kSettingNone);
-        result = NyugyokuJudgement::judgeEngineDeclaration(board.position(), true);
+        result = NyugyokuJudgement::judgeDeclaration(board.position(), true, std::nullopt);
         QVERIFY(result.success && !result.isDraw);
         QVERIFY(result.message.startsWith(QStringLiteral("持将棋ルールが「なし」のため、27点法で判定しました。")));
 
         board.setSfen(kShort);
-        setRule(kSetting27);
-        result = NyugyokuJudgement::judgeEngineDeclaration(board.position(), true);
+        result = NyugyokuJudgement::judgeDeclaration(board.position(), true, Rule::Points27);
         QVERIFY(!result.success);
         QCOMPARE(result.resultText, QStringLiteral("宣言失敗（負け）"));
+        QVERIFY(!result.message.contains(QStringLiteral("「なし」")));
     }
 };
 

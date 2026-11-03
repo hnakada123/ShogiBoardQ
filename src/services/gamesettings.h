@@ -135,7 +135,8 @@ inline const Setting<bool> loseOnTimeout{"GameSettings/isLoseOnTimeout", true};
 /// 連続対局で1局ごとに手番を入れ替えるか（デフォルト: false）
 inline const Setting<bool> switchTurnEachGame{"GameSettings/isSwitchTurnEachGame", false};
 
-/// 持将棋の判定規則（NyugyokuJudgement::Rule。デフォルト: 0 = なし）
+/// 持将棋ルール（対局ダイアログのコンボの位置。0 = なし・1 = 24点法・2 = 27点法。デフォルト: 0 = なし）。
+/// 対局ダイアログだけが読み書きし、対局は MatchStartOptions::jishogiRule で受け取る
 inline const Setting<int> jishogiRule{"GameSettings/jishogiRule", 0};
 
 } // namespace StartGame

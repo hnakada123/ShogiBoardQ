@@ -196,7 +196,7 @@ saved.byoyomiSec.set(static_cast<int>(time.byoyomiMs / kSecondMs));
 以前の版は、以前の一覧の並びの番号（0=現在の局面、1=平手 … 14=十枚落ち）を `startingPositionNumber` に保存していた。
 `GameSettings::StartGame::startingPosition()` はこのキーが残っていれば先にそれを読み、`setStartingPosition()` は名前で保存してこのキーを消す（`gamesettings.cpp`）。ダイアログはこの2つを使う。
 
-`GameSettings::StartGame` の項目はダイアログ（`startgamedialog.cpp`・`playersetupwidget.cpp`）のほか、`NyugyokuJudgement::configuredRule()`（`jishogiRule`）も読む。
+`GameSettings::StartGame` の項目を読み書きするのはダイアログ（`startgamedialog.cpp`・`playersetupwidget.cpp`）だけである。持将棋ルール（`jishogiRule`。コンボの位置）も、ダイアログが `StartGameDialogData::jishogiRule` にし、対局は `MatchStartOptions::jishogiRule` で受け取る。
 
 ### 入力欄と設定の対応の表（SettingsFormBinding）
 

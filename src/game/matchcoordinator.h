@@ -168,8 +168,9 @@ public:
     void handlePlayerTimeOut(Turn player);
     /// 入玉宣言の判定結果で終局する（宣言の結果は呼び出し側のダイアログで知らせる）
     void handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw);
-    /// 人間の入玉宣言を盤面から判定（rule は Rule24・Rule27）して終局し、判定結果を返す（知らせは呼び出し側）
-    NyugyokuJudgement::Result declareNyugyoku(Turn declarer, JishogiCalculator::Rule rule);
+    /// declarer の入玉宣言を盤面から対局の持将棋ルール（options().jishogiRule）で判定して終局し、判定結果を返す
+    /// （人間の宣言の知らせは呼び出し側。エンジンの宣言は handleEngineWin が gameOverMessage で知らせる）
+    NyugyokuJudgement::Result declareNyugyoku(Turn declarer);
 
     /// Strategy から呼ぶ操作（テストから一手を確定するときにも使う）
     MatchStrategyHost& strategyHost() { return *this; }
