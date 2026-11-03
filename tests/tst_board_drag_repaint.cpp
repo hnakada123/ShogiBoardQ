@@ -420,9 +420,8 @@ private slots:
         ui.controller->onRightClick(from);
     }
 
-    // 棋譜をたどるたび・エンジンが指すたびに呼ばれる applyBoardAndRender は、盤もマスの大きさも
-    // 駒の画像も変わらなければ盤を描き直さない。別の盤を渡したときは全体を描き直す
-    void applyBoardAndRenderRepaintsOnlyWhenNeeded()
+    // setBoard は同じ盤なら何もせず（盤を描き直さない）、別の盤を渡したときは全体を描き直す
+    void setBoardRepaintsOnlyWhenNeeded()
     {
         BoardUi ui(sfen(), false);
         QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
@@ -430,18 +429,18 @@ private slots:
 
         PaintSpy spy;
         ui.view.installEventFilter(&spy);
-        ui.view.applyBoardAndRender(ui.gc.board());
+        ui.view.setBoard(ui.gc.board());
         QCoreApplication::processEvents();
         QVERIFY(spy.rects.isEmpty());
 
         ShogiBoard other;
         other.setSfen(sfen());
-        ui.view.applyBoardAndRender(&other);
+        ui.view.setBoard(&other);
         QCoreApplication::processEvents();
         ui.view.removeEventFilter(&spy);
         QVERIFY(!spy.rects.isEmpty());
         QCOMPARE(spy.rects.last(), ui.view.rect());
-        ui.view.applyBoardAndRender(ui.gc.board());
+        ui.view.setBoard(ui.gc.board());
     }
 
     // 局面を丸ごと替えたとき（棋譜をたどる・待った・読み込みなど）は、画面に出ている駒と違うマスだけを

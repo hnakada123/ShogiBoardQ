@@ -33,6 +33,7 @@
 #include <QRegion>
 
 #include "boardgeometry.h"
+#include "boardsquaresize.h"
 #include "shogiview.h"
 #include "boardchromewidget.h"
 #include "boardviewerwidget.h"
@@ -319,7 +320,7 @@ private slots:
         ShogiBoard model;
         PositionEditRules::clear(model);
         ShogiView live;
-        live.applyBoardAndRender(&model);
+        live.setBoard(&model);
         live.chrome()->card(Turn::Black)->setClockText(QStringLiteral("03:21"));
         const auto position = model.position().boardSfen();
         BoardAppearanceDialog dialog;
@@ -484,8 +485,8 @@ private slots:
             return qMax(8, qRound(view.fieldSize().height() * BoardChromeWidget::kNameFontScale * 0.8));
         };
         ShogiView bare;  // CLI の render-board と外観の見本と同じ、何も付けない盤
-        bare.configureFixedSizing(50);
-        bare.applyBoardAndRender(&model);
+        bare.setSquareSize(50);
+        bare.setBoard(&model);
         QCOMPARE(nameSize(bare), expected(bare));
 
         BoardViewerWidget viewer(BoardViewerWidget::ZoomToolbar);  // 読み筋盤・局面集ビューアの盤
@@ -499,14 +500,26 @@ private slots:
         QCOMPARE(nameSize(*sample), expected(*sample));
     }
 
+    /// マスの幅は範囲（BoardSquareSize）の外を端に寄せる（CLI・外観の見本・本体の盤で同じ入口）
+    void squareSizeOutsideRangeIsClamped()
+    {
+        ShogiView view;
+        view.setSquareSize(BoardSquareSize::kMin - 5);
+        QCOMPARE(view.squareSize(), BoardSquareSize::kMin);
+        view.setSquareSize(BoardSquareSize::kMax + 5);
+        QCOMPARE(view.squareSize(), BoardSquareSize::kMax);
+        view.setSquareSize(64);
+        QCOMPARE(view.squareSize(), 64);
+    }
+
     void configuredSizeSurvivesBoardAssignment()
     {
         ShogiBoard model;
         PositionEditRules::clear(model);
         for (const int size : {20, 50, 100, 150}) {
             ShogiView view;
-            view.configureFixedSizing(size);
-            view.applyBoardAndRender(&model);
+            view.setSquareSize(size);
+            view.setBoard(&model);
             QCOMPARE(view.squareSize(), size);
             QCOMPARE(view.fieldSize().width(), size);
             view.resize(view.sizeHint());
@@ -525,7 +538,7 @@ private slots:
         ShogiBoard model;
         PositionEditRules::clear(model);
         ShogiView view;
-        view.applyBoardAndRender(&model);
+        view.setBoard(&model);
         for (const int size : {20, 53, 100, 150}) {
             view.setSquareSize(size);
             view.setFlipMode(false);
@@ -589,8 +602,8 @@ private slots:
         BoardAppearance::instance().setVisuals({false, shadow, pieceScale, false});
         ShogiBoard model;
         ShogiView view;
-        view.configureFixedSizing(squareSize);
-        view.applyBoardAndRender(&model);
+        view.setSquareSize(squareSize);
+        view.setBoard(&model);
         for (const bool flipped : {false, true}) {
             view.setFlipMode(flipped);
             const auto layout = viewLayout(view);
@@ -630,8 +643,8 @@ private slots:
         BoardAppearance::instance().setVisuals({false, false, 108, false});
         ShogiBoard model;
         ShogiView view;
-        view.configureFixedSizing(53);
-        view.applyBoardAndRender(&model);
+        view.setSquareSize(53);
+        view.setBoard(&model);
         for (const bool flipped : {false, true}) {
             view.setFlipMode(flipped);
             const auto layout = viewLayout(view);
@@ -681,8 +694,8 @@ private slots:
         ShogiBoard model;
         model.setSfen(sfen);
         ShogiView view;
-        view.configureFixedSizing(50);
-        view.applyBoardAndRender(&model);
+        view.setSquareSize(50);
+        view.setBoard(&model);
         view.setFlipMode(flipped);
         auto arrow = CandidateArrowPresenter::arrowForMove(QStringLiteral("%1*5e").arg(piece), sfen, 1);
         QVERIFY(arrow);

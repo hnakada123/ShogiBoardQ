@@ -96,6 +96,8 @@ void ShogiView::setBoard(ShogiBoard* board)
 
     qCDebug(lcView) << "setBoard complete, m_board now:" << m_board;
     relayoutChrome();
+    // 別の盤は全体を描き直す（同じ盤なら上で戻る。局面の変化は盤の通知で変わったマスだけを描き直す）
+    update();
     emit positionChanged();
 }
 
@@ -169,10 +171,8 @@ void ShogiView::zoomTo(int size)
 
 void ShogiView::setSquareSize(int size)
 {
-    if (size < BoardSquareSize::kMin || size > BoardSquareSize::kMax) {
-        return;
-    }
-    applyBoardScaleChange(size);
+    // 範囲の外は端に寄せる（範囲は core の BoardSquareSize）
+    applyBoardScaleChange(std::clamp(size, BoardSquareSize::kMin, BoardSquareSize::kMax));
 }
 
 void ShogiView::enlargeBoard()
@@ -214,27 +214,6 @@ QImage ShogiView::toImage(qreal scale)
                          Qt::SmoothTransformation);
     }
     return img;
-}
-
-void ShogiView::applyBoardAndRender(ShogiBoard* board)
-{
-    if (!board) return;
-
-    // 棋譜をたどるたび・エンジンが指すたびに呼ばれる。局面の変化は ShogiBoard の通知で
-    // 変わったマスだけを描き直すので、盤そのもの・マスの大きさが変わったときだけ全体を描き直す
-    // （駒の画像が変わったときは loadPieceImages が描き直す）。
-    loadPieceImages(flipMode());
-
-    const bool boardChanged = m_board != board;
-    setBoard(board);
-    if (boardChanged) update();
-}
-
-void ShogiView::configureFixedSizing(int squarePx)
-{
-    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    const int s = (squarePx > 0) ? squarePx : squareSize();
-    applyBoardScaleChange(std::clamp(s, BoardSquareSize::kMin, BoardSquareSize::kMax));
 }
 
 // ============================================================

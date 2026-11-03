@@ -17,7 +17,8 @@ BoardAppearancePreview::BoardAppearancePreview(QWidget* parent)
     setMinimumSize(300, 280);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     m_viewer->hide();
-    m_viewer->view()->configureFixedSizing(70);
+    m_viewer->view()->setSquareSize(70);
+    m_viewer->view()->setBoard(m_viewer->board());
     m_viewer->view()->chrome()->setClockEnabled(true);
     // ShogiView の更新後に画像を取得する（同じ通知先への接続順を維持）。
     connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged, this, &BoardAppearancePreview::refresh);
@@ -35,7 +36,6 @@ void BoardAppearancePreview::setPosition(int index)
 {
     if (index == 0) m_viewer->board()->setSfen(SfenUtils::hirateSfen());
     else m_viewer->board()->setSfen(QStringLiteral("4k4/9/3+r+b+s+n+l+p/9/9/9/+P+L+N+S+B+R3/9/4K4 b 2GSNL8P2gsnl8p 1"));
-    m_viewer->view()->applyBoardAndRender(m_viewer->board());
     m_viewer->view()->chrome()->card(Turn::Black)->setClockText(QStringLiteral("09:58"));
     m_viewer->view()->chrome()->card(Turn::White)->setClockText(QStringLiteral("10:00"));
     m_viewer->view()->resize(m_viewer->view()->sizeHint());
@@ -45,7 +45,6 @@ void BoardAppearancePreview::setPosition(int index)
 void BoardAppearancePreview::setFlipped(bool flipped)
 {
     m_viewer->view()->setFlipMode(flipped);
-    m_viewer->view()->applyBoardAndRender(m_viewer->board());
     refresh();
 }
 
