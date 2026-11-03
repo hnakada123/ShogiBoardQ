@@ -409,13 +409,13 @@
 - `TsumeshogiVerifier::Options::requireNoSurplus`: true にするのはテストの監査ツール（`tests/tsumeshogi_collection_auditor.cpp`）だけ。そのため `TsumeVerificationRunner::statusName` の "running"・"surplus"（`tsumeverificationrunner.cpp:28,35`）は CLI が出さない。MCP の出力スキーマの enum にも無いので、もし出ると出力の検証で落ちる
 
 届かない分岐:
-- 読み筋盤の「盤の差分から直前の手を求める」経路（`PvLine::arrivalHighlight` の `pvline.cpp:66-81` と、ここだけが使う `sfendiffutils.h` の81行）。`setPrevSfenForHighlight` を呼ぶのは `pvclickcontroller.cpp:65` だけで、同時に直前の手（`UsiMove::toString()` なので必ず読める）も入れる。棋譜解析と詰将棋生成は `prevSfen` を渡さない。この分岐を通すのは `tests/tst_pvline.cpp:86-111` だけ。`setPrevSfenForHighlight`・`setArrival` の第2引数・`showPvBoard` の `prevSfen`・`sfendiffutils.h` を消す
-- `JosekiWindow::setCurrentSfen` の入力の整え（"startpos" を平手に、'\r' を除く。`josekiwindow.cpp:469-472`）。唯一の呼び出し元はノードの SFEN しか渡さない。"startpos" を渡すのは `tst_josekiwindow.cpp:392` だけ（規則は `UsiPosition::sfenOf` にある）
+- 読み筋盤の「盤の差分から直前の手を求める」経路（`PvLine::arrivalHighlight` の `pvline.cpp:66-81` と、ここだけが使う `sfendiffutils.h` の81行）。`setPrevSfenForHighlight` を呼ぶのは `pvclickcontroller.cpp:65` だけで、同時に直前の手（`UsiMove::toString()` なので必ず読める）も入れる。棋譜解析と詰将棋生成は `prevSfen` を渡さない。この分岐を通すのは `tests/tst_pvline.cpp:86-111` だけ。`setPrevSfenForHighlight`・`setArrival` の第2引数・`showPvBoard` の `prevSfen`・`sfendiffutils.h` を消す → 済（d0286913）
+- `JosekiWindow::setCurrentSfen` の入力の整え（"startpos" を平手に、'\r' を除く。`josekiwindow.cpp:469-472`）。唯一の呼び出し元はノードの SFEN しか渡さない。"startpos" を渡すのは `tst_josekiwindow.cpp:392` だけ（規則は `UsiPosition::sfenOf` にある） → 済（d0286913。"startpos" のテストも消した）
 - `ConsiderationPanel::buildConsiderationView` の `if (m_considerationModel)`（`considerationpanel.cpp:349-351`）はコンストラクタの中なので常に偽。コメントは存在しない `buildConsiderationUi()` を指す → 済（0e1b530b。M11 と一緒に直した）
-- `findMatchingChild` の局面での比較と、そのコメント「KIF 本譜由来のノードなど」（`kifubranchtree.cpp:389-399,411,436-441`）。同じ備えが `kifexporter.cpp:87`、`ki2exporter.cpp:49-51`、`csaexporter.cpp:113-115` にもある。今は終局以外の行はすべて `MoveRecord::play` から作られる。`tst_kifubranchtree` が局面での比較に頼るので、直すならテストも合わせる（優先度は低い）
-- `josekiimport.cpp:93-96` の、開始局面が空のときの分岐（`KifLineBuilder` が必ず開始局面を入れる。`kiflinebuilder.cpp:15`）
-- `ParseOptions::FailRecord`（T1）
-- `KifuFileController::loadKifuText`（`kifufilecontroller.cpp:194-199`）だけが `finishLoad` を通らない（`.h:30` の「後始末を同じ関数で行う」と合わない。違いは貼り付けダイアログを閉じない・ステータスバーに出さないことだけ）
+- `findMatchingChild` の局面での比較と、そのコメント「KIF 本譜由来のノードなど」（`kifubranchtree.cpp:389-399,411,436-441`）。同じ備えが `kifexporter.cpp:87`、`ki2exporter.cpp:49-51`、`csaexporter.cpp:113-115` にもある。今は終局以外の行はすべて `MoveRecord::play` から作られる。`tst_kifubranchtree` が局面での比較に頼るので、直すならテストも合わせる（優先度は低い） → 見送り（優先度が低く、`tst_kifubranchtree` が局面での比較に頼る。2026-11-04）
+- `josekiimport.cpp:93-96` の、開始局面が空のときの分岐（`KifLineBuilder` が必ず開始局面を入れる。`kiflinebuilder.cpp:15`） → 済（d0286913）
+- `ParseOptions::FailRecord`（T1） → 見送り（全形式で読めない手の扱いが同じことをテストで確かめる口として使っている。消すと16ファイルの引数が変わる。2026-11-04）
+- `KifuFileController::loadKifuText`（`kifufilecontroller.cpp:194-199`）だけが `finishLoad` を通らない（`.h:30` の「後始末を同じ関数で行う」と合わない。違いは貼り付けダイアログを閉じない・ステータスバーに出さないことだけ） → 済（d0286913。貼り付けと同じ後始末を通す。テストは `tst_app_kifu_load` の `textLoadFinishesLikePaste`）
 
 小さな写し・二重:
 - 候補手の数の上限10を書き写している（`analysissession.cpp:146`。正本は `ConsiderationSettings::kMaxMultiPV`）
