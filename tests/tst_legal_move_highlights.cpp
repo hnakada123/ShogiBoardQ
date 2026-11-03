@@ -17,13 +17,15 @@ class TestLegalMoveHighlights : public QObject
     Q_OBJECT
     QTemporaryDir m_config;
 
-    /// 盤で指した手の行き先（受け付けるか・局面編集中かをテストが決める）
+    /// 盤で指した手の行き先（受け付けるか・局面編集中かをテストが決める。右クリックの巡回は覚えるだけ）
     struct TestRoute : BoardInputRoute {
         bool accepting = true;
         bool editing = false;
+        QList<QPoint> cycled;
         bool acceptsInput() const override { return accepting; }
         bool isEditing() const override { return editing; }
         void submit(const QPoint&, const QPoint&) override {}
+        void cycle(const QPoint& square) override { cycled.append(square); }
     };
 
     struct BoardUi {
@@ -220,6 +222,26 @@ private slots:
             ui.controller->setInputRoute(&ui.route);
         }
         QVERIFY(ui.destinations().isEmpty());
+    }
+
+    /// 局面編集中の右クリックは盤を直接変えずに行き先へ渡す（局面編集の盤を変えるのは行き先の持ち主。
+    /// 監査 2026-11-01 M14）。編集中でなければ渡さず、駒をつまんでいる間の右クリックはつまむのをやめるだけ
+    void rightClickCycleGoesToRoute()
+    {
+        BoardUi ui(SfenUtils::hirateSfen());
+        const QString before = ui.gc.board()->position().toSfen();
+        ui.click(QPoint(7, 7), Qt::RightButton);
+        QVERIFY(ui.route.cycled.isEmpty());
+
+        ui.route.editing = true;
+        ui.click(QPoint(7, 7), Qt::RightButton);
+        QCOMPARE(ui.route.cycled, QList<QPoint>{QPoint(7, 7)});
+        QCOMPARE(ui.gc.board()->position().toSfen(), before);
+
+        ui.click(QPoint(7, 7));
+        ui.click(QPoint(5, 5), Qt::RightButton);
+        QCOMPARE(ui.route.cycled.size(), 1);
+        QVERIFY(ui.view.highlighting()->highlights(BoardHighlightLayer::Selection).isEmpty());
     }
 
     void inputRestrictions()

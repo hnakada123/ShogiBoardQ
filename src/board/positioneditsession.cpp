@@ -107,6 +107,12 @@ bool PositionEditSession::applyEditMove(const QPoint& from, const QPoint& to)
     return ok;
 }
 
+bool PositionEditSession::cycleEditPiece(const QPoint& square)
+{
+    if (!isEditing()) return false;
+    return PositionEditRules::cyclePiece(*m_deps.view->board(), BoardSquare{square.x(), square.y()});
+}
+
 // ============================================================
 // 編集メニュー
 // ============================================================

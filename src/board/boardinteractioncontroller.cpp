@@ -4,7 +4,6 @@
 #include "boardinteractioncontroller.h"
 #include "boardcoordinates.h"
 #include "boardinputroute.h"
-#include "positioneditrules.h"
 
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
@@ -154,8 +153,10 @@ void BoardInteractionController::onRightClick(const QPoint& pt)
         return;
     }
 
-    // 編集モード時のみ成/不成トグル
-    if (isEditing()) togglePiecePromotionOnClick(pt);
+    // 局面編集中は行き先へ渡す（盤を変えるのは局面編集の持ち主）
+    if (!isEditing()) return;
+    m_route->cycle(pt);
+    clearSelectionHighlight();
 }
 
 void BoardInteractionController::onMoveApplied(const QPoint& from, const QPoint& to, bool success)
@@ -284,18 +285,3 @@ void BoardInteractionController::finalizeDrag()
     clearSelectionHighlight();
 }
 
-void BoardInteractionController::togglePiecePromotionOnClick(const QPoint& field)
-{
-    auto* board = m_board;
-    const int file = field.x();
-    const int rank = field.y();
-
-    // 盤外（駒台）や空白は何もしない
-    if (file >= kBlackStandFile) return;
-    if (board->pieceCharacter(file, rank) == Piece::None) return;
-
-    // 二歩や行き所のない段で成れない形は飛ばす（局面編集の規則）
-    PositionEditRules::cyclePiece(*m_board, BoardSquare{file, rank});
-
-    clearSelectionHighlight();
-}

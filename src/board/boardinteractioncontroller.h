@@ -69,7 +69,7 @@ public slots:
     /// 左クリック: 駒選択→移動先指定の2クリック処理
     void onLeftClick(const QPoint& pt);
 
-    /// 右クリック: 選択キャンセルまたは成/不成トグル（編集モード時）
+    /// 右クリック: 駒をつまんでいればやめる。局面編集中は行き先へ渡す（成・不成・先後の巡回は行き先が行う）
     void onRightClick(const QPoint& pt);
 
     /// 着手適用結果の通知を受けてハイライトを更新する
@@ -82,7 +82,6 @@ private:
     void finalizeDrag();
     void refreshLegalMoveHighlights();
     void clearLegalMoveHighlights();
-    void togglePiecePromotionOnClick(const QPoint& field);
 
     static constexpr int kBlackStandFile = BoardConstants::kBlackStandFile; ///< 先手駒台のファイル番号
     static constexpr int kWhiteStandFile = BoardConstants::kWhiteStandFile; ///< 後手駒台のファイル番号

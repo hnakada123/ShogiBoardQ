@@ -194,6 +194,7 @@
 | 2026-11-03 | パネルのチェックと切り替えの `QAction` の結び付けを1つにした（監査 2026-11-01 M11）のに合わせて §1.5・§11.2・§11.3・第18章を更新（widgets に `ActionBinding::bindCheckable()` を置き、思考ドック（`ThinkingPanel`）・検討タブ（`ConsiderationPanel`）・定跡ウィンドウ（`JosekiWindow`）のチェックはそれで結ぶ。QAction は必須にし、渡されなければパネルが作る分岐と、テストのためだけの引数なしのコンストラクタを消した） |
 | 2026-11-03 | 外から来た文字列のツールチップの書き方を1つにした（監査 2026-11-01 M12）のに合わせて §1.5・§11.5.3・第18章を更新（style に `plainToolTip()` を置き、棋譜欄のコメント・対局情報・定跡ウィンドウ・思考の表の読み筋・分岐ツリー・メニューウィンドウのボタンと、エスケープせずに入れていたエンジンを選ぶコンボ・エンジン情報欄・`ElideLabel`（エンジン名・対局者名）はこれで出す。空白と改行もそのまま出す（`white-space:pre-wrap`。以前の `<br/>` に替える書き方は連続した空白を詰めていた）。`GlobalToolTip` はラベルを `Qt::PlainText` にし、エスケープした文字（「&amp;」など）を見せないようにした。自動化 API の部品の一覧の `tooltip` は、見える文字 `shownToolTipText()` で返す） |
 | 2026-11-03 | 対局情報の表に出す文字をモデルの1か所で作るようにした（監査 2026-11-01 M13）のに合わせて §11.2・第18章を更新（`GameInfoEditModel::PresentedTextRole` を足し、表のデリゲートは項目名・内容の表記を自分で作らずにこれを描く。項目名の列幅もこれで測る。以前はモデルの `presentedText`（読み上げ・ツールチップ・列幅）とデリゲート（描画）が同じ処理を別々に持っていた） |
+| 2026-11-03 | 局面編集の右クリックの巡回も行き先を通すようにした（監査 2026-11-01 M14）のに合わせて §1.5・§10.3・§13.5・§13.6・第18章を更新（`BoardInputRoute::cycle(square)` を足し、`BoardInteractionController::onRightClick()` は局面編集中なら盤を変えずに行き先へ渡す。主画面の `BoardMoveController::cycle()` が `PositionEditSession::cycleEditPiece()` に渡し、詰将棋を解く画面は何もしない。`togglePiecePromotionOnClick()` を消した） |
 
 <!-- chapter-0-end -->
 
@@ -623,7 +624,7 @@ src/
 │
 ├── board/                          # 盤面編集・操作
 │   ├── boardinteractioncontroller.cpp/.h # 盤のクリックを移動元・移動先にして行き先へ渡し、ハイライトを出す
-│   ├── boardinputroute.h           #   盤で指した手の行き先（BoardInputRoute: つまめるか・局面編集中か・着手）
+│   ├── boardinputroute.h           #   盤で指した手の行き先（BoardInputRoute: つまめるか・局面編集中か・着手・編集中の右クリック）
 │   ├── positioneditsession.cpp/.h  #   局面編集（開始・終了・編集メニュー・編集中の着手）
 │   └── positioneditrules.cpp/.h    #   局面編集の規則（駒の移動・成・不成・先後の巡回・盤を空にする。Position を変える関数）
 │
@@ -5829,6 +5830,7 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 | `acceptsInput()` | `HumanTurnPolicy::boardInput()` が `None` でないか |
 | `isEditing()` | `HumanTurnPolicy::boardInput()` が `Edit` か（動作状態が `DuringPositionEdit` か） |
 | `submit(from, to)` | `playMove(from, to)` |
+| `cycle(square)` | 局面編集中（`HumanTurnPolicy::boardInput()` が `Edit`）なら `PositionEditSession::cycleEditPiece(square)` |
 
 主な処理フロー:
 
@@ -7433,10 +7435,11 @@ public:
     virtual bool acceptsInput() const = 0;   // 盤の駒をつまめるか（局面編集中は常に true）
     virtual bool isEditing() const = 0;      // 局面編集中か
     virtual void submit(const QPoint& from, const QPoint& to) = 0;  // 行き先が決まった
+    virtual void cycle(const QPoint& square) = 0;   // 局面編集中の右クリック（成・不成・先後の巡回）
 };
 ```
 
-行き先は `setInputRoute()` で渡す（非所有。無ければクリックを受け付けない）。主画面の行き先は `BoardMoveController`（10.3 節）で、`acceptsInput()` は局面編集中か `HumanTurnPolicy::isHumanTurnNow()`、`isEditing()` は `PositionEditSession::isEditing()` である。詰将棋を解くダイアログ（`TsumePlayDialog`）は自分で `BoardInputRoute` を実装し（正解手順の再生中でなく、解答を待っている（`TsumeGameSession::State::Ready`）ときだけ受け付ける）、指した手を解答として受け取る。着手の結果は行き先が `onMoveApplied(from, to, success)` で返す。
+行き先は `setInputRoute()` で渡す（非所有。無ければクリックを受け付けない）。主画面の行き先は `BoardMoveController`（10.3 節）で、`acceptsInput()` は局面編集中か `HumanTurnPolicy::isHumanTurnNow()`、`isEditing()` は `PositionEditSession::isEditing()` である。詰将棋を解くダイアログ（`TsumePlayDialog`）は自分で `BoardInputRoute` を実装し（正解手順の再生中でなく、解答を待っている（`TsumeGameSession::State::Ready`）ときだけ受け付ける）、指した手を解答として受け取る（局面編集をしないので `cycle()` は何もしない）。着手の結果は行き先が `onMoveApplied(from, to, success)` で返す。
 
 #### 2クリック方式の駒移動
 
@@ -7464,7 +7467,7 @@ moveFromClick(from, to)（行き先が submit() の中で呼ぶ。盤は変え�
   4. 両方合法なら成りの選び方（setPromotionChooser）に尋ね、成りだけ合法なら成る。どちらも不合法なら nullopt
 ```
 
-右クリックは2クリック待ち中のキャンセル、または局面編集中（`isEditing()`）の成・不成・先後の巡回（`PositionEditRules::cyclePiece()`）に使用される。2クリックの途中状態は `cancelPendingClick()`（public slot）で取り消す。盤の手番が替わったとき（`ShogiBoard::turnChanged`）・盤が作り直されたとき（`boardReset`）に自分でつなぎ、動作状態が変わったとき（`AppActivityState::changed`）は `BoardMoveController` がつなぐ。
+右クリックは2クリック待ち中のキャンセルに使い、局面編集中（`isEditing()`）なら行き先の `cycle(square)` に渡す（盤は変えない。主画面では `PositionEditSession::cycleEditPiece()` が `PositionEditRules::cyclePiece()` で成・不成・先後を巡らせる）。2クリックの途中状態は `cancelPendingClick()`（public slot）で取り消す。盤の手番が替わったとき（`ShogiBoard::turnChanged`）・盤が作り直されたとき（`boardReset`）に自分でつなぎ、動作状態が変わったとき（`AppActivityState::changed`）は `BoardMoveController` がつなぐ。
 
 #### ハイライト
 
@@ -7569,6 +7572,10 @@ bool applyEditMove(from, to):
   3. board->onMoveApplied() でハイライトを更新
   （盤・駒台・駒箱の変化は ShogiBoard の通知で変わった所だけ描き直される）
 ```
+
+#### cycleEditPiece() — 編集中の右クリック
+
+局面編集中の右クリックは、盤の操作から行き先の `BoardMoveController::cycle()` を通って渡される（局面編集の盤の変更は、駒の移動も右クリックもこのクラスを通る）。編集中なら `PositionEditRules::cyclePiece(*view->board(), square)` で駒を巡らせる（駒が無い・盤外（駒台・駒箱）・編集中でなければ何もせず false）。
 
 ### 13.7 WidgetImageExporter — 盤面画像エクスポータ
 
@@ -9403,7 +9410,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | BoardGeometry | C | views | 盤・マス・駒台のセル・座標の文字・対局者カードの位置（マスの大きさ・反転・筋と段の数から1度だけ計算する変えない値。ウィジェット座標） | 第11章 |
 | WidgetImageExporter | C | board | 盤面画像のクリップボードコピー・ファイル保存 | 第13章 |
 | BoardImageRenderer | C | cli | 盤面画像の描画（render-board） | 第13章 |
-| BoardInputRoute | C | board | 盤で指した手の行き先のインターフェース（`acceptsInput()`・`isEditing()`・`submit()`） | 第13章 |
+| BoardInputRoute | C | board | 盤で指した手の行き先のインターフェース（`acceptsInput()`・`isEditing()`・`submit()`・`cycle()`） | 第13章 |
 | BoardInteractionController | C | board | 盤のクリックを移動元・移動先にして行き先へ渡す操作、クリックを手番の側の手にする処理（成り・不成の尋ね方を含む。`moveFromClick()`）と、ハイライト制御 | 第13章 |
 | BoardArrowActions | C | ui/controllers | 盤の矢印を出すかの4つの切り替え（手番側・先読み側・検討・定跡手）の `QAction` と、その保存 | 第9章, 第10章 |
 | BoardMoveController | C | ui/controllers | 主画面の `BoardInputRoute`。盤で指した手を、動作状態に合わせて処理する（局面編集・棋譜の変化の記録・通信対局・対局） | 第10章, 第15章 |

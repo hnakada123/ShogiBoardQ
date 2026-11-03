@@ -12,7 +12,7 @@
  * 主画面では動作状態（局面編集・変化の記録・対局・通信対局）ごとに行き先が決まり、
  * 詰将棋を解くダイアログでは解答の受け付けが行き先になる。
  * 盤の操作はクリックを移動元・移動先の候補にすることとハイライトだけを受け持ち、
- * 手番の判定・成りの選択・着手は行き先が行う。
+ * 手番の判定・成りの選択・着手と、局面編集の盤の変更（駒の移動・右クリックの巡回）は行き先が行う。
  */
 class BoardInputRoute
 {
@@ -25,6 +25,9 @@ public:
     virtual bool isEditing() const = 0;
     /// つまんだ駒の行き先が決まった。結果は BoardInteractionController::onMoveApplied で返す
     virtual void submit(const QPoint& from, const QPoint& to) = 0;
+    /// 局面編集中に square（表示の座標）を右クリックした。駒の成・不成・先後を巡らせる
+    /// （局面編集をしない行き先は何もしない）
+    virtual void cycle(const QPoint& square) = 0;
 };
 
 #endif // BOARDINPUTROUTE_H

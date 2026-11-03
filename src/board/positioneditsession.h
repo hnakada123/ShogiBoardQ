@@ -18,6 +18,9 @@ class ShogiView;
 /**
  * @brief 局面編集を1か所で受け持つ
  *
+ * 編集中の盤の操作（駒の移動 applyEditMove・右クリックの巡回 cycleEditPiece）と編集メニューの操作は、
+ * どれもこのクラスを通る（盤の操作は行き先の BoardMoveController がここへ渡す）。
+ *
  * 「編集中か」は動作状態（AppActivityState::DuringPositionEdit）のリースを持っているかだけで決まり、盤の描き方
  * （ShogiView::setPositionEditMode）と「編集終了」ボタンはこのクラスがそれに合わせて切り替える。
  * 編集は待機中だけ始める。ほかの部品が別の動作を始めて動作状態を取り上げたら、編集中の局面で編集を終える。
@@ -41,6 +44,9 @@ public:
     /// 編集中の着手（盤の操作で決まった駒の移動）を盤に反映する。駒箱の駒は pieceBoxSide() の駒として置く。
     /// 動かせたら true
     bool applyEditMove(const QPoint& from, const QPoint& to);
+    /// 編集中の右クリック（square は表示の座標）: 盤上の駒を、先手の生駒 → 成駒 → 後手の生駒 → 成駒の順に
+    /// 巡らせる（行き所のない段・二歩になる形は飛ばす）。駒が無い・盤外・編集中でなければ何もせず false
+    bool cycleEditPiece(const QPoint& square);
     /// 駒箱の駒をどちらの駒として置くか（正本。盤は表示するだけ）
     Turn pieceBoxSide() const { return m_pieceBoxSide; }
 
