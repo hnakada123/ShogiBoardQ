@@ -444,49 +444,49 @@
 
 古い説明・コメント:
 - CLAUDE.md:
-  - notificationpresenter の行の「dialogs の `UnsavedChangesPrompt`」（実体は `src/widgets/unsavedchangesprompt.h`。widgets の節にも載っていない）
-  - settingsformbinding の行の「対局開始・詰将棋生成のダイアログが使う」（実際は7つ: csagame・josekiimport・josekiexpand・startgame・josekibookmerge・tsumeshogigenerator・josekianalysisregister）
-  - dialogfontscale の行の「全ダイアログ共通」（`CsaWaitingDialog` の通信ログの窓は付けていない。T6）
-  - MenuActionsWiring の「ここでつながないのは…だけ」に、3つ目の例外「盤に定跡手を表示」（`BoardArrowActions` が `toggled` をつなぐ）が無い（`menuactionswiring.h:34` には書いてある）
-  - `MateOracle` の説明（M1）、headless の説明（P3）、`KifuDocument` の対局の記録（M8）、`MatchEngineSeat` の「手番」（上）、kifu/formats の「ファイルは `KifuLoadParser` が読んで渡す」（M5）、`UsiPosition::split` の「だけ」（M4）
-  - environment コマンドの説明に `settings_file`・`version`・3つの拡張子の一覧が無い（`clicommandspecs.cpp:143` の summary も同じ）
+  - notificationpresenter の行の「dialogs の `UnsavedChangesPrompt`」（実体は `src/widgets/unsavedchangesprompt.h`。widgets の節にも載っていない） → 済（2262c790。widgets の節にも足した）
+  - settingsformbinding の行の「対局開始・詰将棋生成のダイアログが使う」（実際は7つ: csagame・josekiimport・josekiexpand・startgame・josekibookmerge・tsumeshogigenerator・josekianalysisregister） → 済（d5b74bab。M17 と一緒に直した）
+  - dialogfontscale の行の「全ダイアログ共通」（`CsaWaitingDialog` の通信ログの窓は付けていない。T6） → 済（2262c790）
+  - MenuActionsWiring の「ここでつながないのは…だけ」に、3つ目の例外「盤に定跡手を表示」（`BoardArrowActions` が `toggled` をつなぐ）が無い（`menuactionswiring.h:34` には書いてある） → 済（2262c790）
+  - `MateOracle` の説明（M1）、headless の説明（P3）、`KifuDocument` の対局の記録（M8）、`MatchEngineSeat` の「手番」（上）、kifu/formats の「ファイルは `KifuLoadParser` が読んで渡す」（M5）、`UsiPosition::split` の「だけ」（M4） → 済（M1・P3・M8・M5・M4 と、`MatchEngineSeat` は f5fd9f29 で直っていた）
+  - environment コマンドの説明に `settings_file`・`version`・3つの拡張子の一覧が無い（`clicommandspecs.cpp:143` の summary も同じ） → 済（2262c790。CLI の表の summary も直した）
 - composition-root.md:
-  - 規則5の「dialogs 層のメニューウィンドウ」（`MenuWindow` は 10-29 P2 で widgets に移った）
-  - 規則6の `state()`（実際は `activity()`）
-  - 「作った後に set* で注入しない」の例外に、`setPromotionChooser`・`attachDock`×2・`setSavedLayoutsMenu`・`addLeaveGuard`×2・`addPendingEditor`×2 が書かれていない
+  - 規則5の「dialogs 層のメニューウィンドウ」（`MenuWindow` は 10-29 P2 で widgets に移った） → 済（2262c790）
+  - 規則6の `state()`（実際は `activity()`） → 済（2262c790）
+  - 「作った後に set* で注入しない」の例外に、`setPromotionChooser`・`attachDock`×2・`setSavedLayoutsMenu`・`addLeaveGuard`×2・`addPendingEditor`×2 が書かれていない → 済（2262c790。`setPromotionChooser` は 6f85ed86 で消えた）
 - mcp-server.md:
-  - :85 `ui_state` の例の「詰将棋対局中」（そんな値は無い）
-  - :108-112 ツールの表にメソッドの行（`widget.showDock` など5つ）が混ざり、`show_dock`・`click_widget`・`click_table_cell` の行が無い。4章のメソッドの表に `dock.*`・`menu.*`・`branch.click`・`clipboard.get`・`widget.click` などが無い
-  - :204 `EngineListSettings::loadEngines()`（存在しない。今は `EngineCatalog::findByName` → `RegisteredEngines::load`）
-  - :241 `kifu.get` の引数の `max_chars`（MCP だけの引数。アプリに渡すと断られる）
-  - :272 `UiNotificationService::ScopedCapture`（今は `NotificationPresenter::ScopedCapture`）
-  - :309 自動化 API が `UiStatePolicyManager` を呼ぶ（10-29 5章で消した）
-  - :346 `CliTools._command()`（実際は `command()`）
-  - :355 `SHOGIBOARDQ_OUTPUT_DIR` の既定 `shogiboardq-mcp`（実際は `shogiboardq-output-*` の専用フォルダ。README:27 は正しい）
-  - :365「表に無ければ app_error」（実際は `internal_error`。`app_error` はどこでも使わないのに、`test_environment.py:14` の `PYTHON_ONLY` に残る）
+  - :85 `ui_state` の例の「詰将棋対局中」（そんな値は無い） → 済（2262c790）
+  - :108-112 ツールの表にメソッドの行（`widget.showDock` など5つ）が混ざり、`show_dock`・`click_widget`・`click_table_cell` の行が無い。4章のメソッドの表に `dock.*`・`menu.*`・`branch.click`・`clipboard.get`・`widget.click` などが無い → 済（2262c790）
+  - :204 `EngineListSettings::loadEngines()`（存在しない。今は `EngineCatalog::findByName` → `RegisteredEngines::load`） → 済（2262c790）
+  - :241 `kifu.get` の引数の `max_chars`（MCP だけの引数。アプリに渡すと断られる） → 済（2262c790）
+  - :272 `UiNotificationService::ScopedCapture`（今は `NotificationPresenter::ScopedCapture`） → 済（2262c790）
+  - :309 自動化 API が `UiStatePolicyManager` を呼ぶ（10-29 5章で消した） → 済（2262c790）
+  - :346 `CliTools._command()`（実際は `command()`） → 済（2262c790）
+  - :355 `SHOGIBOARDQ_OUTPUT_DIR` の既定 `shogiboardq-mcp`（実際は `shogiboardq-output-*` の専用フォルダ。README:27 は正しい） → 済（2262c790）
+  - :365「表に無ければ app_error」（実際は `internal_error`。`app_error` はどこでも使わないのに、`test_environment.py:14` の `PYTHON_ONLY` に残る） → 済（2262c790）
   - :394 入力パスの検査（F8）→ 済（6a41e35d。F8 と一緒に直した）
-  - :401「読み筋 20 手」（既定は12。`tooldefs.py:44`）
-- versioning.md:10 は「自動化 API・MCP の version は APP_VERSION から取る」と書く。実際の MCP サーバーの版は `mcp/pyproject.toml:7` と `mcp/shogiboardq_mcp/__init__.py:8` の手書きの "2026.9.25" で、`server.py:211` がこれをクライアントに送る（APP_VERSION は 2026.10.31）。`environment()` の `version` を送るか、版を1か所にする
-- MCP の Python: `jobs.py:4` の「Whole-record jobs run one position at a time…」は 10-23 R9 で消した Python 版の棋譜解析の説明。`cli_backend.py:3-5` と `server.py:81` の INSTRUCTIONS が、長い処理に `analyze_kifu` を挙げていない
-- `notationstyle.cpp:12` の「起動時（と言語の変更時）に決める」: 実際に `configure()` を呼ぶのは起動時の `applicationtranslations.cpp:32` だけで、表記の変更は再起動で反映する。そのため `revision()` が変わるのはテストの中だけ
+  - :401「読み筋 20 手」（既定は12。`tooldefs.py:44`） → 済（2262c790）
+- versioning.md:10 は「自動化 API・MCP の version は APP_VERSION から取る」と書く。実際の MCP サーバーの版は `mcp/pyproject.toml:7` と `mcp/shogiboardq_mcp/__init__.py:8` の手書きの "2026.9.25" で、`server.py:211` がこれをクライアントに送る（APP_VERSION は 2026.10.31）。`environment()` の `version` を送るか、版を1か所にする → 済（2262c790。MCP サーバーの版は `__init__.py` の1か所にし、versioning.md を実際に合わせた。値は変えていない）
+- MCP の Python: `jobs.py:4` の「Whole-record jobs run one position at a time…」は 10-23 R9 で消した Python 版の棋譜解析の説明。`cli_backend.py:3-5` と `server.py:81` の INSTRUCTIONS が、長い処理に `analyze_kifu` を挙げていない → 済（2262c790）
+- `notationstyle.cpp:12` の「起動時（と言語の変更時）に決める」: 実際に `configure()` を呼ぶのは起動時の `applicationtranslations.cpp:32` だけで、表記の変更は再起動で反映する。そのため `revision()` が変わるのはテストの中だけ → 済（2262c790）
 - engine・game・network:
-  - `matchcoordinator.cpp:412` の「自動保存は gameEnded の受け手が行う」（今は `:402` の `finishRecord` が保存する）
-  - `matchcoordinator.h:97` の「時計…はシグナルで知らせる」（時計のシグナルはない）
-  - `csagamecoordinator_moves.cpp:140` の「駒音・定跡ウィンドウ」（`moveCommitted` の受け手は駒音だけ）
-  - `gameboard.h:35` の「newGame・setSfen で入れ替える」（`GameBoard` に setSfen はなく、`newGame` は転送するだけ）
-  - csagamecoordinator.cpp:396 の「ローカル対局の終局と同じ手順」（F15）
+  - `matchcoordinator.cpp:412` の「自動保存は gameEnded の受け手が行う」（今は `:402` の `finishRecord` が保存する） → 済（2262c790）
+  - `matchcoordinator.h:97` の「時計…はシグナルで知らせる」（時計のシグナルはない） → 済（2262c790）
+  - `csagamecoordinator_moves.cpp:140` の「駒音・定跡ウィンドウ」（`moveCommitted` の受け手は駒音だけ） → 済（2262c790）
+  - `gameboard.h:35` の「newGame・setSfen で入れ替える」（`GameBoard` に setSfen はなく、`newGame` は転送するだけ） → 済（2262c790）
+  - csagamecoordinator.cpp:396 の「ローカル対局の終局と同じ手順」（F15） → 済（F15 の 27ccc8b0 で同じ手順になり、説明が合った）
 - core・kifu:
-  - `shogiclock.h:148` の「→ TimeControlController」（存在しないクラス）
-  - `sfenreplay.h:5,17,22` の「棋譜の読み込みに使う」（実際の呼び出し4つは定跡ダイアログ・定跡の表・usimodelbinding・矢印）
-  - `matchtimerecord.h:11-14`（M8）、`recordtime.h:9`（上）
+  - `shogiclock.h:148` の「→ TimeControlController」（存在しないクラス） → 済（2262c790）
+  - `sfenreplay.h:5,17,22` の「棋譜の読み込みに使う」（実際の呼び出し4つは定跡ダイアログ・定跡の表・usimodelbinding・矢印） → 済（2262c790）
+  - `matchtimerecord.h:11-14`（M8）、`recordtime.h:9`（上） → 済（M8 で消えた。`recordtime.h:9` は 9af8d487 で直した）
 - app・ui:
   - F2（10-29）で既定の対局者名を空にした後も残る「対局情報の初期値「先手」「後手」」（`mainwindowcomposer.cpp:56`、`mainwindowactions.cpp:52`、`playerinfopresenter.h:19`） → 済（1edf18d2。M15 と一緒に直した）
-  - `sessionresetcoordinator.h:5` の「棋譜の読み込み前」（無くなった役割）
-  - `branchtreeeditcontroller.h:5,25`（T2）
-  - 10-29 T3 の「`PositionEditSession` は `ShogiBoard` を受け取る」（実際は `view->board()` から読む。`positioneditsession.cpp:27,44,76`）
+  - `sessionresetcoordinator.h:5` の「棋譜の読み込み前」（無くなった役割） → 済（2262c790）
+  - `branchtreeeditcontroller.h:5,25`（T2） → 済（今の説明は役割（分岐の編集・盤の手の記録・定跡の展開）と合っている）
+  - 10-29 T3 の「`PositionEditSession` は `ShogiBoard` を受け取る」（実際は `view->board()` から読む。`positioneditsession.cpp:27,44,76`） → 済（2262c790。CLAUDE.md に例外として書いた）
 - widgets・dialogs:
   - `considerationpanel.h:32` の「…マネージャ」（ConsiderationTabManager の頃の名残） → 済（0e1b530b。M11 と一緒に直した）
-  - `sfencollectiondialog.h:65` の「ウィンドウの大きさは DialogFontScale が保存する」（`.cpp:39` では保存しない）
+  - `sfencollectiondialog.h:65` の「ウィンドウの大きさは DialogFontScale が保存する」（`.cpp:39` では保存しない） → 済（2262c790）
   - `kifuanalysisdialog.cpp:70` の中身のないコメント「エンジン設定ボタンが押されたときの処理」 → 済（d5b74bab。M17 と一緒に直した）
 
 ---
