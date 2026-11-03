@@ -7,6 +7,7 @@
 
 #include "appsettings.h"
 #include "docklayoutmanager.h"
+#include "dockregistry.h"
 #include "engineslots.h"
 #include "humanturnpolicy.h"
 #include "josekiwindowcontroller.h"
@@ -68,9 +69,7 @@ void MainWindowComposer::shutdown()
 
     // 設定保存（ウィンドウ・ドックの配置。盤のマスの大きさは変わるたびに MainWindowAppearanceController が保存する）
     AppSettings::mainWindowSize.set(m_window.size());
-    if (m_c.dockLayoutManager) {
-        m_c.dockLayoutManager->saveDockStates();
-    }
+    if (m_c.dockRegistry) m_c.dockRegistry->saveStates();
 
     // エンジンが起動していれば quit を送って止める（対局・検討のどちらのエンジンも）
     if (m_c.engines) {

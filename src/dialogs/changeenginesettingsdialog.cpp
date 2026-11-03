@@ -125,5 +125,5 @@ void ChangeEngineSettingsDialog::restoreDefaultSettings()
 {
     m_optionHandler->restoreDefaultOptions();
     m_ponderEnabled->setChecked(m_defaultPonderEnabled);
-    m_sendUnreportedPonder->setChecked(true);
+    m_sendUnreportedPonder->setChecked(EngineProfileStore::PonderPreferences{}.sendUnreportedOption);
 }

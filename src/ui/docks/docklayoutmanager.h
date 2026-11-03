@@ -37,10 +37,6 @@ public:
      */
     void setSavedLayoutsMenu(QMenu* menu);
 
-    /**
-     * @brief デフォルトのドックレイアウトにリセットする
-     */
-    void resetToDefault();
 
     /**
      * @brief 現在のレイアウトを名前を付けて保存する
@@ -89,10 +85,6 @@ public:
     /// ドックを固定しているか（「ドックを固定」のチェックの初期値）
     bool docksLocked() const;
 
-    /**
-     * @brief すべてのドックの状態（浮動/可視/ジオメトリ）を保存
-     */
-    void saveDockStates();
 
 private:
     /**

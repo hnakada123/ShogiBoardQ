@@ -28,15 +28,15 @@ class BoardInteractionController : public QObject
 {
     Q_OBJECT
 public:
-    /// board は view が表示する盤（起動から終了まで同じ1つ）
-    explicit BoardInteractionController(ShogiView* view, ShogiBoard* board, QObject* parent = nullptr);
+    /// 成り・不成を対局者に選ばせる関数（成るなら true）。無ければ成らない
+    using PromotionChooser = std::function<bool()>;
+
+    /// board は view が表示する盤（起動から終了まで同じ1つ）。chooser は成り・不成の選び方（作るときに決める）
+    BoardInteractionController(ShogiView* view, ShogiBoard* board, PromotionChooser chooser = {},
+                               QObject* parent = nullptr);
 
     /// 盤で指した手の行き先（非所有。無ければクリックを受け付けない）
     void setInputRoute(BoardInputRoute* route);
-
-    /// 成り・不成を対局者に選ばせる関数（成るなら true）。未設定なら成らない
-    using PromotionChooser = std::function<bool()>;
-    void setPromotionChooser(PromotionChooser chooser);
 
     /**
      * @brief 盤のクリック（表示の座標の移動元・移動先）を、手番の側の手にする（盤は変えない）

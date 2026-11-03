@@ -16,7 +16,6 @@
 #include <utility>
 
 namespace {
-constexpr QSize kDefaultSize{600, 500};
 constexpr QSize kMinimumSize{500, 400};
 constexpr int kMinimumFontSize = 7;
 constexpr int kMaximumFontSize = 20;
@@ -49,7 +48,7 @@ void KifuPasteDialog::setupUi()
     setWindowTitle(tr("棋譜貼り付け"));
     setObjectName(QStringLiteral("kifuPasteDialog"));
     setMinimumSize(kMinimumSize);
-    resize(kDefaultSize);
+    resize(GameSettings::kifuPasteDialogSize.defaultValue());
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(16, 16, 16, 16);

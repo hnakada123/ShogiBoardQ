@@ -15,7 +15,6 @@
 #include "engineregistrationdialog.h"
 #include "evaluationchartsettingsdialog.h"
 #include "evaluationchartwidget.h"
-#include "promotedialog.h"
 #include "shogiview.h"
 #include "jishogiscoredialog.h"
 #include "shogiboard.h"
@@ -46,11 +45,6 @@ void DialogLauncher::displayEngineSettingsDialog()
     EngineRegistrationDialog dialog(m_deps.parentWidget);
     dialog.exec();
     emit engineListChanged();
-}
-
-bool DialogLauncher::choosePromotion()
-{
-    return PromoteDialog::ask(m_deps.parentWidget);
 }
 
 void DialogLauncher::displayJishogiScoreDialog()

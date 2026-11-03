@@ -24,6 +24,7 @@
 #include "csagamesession.h"
 #include "csalogpanel.h"
 #include "dialoglauncher.h"
+#include "promotedialog.h"
 #include "dockregistry.h"
 #include "docklayoutmanager.h"
 #include "enginedisplaypresenter.h"
@@ -140,7 +141,9 @@ void MainWindowComposer::createBoard()
     ad.timePresenter = m_c.timePresenter;
     m_c.appearance = new MainWindowAppearanceController(ad, &m_window);
 
-    m_c.boardController = new BoardInteractionController(m_c.shogiView, m_c.gameBoard->board(), &m_window);
+    // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる
+    m_c.boardController = new BoardInteractionController(m_c.shogiView, m_c.gameBoard->board(),
+                                                         std::bind(&PromoteDialog::ask, &m_window), &m_window);
 }
 
 // ---------------------------------------------------------------------------
@@ -518,8 +521,6 @@ void MainWindowComposer::createControllers()
     dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
     dl.evalChart = m_c.evalChart;
     m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
-    // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる
-    m_c.boardController->setPromotionChooser(std::bind(&DialogLauncher::choosePromotion, m_c.dialogLauncher));
 
     m_c.images = new ImageExportController({&m_window, m_c.shogiView, m_c.evalChart}, &m_window);
     m_c.settingsReset = new SettingsResetController(&m_window);

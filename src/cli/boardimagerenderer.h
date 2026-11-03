@@ -4,6 +4,7 @@
 /// @file boardimagerenderer.h
 /// @brief SFEN から盤面画像を描画する（CLI の render-board 用。QApplication が必要）
 
+#include "boardsquaresize.h"
 #include "errorkinds.h"
 #include <QImage>
 #include <QSize>
@@ -20,7 +21,7 @@ class BoardImageRenderer
 {
 public:
     struct Options {
-        int squareSize = 50;      ///< 1 マスの幅(px)。20〜150
+        int squareSize = BoardSquareSize::kDefault;  ///< 1 マスの幅(px)。範囲は BoardSquareSize
         bool flip = false;        ///< 後手側から見る
         QString lastMoveUsi;      ///< 強調表示する最後の指し手（USI 形式。空なら無し）
         QString blackName;        ///< 先手名（空なら記号のみ）

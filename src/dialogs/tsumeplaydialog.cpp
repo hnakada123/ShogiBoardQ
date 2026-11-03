@@ -206,9 +206,8 @@ void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
     m_viewer->flipButton()->setObjectName(QStringLiteral("tsumeFlipBoard"));
     connect(m_viewer, &BoardViewerWidget::boardTransformed, this, &TsumePlayDialog::cancelBoardSelection);
     connect(m_viewer, &BoardViewerWidget::flipToggled, this, &TsumePlayDialog::onFlipToggled);
-    m_interaction = new BoardInteractionController(m_view, m_board, this);
     // 成り・不成の両方が指せる手は、主画面と同じダイアログで尋ねる
-    m_interaction->setPromotionChooser([this] { return PromoteDialog::ask(this); });
+    m_interaction = new BoardInteractionController(m_view, m_board, std::bind(&PromoteDialog::ask, this), this);
     connect(m_view, &ShogiView::clicked, m_interaction, &BoardInteractionController::onLeftClick);
     connect(m_view, &ShogiView::rightClicked, m_interaction, &BoardInteractionController::onRightClick);
     m_interaction->setInputRoute(this);

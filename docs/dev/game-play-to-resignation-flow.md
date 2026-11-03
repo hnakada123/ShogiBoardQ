@@ -127,8 +127,8 @@ moveFromClick() の成り・不成
     ├─ 成りだけ合法（行き所のない駒など）→ 成る
     ├─ 不成だけ合法 → 成らない
     ├─ 両方合法
-    │    └─ setPromotionChooser() で設定した関数で対局者に選ばせる
-    │         主画面: DialogLauncher::choosePromotion() → PromoteDialog::ask()
+    │    └─ 盤の操作を作るときに渡した成りの選び方で対局者に選ばせる
+    │         主画面: PromoteDialog::ask(主画面)
     │         詰将棋を解く画面: PromoteDialog::ask()
     └─ どちらも不合法 → nullopt
 ```

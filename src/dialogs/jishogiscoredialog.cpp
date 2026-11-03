@@ -22,7 +22,6 @@
 namespace {
 constexpr int kMinFontSize = 8;
 constexpr int kMaxFontSize = 24;
-constexpr QSize kDefaultSize{660, 640};
 }
 
 JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& result,
@@ -32,7 +31,7 @@ JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& r
     setObjectName(QStringLiteral("jishogiScoreDialog"));
     setWindowTitle(tr("持将棋の点数"));
     setMinimumSize(GameSettings::kJishogiScoreDialogMinimumSize);
-    resize(kDefaultSize);
+    resize(GameSettings::jishogiScoreDialogSize().defaultValue());
 
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(16, 16, 16, 16);

@@ -20,8 +20,9 @@
 // 初期化
 // ======================================================================
 
-BoardInteractionController::BoardInteractionController(ShogiView* view, ShogiBoard* board, QObject* parent)
-    : QObject(parent), m_view(view), m_board(board)
+BoardInteractionController::BoardInteractionController(ShogiView* view, ShogiBoard* board, PromotionChooser chooser,
+                                                       QObject* parent)
+    : QObject(parent), m_view(view), m_board(board), m_promotionChooser(std::move(chooser))
 {
     if (Q_UNLIKELY(!m_view) || Q_UNLIKELY(!m_board)) {
         qCWarning(lcBoard, "BoardInteractionController: required dependency is null (view=%p, board=%p)",
@@ -40,11 +41,6 @@ void BoardInteractionController::setInputRoute(BoardInputRoute* route)
 {
     if (m_route != route) cancelPendingClick();
     m_route = route;
-}
-
-void BoardInteractionController::setPromotionChooser(PromotionChooser chooser)
-{
-    m_promotionChooser = std::move(chooser);
 }
 
 std::optional<UsiMove> BoardInteractionController::moveFromClick(const QPoint& from, const QPoint& to) const
