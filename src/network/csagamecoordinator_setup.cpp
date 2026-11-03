@@ -5,7 +5,6 @@
 
 #include "matchengineseat.h"
 #include "usi.h"
-#include "registeredengines.h"
 #include "csamoveconverter.h"
 #include "csaverdictwait.h"
 #include "logcategories.h"
@@ -94,15 +93,9 @@ void CsaGameCoordinator::startEngine()
         connect(m_engineSeat, &MatchEngineSeat::declaredWin, this, &CsaGameCoordinator::onEngineDeclaredWin);
         connect(m_engineSeat, &MatchEngineSeat::moveReady, this, &CsaGameCoordinator::onEngineMoveReady);
     }
-    // ダイアログで選んだエンジンのパスを優先し、無ければ名前で登録一覧から引く
-    // （番号は登録一覧が変わるとずれるため使わない）
+    // ダイアログで選んだエンジンのパス（ダイアログは登録一覧から選んだエンジンのパスを必ず渡す）
     MatchEngineSeat::Params params;
-    if (m_options.enginePath.isEmpty()) {
-        if (const std::optional<EngineEntry> engine = RegisteredEngines::load().findByName(m_options.engineName))
-            params.enginePath = engine->path;
-    } else {
-        params.enginePath = m_options.enginePath;
-    }
+    params.enginePath = m_options.enginePath;
     if (params.enginePath.isEmpty()) {
         onEngineError(tr("エンジンパスが指定されていません"));
         return;

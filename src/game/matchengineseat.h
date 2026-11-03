@@ -30,7 +30,7 @@ class MatchEngineSeat : public QObject
 public:
     struct Params {
         int slot = 1;                           ///< 枠（1=E1、2=E2）
-        Turn side = Turn::Black;                ///< このエンジンが指す手番
+        Turn side = Turn::Black;                ///< このエンジンが指す側（通信ログの見出しの既定の役割。手番は送る局面で決まる）
         QString enginePath;
         QString engineName;
         QString role;                           ///< 通信ログの見出しの役割（空なら手番 "black"・"white"）
@@ -46,7 +46,6 @@ public:
 
     /// 使っているエンジン（起動していない・手放した・取り上げられたら nullptr）
     Usi* engine() const;
-    Turn side() const { return m_side; }
     /// 起動して初期化（usi〜readyok）している
     bool isInitializing() const;
     /// readyok を受け、指し手を頼める（終局の後は false。次の対局は起動し直す）
@@ -78,7 +77,6 @@ private slots:
 private:
     EngineSlots* m_engines = nullptr;  ///< 非所有（エンジンは枠が持つ）
     EngineLease m_lease;
-    Turn m_side = Turn::Black;
 };
 
 #endif // MATCHENGINESEAT_H

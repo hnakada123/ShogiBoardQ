@@ -207,6 +207,7 @@
 | 2026-11-03 | 以前の版の値の引き継ぎを設定の関数に移した（監査 2026-11-01 P7）のに合わせて第12章（関数として書く項目）・§1.5 を更新（思考の表と定跡ウィンドウの列の数が変わった列幅は `AnalysisSettings::thinkingViewColumnWidths()`・`JosekiSettings::josekiWindowColumnWidths()`（列の番号は設定の側の定数で、表の部品が `static_assert` で照らす）、持将棋の点数ダイアログの小さい保存サイズは `GameSettings::jishogiScoreDialogSize()`（最小の大きさ `kJishogiScoreDialogMinimumSize`）、詰将棋生成の偶数の目標手数は `TsumeshogiSettings::upgradeLegacyGeneratorTargetMoves()`、問題一覧の以前の版のファイルは `TsumeshogiSettings::lastCollectionFile()`。解く画面の設定の使われていない `lastFile`・`problemIndex` を消した。`josekisettings.cpp`・`tsumeshogisettings.cpp` を足した） |
 | 2026-11-04 | エンジン同士の連続対局の途中の局で終局の知らせを待たないようにした（監査 2026-11-01 U4）のに合わせて §4.3・§6.2・§10.5 を更新（`MatchCoordinator::gameOverMessage` は `GameSession::showGameOverMessage` につなぎ、次の局が残っていれば `NotificationPresenter::Wait::No` で出して次の局へ進め、前の局の知らせは閉じる。`NotificationPresenter::information()` は待たずに出したメッセージボックスを返す） |
 | 2026-11-04 | USEN に千日手を `j` で書かないようにした（監査 2026-11-01 U7）のに合わせて §8.9 を更新（USEN の仕様に千日手の符号は無く、作者の実装は `j` を宣言勝ちとして読むので、千日手・連続王手の千日手は書けない終局にした（`TerminalCodes::usen` が空。保存の確認で知らせる）。`j` は持将棋だけで、読むと持将棋（引き分け）） |
+| 2026-11-04 | 呼び出しが0の部分を消した（監査 2026-11-01 5章）のに合わせて §8.11 を更新（`PieceSoundPlayer` の3つのシグナル、`Usi::search(UsiSearchRequest)`、`MatchEngineSeat::side()`、`MatchStrategyHost::currentPly()`、`EngineRegistrationHandler::progressUpdated`、`TsumeGameSession::legalMoves()`、`KifLineBuilder::lastIrregularity()`、`ParseReport::options()`、通信対局のエンジンを名前で登録一覧から引く分岐を削除） |
 
 <!-- chapter-0-end -->
 
@@ -4979,7 +4980,7 @@ static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {}
 | `setLastTime(time)` | 最後の行の消費時間を置き換える（指し手の後に消費時間を書く形式） |
 | `stop()` | 手順を打ち切る（読めない手の後。以降の手は足さない） |
 | `lastError()` / `cannotRestore(format, ply)` | 指せなかった理由と、全形式で同じ文面の警告（`"KIF: Cannot restore move 3: Source square is empty: 7g7e"`） |
-| `lastIrregularity()` / `warnIrregularity(report, format, ply)` | 直前の `addMove` で指した反則の駒打ちの理由と、それを `ParseReport` の警告にする（`"KIF: Move 3 is an illegal drop: The dropped piece is not in hand: B*5e"`。手順は打ち切らない。各形式の読み込みが `addMove` の後に呼ぶ） |
+| `warnIrregularity(report, format, ply)` | 直前の `addMove` で指した反則の駒打ちを `ParseReport` の警告にする（`"KIF: Move 3 is an illegal drop: The dropped piece is not in hand: B*5e"`。手順は打ち切らない。各形式の読み込みが `addMove` の後に呼ぶ） |
 | `take()` | 組み立てた `RecordLine` |
 
 棋譜欄の表記は、取り込んだ原文を写さず、いつも指し手と直前の手から `KifMoveText::format()` で作る。棋譜に書かれていた相対位置の修飾語・「不成」は `KifMoveText::Notes` で渡して残す。CSA・JKF の消費時間は `RecordTime::fromMilliseconds()` で作り、文字列を経由しない。

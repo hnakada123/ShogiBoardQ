@@ -144,7 +144,6 @@ class ParseReport
 public:
     explicit ParseReport(const ParseOptions& options = {}) : m_options(options) {}
 
-    const ParseOptions& options() const { return m_options; }
     /// 警告を1行足す（末尾の改行は付ける）
     void warn(const QString& message)
     {

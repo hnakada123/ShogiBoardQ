@@ -86,8 +86,6 @@ public:
 
     /// 検討: 候補手の数を送って position + go infinite を送り、byoyomiMilliSec 後に stop を送る（0 なら送らない）
     bool startConsideration(const UsiPosition& position, int byoyomiMilliSec, int multiPV);
-    /// 探索1回を頼む（棋譜解析の1局面など）
-    bool search(const UsiSearchRequest& request);
     /// 最後に頼んだ探索をできるだけ早く終わらせる（結果は届く。まだ始めていなければ始めてすぐ止める）
     void stop();
     /// setoption name <name> value <value> を送る（初期化中なら完了後に送る）

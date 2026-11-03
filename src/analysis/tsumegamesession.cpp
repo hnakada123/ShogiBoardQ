@@ -80,15 +80,6 @@ QString TsumeGameSession::sfen() const
     return QString::fromStdString(m_position.to_sfen());
 }
 
-QStringList TsumeGameSession::legalMoves() const
-{
-    QStringList result;
-    if (m_state != State::Ready) return result;
-    for (const auto& move : m_position.generate_legal_moves())
-        result.append(QString::fromStdString(m_position.move_to_usi(move)));
-    return result;
-}
-
 void TsumeGameSession::apply(const shogi::Move& move)
 {
     const QString usi = QString::fromStdString(m_position.move_to_usi(move));

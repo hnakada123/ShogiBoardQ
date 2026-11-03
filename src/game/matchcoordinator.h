@@ -107,7 +107,7 @@ public:
 
     /// 対局の手順（開始局面と、対局で指した手。終局の行は含めない）
     const RecordLine& record() const { return m_record; }
-    int currentPly() const override { return m_record.moveCount(); }
+    int currentPly() const { return m_record.moveCount(); }
 
     // --- 開始・再開 ---
 

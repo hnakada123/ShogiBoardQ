@@ -29,8 +29,6 @@ public:
     virtual bool isGameOver() const = 0;
     /// 盤の手番
     virtual Turn sideToMove() const = 0;
-    /// 対局の手順の手数（開始局面からの指した手の数）
-    virtual int currentPly() const = 0;
 
     /// side の手番のエンジンに、いまの局面で思考させる
     virtual void requestEngineMove(Turn side) = 0;

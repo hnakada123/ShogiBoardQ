@@ -44,7 +44,6 @@ void PieceSoundPlayer::setEnabled(bool enabled)
     if (enabled) {
         ensureEffect();
     }
-    emit enabledChanged(enabled);
 }
 
 void PieceSoundPlayer::setVolume(int percent)
@@ -55,7 +54,6 @@ void PieceSoundPlayer::setVolume(int percent)
 
     m_volume = clamped;
     applyVolume();
-    emit volumeChanged(clamped);
 }
 
 void PieceSoundPlayer::setTone(const PieceSoundTone& tone)
@@ -66,7 +64,6 @@ void PieceSoundPlayer::setTone(const PieceSoundTone& tone)
     m_tone = clamped;
     AppSettings::pieceSoundTone.set(clamped);
     updateSource();
-    emit toneChanged(clamped);
 }
 
 void PieceSoundPlayer::playMoveSound()
