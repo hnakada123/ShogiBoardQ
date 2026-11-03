@@ -309,6 +309,8 @@ PHASE1_TOOLS: list[types.Tool] = [
         "search_mate",
         "Start mate search",
         "Start a mate (tsume) search with a registered engine that supports 'go mate' and return a job id. "
+        "Like the application, a position without moves where only one side has a king (a tsume problem) is "
+        "searched with the side without a king (the attacker) to move, whatever side the SFEN gives. "
         "Poll mate_status for the result: mate with the mating sequence, nomate, unknown (time ran out) or "
         "notimplemented (the engine cannot search for mate).",
         _spec("command", "mate", drop=["stdin_control"]),

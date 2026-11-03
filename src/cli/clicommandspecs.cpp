@@ -188,7 +188,9 @@ const QList<OperationSpec>& CliCommandSpecs::all()
               .withDefault(1),
           integer(QStringLiteral("multipv"), QStringLiteral("Number of candidate lines."), 1, 10).withDefault(1),
           stdinControl()}},
-        {QStringLiteral("mate"), QStringLiteral("Search for a mate with an engine that supports go mate (JSON Lines)"),
+        {QStringLiteral("mate"),
+         QStringLiteral("Search for a mate with an engine that supports go mate (JSON Lines). Like the GUI, a position "
+                        "without moves where only one side has a king is searched with the other side (the attacker) to move"),
          {engine(), sfen(true), moves(), stdinControl(), seconds(QStringLiteral("Search time in seconds."), 10)}},
         {QStringLiteral("generate-tsume"), QStringLiteral("Generate tsume problems (JSON Lines)"),
          {engine(), stdinControl(),

@@ -177,6 +177,7 @@
 | 2026-11-03 | `CsaGameCoordinator` の1局の進行に入らない仕事を切り出した（監査 2026-11-01 M6）のに合わせて §12.3 を更新（対局条件の受け入れの判断とログの文は `CsaGameSummary::unsupportedReason()`・`conditionLines()`、裁定の待ちは `CsaVerdictWait`、対局数と再接続は `CsaGameSeries`。LOGIN のパスワードを伏せるのは `CsaClient` だけにし、「すぐ指させる」はローカル対局と同じ `Usi::requestImmediateMove()` にした。使っていない `username()`・`gameSummary()`・`completedGames()`・`gameLimit()` を消した） |
 | 2026-11-03 | 読むファイルの検査を CLI と自動化 API で1つにした（監査 2026-11-01 F8）のに合わせて §1.5 のファイルの一覧を更新（headless に `InputPath::check`（絶対パス・存在・通常のファイル）を置き、CLI の `convert-kifu`・`analyze-kifu` の `input_path`（`KifuConversionService`）と `kifu.load` が使う。CLI も相対パスを断り、ディレクトリは `parse_error` でなく `invalid_argument` にした。MCP の `paths.py` と同じ分類） |
 | 2026-11-03 | 保存形式で失うものを形式の表から決めるようにした（監査 2026-11-01 F20）のに合わせて §8.8・§8.9 を更新（`KifuExport::capabilities()`（変化・消費時間・コメント・しおり）・`writesTerminal()`・`lossIn()` を置き、`KifuSaveDialogs::saveViaDialog` は形式ごとの switch の代わりに `lossOf` の失うものを並べて確認する（USEN・USI のコメント・しおり、変化の消費時間、CSA・USI の書けない終局も聞く）。`RecordContents` は消した。コピーの知らせも同じ表で、含まないものを出す。消費時間のない形式を読んだ手の 0 秒の時間は `RecordTime::isRecorded()` で数えない） |
+| 2026-11-03 | CLI の詰み探索の局面を GUI にそろえた（監査 2026-11-01 F16）のに合わせて §9.7 を更新（CLI の `mate` は指し手の無い局面に `MateSearchPosition::attackerToMove()` をかけ、攻方の玉の無い詰将棋の局面を、SFEN の手番によらず攻方の手番で調べる） |
 
 <!-- chapter-0-end -->
 
@@ -5405,7 +5406,7 @@ showDialogAndStart()
 
 1. **moves形式（途中局面）**: `line.currentPly > 0` のとき、`RecordLine::usiPosition(ply)` で開始局面からの指し手列の局面にする（送るのは `"position startpos moves 7g7f 3c3d ..."`、平手以外の開始局面は `"position sfen ... moves ..."`）。エンジンが局面の履歴情報（千日手判定等）を利用できる。
 
-2. **SFEN形式（開始局面）**: 開始局面（詰将棋の問題など）や手順が無いときは、1つの局面（`line.startSfen`、手順が無ければ `navState->currentSfen()`）を `Position` に読み、`MateSearchPosition::attackerToMove()` が玉の有無から攻方を決めて手番にし、手数を1にする（玉が片方だけなら、その玉のない側が攻方。両方あれば手番のまま）。文字列を組み立てて読み直さない。
+2. **SFEN形式（開始局面）**: 開始局面（詰将棋の問題など）や手順が無いときは、1つの局面（`line.startSfen`、手順が無ければ `navState->currentSfen()`）を `Position` に読み、`MateSearchPosition::attackerToMove()` が玉の有無から攻方を決めて手番にし、手数を1にする（玉が片方だけなら、その玉のない側が攻方。両方あれば手番のまま）。文字列を組み立てて読み直さない。CLI の `mate`（MCP の `search_mate`）も、指し手（`--moves`）の無い局面に同じ `attackerToMove()` をかける。
 
 ### 9.8 AnalysisResultsPanel — 解析結果の表示
 

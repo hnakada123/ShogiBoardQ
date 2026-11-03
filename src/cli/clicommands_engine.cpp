@@ -9,6 +9,7 @@
 #include "engineanalysisrunner.h"
 #include "kifuconversionservice.h"
 #include "kifuformat.h"
+#include "matesearchposition.h"
 #include "matesearchrunner.h"
 #include "usienginesession.h"
 
@@ -303,8 +304,12 @@ int CliCommands::mate(const QJsonObject& params)
     QString error;
     const auto engine = CliArgs::resolveEngine(params, &error);
     if (!engine) return CliOutput::failEvent(ErrorKind::EngineNotFound, error);
-    const auto position = CliArgs::resolvePosition(params, &error);
-    if (!position) return CliOutput::failEvent(ErrorKind::InvalidArgument, error);
+    const auto resolved = CliArgs::resolvePosition(params, &error);
+    if (!resolved) return CliOutput::failEvent(ErrorKind::InvalidArgument, error);
+    // 指し手の無い局面（詰将棋の問題）は GUI の詰み探索と同じく、玉が片方だけなら玉の無い側（攻方）の手番にする
+    const UsiPosition position = resolved->moves().isEmpty()
+        ? UsiPosition(MateSearchPosition::attackerToMove(resolved->position()))
+        : *resolved;
     const int seconds = params.value(QStringLiteral("seconds")).toInt();
 
     MateSearchRunner runner;
@@ -318,10 +323,10 @@ int CliCommands::mate(const QJsonObject& params)
     MateSearchRunner::Request request;
     request.enginePath = engine->path;
     request.engineName = engine->name;
-    request.position = *position;
+    request.position = position;
     request.timeMs = seconds * 1000;
 
-    QJsonObject started = startedFields(*engine, *position);
+    QJsonObject started = startedFields(*engine, position);
     started[QStringLiteral("seconds")] = seconds;
     CliOutput::printEvent(QStringLiteral("started"), started);
 

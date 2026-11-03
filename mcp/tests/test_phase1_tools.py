@@ -190,6 +190,21 @@ async def test_mate_and_verify(server_env):
         assert status["status"] == "mate"
         assert status["pv"] == ["3c3b+", "2a1a", "3b2b"]
 
+        # Like the application, a problem without the attacker's king is searched with the attacker to move
+        # even when the SFEN gives the other side (audit 2026-11-01 F16).
+        text, data, is_error = await _call(session, "search_mate", engine="TestMate",
+                                           sfen=MATE_3PLY.replace(" b ", " w "), seconds=5)
+        assert not is_error, text
+        job_id = data["job_id"]
+        for _ in range(80):
+            text, status, is_error = await _call(session, "mate_status", job_id=job_id)
+            assert not is_error, text
+            if status["state"] != "running":
+                break
+            await asyncio.sleep(0.25)
+        assert status["state"] == "finished", text
+        assert status["status"] == "mate" and status["pv"] == ["3c3b+", "2a1a", "3b2b"], status
+
         text, data, is_error = await _call(session, "verify_tsume", engine="TestMate", sfen=UNIQUE_1PLY, target_moves=1, timeout_seconds=10)
         assert not is_error, text
         assert data["status"] == "unique" and data["pv"] == ["N*2c"]
