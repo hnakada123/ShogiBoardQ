@@ -680,7 +680,7 @@ private slots:
         QVERIFY(!plain.variationsDropped);
     }
 
-    /// 失敗は分類つきで返す（ファイルがない・入力の指定の誤り・読めない中身・不正な開始局面）
+    /// 失敗は分類つきで返す（ファイルがない・相対パスとディレクトリ・入力の指定の誤り・読めない中身・不正な開始局面）
     void reportsErrors()
     {
         KifuConversionService::Request request;
@@ -689,6 +689,16 @@ private slots:
         const auto missing = KifuConversionService::convert(request);
         QVERIFY(!missing.ok);
         QCOMPARE(missing.failure.kind, ErrorKind::NotFound);
+
+        // 入力のファイルは自動化 API の kifu.load と同じく確かめる（相対パスとディレクトリは引数の誤りで、読まない）
+        KifuConversionService::Request relative;
+        relative.inputPath = QStringLiteral("fixtures/test_basic.kif");
+        relative.outputFormat = Format::Kif;
+        QCOMPARE(KifuConversionService::convert(relative).failure.kind, ErrorKind::InvalidArgument);
+        KifuConversionService::Request folder;
+        folder.inputPath = fixture(QString());
+        folder.outputFormat = Format::Kif;
+        QCOMPARE(KifuConversionService::convert(folder).failure.kind, ErrorKind::InvalidArgument);
 
         KifuConversionService::Request both;
         both.inputPath = fixture(QStringLiteral("test_basic.kif"));

@@ -6,10 +6,9 @@
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifubranchtreebuilder.h"
+#include "inputpath.h"
 #include "kifuexport.h"
 #include "kifuloadparser.h"
-
-#include <QFileInfo>
 
 KifuConversionService::Result KifuConversionService::convert(const Request& request)
 {
@@ -29,8 +28,9 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
         loaded = request.inputFormat ? KifuLoadParser::parseContent(request.text, *request.inputFormat)
                                      : KifuLoadParser::parseText(request.text);
     } else {
-        if (!QFileInfo::exists(request.inputPath)) {
-            result.failure = {ErrorKind::NotFound, QStringLiteral("Input file does not exist: %1").arg(request.inputPath)};
+        // 自動化 API の kifu.load と同じ検査（絶対パス・存在・通常のファイル）
+        if (const std::optional<Failure> problem = InputPath::check(request.inputPath)) {
+            result.failure = *problem;
             return result;
         }
         loaded = KifuLoadParser::parseFile(request.inputPath, request.inputFormat);

@@ -91,6 +91,7 @@ def _require_absolute(raw: str, what: str) -> Path:
 
 
 def resolve_read_path(raw: str, what: str = "path", suffixes: str = KIFU_READ) -> Path:
+    # The error kinds match InputPath::check (src/headless/inputpath.cpp), which the CLI and kifu.load use.
     path = _check_allowed(_require_absolute(raw, what))
     _check_suffix(path, raw, what, suffixes)
     if not path.exists():

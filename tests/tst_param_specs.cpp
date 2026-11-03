@@ -11,6 +11,7 @@
 #include "automationmethodspecs.h"
 #include "clicommandspecs.h"
 #include "errorkinds.h"
+#include "inputpath.h"
 #include "outputpath.h"
 #include "paramspec.h"
 
@@ -211,6 +212,29 @@ private slots:
         const AutomationError error(*exists);
         QCOMPARE(error.kind(), ErrorKind::FileExists);
         QCOMPARE(error.hint(), exists->hint);
+    }
+
+    /// 読むファイルの検査は CLI の入力と kifu.load で同じ分類（MCP の paths.py とも同じ）
+    void inputPathCheckClassifiesProblems()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString existing = dir.filePath(QStringLiteral("game.kif"));
+        QFile file(existing);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.close();
+        QVERIFY(!InputPath::check(existing));
+        QCOMPARE(InputPath::check(QString())->kind, ErrorKind::InvalidArgument);
+        QCOMPARE(InputPath::check(QStringLiteral("game.kif"))->kind, ErrorKind::InvalidArgument);
+        QCOMPARE(InputPath::check(dir.filePath(QStringLiteral("missing.kif")))->kind, ErrorKind::NotFound);
+        QCOMPARE(InputPath::check(dir.path())->kind, ErrorKind::InvalidArgument);
+        // リンクはたどって確かめる（ファイルへのリンクは読める。リンク先がなければ無いファイル）
+        const QString link = dir.filePath(QStringLiteral("link.kif"));
+        const QString dangling = dir.filePath(QStringLiteral("dangling.kif"));
+        if (QFile::link(existing, link) && QFile::link(dir.filePath(QStringLiteral("gone.kif")), dangling)) {
+            QVERIFY(!InputPath::check(link));
+            QCOMPARE(InputPath::check(dangling)->kind, ErrorKind::NotFound);
+        }
     }
 
     /// 表にあるメソッドは、呼ぶ前に引数を検査し既定値を補う

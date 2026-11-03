@@ -974,6 +974,8 @@ set(SRC_HEADLESS
     src/headless/enginecatalog.h
     src/headless/errorkinds.cpp
     src/headless/errorkinds.h
+    src/headless/inputpath.cpp
+    src/headless/inputpath.h
     src/headless/kifuconversionservice.cpp
     src/headless/kifuconversionservice.h
     src/headless/matesearchrunner.cpp

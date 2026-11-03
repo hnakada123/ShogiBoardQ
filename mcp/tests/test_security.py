@@ -116,6 +116,31 @@ async def test_kifu_save_refuses_other_files(monkeypatch, app_path, tmp_path):
         await client.shutdown()
 
 
+async def test_kifu_load_checks_the_path_like_the_cli(monkeypatch, app_path, tmp_path):
+    # kifu.load and the CLI's input_path share InputPath::check: relative paths and directories are
+    # invalid arguments and missing files are not found (paths.py uses the same words).
+    for key, value in {
+        "SHOGIBOARDQ_EXECUTABLE": str(app_path),
+        "SHOGIBOARDQ_AUTOMATION_SOCKET": str(tmp_path / "a.sock"),
+        "SHOGIBOARDQ_CONFIG_HOME": str(tmp_path / "config"),
+        "SHOGIBOARDQ_DATA_HOME": str(tmp_path / "data"),
+        "SHOGIBOARDQ_QUIT_APP_ON_EXIT": "1",
+        "QT_QPA_PLATFORM": "offscreen",
+    }.items():
+        monkeypatch.setenv(key, value)
+    folder = tmp_path / "records.kif"
+    folder.mkdir()
+    client = AppClient()
+    try:
+        for path, code in (("relative.kif", "invalid_argument"), (str(folder), "invalid_argument"),
+                           (str(tmp_path / "missing.kif"), "not_found")):
+            with pytest.raises(AppError) as error:
+                await client.call("kifu.load", {"path": path})
+            assert error.value.code == code, path
+    finally:
+        await client.shutdown()
+
+
 async def test_protected_password_cannot_be_revealed(monkeypatch, app_path, tmp_path):
     # Exercise the application boundary even when full GUI control is granted.
     for key, value in {

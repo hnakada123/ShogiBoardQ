@@ -23,7 +23,7 @@ class KifuConversionService
 {
 public:
     struct Request {
-        QString inputPath;                       ///< 入力ファイル（text と排他）
+        QString inputPath;                       ///< 入力ファイル（絶対パス。text と排他。InputPath::check で確かめる）
         QString text;                            ///< 入力文字列（inputPath と排他）
         std::optional<KifuFormat> inputFormat;   ///< なければ拡張子／内容から判定
         KifuFormat outputFormat = KifuFormat::Kif; ///< 出力形式（Sfen は本譜の局面列）

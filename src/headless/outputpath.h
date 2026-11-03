@@ -16,7 +16,7 @@ namespace OutputPath {
  *
  * 絶対パスでない・ディレクトリ（invalid_argument）、上書きの許可なしに既存のファイル（file_exists）、
  * 置く場所のディレクトリがない（not_found）を、書く前に分類つきで返す。問題がなければ nullopt。
- * MCP サーバー（mcp/shogiboardq_mcp/paths.py）も同じ分類にする。
+ * 読むファイルの検査 InputPath::check と対で、MCP サーバー（mcp/shogiboardq_mcp/paths.py）も同じ分類にする。
  * @param overwriteHint 既存のファイルのときに添える対処（CLI は "--overwrite"、自動化 API は "overwrite=true"）
  */
 std::optional<Failure> check(const QString& path, bool overwrite, const QString& overwriteHint);
