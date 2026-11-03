@@ -52,7 +52,8 @@ const Code kUsiCodes[] = {
 };
 
 // USEN の符号（作者の実装 mog-core-scala の SpecialMove に合わせる。r=投了, t=時間切れ, p=中断, j=持将棋）。
-// 千日手は持将棋と同じく引き分けの j で書く。
+// 千日手・連続王手の千日手の符号は無いので書かない（以前は j で書いていたが、作者の実装は j を宣言勝ちとして読むので、
+// ほかのソフトでは勝ちと読まれた。書けない終局は保存の確認で知らせる）。j を読むと持将棋（引き分け）にする。
 // i は手番側の反則（手番側の負け）で、後ろに反則手の3文字が続く（UsenCodec が読む）。終局の行は反則手を持たないので
 // 書かず、読むだけにする。反則勝ちの符号は無い
 const Code kUsenCodes[] = {
@@ -60,8 +61,6 @@ const Code kUsenCodes[] = {
     {TerminalType::Timeout, "t"},
     {TerminalType::Interrupt, "p"},
     {TerminalType::Impasse, "j"},
-    {TerminalType::PerpetualCheck, "j"},
-    {TerminalType::Repetition, "j"},
     {TerminalType::IllegalLoss, "i", true},
 };
 

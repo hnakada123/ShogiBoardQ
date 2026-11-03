@@ -206,6 +206,7 @@
 | 2026-11-03 | 設定のキーの定数を使う .cpp に入れた（監査 2026-11-01 P6）のに合わせて §1.5・第12章（関数として書く項目）・第17章を更新（`settingskeys.h` を消した。列幅の配列のキーは `analysissettings.cpp`、名前を付けたドックのレイアウトのグループは `docksettings.cpp` の無名名前空間の定数、機能ごとのエンジンの選択のキーは `enginelistsettings.cpp` の各関数の中の文字にした。テストは `EngineListSettings::csaGameSelection()` などの宣言から読む） |
 | 2026-11-03 | 以前の版の値の引き継ぎを設定の関数に移した（監査 2026-11-01 P7）のに合わせて第12章（関数として書く項目）・§1.5 を更新（思考の表と定跡ウィンドウの列の数が変わった列幅は `AnalysisSettings::thinkingViewColumnWidths()`・`JosekiSettings::josekiWindowColumnWidths()`（列の番号は設定の側の定数で、表の部品が `static_assert` で照らす）、持将棋の点数ダイアログの小さい保存サイズは `GameSettings::jishogiScoreDialogSize()`（最小の大きさ `kJishogiScoreDialogMinimumSize`）、詰将棋生成の偶数の目標手数は `TsumeshogiSettings::upgradeLegacyGeneratorTargetMoves()`、問題一覧の以前の版のファイルは `TsumeshogiSettings::lastCollectionFile()`。解く画面の設定の使われていない `lastFile`・`problemIndex` を消した。`josekisettings.cpp`・`tsumeshogisettings.cpp` を足した） |
 | 2026-11-04 | エンジン同士の連続対局の途中の局で終局の知らせを待たないようにした（監査 2026-11-01 U4）のに合わせて §4.3・§6.2・§10.5 を更新（`MatchCoordinator::gameOverMessage` は `GameSession::showGameOverMessage` につなぎ、次の局が残っていれば `NotificationPresenter::Wait::No` で出して次の局へ進め、前の局の知らせは閉じる。`NotificationPresenter::information()` は待たずに出したメッセージボックスを返す） |
+| 2026-11-04 | USEN に千日手を `j` で書かないようにした（監査 2026-11-01 U7）のに合わせて §8.9 を更新（USEN の仕様に千日手の符号は無く、作者の実装は `j` を宣言勝ちとして読むので、千日手・連続王手の千日手は書けない終局にした（`TerminalCodes::usen` が空。保存の確認で知らせる）。`j` は持将棋だけで、読むと持将棋（引き分け）） |
 
 <!-- chapter-0-end -->
 
@@ -4774,7 +4775,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 | `metadataOf(document)` | 文書の書き出しの文脈（`KifuExportMetadata`：対局情報・開始局面・文字コード） |
 | `lines(tree, metadata, format)` | `format` の行。表の関数を呼ぶ。KIF・KI2・CSA の先頭行の文字コードの宣言は `metadata.encoding` |
 | `lines(document, format, encoding)` | 文書を `format` の行にする（`encoding` は既定で UTF-8。保存では保存先の文字コードを渡す） |
-| `capabilities(format)` / `writesVariations(format)` / `writesTerminal(format, type)` | 形式の書き出しが書けるもの（`Capabilities`：変化・消費時間・コメント・しおり）と、終局の行を書けるか（CSA・USI・USEN は符号の表 `TerminalCodes`、KIF・KI2・JKF は全部）。形式ごとに書けるものの知識はここだけ |
+| `capabilities(format)` / `writesVariations(format)` / `writesTerminal(format, type)` | 形式の書き出しが書けるもの（`Capabilities`：変化・消費時間・コメント・しおり）と、終局の行を書けるか（CSA・USI・USEN は符号の表 `TerminalCodes`、KIF・KI2・JKF は全部。USEN は投了 `r`・時間切れ `t`・中断 `p`・持将棋 `j` だけで、千日手・連続王手の千日手・反則は書けない）。形式ごとに書けるものの知識はここだけ |
 | `lossIn(tree, format)` | 棋譜を `format` で書くと失うもの（`Loss`）。変化を書けない形式は本譜だけを見る。消費時間は `RecordTime::isRecorded()`（0 秒は消費時間のない形式を読んだ手の埋め草なので数えない）。保存の確認（`KifuSaveDialogs::saveViaDialog`）とコピーの知らせ（`KifuFileController::copyRecord`）が使う |
 
 表の関数は各 Exporter（`src/kifu/formats/`）の `static QStringList exportLines(const KifuBranchTree&, const KifuExportMetadata&)`。

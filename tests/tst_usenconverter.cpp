@@ -5,6 +5,8 @@
 #include "usentosfenconverter.h"
 #include "usencodec.h"
 #include "kifparsetypes.h"
+#include "kifuexport.h"
+#include "kifuformat.h"
 #include "terminalcodes.h"
 #include "kifu_test_helper.h"
 
@@ -291,6 +293,18 @@ private slots:
         QVERIFY(TerminalCodes::usen(TerminalType::IllegalLoss).isEmpty());
         QVERIFY(TerminalCodes::usen(TerminalType::IllegalWin).isEmpty());
         QCOMPARE(TerminalCodes::usen(TerminalType::Resign), QStringLiteral("r"));
+    }
+
+    /// 千日手・連続王手の千日手は USEN に符号が無いので書かない（j は作者の実装では宣言勝ちと読まれる）。
+    /// 書けない終局として保存の確認で知らせる。j を読むと持将棋（引き分け）
+    void repetitionHasNoUsenCode()
+    {
+        QVERIFY(TerminalCodes::usen(TerminalType::Repetition).isEmpty());
+        QVERIFY(TerminalCodes::usen(TerminalType::PerpetualCheck).isEmpty());
+        QVERIFY(!KifuExport::writesTerminal(KifuFormat::Usen, TerminalType::Repetition));
+        QVERIFY(!KifuExport::writesTerminal(KifuFormat::Usen, TerminalType::PerpetualCheck));
+        QCOMPARE(TerminalCodes::usen(TerminalType::Impasse), QStringLiteral("j"));
+        QCOMPARE(TerminalCodes::fromUsen(QStringLiteral("j")), TerminalType::Impasse);
     }
 
     void terminalFromCode()
