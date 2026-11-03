@@ -8545,82 +8545,83 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuLoader</name>
     <message>
-        <location filename="../../src/kifu/kifuloader.cpp" line="95"/>
+        <location filename="../../src/kifu/kifuloader.cpp" line="96"/>
         <source>無効なSFEN形式です。</source>
         <translation>SFEN 格式无效。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloader.cpp" line="114"/>
+        <location filename="../../src/kifu/kifuloader.cpp" line="120"/>
         <source>棋譜の読み込みで警告があります:
 %1</source>
         <translation>载入棋谱时的警告：
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="131"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="133"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>载入失败：无法从 %1 获取着法。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloader.cpp" line="124"/>
+        <location filename="../../src/kifu/kifuloader.cpp" line="130"/>
         <source>棋譜の分岐元または開始手数が不正です。</source>
         <translation>棋谱的分支来源或起始手数无效。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="23"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="22"/>
         <source>局面を読めません</source>
         <translation>无法读取局面</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="27"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="31"/>
         <source>駒の数が上限を超えています（盤と持駒の合計）</source>
         <translation>棋子数量超过上限（棋盘与持驹合计）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="28"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="32"/>
         <source>持駒に玉があります</source>
         <translation>持驹中有王</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="29"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="33"/>
         <source>同じ側の玉が2枚以上あります</source>
         <translation>同一方有两枚以上的王</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="60"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="118"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="62"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="120"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
         <translation>载入棋谱文件失败：%1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="114"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="116"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>解析 BOD 格式失败。%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="117"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="119"/>
         <source>棋譜の読み込みに失敗しました。%1</source>
         <translation>载入棋谱失败。%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="130"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="132"/>
         <source>棋譜から指し手を取得できませんでした。</source>
         <translation>无法从棋谱获取着法。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="139"/>
+        <location filename="../../src/kifu/kifuloader.cpp" line="101"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="141"/>
         <source>棋譜の開始局面が不正です: %1</source>
         <translation>棋谱的初始局面无效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="140"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="142"/>
         <source>棋譜ファイルの開始局面が不正です: %1
 %2</source>
         <translation>棋谱文件的初始局面无效：%1
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="150"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="152"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>要粘贴的文本为空。</translation>
     </message>

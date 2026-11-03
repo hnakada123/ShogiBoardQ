@@ -4,6 +4,7 @@
 #include "kifuloader.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
+#include "kifuloadparser.h"
 #include "logcategories.h"
 #include "shogiposition.h"
 #include "usiposition.h"
@@ -93,6 +94,11 @@ bool KifuLoader::loadPositionFromSfen(const QString& sfen)
     const std::optional<UsiPosition> position = UsiPosition::parse(sfen);
     if (!position) {
         emit errorOccurred(tr("無効なSFEN形式です。"));
+        return false;
+    }
+    // 棋譜の開始局面と同じ規則（盤と持駒として成り立つ局面だけ）
+    if (const QString reason = KifuLoadParser::startPositionProblem(position->position()); !reason.isEmpty()) {
+        emit errorOccurred(tr("棋譜の開始局面が不正です: %1").arg(reason));
         return false;
     }
     // 局面だけの棋譜にする（表示中の手は開始局面へ戻る）

@@ -65,7 +65,11 @@ const QList<OperationSpec>& AutomationMethodSpecs::all()
         {QStringLiteral("app.state"), QStringLiteral("UI state, play mode, plies, file, dialogs, engines and CSA state."), {}},
         {QStringLiteral("app.quit"), QStringLiteral("Quit without the unsaved-changes prompt."), {}},
         {QStringLiteral("position.get"), QStringLiteral("Current position, start position and moves."), {}},
-        {QStringLiteral("position.set"), QStringLiteral("Replace the position (the record is cleared)."),
+        {QStringLiteral("position.set"),
+         QStringLiteral("Replace the position (the record is cleared). Positions are accepted like pasting a position "
+                        "in the application: the pieces must fit on the board and in the hands (piece counts, no king in "
+                        "hand, at most one king per side); positions without kings or with the side not to move in check "
+                        "are accepted."),
          {string(QStringLiteral("sfen"),
                  QStringLiteral("Position in SFEN (board, side to move b/w, hands, move number), or 'startpos' for the "
                                 "initial position. A leading 'position sfen ' is accepted."))

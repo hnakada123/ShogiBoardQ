@@ -9,6 +9,8 @@
 #include "threadtypes.h"
 #include "shogimove.h"
 
+class Position;
+
 /// GUIオブジェクトを含まない読み込み結果。ワーカーから値で受け渡す。
 struct KifuLoadResult {
     bool success = false;
@@ -37,6 +39,17 @@ KifuLoadResult parseContent(const QString& content, KifuFormat format,
                             const CancelFlag& cancel = {}, const QString& sourceName = QString());
 /// 棋譜ファイルをテキストとして読む（CSA は CSA の文字コード宣言、それ以外は自動判別）
 bool readFileText(const QString& path, KifuFormat format, QString& outText, QString* warn);
+/**
+ * @brief 開始局面にできない理由（訳した文。できれば空）
+ *
+ * 盤と持駒として成り立つか（駒の数・持駒の玉・玉の重複）だけを見る。玉の無い図（駒箱に入れた編集中の盤など）と
+ * 手番でない側に王手がかかっている図は受け付ける。棋譜の読み込み（GUI・CLI・自動化 API の kifu.load）・
+ * 局面の読み込み（KifuLoader::loadPositionFromSfen。局面の貼り付け・局面集）・自動化 API の position.set で同じ規則。
+ * 局面集・詰将棋問題一覧のファイルの行は、検討・詰み探索に使う局面なので、より厳しい SfenValidator で読む
+ */
+QString startPositionProblem(const QString& sfen);
+/// 読んだ局面で確かめる（SFEN に書き戻すと持駒の玉は消えるので、読んだ局面を渡す）
+QString startPositionProblem(const Position& position);
 }
 
 #endif // KIFULOADPARSER_H

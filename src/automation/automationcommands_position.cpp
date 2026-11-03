@@ -5,9 +5,9 @@
 #include "automationdispatcher.h"
 #include "automationparams.h"
 #include "kifufilecontroller.h"
+#include "kifuloadparser.h"
 #include "sfenutils.h"
 #include "usiposition.h"
-#include "sfenvalidator.h"
 
 #include <QJsonArray>
 
@@ -30,13 +30,14 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
     dispatcher.registerMethod(QStringLiteral("position.set"), [context](const QJsonObject& params) {
         const QString sfen = params.value(QStringLiteral("sfen")).toString();
         const bool discard = params.value(QStringLiteral("discard_unsaved")).toBool();
-        const SfenValidation validation = SfenValidator::validate(sfen);
-        if (!validation.valid) {
-            throw AutomationError(ErrorKind::InvalidArgument,
-                                  QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
-        }
+        // GUI の局面の貼り付けと同じ読み方・同じ規則（KifuLoader::loadPositionFromSfen）。玉の無い図と、手番でない側に
+        // 王手がかかった図も受け付ける。引数の誤りは棋譜を置き換えられるかより先に返す
+        const std::optional<UsiPosition> position = UsiPosition::parse(sfen);
+        if (!position) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Invalid SFEN: %1").arg(sfen));
+        if (const QString reason = KifuLoadParser::startPositionProblem(position->position()); !reason.isEmpty())
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Invalid SFEN: %1").arg(reason));
         KifuFileController* controller = AutomationCommands::requireReplaceableRecord(context, discard);
-        if (!controller->applySfenPosition(validation.normalizedSfen)) {
+        if (!controller->applySfenPosition(sfen)) {
             throw AutomationError(ErrorKind::InvalidState, QStringLiteral("The position could not be applied"));
         }
         QJsonObject result;

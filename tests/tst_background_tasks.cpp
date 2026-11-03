@@ -278,6 +278,25 @@ private slots:
         QVERIFY(h.loader.loadPositionFromSfen(QStringLiteral("position startpos moves 7g7f")));
         QCOMPARE(h.tree.root()->sfen(), afterFirstMove);
     }
+    /// 局面の読み込みは棋譜の開始局面と同じ規則（KifuLoadParser::startPositionProblem）。玉の無い図と手番でない側に
+    /// 王手がかかった図は受け付け、盤と持駒として成り立たない局面は断る（自動化 API の position.set も同じ。監査 U1）
+    void positionLoadFollowsTheStartPositionRule()
+    {
+        KifuHarness h;
+        QSignalSpy errors(&h.loader, &KifuLoader::errorOccurred);
+        QVERIFY(h.loader.loadPositionFromSfen(QStringLiteral("9/9/9/9/9/9/9/9/9 b R 1")));
+        QVERIFY(h.loader.loadPositionFromSfen(QStringLiteral("4k4/4R4/9/9/9/9/9/9/4K4 b - 1")));
+        QCOMPARE(errors.count(), 0);
+        const QStringList before = h.positions();
+        QVERIFY(!h.loader.loadPositionFromSfen(
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b 2P 1")));
+        QVERIFY(!h.loader.loadPositionFromSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b K 1")));
+        QVERIFY(!h.loader.loadPositionFromSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/3KK4 b - 1")));
+        QCOMPARE(errors.count(), 3);
+        QCOMPARE(h.positions(), before);
+        QCOMPARE(KifuLoadParser::startPositionProblem(QStringLiteral("9/9/9/9/9/9/9/9/9 b R 1")), QString());
+        QVERIFY(!KifuLoadParser::startPositionProblem(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b K 1")).isEmpty());
+    }
     void destructionDoesNotWaitForParsing()
     {
         auto h = std::make_unique<KifuHarness>();

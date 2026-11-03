@@ -180,6 +180,7 @@
 | 2026-11-03 | CLI の詰み探索の局面を GUI にそろえた（監査 2026-11-01 F16）のに合わせて §9.7 を更新（CLI の `mate` は指し手の無い局面に `MateSearchPosition::attackerToMove()` をかけ、攻方の玉の無い詰将棋の局面を、SFEN の手番によらず攻方の手番で調べる） |
 | 2026-11-03 | 詰将棋生成の条件の範囲を GUI と CLI で1つにした（監査 2026-11-01 F17）のに合わせて §9.11 を更新（範囲は `TsumeshogiSettings::GeneratorLimits`、設定は `BoundedSetting`。CLI の `generate-tsume` は GUI と同じ範囲と既定値（手数 1〜99、件数 1〜10000・既定 10、時間 1〜300 秒、守り駒 0〜10。件数の 0 = 無制限は GUI だけ）。MCP の `generate_tsume` は件数を 100 までに絞る。奇数の規則は `GeneratorLimits::isTargetMoves`・`oddTargetMoves` だけ） |
 | 2026-11-03 | 通信対局の自動保存の形式の一覧を保存の表から作るようにした（監査 2026-11-01 F21・U6）のに合わせて §6.2 を更新（`CsaGameDialog` は `KifuFormats::saveTargets()` の8形式を「名前を付けて保存」と同じ見出し（`KifuFileFilter::saveLabel()`）で並べる。形式の既定は `MatchAutoSave::extension` の `kifu` だけで、ローカル対局と通信対局で同じ。`NetworkSettings::csaAutoSaveFormat` は選んだことがなければ空） |
+| 2026-11-03 | 局面を受け付ける規則を1つにした（監査 2026-11-01 U1）のに合わせて §8.2・§10.5 を更新（棋譜の開始局面の規則 `KifuLoadParser::startPositionProblem()` を公開し、`KifuLoader::loadPositionFromSfen()` と自動化 API の `position.set` も使う。`position.set` は GUI の局面の貼り付けと同じく、玉の無い図・手番でない側に王手がかかった図を受け付ける。局面集・詰将棋問題一覧は `SfenValidator` のまま） |
 
 <!-- chapter-0-end -->
 
@@ -4356,7 +4357,7 @@ position コマンド・局面の文字列の読み方は `UsiPosition::split(te
 | `UsiPosition::parse()`（`Position::fromSfenLike()` も） | 開始局面を読み、後の語を指し手として順に指す。読めない・指せなければ `nullopt` |
 | `UsiPosition::sfenOf()` | 開始局面の SFEN だけを返す（指し手を含む・分けられない文字列はそのまま）。SFEN の検査（`SfenValidator`）・定跡の手数・対局の開始局面などが使う |
 | `UsiToSfenConverter::parse()` | 棋譜の USI 形式。後の語のうち終局のコード（`resign` など）で止め、指し手として読めない語は警告して飛ばす |
-| `KifuLoader::loadPositionFromSfen()` | `parse()` で局面を確かめてから開始局面にする（読めなければ棋譜を置き換えない） |
+| `KifuLoader::loadPositionFromSfen()` | `parse()` で局面を確かめ、棋譜の開始局面と同じ規則（`KifuLoadParser::startPositionProblem()`）に合えば開始局面にする（読めない・合わなければ棋譜を置き換えない） |
 
 | 取り出し方 | 中身 |
 |---------|------|
@@ -6081,7 +6082,7 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
                                → UiStatePolicyManager::enableNavigationIfAllowed()
 ```
 
-同期版（`loadFile()`・`loadText()`・`loadPositionFromSfen()`）は自動化 API とテストが使い、失敗時は `errorOccurred` を出してから `false` を返す。`loadPositionFromSfen()` は position コマンドと同じ読み方（`UsiPosition::parse()`）で局面を確かめ、読めなければ棋譜を置き換えない。読み込み中に別の読み込みを始めると、前の処理は取り消す（`cancelLoad()`）。
+同期版（`loadFile()`・`loadText()`・`loadPositionFromSfen()`）は自動化 API とテストが使い、失敗時は `errorOccurred` を出してから `false` を返す。`loadPositionFromSfen()` は position コマンドと同じ読み方（`UsiPosition::parse()`）で局面を確かめ、読めないか、棋譜の開始局面と同じ規則（`KifuLoadParser::startPositionProblem()`。盤と持駒として成り立つか。玉の無い図と手番でない側に王手がかかった図は受け付ける）に合わなければ棋譜を置き換えない。自動化 API の `position.set` も同じ規則で、局面集・詰将棋問題一覧のファイルの行だけは、検討・詰み探索に使う局面なのでより厳しい `SfenValidator` で読む。読み込み中に別の読み込みを始めると、前の処理は取り消す（`cancelLoad()`）。
 
 #### CsaGameSession — CSA通信対局の進行
 
