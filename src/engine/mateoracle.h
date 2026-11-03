@@ -6,6 +6,7 @@
 
 #include <QMetaType>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QStringList>
 
@@ -36,10 +37,12 @@ struct MateAnswer {
 Q_DECLARE_METATYPE(MateAnswer)
 
 /**
- * @brief エンジン1台に詰みを問い合わせる
+ * @brief エンジン1台に詰みを問い合わせる（詰みの問い合わせの窓口はここだけ）
  *
- * UsiEngineSession を所有し、ask() に answered() で答える。打ち切りの方針（制限時間＋余裕で stop を送り、
- * その後も答えなければ timedOut）は UsiSearchRequest::mate の1か所で決める。
+ * UsiEngineSession を所有する（CLI の詰み探索・詰将棋の検査と生成）か、借りる（GUI の詰み探索。思考情報・
+ * 通信ログを表示するエンジンの枠の Usi::session()）。ask() に answered() で答える。打ち切りの方針（制限時間＋
+ * 余裕で stop を送り、その後も答えなければ timedOut）は UsiSearchRequest::mate の1か所で決める。
+ * go mate に checkmate でなく bestmove で答えたエンジンの答えは Unknown にする（待ち続けない）。
  * 起動中に頼んだ問い合わせは、初期化が終わってから送る。答えを待つ間に次を頼むと、前の問い合わせは
  * エンジンの側で止めて答えを捨て、次の問い合わせにだけ答える。
  */
@@ -48,7 +51,11 @@ class MateOracle : public QObject
     Q_OBJECT
 
 public:
+    /// エンジンとの接続を自分で持つ
     explicit MateOracle(QObject* parent = nullptr);
+    /// 持ち主の接続 session を借りる（起動・問い合わせ・終了はこの部品が行う。接続の寿命は持ち主が決め、
+    /// 壊したときにこの部品を消しても接続は止めない）
+    explicit MateOracle(UsiEngineSession* session, QObject* parent = nullptr);
     ~MateOracle() override;
 
     /// 起動を頼む（完了は ready、失敗は戻った後に errorOccurred）
@@ -67,7 +74,7 @@ public:
     void stop();
 
     /// エンジンとの接続（オプションの指定・エンジンが報告した値の確認）
-    UsiEngineSession* session() const { return m_session; }
+    UsiEngineSession* session() const;
 
 signals:
     void ready();
@@ -79,11 +86,15 @@ signals:
 private slots:
     void onReady();
     void onCheckmate(const UsiCheckmate& result);
+    void onBestMove(const UsiBestMove& result);
     void onTimedOut();
     void onError(const QString& message);
 
 private:
-    UsiEngineSession* m_session = nullptr;   ///< QObject parent 所有
+    void connectSession();
+
+    QPointer<UsiEngineSession> m_session;   ///< 自分で持つなら QObject parent 所有、借りたなら持ち主のもの
+    bool m_ownsSession = false;
     bool m_started = false;
     bool m_asking = false;
 };

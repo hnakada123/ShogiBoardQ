@@ -88,8 +88,6 @@ public:
     bool startConsideration(const UsiPosition& position, int byoyomiMilliSec, int multiPV);
     /// 探索1回を頼む（棋譜解析の1局面など）
     bool search(const UsiSearchRequest& request);
-    /// 詰み探索（go mate）
-    bool startMateSearch(const UsiPosition& position, int timeLimitMs);
     /// 最後に頼んだ探索をできるだけ早く終わらせる（結果は届く。まだ始めていなければ始めてすぐ止める）
     void stop();
     /// setoption name <name> value <value> を送る（初期化中なら完了後に送る）
@@ -112,8 +110,6 @@ public:
 signals:
     void engineInitialized();
     void errorOccurred(const QString& message);
-    /// 探索（詰み探索など）が打ち切りの後も答えなかった
-    void searchTimedOut();
     /// 対局で指した（UsiMatchHandler::moveReady）
     void matchMoveReady(const UsiMatchMove& move);
     /// 対局の手番の探索に投了で答えた

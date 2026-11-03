@@ -130,7 +130,7 @@ cmake --build build --target translations
   - `usiprotocolhandler.cpp/.h` - USI protocol implementation
   - `thinkinginfoformatter.cpp/.h`・`enginesearchstatus.h` - info を思考の表の行（読み筋は `PvText`）と探索状況 `EngineSearchStatus`（数値のまま。info 1行ごとに `searchStatusUpdated` で1回送り、書式は表示する側が決める）にする
   - `usilineparser.cpp/.h` - 受信行（info・bestmove・checkmate・option・id）を型付きの値にする
-  - `mateoracle.cpp/.h` - 詰みの問い合わせ（go mate）の部品 `MateOracle` と答え `MateAnswer`（`UsiCheckmate` からの変換は `MateAnswer::fromCheckmate` だけ）
+  - `mateoracle.cpp/.h` - 詰みの問い合わせ（go mate）の部品 `MateOracle` と答え `MateAnswer`（`UsiCheckmate` からの変換は `MateAnswer::fromCheckmate` だけ）。GUI の詰み探索（`AnalysisSession` が枠のエンジンの `Usi::session()` を借りる）・CLI の mate・詰将棋の検査と生成（接続を自分で持つ）で1つ。go mate に bestmove で答えるエンジンの答えは `Unknown` にする
   - `matequeryloop.cpp/.h` - 引き出し型の問い合わせ元 `MateQuerySource` を `MateOracle` で回す `MateQueryLoop`
   - `engineprocessmanager.cpp/.h` - Engine process lifecycle
   - `usimatchhandler.cpp/.h` - 対局での USI のやり取り（先読みの当たりは ponderhit、外れは `UsiEngineSession::search` に頼み直す）。定跡手（`requestBookMove`）は探索させず、先読み中なら止めて、待つ時間の後で同じ `moveReady` で知らせる（「すぐ指させる」は `playBookMoveNow`）

@@ -183,6 +183,7 @@
 | 2026-11-03 | 局面を受け付ける規則を1つにした（監査 2026-11-01 U1）のに合わせて §8.2・§10.5 を更新（棋譜の開始局面の規則 `KifuLoadParser::startPositionProblem()` を公開し、`KifuLoader::loadPositionFromSfen()` と自動化 API の `position.set` も使う。`position.set` は GUI の局面の貼り付けと同じく、玉の無い図・手番でない側に王手がかかった図を受け付ける。局面集・詰将棋問題一覧は `SfenValidator` のまま） |
 | 2026-11-03 | 棋譜解析の1局面の評価値を GUI と CLI で1つにした（監査 2026-11-01 U3）のに合わせて §9.3・§9.6 を更新（`PlyAnalysis::score`（手番側から見た値）を `blackScore`（先手から見た値）にし、`PlyAnalysisCollector` が解析した局面の手番で直す。GUI の `KifuAnalysisRowPresenter` は SFEN の手番の字を読まず、CLI の `analyze-kifu` は最後に読み筋のあった info（`latestLines()`）でなくこの値を使う） |
 | 2026-11-03 | 保存できる形式の定義を保存の表1つにした（監査 2026-11-01 T5）（`KifuFormats::savableNames()` は保存の表から作り、並びは表の順。使っていない `isSavable()` を消した。CLI の `environment` に `kifu_save_suffixes` を足し、MCP の `save_kifu` はアプリの `kifu.save` と同じく `.sfen` を断る） |
+| 2026-11-03 | 詰みの問い合わせを `MateOracle` の1系統にした（監査 2026-11-01 M1・U2）のに合わせて §7.1・§9.7 を更新（`MateOracle` は接続を持つか借りる。GUI の詰み探索 `AnalysisSession` は `Usi::session()` を借りた `MateOracle` で問い合わせ、`Usi::startMateSearch()`・`Usi::searchTimedOut` を消した。go mate に bestmove で答えるエンジンの答えは `MateOracle` が `Unknown` にし、CLI の `mate`・`verify-tsume`・詰将棋生成も待ち続けない） |
 
 <!-- chapter-0-end -->
 
@@ -3459,8 +3460,8 @@ engine層は **単一責任原則（SRP）** に基づき、以下の3つのク�
 | `UsiProtocolHandler` | `src/engine/usiprotocolhandler.h/.cpp` | エンジン1台の状態機械（`State`）。状態に合う USI コマンドだけを送り、受信行を `UsiLineParser` で型付きの値にしてシグナルで知らせる |
 | `UsiLineParser` | `src/engine/usilineparser.h/.cpp` | 受信行（info・bestmove・checkmate・option・id）を型付きの値にする関数群。アプリの中でエンジンの受信行を読む場所はここだけ |
 | `ThinkingInfoFormatter` | `src/engine/thinkinginfoformatter.h/.cpp` | 解析済みの info（`UsiInfo`）を思考の表の行（`ThinkingInfoRow`）と情報欄の探索状況（`EngineSearchStatus`）にする。漢字読み筋の生成を含む。表示する側には触れない |
-| `UsiEngineSession` | `src/engine/usienginesession.h/.cpp` | プロセスと状態機械を束ね、起動・初期化（usi〜readyok）・探索1回の依頼・終了を行う。GUI の `Usi` と自動化・CLI が共用し、思考タブを使わない詰みの問い合わせ（`MateOracle`）もこれを1つ持って使う |
-| `MateOracle` | `src/engine/mateoracle.h/.cpp` | 詰みの問い合わせ（go mate）の部品。`UsiEngineSession` を持ち、`ask(position, limitMs)`（打ち切りは `UsiSearchRequest::mate`）・`askWithin(position, deadlineMs)`（`go mate infinite` を期限まで待ち、stop は送らない）に `answered(MateAnswer)`・`timedOut` で答える。詰将棋の局面生成・詰み判定（`TsumeMateEngine`）・CLI の詰み探索と余詰検査が使う |
+| `UsiEngineSession` | `src/engine/usienginesession.h/.cpp` | プロセスと状態機械を束ね、起動・初期化（usi〜readyok）・探索1回の依頼・終了を行う。GUI の `Usi` と自動化・CLI が共用する。詰みの問い合わせ（`MateOracle`）は、CLI・詰将棋の検査と生成ではこれを1つ持ち、GUI の詰み探索では `Usi` のものを借りる |
+| `MateOracle` | `src/engine/mateoracle.h/.cpp` | 詰みの問い合わせ（go mate）の部品（GUI の詰み探索・CLI・詰将棋で1つ。go mate に bestmove で答えたエンジンの答えは `Unknown`）。`UsiEngineSession` を持つか借り、`ask(position, limitMs)`（打ち切りは `UsiSearchRequest::mate`）・`askWithin(position, deadlineMs)`（`go mate infinite` を期限まで待ち、stop は送らない）に `answered(MateAnswer)`・`timedOut` で答える。詰将棋の局面生成・詰み判定（`TsumeMateEngine`）・CLI の詰み探索と余詰検査が使う |
 | `MateQueryLoop` | `src/engine/matequeryloop.h/.cpp` | 引き出し型の問い合わせ元（`MateQuerySource`：`nextQuery()`・`submit(answer, elapsedMs)`・`isDone()`）を `MateOracle` で最後まで回す。エンジンが go mate に対応していなければ `unsupported` で止まる |
 | `UsiMatchHandler` | `src/engine/usimatchhandler.h/.cpp` | 対局の position/go/bestmove、先読み（ponder）、持ち時間の間に bestmove が届かないときの通知 |
 
@@ -3707,10 +3708,9 @@ explicit Usi(QObject* parent = nullptr);
 | `sendGameOverCommand(result)` | `gameover` を送る |
 | `startConsideration(position, byoyomiMs, multiPV)` | 検討。MultiPV を送って position + go infinite、時間が来たら stop |
 | `search(request)` | 探索1回を頼む（棋譜解析の1局面など。`UsiSearchRequest`。局面は `UsiSearchRequest::position`（`UsiPosition`）） |
-| `startMateSearch(position, ms)` | 詰み探索（`go mate`） |
 | `stop()` | 最後に頼んだ探索をできるだけ早く終わらせる（結果は届く。まだ始めていなければ始めてすぐ止める） |
 
-探索を頼む3つ（`startConsideration`・`search`・`startMateSearch`）は、局面が空なら何もせず false を返す。探索中に頼むと、前の探索を止めて結果を捨ててから始める（7.2節「探索の切り替え」）。
+探索を頼む2つ（`startConsideration`・`search`）は、局面が空なら何もせず false を返す。詰み探索（`go mate`）はこの窓口では頼まず、`session()` を借りた `MateOracle`（9.11）で行う。探索中に頼むと、前の探索を止めて結果を捨ててから始める（7.2節「探索の切り替え」）。
 | `sendSetOptionCommand(name, value)` / `sendConsoleCommand(command)` | setoption の送信 / USI コンソールの入力をそのまま送る。任意の文字列を送れるのは後者だけ |
 | `quit(clearThinking)` | プロセスを止める |
 | `cancelCurrentOperation()` | 探索の世代を進め、保留中の要求と取消済みの結果を捨てる |
@@ -5392,11 +5392,11 @@ showDialogAndStart()
               └── byoyomiMs   ← 探索制限時間（0 = 無制限）
 ```
 
-`AnalysisSession` はエンジンを起動してから `Usi::startMateSearch(position, ms)` で探索を始め、結果（下表）を受けると `stop()` でエンジンを破棄し、`messageRequested` で結果を知らせる（`MainWindowComposer` が `NotificationPresenter::showInformation` につなぐ）。
+`AnalysisSession` は枠のエンジンの接続（`Usi::session()`）を借りた `MateOracle`（9.11。CLI の詰み探索・詰将棋の検査と生成と同じ部品）を作り、`MateOracle::start()` で起動して `ask(position, ms)` で問い合わせ、答え（`answered(MateAnswer)`。下表）か `timedOut` を受けると `stop()` で問い合わせの部品を消してエンジンを破棄し、`messageRequested` で結果を知らせる（`MainWindowComposer` が `NotificationPresenter::showInformation` につなぐ）。
 
 #### USIコマンドの違い
 
-通常の解析が `go infinite` + タイマーで `stop` を送信するのに対し、詰将棋探索は `go mate <time>`（時間指定なしは `go mate infinite`）を使用する。エンジンは以下の応答を返し、`UsiProtocolHandler::checkmateReceived` が `UsiCheckmate` として `AnalysisSession::onCheckmate` に渡す。`AnalysisSession` は思考情報を E1 の表示に出すため `MateOracle`（9.11）ではなく `Usi` を使うが、答えの解釈は同じ `MateAnswer::fromCheckmate()` で行う（stop の後の応答は `Unknown`）。
+通常の解析が `go infinite` + タイマーで `stop` を送信するのに対し、詰将棋探索は `go mate <time>`（時間指定なしは `go mate infinite`）を使用する。エンジンは以下の応答を返し、`UsiProtocolHandler::checkmateReceived` が `UsiCheckmate` として `MateOracle` に渡す。答えの解釈は `MateAnswer::fromCheckmate()` だけで行う（stop の後の応答は `Unknown`）。思考情報・通信ログは、借りた接続のまま E1 の表示に出る。
 
 | 応答 | 意味 | `UsiCheckmate::Result` | `MateAnswer::Kind` |
 |------|------|------------------------|--------------------|
@@ -5404,6 +5404,7 @@ showDialogAndStart()
 | `checkmate nomate` | 不詰（詰みなし） | `NoMate` | `NoMate` |
 | `checkmate notimplemented` | go mate 未対応 | `NotImplemented` | `Unsupported` |
 | `checkmate timeout` など | 時間内に判定できない | `Unknown` | `Unknown` |
+| `bestmove ...`（go mate に対応していないエンジン） | 詰みを判定していない | （`checkmate` ではない） | `Unknown`（`MateOracle` が待つのをやめる） |
 
 #### 探索する局面の構築戦略
 

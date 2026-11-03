@@ -193,50 +193,49 @@ Analyzed moves: %1</translation>
 <context>
     <name>AnalysisSession</name>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="136"/>
-        <location filename="../../src/analysis/analysissession.cpp" line="194"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="198"/>
         <source>詰み探索</source>
         <translation>Mate Search</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="136"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
         <source>検討</source>
         <translation>Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="137"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="141"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="202"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="205"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>Mate found (%1 moves)</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="205"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="208"/>
         <source>詰みなし</source>
         <translation>No mate</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="208"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="211"/>
         <source>（エンジン側）未実装</source>
         <translation>(Engine) Not implemented</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="211"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="215"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>Could not determine mate within the time limit</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="218"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="222"/>
         <source>エンジンが応答しなかったため、詰み探索を打ち切りました</source>
         <translation>The mate search was stopped because the engine did not respond.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="223"/>
         <source>探索が完了しました</source>
-        <translation>Search completed</translation>
+        <translation type="vanished">Search completed</translation>
     </message>
 </context>
 <context>
@@ -16015,7 +16014,7 @@ Check the settings and press Start.</translation>
         <translation type="vanished">USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="92"/>
+        <location filename="../../src/engine/usi.cpp" line="91"/>
         <location filename="../../src/engine/usienginesession.cpp" line="252"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>

@@ -18,6 +18,7 @@ public:
     int stops = 0;
 signals:
     void checkmateReceived(const UsiCheckmate& result);
+    void bestMoveReceived(const UsiBestMove& result);
 };
 
 #endif
