@@ -4,21 +4,15 @@
 #include "positionvalidator.h"
 
 #include "enginemovevalidator.h"
+#include "piecerules.h"
 
 #include <array>
 
 namespace PositionValidator {
 
-namespace {
-
-/// 駒の種類ごとの枚数の上限（歩・香・桂・銀・金・角・飛・玉。PieceKind の順）
-constexpr std::array<int, 8> kLimits{18, 4, 4, 4, 4, 2, 2, 2};
-
-} // namespace
-
 Problem boardProblem(const Position& position)
 {
-    std::array<int, 8> totals{};
+    std::array<int, kHandKindCount> totals{};
     std::array<int, 2> kings{};
     for (int file = 1; file <= 9; ++file) {
         for (int rank = 1; rank <= 9; ++rank) {
@@ -37,8 +31,9 @@ Problem boardProblem(const Position& position)
             totals[static_cast<size_t>(kind)] += count;
         }
     }
-    for (size_t kind = 0; kind < kLimits.size(); ++kind)
-        if (totals[kind] > kLimits[kind]) return Problem::PieceCountOver;
+    // 駒の種類ごとの枚数は1組の駒の枚数まで（成駒は成る前の駒として数える）
+    for (size_t kind = 0; kind < totals.size(); ++kind)
+        if (totals[kind] > PieceRules::kSetCounts[kind]) return Problem::PieceCountOver;
     if (kings[0] > 1 || kings[1] > 1) return Problem::DuplicatedKing;
     if (kings[0] == 0 && kings[1] == 0) return Problem::NoKing;
     return Problem::None;

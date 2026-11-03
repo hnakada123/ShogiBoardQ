@@ -108,7 +108,7 @@ struct ShogiMove {
 | 歩兵 / と金 | `BlackPawn`（0） | `BlackPromotedPawn`（8） | `WhitePawn`（16） | `WhitePromotedPawn`（24） |
 
 > **注意**: SFEN では成駒を `+R`・`+B` などの2文字で書く。SFEN との変換は `Position`（`src/core/shogiposition.cpp`）が行い、駒と文字の変換は `charToPiece()`（SFEN の駒の文字 `PLNSGBRK` を生駒にする）・`pieceLetter()`（成駒は元の駒の文字）・`pieceSfen()`（成駒は `+P` の形）を使う。
-> 行き所のない段・成れる段・持ち駒を書き出す順は `src/core/piecerules.h`（`PieceRules`）に1か所でまとめる。
+> 1組の駒の枚数・行き所のない段・成れる段・持ち駒を書き出す順は `src/core/piecerules.h`（`PieceRules`）に1か所でまとめる。
 
 ### 1.4 データ例
 

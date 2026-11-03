@@ -3,6 +3,8 @@
 
 #include "jishogicalculator.h"
 
+#include "piecerules.h"
+
 // ============================================================================
 // 点数計算
 // ============================================================================
@@ -11,56 +13,29 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(const Position& po
 {
     // 処理フロー:
     // 1. 盤面を走査して各駒の点数を集計
-    // 2. 敵陣判定（先手: 1-3段目、後手: 7-9段目）
+    // 2. 敵陣判定（成れる段）
     // 3. 駒台の持ち駒を加算
 
     JishogiResult result;
     result.sente = {0, 0, 0, false};
     result.gote = {0, 0, 0, false};
 
-    // 盤面のサイズは9x9=81
-    // 段（rank）: 1-9, 筋（file）: 1-9
-    // ShogiBoardでのインデックス = (rank - 1) * 9 + (file - 1)
-    // 先手の敵陣: 1-3段目（rank 1-3）
-    // 後手の敵陣: 7-9段目（rank 7-9）
-
+    // 敵陣は成れる段（PieceRules::inPromotionZone。先手は1〜3段目、後手は7〜9段目）
     for (int file = 1; file <= 9; ++file) {
         for (int rank = 1; rank <= 9; ++rank) {
             const Piece piece = position.pieceAt(file, rank);
             if (piece == Piece::None) continue;
 
-            int points = piecePoints(piece);
-
-            if (isSentePiece(piece)) {
-                result.sente.totalPoints += points;
-
-                if (piece == Piece::BlackKing) {
-                    // 先手の玉が敵陣（1-3段目）にいるか
-                    if (rank <= 3) {
-                        result.sente.kingInEnemyTerritory = true;
-                    }
-                } else {
-                    // 玉以外の駒が敵陣にいる場合
-                    if (rank <= 3) {
-                        result.sente.declarationPoints += points;
-                        result.sente.piecesInEnemyTerritory++;
-                    }
-                }
-            } else if (isGotePiece(piece)) {
-                result.gote.totalPoints += points;
-
-                if (piece == Piece::WhiteKing) {
-                    // 後手の玉が敵陣（7-9段目）にいるか
-                    if (rank >= 7) {
-                        result.gote.kingInEnemyTerritory = true;
-                    }
-                } else {
-                    // 玉以外の駒が敵陣にいる場合
-                    if (rank >= 7) {
-                        result.gote.declarationPoints += points;
-                        result.gote.piecesInEnemyTerritory++;
-                    }
-                }
+            const int points = piecePoints(piece);
+            PlayerScore& score = isSentePiece(piece) ? result.sente : result.gote;
+            const bool inCamp = PieceRules::inPromotionZone(pieceSide(piece), rank);
+            score.totalPoints += points;
+            if (pieceKind(piece) == PieceKind::King) {
+                if (inCamp) score.kingInEnemyTerritory = true;
+            } else if (inCamp) {
+                // 玉以外の駒が敵陣にいる場合
+                score.declarationPoints += points;
+                score.piecesInEnemyTerritory++;
             }
         }
     }

@@ -2,13 +2,27 @@
 #define PIECERULES_H
 
 /// @file piecerules.h
-/// @brief 駒の規則（行き所のない駒・成れる段・持ち駒の書き出し順）を1か所に置く
+/// @brief 駒の規則（1組の駒の枚数・行き所のない駒・成れる段・持ち駒の書き出し順）を1か所に置く
 
 #include <array>
 
 #include "shogitypes.h"
 
 namespace PieceRules {
+
+/**
+ * @brief 1組の駒（先手・後手の合計）の種類ごとの枚数（歩18・香4・桂4・銀4・金4・角2・飛2・玉2）
+ *
+ * 添字は成る前の駒の PieceKind（歩〜玉）。成駒は成る前の駒として数える。駒箱（Position::pieceBox）・
+ * 局面の駒の数の上限（PositionValidator）・詰将棋の候補局面の駒（TsumeshogiPositionGenerator）で同じ表を使う。
+ */
+inline constexpr std::array<int, kHandKindCount> kSetCounts = {18, 4, 4, 4, 4, 2, 2, 2};
+
+/// 1組の駒の、成る前の種類 kind（歩〜玉）の枚数
+constexpr int setCount(PieceKind kind)
+{
+    return kSetCounts[static_cast<std::size_t>(kind)];
+}
 
 /// 敵陣（成れる段）か。段は 1〜9（先手から見た段）
 constexpr bool inPromotionZone(Turn side, int rank)

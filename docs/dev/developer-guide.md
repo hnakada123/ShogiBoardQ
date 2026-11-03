@@ -190,6 +190,7 @@
 | 2026-11-03 | 持将棋ルールを対局の条件に入れた（監査 2026-11-01 M7）のに合わせて §10.3 を更新（対局ダイアログの持将棋ルールは `StartGameDialogData::jishogiRule` から `MatchStartOptions::jishogiRule` に入り、入玉宣言は人間もエンジンも `MatchCoordinator::declareNyugyoku(declarer)` が `NyugyokuJudgement::judgeDeclaration()` で判定する（「なし」なら27点法で判定して説明に書く）。`NyugyokuJudgement::configuredRule()`・`ruleFromSetting()`・`judgeEngineDeclaration()` を消し、`GameChannel::judgesDeclaration()` を宣言を受け付けるかの `acceptsDeclaration()` にした。game は持将棋ルールの設定を読まない） |
 | 2026-11-03 | 棋譜の文書の対局の時間の記録 `MatchTimeRecord` を消した（監査 2026-11-01 M8）のに合わせて §1.5・§8.5・§10.2・付録を更新（持ち時間と開始・終了の日時は対局情報にだけ書く。`KifuDocument::timeRecord()` を消し、棋譜の途中から続けた対局のメモ `GameSession::noteContinuedMatch()` は持ち時間を引数で受け取る） |
 | 2026-11-03 | 入玉宣言の駒の数と点数を core の1か所にした（監査 2026-11-01 M9）のに合わせて第18章を更新（`JishogiCalculator` に敵陣に要る駒の数 `kRequiredPiecesInCamp`・`hasEnoughPiecesInCamp()` と駒の点数 `kMajorPiecePoints`・`kMinorPiecePoints` を置き、持将棋の点数のダイアログと `NyugyokuJudgement` の説明文の数はこれと `winningPoints()`・`requiredPoints()` から入れる） |
+| 2026-11-03 | 1組の駒の枚数と敵陣の表を1つにした（監査 2026-11-01 M10）のに合わせて第1章・第2章・第5章を更新（`PieceRules::kSetCounts`・`setCount()` を駒箱 `Position::pieceBox()`・`PositionValidator`・`TsumeshogiPositionGenerator` が使う。詰将棋の候補局面の生成は自前の駒種・成れるかの表・行き所のない段の判定をやめ、`PieceKind`・`isPromotable`・`PieceRules::isDeadSquare` を使う。持将棋の敵陣は `PieceRules::inPromotionZone`） |
 
 <!-- chapter-0-end -->
 
@@ -394,7 +395,7 @@ src/
 │
 ├── core/                           # 純粋なゲームロジック（Qt GUI非依存）
 │   ├── shogitypes.h                #   手番（Turn）と駒（Piece。種類＋後手なら16。並びは fmv と同じ）
-│   ├── piecerules.h                #   行き所のない駒・成れる段・持ち駒の並びの規則
+│   ├── piecerules.h                #   1組の駒の枚数・行き所のない駒・成れる段・持ち駒の並びの規則
 │   ├── positionvalidator.cpp/.h    #   局面として成り立つかの検査（駒の数・玉・手番でない側への王手）と王手・合法手の数
 │   ├── pvtext.cpp/.h               #   局面の上で指した読み筋の値（PvText。表記は KifuPresentation::pv）
 │   ├── shogiposition.cpp/.h        #   局面の値（Position）。SFEN の読み書きと指し手の適用はここだけ
@@ -998,7 +999,7 @@ SFEN の盤の欄は `Position::fromSfen()`（`src/core/shogiposition.cpp`）が
 成れない駒（金・玉）や駒でない文字に `+` が付いているとき、行き所のない段に駒があるとき（`PieceRules::isDeadSquare()`）は、不正な SFEN として読まない。
 書き出しは `Position::boardSfen()` が `pieceSfen()` で行う。
 
-行き所のない段・成れる段（`PieceRules::inPromotionZone()`）・成ることもできた手（`couldPromote()`。KIF・KI2 の「不成」、JKF の `promote: false`、英語表記の「=」。`KifMoveText::couldPromote` も KI2 の注記もこれを使う）・持ち駒を書き出す順（`kHandOrder`）は `src/core/piecerules.h` に1か所でまとめる。
+1組の駒の枚数（`PieceRules::setCount()`・`kSetCounts`。駒箱 `Position::pieceBox()`・局面の駒の数の上限 `PositionValidator`・詰将棋の候補局面 `TsumeshogiPositionGenerator` で共通）・行き所のない段・成れる段（`PieceRules::inPromotionZone()`。持将棋の敵陣 `JishogiCalculator` も）・成ることもできた手（`couldPromote()`。KIF・KI2 の「不成」、JKF の `promote: false`、英語表記の「=」。`KifMoveText::couldPromote` も KI2 の注記もこれを使う）・持ち駒を書き出す順（`kHandOrder`）は `src/core/piecerules.h` に1か所でまとめる。
 
 #### 駒台（持ち駒）
 
@@ -2295,7 +2296,7 @@ core層が GUI に依存しないことで、以下のメリットが得られ�
 ```
 src/core/
 ├── shogitypes.h              手番（Turn）と駒（Piece）
-├── piecerules.h              駒の規則（行き所のない駒・成れる段・持ち駒の並び）
+├── piecerules.h              駒の規則（1組の駒の枚数・行き所のない駒・成れる段・持ち駒の並び）
 ├── shogiposition.h / .cpp    局面の値（Position。SFEN の読み書きと指し手の適用）
 ├── shogiboard.h / .cpp       表示・局面編集に使う盤（Position を1つ持ち、変更を知らせる）
 ├── usiposition.h / .cpp      エンジンに探索させる局面（UsiPosition）
