@@ -17,7 +17,7 @@
 class Usi;
 
 /// 棋譜解析の依頼
-struct AnalysisRequest {
+struct KifuAnalysisRequest {
     struct Options {
         int startPly = 0;       ///< 解析を始める手数（0以上）
         int endPly = -1;        ///< 解析を終える手数（-1 は末尾まで）
@@ -61,12 +61,12 @@ public:
      * 範囲は手順の手数に収める。手順が空・エンジンを用意できなければ false。エンジンの起動の失敗は、
      * 戻った後に errorOccurred で届く
      */
-    bool start(AnalysisRequest request);
+    bool start(KifuAnalysisRequest request);
     /// 解析をやめる（解析中の局面の結果は待たずに捨てる。finished(false)）
     void stop();
     bool isRunning() const { return m_runner && m_runner->isRunning(); }
     /// 解析している（最後に解析した）依頼（範囲は手順に収めた値）
-    const AnalysisRequest& request() const { return m_request; }
+    const KifuAnalysisRequest& request() const { return m_request; }
 
 signals:
     /// 局面の解析を始めた
@@ -94,7 +94,7 @@ private:
     void finishRun(bool completed);
 
     Deps m_deps;
-    AnalysisRequest m_request;
+    KifuAnalysisRequest m_request;
     EngineLease m_lease;                        ///< 枠 E1 のエンジンを使う権利（テスト用のエンジンを渡されたときは使わない）
     ActivityLease m_activityLease;              ///< 解析中の動作状態
     std::unique_ptr<EngineAnalysisRunner> m_runner;

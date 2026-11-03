@@ -2,7 +2,7 @@
 #define ENGINECATALOG_H
 
 /// @file enginecatalog.h
-/// @brief 設定ファイルに登録された USI エンジンの名前解決（自動化・CLI 用）
+/// @brief 設定ファイルに登録された USI エンジンの名前解決（CLI 用。core〜analysis だけを使うので headless に置く）
 
 #include <QJsonArray>
 #include <QString>
@@ -13,7 +13,7 @@
 /**
  * @brief 登録済みエンジンの名前解決と一覧の JSON 化
  *
- * 自動化 API と CLI は任意の実行ファイルパスを受け付けず、
+ * CLI は任意の実行ファイルパスを受け付けず、
  * 登録エンジンの一覧（`RegisteredEngines`）にある名前だけをエンジンとして使う。
  */
 namespace EngineCatalog {

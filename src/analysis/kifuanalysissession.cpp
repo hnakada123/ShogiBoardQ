@@ -26,13 +26,13 @@ Usi* KifuAnalysisSession::engine() const
     return m_deps.engine ? m_deps.engine : m_lease.engine();
 }
 
-bool KifuAnalysisSession::start(AnalysisRequest request)
+bool KifuAnalysisSession::start(KifuAnalysisRequest request)
 {
     if (request.line.isEmpty()) return false;
     stop();
     // 範囲を手順に収める（終わりの -1 は末尾まで）
     const int last = request.line.moveCount();
-    AnalysisRequest::Options& options = request.options;
+    KifuAnalysisRequest::Options& options = request.options;
     options.startPly = qBound(0, options.startPly, last);
     options.endPly = options.endPly < 0 ? last : qBound(options.startPly, options.endPly, last);
     m_request = std::move(request);

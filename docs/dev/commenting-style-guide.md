@@ -300,7 +300,7 @@ public:
     // --- 操作 API ---
 
     /// 解析を始める（前の解析は止める）
-    bool start(AnalysisRequest request);
+    bool start(KifuAnalysisRequest request);
 
     /// 解析をやめる（finished(false) を出す）
     void stop();
@@ -323,7 +323,7 @@ KifuAnalysisSession::KifuAnalysisSession(const Deps& deps, QObject* parent)
 // 操作 API
 // ============================================================
 
-bool KifuAnalysisSession::start(AnalysisRequest request)
+bool KifuAnalysisSession::start(KifuAnalysisRequest request)
 {
     ...
 }

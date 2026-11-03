@@ -147,9 +147,9 @@ public:
     /// index 番の手順（KifuBranchTree::allLines()）の末尾の手の ID
     int lineEnd(int index = 0) const { return tree.allLines().at(index).leaf->nodeId(); }
     /// 本譜を解析する依頼（エンジンと範囲は呼ぶ側が決める）
-    AnalysisRequest request() const
+    KifuAnalysisRequest request() const
     {
-        AnalysisRequest r;
+        KifuAnalysisRequest r;
         r.line = line();
         r.lineEndNodeId = lineEnd();
         return r;
@@ -185,7 +185,7 @@ public:
     {
         KifuAnalysisDialog dialog;
         dialog.setMaxPly(static_cast<int>(usiMoves.size()));
-        const std::optional<AnalysisRequest> request = ctrl.requestFromDialog(dialog);
+        const std::optional<KifuAnalysisRequest> request = ctrl.requestFromDialog(dialog);
         return request && ctrl.start(*request);
     }
 
@@ -215,7 +215,7 @@ private slots:
     void sessionRunsWithoutUiAndOwnsSnapshot()
     {
         TestHelper h;
-        AnalysisRequest request = h.request();
+        KifuAnalysisRequest request = h.request();
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         request.engineName = QStringLiteral("HeadlessAnalysis");
         request.options.endPly = 2;
@@ -331,7 +331,7 @@ private slots:
     void sessionSkipsUnreadablePositions()
     {
         TestHelper h;
-        AnalysisRequest request = h.request();
+        KifuAnalysisRequest request = h.request();
         request.line.entries[0].move.move = *UsiMove::parse(QStringLiteral("5e5d"));
         request.line.entries[0].sfen = QStringLiteral("broken");
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
@@ -351,7 +351,7 @@ private slots:
     void stoppedSessionIgnoresInitializationAndResults()
     {
         TestHelper h;
-        AnalysisRequest request = h.request();
+        KifuAnalysisRequest request = h.request();
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         KifuAnalysisSession session({nullptr, &h.activity, h.usi});
         QSignalSpy positions(&session, &KifuAnalysisSession::plyStarted);
@@ -371,7 +371,7 @@ private slots:
     void revokedEngineStopsSession()
     {
         TestHelper h;
-        AnalysisRequest request = h.request();
+        KifuAnalysisRequest request = h.request();
         request.enginePath = mockEngine();
         request.engineName = QStringLiteral("RevokedAnalysis");
         KifuAnalysisSession session({&h.engines, &h.activity, nullptr});
@@ -727,7 +727,7 @@ private slots:
         QFETCH(int, startPly);
         TestHelper h;
         auto ctrl = h.controller();
-        AnalysisRequest request = h.request();
+        KifuAnalysisRequest request = h.request();
         request.enginePath = mockEngine();
         request.options.startPly = startPly;
         QVERIFY(ctrl->start(request));
@@ -765,7 +765,7 @@ private slots:
     {
         TestHelper h;
         auto ctrl = h.controller();
-        AnalysisRequest request = h.request();
+        KifuAnalysisRequest request = h.request();
         request.enginePath = mockEngine();
         request.options.startPly = 1;
         request.options.endPly = 1;
@@ -793,7 +793,7 @@ private slots:
         const auto moves = TestReplay::buildGameMoves(first->sfen(), branchMoves);
         TestTree::addMove(h.tree, first, moves.first(), branchMoves.first(), sfens.last());
         auto ctrl = h.controller();
-        AnalysisRequest request;
+        KifuAnalysisRequest request;
         request.line = KifuBranchTree::toRecordLine(h.tree.allLines().at(1).nodes());
         request.lineEndNodeId = h.lineEnd(1);
         request.options.startPly = 1;
@@ -861,7 +861,7 @@ private slots:
     {
         TestHelper h;
         auto ctrl = h.controller();
-        QVERIFY(!ctrl->start(AnalysisRequest{}));
+        QVERIFY(!ctrl->start(KifuAnalysisRequest{}));
         QVERIFY(!ctrl->isRunning());
         QVERIFY(h.lastError().contains(QStringLiteral("棋譜データ")));
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);

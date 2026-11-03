@@ -202,6 +202,7 @@
 | 2026-11-03 | `ShogiView` の同じ仕事の入口を1組にした（監査 2026-11-01 M19）のに合わせて §11.1.4 を更新（`applyBoardAndRender` を消し、別の盤を渡したときの描き直しは `setBoard` が行う。`configureFixedSizing` を消し、範囲の外を端に寄せるのは `setSquareSize` が行う。起動時の合成ルートの空振りの呼び出しと、外観の見本が反転・局面を替えるたびの呼び出しも消した） |
 | 2026-11-03 | 盤を使う表示の部品を views に移した（監査 2026-11-01 P1）のに合わせて §1.5・§3.1・§3.2・§11.1.2・第17章・第18章を更新（`BoardViewerWidget`・`TsumePositionPreview` を widgets から views へ移し、層の順を「widgets → views」にした（views は widgets の `ElideLabel`・`GlobalToolTip` を使い、widgets は views を使わない。`tst_layer_dependencies` の widgets の行に views を足した）。筋・段の文字の描き方は `BoardStaticLayer::drawCoordinates()` の1つにし、`ShogiView::drawRanksAndFiles` とプレビューの写しを消した） |
 | 2026-11-03 | 棋譜ファイルの絞り込みを kifu に移した（監査 2026-11-01 P2）のに合わせて §1.5・§8.8 を更新（`KifuFileFilter` は QtWidgets を使わず、kifu の拡張子の表（`KifuFormats::saveTargets()`）が翻訳の文脈に指定しているので、widgets から kifu へ移した。使う側（dialogs の `KifuSaveDialogs`・`CsaGameDialog`・`JosekiImportDialog`、ui の `KifuFileController`・`JosekiMergeController`）は include を変えずにそのまま使う） |
+| 2026-11-03 | headless の部品の説明を直し、棋譜解析の依頼の名前を変えた（監査 2026-11-01 P3・P4）のに合わせて §1.5・§9.3・§9.6・第18章・付録を更新（`KifuConversionService`・`EngineCatalog`・`MateSearchRunner`・`TsumeVerificationRunner`・`SfenValidationJson` は今は CLI だけが使う（自動化 API にはエンジンを受け取るメソッドがない）。core〜analysis だけを使う部品なので headless に置いたまま、「自動化 API と共有」の記述を直した。棋譜解析の依頼 `AnalysisRequest` を `KifuAnalysisRequest` に改名（検討の `AnalysisOptions` と紛らわしかった）） |
 
 <!-- chapter-0-end -->
 
@@ -753,7 +754,7 @@ src/
 │   ├── outputpath.cpp/.h           #   書き出し先の事前検査 OutputPath::check（CLI の出力先と kifu.save で共通）
 │   ├── inputpath.cpp/.h            #   読むファイルの事前検査 InputPath::check（CLI の入力と kifu.load で共通）
 │   ├── sfenvalidationjson.cpp/.h   #   SFEN の検査結果の JSON（validate-sfen）
-│   ├── enginecatalog.cpp/.h        #   登録エンジンの名前解決
+│   ├── enginecatalog.cpp/.h        #   登録エンジンの名前解決（sfenvalidationjson・enginecatalog とこの下の3つは今は CLI だけが使う）
 │   ├── kifuconversionservice.cpp/.h #  棋譜の形式変換
 │   ├── matesearchrunner.cpp/.h     #   登録エンジンで詰み探索（MateOracle の1回の問い合わせ）
 │   └── tsumeverificationrunner.cpp/.h # 余詰の検査（TsumeVerificationJob を MateQueryLoop で回す）
@@ -5106,10 +5107,10 @@ analysis層にはダイアログを知らない部分（`AnalysisSession`・`Kif
 
 ほかの処理がエンジンの枠や動作状態を取ったら（`engineRevoked`・`AppActivityState::revoked`）、自分で解析をやめる。
 
-#### AnalysisRequest 構造体
+#### KifuAnalysisRequest 構造体
 
 ```cpp
-struct AnalysisRequest {
+struct KifuAnalysisRequest {
     struct Options {
         int startPly = 0;       ///< 解析を始める手数（0以上）
         int endPly = -1;        ///< 解析を終える手数（-1 は末尾まで）
@@ -5315,7 +5316,7 @@ CandidateArrowPresenter::refresh()
 
 棋譜解析の画面を受け持つコントローラである。条件ダイアログを出して解析の実行（`KifuAnalysisSession`。9.3）に始めさせ、その知らせを結果のモデル・評価値グラフ・棋譜欄に反映し、完了を結果の表に知らせる。エンジンと動作状態「棋譜解析中」は実行が持つ（検討の `ConsiderationUiController` と `AnalysisSession` と同じ形）。評価値グラフの点は、局面の結果を受けたときではなく次の局面の解析を始めたとき（`plyStarted`）か解析を終えたときに足す（`m_pendingPlot`）。合成ルートが起動時に1つ作り（`MainWindowComponents::kifuAnalysis`）、メニュー「棋譜解析」は `MenuActionsWiring` が `showDialogAndStart()` へ、「解析中止」は `stop()` へつなぐ。
 
-- **`KifuAnalysisSession`**（analysis 層）: 解析の依頼（`AnalysisRequest`：手順 `RecordLine`・範囲と思考時間 `AnalysisRequest::Options`・エンジンのパスと名前・解析する手順の末尾の手 `lineEndNodeId`）と、枠 E1 のエンジン・動作状態のリース、局面の列の実行器を持つ（9.3）
+- **`KifuAnalysisSession`**（analysis 層）: 解析の依頼（`KifuAnalysisRequest`：手順 `RecordLine`・範囲と思考時間 `KifuAnalysisRequest::Options`・エンジンのパスと名前・解析する手順の末尾の手 `lineEndNodeId`）と、枠 E1 のエンジン・動作状態のリース、局面の列の実行器を持つ（9.3）
 - **`KifuAnalysisRowPresenter`**（ui/presenters）: 1局面の結果（`PlyAnalysis`）を `append()` で結果の表の1行にし、先手から見た評価値（`PlyAnalysis::blackScore`。向きは直さない）を返す（評価値グラフの点に使う）。候補手は前の行の読み筋の最初の手で、前の行の局面に至った手と同じマスへの手は `KifMoveText::format` が「同　」と書く
 
 #### Deps 構造体（主要メンバー）
@@ -5327,7 +5328,7 @@ CandidateArrowPresenter::refresh()
 | `analysisModel` | `KifuAnalysisListModel*` | 必須 | 結果蓄積用モデル |
 | `resultsPanel` | `AnalysisResultsPanel*` | 任意 | 結果の表（無ければ自分で作る）。初めて解析するときに `setModel(analysisModel)` で1度だけモデルを結ぶ |
 | `resultsDock` | `QDockWidget*` | 任意 | 結果の表のドック。解析を始めたときに表示して前に出す |
-| `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）とその末尾の手（`AnalysisRequest::lineEndNodeId`）、分岐がある手（`AnalysisRequest::branchPlies`。結果の表で棋譜欄と同じ印を付ける） |
+| `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）とその末尾の手（`KifuAnalysisRequest::lineEndNodeId`）、分岐がある手（`KifuAnalysisRequest::branchPlies`。結果の表で棋譜欄と同じ印を付ける） |
 | `pvBoards` | `PvClickController*` | — | 結果の行のダブルクリックで読み筋盤を開く（`showPvBoard()`。対局者名・盤の向きは思考の表と同じ規則） |
 | `navController` | `KifuNavigationController*` | — | 解析中・結果の行を選んだ手へ棋譜を移す（`goToPlyOnLine`） |
 | `evalGraph` | `EvaluationGraphPresenter*` | — | 評価値グラフの点（解析した局面の評価値を足す） |
@@ -5346,7 +5347,7 @@ showDialogAndStart()
   │     └── 「解析開始」（accept）で範囲と思考時間を dialog.options() に決め、エンジンの選択と一緒に保存する
   │           （思考時間と範囲のラジオの組は SettingsFormBinding、開始・終了手数は setMaxPly の後で戻すので手で読み書きする）
   │
-  └── 2. requestFromDialog(dialog) → AnalysisRequest を組み立てて start(request)
+  └── 2. requestFromDialog(dialog) → KifuAnalysisRequest を組み立てて start(request)
         │
         ├── 解析範囲を手順の手数に収める、前回の解析を止めて結果・評価値グラフをクリア
         ├── resultsDock を表示して前に出す、resultsPanel->beginAnalysis()
@@ -9408,7 +9409,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | 名前 | 種別 | ディレクトリ | 説明 | 解説章 |
 |------|------|-------------|------|--------|
 | AnalysisOptions | S | analysis | 検討・詰み探索の開始オプション | 第9章 |
-| AnalysisRequest | S | analysis | 棋譜解析の依頼（手順・範囲と思考時間 `Options`・エンジン・分岐ライン） | 第9章 |
 | KifuAnalysisRowPresenter | C | ui/presenters | 棋譜解析の1局面の結果（`PlyAnalysis`）を結果の表の1行にし、先手から見た評価値を返す | 第9章, 第10章 |
 | AnalysisResultsPanel | C | widgets | 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ） | 第9章, 第11章 |
 | AnalysisSession | C | analysis | 検討・詰み探索（1つのエンジンで局面を調べる）のセッション | 第9章 |
@@ -9550,12 +9550,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifuAnalysisSession | C | analysis | 棋譜解析の実行（枠 E1 のエンジンと動作状態「棋譜解析中」のリース、局面の列の解析） | 第9章 |
 | KifuAnalysisDialog | C | dialogs | 棋譜解析設定ダイアログ | 第11章 |
 | KifuAnalysisListModel | C | models | 棋譜解析の結果の表のモデル（8列。行は `KifuAnalysisRow` の値） | 第9章 |
+| KifuAnalysisRequest | S | analysis | 棋譜解析の依頼（以前の名前は `AnalysisRequest`。手順・範囲と思考時間 `Options`・エンジン・分岐ライン） | 第9章 |
 | KifuAnalysisRow | S | models | 棋譜解析の結果の表の1行（作った後は変えない値） | 第9章 |
 | KifuBranchListModel | C | models | 分岐候補リストモデル | 第11章 |
 | KifuBranchNode | C | kifu | 分岐ツリーのノード | 第8章 |
 | KifuBranchTree | C | kifu | 分岐ツリーデータモデル | 第8章 |
 | KifuBranchTreeBuilder | C | kifu | 分岐ツリー構築ビルダー | 第8章 |
-| KifuConversionService | C | automation | 棋譜ファイル・文字列を各形式へ変換する GUI 非依存サービス（CLI・自動化 API と共有） | 第8章 |
+| KifuConversionService | C | headless | 棋譜ファイル・文字列を各形式へ変換する GUI 非依存サービス（CLI の変換・解析が使う。失敗は `Failure`） | 第8章 |
 | KifuDisplayPresenter | C | ui/presenters | 棋譜欄・分岐候補欄・分岐ツリーに、表示中の手と手順を映す | 第10章 |
 | KifuDocument | C | kifu | 開いている棋譜の文書（分岐ツリー・対局情報・対局の記録・上書き保存先。未保存は保存した時点との比較で求める） | 第8章 |
 | KifuExport | NS | kifu | 形式ごとの書き出しの表（GUI の保存・コピーと CLI の変換で共通） | 第8章 |
@@ -9598,7 +9599,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | MateQueryLoop | C | engine | 引き出し型の問い合わせ元を `MateOracle` で最後まで回す | 第7章, 第9章 |
 | MateQuerySource | C | engine | 引き出し型の問い合わせ元のインターフェース（`nextQuery()`・`submit()`・`isDone()`） | 第7章, 第9章 |
 | MateSearchPosition | NS | analysis | 詰み探索に送る局面（途中局面は開始局面からの手順、開始局面は `Position` で攻方の手番・手数1に） | 第9章 |
-| MateSearchRunner | C | automation | 登録エンジンで詰みを探す実行器（CLI・自動化 API と共有） | 第9章 |
+| MateSearchRunner | C | headless | 登録エンジンで詰みを探す実行器（CLI の mate が使う） | 第9章 |
 | MenuActionsWiring | NS | app | メニュー・ツールバーの項目を、処理する部品へつなぐ（シグナルの接続だけ） | 第4章, 第10章 |
 | MenuButtonWidget | C | widgets | メニューボタンウィジェット | 第11章 |
 | MenuWindow | C | widgets | メニュー項目をボタンで並べるドックのパネル | 第11章 |
@@ -9677,7 +9678,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | TsumeshogiGenerator | C | analysis | 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計） | 第9章 |
 | TsumeShogiSearchDialog | C | dialogs | 詰将棋探索ダイアログ | 第11章 |
 | TsumeVerificationJob | C | analysis | 総予算と1回の上限つきの唯一解の検査（生成と CLI の余詰検査で共通） | 第9章 |
-| TsumeVerificationRunner | C | automation | 詰将棋の検証の実行器（CLI・自動化 API と共有） | 第9章 |
+| TsumeVerificationRunner | C | headless | 詰将棋の検証の実行器（CLI の verify-tsume が使う） | 第9章 |
 | NotificationPresenter | C | ui | エラー・警告・情報の知らせのダイアログ（ui・app の唯一の出し手。静的な `information`・`warning`・`critical`） | 第4章 |
 | UiStatePolicyManager | C | ui/policy | 動作状態ごとのメニュー・ボタンの有効・無効（コンパイル時の表） | 第6章, 第10章, 第14章 |
 | UsenCodec | NS | kifu/formats | USEN の符号（指し手の3文字・開始局面・手順）の符号化と復号 | 第8章 |
@@ -9823,7 +9824,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | analysissession | 第9章 | 検討・詰み探索のセッション |
 | analysisoptions | 第9章 | 検討・詰み探索の開始オプション |
-| kifuanalysissession | 第9章 | 棋譜解析の実行（`KifuAnalysisSession`。エンジン・動作状態のリースと局面の列の解析）と依頼 `AnalysisRequest` |
+| kifuanalysissession | 第9章 | 棋譜解析の実行（`KifuAnalysisSession`。エンジン・動作状態のリースと局面の列の解析）と依頼 `KifuAnalysisRequest` |
 | engineanalysisrunner | 第9章 | 局面の列を1つのエンジンで順に解析する実行器（`EngineAnalysisRunner`。GUI の棋譜解析と CLI で共通）と1局面の結果（`PlyAnalysis`・`PlyAnalysisCollector`） |
 | tsumecollectionsession | 第9章 | 詰将棋集の進捗・解析待ちの管理 |
 | tsumeshogigenerator | 第9章 | 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計） |
@@ -10102,11 +10103,11 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | automationendpoint | 第14章 | 自動化 API の接続先（既定のソケット・エンドポイントファイル・1メッセージの上限。サーバーと CLI の environment で共通） |
 | automationmethodspecs | 第14章 | 自動化 API の全メソッドの引数の表 |
 | errorkinds | 第14章 | エラーの分類 `ErrorKind` と語・JSON-RPC のコードの表（CLI・自動化 API・MCP で共有） |
-| kifuconversionservice | 第8章 | 棋譜ファイル・文字列を各形式へ変換する GUI 非依存サービス（CLI・自動化 API と共有） |
-| matesearchrunner | 第9章 | 登録エンジンで詰みを探す実行器（CLI・自動化 API と共有） |
+| kifuconversionservice | 第8章 | 棋譜ファイル・文字列を各形式へ変換する GUI 非依存サービス（CLI の変換・解析が使う） |
+| matesearchrunner | 第9章 | 登録エンジンで詰みを探す実行器（CLI の mate が使う） |
 | paramspec | 第14章 | 引数の表の部品（`ParamSpec`・`OperationSpec`）と JSON Schema の出力・検査（CLI・自動化 API・MCP で共有） |
 | sfenvalidationjson | 第14章 | SFEN の検査結果の JSON（validate-sfen） |
-| tsumeverificationrunner | 第9章 | 詰将棋の検証の実行器（CLI・自動化 API と共有） |
+| tsumeverificationrunner | 第9章 | 詰将棋の検証の実行器（CLI の verify-tsume が使う） |
 
 #### cli/（第14章）
 

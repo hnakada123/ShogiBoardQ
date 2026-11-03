@@ -63,17 +63,17 @@ void KifuAnalysisController::showDialogAndStart()
     KifuAnalysisDialog dialog(m_deps.parentWidget);
     dialog.setMaxPly(line.moveCount());
     if (dialog.exec() != QDialog::Accepted) return;
-    if (std::optional<AnalysisRequest> request = requestFromDialog(dialog)) start(std::move(*request));
+    if (std::optional<KifuAnalysisRequest> request = requestFromDialog(dialog)) start(std::move(*request));
 }
 
-std::optional<AnalysisRequest> KifuAnalysisController::requestFromDialog(const KifuAnalysisDialog& dialog) const
+std::optional<KifuAnalysisRequest> KifuAnalysisController::requestFromDialog(const KifuAnalysisDialog& dialog) const
 {
     const std::optional<EngineEntry> engine = dialog.engine();
     if (!engine) {
         showError(tr("エンジン選択が不正です。"));
         return std::nullopt;
     }
-    AnalysisRequest request;
+    KifuAnalysisRequest request;
     request.line = displayedLine();
     if (m_deps.navState) {
         const QList<KifuBranchNode*> path = m_deps.navState->selectedPath();
@@ -101,7 +101,7 @@ QSet<int> KifuAnalysisController::displayedBranchPlies() const
     return plies;
 }
 
-bool KifuAnalysisController::start(AnalysisRequest request)
+bool KifuAnalysisController::start(KifuAnalysisRequest request)
 {
     if (request.line.isEmpty()) {
         showError(tr("解析対象の棋譜データが不正です。"));
