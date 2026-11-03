@@ -77,8 +77,6 @@ public:
         return QStringLiteral("%1: Cannot restore move %2: %3").arg(format).arg(ply).arg(m_lastError);
     }
 
-    /// 直前の addMove で指した手が反則の駒打ち（持ち駒にない駒・駒のあるマスへ）なら、その理由。なければ空
-    const QString& lastIrregularity() const { return m_lastIrregularity; }
     /**
      * @brief 直前の addMove の反則の駒打ちを report の警告にする（"KIF: Move 3 is an illegal drop: ..."。全形式で同じ文面）
      *

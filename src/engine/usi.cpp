@@ -146,11 +146,6 @@ bool Usi::startConsideration(const UsiPosition& position, int byoyomiMilliSec, i
     return m_session->search(request);
 }
 
-bool Usi::search(const UsiSearchRequest& request)
-{
-    return m_session->search(request);
-}
-
 void Usi::stop()
 {
     m_session->stop();

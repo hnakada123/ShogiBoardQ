@@ -69,7 +69,6 @@ void EngineRegistrationHandler::startRegistration(const QString& filePath)
         return;
     }
     setRegistrationInProgress(true);
-    emit progressUpdated(tr("エンジンを起動中..."));
     // 起動できなかったときは、戻った後に onProbeError で届く
     m_probe->probeAsync(QFileInfo(filePath).absoluteFilePath());
 }
@@ -89,7 +88,6 @@ bool EngineRegistrationHandler::isRegistrationInProgress() const
 void EngineRegistrationHandler::onProbeStarted()
 {
     m_processStarted = true;
-    emit progressUpdated(tr("USI通信中..."));
 }
 
 void EngineRegistrationHandler::onProbeReady()

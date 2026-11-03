@@ -18,7 +18,6 @@ MatchEngineSeat::~MatchEngineSeat() = default;
 void MatchEngineSeat::start(const Params& params)
 {
     release();
-    m_side = params.side;
     m_lease = m_engines->acquire(this, params.slot, params.engineName);
     Usi* engine = m_lease.engine();
     const QString role = !params.role.isEmpty() ? params.role

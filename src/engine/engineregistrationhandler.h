@@ -60,9 +60,6 @@ signals:
     /// 登録処理の進行状態が変化したとき
     void registrationInProgressChanged(bool inProgress);
 
-    /// 進捗通知
-    void progressUpdated(const QString& status);
-
 private slots:
     void onProbeStarted();
     void onProbeReady();

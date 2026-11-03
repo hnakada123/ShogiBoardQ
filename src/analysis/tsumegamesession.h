@@ -41,7 +41,6 @@ public:
     int remainingPlies() const { return m_remaining; }
     bool canUndo() const { return !m_history.empty(); }
     QString sfen() const;
-    QStringList legalMoves() const;
     bool attackerIsBlack() const { return m_attacker == shogi::Color::Black; }
 
 signals:

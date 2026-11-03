@@ -60,16 +60,6 @@ public slots:
     /// 有効/無効にかかわらず駒音を再生する（設定ダイアログの試聴用）
     void preview();
 
-signals:
-    /// 有効/無効が切り替わった
-    void enabledChanged(bool enabled);
-
-    /// 音量が変わった
-    void volumeChanged(int percent);
-
-    /// 音質が変わった
-    void toneChanged(const PieceSoundTone& tone);
-
 private:
     /// 効果音オブジェクトを遅延生成し、リソースの読み込みを開始する
     void ensureEffect();
