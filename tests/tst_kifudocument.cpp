@@ -13,6 +13,7 @@
 
 #include "gameinfokeys.h"
 #include "kifudocument.h"
+#include "gameinfo_test_util.h"
 #include "timecontroltext.h"
 #include "kifuexport.h"
 #include "kifubranchtree.h"
@@ -30,7 +31,6 @@
 #include "kifuloader.h"
 #include "shogiboard.h"
 #include "gameboard.h"
-#include "matchtimerecord.h"
 #include "kifunavigationstate.h"
 #include "gameinfo.h"
 #include "kifu_test_helper.h"
@@ -670,8 +670,8 @@ private slots:
         FileHarness files(&tree, &nav);
         files.document.beginMatch(MatchPlayers{}, timeControl, false);
         files.document.recordMatchEnd();
-        const MatchTimeRecord& timeRecord = files.document.timeRecord();
-        const QString end = timeRecord.endDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
+        const QString end = headerValue(files.document, GameInfoKeys::kEndDateTime);
+        QVERIFY(!end.isEmpty());
 
         QVERIFY(files.controller->copyKifToClipboard());
         QCOMPARE(QApplication::clipboard()->text(),
@@ -1111,7 +1111,7 @@ private slots:
         document.recordMatchEnd();
         document.markSaved(QStringLiteral("/tmp/a.kif"));
         QCOMPARE(document.headerPlayerName(Turn::Black), QStringLiteral("Engine A"));
-        QVERIFY(document.timeRecord().startDateTime().isValid());
+        QVERIFY(!headerValue(document, GameInfoKeys::kStartDateTime).isEmpty());
 
         QSignalSpy reset(&document, &KifuDocument::headerReset);
         QSignalSpy playersChanged(&document, &KifuDocument::playersChanged);
@@ -1122,7 +1122,7 @@ private slots:
         QCOMPARE(reset.count(), 1);
         QCOMPARE(playersChanged.count(), 1);
         QVERIFY(document.players().seat(Turn::Black).engineName.isEmpty());
-        QVERIFY(!document.timeRecord().startDateTime().isValid());
+        QVERIFY(headerValue(document, GameInfoKeys::kStartDateTime).isEmpty());
         QVERIFY(document.filePath().isEmpty());
         QVERIFY(!document.isModified());
         QCOMPARE(document.header(), header);

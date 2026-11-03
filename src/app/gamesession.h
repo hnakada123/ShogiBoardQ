@@ -117,10 +117,10 @@ private:
     QString recordStartSfen() const;
     /// 対局開始ダイアログに出す、定跡ウィンドウで開いている定跡の名前（開いていなければ空）
     QString josekiBookName() const;
-    /// 対局者・持ち時間・開始日時を文書に記録し、対局者を表示する（ローカル対局・通信対局で共通）
+    /// 対局者を文書に記録し、対局情報（開始日時・持ち時間）を作る（ローカル対局・通信対局で共通）
     void beginMatchRecord(const MatchPlayers& players, const TimeControl& timeControl, bool continuesRecord);
-    /// 読み込んだ棋譜の途中から続けた対局の対局者・日時を、分岐の最初の手のメモにする
-    void noteContinuedMatch(const MatchPlayers& players);
+    /// 読み込んだ棋譜の途中から続けた対局の対局者・開始日時（今）・持ち時間を、分岐の最初の手のメモにする
+    void noteContinuedMatch(const MatchPlayers& players, const TimeControl& timeControl);
 
     Deps m_deps;
     std::unique_ptr<LocalGameChannel> m_localChannel;

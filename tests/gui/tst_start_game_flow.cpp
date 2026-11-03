@@ -34,7 +34,6 @@
 #include "kifunavigationstate.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
-#include "matchtimerecord.h"
 #include "consecutivegameseries.h"
 #include <QTemporaryDir>
 #include <QDir>
@@ -806,7 +805,7 @@ private slots:
         settings.setValue("GameSettings/basicTimeMinutes2", 3);
         settings.sync();
         startWindowGame();
-        const auto first = window->composer().parts().document->timeRecord().timeControl();
+        const auto first = window->composer().parts().clock->timeControl();
         QCOMPARE(first.black.mainMs, qint64(300000));
         QCOMPARE(first.white.mainMs, qint64(180000));
         GameInfoTable table{window->findChild<GameInfoPane*>()->tableView()};
@@ -814,7 +813,7 @@ private slots:
         dialogTimer.start(10);
         QTRY_COMPARE_WITH_TIMEOUT(window->composer().parts().consecutiveGames->currentGameNumber(), 2, 5000);
         dialogTimer.stop();
-        const auto second = window->composer().parts().document->timeRecord().timeControl();
+        const auto second = window->composer().parts().clock->timeControl();
         QCOMPARE(second.black.mainMs, qint64(180000));
         QCOMPARE(second.white.mainMs, qint64(300000));
         QTRY_COMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("先手 03:00 / 後手 05:00"));

@@ -25,6 +25,7 @@
 #include "evaluationgraphpresenter.h"
 #include "evaluationseries.h"
 #include "kifudocument.h"
+#include "gameinfo_test_util.h"
 #include "kifunavigationstate.h"
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
@@ -258,6 +259,35 @@ private slots:
         p.document->markSaved(QString());
     }
 
+    /// 棋譜の途中から続けた対局は、対局情報を残し、対局者・開始日時・持ち時間を最初の手のコメントに書く
+    void continuedGameNotesTheTimeControl()
+    {
+        humanVsHumanSettings(5);
+        {
+            auto& settings = SettingsCommon::openSettings();
+            settings.setValue("GameSettings/startingPositionNumber", 0);  // 現在の局面から
+            settings.sync();
+        }
+        MainWindow window;
+        auto& p = window.composer().parts();
+        KifuBranchNode* first = TestTree::addMove(*p.branchTree, p.branchTree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
+                                                      QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"));
+        p.navState->setCurrentNode(first);
+        p.document->markSaved(QString());
+        startFromDialog(window);
+        GameChannel* channel = p.gameSession->activeChannel();
+        QVERIFY(channel);
+        QCOMPARE(channel->playMove(UsiMove::fromString(u"3c3d")), GameChannel::MoveResult::Played);
+        QCOMPARE(first->childCount(), 1);
+        const QString note = first->childAt(0)->comment();
+        QVERIFY2(note.contains(QStringLiteral("持ち時間 05:00")), qPrintable(note));
+        QVERIFY2(note.contains(QDate::currentDate().toString(QStringLiteral("yyyy/MM/dd"))), qPrintable(note));
+        // 続けた対局は対局情報（開始日時・持ち時間）を書かない
+        QVERIFY(headerValue(*p.document, GameInfoKeys::kTimeControl).isEmpty());
+        p.gameSession->breakOff();
+        p.document->markSaved(QString());
+    }
+
     /// 通信対局が終わったら、ローカル対局と同じくライブ記録を確定する（B5）。
     /// 確定しないと、盤で変化を指せず、分岐の編集も評価値グラフの追従も止まったままになる
     void csaGameEndCommitsLiveRecord()
@@ -272,7 +302,7 @@ private slots:
 
         endCsaGame(p.csaGame);
         QVERIFY(!p.liveGameSession->isActive());
-        QVERIFY(p.document->timeRecord().endDateTime().isValid());
+        QVERIFY(!headerValue(*p.document, GameInfoKeys::kEndDateTime).isEmpty());
         QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::Idle);
         p.document->markSaved(QString());
     }

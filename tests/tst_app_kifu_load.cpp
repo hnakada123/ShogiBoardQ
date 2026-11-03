@@ -11,6 +11,7 @@
 #include "appactivitystate.h"
 #include "evaluationgraphpresenter.h"
 #include "evaluationseries.h"
+#include "gameinfokeys.h"
 #include "kifudocument.h"
 #include "sfenutils.h"
 #include "kifubranchnode.h"
@@ -93,9 +94,12 @@ private slots:
         // 対局者名も開始日時もない棋譜
         QVERIFY(p.kifuFileController->loadKifuText(QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n")));
         QVERIFY(p.document->players().seat(Turn::Black).humanName.isEmpty());
-        QVERIFY(!p.document->timeRecord().hasTimeControl());
-        QVERIFY(!p.document->timeRecord().startDateTime().isValid());
-        QVERIFY(!p.document->timeRecord().endDateTime().isValid());
+        // 前の対局の持ち時間・開始と終了の日時は、対局情報に書いたものだけで、置き換えで消える
+        for (const KifGameInfoItem& item : p.document->header()) {
+            QVERIFY2(item.key != GameInfoKeys::kTimeControl && item.key != GameInfoKeys::kStartDateTime
+                         && item.key != GameInfoKeys::kEndDateTime,
+                     qPrintable(item.key));
+        }
 
         const QString csa = KifuExport::lines(*p.document, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(!csa.contains(QStringLiteral("$TIME")), qPrintable(csa));

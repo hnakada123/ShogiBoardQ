@@ -540,7 +540,6 @@ class KifuDocument : public QObject {
     KifuBranchTree*        m_tree = nullptr;   // 棋譜の正本（非所有。合成ルートが持ち、文書は中身を置き換える）
     QList<KifGameInfoItem> m_header;           // 対局情報（対局情報欄はこれを編集する画面）
     MatchPlayers           m_players;          // 最後に始めた対局の対局者
-    MatchTimeRecord        m_timeRecord;       // 持ち時間と開始・終了の日時（src/kifu/matchtimerecord.h）
     QString                m_filePath;         // 上書き保存先
     quint64                m_annotationRevision = 0;  // コメント・しおりの変更の回数
     SavedState             m_saved;            // 保存（読み込み）した時点のツリーの revision・コメントの回数・対局情報
@@ -1026,7 +1025,7 @@ SFENの手数欄とツリー上の手数も混同しない。
 ルートからライブ対局を始める。
 `MatchSessionState` が開始オプション（対局者を含む）・終局状態をまとめて所有する（エンジンの先読みの局面はエンジンの `UsiMatchHandler` だけが持つ）。
 持ち時間は対局の開始で一度だけ時計に設定し（`MatchCoordinator::start()` が `MatchStartOptions::time` から）、
-`KifuDocument::beginMatch()` が対局者と、持ち時間・開始日時（`MatchTimeRecord::begin()`）を記録する。`TimeDisplayPresenter` は時計の残り時間を表示するだけにする。
+`KifuDocument::beginMatch()` が対局者を記録し、対局情報に持ち時間・開始日時を書く。`TimeDisplayPresenter` は時計の残り時間を表示するだけにする。
 
 連続対局の次局（`GameSession::startNextGame()`）は、`SessionResetCoordinator::resetToNewRecord()` で独立した棋譜にしてから同じ手順で始める。
 「新規」（`MainWindowActions::startNewRecord()`）は `resetToNewRecord()` で平手の開始局面だけの棋譜にし、ライブ対局を始めない。

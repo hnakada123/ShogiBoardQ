@@ -62,7 +62,7 @@
 - `MatchPlayers` で後手だけがエンジン（`whiteIsEngine`）になっているか
 - エンジンの初期化・接続（USI isready → readyok）
 - `HumanTurnPolicy::isHumanTurnNow()` が先手の手番で `true` を返すか
-- 時計への持ち時間の適用（`MatchCoordinator::start()` が `MatchStartOptions::time` を `ShogiClock` に設定し、`KifuDocument::beginMatch()` が `MatchTimeRecord::begin()` で対局情報用に記録する）
+- 時計への持ち時間の適用（`MatchCoordinator::start()` が `MatchStartOptions::time` を `ShogiClock` に設定し、`KifuDocument::beginMatch()` が対局情報に持ち時間と開始日時を書く）
 - 対局者名・エンジン名の表示（盤の対局者名は `PlayerInfoPresenter`、評価値グラフの系列名と思考タブの2つ目のエンジン欄は `KifuDocument::playersChanged` → `EngineDisplayPresenter`）
 
 ---

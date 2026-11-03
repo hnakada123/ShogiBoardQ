@@ -106,7 +106,7 @@ CSA・JKF・USI・USEN には付けない（CSA は1行目の `'CSA encoding=UTF
   - `overwriteKifuFile()` — 上書き保存先へ、拡張子で決めた形式で書く。上書き保存先が無ければ名前を付けて保存する
   - `autoSaveKifu(saveDir, extension)` — 対局の終局時の自動保存（ローカル対局・通信対局とも、司令塔が終局で呼ぶ `GameSession::finishRecord()` から。保存先と形式は `MatchAutoSave`。ダイアログなし。名前は対局者と日時から作り、同じ名前があれば連番を付ける）
   - `saveKifuToPath(filePath, errorText)` / `exportLines(format)` — 自動化 API 用（ダイアログを出さない）
-- **`KifuDocument`** (`src/kifu/kifudocument.h/.cpp`) — 開いている棋譜の文書。分岐ツリー・対局情報・対局の記録（対局者・持ち時間・開始と終了の日時）・上書き保存先を持つ
+- **`KifuDocument`** (`src/kifu/kifudocument.h/.cpp`) — 開いている棋譜の文書。分岐ツリー・対局情報（対局の持ち時間と開始・終了の日時もここに書く）・最後に始めた対局の対局者・上書き保存先を持つ
   - `isModified()` — 未保存かどうか。ツリーの revision・コメントとしおりの変更・対局情報が、最後に保存（または読み込み）した時点と違うか、貼り付けた棋譜などファイルにない内容を読み込んだかで求める（変更のたびに印を付けない）
   - `markSaved(path)` / `markUnsavedContent()` — 保存した・ファイルから読み込んだ／ファイルにない内容を読み込んだ
 - **`KifuSaveDialogs`** (`src/dialogs/kifusavedialogs.h/.cpp`) — 保存で利用者に聞くこと（静的な関数だけのクラス。未保存の確認は定跡と同じ `UnsavedChangesPrompt`）

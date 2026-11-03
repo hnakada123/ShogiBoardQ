@@ -28,6 +28,8 @@
 #include "csaverdictwait.h"
 #include "appactivitystate.h"
 #include "kifudocument.h"
+#include "gameinfo_test_util.h"
+#include "timecontroltext.h"
 #include "evaluationchartwidget.h"
 #include "csalogpanel.h"
 #include "enginedisplaypresenter.h"
@@ -1018,8 +1020,11 @@ private slots:
         // 対局者はサーバーが知らせた名前、持ち時間はサーバーの対局条件
         QCOMPARE(document.headerPlayerName(Turn::Black), QStringLiteral("Sente"));
         QCOMPARE(document.headerPlayerName(Turn::White), QStringLiteral("Gote"));
-        QCOMPARE(document.timeRecord().timeControl().black.mainMs, 600000);
-        QVERIFY(document.timeRecord().endDateTime().isValid());
+        const std::optional<TimeControlText::Parsed> time =
+            TimeControlText::parse(headerValue(document, GameInfoKeys::kTimeControl));
+        QVERIFY(time);
+        QCOMPARE(time->timeControl.black.mainMs, 600000);
+        QVERIFY(!headerValue(document, GameInfoKeys::kEndDateTime).isEmpty());
         // 受け手はこの関数の中だけで生きる
         h.coordinator.setRecordSink(&h.sink);
     }

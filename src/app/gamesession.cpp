@@ -212,19 +212,17 @@ void GameSession::beginMatchRecord(const MatchPlayers& players, const TimeContro
                                    bool continuesRecord)
 {
     m_deps.document->beginMatch(players, timeControl, continuesRecord);
-    if (continuesRecord) noteContinuedMatch(players);
+    if (continuesRecord) noteContinuedMatch(players, timeControl);
     // 盤の対局者名は PlayerInfoPresenter が文書と動作状態の知らせで出す
 }
 
-void GameSession::noteContinuedMatch(const MatchPlayers& players)
+void GameSession::noteContinuedMatch(const MatchPlayers& players, const TimeControl& timeControl)
 {
-    // 続けた対局の対局者・日時は分岐の最初の手のメモにする
-    const MatchTimeRecord& record = m_deps.document->timeRecord();
+    // 続けた対局の対局者・日時は分岐の最初の手のメモにする（対局情報は棋譜のまま残すので書かない）
     // メモは表示言語で書く（持ち時間の語・先後の見出しも対局情報の表と同じく訳す）
     const QString timeText = KifuPresentation::infoValue(
-        GameInfoKeys::kTimeControl,
-        TimeControlText::format(record.timeControl(), GameInfo::isHandicap(recordStartSfen())));
-    const QDateTime start = record.startDateTime().isValid() ? record.startDateTime() : QDateTime::currentDateTime();
+        GameInfoKeys::kTimeControl, TimeControlText::format(timeControl, GameInfo::isHandicap(recordStartSfen())));
+    const QDateTime start = QDateTime::currentDateTime();
     m_deps.liveSession->setFirstMoveNote(tr("対局：▲%1 △%2（%3 開始、持ち時間 %4）")
                                              .arg(players.name(Turn::Black), players.name(Turn::White),
                                                   start.toString(QStringLiteral("yyyy/MM/dd HH:mm")), timeText));
