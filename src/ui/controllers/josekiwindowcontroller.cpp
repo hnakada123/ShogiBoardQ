@@ -16,7 +16,7 @@
 #include "kifubranchnode.h"
 #include "kifunavigationcontroller.h"
 #include "josekisettings.h"
-#include "kifupresentation.h"
+#include "josekitablemodel.h"
 #include "kifunavigationstate.h"
 
 #include <QAction>
@@ -116,7 +116,7 @@ void JosekiWindowController::updateBookDeviation()
         m_josekiWindow->setBookDeviation(0, QString());
         return;
     }
-    const QString move = KifuPresentation::move(sfens.at(*index), moves.at(*index), KifuPresentation::options());
+    const QString move = JosekiTableModel::moveText(moves.at(*index), sfens.at(*index));
     m_josekiWindow->setBookDeviation(line.startPly + *index, move);
 }
 

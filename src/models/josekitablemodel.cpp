@@ -32,6 +32,11 @@ QString JosekiTableModel::moveText(const QString &usiMove, const QString &sfen)
     return KifuPresentation::move(sfen, usiMove, KifuPresentation::options());
 }
 
+QString JosekiTableModel::moveText(const Position &before, const UsiMove &move)
+{
+    return KifuPresentation::move(before, move, KifuPresentation::options());
+}
+
 bool JosekiTableModel::hasNoReply(const JosekiMove &move)
 {
     return !move.nextMove.has_value();

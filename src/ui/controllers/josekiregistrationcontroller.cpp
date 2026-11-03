@@ -8,7 +8,7 @@
 #include "josekibooksession.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisrow.h"
-#include "kifupresentation.h"
+#include "josekitablemodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogiinforecord.h"
 
@@ -47,7 +47,7 @@ void JosekiRegistrationController::recordBoardMove(const QString& sfen, const QS
     }
     if (m_deps.book->hasMove(sfen, usiMove)) return;
     if (m_deps.book->addMove(sfen, {usiMove, std::nullopt, 0, 0, 1, {}}))
-        showStatus(tr("%1 を定跡に登録しました").arg(KifuPresentation::move(sfen, usiMove, KifuPresentation::options())));
+        showStatus(tr("%1 を定跡に登録しました").arg(JosekiTableModel::moveText(usiMove, sfen)));
 }
 
 void JosekiRegistrationController::showStatus(const QString& text) const
@@ -72,7 +72,7 @@ void JosekiRegistrationController::addRegisterAction(QMenu* menu, const Target& 
     QString text = tr("読み筋の最初の手を定跡に登録");
     if (target.isValid()) {
         text = tr("読み筋の最初の手（%1）を定跡に登録")
-                   .arg(KifuPresentation::move(target.sfen, target.pv.constFirst(), KifuPresentation::options()));
+                   .arg(JosekiTableModel::moveText(target.pv.constFirst(), target.sfen));
     }
     QAction* action = menu->addAction(text);
     action->setObjectName(QStringLiteral("josekiRegisterPv"));
@@ -114,7 +114,7 @@ void JosekiRegistrationController::registerMenuTarget()
 {
     const Target target = m_menuTarget;
     if (!target.isValid() || !canRegister()) return;
-    const QString move = KifuPresentation::move(target.sfen, target.pv.constFirst(), KifuPresentation::options());
+    const QString move = JosekiTableModel::moveText(target.pv.constFirst(), target.sfen);
     switch (m_deps.book->registerEnginePv(target.sfen, target.pv, target.score, target.depth)) {
     case JosekiBookSession::EngineRegistration::Added:
         showStatus(tr("%1 を定跡に登録しました").arg(move));
