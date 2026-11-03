@@ -1,7 +1,6 @@
 #include "boardappearancepreview.h"
 #include "boardappearance.h"
 #include "boardviewerwidget.h"
-#include "pieceimageprovider.h"
 #include "shogiboard.h"
 #include "shogiview.h"
 #include "sfenutils.h"

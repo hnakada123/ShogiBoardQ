@@ -3,13 +3,10 @@
 
 #include "cliargs.h"
 
-#include "clicommandspecs.h"
-#include "clioutput.h"
 #include "enginecatalog.h"
 #include "enginemovevalidator.h"
 #include "sfenvalidator.h"
 
-#include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
 

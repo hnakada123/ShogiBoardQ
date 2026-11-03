@@ -1,5 +1,4 @@
 #include "tsumeplaydialog.h"
-#include "appsettings.h"
 #include "boardinteractioncontroller.h"
 #include "dialogfontscale.h"
 #include "fontsizehelper.h"

@@ -22,7 +22,6 @@
 #include <QLayout>
 #include "tsumeplaydialog.h"
 #include "tsumepositionpreview.h"
-#include <QFile>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QScrollBar>

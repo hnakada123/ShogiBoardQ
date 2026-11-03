@@ -9,7 +9,6 @@
 #include "buttonstyles.h"
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
-#include "analysissettings.h"
 #include "appsettings.h"
 #include "dialogfontscale.h"
 

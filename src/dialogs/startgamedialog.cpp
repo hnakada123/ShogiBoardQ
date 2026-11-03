@@ -12,7 +12,6 @@
 #include "timecontroleditor.h"
 #include <QCoreApplication>
 #include <QMessageBox>
-#include <QDir>
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QTimer>
