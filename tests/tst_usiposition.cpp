@@ -83,11 +83,16 @@ private slots:
         auto words = UsiPosition::split(u"POSITION Startpos\t7g7f  3c3d");
         QVERIFY(words);
         QCOMPARE(words->start, kHirate);
+        // 書いた接頭辞を覚える（局面集は position コマンドの行・startpos の行の手を指した後の局面にする）
+        QVERIFY(words->positionCommand);
+        QVERIFY(words->startpos);
         QCOMPARE(words->moves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
 
         // 手数を省いた SFEN は書かれたまま。手数 1 を補うのは completeStart
         words = UsiPosition::split(QStringLiteral("sfen %1 b G moves 5h5b").arg(board));
         QVERIFY(words);
+        QVERIFY(!words->positionCommand);
+        QVERIFY(!words->startpos);
         QCOMPARE(words->start, board + QStringLiteral(" b G"));
         QCOMPARE(words->completeStart(), board + QStringLiteral(" b G 1"));
         QCOMPARE(words->moves, QStringList({QStringLiteral("5h5b")}));

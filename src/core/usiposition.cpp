@@ -73,12 +73,16 @@ std::optional<UsiPosition::Words> UsiPosition::split(QStringView text)
     // 空白・タブ・改行のどれで区切ってもよい
     const QStringList tokens = text.toString().simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
     qsizetype i = 0;
-    if (i < tokens.size() && isKeyword(tokens.at(i), "position")) ++i;
+    Words words;
+    if (i < tokens.size() && isKeyword(tokens.at(i), "position")) {
+        words.positionCommand = true;
+        ++i;
+    }
     if (i >= tokens.size()) return std::nullopt;
 
-    Words words;
     if (isKeyword(tokens.at(i), "startpos")) {
         words.start = SfenUtils::hirateSfen();
+        words.startpos = true;
         ++i;
     } else {
         if (isKeyword(tokens.at(i), "sfen")) ++i;

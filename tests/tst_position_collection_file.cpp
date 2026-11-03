@@ -55,6 +55,27 @@ private slots:
         QCOMPARE(line.position(), kHirate);
     }
 
+    /// 行の語の分け方は position コマンドと同じ UsiPosition::split（手数の欄・"moves" は省ける。監査 M4）
+    void linesAreSplitLikePositionCommands()
+    {
+        PositionCollectionFile::Line line;
+        const QString board = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4");
+        // 手数を省いた SFEN は手数 1
+        QCOMPARE(PositionCollectionFile::parseLine(board + QStringLiteral(" b G"), 1, &line),
+                 PositionCollectionFile::LineKind::Position);
+        QCOMPARE(line.startSfen, board + QStringLiteral(" b G 1"));
+        QVERIFY(line.moves.isEmpty());
+        // "moves" を省いた手も読む（SFEN だけの行の手は参考手順、position コマンドの行の手は指す）
+        QCOMPARE(PositionCollectionFile::parseLine(board + QStringLiteral(" b G 1 5i4h"), 2, &line),
+                 PositionCollectionFile::LineKind::Position);
+        QCOMPARE(line.referenceMoves(), QStringList{QStringLiteral("5i4h")});
+        QCOMPARE(PositionCollectionFile::parseLine(QStringLiteral("position sfen ") + board + QStringLiteral(" b G 5i4h"),
+                                                   3, &line),
+                 PositionCollectionFile::LineKind::Position);
+        QVERIFY(line.movesPlayed);
+        QCOMPARE(line.position(), QStringLiteral("4k4/9/9/9/9/9/9/5K3/9 w G 2"));
+    }
+
     void rejectsMalformedLines_data()
     {
         QTest::addColumn<QString>("text");

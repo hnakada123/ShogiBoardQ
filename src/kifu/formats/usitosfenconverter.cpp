@@ -8,8 +8,6 @@
 #include "kifutextdecoder.h"
 #include "usiposition.h"
 
-#include <QRegularExpression>
-
 // ============================================================================
 // USI position コマンド文字列デコーダ
 // ============================================================================
@@ -53,34 +51,11 @@
 
 namespace {
 
-// ---- SFEN / position 行のトークン判定 ----
-
-static bool equalsKeyword(const QString& token, const char* keyword)
+// 行が USI position / SFEN として読めるか（ファイル内の対象行の選択に使う。語の分け方は UsiPosition::split）
+bool isPositionLine(const QString& line)
 {
-    return token.compare(QLatin1String(keyword), Qt::CaseInsensitive) == 0;
-}
-
-// 盤面トークン: SFEN の盤の欄として読める
-static bool looksLikeSfenBoard(const QString& token)
-{
-    return Position::fromSfen(token + QStringLiteral(" b - 1")).has_value();
-}
-
-static QStringList splitTokens(const QString& text)
-{
-    static const QRegularExpression kWhitespaceRe(QStringLiteral("\\s+"));
-    return text.trimmed().split(kWhitespaceRe, Qt::SkipEmptyParts);
-}
-
-// 行が USI position / SFEN として解釈できそうか（ファイル内の対象行の選択に使う）
-static bool looksLikePositionLine(const QString& line)
-{
-    const QStringList tokens = splitTokens(line);
-    qsizetype i = 0;
-    if (i < tokens.size() && equalsKeyword(tokens.at(i), "position")) ++i;
-    if (i >= tokens.size()) return false;
-    if (equalsKeyword(tokens.at(i), "startpos") || equalsKeyword(tokens.at(i), "sfen")) return true;
-    return looksLikeSfenBoard(tokens.at(i));
+    const std::optional<UsiPosition::Words> words = UsiPosition::split(line);
+    return words && Position::fromSfen(words->completeStart()).has_value();
 }
 
 } // namespace
@@ -153,7 +128,7 @@ bool UsiToSfenConverter::selectPositionLine(const QStringList& lines, QString& c
     for (const QString& line : std::as_const(lines)) {
         const QString trimmed = line.trimmed();
         if (trimmed.isEmpty()) continue;
-        if (looksLikePositionLine(trimmed)) {
+        if (isPositionLine(trimmed)) {
             content = trimmed;
             return true;
         }

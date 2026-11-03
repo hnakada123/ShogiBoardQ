@@ -4,23 +4,14 @@
 #include "positioncollectionfile.h"
 
 #include "boundedfile.h"
-#include "sfenutils.h"
 #include "sfenvalidator.h"
 #include "usimove.h"
+#include "usiposition.h"
 
 #include <QCoreApplication>
 #include <QFileInfo>
 
 namespace PositionCollectionFile {
-
-namespace {
-
-bool isKeyword(const QString& token, QLatin1StringView keyword)
-{
-    return token.compare(keyword, Qt::CaseInsensitive) == 0;
-}
-
-} // namespace
 
 QString Line::position() const
 {
@@ -34,32 +25,17 @@ LineKind parseLine(const QString& text, int lineNumber, Line* line)
     if (trimmed.startsWith(QChar(0xfeff))) trimmed = trimmed.mid(1).trimmed();
     if (trimmed.isEmpty() || trimmed.startsWith(QLatin1Char('#'))) return LineKind::Skipped;
 
-    QStringList tokens = trimmed.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    // 語の分け方は position コマンドと同じ（UsiPosition::split。"sfen"・"moves"・手数の欄は省ける）
+    const std::optional<UsiPosition::Words> words = UsiPosition::split(trimmed);
+    if (!words) return LineKind::Invalid;
     Line result;
     result.lineNumber = lineNumber;
-    if (!tokens.isEmpty() && isKeyword(tokens.first(), QLatin1StringView("position"))) {
-        tokens.removeFirst();
-        result.movesPlayed = true;
-    }
-
-    qsizetype next = 0;
-    if (!tokens.isEmpty() && isKeyword(tokens.first(), QLatin1StringView("startpos"))) {
-        result.startSfen = SfenUtils::hirateSfen();
-        result.movesPlayed = true;
-        next = 1;
-    } else {
-        if (!tokens.isEmpty() && isKeyword(tokens.first(), QLatin1StringView("sfen"))) tokens.removeFirst();
-        if (tokens.size() < 4) return LineKind::Invalid;
-        result.startSfen = tokens.first(4).join(QLatin1Char(' '));
-        next = 4;
-    }
-
-    if (next < tokens.size()) {
-        if (!isKeyword(tokens.at(next), QLatin1StringView("moves"))) return LineKind::Invalid;
-        result.moves = tokens.mid(next + 1);
-        for (const QString& move : std::as_const(result.moves))
-            if (!UsiMove::isExact(move)) return LineKind::Invalid;
-    }
+    result.startSfen = words->completeStart();
+    // position コマンドの行と startpos の行の手は指した後の局面、SFEN だけの行の手は参考手順
+    result.movesPlayed = words->positionCommand || words->startpos;
+    result.moves = words->moves;
+    for (const QString& move : std::as_const(result.moves))
+        if (!UsiMove::isExact(move)) return LineKind::Invalid;
     if (!SfenValidator::validate(result.startSfen).valid) return LineKind::Invalid;
 
     if (line) *line = std::move(result);
