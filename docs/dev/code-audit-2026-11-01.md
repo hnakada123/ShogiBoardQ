@@ -138,7 +138,7 @@
 
 | # | 食い違い | 原因 |
 |---|---|---|
-| F20 | コメント・しおりはあるが消費時間はない棋譜を USEN・USI で保存すると、コメント・しおりが黙って消える。USEN の確認の文は「消費時間・コメント・しおりに対応していない」と書くのに、出す条件は消費時間があるときだけ。USI はコメントを見ない。消費時間も本譜しか見ないので、変化にだけ消費時間があっても聞かない | 形式ごとの失う情報の知識が、ダイアログの switch にある（`kifusavedialogs.cpp:70-110`）。渡される判定は `hasBranches`・`hasTimeInfo` の2つだけ（`kifufilecontroller.cpp:229-236`）。同じ知識が `kifufilecontroller.cpp:345,350` のコピーの文にもある |
+| F20 | コメント・しおりはあるが消費時間はない棋譜を USEN・USI で保存すると、コメント・しおりが黙って消える。USEN の確認の文は「消費時間・コメント・しおりに対応していない」と書くのに、出す条件は消費時間があるときだけ。USI はコメントを見ない。消費時間も本譜しか見ないので、変化にだけ消費時間があっても聞かない | 形式ごとの失う情報の知識が、ダイアログの switch にある（`kifusavedialogs.cpp:70-110`）。渡される判定は `hasBranches`・`hasTimeInfo` の2つだけ（`kifufilecontroller.cpp:229-236`）。同じ知識が `kifufilecontroller.cpp:345,350` のコピーの文にもある<br>**状態: 済（d0fd008d）**。kifu の `KifuExport` に、形式が書けるものの表 `capabilities`（変化・消費時間・コメント・しおり。`writesVariations` もこの表）と、終局の行を書けるか `writesTerminal`（CSA・USI・USEN は符号の表）を置いた。棋譜を形式で書くと失うもの `lossIn`（変化を書けない形式は本譜だけを見る）を、保存の確認（`KifuSaveDialogs::saveViaDialog` の `lossOf`。switch と `RecordContents` は消した）とコピーの知らせが使う。CSA・USI の書けない終局（独自の終局理由・最大手数など）も聞くようになった。消費時間のない形式を読んだ手は 0 秒の時間を持つので、`RecordTime::isRecorded` で数えない（今までは USI・KI2 から読んだ棋譜でも、無い消費時間について聞いていた） |
 | F21 | 通信対局の自動保存で選べる形式は6つで、`.ki2u`・`.usen` が無い。保存ダイアログは8つ。見出しも保存ダイアログ（「KIF形式 Shift_JIS」など）と違う | `CsaGameDialog::populateAutoSaveFormats` が一覧を手書きしている（`csagamedialog.cpp:111-120`）。`matchautosave.h:13` のコメントにも別の一覧がある（10-29 T8 の残り） |
 
 **表示と設定**（T6・3章）
@@ -299,7 +299,7 @@
 
 **書き直し案**
 
-- kifu の形式の表（`kifuformat.cpp` の `kExtensions` か `KifuExport`）に、分岐・消費時間・コメント・しおりを書けるかを持たせる。`KifuFileController` は文書が持つもの（全ノードの分岐・消費時間・コメント・しおり）を数えて渡す。ダイアログは「失うもの」の一覧から文を作る。
+- kifu の形式の表（`kifuformat.cpp` の `kExtensions` か `KifuExport`）に、分岐・消費時間・コメント・しおりを書けるかを持たせる。`KifuFileController` は文書が持つもの（全ノードの分岐・消費時間・コメント・しおり）を数えて渡す。ダイアログは「失うもの」の一覧から文を作る。→ 済（d0fd008d。表は `KifuExport::capabilities`、失うものは `KifuExport::lossIn` で、コントローラーは数えずに形式ごとに聞く関数を渡す）
 - 通信対局の自動保存の一覧は `KifuFormats::saveTargets()` から作る。ローカル対局と通信対局の既定の違い（U6）は仕様を決め、`MatchAutoSave` の既定値か設定の1か所にする。`matchautosave.h:13` のコメントの一覧を消す。
 - `isSavable`・`savableNames` は表の `saveLabel` と `isName` から作る。
 - `KifuFileFilter` を kifu へ移す（P2）。
