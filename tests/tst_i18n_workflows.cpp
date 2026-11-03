@@ -266,13 +266,13 @@ private slots:
         NotationStyle::configure("en", "auto", false);
         PlyAnalysis first;
         first.ply = 0;
-        first.score = UsiScore::cp(100);
+        first.blackScore = UsiScore::cp(-100);   // 後手番の開始局面（手番側から見た 100）
         first.pv = PvText::play(history.at(0), QStringList{QStringLiteral("3c3d"), QStringLiteral("7g7f")});
         handler.append(first);
         QCOMPARE(model.index(0, 3).data().toString(), QStringLiteral("-100"));
         PlyAnalysis second;
         second.ply = 1;
-        second.score = UsiScore::cp(200);
+        second.blackScore = UsiScore::cp(200);
         second.pv = PvText::play(history.at(1), QStringList{QStringLiteral("7g7f")});
         handler.append(second);
         QCOMPARE(model.index(1, 3).data().toString(), QStringLiteral("200"));

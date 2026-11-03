@@ -36,7 +36,7 @@ PlyAnalysis PlyAnalysisCollector::finish(const UsiBestMove& bestMove) const
     result.ply = m_ply;
     result.book = !m_anyInfo;
     if (result.book) return result;
-    result.score = bestMove.score;
+    result.blackScore = bestMove.score.blackView(m_position.sideToMove());
     result.depth = m_bestDepth;
 
     const std::optional<UsiMove>& last = m_position.lastMove();
