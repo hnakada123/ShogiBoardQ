@@ -193,7 +193,7 @@ bool KifuFileController::loadKifuFile(const QString& filePath)
 bool KifuFileController::loadKifuText(const QString& content)
 {
     const bool loaded = m_deps.loader->loadText(content);
-    if (loaded) m_deps.document->markUnsavedContent();
+    finishLoad(loaded, Source::Text, QString());
     return loaded;
 }
 

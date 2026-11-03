@@ -88,13 +88,9 @@ void Collector::addGame(const KifParseResult &record)
     addLine(record.mainline.startSfen, record.mainline, winner, seenInGame);
     if (!m_options.includeVariations) return;
     for (int i = 0; i < record.variations.size(); ++i) {
+        // 変化の手順も KifLineBuilder が作るので、開始局面（分岐した局面）を必ず持つ
         const KifVariation &variation = record.variations.at(i);
-        QString start = variation.line.startSfen;
-        if (start.isEmpty()) {
-            if (const auto point = record.branchPoint(variation.parentVariation, variation.startPly); point && point->position)
-                start = point->position->toSfen();
-        }
-        addLine(start, variation.line, winner, seenInGame);
+        addLine(variation.line.startSfen, variation.line, winner, seenInGame);
     }
 }
 

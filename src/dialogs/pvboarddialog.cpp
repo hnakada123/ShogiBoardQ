@@ -56,15 +56,7 @@ void PvBoardDialog::setPlayerNames(const QString& blackName, const QString& whit
 
 void PvBoardDialog::setLastMove(const QString& lastMove)
 {
-    m_lastMove = lastMove;
-    m_line->setArrival(m_lastMove, m_prevSfen);
-    updatePlyDisplay();
-}
-
-void PvBoardDialog::setPrevSfenForHighlight(const QString& prevSfen)
-{
-    m_prevSfen = prevSfen;
-    m_line->setArrival(m_lastMove, m_prevSfen);
+    m_line->setArrival(lastMove);
     updatePlyDisplay();
 }
 

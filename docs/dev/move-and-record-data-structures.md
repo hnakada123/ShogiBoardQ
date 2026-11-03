@@ -51,8 +51,7 @@ CSA の読み込み（`CsaLexer`）も、開始局面（PI・P1〜P9・P+/P-・0
 読み筋の最初の手の「同」の基準は、探索の局面に至った手（`UsiPosition::lastMove()`。先読み中は予想した相手の手）の移動先である。
 詰将棋の局面生成（`TsumeshogiPositionGenerator`）と駒を1枚除く処理（`TsumeCandidateJob`）も `Position` で局面を持つ。
 
-2つの局面の差分（`SfenDiffUtils`、`src/dialogs/sfendiffutils.h`。局面は `Position::fromSfenLike()` で読む）から手を求めるのは、
-読み筋の盤の読み筋の値（`PvLine`、`src/dialogs/pvline.h`）だけである。開始局面に至った手（`PvLine::setArrival()` の `lastMove`）が分からないときに、至る前の局面と開始局面の盤を比べて、開始局面で強調する移動元と移動先を決める。読み筋の手を指した後の局面では、指した手そのものから強調する（`PvLine::highlight(ply)`。駒打ちの移動元は打った側の駒台）。
+2つの局面の差分から手を求める処理は無い。読み筋の盤の読み筋の値（`PvLine`、`src/dialogs/pvline.h`）は、開始局面では至った手（`PvLine::setArrival()`。分からなければ強調しない）、読み筋の手を指した後の局面では指した手そのものから強調する（`PvLine::highlight(ply)`。駒打ちの移動元は打った側の駒台）。
 棋譜をたどるときの盤のハイライト（`BoardSyncPresenter`）は、表示中のノードの指し手（`KifuBranchNode::move()`）から求める（6.5.2）。
 対局で次の手の「同」の基準は、対局の手順の最後の手の移動先（`MatchCoordinator::lastMoveDestination()` = `RecordLine::destinationOf(currentPly())`）から決め、指すたびに `GameBoard` に渡す。待った（`MatchCoordinator::undoTwoPlies()`）や中断の再開の後も、手順から導くので写しを直す処理は無い。
 

@@ -5,7 +5,7 @@
 
 #include "boardcoordinates.h"
 #include "kifupresentation.h"
-#include "sfendiffutils.h"
+#include "sfenutils.h"
 #include "shogiposition.h"
 
 namespace {
@@ -43,10 +43,9 @@ QString PvLine::displayPv(bool fullOrigin) const
     return KifuPresentation::pv(m_pv, fullOrigin);
 }
 
-void PvLine::setArrival(const QString& lastMove, const QString& previousSfen)
+void PvLine::setArrival(const QString& lastMove)
 {
     m_lastMove = lastMove;
-    m_previousSfen = previousSfen;
 }
 
 PvLine::Highlight PvLine::highlight(int ply) const
@@ -59,23 +58,8 @@ PvLine::Highlight PvLine::highlight(int ply) const
 
 PvLine::Highlight PvLine::arrivalHighlight() const
 {
-    // 至った手が分かれば、それを指したのは開始局面の手番の相手
+    // 至った手が分かれば、それを指したのは開始局面の手番の相手（分からなければハイライトしない）
     if (const std::optional<UsiMove> move = UsiMove::parse(m_lastMove))
         return moveHighlight(*move, opponent(SfenUtils::sideToMove(m_pv.baseSfen())));
-
-    // 至る前の局面があれば、盤の差分から移動元・移動先を決める
-    SfenDiffUtils::DiffResult diff;
-    if (m_previousSfen.isEmpty() || !SfenDiffUtils::diffBoards(m_previousSfen, m_pv.baseSfen(), diff)
-        || !diff.isSingleMovePattern() || !diff.hasTo())
-        return {};
-    Highlight highlight;
-    if (diff.hasFrom()) {
-        highlight.from = diff.from + QPoint(1, 1);
-    } else if (diff.droppedPiece != Piece::None) {
-        // 駒打ちは、打った側の駒台の駒の位置を移動元にする
-        const QPoint stand = BoardCoordinates::standSquareOf(diff.droppedPiece);
-        if (!stand.isNull()) highlight.from = stand;
-    }
-    highlight.to = diff.to + QPoint(1, 1);
-    return highlight;
+    return {};
 }

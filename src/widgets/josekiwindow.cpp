@@ -16,7 +16,6 @@
 #include "josekitablemodel.h"
 #include "josekitableview.h"
 #include "kifupresentation.h"
-#include "sfenutils.h"
 #include "shogiposition.h"
 #include "tablestyles.h"
 #include "tableheaderview.h"
@@ -444,12 +443,8 @@ void JosekiWindow::updateRecentFilesMenu()
 
 void JosekiWindow::setCurrentSfen(const QString &sfen)
 {
-    QString next = sfen;
-    next.remove(QLatin1Char('\r'));
-    if (next == QStringLiteral("startpos"))
-        next = SfenUtils::hirateSfen();
-    const bool sameSfen = (next == m_currentSfen);
-    m_currentSfen = next;
+    const bool sameSfen = (sfen == m_currentSfen);
+    m_currentSfen = sfen;
 
     if (m_currentSfenLabel)
         m_currentSfenLabel->setText(m_currentSfen.isEmpty() ? tr("(未設定)") : m_currentSfen);

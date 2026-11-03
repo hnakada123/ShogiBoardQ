@@ -41,9 +41,8 @@ public:
     /**
      * @brief 読み筋 pv を盤で再生するダイアログを開く（閉じると破棄する）
      * @param lastUsiMove 読み筋の局面に至った手（強調する。無ければ空）
-     * @param prevSfen その手を指す前の局面（強調の移動元を決める。無ければ空）
      */
-    PvBoardDialog* showPvBoard(const PvText& pv, const QString& lastUsiMove, const QString& prevSfen = QString());
+    PvBoardDialog* showPvBoard(const PvText& pv, const QString& lastUsiMove);
 
 signals:
     /// model の行から開いた読み筋ダイアログが閉じた（表の選択を外す）

@@ -254,6 +254,22 @@ private slots:
         p.document->markSaved(QString());
     }
 
+    /// 文字で渡した棋譜の読み込み（自動化 API の kifu.load）も、貼り付けと同じ後始末をする
+    /// （未保存にし、上書き保存先を持たず、ステータスバーに知らせる）
+    void textLoadFinishesLikePaste()
+    {
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
+        QVERIFY(!p.document->isModified());
+        QSignalSpy messages(p.kifuFileController, &KifuFileController::statusMessage);
+        QVERIFY(p.kifuFileController->loadKifuText(QStringLiteral("position startpos moves 2g2f 8c8d")));
+        QVERIFY(p.document->isModified());
+        QVERIFY(p.document->filePath().isEmpty());
+        QCOMPARE(messages.count(), 1);
+        QCOMPARE(messages.first().first().toString(), KifuFileController::tr("棋譜を取り込みました"));
+    }
+
     /// 開いたままの局面集ビューア・棋譜貼り付けから、対局などを始めた後に反映しても棋譜を置き換えない
     void recordIsNotReplacedOutsideIdle()
     {
