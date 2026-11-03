@@ -3,8 +3,6 @@
 
 #include "analysissession.h"
 
-#include "mateoracle.h"
-
 #include "appactivitystate.h"
 #include "engineslots.h"
 #include "kifubranchnode.h"
@@ -21,6 +19,8 @@ AnalysisSession::AnalysisSession(const Deps& deps, QObject* parent)
     connect(m_deps.engines, &EngineSlots::engineRevoked, this, &AnalysisSession::onEngineRevoked);
     connect(m_deps.activity, &AppActivityState::revoked, this, &AnalysisSession::onActivityRevoked);
 }
+
+AnalysisSession::~AnalysisSession() = default;
 
 Usi* AnalysisSession::engine() const
 {
@@ -55,22 +55,24 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
     Usi* engine = m_lease.engine();
     m_engine = engine;
     connect(engine, &Usi::errorOccurred, this, &AnalysisSession::onEngineError);
-    connect(engine, &Usi::searchTimedOut, this, &AnalysisSession::onSearchTimedOut);
 
     m_position = opt.position;
     m_byoyomiMs = opt.byoyomiMs;
     m_multiPV = opt.multiPV;
-    const UsiProtocolHandler* protocol = engine->protocol();
     if (m_mode == Mode::Tsume) {
-        connect(protocol, &UsiProtocolHandler::checkmateReceived, this, &AnalysisSession::onCheckmate);
-        connect(protocol, &UsiProtocolHandler::bestMoveReceived, this, &AnalysisSession::onTsumeBestMoveReceived);
+        // 詰みの問い合わせは CLI の詰み探索・詰将棋の検査と同じ部品で行う（エンジンの接続は枠のものを借りる。
+        // 思考情報・通信ログはこの接続の表示に出る）。エラーは Usi::errorOccurred で受ける
+        m_mateOracle = std::make_unique<MateOracle>(engine->session());
+        connect(m_mateOracle.get(), &MateOracle::answered, this, &AnalysisSession::onMateAnswered);
+        connect(m_mateOracle.get(), &MateOracle::timedOut, this, &AnalysisSession::onSearchTimedOut);
+        // 起動できなければ、戻った後に onEngineError が届く（問い合わせは初期化の後で送られる）
+        m_mateOracle->start(opt.enginePath, opt.engineName);
     } else {
-        connect(protocol, &UsiProtocolHandler::bestMoveReceived,
+        connect(engine->protocol(), &UsiProtocolHandler::bestMoveReceived,
                 this, &AnalysisSession::onConsiderationBestMoveReceived);
+        // 起動できなければ、戻った後に onEngineError が届く（探索の要求は初期化の後で送られる）
+        engine->startEngine(opt.enginePath, opt.engineName);
     }
-
-    // 起動できなければ、戻った後に onEngineError が届く（探索の要求は初期化の後で送られる）
-    engine->startEngine(opt.enginePath, opt.engineName);
     emit engineNamesChanged(opt.engineName, QString());
     if (m_mode == Mode::Consideration) emit considerationResultsCleared();
     startSearch();
@@ -81,7 +83,7 @@ void AnalysisSession::startSearch()
 {
     if (!m_engine) return;
     if (m_mode == Mode::Tsume) {
-        m_engine->startMateSearch(m_position, m_byoyomiMs);
+        if (m_mateOracle) m_mateOracle->ask(m_position, m_byoyomiMs);
         return;
     }
     m_engine->startConsideration(m_position, m_byoyomiMs, m_multiPV);
@@ -118,6 +120,8 @@ AnalysisSession::Mode AnalysisSession::endSession()
     const Mode previous = m_mode;
     m_mode = Mode::None;
     m_state = State::Idle;
+    // 詰みの問い合わせの部品を先に消す（借りた接続は止めない。枠を空けるときに止まる）
+    m_mateOracle.reset();
     if (m_engine) {
         disconnect(m_engine, nullptr, this, nullptr);
         disconnect(m_engine->protocol(), nullptr, this, nullptr);
@@ -194,9 +198,8 @@ void AnalysisSession::finalizeTsumeSearch(const QString& resultMessage)
     emit messageRequested(tr("詰み探索"), resultMessage);
 }
 
-void AnalysisSession::onCheckmate(const UsiCheckmate& result)
+void AnalysisSession::onMateAnswered(const MateAnswer& answer)
 {
-    const MateAnswer answer = MateAnswer::fromCheckmate(result);
     switch (answer.kind) {
     case MateAnswer::Kind::Mate:
         finalizeTsumeSearch(tr("詰みあり（手順 %1 手）").arg(answer.pv.size()));
@@ -208,6 +211,7 @@ void AnalysisSession::onCheckmate(const UsiCheckmate& result)
         finalizeTsumeSearch(tr("（エンジン側）未実装"));
         return;
     case MateAnswer::Kind::Unknown:
+        // 時間切れ・打ち切り・bestmove で答えたエンジン（MateOracle が Unknown にする）
         finalizeTsumeSearch(tr("時間内に詰みを判定できませんでした"));
         return;
     }
@@ -218,7 +222,3 @@ void AnalysisSession::onSearchTimedOut()
     finalizeTsumeSearch(tr("エンジンが応答しなかったため、詰み探索を打ち切りました"));
 }
 
-void AnalysisSession::onTsumeBestMoveReceived(const UsiBestMove& /*result*/)
-{
-    finalizeTsumeSearch(tr("探索が完了しました"));
-}

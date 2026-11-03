@@ -161,50 +161,49 @@
 <context>
     <name>AnalysisSession</name>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="136"/>
-        <location filename="../../src/analysis/analysissession.cpp" line="194"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="198"/>
         <source>詰み探索</source>
         <translation>搜索诘棋</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="136"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
         <source>検討</source>
         <translation>研究</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="137"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="141"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎错误：%1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="202"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="205"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>找到诘棋（%1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="205"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="208"/>
         <source>詰みなし</source>
         <translation>无诘</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="208"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="211"/>
         <source>（エンジン側）未実装</source>
         <translation>（引擎）尚未实现</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="211"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="215"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>未能在限定时间内判定诘棋</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="218"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="222"/>
         <source>エンジンが応答しなかったため、詰み探索を打ち切りました</source>
         <translation>引擎没有响应，已中止搜索诘棋。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="223"/>
         <source>探索が完了しました</source>
-        <translation>搜索完成</translation>
+        <translation type="vanished">搜索完成</translation>
     </message>
 </context>
 <context>
@@ -13810,7 +13809,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>引擎文件路径为空。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="92"/>
+        <location filename="../../src/engine/usi.cpp" line="91"/>
         <location filename="../../src/engine/usienginesession.cpp" line="252"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>等待 bestmove 超时。</translation>

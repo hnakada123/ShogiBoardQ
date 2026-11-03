@@ -52,6 +52,7 @@
 #include "usienginesession.h"
 #include "usi.h"
 #include "usicommlogmodel.h"
+#include "mateoracle.h"
 #include "usimodelbinding.h"
 #include "header_drag_helper.h"
 
@@ -402,6 +403,45 @@ private slots:
         QVERIFY(messages.last().at(1).toString().contains(QStringLiteral("応答")));
         QCOMPARE(ended.count(), 1);
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
+
+    /// go mate に bestmove で答えるエンジン（テスト用エンジンの既定の振る舞い）でも、詰みの問い合わせは
+    /// 待ち続けずに「判定できなかった」で終わる。GUI の詰み探索も CLI と同じ MateOracle を通る（監査 M1・U2）
+    void mateSearchAnsweredWithBestMoveEnds()
+    {
+        const UsiPosition position = *UsiPosition::parse(QStringLiteral("position sfen 7k1/9/9/9/9/9/9/9/K8 b RS 1"));
+        {
+            // CLI の詰み探索・詰将棋の検査と生成の経路（MateOracle が接続を持つ）
+            MateOracle oracle;
+            QSignalSpy ready(&oracle, &MateOracle::ready);
+            QSignalSpy answered(&oracle, &MateOracle::answered);
+            QSignalSpy timedOut(&oracle, &MateOracle::timedOut);
+            oracle.start(mockEngine(), QStringLiteral("BestMoveMate"));
+            QVERIFY(oracle.ask(position, 60000));
+            QTRY_VERIFY_WITH_TIMEOUT(answered.count() == 1, 5000);
+            QCOMPARE(answered.first().first().value<MateAnswer>().kind, MateAnswer::Kind::Unknown);
+            QVERIFY(!oracle.isAsking());
+            QCOMPARE(timedOut.count(), 0);
+            QCOMPARE(ready.count(), 1);
+        }
+        // GUI の詰み探索（枠のエンジンの接続を借りる）
+        AnalysisHarness h;
+        AnalysisOptions options;
+        options.mode = AnalysisOptions::Mode::Tsume;
+        options.enginePath = mockEngine();
+        options.engineName = QStringLiteral("BestMoveMate");
+        options.position = position;
+        options.byoyomiMs = 60000;
+        QSignalSpy messages(&h.session, &AnalysisSession::messageRequested);
+        QSignalSpy ended(&h.session, &AnalysisSession::tsumeSearchModeEnded);
+        QVERIFY(h.session.start(options));
+        QVERIFY(h.session.isTsumeSearching());
+        QTRY_VERIFY_WITH_TIMEOUT(messages.count() == 1, 5000);
+        QVERIFY(messages.last().at(1).toString().contains(QStringLiteral("判定できません")));
+        QCOMPARE(ended.count(), 1);
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+        // 詰み探索を終えるとエンジンの枠を空ける
+        QVERIFY(!h.session.engine());
     }
 
     /// 検討のやり直しは、探索していなければすぐ始め、探索中なら stop で止めてから最後の依頼だけを始める

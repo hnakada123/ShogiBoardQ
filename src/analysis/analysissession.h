@@ -7,10 +7,12 @@
 #include <QObject>
 #include <QPointer>
 #include <QString>
+#include <memory>
 
 #include "analysisoptions.h"
 #include "appactivitystate.h"
 #include "engineslots.h"
+#include "mateoracle.h"
 #include "usimessages.h"
 
 class KifuNavigationState;
@@ -37,6 +39,7 @@ public:
     };
 
     explicit AnalysisSession(const Deps& deps, QObject* parent = nullptr);
+    ~AnalysisSession() override;
 
     /// 検討・詰み探索を始める（前のセッションと、ほかの処理のエンジンは破棄する）。起動の失敗は後で知らせる。
     /// 局面が空なら何もせず false
@@ -83,8 +86,7 @@ signals:
 
 private slots:
     void onEngineError(const QString& message);
-    void onCheckmate(const UsiCheckmate& result);
-    void onTsumeBestMoveReceived(const UsiBestMove& result);
+    void onMateAnswered(const MateAnswer& answer);
     void onSearchTimedOut();
     void onConsiderationBestMoveReceived(const UsiBestMove& result);
     void onEngineRevoked(QObject* owner);
@@ -107,6 +109,8 @@ private:
     EngineLease m_lease;                          ///< 枠 E1 のエンジンを使う権利
     ActivityLease m_activityLease;                ///< 検討中・詰み探索中の動作状態
     QPointer<Usi> m_engine;                       ///< m_lease のエンジン
+    /// 詰み探索の問い合わせ（m_engine の接続を借りる。CLI の詰み探索・詰将棋の検査と同じ部品）
+    std::unique_ptr<MateOracle> m_mateOracle;
     Mode m_mode = Mode::None;
     State m_state = State::Idle;
     QString m_engineName;                         ///< 使っているエンジンの名前

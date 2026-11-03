@@ -16,7 +16,6 @@ Usi::Usi(QObject* parent)
     UsiProtocolHandler* handler = m_session->handler();
     connect(m_session, &UsiEngineSession::ready, this, &Usi::engineInitialized);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &Usi::onSessionError);
-    connect(m_session, &UsiEngineSession::searchTimedOut, this, &Usi::searchTimedOut);
 
     // 思考の表に出す行と情報欄の値
     connect(handler, &UsiProtocolHandler::positionChanged, m_formatter, &ThinkingInfoFormatter::setSearchPosition);
@@ -150,12 +149,6 @@ bool Usi::startConsideration(const UsiPosition& position, int byoyomiMilliSec, i
 bool Usi::search(const UsiSearchRequest& request)
 {
     return m_session->search(request);
-}
-
-bool Usi::startMateSearch(const UsiPosition& position, int timeLimitMs)
-{
-    // 応答しないエンジンを待ち続けない（CLI の詰み探索と同じ打ち切り方）
-    return m_session->search(UsiSearchRequest::mate(position, timeLimitMs));
 }
 
 void Usi::stop()
