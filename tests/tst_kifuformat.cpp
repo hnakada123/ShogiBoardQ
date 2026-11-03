@@ -113,12 +113,10 @@ private slots:
         QCOMPARE(KifuFormats::fromPath(QStringLiteral("/tmp/a.CSA")), KifuFormat::Csa);
         QCOMPARE(KifuFormats::fromPath(QStringLiteral("/tmp/a.txt")), std::nullopt);
         QCOMPARE(KifuFormats::fromPath(QStringLiteral("/tmp/a.bod")), std::nullopt);
-        QVERIFY(!KifuFormats::isSavable(KifuFormat::Sfen));
-        QVERIFY(KifuFormats::isSavable(KifuFormat::Usen));
-        // CLI・自動化 API の選択肢（保存できる形式の名前）
+        // CLI・自動化 API の選択肢（保存できる形式の名前。保存の表の並び）
         QCOMPARE(KifuFormats::savableNames(),
                  QStringList({QStringLiteral("kif"), QStringLiteral("ki2"), QStringLiteral("csa"), QStringLiteral("jkf"),
-                              QStringLiteral("usi"), QStringLiteral("usen")}));
+                              QStringLiteral("usen"), QStringLiteral("usi")}));
     }
 
     // 保存できる拡張子の表（保存ダイアログの並び・形式・文字コード）
@@ -127,7 +125,8 @@ private slots:
         QStringList suffixes;
         for (const KifuFormats::SaveTarget& target : KifuFormats::saveTargets()) {
             suffixes.append(target.suffix);
-            QVERIFY(KifuFormats::isSavable(target.format));
+            // 保存できる形式の名前は、保存できる拡張子の形式と同じもの
+            QVERIFY(KifuFormats::savableNames().contains(KifuFormats::name(target.format)));
             QCOMPARE(KifuFormats::fromName(target.suffix), target.format);
             QVERIFY(target.label);
             // Shift_JIS で書くのは .kif と .ki2 だけ

@@ -6,6 +6,8 @@
   credentials and start-up scripts, never records.
 * Files must have the extension of a record (or an image, for board images). The lists come from
   ``shogiboardq-cli environment``, so an agent can neither read nor write other kinds of files.
+  Converting writes ``kifu_write_suffixes`` (with the position-only ``.sfen``); saving the application's
+  record writes ``kifu_save_suffixes``, the extensions of the application's Save As.
 * Existing files are only replaced when the caller passes ``overwrite``.
 * The automation socket of a running ShogiBoardQ is discovered through the
   endpoint file the application writes next to its settings.
@@ -39,6 +41,7 @@ def allowed_dirs() -> list[Path]:
 # The extension lists of shogiboardq-cli environment
 KIFU_READ = "kifu_read_suffixes"
 KIFU_WRITE = "kifu_write_suffixes"
+KIFU_SAVE = "kifu_save_suffixes"   # what the application's kifu.save writes (no position-only .sfen)
 IMAGE_WRITE = "image_write_suffixes"
 
 

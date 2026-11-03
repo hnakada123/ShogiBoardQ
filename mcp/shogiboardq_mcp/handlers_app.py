@@ -62,7 +62,8 @@ class AppTools:
         return text + ".", result
 
     async def save_kifu(self, args: dict[str, Any]) -> Result:
-        path = paths.resolve_write_path(args["path"], bool(args.get("overwrite")), "path")
+        # The extensions of the application's Save As (kifu.save refuses the position-only .sfen)
+        path = paths.resolve_write_path(args["path"], bool(args.get("overwrite")), "path", paths.KIFU_SAVE)
         result = await self.client.call("kifu.save", {"path": str(path), "overwrite": bool(args.get("overwrite"))})
         return f"Saved {result.get('format', '')} record to {result.get('path')}", result
 

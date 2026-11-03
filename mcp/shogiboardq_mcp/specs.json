@@ -73,8 +73,8 @@
       "ki2",
       "csa",
       "jkf",
-      "usi",
-      "usen"
+      "usen",
+      "usi"
      ],
      "type": "string"
     },
@@ -132,8 +132,8 @@
       "ki2",
       "csa",
       "jkf",
-      "usi",
-      "usen"
+      "usen",
+      "usi"
      ],
      "type": "string"
     },
@@ -149,8 +149,8 @@
       "ki2",
       "csa",
       "jkf",
-      "usi",
       "usen",
+      "usi",
       "sfen"
      ],
      "type": "string"
@@ -689,8 +689,8 @@
       "ki2",
       "csa",
       "jkf",
-      "usi",
-      "usen"
+      "usen",
+      "usi"
      ],
      "type": "string"
     },

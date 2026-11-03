@@ -182,6 +182,7 @@
 | 2026-11-03 | 通信対局の自動保存の形式の一覧を保存の表から作るようにした（監査 2026-11-01 F21・U6）のに合わせて §6.2 を更新（`CsaGameDialog` は `KifuFormats::saveTargets()` の8形式を「名前を付けて保存」と同じ見出し（`KifuFileFilter::saveLabel()`）で並べる。形式の既定は `MatchAutoSave::extension` の `kifu` だけで、ローカル対局と通信対局で同じ。`NetworkSettings::csaAutoSaveFormat` は選んだことがなければ空） |
 | 2026-11-03 | 局面を受け付ける規則を1つにした（監査 2026-11-01 U1）のに合わせて §8.2・§10.5 を更新（棋譜の開始局面の規則 `KifuLoadParser::startPositionProblem()` を公開し、`KifuLoader::loadPositionFromSfen()` と自動化 API の `position.set` も使う。`position.set` は GUI の局面の貼り付けと同じく、玉の無い図・手番でない側に王手がかかった図を受け付ける。局面集・詰将棋問題一覧は `SfenValidator` のまま） |
 | 2026-11-03 | 棋譜解析の1局面の評価値を GUI と CLI で1つにした（監査 2026-11-01 U3）のに合わせて §9.3・§9.6 を更新（`PlyAnalysis::score`（手番側から見た値）を `blackScore`（先手から見た値）にし、`PlyAnalysisCollector` が解析した局面の手番で直す。GUI の `KifuAnalysisRowPresenter` は SFEN の手番の字を読まず、CLI の `analyze-kifu` は最後に読み筋のあった info（`latestLines()`）でなくこの値を使う） |
+| 2026-11-03 | 保存できる形式の定義を保存の表1つにした（監査 2026-11-01 T5）（`KifuFormats::savableNames()` は保存の表から作り、並びは表の順。使っていない `isSavable()` を消した。CLI の `environment` に `kifu_save_suffixes` を足し、MCP の `save_kifu` はアプリの `kifu.save` と同じく `.sfen` を断る） |
 
 <!-- chapter-0-end -->
 
