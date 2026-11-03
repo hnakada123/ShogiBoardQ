@@ -58,9 +58,9 @@ void NotificationPresenter::showInformation(const QString& title, const QString&
     information(m_deps.parentWidget, title, message);
 }
 
-void NotificationPresenter::information(QWidget* parent, const QString& title, const QString& message, Wait wait)
+QMessageBox* NotificationPresenter::information(QWidget* parent, const QString& title, const QString& message, Wait wait)
 {
-    show(parent, Kind::Information, title, message, wait);
+    return show(parent, Kind::Information, title, message, wait);
 }
 
 void NotificationPresenter::warning(QWidget* parent, const QString& title, const QString& message)
@@ -73,12 +73,12 @@ void NotificationPresenter::critical(QWidget* parent, const QString& title, cons
     show(parent, Kind::Critical, title, message, Wait::UntilClosed);
 }
 
-void NotificationPresenter::show(QWidget* parent, Kind kind, const QString& title, const QString& message, Wait wait)
+QMessageBox* NotificationPresenter::show(QWidget* parent, Kind kind, const QString& title, const QString& message, Wait wait)
 {
     // 自動化 API の呼び出し中はダイアログを出さずに記録する
     if (s_activeCapture != nullptr) {
         (kind == Kind::Critical ? s_activeCapture->m_errors : s_activeCapture->m_notices).append(message);
-        return;
+        return nullptr;
     }
     const QMessageBox::Icon icon = kind == Kind::Critical ? QMessageBox::Critical
         : kind == Kind::Warning ? QMessageBox::Warning : QMessageBox::Information;
@@ -90,7 +90,8 @@ void NotificationPresenter::show(QWidget* parent, Kind kind, const QString& titl
     if (wait == Wait::No) {
         box->setModal(false);
         box->show();
-        return;
+        return box;
     }
     box->exec();
+    return nullptr;
 }

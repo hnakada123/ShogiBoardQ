@@ -710,7 +710,7 @@ struct MatchGameOverState {
 | シグナル | 受信先 | 処理内容 |
 |---|---|---|
 | `gameEnded` | `GameSession::onGameEnded()` | 中断なら連続対局の設定を戻す（7.3） |
-| `gameOverMessage` | `NotificationPresenter::showInformation()` | 結果のダイアログ（`QMessageBox::information`） |
+| `gameOverMessage` | `GameSession::showGameOverMessage()` | 結果のダイアログ（`NotificationPresenter::information`。エンジン同士の連続対局で次の局が残っていれば閉じるのを待たず（`Wait::No`）、前の局の知らせは閉じる。最後の局と連続対局でない対局は閉じるまで待つ） |
 | `gameEndProcessed` | `GameSession::onGameEndProcessed()` | エンジン同士の連続対局なら次局へ（7.4） |
 | `gameInterrupted` | `GameSession::onGameInterrupted()` | 中断の行を `attachInterruptedRecord()` で中断した対局に結びつけ、「対局再開」を使えるようにする（8.2） |
 
@@ -1057,7 +1057,7 @@ MatchCoordinator::handleResign()
         ├─ m_activityLease.reset()（動作状態を Idle に） ──→ (B)
         ├─ emit gameEnded(info)                            … GameSession::onGameEnded()（中断でなければ何もしない）
         ├─ emit gameOverMessage("対局終了", "先手の投了。後手の勝ちです。")
-        │                                    ──→ NotificationPresenter::showInformation()
+        │                                    ──→ GameSession::showGameOverMessage()
         └─ emit gameEndProcessed(info)                     ──→ (D)
 
 (A) GameSession::appendRecord(entry)

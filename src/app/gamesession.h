@@ -5,6 +5,7 @@
 /// @brief 対局の利用者の操作（開始・投了・中断・再開・待った・新規）と、対局の棋譜の受け手
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <memory>
 
@@ -14,6 +15,7 @@
 #include "matchrecordsink.h"
 
 class AppActivityState;
+class QMessageBox;
 class JosekiBookSession;
 class ConsecutiveGameSeries;
 class CsaGameChannel;
@@ -109,12 +111,17 @@ public slots:
     /// 終局した（棋譜は司令塔が finishRecord で確定済み。中断なら連続対局をやめる）
     void onGameEnded(const MatchCoordinator::GameEndInfo& info);
     void onGameEndProcessed(const MatchCoordinator::GameEndInfo& info);
+    /// 終局の知らせを出す。エンジン同士の連続対局で次の局が残っていれば、閉じるのを待たずに次の局へ進め
+    /// （通信対局と同じ）、前の局の知らせは閉じる。最後の局は閉じるまで待つ
+    void showGameOverMessage(const QString& title, const QString& message);
     void onGameInterrupted();
     /// 連続対局の次局
     void startNextGame(const GameStartPlan& plan);
 
 private:
     QString recordStartSfen() const;
+    /// エンジン同士の連続対局で、次の局が残っているか
+    bool seriesContinues() const;
     /// 対局開始ダイアログに出す、定跡ウィンドウで開いている定跡の名前（開いていなければ空）
     QString josekiBookName() const;
     /// 対局者を文書に記録し、対局情報（開始日時・持ち時間）を作る（ローカル対局・通信対局で共通）
@@ -126,6 +133,7 @@ private:
     std::unique_ptr<LocalGameChannel> m_localChannel;
     std::unique_ptr<CsaGameChannel> m_csaChannel;
     MatchAutoSave m_autoSave;          ///< 進行中の対局の自動保存
+    QPointer<QMessageBox> m_gameOverNotice;  ///< 待たずに出した連続対局の途中の局の終局の知らせ（次の知らせで閉じる）
 
 };
 

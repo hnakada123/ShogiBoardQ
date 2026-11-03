@@ -31,6 +31,7 @@
 
 #include <QDateTime>
 #include <QFileInfo>
+#include <QMessageBox>
 
 namespace {
 
@@ -289,11 +290,25 @@ void GameSession::onGameEnded(const MatchCoordinator::GameEndInfo& info)
     if (info.cause == MatchCoordinator::Cause::BreakOff) m_deps.consecutive->reset();
 }
 
+bool GameSession::seriesContinues() const
+{
+    return m_deps.match->players().engineVsEngine() && m_deps.consecutive->shouldStartNextGame();
+}
+
+void GameSession::showGameOverMessage(const QString& title, const QString& message)
+{
+    // 前の局の知らせは閉じる（席を外して回した連続対局で知らせが積み重ならないように）
+    if (m_gameOverNotice) m_gameOverNotice->close();
+    QWidget* parent = m_deps.shogiView ? m_deps.shogiView->window() : nullptr;
+    m_gameOverNotice = NotificationPresenter::information(
+        parent, title, message, seriesContinues() ? NotificationPresenter::Wait::No : NotificationPresenter::Wait::UntilClosed);
+}
+
 void GameSession::onGameEndProcessed(const MatchCoordinator::GameEndInfo& info)
 {
     if (info.cause == MatchCoordinator::Cause::BreakOff) return;
     // 終局の知らせ・保存が終わってから次局を予約する（エンジン同士の対局のみ）
-    if (m_deps.match->players().engineVsEngine() && m_deps.consecutive->shouldStartNextGame()) {
+    if (seriesContinues()) {
         qCDebug(lcApp) << "EvE game ended, starting next consecutive game...";
         m_deps.consecutive->startNextGame();
     }

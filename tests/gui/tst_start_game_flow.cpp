@@ -769,6 +769,33 @@ private slots:
         qInfo() << "consecutive maxMoves: game=" << window->composer().parts().consecutiveGames->currentGameNumber();
         QCOMPARE(window->composer().parts().consecutiveGames->currentGameNumber(),2);
     }
+    /// 連続対局の途中の局の「対局終了」は閉じるのを待たずに次の局へ進み（通信対局と同じ）、前の局の知らせは閉じる
+    void consecutiveGameNoticesDoNotWait() {
+        configureEngineGames(1);
+        SettingsCommon::openSettings().setValue("GameSettings/consecutiveGames", 3);
+        SettingsCommon::openSettings().sync();
+        startWindowGame();
+        const auto gameOverNotices = []() {
+            QList<QMessageBox*> notices;
+            for (auto* widget : QApplication::topLevelWidgets()) {
+                auto* box = qobject_cast<QMessageBox*>(widget);
+                if (box && box->isVisible() && box->windowTitle() == QStringLiteral("対局終了")) notices.append(box);
+            }
+            return notices;
+        };
+        // 知らせを閉じる人がいなくても3局目まで進む
+        auto* series = window->composer().parts().consecutiveGames;
+        QTRY_COMPARE_WITH_TIMEOUT(series->currentGameNumber(), 3, 10000);
+        const QList<QMessageBox*> notices = gameOverNotices();
+        QCOMPARE(notices.size(), 1);   // 1局目の知らせは2局目の知らせで閉じた
+        QVERIFY(!notices.first()->isModal());
+        // 最後の局の知らせは閉じるまで待つ（閉じると前の局の知らせも残らない）
+        dialogTimer.start(10);
+        QTRY_VERIFY_WITH_TIMEOUT(window->composer().parts().match->isGameOver(), 10000);
+        QTRY_VERIFY(gameOverNotices().isEmpty());
+        dialogTimer.stop();
+        QCOMPARE(series->currentGameNumber(), 3);
+    }
     void consecutiveAutoSaveKeepsMoves() {
         // 1局1秒以上にして、秒単位の保存ファイル名が衝突しないようにする。
         qputenv("AUDIT_ENGINE_DELAY", "0.22");

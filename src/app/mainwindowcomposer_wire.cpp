@@ -160,7 +160,7 @@ void MainWindowComposer::connectGame()
             m_c.uiStatePolicy, &UiStatePolicyManager::refreshResumeAvailability);
 
     connect(match, &MatchCoordinator::gameEnded, session, &GameSession::onGameEnded);
-    connect(match, &MatchCoordinator::gameOverMessage, m_c.notifications, &NotificationPresenter::showInformation);
+    connect(match, &MatchCoordinator::gameOverMessage, session, &GameSession::showGameOverMessage);
     connect(match, &MatchCoordinator::gameEndProcessed, session, &GameSession::onGameEndProcessed);
     connect(match, &MatchCoordinator::gameInterrupted, session, &GameSession::onGameInterrupted);
 
