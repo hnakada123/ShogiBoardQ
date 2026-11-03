@@ -7,6 +7,8 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 
+#include "kifubranchtree.h"
+#include "kifubranchtreebuilder.h"
 #include "kifuconversionservice.h"
 #include "kifuexport.h"
 #include "sfenutils.h"
@@ -31,6 +33,14 @@ private:
         request.inputFormat = input;
         request.outputFormat = output;
         return KifuConversionService::convert(request);
+    }
+
+    /// 開始局面のコメント、初手の消費時間・しおり・コメント、2手目の消費時間がある KIF
+    static QString annotatedKif()
+    {
+        return QStringLiteral("手合割：平手\n*開始局面のコメント\n手数----指手---------消費時間--\n"
+                              "   1 ７六歩(77)   ( 0:10/0:00:10)\n&初手のしおり\n*初手のコメント\n"
+                              "   2 ３四歩(33)   ( 0:05/0:00:05)\n");
     }
 
     static const QStringList& basicMoves()
@@ -678,6 +688,101 @@ private slots:
         QVERIFY2(plain.ok, qPrintable(plain.failure.message));
         QVERIFY(!plain.hasBranches);
         QVERIFY(!plain.variationsDropped);
+    }
+
+    /// 書けるものの表（KifuExport::capabilities）は、書き出しが実際に消費時間・コメント・しおりを書くかと合う
+    void capabilitiesMatchWhatTheExportersWrite_data()
+    {
+        QTest::addColumn<Format>("output");
+        for (const Format format : {Format::Kif, Format::Ki2, Format::Csa, Format::Jkf, Format::Usen, Format::Usi})
+            QTest::newRow(qPrintable(KifuFormats::name(format))) << format;
+    }
+
+    void capabilitiesMatchWhatTheExportersWrite()
+    {
+        QFETCH(Format, output);
+        KifuConversionService::Request request;
+        request.text = annotatedKif();
+        request.outputFormat = output;
+        const auto written = KifuConversionService::convert(request);
+        QVERIFY2(written.ok, qPrintable(written.failure.message));
+
+        KifuConversionService::Request reread;
+        reread.text = written.lines.join(QLatin1Char('\n'));
+        reread.inputFormat = output;
+        reread.outputFormat = Format::Kif;
+        const auto again = KifuConversionService::convert(reread);
+        QVERIFY2(again.ok, qPrintable(again.failure.message));
+        QVERIFY(!again.mainline.entries.isEmpty());
+        const RecordEntry& first = again.mainline.entries.first();
+
+        const KifuExport::Capabilities can = KifuExport::capabilities(output);
+        QCOMPARE(first.time.isRecorded(), can.times);
+        QCOMPARE(first.comment.contains(QStringLiteral("初手のコメント")), can.comments);
+        QCOMPARE(again.mainline.openingComment.contains(QStringLiteral("開始局面のコメント")), can.comments);
+        QCOMPARE(first.bookmark.contains(QStringLiteral("初手のしおり")), can.bookmarks);
+    }
+
+    /// 形式で書くと失うもの（保存の確認・コピーの知らせ）。変化を書けない形式は本譜だけを見る（監査 2026-11-01 F20）
+    void lossFollowsTheCapabilities_data()
+    {
+        QTest::addColumn<QString>("record");
+        QTest::addColumn<Format>("output");
+        QTest::addColumn<QString>("expected");   // 失うもの: v=変化 t=消費時間 c=コメント b=しおり x=終局
+        // 本譜に消費時間・コメント・しおり・詰み、変化にコメント
+        const QString annotated = QStringLiteral("annotated");
+        QTest::newRow("kif") << annotated << Format::Kif << QString();
+        QTest::newRow("ki2") << annotated << Format::Ki2 << QStringLiteral("t");
+        QTest::newRow("csa") << annotated << Format::Csa << QStringLiteral("vb");
+        QTest::newRow("jkf") << annotated << Format::Jkf << QStringLiteral("b");
+        QTest::newRow("usen") << annotated << Format::Usen << QStringLiteral("tcbx");
+        QTest::newRow("usi") << annotated << Format::Usi << QStringLiteral("vtcb");
+        // 本譜には何もなく、変化にだけコメントとしおり
+        const QString variationOnly = QStringLiteral("variation-only");
+        QTest::newRow("variation-only-kif") << variationOnly << Format::Kif << QString();
+        QTest::newRow("variation-only-csa") << variationOnly << Format::Csa << QStringLiteral("v");
+        QTest::newRow("variation-only-jkf") << variationOnly << Format::Jkf << QStringLiteral("b");
+        QTest::newRow("variation-only-usen") << variationOnly << Format::Usen << QStringLiteral("cb");
+        QTest::newRow("variation-only-usi") << variationOnly << Format::Usi << QStringLiteral("v");
+    }
+
+    void lossFollowsTheCapabilities()
+    {
+        QFETCH(QString, record);
+        QFETCH(Format, output);
+        QFETCH(QString, expected);
+        const QString text = record == QLatin1String("annotated")
+            ? annotatedKif() + QStringLiteral("   3 詰み\n\n変化：2手\n   2 ８四歩(83)\n*変化のコメント\n")
+            : QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 ３四歩(33)\n\n"
+                             "変化：2手\n   2 ８四歩(83)\n&変化のしおり\n*変化のコメント\n");
+        const KifuLoadResult loaded = KifuLoadParser::parseText(text);
+        QVERIFY2(loaded.success, qPrintable(loaded.error));
+        KifuBranchTree tree;
+        QVERIFY(KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record));
+        QCOMPARE(tree.lineCount(), 2);
+
+        const KifuExport::Loss loss = KifuExport::lossIn(tree, output);
+        QCOMPARE(loss.variations, expected.contains(QLatin1Char('v')));
+        QCOMPARE(loss.times, expected.contains(QLatin1Char('t')));
+        QCOMPARE(loss.comments, expected.contains(QLatin1Char('c')));
+        QCOMPARE(loss.bookmarks, expected.contains(QLatin1Char('b')));
+        QCOMPARE(loss.terminals, expected.contains(QLatin1Char('x')) ? QList<TerminalType>{TerminalType::Checkmate}
+                                                                      : QList<TerminalType>{});
+        QCOMPARE(loss.isEmpty(), expected.isEmpty());
+    }
+
+    /// 終局の行を書けるか（CSA・USI・USEN は符号の表。KIF・KI2・JKF は終局語で書ける）
+    void terminalsFollowTheCodeTables()
+    {
+        QVERIFY(KifuExport::writesTerminal(Format::Kif, TerminalType::Custom));
+        QVERIFY(KifuExport::writesTerminal(Format::Jkf, TerminalType::Try));
+        QVERIFY(KifuExport::writesTerminal(Format::Csa, TerminalType::IllegalWin));
+        QVERIFY(!KifuExport::writesTerminal(Format::Csa, TerminalType::Custom));
+        QVERIFY(KifuExport::writesTerminal(Format::Usi, TerminalType::Checkmate));
+        QVERIFY(!KifuExport::writesTerminal(Format::Usi, TerminalType::MaxMoves));
+        QVERIFY(KifuExport::writesTerminal(Format::Usen, TerminalType::Resign));
+        QVERIFY(!KifuExport::writesTerminal(Format::Usen, TerminalType::IllegalLoss));
+        QVERIFY(!KifuExport::writesTerminal(Format::Usen, TerminalType::IllegalWin));
     }
 
     /// 失敗は分類つきで返す（ファイルがない・相対パスとディレクトリ・入力の指定の誤り・読めない中身・不正な開始局面）

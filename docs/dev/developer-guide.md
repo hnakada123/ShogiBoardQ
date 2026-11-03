@@ -176,6 +176,7 @@
 | 2026-11-03 | 通信対局の接続中を動作状態にした（監査 2026-11-01 F13）のに合わせて §3.4・§12.3・§14.2 を更新（`AppActivityState::Activity::DuringCsaConnection` を足し、`CsaGameCoordinator` が接続してから通信対局を続ける間（`sessionContinues()`）持つ。対局の間は `DuringCsaGame`。局と局の間は棋譜を見る・保存・コピーだけで、開く・貼り付け・対局開始・局面編集・棋譜解析・詰み探索・詰将棋生成・検討・エンジン設定・棋譜の編集はできない。「新規」と「中断」（`CsaGameChannel::breakOff()` → `stopGame()`）でログアウトする。自動化 API の `ui_state` は `csa_connected`、`play_mode` は `csa_network`） |
 | 2026-11-03 | `CsaGameCoordinator` の1局の進行に入らない仕事を切り出した（監査 2026-11-01 M6）のに合わせて §12.3 を更新（対局条件の受け入れの判断とログの文は `CsaGameSummary::unsupportedReason()`・`conditionLines()`、裁定の待ちは `CsaVerdictWait`、対局数と再接続は `CsaGameSeries`。LOGIN のパスワードを伏せるのは `CsaClient` だけにし、「すぐ指させる」はローカル対局と同じ `Usi::requestImmediateMove()` にした。使っていない `username()`・`gameSummary()`・`completedGames()`・`gameLimit()` を消した） |
 | 2026-11-03 | 読むファイルの検査を CLI と自動化 API で1つにした（監査 2026-11-01 F8）のに合わせて §1.5 のファイルの一覧を更新（headless に `InputPath::check`（絶対パス・存在・通常のファイル）を置き、CLI の `convert-kifu`・`analyze-kifu` の `input_path`（`KifuConversionService`）と `kifu.load` が使う。CLI も相対パスを断り、ディレクトリは `parse_error` でなく `invalid_argument` にした。MCP の `paths.py` と同じ分類） |
+| 2026-11-03 | 保存形式で失うものを形式の表から決めるようにした（監査 2026-11-01 F20）のに合わせて §8.8・§8.9 を更新（`KifuExport::capabilities()`（変化・消費時間・コメント・しおり）・`writesTerminal()`・`lossIn()` を置き、`KifuSaveDialogs::saveViaDialog` は形式ごとの switch の代わりに `lossOf` の失うものを並べて確認する（USEN・USI のコメント・しおり、変化の消費時間、CSA・USI の書けない終局も聞く）。`RecordContents` は消した。コピーの知らせも同じ表で、含まないものを出す。消費時間のない形式を読んだ手の 0 秒の時間は `RecordTime::isRecorded()` で数えない） |
 
 <!-- chapter-0-end -->
 
@@ -4703,7 +4704,8 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 | 関数 | 説明 |
 |------|------|
-| `saveViaDialog(parent, generateLines, defaultFileName, hasBranches, hasTimeInfo, outError)` | 保存ダイアログを出し、KIF（UTF-8 `.kifu`・Shift_JIS `.kif`）・KI2（`.ki2u`・`.ki2`）・CSA・JKF・USEN・USI のどれかで保存する。絞り込みは拡張子の表から作る（`KifuFileFilter::forSaving()`。拡張子を書かなければ選んだ絞り込みの拡張子を付ける `pathForSaving()`）。形式と文字コードは選んだパスの拡張子で決まり、決まってから `generateLines(format, encoding)` でその形式の行だけを作る。分岐や消費時間を保存できない形式では、続けるか確認する |
+| `saveViaDialog(parent, generateLines, defaultFileName, lossOf, outError)` | 保存ダイアログを出し、KIF（UTF-8 `.kifu`・Shift_JIS `.kif`）・KI2（`.ki2u`・`.ki2`）・CSA・JKF・USEN・USI のどれかで保存する。絞り込みは拡張子の表から作る（`KifuFileFilter::forSaving()`。拡張子を書かなければ選んだ絞り込みの拡張子を付ける `pathForSaving()`）。形式と文字コードは選んだパスの拡張子で決まり、決まってから `generateLines(format, encoding)` でその形式の行だけを作る。選んだ形式で失うもの（`lossOf(format)`。`KifuFileController` は `KifuExport::lossIn` を渡す）があれば、失うものを並べて続けるか確認する |
+| `lostItemsText(loss)` / `formatName(format)` | 失うものの一覧の文（「分岐、消費時間、コメント、しおり、終局理由（詰み）」）と、知らせに書く形式の名前（"KI2" など）。保存の確認とコピーの知らせで共通 |
 | `overwriteExisting(parent, path, generateLines, outError)` | 既存ファイルへの上書き保存（行の作り方は `saveViaDialog` と同じ） |
 | `confirmDiscardUnsaved(parent, isDirty, save)` | 未保存の変更があるとき、保存・破棄・キャンセルを確認する（`isDirty` には `KifuDocument::isModified()` を渡す） |
 
@@ -4733,17 +4735,21 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 | `metadataOf(document)` | 文書の書き出しの文脈（`KifuExportMetadata`：対局情報・開始局面・文字コード） |
 | `lines(tree, metadata, format)` | `format` の行。表の関数を呼ぶ。KIF・KI2・CSA の先頭行の文字コードの宣言は `metadata.encoding` |
 | `lines(document, format, encoding)` | 文書を `format` の行にする（`encoding` は既定で UTF-8。保存では保存先の文字コードを渡す） |
+| `capabilities(format)` / `writesVariations(format)` / `writesTerminal(format, type)` | 形式の書き出しが書けるもの（`Capabilities`：変化・消費時間・コメント・しおり）と、終局の行を書けるか（CSA・USI・USEN は符号の表 `TerminalCodes`、KIF・KI2・JKF は全部）。形式ごとに書けるものの知識はここだけ |
+| `lossIn(tree, format)` | 棋譜を `format` で書くと失うもの（`Loss`）。変化を書けない形式は本譜だけを見る。消費時間は `RecordTime::isRecorded()`（0 秒は消費時間のない形式を読んだ手の埋め草なので数えない）。保存の確認（`KifuSaveDialogs::saveViaDialog`）とコピーの知らせ（`KifuFileController::copyRecord`）が使う |
 
 表の関数は各 Exporter（`src/kifu/formats/`）の `static QStringList exportLines(const KifuBranchTree&, const KifuExportMetadata&)`。
 
-| Exporter | 形式 | 分岐対応 | 備考 |
-|---------|------|---------|------|
-| `KifExporter` | KIF | あり | 日本将棋連盟標準形式。消費時間・コメント含む。SFEN・BOD を指定したときもこれ（棋譜を書けないため） |
-| `Ki2Exporter` | KI2 | あり | 移動元座標省略形式。消費時間なし |
-| `CsaExporter` | CSA | なし | コンピュータ将棋協会形式。本譜のみ |
-| `JkfExporter` | JKF | あり | JSON棋譜フォーマット |
-| `UsenExporter` | USEN | あり | URLセーフ短縮形式 |
-| `UsiExporter` | USI | なし | position コマンド文字列。本譜のみ（`KifuBranchTree::mainRecordLine().usiMoves()`）。文字列は `UsiPosition::commandFor(startSfen, moves)`（`UsiPosition::command()` と共有） |
+| Exporter | 形式 | 分岐 | 消費時間 | コメント | しおり | 備考 |
+|---------|------|------|---------|---------|-------|------|
+| `KifExporter` | KIF | あり | あり | あり | あり | 日本将棋連盟標準形式。SFEN・BOD を指定したときもこれ（棋譜を書けないため） |
+| `Ki2Exporter` | KI2 | あり | なし | あり | あり | 移動元座標省略形式 |
+| `CsaExporter` | CSA | なし | あり | あり | なし | コンピュータ将棋協会形式。本譜のみ |
+| `JkfExporter` | JKF | あり | あり | あり | なし | JSON棋譜フォーマット |
+| `UsenExporter` | USEN | あり | なし | なし | なし | URLセーフ短縮形式 |
+| `UsiExporter` | USI | なし | なし | なし | なし | position コマンド文字列。本譜のみ（`KifuBranchTree::mainRecordLine().usiMoves()`）。文字列は `UsiPosition::commandFor(startSfen, moves)`（`UsiPosition::command()` と共有） |
+
+分岐・消費時間・コメント・しおりの列は `KifuExport::capabilities()` の表と同じ（`tst_kifu_conversion_service` の `capabilitiesMatchWhatTheExportersWrite` が、書いて読み直して確かめる）。
 
 形式をまたいで共有する部品:
 

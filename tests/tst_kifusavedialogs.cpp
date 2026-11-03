@@ -139,7 +139,7 @@ private slots:
                 ++generated;
                 actual = format;
                 return QStringList{QStringLiteral("selected format only")};
-            }, QString(), KifuSaveDialogs::RecordContents{}, &error);
+            }, QString(), KifuSaveDialogs::LossOf(), &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QCOMPARE(generated, responder.cancelFile ? 0 : 1);
         if (responder.cancelFile) QVERIFY(path.isEmpty());
@@ -153,45 +153,65 @@ private slots:
         }
     }
 
-    /// USEN に書けない終局（反則負け・反則勝ち・詰みなど）は、消費時間がなくても保存の前に確かめる（監査 2026-11-01 F31）
-    void usenAsksBeforeDroppingTerminals_data()
+    /// 選んだ形式で失うもの（KifuExport::lossIn）があるときだけ、失うものを並べて保存の前に確かめる
+    /// （監査 2026-11-01 F20・F31。USEN のコメント・しおり・書けない終局も、消費時間がなくても聞く）
+    void asksOnlyWhenTheChosenFormatLosesSomething_data()
     {
-        QTest::addColumn<int>("terminal");
-        QTest::addColumn<bool>("asks");
-        QTest::newRow("resign") << int(TerminalType::Resign) << false;
-        QTest::newRow("repetition") << int(TerminalType::Repetition) << false;
-        QTest::newRow("illegal-loss") << int(TerminalType::IllegalLoss) << true;
-        QTest::newRow("illegal-win") << int(TerminalType::IllegalWin) << true;
-        QTest::newRow("checkmate") << int(TerminalType::Checkmate) << true;
+        QTest::addColumn<QString>("suffix");
+        QTest::addColumn<QString>("lost");      // v=変化 t=消費時間 c=コメント b=しおり x=詰み（lossOf が返すもの）
+        QTest::addColumn<QStringList>("shown");  // 確認の文に出る語
+        QTest::newRow("nothing") << QStringLiteral("usen") << QString() << QStringList();
+        QTest::newRow("usen-comments") << QStringLiteral("usen") << QStringLiteral("cb")
+                                       << QStringList{QStringLiteral("USEN"), QStringLiteral("コメント"), QStringLiteral("しおり")};
+        QTest::newRow("usen-terminal") << QStringLiteral("usen") << QStringLiteral("x")
+                                       << QStringList{QStringLiteral("終局理由（詰み）")};
+        QTest::newRow("usi-all") << QStringLiteral("usi") << QStringLiteral("vtcb")
+                                 << QStringList{QStringLiteral("USI"), QStringLiteral("分岐、消費時間、コメント、しおり")};
+        QTest::newRow("jkf-bookmarks") << QStringLiteral("jkf") << QStringLiteral("b")
+                                       << QStringList{QStringLiteral("JKF"), QStringLiteral("しおり")};
     }
 
-    void usenAsksBeforeDroppingTerminals()
+    void asksOnlyWhenTheChosenFormatLosesSomething()
     {
-        QFETCH(int, terminal);
-        QFETCH(bool, asks);
+        QFETCH(QString, suffix);
+        QFETCH(QString, lost);
+        QFETCH(QStringList, shown);
         QTemporaryDir dir;
         SaveDialogResponder responder;
-        responder.filePath = dir.filePath(QStringLiteral("record.usen"));
+        responder.filePath = dir.filePath(QStringLiteral("record.") + suffix);
         responder.answer = QMessageBox::Cancel;
         // 保存ダイアログは前回のフォルダの既定の名前から始まるので、この行のフォルダにしておく
         GameSettings::lastKifuSaveDirectory.set(dir.path());
-        bool asked = false;
+        QString question;
         QTimer poll;
         poll.setInterval(10);
         connect(&poll, &QTimer::timeout, &responder, [&]() {
-            if (qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) asked = true;
+            if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) question = box->text();
             responder.respond();
         });
         poll.start();
-        KifuSaveDialogs::RecordContents contents;
-        contents.terminals = {static_cast<TerminalType>(terminal)};
+        QList<KifuFormat> askedFormats;
+        const auto lossOf = [&](KifuFormat format) {
+            askedFormats.append(format);
+            KifuExport::Loss loss;
+            loss.variations = lost.contains(QLatin1Char('v'));
+            loss.times = lost.contains(QLatin1Char('t'));
+            loss.comments = lost.contains(QLatin1Char('c'));
+            loss.bookmarks = lost.contains(QLatin1Char('b'));
+            if (lost.contains(QLatin1Char('x'))) loss.terminals = {TerminalType::Checkmate};
+            return loss;
+        };
         int generated = 0;
         const QString path = KifuSaveDialogs::saveViaDialog(nullptr, [&](SaveFormat, KifuEncoding) {
             ++generated;
             return QStringList{QStringLiteral("~0.7ku.")};
-        }, QStringLiteral("record.usen"), contents);
+        }, QStringLiteral("record.") + suffix, lossOf);
         poll.stop();
-        QCOMPARE(asked, asks);
+        // 失うものは選んだ形式で1回だけ聞く
+        QCOMPARE(askedFormats, QList<KifuFormat>{KifuSaveFile::saveFormatForPath(responder.filePath)});
+        const bool asks = !lost.isEmpty();
+        QCOMPARE(!question.isEmpty(), asks);
+        for (const QString& word : std::as_const(shown)) QVERIFY2(question.contains(word), qPrintable(question));
         // 確かめて取りやめたら書かない
         QCOMPARE(path.isEmpty(), asks);
         QCOMPARE(generated, asks ? 0 : 1);
@@ -243,7 +263,7 @@ private slots:
             return !KifuSaveDialogs::saveViaDialog(nullptr, [&](SaveFormat, KifuEncoding) {
                 ++generated;
                 return QStringList{QStringLiteral("unsaved record")};
-            }, QString(), KifuSaveDialogs::RecordContents{}).isEmpty();
+            }, QString(), KifuSaveDialogs::LossOf()).isEmpty();
         });
         QVERIFY(!accepted);
         QCOMPARE(generated, 0);
