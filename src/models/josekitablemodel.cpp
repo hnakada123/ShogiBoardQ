@@ -4,22 +4,11 @@
 #include "josekitablemodel.h"
 
 #include "kifupresentation.h"
+#include "plaintooltip.h"
 #include "sfenreplay.h"
 
 #include <QColor>
 #include <QLocale>
-
-namespace {
-
-// ツールチップは文字を見て HTML として描くことがあるので、定跡ファイルのコメントなどは文字のまま出す
-// （<img> でローカルのファイルを読ませない。セキュリティ監査 S12）
-QString plainToolTip(const QString &text)
-{
-    if (text.isEmpty()) return {};
-    return QStringLiteral("<qt>%1</qt>").arg(text.toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br/>")));
-}
-
-} // namespace
 
 JosekiTableModel::JosekiTableModel(QObject *parent)
     : QAbstractTableModel(parent)

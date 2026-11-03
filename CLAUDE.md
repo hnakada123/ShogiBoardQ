@@ -147,6 +147,7 @@ cmake --build build --target translations
   - `applicationfonts` - 表示言語に応じた書体 `ApplicationFonts`
   - `applicationstyle`・`applicationrendering` - アプリ全体のスタイルと描画の設定
   - `buttonstyles.h`・`tablestyles.h` - ボタン・表のスタイルシート（`ButtonStyles`・`TableStyles`）
+  - `plaintooltip` - 外から来た文字列（棋譜のコメント・対局情報・定跡ファイルのコメント・エンジン名・対局者名）を、HTML として読ませずに文字のまま出すツールチップ `plainToolTip`（エスケープし、空白と改行もそのまま。区切り線で分ける段は `QStringList`）。`setToolTip`・`Qt::ToolTipRole` に外から来た文字列を入れるときはこれで包む（models・widgets で共通。自前のポップアップ `GlobalToolTip` は PlainText のラベルなので包まない）。利用者に見える文字に戻すのは `shownToolTipText`（自動化 API の部品の一覧の `tooltip`）
   - `movefont.h` - 指し手・読み筋の書体の規則 `MoveFont`（表のモデルの FontRole と `KifuMoveDelegate` で共通）
   - `boardappearance` - 対局画面の外観（駒のセット・配色・見た目）の持ち主 `BoardAppearance`（すべての盤面が共有する。`pieceStyle`・`colors`・`visuals` と、まとめた値 `AppearanceState`（`appearancestate.h`）の `state()`・`apply()`。変わったものだけを `pieceStyleChanged`・`colorsChanged`・`visualsChanged` で知らせる）。保存は `appearancesettings`（`AppearanceSettings`。外観ダイアログの大きさ・開いていたタブ・駒の絞り込みも）
   - `boardcolors.h`・`boardvisuals.h` - 配色 `BoardColors`（設定のキーと外観ダイアログの表示名の表 `fields()`）と、木目・駒の影・駒の大きさ `BoardVisuals`

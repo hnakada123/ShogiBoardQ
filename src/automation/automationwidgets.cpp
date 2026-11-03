@@ -7,6 +7,7 @@
 #include "automationparams.h"
 #include "automationactionpolicy.h"
 #include "automationwidgetadapters.h"
+#include "plaintooltip.h"
 
 #include <QAbstractButton>
 #include <QAction>
@@ -94,7 +95,7 @@ QJsonArray AutomationWidgets::describeWidgets(QWidget* root, const QString& obje
         obj[QStringLiteral("object_name")] = w->objectName();
         obj[QStringLiteral("selector")] = selector(w);
         obj[QStringLiteral("parent_selector")] = w->parent() ? selector(w->parent()) : QString();
-        obj[QStringLiteral("tooltip")] = w->toolTip();
+        obj[QStringLiteral("tooltip")] = shownToolTipText(w->toolTip());   // HTML で包んだツールチップも見える文字で返す
         obj[QStringLiteral("accessible_name")] = w->accessibleName();
         const QString actionName = widgetActionName(w);
         if (!actionName.isEmpty()) obj[QStringLiteral("action_name")] = actionName;

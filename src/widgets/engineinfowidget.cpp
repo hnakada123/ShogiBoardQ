@@ -4,6 +4,7 @@
 #include "engineinfowidget.h"
 #include "columnwidthmemory.h"
 #include "movefont.h"
+#include "plaintooltip.h"
 #include "tableheaderview.h"
 #include "itemtextdelegate.h"
 #include "kifumovedelegate.h"
@@ -127,7 +128,7 @@ void EngineInfoWidget::setCellValue(int col, const QString& value) {
     // 思考情報は1秒に何度も届く。値が同じなら表も幅も変えない
     if (item && item->text() != value) {
         item->setText(value);
-        item->setToolTip(value);
+        item->setToolTip(plainToolTip(value));   // エンジン名はエンジンが名乗る名前なので文字のまま出す
         scheduleTableGeometry();
     }
 }

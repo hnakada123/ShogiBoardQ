@@ -6,6 +6,7 @@
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifupresentation.h"
+#include "plaintooltip.h"
 #include "tablestyles.h"
 
 #include <QBrush>
@@ -63,11 +64,7 @@ QVariant KifuRecordListModel::data(const QModelIndex& index, int role) const
         }
     case Qt::ToolTipRole:
         if (col == MoveColumn) return moveText(node, true);
-        if (col == CommentColumn && !node->comment().isEmpty()) {
-            QString html = node->comment().toHtmlEscaped();
-            html.replace(QLatin1Char('\n'), QStringLiteral("<br/>"));
-            return QStringLiteral("<qt>%1</qt>").arg(html);
-        }
+        if (col == CommentColumn && !node->comment().isEmpty()) return plainToolTip(node->comment());
         return QVariant();
     case Qt::FontRole:
         return col == MoveColumn && node->isActualMove() ? MoveFont::role() : QVariant();

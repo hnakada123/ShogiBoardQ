@@ -192,6 +192,7 @@
 | 2026-11-03 | 入玉宣言の駒の数と点数を core の1か所にした（監査 2026-11-01 M9）のに合わせて第18章を更新（`JishogiCalculator` に敵陣に要る駒の数 `kRequiredPiecesInCamp`・`hasEnoughPiecesInCamp()` と駒の点数 `kMajorPiecePoints`・`kMinorPiecePoints` を置き、持将棋の点数のダイアログと `NyugyokuJudgement` の説明文の数はこれと `winningPoints()`・`requiredPoints()` から入れる） |
 | 2026-11-03 | 1組の駒の枚数と敵陣の表を1つにした（監査 2026-11-01 M10）のに合わせて第1章・第2章・第5章を更新（`PieceRules::kSetCounts`・`setCount()` を駒箱 `Position::pieceBox()`・`PositionValidator`・`TsumeshogiPositionGenerator` が使う。詰将棋の候補局面の生成は自前の駒種・成れるかの表・行き所のない段の判定をやめ、`PieceKind`・`isPromotable`・`PieceRules::isDeadSquare` を使う。持将棋の敵陣は `PieceRules::inPromotionZone`） |
 | 2026-11-03 | パネルのチェックと切り替えの `QAction` の結び付けを1つにした（監査 2026-11-01 M11）のに合わせて §1.5・§11.2・§11.3・第18章を更新（widgets に `ActionBinding::bindCheckable()` を置き、思考ドック（`ThinkingPanel`）・検討タブ（`ConsiderationPanel`）・定跡ウィンドウ（`JosekiWindow`）のチェックはそれで結ぶ。QAction は必須にし、渡されなければパネルが作る分岐と、テストのためだけの引数なしのコンストラクタを消した） |
+| 2026-11-03 | 外から来た文字列のツールチップの書き方を1つにした（監査 2026-11-01 M12）のに合わせて §1.5・§11.5.3・第18章を更新（style に `plainToolTip()` を置き、棋譜欄のコメント・対局情報・定跡ウィンドウ・思考の表の読み筋・分岐ツリー・メニューウィンドウのボタンと、エスケープせずに入れていたエンジンを選ぶコンボ・エンジン情報欄・`ElideLabel`（エンジン名・対局者名）はこれで出す。空白と改行もそのまま出す（`white-space:pre-wrap`。以前の `<br/>` に替える書き方は連続した空白を詰めていた）。`GlobalToolTip` はラベルを `Qt::PlainText` にし、エスケープした文字（「&amp;」など）を見せないようにした。自動化 API の部品の一覧の `tooltip` は、見える文字 `shownToolTipText()` で返す） |
 
 <!-- chapter-0-end -->
 
@@ -538,6 +539,7 @@ src/
 │   ├── applicationstyle.cpp/.h, applicationrendering.cpp/.h # アプリ全体のスタイルと描画の設定
 │   ├── movefont.h                  #   指し手・読み筋の書体の規則（表のモデルの FontRole と KifuMoveDelegate で共通）
 │   ├── buttonstyles.h, tablestyles.h # ボタン・表のスタイルシート
+│   ├── plaintooltip.cpp/.h         #   外から来た文字列を文字のまま出すツールチップ（plainToolTip。models・widgets で共通）
 │   ├── boardappearance.cpp/.h      #   対局画面の外観（駒のセット・配色・見た目）の持ち主（state()・apply()・変更の知らせ）
 │   ├── appearancestate.h           #   外観をまとめた値 AppearanceState
 │   ├── appearancesettings.cpp/.h   #   外観と外観ダイアログの設定の宣言の表（AppearanceSettings）
@@ -6606,7 +6608,8 @@ src/widgets/apptooltipfilter.h / .cpp
 
 Qt 標準のツールチップは OS やテーマに依存して見た目が不統一になりやすい。本プロジェクトでは以下の構成で統一的なツールチップを実現している。
 
-- **GlobalToolTip**: QFrame ベースの軽量ポップアップ。`showText(QPoint, QString)` でグローバル座標にプレーンテキストを表示。XSS 対策として HTML タグをエスケープする
+- **GlobalToolTip**: QFrame ベースの軽量ポップアップ。`showText(QPoint, QString)` でグローバル座標にプレーンテキストを表示。XSS 対策としてラベルを `Qt::PlainText` にし、文字を HTML として読ませずにそのまま出す（エスケープはしない。`plainToolTip()` で包んだ文字は渡さない）
+- **plainToolTip()**（`src/style/plaintooltip.h`）: Qt 標準のツールチップ（`setToolTip()`・`Qt::ToolTipRole`）は、タグらしいものがあると HTML として描く（`<img>` でローカルのファイルを読ませることもできる。セキュリティ監査 S12）。棋譜のコメント・対局情報・定跡ファイルのコメント・エンジン名・対局者名など外から来た文字列は、`plainToolTip(text)` で包んでから出す。文字はエスケープし、`<qt style='white-space:pre-wrap'>` で空白と改行もそのまま出す（空なら空で、ツールチップを出さない）。区切り線で分ける段は `plainToolTip(QStringList)`（分岐ツリーの手の説明とコメント）。自動化 API の部品の一覧は、ツールチップを利用者に見える文字 `shownToolTipText()` で返す。使うのは棋譜欄・対局情報・定跡ウィンドウ・思考の表のモデルと、分岐ツリー・メニューウィンドウのボタン・エンジンを選ぶコンボ・エンジン情報欄・`ElideLabel`
 - **AppToolTipFilter**: QObject のイベントフィルタ。`QEvent::ToolTip` を横取りして GlobalToolTip に差し替える。`installOn(QWidget*)` はルートと、その下のメニューバー・ツールバー・メニュー・ツールボタンに装着する（ほかの子ウィジェットや後から足した子には付かない）。アプリでは `MainWindowAppearanceController::installAppToolTips()` がツールバーのボタンに装着している
 
 #### 11.5.4 LongLongSpinBox
@@ -9817,6 +9820,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | movefont | 第11章 | 指し手・読み筋の書体の規則 |
 | buttonstyles | 第11章 | ボタンの役割ごとのスタイルシート（`docs/dev/button-color-scheme.md`） |
 | tablestyles | 第11章 | 表のスタイルシート |
+| plaintooltip | 第11章 | 外から来た文字列を文字のまま出すツールチップ（`plainToolTip`） |
 | boardappearance | 第11章, 第12章 | 対局画面の外観（駒のセット・配色・見た目）の持ち主 |
 | appearancestate | 第12章 | 外観をまとめた値 |
 | appearancesettings | 第12章 | 外観と外観ダイアログの設定の宣言の表 |

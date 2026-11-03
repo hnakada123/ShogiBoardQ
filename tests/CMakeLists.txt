@@ -429,6 +429,7 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/dialogs/enginesettingsoptionhandler.cpp
     ${SRC}/dialogs/engineoptiondescriptions.cpp
     ${SRC}/widgets/engineselector.cpp
+    ${SRC}/style/plaintooltip.cpp
     ${SRC}/widgets/playersetupwidget.cpp
     ${SRC}/widgets/settingsformbinding.cpp
     ${SRC}/widgets/timecontroleditor.cpp
@@ -454,6 +455,7 @@ set_target_properties(tst_startgamedialog PROPERTIES
 add_shogi_test(tst_engineselector
     tst_engineselector.cpp
     ${SRC}/widgets/engineselector.cpp
+    ${SRC}/style/plaintooltip.cpp
     ${SRC}/common/logcategories.cpp
     ${SETTINGS_SOURCES}
 )
@@ -883,6 +885,7 @@ add_shogi_test(tst_menu_window
     ${SRC}/common/logcategories.cpp
     ${SRC}/widgets/menuwindow.cpp
     ${SRC}/widgets/menubuttonwidget.cpp
+    ${SRC}/style/plaintooltip.cpp
     ${SRC}/widgets/flowlayout.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
     ${SRC}/widgets/panelbutton.cpp
@@ -1213,6 +1216,7 @@ add_shogi_test(tst_usilogpanel
     ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/elidelabel.cpp
+    ${SRC}/style/plaintooltip.cpp
     ${SRC}/models/usicommlogmodel.cpp
     ${SRC}/style/applicationfonts.cpp
     ${SRC}/common/logcategories.cpp
@@ -1264,6 +1268,8 @@ set_tests_properties(tst_incremental_table_view_scaled PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=1.25")
 add_shogi_test(tst_candidate_arrows tst_candidate_arrows.cpp)
 target_link_libraries(tst_candidate_arrows PRIVATE shogiboardq_static)
+add_shogi_test(tst_plain_tooltip tst_plain_tooltip.cpp)
+target_link_libraries(tst_plain_tooltip PRIVATE shogiboardq_static)
 add_shogi_test(tst_i18n_workflows tst_i18n_workflows.cpp)
 target_link_libraries(tst_i18n_workflows PRIVATE shogiboardq_static)
 target_compile_definitions(tst_i18n_workflows PRIVATE TRANSLATIONS_DIR="${CMAKE_BINARY_DIR}")

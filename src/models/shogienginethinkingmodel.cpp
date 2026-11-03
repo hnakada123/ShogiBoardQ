@@ -4,6 +4,7 @@
 #include "shogienginethinkingmodel.h"
 #include "scoretext.h"
 #include "movefont.h"
+#include "plaintooltip.h"
 #include <algorithm>
 
 // ============================================================
@@ -38,7 +39,7 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
     }
 
     if (role == Qt::ToolTipRole && index.column() == PvColumn) {
-        return QStringLiteral("<qt>%1</qt>").arg(m_rows.at(index.row()).displayPv(true).toHtmlEscaped());
+        return plainToolTip(m_rows.at(index.row()).displayPv(true));
     }
 
     if (role == Qt::FontRole && index.column() == PvColumn) return MoveFont::role();

@@ -17,6 +17,7 @@
 #include "applicationfonts.h"
 #include "settingscommon.h"
 #include "tsumeshogisearchdialog.h"
+#include "plaintooltip.h"
 
 class TestTsumeSearchDialog : public QObject
 {
@@ -105,7 +106,7 @@ private slots:
         QVERIFY(time->isEnabled());
         auto* combo = dialog.findChild<QComboBox*>();
         combo->setCurrentIndex(1);
-        QCOMPARE(combo->toolTip(), combo->currentText());
+        QCOMPARE(combo->toolTip(), plainToolTip(combo->currentText()));
         auto* editor = time->findChild<QLineEdit*>();
         time->setFocus();
         editor->selectAll();

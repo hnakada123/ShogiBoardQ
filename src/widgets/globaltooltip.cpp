@@ -12,7 +12,7 @@
 // 役割：指定したグローバル座標付近にプレーンテキストを表示する小さなフローティング UI を提供。
 // 特徴：
 //  - Qt::ToolTip | Qt::FramelessWindowHint により枠なし・フォーカス奪取なしで表示
-//  - HTML を無効化し、テキストは HTML エスケープして表示（XSS 的な混入を防ぐ）
+//  - ラベルを PlainText にし、文字は HTML として読ませずにそのまま表示（XSS 的な混入を防ぐ）
 //  - setCompact(true) で余白・角丸・フォントを小さめに一括変更
 GlobalToolTip::GlobalToolTip(QWidget* parent)
     : QFrame(parent, Qt::ToolTip | Qt::FramelessWindowHint)
@@ -37,8 +37,9 @@ GlobalToolTip::GlobalToolTip(QWidget* parent)
     auto* lay = new QHBoxLayout(this);
     lay->setContentsMargins(10, 10, 10, 10);
 
-    // 役割：テキスト表示用のラベルを準備（HTML は使わない想定）
+    // 役割：テキスト表示用のラベルを準備（HTML として読ませない）
     m_label->setFrameStyle(QFrame::NoFrame);
+    m_label->setTextFormat(Qt::PlainText);
     lay->addWidget(m_label);
 
     // 役割：初期フォントサイズを設定（後で setCompact で上書き可能）
@@ -64,12 +65,12 @@ void GlobalToolTip::setPointSizeF(qreal pt)
 }
 
 // 指定位置にプレーンテキストのツールチップを表示する。
-// 役割：文字列を HTML エスケープして安全に表示し、カーソルの右下へ少しオフセットして配置。
+// 役割：文字列をそのまま（PlainText のラベルで）表示し、カーソルの右下へ少しオフセットして配置。
 // 注意：引数 globalPos はスクリーン座標（グローバル座標）を想定。
 void GlobalToolTip::showText(const QPoint& globalPos, const QString& plainText)
 {
-    // HTML 無効化（素の文字列として表示）
-    m_label->setText(plainText.toHtmlEscaped());
+    // ラベルは PlainText なので、エスケープせずに渡す（エスケープすると「&amp;」などが見えてしまう）
+    m_label->setText(plainText);
     adjustSize();
 
     // カーソルを覆わないよう、少し右下にずらして表示
