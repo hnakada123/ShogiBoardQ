@@ -43,7 +43,7 @@ struct Deps {
 | 開始・再開 | `start()`（盤・手順・対局者・Strategy を準備。時計はまだ動かさない）、`beginPlay()`（時計を動かし、初手がエンジンなら思考を始める）、`resumeInterruptedGame()`、`discardInterruptedGame()`、`attachInterruptedRecord(nodeId)`（棋譜に書いた中断の行を中断した対局に結びつける）、private の `createStrategy()`・`captureInterruptedGame()` |
 | 着手 | `canAcceptMove()`、`onHumanMove()`、`forceImmediateMove()`、private の `completeMove()`（一手の確定） |
 | 待った | `undoTwoPlies()` |
-| 終局 | `handleResign()`、`handleBreakOff()`、`handlePlayerTimeOut()`、`declareNyugyoku(declarer, rule)`（人間の宣言を盤面から判定して終局し、判定結果を返す）、`handleNyugyokuDeclaration()`、`clearGameOverState()`。private の `handleEngineResign()`・`handleEngineWin()`・`handleEngineIllegalMove()`・`handleEngineError()`・`checkAndHandleSennichite()`・`handleMaxMovesJishogi()`、終局の `endGame()`・`appendTerminalRecord()`・`resultMessage()` |
+| 終局 | `handleResign()`、`handleBreakOff()`、`handlePlayerTimeOut()`、`declareNyugyoku(declarer)`（入玉宣言を盤面から対局の持将棋ルール `options().jishogiRule` で判定して終局し、判定結果を返す。人間の宣言とエンジンの宣言で共通）、`handleNyugyokuDeclaration()`、`clearGameOverState()`。private の `handleEngineResign()`・`handleEngineWin()`・`handleEngineIllegalMove()`・`handleEngineError()`・`checkAndHandleSennichite()`・`handleMaxMovesJishogi()`、終局の `endGame()`・`appendTerminalRecord()`・`resultMessage()` |
 | 時計 | `clock()`（表示への通知は中継しない。`completeMove()` は時計の通知を止めて値を変えた後に `ShogiClock::notifyTimeUpdated()` を呼ぶ） |
 | 読み取り | `record()`、`currentPly()`、`options()`、`players()`、`isHumanSide()`、`sideToMove()`、`gameOverState()`、`isGameOver()`、`interruptedGame()`、`canResumeInterruptedGame()`、`usesHandicapNames()` |
 

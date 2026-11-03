@@ -43,8 +43,8 @@ public:
     virtual bool isHumanToMove() const = 0;
     /// 手番
     virtual Turn sideToMove() const = 0;
-    /// 入玉宣言の成否をこちらで盤面から判定するか（通信対局はサーバーが判定する）
-    virtual bool judgesDeclaration() const = 0;
+    /// 入玉宣言を受け付ける対局か（ローカル対局は持将棋ルールを選んだ対局だけ。通信対局は判定するサーバーへ送るので常に）
+    virtual bool acceptsDeclaration() const = 0;
     /**
      * @brief 手番の側が入玉宣言する
      * @return こちらで判定したときはその結果（終局済み）。サーバーが判定するときは nullopt
@@ -64,7 +64,7 @@ public:
     void moveNow() override;
     bool isHumanToMove() const override;
     Turn sideToMove() const override;
-    bool judgesDeclaration() const override { return true; }
+    bool acceptsDeclaration() const override;
     std::optional<NyugyokuJudgement::Result> declareNyugyoku() override;
 
 private:

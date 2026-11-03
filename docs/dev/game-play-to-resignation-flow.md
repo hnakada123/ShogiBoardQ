@@ -951,11 +951,11 @@ GameSession::declareNyugyoku()                    （src/app/gamesession.cpp）
     ↓
 NyugyokuDeclarationHandler::handleDeclaration(activeChannel())   （src/ui/controllers/nyugyokudeclarationhandler.cpp）
     ├─ 対局中でなければ（窓口が nullptr）警告、手番の人間でなければ（GameChannel::isHumanToMove()）案内して終わる
-    ├─ こちらで判定する対局（GameChannel::judgesDeclaration()。ローカル対局）なら持将棋ルール（24点法・27点法）の設定が必要
+    ├─ 宣言を受け付ける対局か（GameChannel::acceptsDeclaration()。ローカル対局は対局の条件の持将棋ルール MatchStartOptions::jishogiRule が 24点法・27点法のときだけ。通信対局は常に）
     ├─ 確認ダイアログ（宣言する側の呼び名は KifuDocument::usesHandicapNames() で下手・上手にもなる）
     ├─ GameChannel::declareNyugyoku()
-    │     ├─ ローカル対局: LocalGameChannel → MatchCoordinator::declareNyugyoku(declarer, rule)
-    │     │      ├─ NyugyokuJudgement::judge() で盤面から宣言条件と点数を判定
+    │     ├─ ローカル対局: LocalGameChannel → MatchCoordinator::declareNyugyoku(declarer)
+    │     │      ├─ NyugyokuJudgement::judgeDeclaration() で盤面から宣言条件と点数を対局の持将棋ルールで判定
     │     │      ├─ handleNyugyokuDeclaration(declarer, success, isDraw) で終局
     │     │      └─ 判定結果を返す
     │     └─ CSA通信対局: CsaGameChannel → CsaGameCoordinator::declareWin()（成否はサーバーが判定。nullopt を返す）
@@ -966,7 +966,7 @@ NyugyokuDeclarationHandler::handleDeclaration(activeChannel())   （src/ui/contr
 UsiMatchHandler::declaredWin(side) → Usi::declaredWin → MatchEngineSeat::declaredWin(side)
     ↓
 MatchCoordinator::handleEngineWin(side)
-    ├─ NyugyokuJudgement::judgeEngineDeclaration() で盤面から判定
+    ├─ MatchCoordinator::declareNyugyoku(side)（人間の宣言と同じ。持将棋ルールが「なし」なら27点法で判定して説明に書く）
     ├─ handleNyugyokuDeclaration(side, success, isDraw)
     └─ 判定結果を gameOverMessage で知らせる
 ```

@@ -2,15 +2,17 @@
 #define STARTOPTIONS_H
 
 /// @file startoptions.h
-/// @brief 対局を始める条件（対局者・手順・時間の決まり・最大手数・自動保存・定跡）
+/// @brief 対局を始める条件（対局者・手順・時間の決まり・最大手数・持将棋ルール・自動保存・定跡）
 ///
 /// MatchCoordinator に依存せずに対局開始設定を参照できる軽量ヘッダ。
 /// MatchCoordinator::StartOptions は本型の using エイリアス。
 
 #include <QString>
 #include <array>
+#include <optional>
 #include <utility>
 
+#include "jishogicalculator.h"
 #include "josekibook.h"
 #include "josekiplayoptions.h"
 #include "matchautosave.h"
@@ -44,6 +46,10 @@ struct MatchStartOptions {
     MatchTimeSettings time;
 
     int maxMoves = 0;                      ///< 最大手数（0=無制限）
+
+    /// 入玉宣言を判定する持将棋ルール（対局ダイアログで選ぶ。nullopt は「なし」で、人間は宣言できず、
+    /// エンジンの宣言は27点法で判定する。NyugyokuJudgement::judgeDeclaration）
+    std::optional<JishogiCalculator::Rule> jishogiRule;
 
     MatchAutoSave autoSave;                ///< 終局した棋譜の自動保存
 

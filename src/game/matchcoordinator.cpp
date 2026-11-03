@@ -300,17 +300,15 @@ void MatchCoordinator::handleEngineWin(Turn side)
     if (isGameOver()) return;
     // エンジンの入玉宣言（bestmove win）も人間の宣言と同じく、盤面から条件と点数を判定する。
     // 条件を満たさなければ宣言したエンジンの負け、24点法の24〜30点は持将棋。
-    const NyugyokuJudgement::Result result =
-        NyugyokuJudgement::judgeEngineDeclaration(m_gameBoard->board()->position(), side == Turn::Black, usesHandicapNames());
-    handleNyugyokuDeclaration(side, result.success, result.isDraw);
+    const NyugyokuJudgement::Result result = declareNyugyoku(side);
     // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言はここで判定結果を知らせる
     if (isGameOver()) emit gameOverMessage(NyugyokuJudgement::resultTitle(), result.message);
 }
 
-NyugyokuJudgement::Result MatchCoordinator::declareNyugyoku(Turn declarer, JishogiCalculator::Rule rule)
+NyugyokuJudgement::Result MatchCoordinator::declareNyugyoku(Turn declarer)
 {
-    const NyugyokuJudgement::Result result =
-        NyugyokuJudgement::judge(m_gameBoard->board()->position(), declarer == Turn::Black, rule, usesHandicapNames());
+    const NyugyokuJudgement::Result result = NyugyokuJudgement::judgeDeclaration(
+        m_gameBoard->board()->position(), declarer == Turn::Black, options().jishogiRule, usesHandicapNames());
     handleNyugyokuDeclaration(declarer, result.success, result.isDraw);
     return result;
 }

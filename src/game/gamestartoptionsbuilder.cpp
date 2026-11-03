@@ -147,6 +147,7 @@ MatchStartOptions GameStartOptionsBuilder::buildStartOptions(const StartGameDial
         if (choice.isEngine()) opt.engines[i] = {choice.engine.path, choice.joseki.normalized()};
     }
     opt.maxMoves = dlg.maxMoves;
+    opt.jishogiRule = dlg.jishogiRule;
     opt.autoSave.enabled = dlg.autoSaveKifu;
     opt.autoSave.dir = dlg.kifuSaveDir;
     // 形式は既定（MatchAutoSave::extension。ローカル対局では選ばない）

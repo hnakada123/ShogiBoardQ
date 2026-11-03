@@ -18,6 +18,7 @@
 #include "boardmovecontroller.h"
 #include "elidelabel.h"
 #include "gamechannel.h"
+#include "gamesettings.h"
 #include "uistatepolicymanager.h"
 #include "livegamesession.h"
 #include "gamesession.h"
@@ -310,6 +311,7 @@ private slots:
     void activeChannelFollowsActivity()
     {
         humanVsHumanSettings();
+        GameSettings::StartGame::jishogiRule.set(1);  // 24点法
         MainWindow window;
         auto& p = window.composer().parts();
         auto& activity = window.composer().activity();
@@ -317,13 +319,16 @@ private slots:
         startFromDialog(window);
         GameChannel* local = p.gameSession->activeChannel();
         QVERIFY(local);
-        QVERIFY(local->judgesDeclaration());
+        // 入玉宣言は対局ダイアログで選んだ持将棋ルールで受け付ける（対局を始めた後の設定は読まない）
+        QCOMPARE(p.match->options().jishogiRule, std::optional(JishogiCalculator::Rule::Points24));
+        GameSettings::StartGame::jishogiRule.set(0);
+        QVERIFY(local->acceptsDeclaration());
         QVERIFY(local->isHumanToMove());
         QCOMPARE(local->sideToMove(), Turn::Black);
         ActivityLease lease = activity.begin(AppActivityState::Activity::DuringCsaGame, nullptr);
         GameChannel* csa = p.gameSession->activeChannel();
         QVERIFY(csa && csa != local);
-        QVERIFY(!csa->judgesDeclaration());
+        QVERIFY(csa->acceptsDeclaration());
         lease = activity.begin(AppActivityState::Activity::DuringGame, nullptr);
         p.gameSession->breakOff();
         p.document->markSaved(QString());

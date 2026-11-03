@@ -29,6 +29,16 @@ QString defaultKifuSaveDir()
 
 /// 「現在の局面」の項目の値（手合割の項目は Handicaps::kAll の添字）
 constexpr int kCurrentPosition = -1;
+
+/// 持将棋のコンボの位置（なし・24点法・27点法の順。保存する値 Saved::jishogiRule も同じ）の持将棋ルール
+std::optional<JishogiCalculator::Rule> jishogiRuleAt(int index)
+{
+    switch (index) {
+    case 1: return JishogiCalculator::Rule::Points24;
+    case 2: return JishogiCalculator::Rule::Points27;
+    default: return std::nullopt;
+    }
+}
 } // namespace
 
 // ============================================================
@@ -233,6 +243,7 @@ StartGameDialogData StartGameDialog::data() const
     const int position = ui->comboBoxStartingPosition->currentData().toInt();
     data.startingHandicap = position == kCurrentPosition ? nullptr : &Handicaps::kAll[position];
     data.maxMoves = ui->spinBoxMaxMoves->value();
+    data.jishogiRule = jishogiRuleAt(ui->comboBoxJishogi->currentIndex());
     data.autoSaveKifu = ui->checkBoxAutoSaveKifu->isChecked();
     data.kifuSaveDir = ui->lineEditKifuSaveDir->text();
     data.isShowHumanInFront = ui->checkBoxShowHumanInFront->isChecked();

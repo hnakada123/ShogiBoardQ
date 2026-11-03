@@ -41,9 +41,13 @@ Turn LocalGameChannel::sideToMove() const
     return m_match->sideToMove();
 }
 
+bool LocalGameChannel::acceptsDeclaration() const
+{
+    return m_match->options().jishogiRule.has_value();
+}
+
 std::optional<NyugyokuJudgement::Result> LocalGameChannel::declareNyugyoku()
 {
-    // 持将棋ルールが「なし」なら宣言の前に止めている（NyugyokuDeclarationHandler）。届いたら27点法で判定する
-    return m_match->declareNyugyoku(m_match->sideToMove(),
-                                    NyugyokuJudgement::configuredRule().value_or(JishogiCalculator::Rule::Points27));
+    // 持将棋ルールが「なし」なら宣言の前に止めている（NyugyokuDeclarationHandler が acceptsDeclaration で確かめる）
+    return m_match->declareNyugyoku(m_match->sideToMove());
 }

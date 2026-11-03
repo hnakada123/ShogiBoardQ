@@ -9,6 +9,7 @@
 #include <QSignalSpy>
 
 #include "match_test_helper.h"
+#include "gamechannel.h"
 #include "matchending.h"
 #include "nyugyokujudgement.h"
 #include "settingscommon.h"
@@ -20,9 +21,9 @@ namespace {
 const QString blackWin = QStringLiteral(
     "5+B+RGS/6GKS/+P+P+P+P+P+P+P+P+P/9/p1p1p1p1p/1s1g1g1s1/2n3n1n/1r2k4/2b6 b NL3P3lp 1");
 
-// 対局ダイアログの持将棋ルールの設定値（GameSettings::StartGame::jishogiRule）
+// 対局ダイアログの持将棋ルールの設定値（GameSettings::StartGame::jishogiRule）。対局は設定を読まない
+static constexpr int kSettingNone = 0;
 static constexpr int kSetting24 = 1;
-static constexpr int kSetting27 = 2;
 
 void setRule(int rule)
 {
@@ -67,10 +68,12 @@ MatchCoordinator::StartOptions humanVsHuman(const QString& sfen = SfenUtils::hir
     return opt;
 }
 
-/// 先手をエンジン（テスト用の USI エンジン）が指す対局
-MatchCoordinator::StartOptions blackEngine(const QString& sfen)
+/// 先手をエンジン（テスト用の USI エンジン）が指す対局（持将棋ルールは rule）
+MatchCoordinator::StartOptions blackEngine(const QString& sfen,
+                                           std::optional<JishogiCalculator::Rule> rule = JishogiCalculator::Rule::Points27)
 {
     MatchCoordinator::StartOptions opt = humanVsHuman(sfen);
+    opt.jishogiRule = rule;
     opt.players.seat(Turn::Black).engine = true;
     opt.players.seat(Turn::Black).engineName = QStringLiteral("DeclarationTest");
     opt.engine(Turn::Black).path = MatchHarness::mockEnginePath();
@@ -242,8 +245,8 @@ private slots:
         QFETCH(int, cause);
         QFETCH(int, loser);
         MatchHarness h;
-        h.mc->start(blackEngine(success ? blackWin : SfenUtils::hirateSfen()));
-        setRule(isDraw ? kSetting24 : kSetting27);
+        h.mc->start(blackEngine(success ? blackWin : SfenUtils::hirateSfen(),
+                                isDraw ? JishogiCalculator::Rule::Points24 : JishogiCalculator::Rule::Points27));
         emit h.engines.engineInSlot(1)->declaredWin(Turn::Black);
 
         QVERIFY(h.mc->isGameOver());
@@ -252,7 +255,41 @@ private slots:
         QCOMPARE(h.messageCount(), 1);
         QCOMPARE(h.lastMessageTitle(), NyugyokuJudgement::resultTitle());
         QVERIFY(h.lastMessageText().contains(QStringLiteral("先手の入玉宣言")));
-        setRule(kSetting27);
+    }
+
+    /// 宣言は対局を始めたときの持将棋ルールで判定する（対局中に設定が変わっても読まない）
+    void declarationUsesTheRuleOfTheGame()
+    {
+        setRule(kSetting24);
+        {
+            // 27点法の対局。設定の24点法なら28点は持将棋だが、27点法なので宣言勝ち
+            MatchHarness h;
+            h.mc->start(blackEngine(blackWin, JishogiCalculator::Rule::Points27));
+            emit h.engines.engineInSlot(1)->declaredWin(Turn::Black);
+            QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::NyugyokuWin);
+        }
+        setRule(kSettingNone);
+        {
+            // 24点法の対局。人間も宣言でき、28点は持将棋
+            MatchHarness h;
+            MatchCoordinator::StartOptions opt = humanVsHuman(blackWin);
+            opt.jishogiRule = JishogiCalculator::Rule::Points24;
+            h.mc->start(opt);
+            LocalGameChannel channel(h.mc.get());
+            QVERIFY(channel.acceptsDeclaration());
+            const std::optional<NyugyokuJudgement::Result> result = channel.declareNyugyoku();
+            QVERIFY(result && result->isDraw);
+            QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Jishogi);
+        }
+        {
+            // 「なし」の対局は人間の宣言を受け付けない。エンジンの宣言は27点法で判定する
+            MatchHarness h;
+            h.mc->start(blackEngine(blackWin, std::nullopt));
+            QVERIFY(!LocalGameChannel(h.mc.get()).acceptsDeclaration());
+            emit h.engines.engineInSlot(1)->declaredWin(Turn::Black);
+            QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::NyugyokuWin);
+            QVERIFY(h.lastMessageText().contains(QStringLiteral("27点法で判定しました")));
+        }
     }
 
     void engineWin_usesHandicapNames()
@@ -261,7 +298,6 @@ private slots:
         MatchHarness h;
         h.mc->start(blackEngine(blackWin));
         h.useHandicapNames(true);
-        setRule(kSetting27);
         emit h.engines.engineInSlot(1)->declaredWin(Turn::Black);
         QVERIFY(h.mc->isGameOver());
         QVERIFY(h.lastMessageText().contains(QStringLiteral("下手の入玉宣言")));

@@ -6,9 +6,11 @@
 
 #include <QString>
 #include <array>
+#include <optional>
 
 #include "registeredengines.h"
 #include "handicaps.h"
+#include "jishogicalculator.h"
 #include "josekiplayoptions.h"
 #include "timecontrol.h"
 
@@ -43,6 +45,7 @@ struct StartGameDialogData {
 
     // --- 対局オプション ---
     int     maxMoves          = 0;      ///< 最大手数（0=無制限）
+    std::optional<JishogiCalculator::Rule> jishogiRule;  ///< 持将棋ルール（nullopt は「なし」）
     bool    autoSaveKifu      = false;  ///< 棋譜自動保存フラグ
     QString kifuSaveDir;               ///< 棋譜保存ディレクトリ
     bool    isShowHumanInFront = false; ///< 人間を手前に表示するか

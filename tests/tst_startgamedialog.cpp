@@ -16,6 +16,7 @@
 
 #include "startgamedialog.h"
 #include "josekiplayoptionsdialog.h"
+#include "gamesettings.h"
 #include "josekisettings.h"
 #include "settingscommon.h"
 #include "timecontrolvalidator.h"
@@ -245,6 +246,25 @@ private slots:
         widget<QDialogButtonBox>(dialog, "buttonBox")->button(QDialogButtonBox::Cancel)->click();
         StartGameDialog reopened;
         QCOMPARE(widget<QSpinBox>(reopened, "basicTimeMinutes1")->value(), 5);
+    }
+
+    /// 持将棋のコンボ（なし・24点法・27点法）は対局の条件の持将棋ルールになり、選んだ位置を保存する
+    void jishogiRuleFollowsTheCombo()
+    {
+        {
+            StartGameDialog dialog;
+            auto* combo = widget<QComboBox>(dialog, "comboBoxJishogi");
+            QCOMPARE(combo->currentIndex(), 0);
+            QCOMPARE(dialog.data().jishogiRule, std::nullopt);
+            combo->setCurrentIndex(1);
+            QCOMPARE(dialog.data().jishogiRule, std::optional(JishogiCalculator::Rule::Points24));
+            combo->setCurrentIndex(2);
+            QCOMPARE(dialog.data().jishogiRule, std::optional(JishogiCalculator::Rule::Points27));
+            accept(dialog);
+        }
+        StartGameDialog reopened;
+        QCOMPARE(reopened.data().jishogiRule, std::optional(JishogiCalculator::Rule::Points27));
+        QCOMPARE(GameSettings::StartGame::jishogiRule(), 2);
     }
 
     void autoSaveControlsFollowSettingAndRestore()
