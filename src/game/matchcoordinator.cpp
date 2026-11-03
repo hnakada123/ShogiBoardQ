@@ -411,7 +411,7 @@ void MatchCoordinator::endGame(const GameEndInfo& info, Notice notice)
         [[fallthrough]];
     case Notice::Declaration:
         // 入玉宣言は宣言の結果ダイアログ（人間）か handleEngineWin（エンジン）で知らせる。
-        // 棋譜の自動保存は終局の受け手（gameEnded）が行う
+        // 棋譜の自動保存は、終局の行の後の finishRecord（上）で済んでいる
         emit gameEndProcessed(info);
         break;
     case Notice::Interrupt:

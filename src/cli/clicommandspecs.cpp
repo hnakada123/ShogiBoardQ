@@ -146,7 +146,8 @@ const QList<OperationSpec>& CliCommandSpecs::all()
         {QStringLiteral("version"), QStringLiteral("Print the application version"), {}},
         {QStringLiteral("describe"), QStringLiteral("Print the parameters of every command and automation method as JSON Schema"), {}},
         {QStringLiteral("environment"),
-         QStringLiteral("Print the automation socket, endpoint file, message limit and error kinds as JSON"), {}},
+         QStringLiteral("Print the version, automation socket, endpoint file, settings file, message limit, error kinds "
+                        "and readable/writable file suffixes as JSON"), {}},
         {QStringLiteral("list-engines"), QStringLiteral("List USI engines registered in ShogiBoardQ"), {}},
         {QStringLiteral("validate-sfen"), QStringLiteral("Validate a SFEN and report turn/hands/check/legal moves"), {sfen(true)}},
         {QStringLiteral("convert-kifu"), QStringLiteral("Convert a kifu file or text to another format"),

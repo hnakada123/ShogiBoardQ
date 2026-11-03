@@ -11,7 +11,7 @@ from shogiboardq_mcp.app_client import AppError
 
 PACKAGE_DIR = Path(__file__).resolve().parents[1] / "shogiboardq_mcp"
 # Failures that only the MCP server itself can have (transport, jobs, the CLI process).
-PYTHON_ONLY = {"app_unavailable", "app_disconnected", "app_response_too_large", "app_error",
+PYTHON_ONLY = {"app_unavailable", "app_disconnected", "app_response_too_large",
                "cli_not_found", "cli_failed", "job_failed", "timeout", "too_many_jobs"}
 
 

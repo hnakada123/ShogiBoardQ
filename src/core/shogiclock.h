@@ -145,7 +145,7 @@ signals:
     /// 時間表示の更新通知（→ TimeDisplayPresenter）
     void timeUpdated();
 
-    /// 時間切れ通知。player は時間が切れた側（→ TimeControlController）
+    /// 時間切れ通知。player は時間が切れた側（受けるのは対局の司令塔 MatchCoordinator）
     void playerTimeOut(Turn player);
 
 private:

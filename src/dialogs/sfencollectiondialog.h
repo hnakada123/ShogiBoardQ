@@ -62,7 +62,7 @@ private:
     void onRecentFilesChanged();
 
 public slots:
-    /// 閉じるときに履歴・盤の大きさを保存する（ウィンドウの大きさは DialogFontScale が保存する）
+    /// 閉じるときに履歴・盤の大きさを保存する（ウィンドウは開くたびに盤に合わせるので、大きさは保存しない）
     void done(int result) override;
 
 private:

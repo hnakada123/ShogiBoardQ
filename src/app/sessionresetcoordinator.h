@@ -2,7 +2,7 @@
 #define SESSIONRESETCOORDINATOR_H
 
 /// @file sessionresetcoordinator.h
-/// @brief 棋譜と表示の作り直し（対局の開始前・新規・局面編集・棋譜の読み込み前）
+/// @brief 棋譜と表示の作り直し（対局の開始前・新規・局面編集）
 
 #include <QString>
 

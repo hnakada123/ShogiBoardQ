@@ -32,7 +32,7 @@ public:
     explicit GameBoard(QObject* parent = nullptr);
     ~GameBoard() override;
 
-    /// 対局の盤（起動から終了まで同じ1つ。局面は newGame・setSfen で入れ替える）
+    /// 対局の盤（起動から終了まで同じ1つ。局面は newGame で入れ替える）
     ShogiBoard* board() const;
 
     /// 盤を指定の局面にする（手番は SFEN の手番）

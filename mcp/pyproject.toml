@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "shogiboardq-mcp"
-version = "2026.9.25"
+dynamic = ["version"]  # 版は shogiboardq_mcp/__init__.py の __version__ の1か所
 description = "Model Context Protocol server that exposes ShogiBoardQ (kifu conversion, engine analysis, tsume shogi tools, and GUI automation) to AI clients"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,3 +29,6 @@ shogiboardq_mcp = ["specs.json"]  # the C++ parameter tables (python3 -m shogibo
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools.dynamic]
+version = { attr = "shogiboardq_mcp.__version__" }

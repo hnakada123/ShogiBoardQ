@@ -1,7 +1,7 @@
 """In-process job manager for long-running CLI commands.
 
 Each job wraps ``shogiboardq-cli`` subprocesses that stream JSON Lines.
-Whole-record jobs run one position at a time within a single concurrency slot.
+A whole-record analysis (analyze_kifu) is one analyze-kifu run that reports each position as it goes.
 The manager keeps the latest state so status tools can answer immediately.
 
 State machine::

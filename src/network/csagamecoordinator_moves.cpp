@@ -123,7 +123,7 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
     p.record.entries.append(entry);
     if (m_sink) m_sink->appendRecord(entry);
     emit turnChanged(nowMyTurn);
-    // 盤面・棋譜・時計を確定し終えた着手を知らせる（駒音・定跡ウィンドウ。通知は盤面の更新の後）
+    // 盤面・棋譜・時計を確定し終えた着手を知らせる（駒音。通知は盤面の更新の後）
     m_gameBoard->notifyMoveCommitted(isBlackMove ? Turn::Black : Turn::White, p.moveCount());
 }
 

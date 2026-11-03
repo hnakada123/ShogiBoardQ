@@ -77,7 +77,7 @@ private:
  * 待った、中断と再開を受け持つ。手番ごとに誰が指すかは対局者の組（MatchPlayers）別の Strategy が決める。
  *
  * 棋譜の行は MatchRecordSink に書き込み、終局の行の後で確定させる（書くと表示中の手が最新の手になり、
- * 盤・手番の表示が合う）。時計・評価値・終局はシグナルで知らせる。アプリの動作状態（対局中・待機）は
+ * 盤・手番の表示が合う）。評価値・終局はシグナルで知らせる（時計の時間は ShogiClock が自分で知らせる）。アプリの動作状態（対局中・待機）は
  * このクラスが書く。通信対局（CSA）はこのクラスを使わず、CsaGameCoordinator が同じ受け手と動作状態を使う。
  */
 class MatchCoordinator : public QObject, private MatchStrategyHost {
