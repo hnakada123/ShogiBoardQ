@@ -396,17 +396,17 @@
 - `CsaGameCoordinator::startEngine` の、名前で登録一覧を引く分岐（`_setup.cpp:96-104`。ダイアログは常にパスを渡す） → 済（f5fd9f29）
 
 テストからしか使われない公開の口（公開を外すか、テストを部品の外から確かめる形にする）:
-- engine・game・network・analysis: `Usi::sendSetOptionCommand`、`CsaGameCoordinator::record()`・`progress()`、`UsiBestMove::stopped`、`ThinkingInfoFormatter::processInfo` の公開、`KifuAnalysisSession::Deps::engine`、`CsaGameCoordinator()` の引数なしのコンストラクタ
-- core・kifu: `ShogiBoard::pieceBoxCount`・`trySetSfen`（外から）、`ShogiClock::isRunning`、`KifuFormats::isSavable`（T5）、`RecordTime::fromText`（約40行。実際の KIF の時間は `KifLexer::timeOf` が読む。`recordtime.h:9` の「解析は取り込み境界でだけ」とも合わない）
-- ui: `UiStatePolicyManager::isEnabled`・`currentState`、`KifuNavigationController::state()`。外からの呼び出しが0: `UiStatePolicyManager::tablePolicy`、`CandidateArrowPresenter::considerationActive`、`PositionEditRules::canMove`・`cycled`・`cleared`
+- engine・game・network・analysis: `Usi::sendSetOptionCommand`、`CsaGameCoordinator::record()`・`progress()`、`UsiBestMove::stopped`、`ThinkingInfoFormatter::processInfo` の公開、`KifuAnalysisSession::Deps::engine`、`CsaGameCoordinator()` の引数なしのコンストラクタ → 見送り（テストが部品の状態を確かめる口として使い、外から確かめる形に直すとテストの書き直しが大きい。2026-11-04）
+- core・kifu: `ShogiBoard::pieceBoxCount`・`trySetSfen`（外から）、`ShogiClock::isRunning`、`KifuFormats::isSavable`（T5）、`RecordTime::fromText`（約40行。実際の KIF の時間は `KifLexer::timeOf` が読む。`recordtime.h:9` の「解析は取り込み境界でだけ」とも合わない） → `RecordTime::fromText` は済（9af8d487。テストの補助 `recordtime_test_util.h` に移した）。`KifuFormats::isSavable` は前に消えていた。ほかは見送り（テストが部品の状態を確かめる口として使い、外から確かめる形に直すとテストの書き直しが大きい。2026-11-04）
+- ui: `UiStatePolicyManager::isEnabled`・`currentState`、`KifuNavigationController::state()`。外からの呼び出しが0: `UiStatePolicyManager::tablePolicy`、`CandidateArrowPresenter::considerationActive`、`PositionEditRules::canMove`・`cycled`・`cleared` → 外からの呼び出しが0の `considerationActive`・`PositionEditRules::canMove`・`cycled`・`cleared` は済（9af8d487。非公開・.cpp の中へ）。`tablePolicy` はテスト（`tst_csagamecoordinator`）が使うので残した。ほかは見送り（テストが部品の状態を確かめる口として使い、外から確かめる形に直すとテストの書き直しが大きい。2026-11-04）
 - widgets・views・models:
-  - `MenuWindow::favoritesChanged`（emit は4か所、src の接続は0。`tst_menu_window` の QSignalSpy だけ）
-  - `ShogiView::Urgency`・`boardColors()`・`boardVisuals()`・`pieceBoxRect`・`pieceBoxCellRect`・`standPieceRect`
-  - `UsiLogPanel::appendColoredLog`、`EngineInfoWidget::columnWidths()`・`fontSize()`、`StepButtons::firstButton`〜`lastButton`、`GameInfoPane::fontSize`・`setFontSize`、`ConsiderationPanel::considerationFontSize()`
-  - `RecordPane` の public slots `onToggle*Column`（tests/gui が直接呼ぶので、ボタンのチェックと食い違ったまま設定を書ける）、`isNavigationDisabled`・`font*Button`
-  - 内部だけで使う公開の口: `CommentEditorPanel::setCommentHtml`・`convertUrlsToLinks`、`ShogiViewHighlighting::arrowsPaintRect`、`UsiCommLogModel::setStatus`
-  - `FontSizeHelper::applyTo` は `JosekiWindow`（`josekiwindow.cpp:365`）だけのためにある。そのために `fontsizehelper.h` が `dialogutils.h`（さらに `<QMessageBox>`）を include し、全パネルのヘッダーに広がっている
-- `TsumeshogiVerifier::Options::requireNoSurplus`: true にするのはテストの監査ツール（`tests/tsumeshogi_collection_auditor.cpp`）だけ。そのため `TsumeVerificationRunner::statusName` の "running"・"surplus"（`tsumeverificationrunner.cpp:28,35`）は CLI が出さない。MCP の出力スキーマの enum にも無いので、もし出ると出力の検証で落ちる
+  - `MenuWindow::favoritesChanged`（emit は4か所、src の接続は0。`tst_menu_window` の QSignalSpy だけ） → 済（9af8d487。シグナルを消した）
+  - `ShogiView::Urgency`・`boardColors()`・`boardVisuals()`・`pieceBoxRect`・`pieceBoxCellRect`・`standPieceRect` → 見送り（テストが部品の状態を確かめる口として使い、外から確かめる形に直すとテストの書き直しが大きい。2026-11-04）
+  - `UsiLogPanel::appendColoredLog`、`EngineInfoWidget::columnWidths()`・`fontSize()`、`StepButtons::firstButton`〜`lastButton`、`GameInfoPane::fontSize`・`setFontSize`、`ConsiderationPanel::considerationFontSize()` → 見送り（テストが部品の状態を確かめる口として使い、外から確かめる形に直すとテストの書き直しが大きい。2026-11-04）
+  - `RecordPane` の public slots `onToggle*Column`（tests/gui が直接呼ぶので、ボタンのチェックと食い違ったまま設定を書ける）、`isNavigationDisabled`・`font*Button` → `onToggle*Column` は済（9af8d487。private slots にし、GUI テストは列のボタンで切り替える）。`isNavigationDisabled`・`font*Button` は見送り（テストが部品の状態を確かめる口として使い、外から確かめる形に直すとテストの書き直しが大きい。2026-11-04）
+  - 内部だけで使う公開の口: `CommentEditorPanel::setCommentHtml`・`convertUrlsToLinks`、`ShogiViewHighlighting::arrowsPaintRect`、`UsiCommLogModel::setStatus` → `setCommentHtml`・`convertUrlsToLinks`・`arrowsPaintRect` は済（9af8d487。非公開）。`UsiCommLogModel::setStatus` はテストが使うので残した
+  - `FontSizeHelper::applyTo` は `JosekiWindow`（`josekiwindow.cpp:365`）だけのためにある。そのために `fontsizehelper.h` が `dialogutils.h`（さらに `<QMessageBox>`）を include し、全パネルのヘッダーに広がっている → 済（9af8d487）
+- `TsumeshogiVerifier::Options::requireNoSurplus`: true にするのはテストの監査ツール（`tests/tsumeshogi_collection_auditor.cpp`）だけ。そのため `TsumeVerificationRunner::statusName` の "running"・"surplus"（`tsumeverificationrunner.cpp:28,35`）は CLI が出さない。MCP の出力スキーマの enum にも無いので、もし出ると出力の検証で落ちる → 見送り（CLI は requireNoSurplus を立てず、最終の状態だけを出すので "running"・"surplus" は出ない。2026-11-04）
 
 届かない分岐:
 - 読み筋盤の「盤の差分から直前の手を求める」経路（`PvLine::arrivalHighlight` の `pvline.cpp:66-81` と、ここだけが使う `sfendiffutils.h` の81行）。`setPrevSfenForHighlight` を呼ぶのは `pvclickcontroller.cpp:65` だけで、同時に直前の手（`UsiMove::toString()` なので必ず読める）も入れる。棋譜解析と詰将棋生成は `prevSfen` を渡さない。この分岐を通すのは `tests/tst_pvline.cpp:86-111` だけ。`setPrevSfenForHighlight`・`setArrival` の第2引数・`showPvBoard` の `prevSfen`・`sfendiffutils.h` を消す → 済（d0286913）
