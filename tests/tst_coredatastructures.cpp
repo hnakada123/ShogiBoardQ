@@ -72,14 +72,6 @@ private slots:
 
     // === 手番（正本は盤） ===
 
-    void turn_sfenTokens()
-    {
-        QCOMPARE(turnToSfen(Turn::Black), QStringLiteral("b"));
-        QCOMPARE(turnToSfen(Turn::White), QStringLiteral("w"));
-        QCOMPARE(sfenToTurn(QStringLiteral("b")), Turn::Black);
-        QCOMPARE(sfenToTurn(QStringLiteral("w")), Turn::White);
-    }
-
     /// 盤の手番は局面の SFEN から決まり、手番だけを変えたとき・指したときに1回だけ知らせる
     void turn_boardIsTheSource()
     {

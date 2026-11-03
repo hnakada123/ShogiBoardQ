@@ -198,6 +198,7 @@
 | 2026-11-03 | 盤の対局者名の決め方を1つにした（監査 2026-11-01 M15）のに合わせて §8.5・§10.2・§10.3・§12.7 を更新（`PlayerInfoPresenter::boardName(document, activity, side)` を足し、本体の盤と読み筋盤（`PvClickController::showPvBoard()`。`Deps` に `activity` を足した）がこれを使う。読み筋盤は対局中も対局情報の名前を出していたので、棋譜に先手・後手の行が無いまま途中から続けた対局などで本体の盤と名前が違った。「先手」「後手」の補いは `PvBoardDialog::setPlayerNames()` からも消した） |
 | 2026-11-03 | ui・app の知らせを NotificationPresenter の直接の呼び出しにそろえた（監査 2026-11-01 M16）のに合わせて §4.6・§9.4・§9.6・§9.7・§10.3・§15 を更新（検討・詰み探索・棋譜解析・棋譜の自動保存・対局開始の知らせは `ErrorBus` を通さず、題名付きの `NotificationPresenter::warning`・`critical` で出す。`ErrorBus` を使うのは core（`ShogiBoard::setSfen()`）だけで、`tst_structural_kpi` が ui・app から流していないかを検査する。定跡ウィンドウの `showMoveFailed()` と「着手」のメッセージボックスを消し、指せるかの確かめと知らせは `JosekiWindowController` が行う） |
 | 2026-11-03 | 棋譜解析・詰み探索のダイアログの入力欄を設定の表で読み書きするようにした（監査 2026-11-01 M17・P5）のに合わせて §9.6・§9.7・§11.2・§11.3 を更新（`KifuAnalysisDialog` は思考時間と範囲のラジオの組、`TsumeShogiSearchDialog` は探索の制限時間の欄とラジオの組を `SettingsFormBinding` で読み書きする。開始・終了手数は `setMaxPly` の後で戻すので手で読み書きする。詰み探索のダイアログは制限時間を `timeLimitMs()`（ms。0 は無制限）の1つで返し、`byoyomiSec()`・`unlimitedTimeFlag()` を削除。欄の名前は `timeLimitSec`・`limitedTimeRadioButton`。棋譜解析のダイアログは `processEngineSettings` を `accept()` の上書きにし、直接呼んでも範囲と思考時間を決めて保存する（エンジンが無ければ閉じない）。`EngineSelector`・`KifuAnalysisDialog`・`CsaGameDialog`・`TsumeshogiGeneratorDialog` の `using Engine = EngineEntry` を消した。§11.2 の `SettingsFormBinding` の表に小数・2択・ラジオの組を足した） |
+| 2026-11-03 | SFEN の手番を文字列で読む写しを消した（監査 2026-11-01 M18）のに合わせて §5.7 を更新（盤の矢印の駒打ちの駒の色は `Position::fromSfenLike()` の手番、定跡の登録（`JosekiRegistrationController`）は `SfenUtils::sideToMove()` で読む。テストからしか使われていなかった `turnToSfen`・`sfenToTurn`（`shogitypes.h`）と `SfenUtils::kHirateBoardSfen`・`hirateBoardSfen()` を削除） |
 
 <!-- chapter-0-end -->
 
@@ -2700,6 +2701,7 @@ struct MatchPlayers {
 **ソース**: `src/core/sfenutils.h`（ヘッダオンリー）
 
 SFEN 文字列の小さな関数群。平手のSFEN（`hirateSfen()`）、SFEN の手番（`sideToMove()`）、局面を比べるキー（`normalizeSfenKey()`。読めれば `Position::positionKey()` で、持ち駒は標準の並びになる）がある。
+SFEN の手番を文字列で読むのは `sideToMove()` だけで（読み筋盤の直前の手・定跡の登録の評価値の向きと手番の絞り込み）、ほかの部品は手番の欄を自分で切り出さない。局面として読めるかも確かめたいとき（盤の矢印の駒打ちの駒の色）は `Position::fromSfenLike()` で読んで `sideToMove()` を使う。
 "startpos"・"position sfen ..." のような局面の文字列を SFEN にするのは `UsiPosition::sfenOf()`（8.2節。position コマンドと同じ語の分け方 `UsiPosition::split()` を使う）。
 
 #### ShogiNotation

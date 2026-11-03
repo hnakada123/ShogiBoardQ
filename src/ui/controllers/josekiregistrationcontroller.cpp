@@ -10,21 +10,12 @@
 #include "kifuanalysisrow.h"
 #include "josekitablemodel.h"
 #include "shogienginethinkingmodel.h"
+#include "sfenutils.h"
 #include "shogiinforecord.h"
 
 #include <QAction>
 #include <QMenu>
 #include <QStatusBar>
-
-namespace {
-
-/// SFEN の手番が後手か
-bool whiteToMove(const QString& sfen)
-{
-    return sfen.section(QLatin1Char(' '), 1, 1) == QLatin1String("w");
-}
-
-} // namespace
 
 JosekiRegistrationController::JosekiRegistrationController(const Deps& deps, QObject* parent)
     : QObject(parent)
@@ -61,7 +52,7 @@ JosekiRegistrationController::Target JosekiRegistrationController::targetOf(cons
     target.sfen = row.sfen;
     target.pv = row.pv.usiMoves();
     // 結果の表は先手から見た評価値で持つので、局面の手番側から見た値に戻す
-    target.score = row.evaluation.viewedBy(whiteToMove(row.sfen) ? Turn::White : Turn::Black);
+    target.score = row.evaluation.viewedBy(SfenUtils::sideToMove(row.sfen));
     target.depth = row.depth;
     return target;
 }
@@ -135,7 +126,7 @@ JosekiRegistrationController::BatchResult JosekiRegistrationController::register
     for (int i = 0; i < m_deps.analysisModel->rowCount(); ++i) {
         const KifuAnalysisRow* row = m_deps.analysisModel->row(i);
         if (!row || row->ply < fromPly || row->ply > toPly) continue;
-        if (whiteToMove(row->sfen) ? !white : !black) continue;
+        if (SfenUtils::sideToMove(row->sfen) == Turn::White ? !white : !black) continue;
         const Target target = targetOf(*row);
         if (!target.isValid()) continue;
         switch (m_deps.book->registerEnginePv(target.sfen, target.pv, target.score, target.depth)) {
