@@ -772,7 +772,8 @@ def page(code):
             </figure>
 """)
         else:
-            play_h = 856 if code == "en" else 864
+            # 詰将棋を解く画面の高さは言語と撮った版で変わるので、PNG から読む
+            play_h = png_size(m["shots"] + "home/tsume-play.png")[1]
             w(f"""            <figure class="shot">
                 <div class="shot-stack">
                     <a href="{shots}home/tsume-list.png" class="shot-stack__back"><img src="{shots}home/tsume-list.png" alt="{e(h['alt'])}" width="1100" height="800" loading="lazy"></a>
