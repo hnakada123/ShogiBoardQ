@@ -85,11 +85,11 @@ sudo dnf install gcc-c++ cmake ninja-build git \
   qt6-linguist mesa-libGL-devel
 ```
 
-Qt Online Installer で入れた Qt は、CMake の構成時に場所を指定する（例は Qt 6.11.2）。
+Qt Online Installer で入れた Qt は、CMake の構成時に場所を指定する（例は Qt 6.12.0）。
 
 ```
 cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_PREFIX_PATH="$HOME/Qt/6.11.2/gcc_64"
+  -DCMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/gcc_64"
 ```
 
 <a id="setup-check"></a>

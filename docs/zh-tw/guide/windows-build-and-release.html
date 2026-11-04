@@ -192,9 +192,9 @@ windeployqt --version # Qt 部署工具</code></pre>
 <li>製作 ZIP 檔案</li>
 </ol>
 <blockquote>
-<p>如果沒有把 Qt 加入 <code>PATH</code>，請在執行前指定 Qt 的位置（例：Qt 6.11.2）：</p>
-<pre class="powershell"><code>$env:PATH = &quot;C:\Qt\6.11.2\msvc2022_64\bin;C:\Qt\Tools\Ninja;$env:PATH&quot;
-$env:CMAKE_PREFIX_PATH = &quot;C:\Qt\6.11.2\msvc2022_64&quot;</code></pre>
+<p>如果沒有把 Qt 加入 <code>PATH</code>，請在執行前指定 Qt 的位置（例：Qt 6.12.0）：</p>
+<pre class="powershell"><code>$env:PATH = &quot;C:\Qt\6.12.0\msvc2022_64\bin;C:\Qt\Tools\Ninja;$env:PATH&quot;
+$env:CMAKE_PREFIX_PATH = &quot;C:\Qt\6.12.0\msvc2022_64&quot;</code></pre>
 </blockquote>
 <blockquote>
 <p><strong>出現執行原則錯誤時：</strong></p>
@@ -261,7 +261,7 @@ copy LICENSE deploy\</code></pre>
 <pre class="powershell"><code>windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe
 
 # shogiboardq-cli 使用 offscreen 平台繪製棋盤。windeployqt 不會複製它，因此需要手動加入
-copy C:\Qt\6.11.2\msvc2022_64\plugins\platforms\qoffscreen.dll deploy\platforms\</code></pre>
+copy C:\Qt\6.12.0\msvc2022_64\plugins\platforms\qoffscreen.dll deploy\platforms\</code></pre>
 <p><code>windeployqt</code> 自動執行的處理：</p>
 <ol type="1">
 <li>複製相依的 Qt DLL（Qt6Core、Qt6Gui、Qt6Widgets、Qt6Charts、Qt6Network、Qt6Multimedia 等）</li>
