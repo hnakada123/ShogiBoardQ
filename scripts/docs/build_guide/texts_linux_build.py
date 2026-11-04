@@ -22,7 +22,7 @@ sudo dnf install gcc-c++ cmake ninja-build git \
 """
 QT_ONLINE = r"""
 cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_PREFIX_PATH="$HOME/Qt/6.11.2/gcc_64"
+  -DCMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/gcc_64"
 """
 CHECK = """
 cmake --version
@@ -253,7 +253,7 @@ T["ja"] = {
         ("code", UBUNTU),
         ("p", "Fedora:"),
         ("code", FEDORA),
-        ("p", "Qt Online Installer で入れた Qt は、CMake の構成時に場所を指定する（例は Qt 6.11.2）。"),
+        ("p", "Qt Online Installer で入れた Qt は、CMake の構成時に場所を指定する（例は Qt 6.12.0）。"),
         ("code", QT_ONLINE),
         ("h3", "setup-check", "2.3 インストールの確認"),
         ("code", CHECK),
@@ -554,7 +554,7 @@ T["en"] = {
         ("code", UBUNTU),
         ("p", "Fedora:"),
         ("code", FEDORA),
-        ("p", "For Qt installed with the Qt Online Installer, pass its location when configuring CMake (Qt 6.11.2 in this example)."),
+        ("p", "For Qt installed with the Qt Online Installer, pass its location when configuring CMake (Qt 6.12.0 in this example)."),
         ("code", QT_ONLINE),
         ("h3", "setup-check", "2.3 Checking the installation"),
         ("code", CHECK),
@@ -856,7 +856,7 @@ T["zh-cn"] = {
         ("code", UBUNTU),
         ("p", "Fedora："),
         ("code", FEDORA),
-        ("p", "使用 Qt Online Installer 安装的 Qt 时，在配置 CMake 时指定其位置（示例为 Qt 6.11.2）。"),
+        ("p", "使用 Qt Online Installer 安装的 Qt 时，在配置 CMake 时指定其位置（示例为 Qt 6.12.0）。"),
         ("code", QT_ONLINE),
         ("h3", "setup-check", "2.3 确认安装"),
         ("code", CHECK),
@@ -1134,7 +1134,7 @@ T["zh-tw"] = {
         ("code", UBUNTU),
         ("p", "Fedora："),
         ("code", FEDORA),
-        ("p", "使用 Qt Online Installer 安裝的 Qt 時，在設定 CMake 時指定其位置（範例為 Qt 6.11.2）。"),
+        ("p", "使用 Qt Online Installer 安裝的 Qt 時，在設定 CMake 時指定其位置（範例為 Qt 6.12.0）。"),
         ("code", QT_ONLINE),
         ("h3", "setup-check", "2.3 確認安裝"),
         ("code", CHECK),

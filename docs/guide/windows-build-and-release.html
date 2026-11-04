@@ -232,9 +232,9 @@ windeployqt --version # Qt デプロイツール</code></pre>
 <li>ZIP ファイル作成</li>
 </ol>
 <blockquote>
-<p>Qt を <code>PATH</code> に入れていない場合は、実行前に Qt の場所を指定する（例: Qt 6.11.2）：</p>
-<pre class="powershell"><code>$env:PATH = &quot;C:\Qt\6.11.2\msvc2022_64\bin;C:\Qt\Tools\Ninja;$env:PATH&quot;
-$env:CMAKE_PREFIX_PATH = &quot;C:\Qt\6.11.2\msvc2022_64&quot;</code></pre>
+<p>Qt を <code>PATH</code> に入れていない場合は、実行前に Qt の場所を指定する（例: Qt 6.12.0）：</p>
+<pre class="powershell"><code>$env:PATH = &quot;C:\Qt\6.12.0\msvc2022_64\bin;C:\Qt\Tools\Ninja;$env:PATH&quot;
+$env:CMAKE_PREFIX_PATH = &quot;C:\Qt\6.12.0\msvc2022_64&quot;</code></pre>
 </blockquote>
 <blockquote>
 <p><strong>実行ポリシーエラーが出る場合:</strong></p>
@@ -301,7 +301,7 @@ copy LICENSE deploy\</code></pre>
 <pre class="powershell"><code>windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe
 
 # shogiboardq-cli は offscreen プラットフォームで盤面を描画する。windeployqt はコピーしないため追加する
-copy C:\Qt\6.11.2\msvc2022_64\plugins\platforms\qoffscreen.dll deploy\platforms\</code></pre>
+copy C:\Qt\6.12.0\msvc2022_64\plugins\platforms\qoffscreen.dll deploy\platforms\</code></pre>
 <p><code>windeployqt</code> が自動で行う処理：</p>
 <ol type="1">
 <li>依存する Qt DLL（Qt6Core, Qt6Gui, Qt6Widgets, Qt6Charts, Qt6Network, Qt6Multimedia 等）をコピー</li>

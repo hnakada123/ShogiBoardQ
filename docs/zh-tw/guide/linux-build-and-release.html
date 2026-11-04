@@ -134,9 +134,9 @@
 <pre><code>sudo dnf install gcc-c++ cmake ninja-build git \
   qt6-qtbase-devel qt6-qtcharts-devel qt6-qtmultimedia-devel qt6-qttools-devel \
   qt6-linguist mesa-libGL-devel</code></pre>
-<p>使用 Qt Online Installer 安裝的 Qt 時，在設定 CMake 時指定其位置（範例為 Qt 6.11.2）。</p>
+<p>使用 Qt Online Installer 安裝的 Qt 時，在設定 CMake 時指定其位置（範例為 Qt 6.12.0）。</p>
 <pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_PREFIX_PATH="$HOME/Qt/6.11.2/gcc_64"</code></pre>
+  -DCMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/gcc_64"</code></pre>
 </section>
 <section id="setup-check" class="level3">
 <h3>2.3 確認安裝</h3>
