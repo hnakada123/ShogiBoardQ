@@ -3,6 +3,7 @@
 CMakeLists.txt.user
 .cache
 /out
+.vs/
 /squashfs-root
 
 # Qt Creator user files
