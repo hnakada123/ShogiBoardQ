@@ -102,6 +102,19 @@ class TestThinkingDisplayUpdates : public QObject
         return rects;
     }
 
+    /// 情報の帯の文字の部品が、帯の中に重ならずに並んでいるか
+    static bool labelsFitBand(const EngineInfoWidget& info)
+    {
+        const QList<QRect> rects = labelGeometries(info);
+        for (qsizetype i = 0; i < rects.size(); ++i) {
+            if (!info.rect().contains(rects.at(i))) return false;
+            for (qsizetype j = i + 1; j < rects.size(); ++j) {
+                if (rects.at(i).intersects(rects.at(j))) return false;
+            }
+        }
+        return true;
+    }
+
     static QString longPv(int moves)
     {
         static const QStringList kMoves = {
@@ -531,7 +544,8 @@ private slots:
         int previousHeight = oneRow;
         for (int width = 2000; width >= 300; width -= 13) {
             info.resize(width, info.height());
-            QCoreApplication::processEvents();
+            // 行を増やすのは画面に描いた後なので、配置が整うのを待つ
+            QTRY_VERIFY2(labelsFitBand(info), qPrintable(QStringLiteral("width %1").arg(width)));
             QVERIFY2(info.height() >= previousHeight, qPrintable(QString::number(width)));
             previousHeight = info.height();
             // エンジン名の行には、狭くなるまで指し手を置き、数値は別の行に送る
@@ -539,12 +553,6 @@ private slots:
                 twoRows = true;
                 QCOMPARE(searched->y(), name->y());
                 QVERIFY(depth->y() > name->y());
-            }
-            const QList<QRect> rects = labelGeometries(info);
-            for (qsizetype i = 0; i < rects.size(); ++i) {
-                QVERIFY2(info.rect().contains(rects.at(i)), qPrintable(QStringLiteral("width %1").arg(width)));
-                for (qsizetype j = i + 1; j < rects.size(); ++j)
-                    QVERIFY2(!rects.at(i).intersects(rects.at(j)), qPrintable(QStringLiteral("width %1").arg(width)));
             }
         }
         QVERIFY(twoRows);
@@ -585,6 +593,84 @@ private slots:
         EngineInfoWidget neverShown(&tabPage);
         QCoreApplication::processEvents();
         QCOMPARE(neverShown.height(), oneRow);
+    }
+
+    // ドックのタブの裏の帯は isVisible() でも見えている扱いのまま、起動時の仮の狭い幅で残っている。そこで行を増やすと
+    // 高さが親の最小の高さになり、メインウィンドウを押し広げていた（簡体字・繁体字で高さ 980 が 1011 になった）。
+    // 画面に描かれない帯は行を増やさず、前に出て描かれたら増やす
+    void coveredEngineBandDoesNotGrow()
+    {
+        QWidget window;
+        auto* info = new EngineInfoWidget(&window);
+        info->setGeometry(0, 0, 230, info->height());
+        const int oneRow = info->height();
+        auto* cover = new QWidget(&window);   // タブの手前のドック
+        cover->setAutoFillBackground(true);
+        cover->setGeometry(0, 0, 600, 300);
+        cover->raise();
+        window.resize(600, 300);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(info->isVisible());
+        QTest::qWait(50);
+        QCOMPARE(info->height(), oneRow);
+
+        // 手前に出たら折り返す（幅が同じで大きさの変更の知らせが来なくても）
+        info->raise();
+        QTRY_VERIFY(info->height() > oneRow);
+    }
+
+    // 表示された瞬間の幅が仮の値で、すぐ本来の幅になるなら、行は増やさない
+    void engineBandDoesNotGrowForTransientWidth()
+    {
+        QWidget window;
+        auto* info = new EngineInfoWidget(&window);
+        info->setGeometry(0, 0, 230, info->height());
+        const int oneRow = info->height();
+
+        EventCounter resizes(QEvent::Resize);
+        class HeightWatcher : public QObject {
+        public:
+            int tallest = 0;
+        protected:
+            bool eventFilter(QObject* watched, QEvent* event) override
+            {
+                if (event->type() == QEvent::Resize) tallest = qMax(tallest, static_cast<QWidget*>(watched)->height());
+                return QObject::eventFilter(watched, event);
+            }
+        } watcher;
+        info->installEventFilter(&watcher);
+
+        // 表示された瞬間の幅は狭い。同じ処理の中で本来の幅になる
+        window.resize(1600, 200);
+        window.show();
+        QCOMPARE(info->height(), oneRow);
+        info->resize(1500, info->height());
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTest::qWait(20);
+        QCOMPARE(info->height(), oneRow);
+        QCOMPARE(watcher.tallest, oneRow);
+
+        // 幅が決まっていて狭ければ、次のイベントループで行を増やす
+        info->resize(420, info->height());
+        QCOMPARE(info->height(), oneRow);
+        QTRY_VERIFY(info->height() > oneRow);
+        const int wrapped = info->height();
+
+        // 同じ処理の中で何度狭めても、増やすのは1回だけ
+        info->resize(1500, info->height());
+        QCoreApplication::processEvents();
+        QCOMPARE(info->height(), oneRow);
+        for (const int width : {500, 450, 420}) info->resize(width, info->height());
+        QTRY_COMPARE(info->height(), wrapped);
+
+        // 待っている間に広げれば増やさない
+        info->resize(1500, info->height());
+        QCoreApplication::processEvents();
+        info->resize(420, info->height());
+        info->resize(1500, info->height());
+        QTest::qWait(20);
+        QCOMPARE(info->height(), oneRow);
     }
 
     // 手番の印はエンジン名の前に出す。印の有無で項目の位置は変わらない
