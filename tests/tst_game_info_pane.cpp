@@ -625,7 +625,8 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&tab));
         for (const auto& [info, view] : {std::pair<EngineInfoWidget*, QWidget*>{tab.info1(), tab.view1()},
                                          {tab.info2(), tab.view2()}}) {
-            QCOMPARE(info->geometry().bottom() + 1, view->geometry().top());
+            // 幅によっては帯が折り返すので、行の増加と配置を待つ
+            QTRY_COMPARE(info->geometry().bottom() + 1, view->geometry().top());
             QCOMPARE(info->geometry().left(), view->geometry().left());
             QCOMPARE(info->width(), view->width());
         }

@@ -19,6 +19,7 @@
 #include <QHideEvent>
 #include <QResizeEvent>
 #include <QShowEvent>
+#include <QTimer>
 
 namespace {
 constexpr int kFrame = 1;              // 帯の枠の線の太さ
@@ -198,11 +199,21 @@ QList<EngineInfoWidget::Row> EngineInfoWidget::arrangeRows(int bandWidth) const
 
 void EngineInfoWidget::updateBandLayout()
 {
-    const int rowHeight = KifuMoveDelegate::textHeight(font()) + kRowPadding;
     const int bandWidth = qMax(1, width() - 2 * kFrame);
+    const QList<Row> rows = arrangeRows(bandWidth);
+    // 行を増やすと、高さは親の最小の高さになる。ドックのタブの裏の帯は isVisible() でも見えている扱いのまま、起動時の
+    // 仮の幅（約230px）で残るので、そこで増やすと押し広げたウィンドウの高さが戻らない。増やすのは画面に描いた後にする
+    // （タブの裏や、まだ出ていないウィンドウの帯には描画が届かない）
+    if (rows.size() > m_rowCount && !m_applyingRowGrowth) {
+        m_rowGrowthPending = true;
+        update();
+        return;
+    }
+    m_rowCount = rows.size();
+
+    const int rowHeight = KifuMoveDelegate::textHeight(font()) + kRowPadding;
     m_lines.clear();
     int top = kFrame;
-    const QList<Row> rows = arrangeRows(bandWidth);
     for (const Row& row : rows) {
         if (top > kFrame) m_lines.append(QLine(kFrame, top, kFrame + bandWidth - 1, top));
         placeRow(row, QRect(kFrame, top, bandWidth, rowHeight));
@@ -210,6 +221,13 @@ void EngineInfoWidget::updateBandLayout()
     }
     setFixedHeight(top);
     update();
+}
+
+void EngineInfoWidget::applyPendingRowGrowth()
+{
+    m_applyingRowGrowth = true;
+    updateBandLayout();
+    m_applyingRowGrowth = false;
 }
 
 void EngineInfoWidget::placeRow(const Row& row, const QRect& rect)
@@ -373,6 +391,10 @@ void EngineInfoWidget::hideEvent(QHideEvent* event)
 
 void EngineInfoWidget::paintEvent(QPaintEvent*)
 {
+    if (m_rowGrowthPending) {
+        m_rowGrowthPending = false;
+        QTimer::singleShot(0, this, &EngineInfoWidget::applyPendingRowGrowth);
+    }
     QPainter painter(this);
     painter.fillRect(rect(), TableStyles::engineBandBackground());
     painter.setPen(TableStyles::engineBandLine());
