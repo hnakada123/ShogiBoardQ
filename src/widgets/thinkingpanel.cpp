@@ -17,6 +17,8 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
+#include <utility>
+
 ThinkingPanel::ThinkingPanel(const ArrowActions& actions, QWidget* parent)
     : QWidget(parent)
     , m_fontSize(AnalysisSettings::thinkingFontSize, 8, 24)
@@ -50,17 +52,27 @@ ThinkingPanel::ThinkingPanel(const ArrowActions& actions, QWidget* parent)
     connect(m_arrowActions.ponder, &QAction::toggled, this, &ThinkingPanel::updateArrowControls);
     updateArrowControls();
 
-    m_info1 = new EngineInfoWidget(AnalysisSettings::ThinkingTable::Engine1, this);
-    m_view1 = new ThinkingTableView(AnalysisSettings::ThinkingTable::Engine1, this);
+    m_info1 = new EngineInfoWidget(this);
+    m_info1->setObjectName(QStringLiteral("engineInfo1"));
+    m_view1 = new ThinkingTableView(AnalysisSettings::ThinkingTable::Match, this);
     m_view1->setObjectName(QStringLiteral("thinkingView1"));
-    m_info2 = new EngineInfoWidget(AnalysisSettings::ThinkingTable::Engine2, this);
-    m_view2 = new ThinkingTableView(AnalysisSettings::ThinkingTable::Engine2, this);
+    m_info2 = new EngineInfoWidget(this);
+    m_info2->setObjectName(QStringLiteral("engineInfo2"));
+    m_view2 = new ThinkingTableView(AnalysisSettings::ThinkingTable::Match, this);
 
-    v->addWidget(m_info1);
-    v->addWidget(m_view1, 1);
-    v->addWidget(m_info2);
-    v->addWidget(m_view2, 1);
+    // 情報帯は思考の表と続けて置く（帯の下の線は表の上の線が兼ねる）
+    for (const auto& [info, view] : {std::pair<EngineInfoWidget*, ThinkingTableView*>{m_info1, m_view1},
+                                     {m_info2, m_view2}}) {
+        auto* block = new QVBoxLayout;
+        block->setSpacing(0);
+        block->addWidget(info);
+        block->addWidget(view, 1);
+        v->addLayout(block, 1);
+    }
 
+    // 2つの表は1つの列幅を使う（片方で変えて保存した幅を、もう片方が読み直す）
+    connect(m_view1, &ThinkingTableView::userColumnWidthChanged, m_view2, &ThinkingTableView::reloadColumnWidths);
+    connect(m_view2, &ThinkingTableView::userColumnWidthChanged, m_view1, &ThinkingTableView::reloadColumnWidths);
     connect(m_view1, &ThinkingTableView::pvRowClicked, this, &ThinkingPanel::pvRowClicked);
     connect(m_view2, &ThinkingTableView::pvRowClicked, this, &ThinkingPanel::pvRowClicked);
     connect(m_view1, &ThinkingTableView::thinkingRowContextMenuAboutToShow, this, &ThinkingPanel::rowContextMenuAboutToShow);

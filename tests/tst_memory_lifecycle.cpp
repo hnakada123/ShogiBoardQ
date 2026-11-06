@@ -29,8 +29,8 @@ private slots:
     void thinkingModelResetsDoNotAccumulateDelegates()
     {
         ShogiEngineThinkingModel first, second;
-        ThinkingTableView view1(AnalysisSettings::ThinkingTable::Engine1);
-        ThinkingTableView view2(AnalysisSettings::ThinkingTable::Engine2);
+        ThinkingTableView view1(AnalysisSettings::ThinkingTable::Match);
+        ThinkingTableView view2(AnalysisSettings::ThinkingTable::Match);
         view1.setThinkingModel(&first);
         view2.setThinkingModel(&second);
         for (int i = 0; i < 100; ++i) {
@@ -54,7 +54,7 @@ private slots:
     void thinkingModelSwitchReleasesSelectionModels()
     {
         ShogiEngineThinkingModel first, second;
-        ThinkingTableView view(AnalysisSettings::ThinkingTable::Engine1);
+        ThinkingTableView view(AnalysisSettings::ThinkingTable::Match);
         view.setThinkingModel(&first);
         for (int i = 0; i < 100; ++i) {
             view.setThinkingModel(i % 2 ? &first : &second);

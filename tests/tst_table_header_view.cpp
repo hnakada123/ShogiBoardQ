@@ -4,7 +4,6 @@
 #include <functional>
 
 #include "tableheaderview.h"
-#include "engineinfowidget.h"
 #include "incrementaltableview.h"
 #include "tablestyles.h"
 
@@ -198,11 +197,11 @@ private slots:
         // QTableView の既定の見出しと同じ設定
         QVERIFY(view.horizontalHeader()->sectionsClickable());
         QVERIFY(view.horizontalHeader()->highlightSections());
-        EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
-        auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
-        QVERIFY(table);
-        QVERIFY(qobject_cast<TableHeaderView*>(table->horizontalHeader()));
-        QCOMPARE(table->horizontalHeaderItem(0)->text(), EngineInfoWidget::tr("エンジン"));
+        QTableWidget table(1, 2);
+        TableHeaderView::install(&table);
+        table.setHorizontalHeaderLabels({QStringLiteral("A"), QStringLiteral("B")});
+        QVERIFY(qobject_cast<TableHeaderView*>(table.horizontalHeader()));
+        QCOMPARE(table.horizontalHeaderItem(0)->text(), QStringLiteral("A"));
     }
 };
 

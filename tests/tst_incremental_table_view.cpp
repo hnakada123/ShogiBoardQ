@@ -388,8 +388,8 @@ private slots:
         ShogiEngineThinkingModel model1;
         ShogiEngineThinkingModel model2;
         QWidget window;
-        ThinkingTableView view1(AnalysisSettings::ThinkingTable::Engine1, &window);
-        ThinkingTableView view2(AnalysisSettings::ThinkingTable::Engine2, &window);
+        ThinkingTableView view1(AnalysisSettings::ThinkingTable::Match, &window);
+        ThinkingTableView view2(AnalysisSettings::ThinkingTable::Match, &window);
         view1.setThinkingModel(&model1);
         view2.setThinkingModel(&model2);
         view1.setGeometry(0, 0, 900, 130);
@@ -445,8 +445,8 @@ private slots:
         ShogiEngineThinkingModel model1;
         ShogiEngineThinkingModel model2;
         QWidget window;
-        ThinkingTableView view1(AnalysisSettings::ThinkingTable::Engine1, &window);
-        ThinkingTableView view2(AnalysisSettings::ThinkingTable::Engine2, &window);
+        ThinkingTableView view1(AnalysisSettings::ThinkingTable::Match, &window);
+        ThinkingTableView view2(AnalysisSettings::ThinkingTable::Match, &window);
         view1.setThinkingModel(&model1);
         view2.setThinkingModel(&model2);
         view1.setGeometry(0, 0, 900, 130);
@@ -455,7 +455,7 @@ private slots:
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         settle();
-        const QList<int> saved = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1)();
+        const QList<int> saved = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Match)();
 
         const int lastWidth = view1.columnWidth(ShogiEngineThinkingModel::PvColumn);
         for (int i = 0; i < 8; ++i) model1.prependRow(thinkingRecord(i), kUnlimitedRows);
@@ -467,17 +467,17 @@ private slots:
         QVERIFY(view1.columnWidth(ShogiEngineThinkingModel::PvColumn) != lastWidth);
         view1.resize(820, 130);
         settle();
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1)(), saved);
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Match)(), saved);
 
         // プログラムで列幅を変えても（文字の大きさの変更など）保存しない
         view1.setColumnWidth(2, 140);
         settle();
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1)(), saved);
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Match)(), saved);
 
         // 利用者が見出しの境目をドラッグして列幅を変えたときは、その列の幅だけを保存する（ほかの列は 0 = 自動）
         HeaderDrag::resizeSection(view1.horizontalHeader(), 2, 123);
         settle();
-        const QList<int> changed = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1)();
+        const QList<int> changed = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Match)();
         QCOMPARE(changed.size(), model1.columnCount());
         QCOMPARE(changed.at(2), 123);
         for (int column = 0; column < changed.size(); ++column) {
@@ -485,17 +485,17 @@ private slots:
         }
 
         // 次に作る表は、保存した幅で始まる
-        ThinkingTableView restored(AnalysisSettings::ThinkingTable::Engine1);
+        ThinkingTableView restored(AnalysisSettings::ThinkingTable::Match);
         restored.setThinkingModel(&model1);
         QCOMPARE(restored.columnWidth(2), 123);
 
         // 見本の数値が収まる幅より狭くしても、次に作る表はその幅で始まる（利用者の幅を最小値として扱わない）
         HeaderDrag::resizeSection(view1.horizontalHeader(), 2, 40);
         settle();
-        ThinkingTableView narrowed(AnalysisSettings::ThinkingTable::Engine1);
+        ThinkingTableView narrowed(AnalysisSettings::ThinkingTable::Match);
         narrowed.setThinkingModel(&model1);
         QCOMPARE(narrowed.columnWidth(2), 40);
-        AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1).set(saved);
+        AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Match).set(saved);
     }
 
     // 同じモデルを渡し直しても、モデルを差し替えても、行の追加を正しく描く

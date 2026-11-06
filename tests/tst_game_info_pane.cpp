@@ -30,6 +30,9 @@
 #include "kifudocument.h"
 #include "kifuexport.h"
 #include "thinkingpanel.h"
+#include "thinkingtableview.h"
+#include "shogienginethinkingmodel.h"
+#include "usicommlogmodel.h"
 #include "engineinfowidget.h"
 #include "analysissettings.h"
 #include "elidelabel.h"
@@ -494,6 +497,141 @@ private slots:
         QVERIFY(views.at(1)->isVisibleTo(page));
     }
 
+    // 情報帯の手番の印は、対局者から決める。E1 を片方の側の対局者として使わない動作が始まったら次の対局まで出さない
+    void engineBandsShowTheSideEachEnginePlays()
+    {
+        QWidget parent;
+        CheckableAction match, ponder;
+        ThinkingPanel tab({&match, &ponder}, &parent);
+        KifuBranchTree tree;
+        KifuDocument document(&tree);
+        ShogiClock clock;
+        EngineSlots engineSlots(&clock);
+        AppActivityState activity;
+        EngineDisplayPresenter::Deps deps;
+        deps.engines = &engineSlots;
+        deps.document = &document;
+        deps.activity = &activity;
+        deps.thinkingPanel = &tab;
+        EngineDisplayPresenter displays(deps);
+        const auto mark = [](EngineInfoWidget* info) {
+            auto* label = info->findChild<QLabel*>(QStringLiteral("engineInfoSide"));
+            return label->isHidden() ? QString() : label->text();
+        };
+        const QString black = QStringLiteral("▲");
+        const QString white = QStringLiteral("△");
+        QCOMPARE(mark(tab.info1()), QString());
+        QCOMPARE(mark(tab.info2()), QString());
+
+        MatchPlayers engines;
+        engines.seat(Turn::Black).engine = true;
+        engines.seat(Turn::White).engine = true;
+        document.beginMatch(engines, {}, false);
+        QCOMPARE(mark(tab.info1()), black);
+        QCOMPARE(mark(tab.info2()), white);
+
+        // エンジンが1台なら、どちらの側でも E1 の帯に出す
+        MatchPlayers engineAsWhite;
+        engineAsWhite.seat(Turn::White).engine = true;
+        document.beginMatch(engineAsWhite, {}, false);
+        QCOMPARE(mark(tab.info1()), white);
+        QCOMPARE(mark(tab.info2()), QString());
+        MatchPlayers engineAsBlack;
+        engineAsBlack.seat(Turn::Black).engine = true;
+        document.beginMatch(engineAsBlack, {}, false);
+        QCOMPARE(mark(tab.info1()), black);
+        document.beginMatch(MatchPlayers{}, {}, false);
+        QCOMPARE(mark(tab.info1()), QString());
+
+        // 通信対局の文書の対局者はサーバーの名前だけなので、司令塔の知らせで決める
+        displays.showMatchEngine(Turn::White, QStringLiteral("Engine"));
+        QCOMPARE(mark(tab.info1()), white);
+        QCOMPARE(mark(tab.info2()), QString());
+
+        // 検討・詰み探索・棋譜解析の E1 は片方の側を指さない。終わっても次の対局まで出さない
+        QObject owner;
+        for (const auto running : {AppActivityState::Activity::DuringConsideration,
+                                   AppActivityState::Activity::DuringTsumeSearch,
+                                   AppActivityState::Activity::DuringAnalysis}) {
+            document.beginMatch(engines, {}, false);
+            QCOMPARE(mark(tab.info1()), black);
+            ActivityLease lease = activity.begin(running, &owner);
+            QCOMPARE(mark(tab.info1()), QString());
+            QCOMPARE(mark(tab.info2()), QString());
+            lease.reset();
+            QCOMPARE(mark(tab.info1()), QString());
+        }
+
+        // 対局の動作状態では消さない
+        document.beginMatch(engines, {}, false);
+        ActivityLease game = activity.begin(AppActivityState::Activity::DuringGame, &owner);
+        QCOMPARE(mark(tab.info1()), black);
+        game.reset();
+        QCOMPARE(mark(tab.info1()), black);   // 終局後も、対局した側のまま
+
+        // 棋譜を置き換えたら消す
+        document.startNew(SfenUtils::hirateSfen());
+        QCOMPARE(mark(tab.info1()), QString());
+        QCOMPARE(mark(tab.info2()), QString());
+    }
+
+    // 2つのエンジンの表は1つの列幅を使う。どちらの表で変えても両方が同じ幅になり、次に作る表にも残る
+    void thinkingTablesShareColumnWidths()
+    {
+        const auto saved = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Match);
+        const QList<int> before = saved();
+        saved.set({});
+        ShogiEngineThinkingModel thinking1;
+        ShogiEngineThinkingModel thinking2;
+        UsiCommLogModel log1;
+        UsiCommLogModel log2;
+        CheckableAction match, ponder;
+        ThinkingPanel tab({&match, &ponder});
+        tab.setModels(&thinking1, &thinking2, &log1, &log2);
+        tab.setSecondEngineVisible(true);
+        tab.resize(1000, 600);
+        tab.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&tab));
+        ThinkingTableView* view1 = tab.view1();
+        ThinkingTableView* view2 = tab.view2();
+        for (int column = 0; column < ShogiEngineThinkingModel::PvColumn; ++column)
+            QCOMPARE(view1->columnWidth(column), view2->columnWidth(column));
+
+        HeaderDrag::resizeSection(view1->horizontalHeader(), ShogiEngineThinkingModel::NodesColumn, 140);
+        QCOMPARE(view1->columnWidth(ShogiEngineThinkingModel::NodesColumn), 140);
+        QCOMPARE(view2->columnWidth(ShogiEngineThinkingModel::NodesColumn), 140);
+
+        HeaderDrag::resizeSection(view2->horizontalHeader(), ShogiEngineThinkingModel::ScoreColumn, 95);
+        QCOMPARE(view2->columnWidth(ShogiEngineThinkingModel::ScoreColumn), 95);
+        QCOMPARE(view1->columnWidth(ShogiEngineThinkingModel::ScoreColumn), 95);
+        QCOMPARE(view1->columnWidth(ShogiEngineThinkingModel::NodesColumn), 140);
+        QCOMPARE(view1->columnWidth(ShogiEngineThinkingModel::PvColumn), view2->columnWidth(ShogiEngineThinkingModel::PvColumn));
+
+        ThinkingPanel restored({&match, &ponder});
+        restored.setModels(&thinking1, &thinking2, &log1, &log2);
+        QCOMPARE(restored.view1()->columnWidth(ShogiEngineThinkingModel::ScoreColumn), 95);
+        QCOMPARE(restored.view2()->columnWidth(ShogiEngineThinkingModel::NodesColumn), 140);
+        saved.set(before);
+    }
+
+    // 情報帯は思考の表に続けて置き、幅も表と揃える
+    void engineBandsSitDirectlyAboveThinkingTables()
+    {
+        CheckableAction match, ponder;
+        ThinkingPanel tab({&match, &ponder});
+        tab.setSecondEngineVisible(true);
+        tab.resize(1000, 600);
+        tab.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&tab));
+        for (const auto& [info, view] : {std::pair<EngineInfoWidget*, QWidget*>{tab.info1(), tab.view1()},
+                                         {tab.info2(), tab.view2()}}) {
+            QCOMPARE(info->geometry().bottom() + 1, view->geometry().top());
+            QCOMPARE(info->geometry().left(), view->geometry().left());
+            QCOMPARE(info->width(), view->width());
+        }
+        QCOMPARE(tab.view1()->height(), tab.view2()->height());
+    }
+
     void thinkingFontButtonsPrecedeArrowControls()
     {
         AnalysisSettings::thinkingFontSize.set(10);
@@ -538,11 +676,7 @@ private slots:
             const auto views = tab.findChildren<QTableView*>(QString(), Qt::FindDirectChildrenOnly);
             QCOMPARE(views.size(), 2);
             for (QTableView* view : views) QCOMPARE(view->font().pointSize(), 10);
-            for (EngineInfoWidget* info : {tab.info1(), tab.info2()}) {
-                auto* table = info->findChild<QTableWidget*>();
-                QVERIFY(table);
-                QCOMPARE(table->font().pointSize(), 10);
-            }
+            for (EngineInfoWidget* info : {tab.info1(), tab.info2()}) QCOMPARE(info->font().pointSize(), 10);
         }
         QApplication::setFont(appFont);
     }

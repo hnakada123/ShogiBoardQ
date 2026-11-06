@@ -260,16 +260,15 @@ def engine_thinking_deep(min_depth=18, min_rows=5):
     if state.get("ui_state") != "game" or state["sfen"].split()[1] != "w":
         return False
     if not _selectors:
-        # エンジン情報の表は同じ名前のものが複数あるので、selector で見る
         widgets = rpc("widget.text")["widgets"]
-        _selectors["info"] = [w["selector"] for w in widgets if w.get("object_name") == "engineInfoTable"]
         _selectors["view"] = next(w["selector"] for w in widgets if w.get("object_name") == "thinkingView1")
-    for selector in _selectors["info"]:
-        rows = widget(selector).get("rows") or []
-        if len(rows) > 1 and YANEURAOU in str(rows[1][0]):
-            depth = str(rows[1][3]).split("/")[0]
-            if depth.isdigit() and int(depth) >= min_depth:
-                return widget(_selectors["view"]).get("row_count", 0) >= min_rows
+    # 人間対エンジンのエンジンは1つ目の情報帯に出る
+    band = rpc("widget.text", {"widget": "engineInfo1", "include_children": True})["widgets"]
+    labels = {w.get("object_name"): str(w.get("text", "")) for w in band}
+    if YANEURAOU in labels.get("engineInfoName", ""):
+        depth = labels.get("engineInfoDepth", "").split("/")[0]
+        if depth.isdigit() and int(depth) >= min_depth:
+            return widget(_selectors["view"]).get("row_count", 0) >= min_rows
     return False
 
 

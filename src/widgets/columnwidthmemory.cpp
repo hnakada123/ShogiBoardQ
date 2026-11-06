@@ -9,11 +9,21 @@ ColumnWidthMemory::ColumnWidthMemory(TableHeaderView* header, const ListSetting<
     : QObject(header)
     , m_header(header)
     , m_setting(setting)
-    , m_widths(setting())
 {
+    load(columns);
+    connect(header, &TableHeaderView::sectionResizedByUser, this, &ColumnWidthMemory::onSectionResizedByUser);
+}
+
+void ColumnWidthMemory::load(int columns)
+{
+    m_widths = m_setting();
     m_widths.resize(columns);   // 足りない列は自動、多い分は捨てる
     for (int& width : m_widths) width = qMax(0, width);
-    connect(header, &TableHeaderView::sectionResizedByUser, this, &ColumnWidthMemory::onSectionResizedByUser);
+}
+
+void ColumnWidthMemory::reload()
+{
+    load(static_cast<int>(m_widths.size()));
 }
 
 int ColumnWidthMemory::widthOr(int column, int automatic) const

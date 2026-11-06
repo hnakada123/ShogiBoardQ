@@ -4102,8 +4102,6 @@ private slots:
         snapshot("consideration-layout");
 
         HeaderDrag::resizeSection(view->horizontalHeader(), 2, 180);
-        auto* infoTable = manager->considerationInfo()->findChild<QTableWidget*>(); QVERIFY(infoTable);
-        HeaderDrag::resizeSection(infoTable->horizontalHeader(), 0, 290);
         if (action("actionLockDocks")->isChecked()) click("actionLockDocks");
         dock->setFloating(true);
         dock->resize(660, 460);
@@ -4126,14 +4124,13 @@ private slots:
         ConsiderationPanel restored(&arrows);
         restored.setConsiderationThinkingModel(model);
         QCOMPARE(restored.considerationView()->columnWidth(2), 180);
-        QCOMPARE(restored.considerationInfo()->columnWidths().at(0), 290);
         restored.findChild<QRadioButton*>("considerationUnlimited")->click();
         QVERIFY(!restored.findChild<QSpinBox*>("considerationSeconds")->isEnabled());
     }
     void engineInfoLayout()
     {
         UsiCommLogModel model;
-        EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
+        EngineInfoWidget info;
         model.setEngineName(QStringLiteral("Hayanagi 1.5.0"));
         model.setPredictedMove(QStringLiteral("▲７六歩(77)"));
         EngineSearchStatus status;
@@ -4145,33 +4142,32 @@ private slots:
         status.hashfull = 120;
         model.setStatus(status);
         info.setModel(&model);
-        info.resize(1200, info.height());
+        info.resize(1400, info.height());
         info.show();
-        auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
-        QVERIFY(table);
-        QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
-        QVERIFY(table->columnWidth(0) < info.width() / 3);
-        const auto widths = info.columnWidths();
-        info.resize(400, info.height());
-        QTRY_VERIFY(table->horizontalScrollBar()->maximum() > 0);
-        QCOMPARE(info.columnWidths(), widths);
-        table->horizontalScrollBar()->setValue(table->horizontalScrollBar()->maximum());
-        QVERIFY(table->visualRect(table->model()->index(0, 6)).right() < table->viewport()->width());
-        info.resize(1200, info.height());
-        QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
-        info.setFontSize(16);
-        QTRY_VERIFY(table->columnWidth(4) >= table->fontMetrics().horizontalAdvance(table->item(0, 4)->text()) + 6);
-        // 利用者が見出しの境目をドラッグして決めた幅は、表の大きさ・エンジン名が変わっても変えない
-        auto customWidths = info.columnWidths();
-        customWidths[0] += 40;
-        HeaderDrag::resizeSection(table->horizontalHeader(), 0, customWidths[0]);
-        QCoreApplication::processEvents();
-        info.resize(500, info.height());
-        info.resize(1300, info.height());
-        QCOMPARE(info.columnWidths(), customWidths);
-        model.setEngineName(QStringLiteral("An engine with a very long display name"));
-        QCOMPARE(info.columnWidths(), customWidths);
-        QCOMPARE(table->item(0, 0)->toolTip(), plainToolTip(model.engineName()));
+        QVERIFY(QTest::qWaitForWindowExposed(&info));
+        const auto* name = info.findChild<ElideLabel*>(QStringLiteral("engineInfoName"));
+        const auto* nodes = info.findChild<ElideLabel*>(QStringLiteral("engineInfoNodes"));
+        const auto* hash = info.findChild<ElideLabel*>(QStringLiteral("engineInfoHash"));
+        QVERIFY(name && nodes && hash);
+        QCOMPARE(nodes->fullText(), QStringLiteral("1,234,567"));
+        QCOMPARE(hash->fullText(), QStringLiteral("12%"));
+        const int oneRow = info.height();
+        QCOMPARE(nodes->y(), name->y());
+
+        // 狭いドックでは折り返し、広げれば戻る。項目は帯からはみ出さない
+        info.resize(420, info.height());
+        QTRY_VERIFY(info.height() > oneRow);
+        QVERIFY(info.rect().contains(hash->geometry()));
+        info.resize(1400, info.height());
+        QTRY_COMPARE(info.height(), oneRow);
+
+        // エンジン名は省略して、全文はツールチップで読める。エンジン名の長さで項目は動かない
+        const QRect nodesGeometry = nodes->geometry();
+        const QString longName = QStringLiteral("An engine with a very long display name that does not fit in the band at all, really");
+        model.setEngineName(longName);
+        QCOMPARE(nodes->geometry(), nodesGeometry);
+        QCOMPARE(name->fullText(), longName);
+        QCOMPARE(name->toolTip(), plainToolTip(longName));
     }
     void branchNavigation()
     {

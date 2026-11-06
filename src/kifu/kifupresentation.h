@@ -59,6 +59,8 @@ QString numberedLabel(int ply, const QString& label, bool branch);
 QString branchMark();
 /// 棋譜解析で、読み筋の代わりに出す定跡の印（表示言語に合わせる）
 QString bookLabel();
+/// 情報欄の「探索手」に出す定跡手の表記（例「▲７六歩(77)（定跡 82.1%）」。出現頻度の無い定跡（ratioPercent が 0 以下）は割合を書かない）
+QString bookMove(const QString& move, double ratioPercent);
 
 QString infoKey(const QString& canonical);
 QString infoValue(const QString& key, const QString& raw);

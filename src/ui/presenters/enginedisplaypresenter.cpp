@@ -4,6 +4,7 @@
 #include "enginedisplaypresenter.h"
 
 #include "analysissession.h"
+#include "appactivitystate.h"
 #include "considerationpanel.h"
 #include "csalogpanel.h"
 #include "engineinfowidget.h"
@@ -40,6 +41,9 @@ EngineDisplayPresenter::EngineDisplayPresenter(const Deps& deps, QObject* parent
     }
     if (m_deps.document) {
         connect(m_deps.document, &KifuDocument::playersChanged, this, &EngineDisplayPresenter::onPlayersChanged);
+    }
+    if (m_deps.activity) {
+        connect(m_deps.activity, &AppActivityState::changed, this, &EngineDisplayPresenter::onActivityChanged);
     }
     setSecondEngineVisible(false);
 }
@@ -158,6 +162,28 @@ void EngineDisplayPresenter::onPlayersChanged()
         graph->setEngine1Name(players.engineName(Turn::Black));
         graph->setEngine2Name(players.engineName(Turn::White));
     }
+    // 枠の決まり（MatchEngineSeat の使い方）: エンジン同士は先手が E1・後手が E2、エンジンが1台ならどちらの側でも E1
+    std::optional<Turn> first;
+    if (players.isEngine(Turn::Black)) first = Turn::Black;
+    else if (players.isEngine(Turn::White)) first = Turn::White;
+    setEngineSides(first, players.engineVsEngine() ? std::optional<Turn>(Turn::White) : std::nullopt);
+}
+
+void EngineDisplayPresenter::onActivityChanged()
+{
+    using Activity = AppActivityState::Activity;
+    if (m_deps.activity->is(Activity::DuringConsideration) || m_deps.activity->is(Activity::DuringTsumeSearch)
+        || m_deps.activity->is(Activity::DuringAnalysis)) {
+        setEngineSides(std::nullopt, std::nullopt);
+    }
+}
+
+void EngineDisplayPresenter::setEngineSides(std::optional<Turn> first, std::optional<Turn> second)
+{
+    if (ThinkingPanel* panel = m_deps.thinkingPanel) {
+        panel->info1()->setSide(first);
+        panel->info2()->setSide(second);
+    }
 }
 
 void EngineDisplayPresenter::showMatchEngine(Turn side, const QString& engineName)
@@ -167,6 +193,8 @@ void EngineDisplayPresenter::showMatchEngine(Turn side, const QString& engineNam
         if (side == Turn::Black) graph->setEngine1Name(engineName);
         else graph->setEngine2Name(engineName);
     }
+    // 通信対局のエンジンは、どちらの側でも E1
+    setEngineSides(side, std::nullopt);
 }
 
 void EngineDisplayPresenter::setSecondEngineVisible(bool visible)

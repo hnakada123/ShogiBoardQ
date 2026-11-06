@@ -249,10 +249,8 @@ void MatchCoordinator::requestEngineMove(Turn side)
 
 QString MatchCoordinator::bookMoveLabel(const QString& sfen, const JosekiPick& pick)
 {
-    const QString move = KifuPresentation::move(sfen, pick.move.move, KifuPresentation::options());
-    // 出現頻度の無い定跡（すべて0）は割合を出さない
-    if (pick.ratioPercent <= 0.0) return tr("%1（定跡）").arg(move);
-    return tr("%1（定跡 %2%）").arg(move, QString::number(pick.ratioPercent, 'f', 1));
+    return KifuPresentation::bookMove(KifuPresentation::move(sfen, pick.move.move, KifuPresentation::options()),
+                                      pick.ratioPercent);
 }
 
 void MatchCoordinator::forceImmediateMove()

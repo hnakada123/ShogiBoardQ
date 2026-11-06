@@ -213,6 +213,7 @@
 | 2026-11-04 | 既定値の写し・二重の保存・転送だけの関数を片付けた（監査 2026-11-01 5章）のに合わせて §3.5・§5.4・§6.1・§6.6・§6.8・§10.5・§13.5・§14.3・§15.2 を更新（成りの選び方は盤の操作 `BoardInteractionController` を作るときに渡し、`setPromotionChooser`・`DialogLauncher::choosePromotion` を消した。`DockLayoutManager::resetToDefault`・`saveDockStates` を消して `DockRegistry` を直接呼ぶ。棋譜の貼り付け・持将棋の点数・CSA の通信ログの窓の既定の大きさ、先読みの既定、おすすめ配色の4色は宣言・値の型から読む（`BoardColors::setBoardPalette`）。詰将棋問題一覧と生成のダイアログは閉じたとき（`done`）に1回だけ保存し、定跡の取り込みは取り込みを始めたときだけ保存する） |
 | 2026-11-04 | テストからしか使われない公開の口を整理した（監査 2026-11-01 5章）のに合わせて §13.6 を更新（外から呼ぶ所の無い `PositionEditRules::cycled`・`cleared`・`canMove` を .cpp の中へ。中だけで使う `CandidateArrowPresenter::considerationActive`・`CommentEditorPanel::setCommentHtml`・`convertUrlsToLinks`・`ShogiViewHighlighting::arrowsPaintRect` を非公開に。定跡ウィンドウだけが使う `FontSizeHelper::applyTo` を消し（`fontsizehelper.h` は `dialogutils.h` を include しない）、接続の無い `MenuWindow::favoritesChanged` を消した。テストだけが使う `RecordTime::fromText` はテストの補助 `recordtime_test_util.h` へ移した。`RecordPane` の列の切り替えは private slots にし、GUI テストは列のボタンで切り替える） |
 | 2026-11-04 | 古い説明・コメントを直した（監査 2026-11-01 5章）。このガイドの本文の変更は無い（CLAUDE.md の `UnsavedChangesPrompt` の層・`dialogfontscale`・`MenuActionsWiring` の例外・`environment` の出力、composition-root.md の規則5・6と後から渡す例外、mcp-server.md のツールとメソッドの表・古い名前、versioning.md の MCP の版、src のコメントを直した。MCP サーバーの版は `mcp/shogiboardq_mcp/__init__.py` の1か所にした） |
+| 2026-11-06 | 思考タブの情報欄を1行の帯にし、先手・後手の項目と列を揃えたのに合わせて §11.2 の該当の表（`ThinkingPanel`・`EngineInfoWidget`）と §12.5 の設定の説明を更新（`EngineInfoWidget` は表をやめ、項目の幅は書体だけで決める。手番の印は `EngineDisplayPresenter` が決める。思考の表の列幅は `AnalysisSettings::ThinkingTable::Match` の1つにし、`engineInfoColumnWidths` は廃止。定跡手の探索手の表記は `KifuPresentation::bookMove`） |
 
 <!-- chapter-0-end -->
 
@@ -1821,8 +1822,8 @@ m_c.analysisSession = new AnalysisSession(sd, &m_window);
 ```cpp
 // src/widgets/thinkingpanel.cpp
 
-m_info1 = new EngineInfoWidget(AnalysisSettings::ThinkingTable::Engine1, this);
-m_view1 = new ThinkingTableView(AnalysisSettings::ThinkingTable::Engine1, this);
+m_info1 = new EngineInfoWidget(this);
+m_view1 = new ThinkingTableView(AnalysisSettings::ThinkingTable::Match, this);
 ```
 
 ```cpp
@@ -6368,7 +6369,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | クラス名 | 基底クラス | 配置場所 | 機能 |
 |---------|-----------|---------|------|
 | RecordPane | QWidget | 棋譜ドック（既定は右側） | 棋譜一覧（QTableView。指し手・消費時間・しおり・コメントの列と、列の表示の切り替え）＋分岐候補一覧（折りたたみ可）＋ナビゲーションボタン＋文字サイズ・しおり編集のボタン。コメントの編集欄は持たない（棋譜コメントのドック） |
-| ThinkingPanel | QWidget | 思考ドック | 対局・棋譜解析のエンジン2つ分の情報欄（`EngineInfoWidget`）と思考の表（`ThinkingTableView`）、文字の大きさのボタン、対局中の候補手の矢印のチェック（渡された `BoardArrowActions` の手番側・先読み側の `QAction`（必須）に `ActionBinding::bindCheckable()` で結ぶだけ）。2つ目のエンジンは `setSecondEngineVisible()` で出す。読み筋の「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で通知する |
+| ThinkingPanel | QWidget | 思考ドック | 対局・棋譜解析のエンジン2つ分の情報帯（`EngineInfoWidget`）と思考の表（`ThinkingTableView`）、文字の大きさのボタン、対局中の候補手の矢印のチェック（渡された `BoardArrowActions` の手番側・先読み側の `QAction`（必須）に `ActionBinding::bindCheckable()` で結ぶだけ）。2つ目のエンジンは `setSecondEngineVisible()` で出す。情報帯は表のすぐ上に続けて置き、2つの表は1つの列幅を使う（片方の `userColumnWidthChanged` をもう片方の `reloadColumnWidths` に結ぶ）。読み筋の「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で通知する |
 | PvTableView | IncrementalTableView | 思考の表・棋譜解析の結果の表 | 読み筋の表。数値の列の右寄せ3桁区切り、「盤面」ボタン（クリックか Enter で `boardRequested(int)`）、読み筋の描き方、行の高さと文字の大きさ（`setFontPointSize()`）を受け持つ。列の役割は `Columns`（`numeric`・`board`・`pv`）で渡し、列幅は使う側が決める |
 | ThinkingTableView | PvTableView | 思考ドック・検討ドック | 思考の表。対局のエンジン2つと検討タブで共用し、列幅（保存と復元）を受け持つ。「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で知らせる |
 | ConsiderationPanel | QWidget | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。矢印のチェックは渡された `BoardArrowActions::consideration()`（必須）に `ActionBinding::bindCheckable()` で結ぶだけ。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
@@ -6376,7 +6377,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | BranchTreeView | QGraphicsView | 分岐ツリーのドック（ドックの中身そのもの。objectName は `branchTreeView`） | 分岐ツリーの図（`KifuBranchTree` を読むだけの観察者）。`setTree(tree)` でツリーの型付きの知らせを自分で受け、`nodeAppended` で手順の末尾に1手足しただけならその手だけを描き足し、それ以外（新しい変化・並べ替え・削除・作り直し）は作り直す。外とは `KifuBranchNode` の ID だけでやり取りする（`setCurrentNode(nodeId, center)`・`currentNodeId()`、シグナル `nodeActivated(nodeId)`・`nodeContextMenuAboutToShow(nodeId, menu)`、スロット `refreshNode(nodeId)`）。描く前に届いた表示中の手は、描いた時点で目立たせる。キー・マウス・ホイール・右クリックは `QGraphicsView` のイベント関数の上書きで受ける（イベントフィルタは使わない）。折りたたみもノード ID で指定する（`setCollapsed`・`isCollapsed`・`isCollapsible`・`expandAll`）。選べるかは `setClickEnabled()`（`UiStatePolicyManager` が決める）。テスト・自動化用に `isDrawn(nodeId)`・`laneOf(nodeId)`・`rebuildCount()` を持つ。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
 | BranchNodeItem | QGraphicsPathItem | BranchTreeView の中 | 図の1手（開始局面も同じクラスで、少し大きく太い枠で描く）。ノード ID・行・手数を型付きのメンバで持ち、`setCurrent()`・`setComment()`・`setCollapsedBadge()` で見た目を変える。`BranchTreeItemRoles`（`src/common/branchtreeitemroles.h`）の項目は自動化 API が読むためだけに付ける |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線）。点は `setSeries()` で渡された `EvaluationSeries`（書き手は `EvaluationGraphPresenter`）を描くだけ。表示の設定は値 `EvaluationChartSettings`（`chartSettings()`・`setChartSettings()`。変えると `AnalysisSettings::evalChart` に保存）、軸は `EvaluationChartRange::compute()` が設定・点の範囲・描く場所の大きさから決める（`axes()`）。「表示設定…」は `settingsRequested` を出すだけで、ダイアログは `DialogLauncher` が開く |
-| EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。列幅は利用者がドラッグした列だけを保存し（`ColumnWidthMemory`）、その列は内容に合わせて変えない |
+| EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報帯。思考の表のすぐ上） | `UsiCommLogModel` の値を、手番の印・エンジン名に続けて「項目名 値」で1行に並べる（予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の項目は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。項目の幅は項目名と見本の値を実際に描く書体で測るだけで決め、届いた値では変えない。余った幅はエンジン名、さらに余れば探索手の定跡の表記（`KifuPresentation::bookMove`）に使うので、同じ幅の帯はエンジン名や値によらず同じ位置に揃う。想定より長い値は `ElideLabel` が省略し、全文はツールチップで読める。1行に収まらなければエンジン名と指し手の行と数値の行に折り返す。部品は大きさを固定して置くので、値の更新で配置を計算しない。手番の印は `setSide()` で受ける（`EngineDisplayPresenter` が決める） |
 | GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加など）＋ QTableView。中身・編集の履歴は `GameInfoEditModel`（`src/models/`）。`Qt::DisplayRole`・`Qt::EditRole` は書いたままの文字列（編集・コピー・棋譜に使う）で、画面に出す文字（項目名・内容の表記と、空の内容の薄い案内文）はモデルの `PresentedTextRole` の1つで作る。表の描画（デリゲート）・項目名の列幅・読み上げ・ツールチップはどれもそれを読む。編集は表に入れた時点で文書に入る（「対局情報更新」のボタンは無い）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
 | AnalysisResultsPanel | QWidget | 棋譜解析の結果ドック | 結果の表（`PvTableView`）・停止ボタン・文字の大きさ。モデルは `setModel()` で1度だけ結ぶ。列幅は自分で保存する。ドックの表示は `KifuAnalysisController` が行う（9.8節） |
 | MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/widgets/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
@@ -7185,13 +7186,14 @@ AppSettings::pieceSoundVolume.set(percent);
 
 #### 関数として書く項目
 
-宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーはその `.cpp` の中（関数の中の文字か、無名名前空間の定数）に書き、ヘッダーに出さない（外観のキーも `appearancesettings.cpp` の中）。古い保存値を引き継ぐ（`AppearanceSettings::appearanceSection`・`pieceStyle`、以前の版の開始局面の番号を読む `GameSettings::StartGame::startingPosition()`・`setStartingPosition()`）、保存の形と値の形を換える（対局開始の時間を時間・分・秒の項目に保存する `GameSettings::StartGame::Player::time()`・`setTime()`・`defaultTime()`。`gamesettings.cpp`）、未保存の項目をほかの項目で代える（`AppearanceSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、以前の版の保存形式を移す（`AnalysisSettings::kifuAnalysisColumnWidths()` の `QVariantList`・`GameSettings::gameInfoColumnWidths()` の項目名の列幅1つを、初めて読むときに配列にする。列の数が変わった `AnalysisSettings::thinkingViewColumnWidths()`（上下限の列に 0 を入れる）・`JosekiSettings::josekiWindowColumnWidths()`（比率より前の列だけ残す）。列の番号は設定の側の定数 `kThinkingViewColumnCount`・`kJosekiWindowColumnCount` などで、表の部品が `static_assert` で列の enum と照らす。小さい保存サイズを捨てる `GameSettings::jishogiScoreDialogSize()`、偶数の目標手数を奇数に直す `TsumeshogiSettings::upgradeLegacyGeneratorTargetMoves()`、以前の版が解く画面の設定に書いたファイルを読む `TsumeshogiSettings::lastCollectionFile()`。ダイアログ・パネルの中には引き継ぎを書かない）、独自の保存形式（`AppearanceSettings::boardColors` の色の文字列、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る宣言（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・`thinkingViewColumnWidths(ThinkingTable)` は `ListSetting<int>` の宣言を返す）、ドックレイアウトの名前の一覧などである。列幅は、表の見出しに付けた `ColumnWidthMemory`（widgets）が、利用者がドラッグした列だけを覚えて保存する（規則は1つ: 0 は自動、正の値は利用者が決めた幅。思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
+宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーはその `.cpp` の中（関数の中の文字か、無名名前空間の定数）に書き、ヘッダーに出さない（外観のキーも `appearancesettings.cpp` の中）。古い保存値を引き継ぐ（`AppearanceSettings::appearanceSection`・`pieceStyle`、以前の版の開始局面の番号を読む `GameSettings::StartGame::startingPosition()`・`setStartingPosition()`）、保存の形と値の形を換える（対局開始の時間を時間・分・秒の項目に保存する `GameSettings::StartGame::Player::time()`・`setTime()`・`defaultTime()`。`gamesettings.cpp`）、未保存の項目をほかの項目で代える（`AppearanceSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、以前の版の保存形式を移す（`AnalysisSettings::kifuAnalysisColumnWidths()` の `QVariantList`・`GameSettings::gameInfoColumnWidths()` の項目名の列幅1つを、初めて読むときに配列にする。列の数が変わった `AnalysisSettings::thinkingViewColumnWidths()`（上下限の列に 0 を入れる。2つ目のエンジンの表を別に保存していた版の保存は、対局の表が未保存のときだけ引き継いで消す）・`JosekiSettings::josekiWindowColumnWidths()`（比率より前の列だけ残す）。列の番号は設定の側の定数 `kThinkingViewColumnCount`・`kJosekiWindowColumnCount` などで、表の部品が `static_assert` で列の enum と照らす。小さい保存サイズを捨てる `GameSettings::jishogiScoreDialogSize()`、偶数の目標手数を奇数に直す `TsumeshogiSettings::upgradeLegacyGeneratorTargetMoves()`、以前の版が解く画面の設定に書いたファイルを読む `TsumeshogiSettings::lastCollectionFile()`。ダイアログ・パネルの中には引き継ぎを書かない）、独自の保存形式（`AppearanceSettings::boardColors` の色の文字列、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る宣言（`AnalysisSettings::thinkingViewColumnWidths(ThinkingTable)` は `ListSetting<int>` の宣言を返す）、ドックレイアウトの名前の一覧などである。列幅は、表の見出しに付けた `ColumnWidthMemory`（widgets）が、利用者がドラッグした列だけを覚えて保存する（規則は1つ: 0 は自動、正の値は利用者が決めた幅。思考・検討の表は `AnalysisSettings::ThinkingTable` の `Match`（対局の2つのエンジンの表で1つ）・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
 
 ```cpp
 // src/services/analysissettings.cpp より（表の番号でキーを作った宣言を返し、読み書きは ListSetting に任せる）
-ListSetting<int> engineInfoColumnWidths(ThinkingTable table)
+ListSetting<int> thinkingViewColumnWidths(ThinkingTable table)
 {
-    return {tableKey(kEngineInfoColumnWidthsFmt, table), kArrayWidth};   // キーは同じ .cpp の無名名前空間の定数
+    // キーは同じ .cpp の無名名前空間の定数。以前の版の保存の引き継ぎはここで行う
+    return {tableKey(kThinkingViewColumnWidthsFmt, static_cast<int>(table)), kArrayWidth};
 }
 ```
 
@@ -9488,7 +9490,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ElideLabel | C | widgets | テキスト省略表示ラベル | 第11章 |
 | EngineAnalysisRunner | C | analysis | 局面の列を1つのエンジンで順に解析する実行器（借りた `UsiEngineSession` を使う。GUI の棋譜解析と CLI の analyze・analyze-kifu で共通） | 第9章 |
 | EngineDisplayPresenter | C | ui/presenters | エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・評価値グラフの系列名・表示の消去） | 第9章, 第10章 |
-| EngineInfoWidget | C | widgets | エンジン情報表示ウィジェット（列幅を自分で保存） | 第11章 |
+| EngineInfoWidget | C | widgets | 思考の表の上のエンジン情報の帯（項目の幅は書体だけで決める） | 第11章 |
 | EngineLease | C | game | 枠のエンジンを使う権利（move-only。`EngineSlots::acquire()` が返し、手放すと枠を空ける） | 第6章 |
 | EngineSlots | C | game | エンジンの枠 E1・E2 の生成・起動・破棄と手番との対応（対局・検討・棋譜解析・通信対局で共有。使う側には `EngineLease` を渡し、取り上げたら `engineRevoked`） | 第6章 |
 | EngineListSettings | NS | services | 登録エンジン一覧の検索（名前・パス）と機能ごとに選んだエンジンの保存 | 第7章 |

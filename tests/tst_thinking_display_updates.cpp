@@ -8,18 +8,18 @@
 #include <QLabel>
 #include <QMainWindow>
 #include <QTableView>
-#include <QTableWidget>
 #include <QTemporaryDir>
 #include <QVBoxLayout>
 
 #include "applicationfonts.h"
+#include "elidelabel.h"
 #include "engineinfowidget.h"
-#include "header_drag_helper.h"
 #include "kifubranchlistmodel.h"
 #include "record_rows_helper.h"
 #include "kifumovedelegate.h"
 #include "kifupresentation.h"
 #include "kifurecordlistmodel.h"
+#include "movefont.h"
 #include "numericrightaligncommadelegate.h"
 #include "opaquebackground.h"
 #include "tablebuttondelegate.h"
@@ -85,6 +85,23 @@ class TestThinkingDisplayUpdates : public QObject
         QEvent::Type m_type;
     };
 
+    /// 情報の帯の値（ElideLabel）
+    static ElideLabel* bandValue(const EngineInfoWidget& info, const char* name)
+    {
+        return info.findChild<ElideLabel*>(QString::fromLatin1(name));
+    }
+
+    /// 情報の帯の表示中の文字の部品の位置（作った順）
+    static QList<QRect> labelGeometries(const EngineInfoWidget& info)
+    {
+        QList<QRect> rects;
+        const auto labels = info.findChildren<QLabel*>();
+        for (const QLabel* label : labels) {
+            if (!label->isHidden()) rects.append(label->geometry());
+        }
+        return rects;
+    }
+
     static QString longPv(int moves)
     {
         static const QStringList kMoves = {
@@ -101,15 +118,6 @@ class TestThinkingDisplayUpdates : public QObject
     {
     public:
         using NumericRightAlignCommaDelegate::NumericRightAlignCommaDelegate;
-        void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
-        {
-            QStyledItemDelegate::paint(painter, option, index);
-        }
-    };
-    class QtKifuMoveDelegate : public KifuMoveDelegate
-    {
-    public:
-        using KifuMoveDelegate::KifuMoveDelegate;
         void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
         {
             QStyledItemDelegate::paint(painter, option, index);
@@ -378,37 +386,6 @@ private slots:
                 QVERIFY(!thinkingExpected.isNull());
                 QVERIFY2(renderThinking(false) == thinkingExpected, qPrintable(QStringLiteral("thinking: ") + where));
 
-                // エンジン情報の表（指し手の列は KifuMoveDelegate）
-                UsiCommLogModel log;
-                log.setEngineName(QStringLiteral("YaneuraOu NNUE 9.10"));
-                log.setPredictedMove(QStringLiteral("△同　歩(23)"));
-                log.setStatus(fullStatus());
-                // 列幅を保存した値で狭くすると、折り返す設定の表で2行になる・はみ出す値ができる（Qt に描かせる）
-                const auto renderInfo = [&](bool qtText, bool narrow) {
-                    const ListSetting<int> saved =
-                        AnalysisSettings::engineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1);
-                    saved.set(narrow ? QList<int>{70, 60, 48, 40, 52, 70, 40} : QList<int>{});
-                    EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);   // 保存した幅で始まる
-                    saved.set({});
-                    info.setModel(&log);
-                    info.resize(1000, 80);
-                    auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
-                    if (!table) return QImage();
-                    if (qtText) {
-                        table->setItemDelegate(new QStyledItemDelegate(table));
-                        auto* move = new QtKifuMoveDelegate(table);
-                        table->setItemDelegateForColumn(1, move);
-                        table->setItemDelegateForColumn(2, move);
-                    }
-                    return grabInState(&info, table, state, table->model()->index(0, 2));
-                };
-                for (const bool narrow : {false, true}) {
-                    const QImage infoExpected = renderInfo(true, narrow);
-                    QVERIFY(!infoExpected.isNull());
-                    QVERIFY2(renderInfo(false, narrow) == infoExpected,
-                             qPrintable(QStringLiteral("engine info: %1, narrow %2").arg(where).arg(narrow)));
-                }
-
                 // 棋譜欄（指し手の書体・分岐の背景色・現在行・中央寄せの消費時間・しおり・長いコメント）
                 RecordRows rows(startSfen);
                 KifuRecordListModel& record = rows.model;
@@ -438,134 +415,320 @@ private slots:
         NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false);
     }
 
-    // 思考情報は1行で複数の値が変わる。値が変わらなければ表を更新せず、
-    // 列幅の計算（レイアウトの再計算につながる）はまとめて1回にする
-    void engineInfoUpdatesAreCoalesced()
+    // 思考情報は1秒に何度も届く。値が変わっても帯の配置を変えず、レイアウトの再計算も起こさない。
+    // 同じ値なら描き直さない
+    void engineBandUpdatesDoNotLayOutAgain()
     {
+        QWidget window;
+        auto* layout = new QVBoxLayout(&window);
+        auto* info = new EngineInfoWidget(&window);
+        layout->addWidget(info);
+        layout->addStretch();
         UsiCommLogModel log;
-        EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
-        info.setModel(&log);
-        info.resize(2000, 60);
-        info.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&info));
-        auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
-        QVERIFY(table != nullptr);
-
-        EngineSearchStatus nodesOnly;
-        nodesOnly.nodes = 12345;
-        log.updateStatus(nodesOnly);
+        info->setModel(&log);
+        window.resize(1600, 120);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        log.setEngineName(QStringLiteral("Engine"));
+        log.setStatus(fullStatus());
         QCoreApplication::processEvents();
-        QSignalSpy changed(table->model(), &QAbstractItemModel::dataChanged);
-        log.updateStatus(nodesOnly);
-        QCOMPARE(changed.count(), 0);
 
-        // 値ごとに計算すると、表の幅を値の数だけ変える（そのたびに親のレイアウトを計算し直す）
+        auto* nodes = bandValue(*info, "engineInfoNodes");
+        const QList<QRect> geometryBefore = labelGeometries(*info);
+        const int heightBefore = info->height();
+
+        EventCounter layouts(QEvent::LayoutRequest);
         EventCounter resizes(QEvent::Resize);
-        table->installEventFilter(&resizes);
-        const int widthBefore = table->width();
-        const QList<int> columnsBefore = info.columnWidths();
-        // info 1行の探索状況は1回で届く
+        EventCounter paints(QEvent::Paint);
+        window.installEventFilter(&layouts);
+        info->installEventFilter(&layouts);
+        nodes->installEventFilter(&resizes);
+        nodes->installEventFilter(&paints);
+
         log.updateStatus(fullStatus());
         QCoreApplication::processEvents();
-        QCoreApplication::processEvents();
-        QCOMPARE(table->width(), widthBefore);
-        QCOMPARE(info.columnWidths(), columnsBefore);
-        QCOMPARE(resizes.count, 0);
-        log.setPredictedMove(QStringLiteral("△同　歩(23)"));
-        QCoreApplication::processEvents();
-        QCOMPARE(info.columnWidths(), columnsBefore);
+        QCOMPARE(paints.count, 0);
 
-        // 想定桁数を超える値が届いたときだけ、複数列の拡張をまとめて1回で反映する。
+        // 想定の桁数を超える値でも配置は変えない（省略し、全文はツールチップで読める）
         EngineSearchStatus large = fullStatus();
         large.depth = 12345;
         large.seldepth = 123456;
         large.nodes = 1234567890123456789LL;
         large.nps = 1234567890123LL;
         log.setStatus(large);
+        log.setPredictedMove(QStringLiteral("△同　歩(23)"));
         QCoreApplication::processEvents();
-        QCoreApplication::processEvents();
-        QVERIFY(table->width() > widthBefore);
-        QVERIFY2(resizes.count == 1, qPrintable(QStringLiteral("table resized %1 times").arg(resizes.count)));
-        const QFontMetrics metrics(table->font());
-        QVERIFY(table->columnWidth(4) >= metrics.horizontalAdvance(QStringLiteral("1,234,567,890,123,456,789")));
-        QVERIFY(table->columnWidth(5) >= metrics.horizontalAdvance(QStringLiteral("1,234,567,890,123")));
+        QCOMPARE(nodes->fullText(), QStringLiteral("1,234,567,890,123,456,789"));
+        QVERIFY(nodes->toolTip().contains(nodes->fullText()));
+        QVERIFY(QFontMetrics(nodes->font()).horizontalAdvance(nodes->fullText()) > nodes->width());
+        QCOMPARE(labelGeometries(*info), geometryBefore);
+        QCOMPARE(info->height(), heightBefore);
+        QCOMPARE(layouts.count, 0);
+        QCOMPARE(resizes.count, 0);
 
-        // 値が小さくなる・次の思考で空欄になる・モデルを外す場合も列幅を維持する。
-        const QList<int> expanded = info.columnWidths();
-        log.setStatus(fullStatus());
-        QCoreApplication::processEvents();
-        QCOMPARE(info.columnWidths(), expanded);
+        // 値が消えても配置は変えない
         log.clear();
+        info->setModel(nullptr);
         QCoreApplication::processEvents();
-        QCOMPARE(info.columnWidths(), expanded);
-        info.setModel(nullptr);
-        QCoreApplication::processEvents();
-        QCOMPARE(info.columnWidths(), expanded);
-        QCOMPARE(resizes.count, 1);
+        QVERIFY(nodes->fullText().isEmpty());
+        QCOMPARE(labelGeometries(*info), geometryBefore);
     }
 
-    // 測った文字の幅と見出しの高さを使い回しても、文字の大きさを変えれば測り直す
-    void engineInfoGeometryFollowsFontSize()
+    // 2つのエンジンの帯は、エンジン名の長さや値によらず、どの幅でもすべての項目が同じ位置に並ぶ
+    void engineBandsAlignWhateverTheyShow()
     {
-        UsiCommLogModel log;
-        EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
-        info.setModel(&log);
-        info.resize(1400, 80);
+        UsiCommLogModel log1;
+        UsiCommLogModel log2;
+        log1.setEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2 with a very long display name"));
+        log2.setEngineName(QStringLiteral("H"));
+        log1.setPredictedMove(QStringLiteral("△９四歩(93)"));
+        EngineSearchStatus status = fullStatus();
+        status.nodes = std::numeric_limits<qint64>::max();
+        log1.setStatus(status);
+        EngineSearchStatus few;
+        few.nodes = 1;
+        log2.setStatus(few);
+
+        QWidget window;
+        auto* layout = new QVBoxLayout(&window);
+        auto* first = new EngineInfoWidget(&window);
+        auto* second = new EngineInfoWidget(&window);
+        layout->addWidget(first);
+        layout->addWidget(second);
+        layout->addStretch();
+        first->setModel(&log1);
+        second->setModel(&log2);
+        first->setSide(Turn::Black);
+        second->setSide(Turn::White);
+        window.resize(1600, 300);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        for (const int width : {1600, 1300, 1100, 900, 700, 500, 320}) {
+            window.resize(width, 300);
+            QCoreApplication::processEvents();
+            QCOMPARE(first->width(), second->width());
+            QCOMPARE(first->height(), second->height());
+            QCOMPARE(labelGeometries(*first), labelGeometries(*second));
+        }
+    }
+
+    // 1行に収まらなければ、エンジン名と指し手の行と数値の行に分ける。どの幅でも項目は帯の中に重ならずに並ぶ
+    void engineBandWrapsWhenNarrow()
+    {
+        EngineInfoWidget info;
+        info.setSide(Turn::Black);
+        info.resize(2000, info.height());
         info.show();
         QVERIFY(QTest::qWaitForWindowExposed(&info));
-        auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
-        QVERIFY(table != nullptr);
-        const auto expectedHeight = [table] {
-            return table->horizontalHeader()->sizeHint().height() + table->verticalHeader()->defaultSectionSize()
-                + 2 * table->frameWidth();
-        };
+        QCoreApplication::processEvents();
+        const int oneRow = info.height();
+        const auto* name = bandValue(info, "engineInfoName");
+        const auto* searched = bandValue(info, "engineInfoSearched");
+        const auto* depth = bandValue(info, "engineInfoDepth");
+        QCOMPARE(depth->y(), name->y());
+
+        bool twoRows = false;
+        int previousHeight = oneRow;
+        for (int width = 2000; width >= 300; width -= 13) {
+            info.resize(width, info.height());
+            QCoreApplication::processEvents();
+            QVERIFY2(info.height() >= previousHeight, qPrintable(QString::number(width)));
+            previousHeight = info.height();
+            // エンジン名の行には、狭くなるまで指し手を置き、数値は別の行に送る
+            if (info.height() > oneRow && !twoRows) {
+                twoRows = true;
+                QCOMPARE(searched->y(), name->y());
+                QVERIFY(depth->y() > name->y());
+            }
+            const QList<QRect> rects = labelGeometries(info);
+            for (qsizetype i = 0; i < rects.size(); ++i) {
+                QVERIFY2(info.rect().contains(rects.at(i)), qPrintable(QStringLiteral("width %1").arg(width)));
+                for (qsizetype j = i + 1; j < rects.size(); ++j)
+                    QVERIFY2(!rects.at(i).intersects(rects.at(j)), qPrintable(QStringLiteral("width %1").arg(width)));
+            }
+        }
+        QVERIFY(twoRows);
+        info.resize(2000, info.height());
+        QCoreApplication::processEvents();
+        QCOMPARE(info.height(), oneRow);
+    }
+
+    // 隠れている帯（ドックのタブの裏）は幅が決まっていないので、折り返した高さを親に求めない。
+    // 高さを固定するので、求めるとドックの最小の高さが膨らみ、盤を拡大するとウィンドウまで伸びていた
+    void hiddenEngineBandStaysOneRowHigh()
+    {
+        QWidget window;
+        auto* layout = new QVBoxLayout(&window);
+        auto* info = new EngineInfoWidget(&window);
+        layout->addWidget(info);
+        window.resize(2000, 200);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QCoreApplication::processEvents();
+        const int oneRow = info->height();
+
+        // 見えていて狭ければ折り返す
+        window.resize(320, 400);
+        QCoreApplication::processEvents();
+        QTRY_VERIFY(info->height() > oneRow);
+
+        // 隠れたら狭いままでも1行の高さに戻り、また出せば折り返す
+        window.hide();
+        QCoreApplication::processEvents();
+        QCOMPARE(info->height(), oneRow);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTRY_VERIFY(info->height() > oneRow);
+
+        // 一度も表示していない帯は、既定の小さな幅でも1行の高さ
+        QWidget tabPage;
+        EngineInfoWidget neverShown(&tabPage);
+        QCoreApplication::processEvents();
+        QCOMPARE(neverShown.height(), oneRow);
+    }
+
+    // 手番の印はエンジン名の前に出す。印の有無で項目の位置は変わらない
+    void engineBandShowsSideMark()
+    {
+        EngineInfoWidget info;
+        info.resize(1600, info.height());
+        info.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&info));
+        QCoreApplication::processEvents();
+        auto* mark = info.findChild<QLabel*>(QStringLiteral("engineInfoSide"));
+        const auto* name = bandValue(info, "engineInfoName");
+        const auto* nodes = bandValue(info, "engineInfoNodes");
+        QVERIFY(mark);
+        QVERIFY(!mark->isVisible());
+        const int nameLeft = name->x();
+        const QRect nodesGeometry = nodes->geometry();
+
+        info.setSide(Turn::Black);
+        QVERIFY(mark->isVisible());
+        QCOMPARE(mark->text(), QStringLiteral("▲"));
+        QCOMPARE(mark->accessibleName(), EngineInfoWidget::tr("先手"));
+        QVERIFY(mark->geometry().right() < name->x());
+        QVERIFY(name->x() > nameLeft);
+        QCOMPARE(nodes->geometry(), nodesGeometry);
+
+        info.setSide(Turn::White);
+        QCOMPARE(mark->text(), QStringLiteral("△"));
+        QCOMPARE(mark->accessibleName(), EngineInfoWidget::tr("後手"));
+
+        info.setSide(std::nullopt);
+        QVERIFY(!mark->isVisible());
+        QCOMPARE(name->x(), nameLeft);
+        QCOMPARE(nodes->geometry(), nodesGeometry);
+    }
+
+    // 定跡手の探索手は長くなる。余裕のある幅なら省略しない（狭ければ省略し、エンジン名を優先する）
+    void bookMoveFitsWhenThereIsRoom()
+    {
+        const QString move = QStringLiteral("△８四歩(83)");
+        QCOMPARE(KifuPresentation::bookMove(move, 0.0), QCoreApplication::translate("KifuPresentation", "%1（定跡）").arg(move));
+        QCOMPARE(KifuPresentation::bookMove(move, 39.94), QCoreApplication::translate("KifuPresentation", "%1（定跡 %2%）").arg(move, QStringLiteral("39.9")));
+
+        UsiCommLogModel log;
+        const QString engineName = QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2");
+        log.setEngineName(engineName);
         EngineSearchStatus status;
-        status.searchedMove = QStringLiteral("▲２三歩成(24)");
-        status.nodes = 123456789;
+        status.searchedMove = KifuPresentation::bookMove(QStringLiteral("▲９九銀不成(99)"), 99.9);
         log.setStatus(status);
+        EngineInfoWidget info;
+        info.setModel(&log);
+        info.setSide(Turn::Black);
+        info.setFontSize(10);
+        info.resize(2400, info.height());
+        info.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&info));
         QCoreApplication::processEvents();
+        const auto* searched = bandValue(info, "engineInfoSearched");
+        const auto* name = bandValue(info, "engineInfoName");
+        const int fullWidth = QFontMetrics(searched->font()).horizontalAdvance(status.searchedMove);
+        QVERIFY(searched->width() >= fullWidth);
+        QVERIFY(name->width() >= QFontMetrics(name->font()).horizontalAdvance(engineName));
+
+        // 幅を狭めていくと先に探索手の余分が無くなり、エンジン名は残る
+        int width = 2400;
+        while (searched->width() >= fullWidth && width > 300) {
+            width -= 10;
+            info.resize(width, info.height());
+            QCoreApplication::processEvents();
+        }
+        QVERIFY(width > 300);
+        QVERIFY(name->width() >= QFontMetrics(name->font()).horizontalAdvance(engineName));
+    }
+
+    // ラベルが書体の一部をアプリの設定から受けても（指定した書体と描く書体が違っても）、実際に描く書体で測る
+    void engineBandMeasuresTheFontLabelsDraw()
+    {
+        const QFont before = QApplication::font("QLabel");
+        QFont wider = before;
+        wider.setLetterSpacing(QFont::AbsoluteSpacing, 3);
+        QApplication::setFont(wider, "QLabel");
+        {
+            UsiCommLogModel log;
+            const QString engineName = QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2");
+            log.setEngineName(engineName);
+            EngineInfoWidget info;
+            info.setModel(&log);
+            info.setSide(Turn::Black);
+            info.setFontSize(10);
+            info.resize(3000, info.height());
+            info.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&info));
+            QCoreApplication::processEvents();
+            const auto* name = bandValue(info, "engineInfoName");
+            const auto* nodes = bandValue(info, "engineInfoNodes");
+            QCOMPARE(name->font().letterSpacing(), 3.0);
+            QVERIFY(name->width() >= name->fontMetrics().horizontalAdvance(engineName));
+            QVERIFY(nodes->width() >= nodes->fontMetrics().horizontalAdvance(QStringLiteral("999,999,999,999")));
+        }
+        QApplication::setFont(before, "QLabel");
+    }
+
+    // 文字の大きさを変えると、項目の幅と行の高さを測り直す
+    void engineBandFollowsFontSize()
+    {
+        EngineInfoWidget info;
+        info.setFontSize(10);
+        info.resize(2400, info.height());
+        info.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&info));
         QCoreApplication::processEvents();
-        QCOMPARE(table->height(), expectedHeight());
-        const int nodesWidth = table->columnWidth(4);
-        QVERIFY(nodesWidth >= QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("123,456,789")));
+        const auto* nodes = bandValue(info, "engineInfoNodes");
+        const auto* searched = bandValue(info, "engineInfoSearched");
+        const int smallWidth = nodes->width();
+        const int smallHeight = info.height();
 
         info.setFontSize(16);
         QCoreApplication::processEvents();
-        QCoreApplication::processEvents();
-        QVERIFY(table->columnWidth(4) > nodesWidth);
-        QVERIFY(table->columnWidth(4) >= QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("123,456,789")));
-        QCOMPARE(table->height(), expectedHeight());
+        QCOMPARE(info.fontSize(), 16);
+        QCOMPARE(nodes->font().pointSize(), 16);
+        QCOMPARE(searched->font().pointSize(), 16);
+        QVERIFY(nodes->width() > smallWidth);
+        QVERIFY(info.height() > smallHeight);
+        QVERIFY(nodes->width() >= QFontMetrics(nodes->font()).horizontalAdvance(QStringLiteral("999,999,999,999")));
 
-        // 値が小さくなっても幅を維持し、文字サイズを小さくしたときは幅を再計算する。
-        const int enlargedWidth = table->columnWidth(4);
-        status.nodes = 1;
-        log.setStatus(status);
+        info.setFontSize(10);
         QCoreApplication::processEvents();
-        QCoreApplication::processEvents();
-        QCOMPARE(table->columnWidth(4), enlargedWidth);
-        info.setFontSize(9);
-        QCoreApplication::processEvents();
-        QVERIFY(table->columnWidth(4) < enlargedWidth);
-        QVERIFY(table->columnWidth(4) >= QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("999,999,999,999")) + 20);
+        QCOMPARE(nodes->width(), smallWidth);
+        QCOMPARE(info.height(), smallHeight);
+    }
 
-        // 利用者が決めた列幅は値・文字サイズの変更より優先し、再作成後も使う。決めていない列は自動のまま
-        const ListSetting<int> saved = AnalysisSettings::engineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1);
-        HeaderDrag::resizeSection(table->horizontalHeader(), 4, 180);
-        QCoreApplication::processEvents();
-        QCOMPARE(table->columnWidth(4), 180);
-        QCOMPARE(saved(), QList<int>({0, 0, 0, 0, 180, 0, 0}));
-        const int depthWidth = table->columnWidth(3);
-        status.nodes = std::numeric_limits<qint64>::max();
-        log.setStatus(status);
-        info.setFontSize(20);
-        QCoreApplication::processEvents();
-        QCoreApplication::processEvents();
-        QCOMPARE(table->columnWidth(4), 180);
-        QVERIFY(table->columnWidth(3) > depthWidth);
-        QCOMPARE(saved(), QList<int>({0, 0, 0, 0, 180, 0, 0}));
-        EngineInfoWidget restored(AnalysisSettings::ThinkingTable::Engine1);
-        QCOMPARE(restored.columnWidths().at(4), 180);
-        saved.set({});
+    // 指し手の値は指し手の書体で書く。検討タブの帯は予想手を出さない
+    void engineBandMoveFieldsUseMoveFont()
+    {
+        EngineInfoWidget info;
+        QCOMPARE(bandValue(info, "engineInfoSearched")->font(), MoveFont::font(info.font()));
+        QCOMPARE(bandValue(info, "engineInfoNodes")->font(), info.font());
+
+        EngineInfoWidget withoutPrediction(nullptr, false);
+        withoutPrediction.resize(1600, withoutPrediction.height());
+        withoutPrediction.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&withoutPrediction));
+        QVERIFY(!bandValue(withoutPrediction, "engineInfoPredicted")->isVisible());
+        QVERIFY(bandValue(withoutPrediction, "engineInfoSearched")->isVisible());
     }
 };
 

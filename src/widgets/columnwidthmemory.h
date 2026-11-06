@@ -31,6 +31,8 @@ public:
     int userWidth(int column) const { return m_widths.value(column); }
     /// 利用者が決めた幅があればそれを、なければ automatic を返す
     int widthOr(int column, int automatic) const;
+    /// 保存した値を読み直す（同じ設定を使う別の表が列幅を変えたとき）
+    void reload();
 
 signals:
     /// 利用者が列 column の幅を変え、覚えて保存した
@@ -40,6 +42,9 @@ private slots:
     void onSectionResizedByUser(int column, int oldSize, int newSize);
 
 private:
+    /// 保存した値を読み、列の数に合わせて m_widths に入れる
+    void load(int columns);
+
     TableHeaderView* m_header = nullptr;
     ListSetting<int> m_setting;
     QList<int> m_widths;   ///< 列ごとの幅（0 は自動）
