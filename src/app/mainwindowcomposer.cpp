@@ -73,7 +73,7 @@ void MainWindowComposer::shutdown()
 
     // エンジンが起動していれば quit を送って止める（対局・検討のどちらのエンジンも）
     if (m_c.engines) {
-        m_c.engines->destroyEngines();
+        m_c.engines->shutdown();
     }
 
     // 終了処理中に盤がクリックされても、操作できない手番として扱う（盤の操作が参照し続けるので破棄はしない）

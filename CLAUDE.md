@@ -125,7 +125,7 @@ cmake --build build --target translations
 
 - **engine/**: USI (Universal Shogi Interface) エンジン連携（対局の仕組みに依存しない）
   - `usi.cpp/.h` - GUI から使うエンジン1台の窓口（局面の列の解析には `session()` の `UsiEngineSession` を渡す）
-  - `engineslots.cpp/.h` - エンジンの枠 E1・E2 `EngineSlots`（対局・検討・棋譜解析・CSA 通信対局で共有）。リース・取り上げの知らせ・表示の消去だけを受け持つ。使う側は `acquire(owner, slot, name)` で move-only の `EngineLease`（`engine()`・`reset()`）を受け取り、持っている間だけ使う。手放すと枠を空ける（持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせる（枠にあるかは `holds(engine)`）
+  - `engineslots.cpp/.h` - エンジンの枠 E1・E2 `EngineSlots`（対局・検討・棋譜解析・CSA 通信対局で共有）。リース・取り上げの知らせ・表示の消去だけを受け持つ。使う側は `acquire(owner, slot, name)` で move-only の `EngineLease`（`engine()`・`reset()`）を受け取り、持っている間だけ使う。手放すと枠を空ける（持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせる（枠にあるかは `holds(engine)`）。アプリの終了は `shutdown()` で、持ち主には同じく知らせるが、対局のエンジンの席（`MatchEngineSeat`）は `isShuttingDown()` を見て異常として扱わない
   - `usienginesession.cpp/.h` - 起動と初期化（usi〜readyok）と探索の切り替え。GUI と CLI の実行器が共有する。探索（`search(UsiSearchRequest)`）は最後に頼んだものだけを行い、探索中なら stop を送って結果を捨ててから始める（検討のやり直し・先読みの外れ・詰みの問い合わせは頼み直すだけ）。空の局面は受け付けない（false）。`stop()` は最後の依頼をすぐ終わらせて結果を届け、`cancelSearch()` は取りやめる。`startAsync()`・`probeAsync()` は値を返さず、起動の失敗は必ず呼び出しから戻った後に `errorOccurred` で知らせる（知らせる前に `quit()`・次の起動をしたら知らせない）ので、使う側は起動の途中の再入に備えない（`Usi::startEngine`・`MateOracle::start` も同じ）
   - `usiprotocolhandler.cpp/.h` - USI protocol implementation
   - `thinkinginfoformatter.cpp/.h`・`enginesearchstatus.h` - info を思考の表の行（読み筋は `PvText`）と探索状況 `EngineSearchStatus`（数値のまま。info 1行ごとに `searchStatusUpdated` で1回送り、書式は表示する側が決める）にする

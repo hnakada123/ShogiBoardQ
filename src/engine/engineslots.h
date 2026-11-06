@@ -72,6 +72,15 @@ public:
 
     /// 全エンジンを破棄する（持ち主には engineRevoked で知らせる。clearDisplay なら思考情報・通信ログの表示も消すよう知らせる）
     void destroyEngines(bool clearDisplay = true);
+    /**
+     * @brief アプリの終了で全エンジンを止める
+     *
+     * 持ち主には destroyEngines と同じく engineRevoked で知らせる（検討・棋譜解析はそれで止まる）。
+     * ほかの処理が枠を取ったのではないので、対局のエンジンの席は isShuttingDown() を見て異常として扱わない。
+     */
+    void shutdown();
+    /// アプリの終了でエンジンを止めたか（shutdown の engineRevoked の中でも true）
+    bool isShuttingDown() const;
     /// engine が枠に入っているか
     bool holds(const Usi* engine) const;
 
@@ -98,6 +107,7 @@ private:
     void release(Usi* engine);
 
     std::array<Slot, 2> m_slots;
+    bool m_shuttingDown = false;
 };
 
 #endif // ENGINESLOTS_H
