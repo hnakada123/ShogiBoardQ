@@ -213,6 +213,36 @@ private slots:
         QCOMPARE(ended.count(), 1);
     }
 
+    /// アプリの終了でエンジンを止めるのは異常ではない。対局を中断にせず、知らせも出さない
+    /// （知らせのダイアログは閉じるまで終了を止める）
+    void appShutdown_isNotAnEngineError()
+    {
+        MatchHarness h;
+        h.mc->start(blackEngine(SfenUtils::hirateSfen()));
+        QVERIFY(h.engines.engineInSlot(1));
+
+        h.engines.shutdown();
+
+        QVERIFY(!h.engines.engineInSlot(1));
+        QVERIFY(!h.mc->isGameOver());
+        QCOMPARE(h.messageCount(), 0);
+    }
+
+    /// 対局の最中にほかの処理が枠を取ったら、対局を中断して理由を知らせる
+    void engineTakenByAnotherOwner_breaksOffAndNotifies()
+    {
+        MatchHarness h;
+        h.mc->start(blackEngine(SfenUtils::hirateSfen()));
+
+        QObject other;
+        EngineLease lease = h.engines.acquire(&other, 1, QStringLiteral("Other"));
+
+        QVERIFY(h.mc->isGameOver());
+        QCOMPARE(int(h.mc->gameEnd()->cause), int(MatchCoordinator::Cause::BreakOff));
+        QCOMPARE(h.messageCount(), 1);
+        QVERIFY(h.lastMessageText().contains(QStringLiteral("別の処理")));
+    }
+
     // --- 入玉宣言 ---
     void nyugyokuWin_usesDeclarerTime()
     {

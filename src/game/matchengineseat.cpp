@@ -74,6 +74,9 @@ void MatchEngineSeat::release()
 void MatchEngineSeat::onEngineRevoked(QObject* owner)
 {
     if (owner != this) return;
+    // アプリの終了で止めたエンジンは異常ではない。対局も一緒に終わるので、利用者に知らせて終了を止めない
+    // （中断の行は閉じる棋譜に書くだけで、中断は自動保存もしない）
+    if (m_engines->isShuttingDown()) return;
     // 対局の最中にほかの処理が枠を取った。エンジンの異常と同じく知らせる
     emit errorOccurred(tr("エンジンを別の処理が使い始めたため、対局のエンジンを止めました"));
 }

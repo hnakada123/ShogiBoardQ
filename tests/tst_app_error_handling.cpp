@@ -112,7 +112,7 @@ private slots:
         QVERIFY2(body.contains(QStringLiteral("if (m_shutdownDone) return;")),
                  "shutdown must return on the second call");
         QVERIFY2(body.contains(QStringLiteral("if (m_c.engines)")),
-                 "shutdown should check the engine seats before destroyEngines()");
+                 "shutdown should check the engine seats before stopping the engines");
 
         const QString header = readSourceFile(QStringLiteral("src/app/mainwindowcomposer.h"));
         QVERIFY2(header.contains(QStringLiteral("bool m_shutdownDone = false;")),

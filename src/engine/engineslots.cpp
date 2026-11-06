@@ -113,3 +113,14 @@ void EngineSlots::destroyEngines(bool clearDisplay)
     for (Slot& s : m_slots) destroySlot(s, clearDisplay, true);
     if (clearDisplay) emit displayClearRequested();
 }
+
+void EngineSlots::shutdown()
+{
+    m_shuttingDown = true;
+    destroyEngines();
+}
+
+bool EngineSlots::isShuttingDown() const
+{
+    return m_shuttingDown;
+}
