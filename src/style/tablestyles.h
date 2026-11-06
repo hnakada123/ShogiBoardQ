@@ -13,6 +13,15 @@ inline QColor selectionBackground() { return QColor(0xe7, 0xf0, 0xf8); }
 inline QColor selectionText() { return QColor(0x24, 0x3b, 0x53); }
 inline QColor selectionAccent() { return QColor(0x52, 0x79, 0x9c); }
 
+/// 表の枠の線の色
+inline QColor frameLine() { return QColor(0xd8, 0xde, 0xe5); }
+
+// 思考の表の上に置くエンジン情報の帯
+inline QColor engineBandBackground() { return selectionBackground(); }
+inline QColor engineBandText() { return selectionText(); }
+inline QColor engineBandHeading() { return QColor(0x46, 0x59, 0x6c); }
+inline QColor engineBandLine() { return QColor(0xc9, 0xd8, 0xe6); }
+
 inline QString header(int fontSize = 0)
 {
     const QString fontRule = fontSize > 0

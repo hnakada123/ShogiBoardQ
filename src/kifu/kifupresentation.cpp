@@ -197,6 +197,13 @@ QString bookLabel()
     return translated(QT_TRANSLATE_NOOP("KifuPresentation", "（定跡）"));
 }
 
+QString bookMove(const QString& move, double ratioPercent)
+{
+    if (ratioPercent <= 0.0) return QCoreApplication::translate("KifuPresentation", "%1（定跡）").arg(move);
+    return QCoreApplication::translate("KifuPresentation", "%1（定跡 %2%）")
+        .arg(move, QString::number(ratioPercent, 'f', 1));
+}
+
 QString infoKey(const QString& canonical)
 {
     for (const QString* key : GameInfoKeys::kTranslated)

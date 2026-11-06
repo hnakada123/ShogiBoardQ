@@ -45,8 +45,12 @@ ConsiderationPanel::ConsiderationPanel(QAction* arrows, QWidget* parent)
     applyFontSize();
 
     layout->addWidget(m_considerationToolbar);
-    layout->addWidget(m_considerationInfo);
-    layout->addWidget(m_considerationView, 1);
+    // 情報帯は思考の表と続けて置く（帯の下の線は表の上の線が兼ねる）
+    auto* block = new QVBoxLayout;
+    block->setSpacing(0);
+    block->addWidget(m_considerationInfo);
+    block->addWidget(m_considerationView, 1);
+    layout->addLayout(block, 1);
 }
 
 ConsiderationPanel::~ConsiderationPanel()
@@ -323,7 +327,7 @@ void ConsiderationPanel::layoutToolbar()
 void ConsiderationPanel::buildConsiderationView()
 {
     // EngineInfoWidget（検討タブ用）
-    m_considerationInfo = new EngineInfoWidget(AnalysisSettings::ThinkingTable::Consideration, this, false);
+    m_considerationInfo = new EngineInfoWidget(this, false);
     m_considerationInfo->setObjectName(QStringLiteral("considerationInfo"));
     m_considerationInfo->setFontSize(m_considerationFontSize.fontSize());
 

@@ -145,7 +145,7 @@ GameSettings::commentFontSize.remove();                           // 保存値�
 |---|---|---|
 | `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める（`minimum()`・`maximum()`） | `AppSettings::pieceSoundVolume`（0〜100）、`AppearanceSettings::appearancePieceFilter`（0〜`PieceStyleCatalog::Family::Count` − 1。0 は「すべて」）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::menuWindowButtonSize`（48〜120）、`AnalysisSettings::branchTreeZoomPercent`（50〜200）。画面は範囲の定数を持たず、`minimum()`・`maximum()` を読む |
 | `StructSetting<T>({項目...}, 整える関数)` | 構造体のメンバごとに1つのキー。項目は `SettingField<T>::of(キー, &T::メンバ)`。保存していない項目は `T{}` の既定値のまま。整える関数（省略可）は読んだ値と書く値の両方に掛ける。項目ごとの保存の有無は `StructSetting<T>::isSaved(キー)` | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped` で範囲に収める）、`TsumeshogiSettings::playPreferences`・`collectionPreferences`、`AnalysisSettings::evalChart`・`consideration`（検討の条件 `ConsiderationSettings`。エンジンの名前は保存しない） |
-| `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列（`<配列のキー>/size` と `<配列のキー>/<番号>/<要素のキー>`）。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・`thinkingViewColumnWidths(ThinkingTable)`（表の番号でキーを作った宣言を返す関数）、`kifuAnalysisColumnWidths()`・`GameSettings::gameInfoColumnWidths()`（以前の版の形を移してから宣言を返す）。列幅は widgets の `ColumnWidthMemory` が読み書きする（0 は自動、正の値は利用者が決めた幅） |
+| `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列（`<配列のキー>/size` と `<配列のキー>/<番号>/<要素のキー>`）。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、`AnalysisSettings::thinkingViewColumnWidths(ThinkingTable)`（表の番号でキーを作った宣言を返す関数）、`kifuAnalysisColumnWidths()`・`GameSettings::gameInfoColumnWidths()`（以前の版の形を移してから宣言を返す）。列幅は widgets の `ColumnWidthMemory` が読み書きする（0 は自動、正の値は利用者が決めた幅） |
 | `StructListSetting<T>(配列のキー, {項目...})` | 構造体の配列。要素ごとに `SettingField<T>` の項目を書く | `NetworkSettings::csaServerHistory`（`CsaServerHistoryEntry` の `host`・`port`・`useTls`・`id`。新しい順で最大 `kCsaServerHistoryLimit` = 10 件。件数を絞るのは `CsaGameDialog`） |
 
 ```cpp
@@ -297,7 +297,7 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 | 保存の形と値の形の換算 | `GameSettings::StartGame::Player::time` / `setTime` / `defaultTime`（持ち時間を時間・分・秒の項目に保存し、`TimeControlSide` のミリ秒で読み書きする） |
 | 未保存の項目をほかの項目で代える | `AppearanceSettings::boardVisuals` / `setBoardVisuals`（中身は `StructSetting<BoardVisuals>`。駒台の木目 `standWoodGrain` が未保存なら、それを分ける前の版の将棋盤の木目 `woodGrain` を使う） |
 | 独自の保存形式 | `AppearanceSettings::boardColors` / `setBoardColors`（色を `#RRGGBB`・`#AARRGGBB` の文字列で保存し、不正な色は標準色に戻す）、`DockSettings::dockState` / `setDockState`（グループ名を引数で受ける。キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`。表示の既定値も引数で受ける） |
-| キーを実行時に作る | `AnalysisSettings::engineInfoColumnWidths` / `thinkingViewColumnWidths`（表 `ThinkingTable` の番号でキーを作った `ListSetting<int>` の宣言を返す） |
+| キーを実行時に作る | `AnalysisSettings::thinkingViewColumnWidths`（表 `ThinkingTable` の番号でキーを作った `ListSetting<int>` の宣言を返す） |
 | グループの中の名前の一覧 | `DockSettings::savedDockLayoutNames` / `saveDockLayout` / `loadDockLayout` / `deleteDockLayout` |
 
 関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーはその関数の `.cpp` の中に書く（1つの関数だけが使うキーは関数の中の文字、いくつかの関数が使うキーは無名名前空間の定数。例: `analysissettings.cpp` の列幅の配列のキー、`docksettings.cpp` の `kCustomDockLayoutsGroup`）。キーの定数をヘッダーに出さない（テストは宣言や関数から読むか、以前の版の保存の形を確かめるときはキーを文字で書く）。
@@ -340,7 +340,7 @@ settings.endArray();
 
 以前の版のエンジン名の最上位グループからの移行（`EngineProfileStore::migrateLegacyOptionGroups()`、起動時）は共有の `QSettings` を使う。
 
-`ListSetting<T>`・`StructListSetting<T>`（列幅の `AnalysisSettings::engineInfoColumnWidths`・`JosekiSettings::josekiWindowColumnWidths`、CSA通信対局の接続先の履歴 `NetworkSettings::csaServerHistory` など）とドックレイアウト名の一覧（`DockSettings::savedDockLayoutNames`）は、共有の `QSettings` で開いた配列・グループを同じ呼び出しの中ですぐ閉じている。
+`ListSetting<T>`・`StructListSetting<T>`（列幅の `AnalysisSettings::thinkingViewColumnWidths`・`JosekiSettings::josekiWindowColumnWidths`、CSA通信対局の接続先の履歴 `NetworkSettings::csaServerHistory` など）とドックレイアウト名の一覧（`DockSettings::savedDockLayoutNames`）は、共有の `QSettings` で開いた配列・グループを同じ呼び出しの中ですぐ閉じている。
 
 単独の値を読み書きするために `QSettings` を直接開かない。宣言の表に1行足す。
 

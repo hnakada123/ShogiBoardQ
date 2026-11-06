@@ -144,12 +144,12 @@ private slots:
         QCOMPARE(shownText(combo.toolTip()), kExternal);
 
         UsiCommLogModel log;
-        EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
+        EngineInfoWidget info;
         info.setModel(&log);
         log.setEngineName(kExternal);
-        auto* table = info.findChild<QTableWidget*>();
-        QVERIFY(table);
-        QCOMPARE(shownText(table->item(0, 0)->toolTip()), kExternal);
+        auto* name = info.findChild<ElideLabel*>(QStringLiteral("engineInfoName"));
+        QVERIFY(name);
+        QCOMPARE(shownText(name->toolTip()), kExternal);
 
         ElideLabel label;
         label.setFullText(kExternal);

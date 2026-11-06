@@ -23,7 +23,8 @@ class UsiCommLogModel;
  * エンジンごとに名前などの情報欄と思考の表を持つ（2つ目のエンジンは使うときだけ出す）。
  * 上部に文字の大きさのボタンと、対局中の候補手の矢印のチェックを置く。チェックは渡された QAction
  * （正本は ui の BoardArrowActions。盤の矢印もそれを読む）に結ぶだけ。
- * 表の体裁と列幅は ThinkingTableView、情報欄の列幅は EngineInfoWidget が受け持つ。
+ * 表の体裁と列幅は ThinkingTableView、情報欄の配置は EngineInfoWidget が受け持つ。2つのエンジンの情報欄と表は
+ * 同じ列の位置に揃う（情報欄の項目の幅は書体だけで決まり、表の列幅は1つの設定を使う）。
  */
 class ThinkingPanel : public QWidget
 {

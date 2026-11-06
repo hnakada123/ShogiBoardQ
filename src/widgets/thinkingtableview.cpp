@@ -43,6 +43,7 @@ ThinkingTableView::ThinkingTableView(AnalysisSettings::ThinkingTable table, QWid
     static_assert(AnalysisSettings::kThinkingViewBoundColumn == Column::BoundColumn);
     // 読み筋の列（最後の列）は表示領域に合わせて伸び縮みするので、ColumnWidthMemory は覚えない
     m_columnWidths = new ColumnWidthMemory(header, AnalysisSettings::thinkingViewColumnWidths(table), Column::ColumnCount);
+    connect(m_columnWidths, &ColumnWidthMemory::userWidthChanged, this, &ThinkingTableView::userColumnWidthChanged);
     connect(this, &PvTableView::boardRequested, this, &ThinkingTableView::onBoardRequested);
     connect(this, &PvTableView::rowContextMenuAboutToShow, this, &ThinkingTableView::onRowContextMenuAboutToShow);
 }
@@ -51,6 +52,12 @@ void ThinkingTableView::setThinkingModel(ShogiEngineThinkingModel* model)
 {
     m_model = model;
     TableModelUtils::setModel(this, model);
+    fitColumns();
+}
+
+void ThinkingTableView::reloadColumnWidths()
+{
+    m_columnWidths->reload();
     fitColumns();
 }
 

@@ -114,19 +114,17 @@ inline const Setting<QSize> evalChartSettingsSize{"EvalChart/settingsSize", QSiz
 
 // --- 解析タブ ---
 
-/// 思考の表とその上のエンジン情報欄の組。列幅は組ごとに保存する
-enum class ThinkingTable { Engine1 = 0, Engine2 = 1, Consideration = 2 };
-
-/// エンジン情報欄の列幅（列ごと。0 は自動。読み書きは widgets の ColumnWidthMemory）
-ListSetting<int> engineInfoColumnWidths(ThinkingTable table);
+/// 思考の表の組。列幅は組ごとに保存する（対局の2つのエンジンの表は1つの列幅を使う。番号は保存のキーなので変えない）
+enum class ThinkingTable { Match = 0, Consideration = 2 };
 
 /// 思考の表の列の数と、上下限の列の位置（models の ShogiEngineThinkingModel::Column と同じ番号。
 /// services は models を include できないので、ここに番号を書き、表の部品が static_assert で照らす）
 inline constexpr int kThinkingViewColumnCount = 7;
 inline constexpr int kThinkingViewBoundColumn = 4;
 
-/// 思考の表（読み筋の表）の列幅（列ごと。0 は自動。読み筋の列は表示領域に合わせるので使わない）。
-/// 上下限の列を足す前の版の保存（列が1つ少ない）は、初めて読むときに上下限の列に 0 を入れて移す
+/// 思考の表（読み筋の表）の列幅（列ごと。0 は自動。読み筋の列は表示領域に合わせるので使わない。読み書きは
+/// widgets の ColumnWidthMemory）。以前の版の保存は初めて読むときに移す: 2つ目のエンジンの表を別に保存していた版の
+/// 列幅は、1つ目が未保存のときだけ引き継ぐ。上下限の列を足す前の版の保存（列が1つ少ない）は、上下限の列に 0 を入れる
 ListSetting<int> thinkingViewColumnWidths(ThinkingTable table);
 
 /// USI通信ログタブのフォントサイズ（デフォルト: 10）

@@ -60,11 +60,24 @@ private slots:
     {
         QSettings& s = SettingsCommon::openSettings();
         // 思考の表: 上下限の列を足す前の保存（列が1つ少ない）は、上下限の列に 0 を入れる
-        const auto engine2 = AnalysisSettings::ThinkingTable::Engine2;
-        AnalysisSettings::thinkingViewColumnWidths(engine2).set({60, 50, 80, 70, 40, 300});
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(engine2)(), (QList<int>{60, 50, 80, 70, 0, 40, 300}));
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(engine2)().size(), AnalysisSettings::kThinkingViewColumnCount);
-        AnalysisSettings::thinkingViewColumnWidths(engine2).set({});
+        const auto table = AnalysisSettings::ThinkingTable::Consideration;
+        AnalysisSettings::thinkingViewColumnWidths(table).set({60, 50, 80, 70, 40, 300});
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(table)(), (QList<int>{60, 50, 80, 70, 0, 40, 300}));
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(table)().size(), AnalysisSettings::kThinkingViewColumnCount);
+        AnalysisSettings::thinkingViewColumnWidths(table).set({});
+
+        // 思考の表: 2つ目のエンジンの表を別に保存していた版の列幅は、対局の表が未保存のときだけ引き継ぎ、古い保存は消す
+        const auto match = AnalysisSettings::ThinkingTable::Match;
+        const QString secondEngine = QStringLiteral("ThinkingView/columnWidths1");
+        const ListSetting<int> legacyWidths{secondEngine, "width"};
+        legacyWidths.set({61, 51, 81, 71, 0, 41, 301});
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(match)(), (QList<int>{61, 51, 81, 71, 0, 41, 301}));
+        QVERIFY(!s.contains(secondEngine + QStringLiteral("/size")));
+
+        legacyWidths.set({1, 2, 3, 4, 5, 6, 7});
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(match)(), (QList<int>{61, 51, 81, 71, 0, 41, 301}));
+        QVERIFY(!s.contains(secondEngine + QStringLiteral("/size")));
+        AnalysisSettings::thinkingViewColumnWidths(match).set({});
 
         // 定跡ウィンドウ: 比率の列を足す前の保存（列が1つ少ない）は、比率より前の列の幅だけを残す
         QList<int> josekiWidths;
@@ -553,14 +566,10 @@ private slots:
     void analysisSettings_columnWidths()
     {
         using AnalysisSettings::ThinkingTable;
-        const QList<int> widths = {100, 0, 150};
-        AnalysisSettings::engineInfoColumnWidths(ThinkingTable::Engine1).set(widths);
-        QCOMPARE(AnalysisSettings::engineInfoColumnWidths(ThinkingTable::Engine1)(), widths);
-        QVERIFY(AnalysisSettings::engineInfoColumnWidths(ThinkingTable::Engine2)().isEmpty());   // 表の組ごと
-
         const QList<int> thinkWidths = {80, 120, 200, 50};
-        AnalysisSettings::thinkingViewColumnWidths(ThinkingTable::Engine2).set(thinkWidths);
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(ThinkingTable::Engine2)(), thinkWidths);
+        AnalysisSettings::thinkingViewColumnWidths(ThinkingTable::Match).set(thinkWidths);
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(ThinkingTable::Match)(), thinkWidths);
+        QVERIFY(AnalysisSettings::thinkingViewColumnWidths(ThinkingTable::Consideration)().isEmpty());   // 表の組ごと
     }
 
     /// 以前の版が1つの値で保存した列幅は、初めて読むときに配列に移す

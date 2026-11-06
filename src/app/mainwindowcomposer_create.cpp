@@ -280,6 +280,7 @@ void MainWindowComposer::createPresentersAndDocks()
     EngineDisplayPresenter::Deps ed;
     ed.engines = m_c.engines;
     ed.analysis = m_c.analysisSession;
+    ed.activity = &m_activity;
     ed.document = m_c.document;
     ed.commLog1 = m_c.commLog1;
     ed.commLog2 = m_c.commLog2;
