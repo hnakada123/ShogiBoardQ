@@ -2,6 +2,7 @@
 #include <QtTest>
 #include <QTemporaryDir>
 #include "enginevsenginestrategy.h"
+#include "gamechannel.h"
 #include "match_test_helper.h"
 #include "terminaltype.h"
 #include "timecontrol_test_helper.h"
@@ -162,6 +163,26 @@ private slots:
         // 初期化が済むと時計を動かし、エンジンに指させる
         QTRY_VERIFY_WITH_TIMEOUT(h.clock.isRunning(), 5000);
         QTRY_COMPARE_WITH_TIMEOUT(h.mc->currentPly(), 2, 5000);
+        qunsetenv("SBQ_MATCH_INIT_DELAY_MS");
+    }
+    /// 投了を受け付けるのは人間の手番だけ。エンジンの手番に押してもエンジンの投了にしない（監査 2026-11-07 F5）
+    void resignIsAcceptedOnlyOnTheHumansTurn()
+    {
+        qputenv("SBQ_MATCH_INIT_DELAY_MS", "200");
+        MatchHarness h;
+        MatchCoordinator::StartOptions opt;
+        opt.recordLine.startSfen = SfenUtils::hirateSfen();
+        opt.time.rules = TestTime::rules(600, 600, 0, 0, 2, 2);
+        opt.players.seat(Turn::White).engine = true;
+        opt.players.seat(Turn::White).engineName = QStringLiteral("SlowStart");
+        opt.engine(Turn::White).path = MatchHarness::mockEnginePath();
+        h.start(opt);
+        const LocalGameChannel channel(h.mc.get());
+        QVERIFY(channel.canResign());
+        QVERIFY(h.playHuman(QStringLiteral("7g7f")));
+        QVERIFY(!channel.canResign());
+        QTRY_COMPARE_WITH_TIMEOUT(h.mc->currentPly(), 2, 5000);
+        QVERIFY(channel.canResign());
         qunsetenv("SBQ_MATCH_INIT_DELAY_MS");
     }
     void eveRejectsHumanInput()

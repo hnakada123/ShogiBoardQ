@@ -18,6 +18,7 @@ public:
     void breakOff() override;
     void moveNow() override;
     bool isHumanToMove() const override;
+    bool canResign() const override;
     Turn sideToMove() const override;
     bool acceptsDeclaration() const override { return true; }
     std::optional<NyugyokuJudgement::Result> declareNyugyoku() override;

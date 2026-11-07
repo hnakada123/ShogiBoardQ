@@ -242,7 +242,14 @@ void GameSession::startNextGame(const GameStartPlan& plan)
 
 void GameSession::resign()
 {
-    if (GameChannel* channel = activeChannel()) channel->resign();
+    GameChannel* channel = activeChannel();
+    if (!channel) return;
+    if (!channel->canResign()) {
+        NotificationPresenter::information(m_deps.shogiView ? m_deps.shogiView->window() : nullptr, tr("投了"),
+                                           tr("投了は自分の手番で行います。"));
+        return;
+    }
+    channel->resign();
 }
 
 void GameSession::breakOff()
