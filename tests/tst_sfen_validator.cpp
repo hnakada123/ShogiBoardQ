@@ -97,7 +97,10 @@ private slots:
         QCOMPARE(problemOf("4k4/9/9/9/9/9/9/9/4K4 b 19P 1"), Problem::PieceCountOver);
         // 成駒は元の駒に数える（角3枚）
         QCOMPARE(problemOf("4k4/9/9/9/4+B4/9/9/9/4K4 b 2B 1"), Problem::PieceCountOver);
-        QCOMPARE(problemOf("4k4/9/9/9/9/9/9/9/4K4 b K 1"), Problem::KingInHand);
+        // 持駒の玉は局面として読まない（監査 2026-11-07 F4）
+        QVERIFY(!Position::fromSfen(u"4k4/9/9/9/9/9/9/9/4K4 b K 1"));
+        QVERIFY(!Position::fromSfen(u"4k4/9/9/9/9/9/9/9/4K4 b k 1"));
+        QVERIFY(!SfenValidator::validate(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b K 1")).valid);
         QCOMPARE(problemOf("4K4/9/9/9/9/9/9/9/4K4 b - 1"), Problem::DuplicatedKing);
         QCOMPARE(problemOf("9/9/9/9/9/9/9/9/9 b P 1"), Problem::NoKing);
         QCOMPARE(problemOf("4k4/4G4/9/9/9/9/9/9/4K4 b - 1"), Problem::OpponentInCheck);

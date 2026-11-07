@@ -6176,17 +6176,16 @@ Current counts: Black %1, White %2</translation>
         <translation>There are more pieces than the game has (board and piece stands combined).</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="64"/>
         <source>駒台に王・玉があります。</source>
-        <translation>A king is on a piece stand.</translation>
+        <translation type="vanished">A king is on a piece stand.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="67"/>
+        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="64"/>
         <source>手番でない側の玉に王手がかかっています。</source>
         <translation>The king of the side not to move is in check.</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="74"/>
+        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="71"/>
         <source>対局を開始できません。
 %1
 「編集」→「局面編集開始」で配置を修正してください。</source>
@@ -7237,7 +7236,7 @@ Save the book in the Joseki window.</translation>
         <translation type="vanished">Choose different source and destination squares.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="213"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="215"/>
         <source>指し手が現在の局面の合法手ではありません。移動元・移動先・成りを確認してください。</source>
         <translation>This move is not legal in the current position. Check the source, destination, and promotion.</translation>
     </message>
@@ -7250,17 +7249,17 @@ Save the book in the Joseki window.</translation>
         <translation type="vanished">The expected reply is not legal in the position after this move.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="292"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="294"/>
         <source>登録する局面: %1番</source>
         <translation>Book position: %1 to move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="292"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="294"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="292"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="294"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -7337,27 +7336,27 @@ Positive values favor the side to move, negative values are unfavorable.</transl
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="211"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="213"/>
         <source>指し手を選んでください。</source>
         <translation>Choose a move.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="214"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="216"/>
         <source>予想応手を選ぶか、「なし」を選んでください。</source>
         <translation>Choose an expected reply, or choose &quot;None&quot;.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="244"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="246"/>
         <source>指し手を盤で指すか、一覧から選んでください</source>
         <translation>Play the move on the board or choose it from the list</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="247"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="249"/>
         <source>予想応手を盤で指すか、一覧から選べます（省略できます）</source>
         <translation>Play the expected response on the board or choose it from the list (optional)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="250"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="252"/>
         <source>指し手と予想応手が決まりました</source>
         <translation>The move and the expected response are set</translation>
     </message>
@@ -7422,7 +7421,7 @@ Positive values favor the side to move, negative values are unfavorable.</transl
         <translation type="vanished">Move is not set correctly</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="325"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="327"/>
         <source>定跡手: %1</source>
         <translation>Book Move: %1</translation>
     </message>
@@ -7438,27 +7437,27 @@ Positive values favor the side to move, negative values are unfavorable.</transl
         <translation type="vanished">Drop piece from hand</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="69"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="70"/>
         <source>指し直す</source>
         <translation>Choose again</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="71"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="72"/>
         <source>選んだ手を取り消す</source>
         <translation>Clear the chosen move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="125"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="126"/>
         <source>局面がありません</source>
         <translation>No position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="125"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="126"/>
         <source>合法手から選んでください</source>
         <translation>Choose one of the legal moves</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="118"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="119"/>
         <source>なし</source>
         <translation>None</translation>
     </message>
@@ -9543,42 +9542,42 @@ There may be an error in the opening book data.</translation>
         <translation>All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="26"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="29"/>
         <source>KIF形式 UTF-8</source>
         <translation>KIF UTF-8</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="27"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="30"/>
         <source>KIF形式 Shift_JIS</source>
         <translation>KIF Shift_JIS</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="28"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="31"/>
         <source>KI2形式 UTF-8</source>
         <translation>KI2 UTF-8</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="29"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="32"/>
         <source>KI2形式 Shift_JIS</source>
         <translation>KI2 Shift_JIS</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="30"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="33"/>
         <source>CSA形式</source>
         <translation>CSA</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="31"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="34"/>
         <source>JKF形式</source>
         <translation>JKF</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="32"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="35"/>
         <source>USEN形式</source>
         <translation>USEN</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="33"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="36"/>
         <source>USI形式</source>
         <translation>USI</translation>
     </message>
@@ -9702,7 +9701,7 @@ There may be an error in the opening book data.</translation>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="127"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="121"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>Load failed: Could not get moves from %1.</translation>
     </message>
@@ -9717,56 +9716,55 @@ There may be an error in the opening book data.</translation>
         <translation>The position cannot be read</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="31"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="26"/>
         <source>駒の数が上限を超えています（盤と持駒の合計）</source>
         <translation>There are more pieces than the game has (board and hands combined)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="32"/>
         <source>持駒に玉があります</source>
-        <translation>A king is in hand</translation>
+        <translation type="vanished">A king is in hand</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="33"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="27"/>
         <source>同じ側の玉が2枚以上あります</source>
         <translation>A side has more than one king</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="56"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="114"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="50"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="108"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
         <translation>Failed to load game record file: %1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="110"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="104"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>Failed to parse BOD format. %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="113"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="107"/>
         <source>棋譜の読み込みに失敗しました。%1</source>
         <translation>Failed to load the game record.%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="126"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="120"/>
         <source>棋譜から指し手を取得できませんでした。</source>
         <translation>Could not get moves from the game record.</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifuloader.cpp" line="101"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="135"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="129"/>
         <source>棋譜の開始局面が不正です: %1</source>
         <translation>The start position of the game record is invalid: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="136"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="130"/>
         <source>棋譜ファイルの開始局面が不正です: %1
 %2</source>
         <translation>The start position of the game record file is invalid: %1
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="146"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="140"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>The text to paste is empty.</translation>
     </message>

@@ -114,7 +114,9 @@ std::optional<Position> Position::fromSfen(QStringView sfen, QString* error)
                 if (i < hands.size() && hands.at(i).isDigit()) number = number * 10 + hands.at(i++).digitValue();
             }
             const Piece piece = i < hands.size() ? charToPiece(hands.at(i)) : Piece::None;
-            if (piece == Piece::None) return fail(translated("SFEN piece stand parse error: %1").arg(shown));
+            // 持駒に玉は書けない（handsSfen は書かず、局面編集でも持ち駒にできない）
+            if (piece == Piece::None || pieceKind(piece) == PieceKind::King)
+                return fail(translated("SFEN piece stand parse error: %1").arg(shown));
             // 同じ駒を何度書いても、SFEN に書き戻せる枚数まで（それより多い局面は読み直せない）
             if (position.handCount(piece) + number > kMaxHandCount)
                 return fail(translated("SFEN piece stand parse error: %1").arg(shown));

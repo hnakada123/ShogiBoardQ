@@ -65,7 +65,7 @@ enum class PieceKind : std::uint8_t {
 };
 /// 駒の種類の数
 inline constexpr int kPieceKindCount = 14;
-/// 持ち駒（駒台）に置ける駒の種類の数（歩〜玉。局面編集では玉も駒台に置ける）
+/// 持ち駒の表の駒の種類の数（歩〜玉。玉は持ち駒にできず、盤の玉を取った局面と駒箱の枚数のために数える）
 inline constexpr int kHandKindCount = 8;
 
 /**

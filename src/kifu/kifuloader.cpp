@@ -97,7 +97,7 @@ bool KifuLoader::loadPositionFromSfen(const QString& sfen)
         return false;
     }
     // 棋譜の開始局面と同じ規則（盤と持駒として成り立つ局面だけ）
-    if (const QString reason = KifuLoadParser::startPositionProblem(position->position()); !reason.isEmpty()) {
+    if (const QString reason = KifuLoadParser::startPositionProblem(position->sfen()); !reason.isEmpty()) {
         emit errorOccurred(tr("棋譜の開始局面が不正です: %1").arg(reason));
         return false;
     }

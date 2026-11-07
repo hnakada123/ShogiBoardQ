@@ -60,9 +60,6 @@ bool GameStartOptionsBuilder::validatePosition(const QString& sfen, QString* why
         case Problem::PieceCountOver:
             reason = localized(QT_TRANSLATE_NOOP("GameStartOptionsBuilder", "駒の数が上限を超えています（盤と駒台の合計）。"));
             break;
-        case Problem::KingInHand:
-            reason = localized(QT_TRANSLATE_NOOP("GameStartOptionsBuilder", "駒台に王・玉があります。"));
-            break;
         case Problem::OpponentInCheck:
             reason = localized(QT_TRANSLATE_NOOP("GameStartOptionsBuilder", "手番でない側の玉に王手がかかっています。"));
             break;

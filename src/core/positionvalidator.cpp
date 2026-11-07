@@ -24,12 +24,8 @@ Problem boardProblem(const Position& position)
         }
     }
     for (const Turn side : {Turn::Black, Turn::White}) {
-        for (int kind = 0; kind < kHandKindCount; ++kind) {
-            const int count = position.handCount(makePiece(side, static_cast<PieceKind>(kind)));
-            if (count <= 0) continue;
-            if (static_cast<PieceKind>(kind) == PieceKind::King) return Problem::KingInHand;
-            totals[static_cast<size_t>(kind)] += count;
-        }
+        for (const PieceKind kind : PieceRules::kHandOrder)
+            totals[static_cast<size_t>(kind)] += position.handCount(makePiece(side, kind));
     }
     // 駒の種類ごとの枚数は1組の駒の枚数まで（成駒は成る前の駒として数える）
     for (size_t kind = 0; kind < totals.size(); ++kind)
