@@ -16,6 +16,7 @@
 #include "kifusavedialogs.h"
 #include "logcategories.h"
 #include "sfencollectiondialog.h"
+#include "uistatepolicymanager.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -41,7 +42,9 @@ bool KifuFileController::hasUnsavedChanges() const
 
 bool KifuFileController::canReplaceRecord() const
 {
-    return m_deps.activity->is(AppActivityState::Activity::Idle);
+    // 「開く」を押せる状態と同じ1か所で決める（貼り付け・局面集ビューアは開いたまま反映できるので、ここでも確かめる）
+    return UiStatePolicyManager::tablePolicy(m_deps.activity->activity(), UiStatePolicyManager::UiElement::FileOpen)
+        == UiStatePolicyManager::Policy::Enabled;
 }
 
 bool KifuFileController::refuseReplacingRecord()

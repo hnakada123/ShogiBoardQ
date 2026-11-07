@@ -1582,7 +1582,8 @@ void TestJosekiWindow::testExpandAndDeviation()
     QCOMPARE(deviation.constFirst().constFirst().toInt(), 14);
 
     // 対局中・棋譜解析中・局面編集中は、棋譜を移る・変える操作を押せない（監査 2026-11-01 F9・F10）
-    window.setRecordOperationsEnabled(false);
+    window.setDeviationEnabled(false);
+    window.setExpandEnabled(false);
     QVERIFY(!window.m_deviationButton->isEnabled());
     QVERIFY(!window.m_expandButton->isEnabled());
     window.onDeviationClicked();
@@ -1592,7 +1593,8 @@ void TestJosekiWindow::testExpandAndDeviation()
     // 外れた手が変わっても押せないまま。戻せば押せる
     window.setBookDeviation(12, QStringLiteral("△８四歩(83)"));
     QVERIFY(!window.m_deviationButton->isEnabled());
-    window.setRecordOperationsEnabled(true);
+    window.setDeviationEnabled(true);
+    window.setExpandEnabled(true);
     QVERIFY(window.m_deviationButton->isEnabled());
     QVERIFY(window.m_expandButton->isEnabled());
 }

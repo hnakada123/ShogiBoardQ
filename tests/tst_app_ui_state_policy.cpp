@@ -611,17 +611,6 @@ private slots:
         QVERIFY(deviation->isEnabled());
     }
 
-    /// WidgetBranchTree: Idle, TsumeSearch, Consideration で有効
-    void widgetBranchTree_enabledInReadonlyStates()
-    {
-        Policy p;
-        verifyEnabled(p, S::Idle, E::WidgetBranchTree, "WidgetBranchTree");
-        verifyEnabled(p, S::DuringTsumeSearch, E::WidgetBranchTree, "WidgetBranchTree");
-        verifyEnabled(p, S::DuringConsideration, E::WidgetBranchTree, "WidgetBranchTree");
-        verifyDisabled(p, S::DuringGame, E::WidgetBranchTree, "WidgetBranchTree");
-        verifyDisabled(p, S::DuringAnalysis, E::WidgetBranchTree, "WidgetBranchTree");
-    }
-
     /// WidgetConsiderationStart: 対局中/CSA中と局面編集中は無効
     void widgetConsiderationStart_disabledDuringGames()
     {

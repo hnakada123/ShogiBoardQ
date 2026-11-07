@@ -55,6 +55,8 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
 
     connect(m_navState, &KifuNavigationState::changed, this, &JosekiWindowController::updateJosekiWindow);
     connect(deps.activity, &AppActivityState::changed, this, &JosekiWindowController::updateJosekiWindow);
+    connect(deps.activity, &AppActivityState::changed, this, &JosekiWindowController::updateExpandEnabled);
+    updateExpandEnabled();
     // 定跡が変わったら、表示中の手順が定跡を外れた手も合わせる
     connect(deps.book, &JosekiBookSession::contentChanged, this, &JosekiWindowController::updateJosekiWindow);
     connect(m_josekiWindow, &JosekiWindow::expandRequested, this, &JosekiWindowController::onExpandRequested);
@@ -121,6 +123,11 @@ void JosekiWindowController::updateBookDeviation()
     }
     const QString move = JosekiTableModel::moveText(moves.at(*index), sfens.at(*index));
     m_josekiWindow->setBookDeviation(line.startPly + *index, move);
+}
+
+void JosekiWindowController::updateExpandEnabled()
+{
+    m_josekiWindow->setExpandEnabled(m_branchEdit->canEdit());
 }
 
 void JosekiWindowController::onExpandRequested()

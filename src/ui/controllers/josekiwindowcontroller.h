@@ -110,6 +110,8 @@ private slots:
 
     /// 展開の条件を選び、表示中の局面から定跡を棋譜の変化に展開する
     void onExpandRequested();
+    /// 棋譜に展開できるか（棋譜を変えてよいか）を定跡ウィンドウのボタンに合わせる
+    void updateExpandEnabled();
     /// 定跡の表示を止めた・再開した（保存し、定跡を外れた手の表示を合わせる）
     void onDisplayToggled(bool displayed);
 

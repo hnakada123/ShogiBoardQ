@@ -103,7 +103,6 @@ constexpr Rule kRules[] = {
     // --- ウィジェット ---
     // 棋譜を移る・変える操作は、見るだけの状態でだけ（HumanTurnPolicy::canBrowseRecord・canEditRecord もこの行で決まる）
     {E::WidgetNavigation,       kBrowsing,    Off::Disable},
-    {E::WidgetBranchTree,       kBrowsing,    Off::Disable},
     // 局面編集中は盤が編集中の局面なので検討しない（編集を終えてから始める）
     // 通信対局の局と局の間は、次の対局でエンジンを使うので検討しない
     {E::WidgetConsiderationStart, kAllStates & ~kPlaying & ~in(S::DuringPositionEdit) & ~in(S::DuringCsaConnection),
@@ -247,10 +246,8 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
         if (m_deps.recordPane) m_deps.recordPane->setNavigationEnabled(enabled);
         if (m_deps.navigation) m_deps.navigation->setStepActionsEnabled(enabled);
         if (m_deps.evalChart) m_deps.evalChart->setNavigationEnabled(enabled);
-        if (m_deps.joseki) m_deps.joseki->setRecordOperationsEnabled(enabled);
-        break;
-    case UiElement::WidgetBranchTree:
         if (m_deps.branchTree) m_deps.branchTree->setClickEnabled(enabled);
+        if (m_deps.joseki) m_deps.joseki->setDeviationEnabled(enabled);
         break;
     case UiElement::WidgetConsiderationStart:
         if (m_deps.consideration) m_deps.consideration->setStartConsiderationEnabled(enabled);
