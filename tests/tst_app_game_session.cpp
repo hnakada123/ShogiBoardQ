@@ -2,9 +2,11 @@
 /// @brief 実際の対局サービス（本体の合成ルートで組み立てた GameSession）を使うUI操作フローの回帰テスト
 #include <QtTest>
 #include <QDialogButtonBox>
+#include <QDockWidget>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSettings>
+#include <QTableView>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QDir>
@@ -19,6 +21,10 @@
 #include "elidelabel.h"
 #include "gamechannel.h"
 #include "gamesettings.h"
+#include "josekibooksession.h"
+#include "josekitablemodel.h"
+#include "josekiwindow.h"
+#include "josekiwindowcontroller.h"
 #include "uistatepolicymanager.h"
 #include "livegamesession.h"
 #include "gamesession.h"
@@ -141,6 +147,34 @@ private slots:
         p.gameSession->breakOff();
         QCOMPARE(ended.count(), 1);
         QCOMPARE(p.match->gameEnd()->cause, MatchCoordinator::Cause::BreakOff);
+    }
+
+    /// 定跡の表の「着手」は動作状態に合わせる。対局の後も消えたままにしない（監査 2026-11-07 F10）
+    void josekiPlayButtonFollowsTheActivity()
+    {
+        humanVsHumanSettings();
+        MainWindow window;
+        window.show();
+        auto& p = window.composer().parts();
+        QDockWidget* dock = window.findChild<QDockWidget*>(QStringLiteral("JosekiWindowDock"));
+        QVERIFY(dock);
+        dock->show();
+        dock->raise();
+        QTRY_VERIFY(p.joseki->josekiWindow()->isVisible());
+        JosekiMove move;
+        move.move = QStringLiteral("7g7f");
+        QVERIFY(p.josekiBook->addMove(SfenUtils::hirateSfen(), move));
+        const auto* model = qobject_cast<JosekiTableModel*>(
+            p.joseki->josekiWindow()->findChild<QTableView*>()->model());
+        QVERIFY(model);
+        QTRY_VERIFY(model->humanCanPlay());
+
+        // 局面を変えない動作でも合わせる（検討の開始と終わり）
+        {
+            ActivityLease consideration = window.composer().activity().begin(AppActivityState::Activity::DuringConsideration, nullptr);
+            QVERIFY(!model->humanCanPlay());
+        }
+        QVERIFY(model->humanCanPlay());
     }
 
     void networkCommandsDoNotEndLocalMatch()

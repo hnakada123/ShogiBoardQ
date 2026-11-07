@@ -14,6 +14,7 @@
 
 #include "josekilines.h"
 
+class AppActivityState;
 class HumanTurnPolicy;
 class BoardMoveController;
 class BranchTreeEditController;
@@ -50,6 +51,8 @@ public:
         const KifuNavigationState* navState = nullptr;
         /// 盤面クリックと同じ「人間が今指せるか」の判定
         const HumanTurnPolicy* humanTurn = nullptr;   ///< 人間が今指せるか（定跡手を指せるか）
+        /// 動作状態。変わると指せるかも変わるので、表の「着手」を合わせる（必須・非所有）
+        const AppActivityState* activity = nullptr;
         /// 定跡手を盤に指す（盤の操作と同じ処理。必須）
         BoardMoveController* boardMoves = nullptr;
         /// 定跡を棋譜の変化に展開する（変えてよいかもここに聞く。必須）

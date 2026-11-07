@@ -308,6 +308,7 @@ void MainWindowComposer::createPresentersAndDocks()
     jd.boardArrows = m_c.boardArrows->joseki();
     jd.navState = m_c.navState;
     jd.humanTurn = m_c.humanTurnPolicy.get();
+    jd.activity = &m_activity;
     jd.boardMoves = m_c.boardMoves;
     jd.branchEdit = m_c.branchEdit;
     jd.navController = m_c.kifuNavController;
