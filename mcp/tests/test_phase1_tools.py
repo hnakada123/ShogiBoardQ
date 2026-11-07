@@ -215,6 +215,41 @@ async def test_mate_and_verify(server_env):
         assert data["status"] == "multiple"
 
 
+async def test_verify_tsume_puts_the_attacker_on_move(server_env):
+    """The same problem SFEN works for search_mate and verify_tsume, whichever side it says is to move."""
+    if not os.environ.get("SHOGIBOARDQ_TEST_MATE_ENGINE"):
+        pytest.skip("SHOGIBOARDQ_TEST_MATE_ENGINE is not set")
+    async with mcp_session(server_env) as session:
+        text, data, is_error = await _call(session, "verify_tsume", engine="TestMate", sfen=UNIQUE_1PLY.replace(" b ", " w "),
+                                           target_moves=1, timeout_seconds=10)
+        assert not is_error, text
+        assert data["status"] == "unique" and data["sfen"] == UNIQUE_1PLY
+
+
+async def test_verify_tsume_accepts_every_length_generate_tsume_can_make(server_env):
+    if not os.environ.get("SHOGIBOARDQ_TEST_MATE_ENGINE"):
+        pytest.skip("SHOGIBOARDQ_TEST_MATE_ENGINE is not set")
+    async with mcp_session(server_env) as session:
+        text, _, is_error = await _call(session, "verify_tsume", engine="TestMate", sfen=UNIQUE_1PLY, target_moves=41, timeout_seconds=1)
+        assert "between" not in text, text
+
+
+async def test_generate_tsume_engine_failure_is_a_failed_job(server_env):
+    """The CLI reports a failed engine as the last event, so the job does not read as finished."""
+    async with mcp_session(server_env) as session:
+        text, data, is_error = await _call(session, "generate_tsume", engine="TestBroken", target_moves=1, max_positions=1, timeout_ms=2000)
+        if is_error:
+            assert "engine_error" in text, text
+            return
+        for _ in range(100):
+            text, status, is_error = await _call(session, "tsume_generation_status", job_id=data["job_id"])
+            assert not is_error, text
+            if status["state"] != "running":
+                break
+            await asyncio.sleep(0.1)
+        assert status["state"] == "failed", text
+
+
 async def test_generate_tsume_and_stop(server_env):
     if not os.environ.get("SHOGIBOARDQ_TEST_MATE_ENGINE"):
         pytest.skip("SHOGIBOARDQ_TEST_MATE_ENGINE is not set")

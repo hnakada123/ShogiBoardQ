@@ -223,7 +223,9 @@ const QList<OperationSpec>& CliCommandSpecs::all()
           allowFinalAlternatives(QStringLiteral("Accept positions whose final mating move has alternatives."))}},
         {QStringLiteral("verify-tsume"), QStringLiteral("Check a tsume problem for a unique solution"),
          {engine(), sfen(true),
-          integer(QStringLiteral("target_moves"), QStringLiteral("Expected mate length in plies (odd)."), 1, 39).require(),
+          integer(QStringLiteral("target_moves"), QStringLiteral("Expected mate length in plies (odd)."),
+                  TsumeshogiSettings::GeneratorLimits::kMinTargetMoves, TsumeshogiSettings::GeneratorLimits::kMaxTargetMoves)
+              .require(),
           integer(QStringLiteral("timeout_seconds"), QStringLiteral("Total engine time budget in seconds."), 1, 120)
               .withDefault(15).value(QStringLiteral("seconds")).alias(QStringLiteral("timeout-ms"), 0.001),
           allowFinalAlternatives(QStringLiteral("Accept alternatives on the final mating move (otherwise they are a cook)."))}},

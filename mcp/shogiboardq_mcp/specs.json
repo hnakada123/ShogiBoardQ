@@ -393,7 +393,7 @@
     },
     "target_moves": {
      "description": "Expected mate length in plies (odd).",
-     "maximum": 39,
+     "maximum": 99,
      "minimum": 1,
      "type": "integer"
     },

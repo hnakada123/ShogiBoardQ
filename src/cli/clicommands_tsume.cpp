@@ -6,6 +6,7 @@
 #include "cliargs.h"
 #include "clioutput.h"
 #include "clistopwatcher.h"
+#include "matesearchposition.h"
 #include "sfenvalidator.h"
 #include "tsumeshogigenerator.h"
 #include "tsumeshogisettings.h"
@@ -59,13 +60,17 @@ public slots:
     }
     void onFinished()
     {
-        QJsonObject obj = progressFields(m_timer.elapsed());
-        obj[QStringLiteral("stopped")] = m_stopped;
-        CliOutput::printEvent(QStringLiteral("finished"), obj);
+        // 生成器は失敗の後にも finished を出す。読み手には error を最後のイベントとして見せる
+        if (!m_failed) {
+            QJsonObject obj = progressFields(m_timer.elapsed());
+            obj[QStringLiteral("stopped")] = m_stopped;
+            CliOutput::printEvent(QStringLiteral("finished"), obj);
+        }
         m_loop->quit();
     }
     void onError(const QString& message)
     {
+        m_failed = true;
         m_exitCode = CliOutput::failEvent(ErrorKind::EngineError, message);
     }
 
@@ -89,6 +94,7 @@ private:
     int m_rejected = 0;
     int m_inconclusive = 0;
     qint64 m_lastProgressMs = 0;
+    bool m_failed = false;   ///< エンジンの失敗を error で知らせた
     bool m_stopped = false;
     int m_exitCode = 0;
 };
@@ -194,7 +200,7 @@ int CliCommands::verifyTsume(const QJsonObject& params)
     const auto engine = CliArgs::resolveEngine(params, &error);
     if (!engine) return CliOutput::fail(ErrorKind::EngineNotFound, error);
     const int targetMoves = params.value(QStringLiteral("target_moves")).toInt();
-    // 範囲は表（1〜39）で確かめてある。奇数の規則は生成と同じ
+    // 範囲は表で確かめてある（生成と同じ GeneratorLimits）。奇数の規則も生成と同じ
     if (!TsumeshogiSettings::GeneratorLimits::isTargetMoves(targetMoves))
         return CliOutput::fail(ErrorKind::InvalidArgument, QStringLiteral("target_moves must be odd"));
     const int timeoutMs = params.value(QStringLiteral("timeout_seconds")).toInt() * 1000;
@@ -202,9 +208,12 @@ int CliCommands::verifyTsume(const QJsonObject& params)
     const SfenValidation validation = SfenValidator::validate(params.value(QStringLiteral("sfen")).toString());
     if (!validation.valid) return CliOutput::fail(ErrorKind::InvalidArgument, QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
 
+    // 問題の局面は mate・GUI の詰み探索と同じく、玉が片方だけなら玉の無い側（攻方）の手番にする
+    const QString sfen = MateSearchPosition::attackerToMove(*validation.position).toSfen();
+
     TsumeVerificationRunner runner;
     QEventLoop loop;
-    VerifyReporter reporter(&loop, validation.normalizedSfen, targetMoves);
+    VerifyReporter reporter(&loop, sfen, targetMoves);
     QObject::connect(&runner, &TsumeVerificationRunner::finished, &reporter, &VerifyReporter::onFinished);
     QObject::connect(&runner, &TsumeVerificationRunner::errorOccurred, &reporter, &VerifyReporter::onError);
     CliStopWatcher watcher(false);
@@ -213,7 +222,7 @@ int CliCommands::verifyTsume(const QJsonObject& params)
     TsumeVerificationRunner::Request request;
     request.enginePath = engine->path;
     request.engineName = engine->name;
-    request.sfen = validation.normalizedSfen;
+    request.sfen = sfen;
     request.targetMoves = targetMoves;
     request.timeoutMs = timeoutMs;
     request.allowFinalMoveAlternatives = params.value(QStringLiteral("allow_final_move_alternatives")).toBool();
