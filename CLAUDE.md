@@ -346,6 +346,7 @@ MyDialog::MyDialog(QWidget* parent)
 - **スレッド安全性**: `docs/dev/threading-guidelines.md` に従う。UIアクセスはメインスレッド限定、ワーカーには値オブジェクトのみ渡す
 - **層の依存**: 下の層は上の層を include しない。順に core・common → services → kifu → engine → game → analysis・network → style → models → widgets → views → board → dialogs → ui → app（views は盤の描画で、widgets の `ElideLabel`・`GlobalToolTip` を使う。widgets は views を使わない）。`headless` は core〜analysis だけを使い、`automation`・`cli` は MainWindow・ダイアログ・ウィジェットに依存しない（`cli` は盤面画像 `boardimagerenderer` だけが views を使う。規則は `tests/tst_layer_dependencies.cpp` が検査する）
 - **クラス名の役割**: `*Wiring` はシグナルの接続だけ、`*Presenter` は表示への反映、`*Controller` は利用者操作の処理、`*Coordinator` は複数の部品にまたがる流れ、`*Session` は開始から終わりまでの状態を持つ一続きの処理（対局・検討・棋譜解析・定跡ファイル）。役割が変わったら名前も変える
+- **同じ操作の入口**: 規則を足す・直すときは、同じ操作の入口がほかにないかを確かめる（開始局面の読みは全形式、保存は名前を付けて・上書き・自動保存・`kifu.save`・`convert-kifu`、局面の読みは貼り付け・`position.set`・棋譜の読み込みなど）。1つの入口にだけ規則を置かない
 - **ファイルの分割**: 1ファイル1000行の上限（`tests/tst_structural_kpi.cpp`）に近づいたら、行数で `_ui`・`_draw` などに機械的に分けず、責務を別のクラスに切り出す
 
 ## Code Style
