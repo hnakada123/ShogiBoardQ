@@ -4,10 +4,13 @@
 #include "kifuformat.h"
 #include "kifutextdecoder.h"
 #include "logcategories.h"
+#include "parsecommon.h"
 #include "usencodec.h"
 
 #include <QFileInfo>
 #include <QRegularExpression>
+
+#include <algorithm>
 
 namespace KifuFormats {
 
@@ -34,6 +37,14 @@ const Extension kExtensions[] = {
     {KifuFormat::Sfen, "sfen", true, KifuEncoding::Utf8, nullptr},
     {KifuFormat::Bod, "bod", true, KifuEncoding::Utf8, nullptr},
 };
+
+/// 局面図の持駒の行があるか
+bool hasBodHandsLine(const QString& text)
+{
+    const QStringList lines = text.split(QLatin1Char('\n'));
+    return std::any_of(lines.cbegin(), lines.cend(),
+                       [](const QString& line) { return KifuParseCommon::isBodHandsLine(line.trimmed()); });
+}
 
 } // namespace
 
@@ -212,10 +223,7 @@ KifuFormat detect(const QString& content)
         return KifuFormat::Ki2;
     }
     // BOD判定（局面図のみ: 指し手を含まない局面図）
-    if (trimmed.contains(QStringLiteral("後手の持駒")) ||
-        trimmed.contains(QStringLiteral("先手の持駒")) ||
-        trimmed.contains(QStringLiteral("上手の持駒")) ||
-        trimmed.contains(QStringLiteral("下手の持駒")) ||
+    if (hasBodHandsLine(trimmed) ||
         trimmed.contains(bodBorderRe) ||
         trimmed.contains(QStringLiteral("|v")) ||
         trimmed.contains(QStringLiteral("| ・"))) {

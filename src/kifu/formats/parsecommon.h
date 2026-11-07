@@ -8,7 +8,9 @@
 #include <QStringList>
 #include <QStringView>
 #include <functional>
+#include <optional>
 #include "kifparsetypes.h"
+#include "shogitypes.h"
 
 namespace KifuParseCommon {
 
@@ -28,7 +30,10 @@ bool isBookmarkLine(QStringView s);
 // KIF/KI2共通：棋譜の内容でない行（先頭が '#'・'＃'・'*'・'＊' のコメントか '&' のしおり）
 bool isAnnotationLine(QStringView s);
 
-// KIF/KI2共通：BOD持駒行判定（先手の持駒/後手の持駒/持ち駒）
+// KIF/KI2共通：BOD持駒行の見出しが指す側（先手・後手・下手・上手の「持駒」「持ち駒」）。持駒行でなければ nullopt
+std::optional<Turn> bodHandsSide(QStringView line);
+
+// KIF/KI2共通：BOD持駒行判定
 bool isBodHandsLine(QStringView line);
 
 // KIF/KI2共通：ヘッダ行から対局情報を抽出

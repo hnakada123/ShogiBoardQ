@@ -85,19 +85,24 @@ bool isAnnotationLine(QStringView s)
     return ch == QChar(u'#') || ch == QChar(u'＃') || isKifCommentLine(s) || isBookmarkLine(s);
 }
 
-bool isBodHandsLine(QStringView line)
+std::optional<Turn> bodHandsSide(QStringView line)
 {
     // 駒落ちの棋譜は先手側を下手、後手側を上手と書く
-    static const QString kHeads[] = {
-        QStringLiteral("先手の持駒"), QStringLiteral("後手の持駒"),
-        QStringLiteral("先手の持ち駒"), QStringLiteral("後手の持ち駒"),
-        QStringLiteral("下手の持駒"), QStringLiteral("上手の持駒"),
-        QStringLiteral("下手の持ち駒"), QStringLiteral("上手の持ち駒"),
+    static const struct { QString head; Turn side; } kHeads[] = {
+        {QStringLiteral("先手の持駒"), Turn::Black}, {QStringLiteral("後手の持駒"), Turn::White},
+        {QStringLiteral("先手の持ち駒"), Turn::Black}, {QStringLiteral("後手の持ち駒"), Turn::White},
+        {QStringLiteral("下手の持駒"), Turn::Black}, {QStringLiteral("上手の持駒"), Turn::White},
+        {QStringLiteral("下手の持ち駒"), Turn::Black}, {QStringLiteral("上手の持ち駒"), Turn::White},
     };
-    for (const QString& head : kHeads) {
-        if (line.startsWith(head)) return true;
+    for (const auto& [head, side] : kHeads) {
+        if (line.startsWith(head)) return side;
     }
-    return false;
+    return std::nullopt;
+}
+
+bool isBodHandsLine(QStringView line)
+{
+    return bodHandsSide(line).has_value();
 }
 
 QList<KifGameInfoItem> extractHeaderGameInfo(
