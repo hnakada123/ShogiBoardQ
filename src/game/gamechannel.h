@@ -39,8 +39,15 @@ public:
     /// 手番のエンジンにすぐ指させる
     virtual void moveNow() = 0;
 
-    /// 人間が指す手番か（入玉宣言・投了を人間が行える）
+    /// 人間が指す手番か（入玉宣言を人間が行える）
     virtual bool isHumanToMove() const = 0;
+    /**
+     * @brief 今、投了を受け付けるか
+     *
+     * ローカル対局は手番の人間だけ（エンジンの手番に押しても、エンジンの代わりには投了しない）。
+     * 通信対局は自分の手番なら、エンジンに指させている対局でも人が投了できる。
+     */
+    virtual bool canResign() const = 0;
     /// 手番
     virtual Turn sideToMove() const = 0;
     /// 入玉宣言を受け付ける対局か（ローカル対局は持将棋ルールを選んだ対局だけ。通信対局は判定するサーバーへ送るので常に）
@@ -63,6 +70,7 @@ public:
     void breakOff() override;
     void moveNow() override;
     bool isHumanToMove() const override;
+    bool canResign() const override { return isHumanToMove(); }
     Turn sideToMove() const override;
     bool acceptsDeclaration() const override;
     std::optional<NyugyokuJudgement::Result> declareNyugyoku() override;

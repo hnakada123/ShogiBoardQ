@@ -38,6 +38,11 @@ bool CsaGameChannel::isHumanToMove() const
     return m_coordinator->isHumanPlayer() && m_coordinator->isMyTurn();
 }
 
+bool CsaGameChannel::canResign() const
+{
+    return m_coordinator->isMyTurn();
+}
+
 Turn CsaGameChannel::sideToMove() const
 {
     const bool myTurn = m_coordinator->isMyTurn();

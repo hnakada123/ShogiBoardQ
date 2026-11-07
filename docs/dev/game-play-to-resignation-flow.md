@@ -550,6 +550,7 @@ QObject::connect(ui->actionResign, &QAction::triggered, session, &GameSession::r
 
 ```
 GameSession::resign()                           （src/app/gamesession.cpp）
+    ↓ activeChannel()->canResign()               … 受け付けなければ知らせて終わる（ローカル対局は手番の人間だけ、通信対局は自分の手番）
     ↓ activeChannel()->resign()                  … 対局の種類で分岐しない（GameChannel、src/game/gamechannel.h）
     ├─ CSA通信対局中（DuringCsaGame）: CsaGameChannel::resign() → CsaGameCoordinator::onResign()
     └─ ローカル対局中（DuringGame）:  LocalGameChannel::resign()
@@ -577,7 +578,7 @@ void MatchCoordinator::handleResign()
 #### 処理ステップ
 
 1. 終局済みチェック: 終局済みなら何もしない。
-2. 敗者の決定: 投了の敗者は盤の手番の側（`sideToMove()`）。
+2. 敗者の決定: 投了の敗者は盤の手番の側（`sideToMove()`）。エンジンの手番の投了は `GameSession::resign()` の `canResign()` が断るので、利用者の操作でエンジンの投了にはならない。
 3. 終局: `endGame(info, loser, Notice::Announce)`（6.1）。時計の停止、エンジンへの終了通知（下表）、終局行の追記、待機への切り替え、`gameEnded`、結果の知らせまで行う。
 
 #### エンジンへの終了通知
