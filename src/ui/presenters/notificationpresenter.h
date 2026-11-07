@@ -5,10 +5,10 @@
 /// @brief エラー・情報の知らせをダイアログで出す NotificationPresenter の定義
 
 #include "errorbus.h"
+#include <QMessageBox>
 #include <QObject>
+#include <QPointer>
 #include <QStringList>
-
-class QMessageBox;
 
 /**
  * @brief エラー・情報の知らせをダイアログで出す（ui・app の知らせの表示の唯一の持ち主）
@@ -67,6 +67,10 @@ public:
     /// 非モーダルのメッセージボックス（閉じると消える）を返す（次の知らせで閉じるため。それ以外は nullptr）
     static QMessageBox* information(QWidget* parent, const QString& title, const QString& message,
                                     Wait wait = Wait::UntilClosed);
+    /// 前の知らせ（previous。閉じられていてもよい）を閉じて情報を出し、Wait::No なら previous に覚える。席を外して
+    /// 対局を続けても、局の結果の知らせが積み重ならないようにする（連続対局・通信対局の続きの対局で共通）
+    static void replaceInformation(QPointer<QMessageBox>& previous, QWidget* parent, const QString& title,
+                                   const QString& message, Wait wait);
     /// 題名付きの警告を出す（記録するときは情報と同じく notices）
     static void warning(QWidget* parent, const QString& title, const QString& message);
     /// 題名付きのエラーを出す（記録するときは errors）

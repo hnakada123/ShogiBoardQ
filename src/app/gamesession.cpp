@@ -290,11 +290,10 @@ bool GameSession::seriesContinues() const
 
 void GameSession::showGameOverMessage(const QString& title, const QString& message)
 {
-    // 前の局の知らせは閉じる（席を外して回した連続対局で知らせが積み重ならないように）
-    if (m_gameOverNotice) m_gameOverNotice->close();
     QWidget* parent = m_deps.shogiView ? m_deps.shogiView->window() : nullptr;
-    m_gameOverNotice = NotificationPresenter::information(
-        parent, title, message, seriesContinues() ? NotificationPresenter::Wait::No : NotificationPresenter::Wait::UntilClosed);
+    NotificationPresenter::replaceInformation(
+        m_gameOverNotice, parent, title, message,
+        seriesContinues() ? NotificationPresenter::Wait::No : NotificationPresenter::Wait::UntilClosed);
 }
 
 void GameSession::onGameEndProcessed(const MatchCoordinator::GameEndInfo& info)
