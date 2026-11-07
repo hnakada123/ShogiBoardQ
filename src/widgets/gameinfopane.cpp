@@ -65,7 +65,7 @@ protected:
 GameInfoPane::GameInfoPane(QWidget* parent)
     : QWidget(parent)
     , m_model(new GameInfoEditModel(this))
-    , m_fontSize(GameSettings::gameInfoFontSize, 8, 24)
+    , m_fontSize(GameSettings::gameInfoFontSize)
 {
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);

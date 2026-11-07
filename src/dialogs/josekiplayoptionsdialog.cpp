@@ -29,7 +29,7 @@ JosekiPlayOptionsDialog::JosekiPlayOptionsDialog(const JosekiPlayOptions &option
 
     m_maxPly = new QSpinBox(this);
     m_maxPly->setObjectName(QStringLiteral("josekiMaxPly"));
-    m_maxPly->setRange(1, 9999);
+    m_maxPly->setRange(1, JosekiPlayOptions::kMaxPly);
     m_maxPly->setSuffix(tr(" 手目まで"));
     m_maxPly->setToolTip(tr("この手数までの手に定跡を使います（やねうら王の BookMoves）"));
     form->addRow(tr("定跡を使う手数:"), m_maxPly);
@@ -45,7 +45,7 @@ JosekiPlayOptionsDialog::JosekiPlayOptionsDialog(const JosekiPlayOptions &option
 
     m_valueDiff = new QSpinBox(this);
     m_valueDiff->setObjectName(QStringLiteral("josekiValueDiff"));
-    m_valueDiff->setRange(0, 99999);
+    m_valueDiff->setRange(0, JosekiPlayOptions::kMaxValue);
     m_valueDiff->setToolTip(tr("「評価値で選ぶ」で、最善の評価値からこの差までの手を選びます（やねうら王の BookEvalDiff）"));
     form->addRow(tr("評価値の差:"), m_valueDiff);
 
@@ -53,7 +53,7 @@ JosekiPlayOptionsDialog::JosekiPlayOptionsDialog(const JosekiPlayOptions &option
     m_useMinValue->setObjectName(QStringLiteral("josekiUseMinValue"));
     m_minValue = new QSpinBox(this);
     m_minValue->setObjectName(QStringLiteral("josekiMinValue"));
-    m_minValue->setRange(-99999, 99999);
+    m_minValue->setRange(-JosekiPlayOptions::kMaxValue, JosekiPlayOptions::kMaxValue);
     m_minValue->setToolTip(tr("指す側から見た評価値がこれより低い定跡手は使いません"
                               "（やねうら王の BookEvalBlackLimit・BookEvalWhiteLimit）"));
     auto *minValueRow = new QHBoxLayout;
@@ -63,14 +63,14 @@ JosekiPlayOptionsDialog::JosekiPlayOptionsDialog(const JosekiPlayOptions &option
 
     m_minDepth = new QSpinBox(this);
     m_minDepth->setObjectName(QStringLiteral("josekiMinDepth"));
-    m_minDepth->setRange(0, 9999);
+    m_minDepth->setRange(0, JosekiPlayOptions::kMaxDepth);
     m_minDepth->setToolTip(tr("深さがこれより浅い定跡手は使いません。棋譜から登録した手は深さ0です"
                               "（やねうら王の BookDepthLimit）"));
     form->addRow(tr("深さの下限:"), m_minDepth);
 
     m_minRatio = new QDoubleSpinBox(this);
     m_minRatio->setObjectName(QStringLiteral("josekiMinRatio"));
-    m_minRatio->setRange(0.0, 100.0);
+    m_minRatio->setRange(0.0, JosekiPlayOptions::kMaxRatioPercent);
     m_minRatio->setDecimals(1);
     m_minRatio->setSuffix(QStringLiteral(" %"));
     m_minRatio->setToolTip(tr("その局面の出現頻度の合計に対する割合（定跡ウィンドウの「比率」）がこれより低い手は使いません"));
@@ -78,7 +78,7 @@ JosekiPlayOptionsDialog::JosekiPlayOptionsDialog(const JosekiPlayOptions &option
 
     m_minFrequency = new QSpinBox(this);
     m_minFrequency->setObjectName(QStringLiteral("josekiMinFrequency"));
-    m_minFrequency->setRange(0, 999999999);
+    m_minFrequency->setRange(0, JosekiPlayOptions::kMaxFrequency);
     m_minFrequency->setToolTip(tr("出現頻度がこれより少ない定跡手は使いません"));
     form->addRow(tr("出現頻度の下限:"), m_minFrequency);
 

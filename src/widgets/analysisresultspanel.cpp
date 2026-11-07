@@ -30,8 +30,7 @@ AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     : QWidget(parent)
     , m_reflowTimer(new QTimer(this))
     // 未保存なら 10pt から始める（棋譜解析ダイアログの文字の大きさとは別に保存する）
-    , m_fontSize({AnalysisSettings::kifuAnalysisResultsFontSize(), 8, 24, 1,
-                  [](int size) { AnalysisSettings::kifuAnalysisResultsFontSize.set(size); }})
+    , m_fontSize(AnalysisSettings::kifuAnalysisResultsFontSize)
 {
     connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &AnalysisResultsPanel::applyFontSize);
     m_reflowTimer->setSingleShot(true);

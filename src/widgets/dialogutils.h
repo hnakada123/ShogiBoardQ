@@ -21,6 +21,10 @@ inline void restoreDialogSize(QWidget* dialog, const Setting<QSize>& setting)
     restoreDialogSize(dialog, setting());
 }
 
+/// 大きさの設定を戻し、閉じた（Hide の）ときに保存する。文字の大きさを持たない窓のため。
+/// A-/A+ のあるダイアログは DialogFontScale の options.size に渡す
+void rememberDialogSize(QDialog* dialog, const Setting<QSize>& setting);
+
 /// 現在のウィジェットサイズを保存する。
 void saveDialogSize(const QWidget* dialog, const std::function<void(const QSize&)>& setter);
 

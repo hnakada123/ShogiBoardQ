@@ -96,7 +96,7 @@ JosekiWindow::JosekiWindow(JosekiBookSession *session, const Actions &actions, Q
     , m_session(session)
     , m_model(new JosekiTableModel(this))
     , m_actions(actions)
-    , m_fontHelper(JosekiSettings::josekiWindowFontSize, 6, 24, 1)
+    , m_fontHelper(JosekiSettings::josekiWindowFontSize)
 {
     Q_ASSERT(m_session);
     Q_ASSERT(m_actions.display && m_actions.recordBoardMoves && m_actions.boardArrows);

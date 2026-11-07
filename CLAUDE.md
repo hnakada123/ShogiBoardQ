@@ -211,7 +211,7 @@ cmake --build build --target translations
   - `editactions` - 元に戻す〜貼り付けの5つの `QAction` の組 `EditActions`（標準ショートカット・アイコン・実際のショートカットを添えたツールチップはここだけ。ボタンは `createButton()` で、見た目と大きさもここで決める（`PanelButton::setup` の既定。使う側は色を選ばない）。何をするか・有効にするかは使う側が決める）。コメント欄（`CommentEditorPanel`）と対局情報（`GameInfoPane`）が使う
   - `actionbinding` - パネルのチェックと、呼び出し側が持つ切り替えの `QAction` の結び付け `ActionBinding::bindCheckable`（QAction は必須で正本。チェックは今の値から始め、どちらを変えてももう片方が合う）。思考ドック（`ThinkingPanel`）・検討タブ（`ConsiderationPanel`）・定跡ウィンドウ（`JosekiWindow`）のチェックが使い、パネルは QAction を作らない（盤の矢印は ui の `BoardArrowActions`、定跡の表示と盤の手の登録は `JosekiWindowController` が作る）
   - `recentfilesmenu` - 「履歴」ボタンのメニュー `RecentFilesMenu`（ファイル・区切り・「履歴をクリア」、空なら「（履歴なし）」。選ばれた項目は `fileTriggered(QString)`・`clearTriggered()` で知らせる）。定跡ウィンドウ（`JosekiWindow::recentFileRequested` で知らせ、`JosekiFileController::openRecent(path)` が開く）と局面集ビューアが使う
-  - `dialogfontscale` - ダイアログの A-/A+ と保存 `DialogFontScale`（ダイアログで共通。各部品を元の大きさからの差で拡大・縮小する。通信対局の待機ダイアログの通信ログの窓はまだ付けていない）
+  - `dialogfontscale` - ダイアログの A-/A+ と保存 `DialogFontScale`（ダイアログで共通。各部品を元の大きさからの差で拡大・縮小する。通信対局の待機ダイアログの通信ログの窓はパネルの A-/A+ を使い、大きさだけを `DialogUtils::rememberDialogSize` で保存する）
   - `unsavedchangesprompt` - 未保存の変更の確認 `UnsavedChangesPrompt`（保存・破棄・キャンセル。棋譜・定跡・コメント欄で共通）
   - `engineselector` - 登録エンジンを選ぶ部品 `EngineSelector`（呼び出し側が置いたコンボ・「設定」ボタン・未登録の案内に結び、一覧の読み込み・保存した選択の復元と保存（`EngineListSettings::SelectionKeys`）・未登録のときの無効化を受け持つ）。設定ダイアログは dialogs にあるので開かず、`settingsRequested(EngineEntry)` で受け手に頼む（受け手は `ChangeEngineSettingsDialog::showFor(engine, parent)` で開く）。棋譜解析・詰み探索・詰将棋生成・詰将棋問題一覧・CSA通信対局のダイアログ、検討タブ、対局開始ダイアログの対局者の欄が使う
   - `playersetupwidget` - 対局開始ダイアログの対局者1人の欄 `PlayerSetupWidget`（コンボの先頭が「人間」（`EngineSelector` の内蔵の項目）で、その後に登録エンジン。人間なら名前の欄、エンジンなら「エンジン設定」ボタンと「定跡を使う」・「条件…」（条件のダイアログは dialogs の `JosekiPlayOptionsDialog`。定跡を開いていなければ押せない））。選択は `PlayerChoice`（`game/startgamedialogdata.h`）で読み書きし、保存したエンジンが削除されていれば人間に戻す
@@ -331,7 +331,7 @@ MyDialog::MyDialog(QWidget* parent)
 
 - `DialogFontScale`（`src/widgets/dialogfontscale.h`）は各部品を元の大きさからの差で拡大・縮小する。太字や大きめの見出しは作るときに1回だけ相対の大きさを決めればよく、変更のたびに付け直さない。行の高さなどの追加の調整は `install()` が返す部品の `fontSize()`（`FontSizeHelper*`）の `fontSizeChanged` につなぐ。後から作った部品には `rescale()` で今の大きさを付ける。盤面など文字の大きさを自分で決める部品は、プロパティ `dialogFontScaleExcluded` を true にして対象外にする
 - 文字の大きさの宣言の既定値を 0 にすると、未保存のときはダイアログの元の大きさから始める（補助ダイアログの `AppSettings::promotionDialogFontSize` など）
-- ドックのパネルは `FontSizeHelper` を持ち、ボタンを `FontSizeControl` で結ぶ（`FontSizeControl::createToolButtons(parent, helper, 縮小の名前, 拡大の名前)` か、置いたボタンを渡す）。A-/A+ の文字・見た目・大きさ・説明はパネルで決めない（ほかの小さなボタンも `PanelButton::setup` で整える）。列幅を保存する表は `ColumnWidthMemory` を付ける
+- ドックのパネルは `FontSizeHelper` を持ち（文字の大きさの範囲は設定の宣言 `BoundedSetting<int>` に書く）、ボタンを `FontSizeControl` で結ぶ（`FontSizeControl::createToolButtons(parent, helper, 縮小の名前, 拡大の名前)` か、置いたボタンを渡す）。A-/A+ の文字・見た目・大きさ・説明はパネルで決めない（ほかの小さなボタンも `PanelButton::setup` で整える）。列幅を保存する表は `ColumnWidthMemory` を付ける
 
 ## Development Environment
 

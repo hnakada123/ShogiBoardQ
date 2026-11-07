@@ -197,9 +197,6 @@ private:
     FontSizeHelper m_fontSize;  // ボタンの文字の大きさ（変更のたびに保存する）
     int m_iconSize = 24;     // アイコンサイズ
 
-    // 定数
-    static constexpr int kMinFontSize = 7;
-    static constexpr int kMaxFontSize = 24;
 };
 
 #endif // MENUWINDOW_H

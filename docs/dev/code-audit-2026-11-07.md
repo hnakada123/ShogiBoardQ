@@ -208,6 +208,8 @@ F13 は、「前の知らせを閉じて次を出す」小さな部品（また�
 
 ### T6. 前回 T6 の未着手の部分（dialogs・widgets・services）
 
+**状態: 済（8dd19714）。文字の大きさを持たない通信ログの窓のために `DialogUtils::rememberDialogSize` を足した**
+
 前回 T6 のうち F23・F24・F30 は済んだ。次の項目は `状態` の記載が無いまま残っている。指摘は前回と同じなので、理由は前回の文書を見る。
 
 - 範囲の写し: `josekiplayoptionsdialog.cpp:32,48,56,66,73,81`、`boardappearancedialog.cpp:243`

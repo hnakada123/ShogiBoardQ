@@ -1,7 +1,9 @@
 #include "dialogutils.h"
 #include "buttonstyles.h"
 #include <QAbstractButton>
+#include <QDialog>
 #include <QDialogButtonBox>
+#include <QEvent>
 #include <QLayout>
 #include <QLabel>
 #include <QPushButton>
@@ -18,6 +20,34 @@ void restoreDialogSize(QWidget* dialog, const QSize& savedSize)
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         dialog->resize(savedSize);
     }
+}
+
+namespace {
+/// 閉じたときに大きさを保存する（ダイアログの子。設定の宣言は実行中ずっとあるので参照で持つ）
+class DialogSizeKeeper final : public QObject
+{
+public:
+    DialogSizeKeeper(QDialog* dialog, const Setting<QSize>& setting) : QObject(dialog), m_setting(setting)
+    {
+        dialog->installEventFilter(this);
+    }
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (event->type() == QEvent::Hide) m_setting.set(static_cast<QWidget*>(watched)->size());
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    const Setting<QSize>& m_setting;
+};
+} // namespace
+
+void rememberDialogSize(QDialog* dialog, const Setting<QSize>& setting)
+{
+    restoreDialogSize(dialog, setting);
+    new DialogSizeKeeper(dialog, setting);
 }
 
 void saveDialogSize(const QWidget* dialog, const std::function<void(const QSize&)>& setter)

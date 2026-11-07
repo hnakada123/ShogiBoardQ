@@ -17,7 +17,7 @@
 namespace JosekiSettings {
 
 /// 定跡ウィンドウのフォントサイズ（デフォルト: 10）
-inline const Setting<int> josekiWindowFontSize{"JosekiWindow/fontSize", 10};
+inline const BoundedSetting<int> josekiWindowFontSize{"JosekiWindow/fontSize", 10, 6, 24};
 
 /// 定跡ウィンドウの最後に開いた定跡ファイルパス（JosekiBookSession が保存する）
 inline const Setting<QString> josekiWindowLastFilePath{"JosekiWindow/lastFilePath", QString()};

@@ -10,9 +10,13 @@ struct BoardVisuals {
     int pieceScale = 108;
     bool standWoodGrain = true;
 
+    /// 駒の大きさの範囲（%。normalized と外観ダイアログの欄で共通）
+    static constexpr int kMinPieceScale = 90;
+    static constexpr int kMaxPieceScale = 112;
+
     BoardVisuals normalized() const
     {
-        return {woodGrain, pieceShadow, std::clamp(pieceScale, 90, 112), standWoodGrain};
+        return {woodGrain, pieceShadow, std::clamp(pieceScale, kMinPieceScale, kMaxPieceScale), standWoodGrain};
     }
     bool operator==(const BoardVisuals& other) const
     {

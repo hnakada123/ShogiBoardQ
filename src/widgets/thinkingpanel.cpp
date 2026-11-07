@@ -21,7 +21,7 @@
 
 ThinkingPanel::ThinkingPanel(const ArrowActions& actions, QWidget* parent)
     : QWidget(parent)
-    , m_fontSize(AnalysisSettings::thinkingFontSize, 8, 24)
+    , m_fontSize(AnalysisSettings::thinkingFontSize)
     , m_arrowActions(actions)
 {
     Q_ASSERT(m_arrowActions.match && m_arrowActions.ponder);

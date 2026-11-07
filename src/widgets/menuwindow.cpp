@@ -22,7 +22,7 @@
 
 MenuWindow::MenuWindow(QWidget* parent)
     : QWidget(parent)
-    , m_fontSize(AppSettings::menuWindowFontSize, kMinFontSize, kMaxFontSize)
+    , m_fontSize(AppSettings::menuWindowFontSize)
 {
     setupUi();
     loadSettings();

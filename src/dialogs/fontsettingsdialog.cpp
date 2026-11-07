@@ -49,14 +49,15 @@ FontSettingsDialog::FontSettingsDialog(QWidget* parent)
     m_useDefault->setChecked(!available);
     m_family->setCurrentFont(QFont(available ? saved : ApplicationFonts::defaultFamily()));
     updatePreview();
-    resize(AppSettings::fontSettingsDialogSize());
 
     connect(m_useDefault, &QCheckBox::toggled, this, &FontSettingsDialog::updatePreview);
     connect(m_family, &QFontComboBox::currentFontChanged, this, &FontSettingsDialog::updatePreview);
     connect(reset, &QPushButton::clicked, this, &FontSettingsDialog::restoreDefaults);
     connect(buttons, &QDialogButtonBox::accepted, this, &FontSettingsDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &FontSettingsDialog::reject);
-    DialogFontScale::install(this, AppSettings::fontSettingsDialogFontSize);
+    DialogFontScale::Options fontOptions;
+    fontOptions.size = &AppSettings::fontSettingsDialogSize;
+    DialogFontScale::install(this, AppSettings::fontSettingsDialogFontSize, fontOptions);
 }
 
 void FontSettingsDialog::updatePreview()
@@ -83,8 +84,3 @@ void FontSettingsDialog::accept()
     QDialog::accept();
 }
 
-void FontSettingsDialog::done(int result)
-{
-    AppSettings::fontSettingsDialogSize.set(size());
-    QDialog::done(result);
-}

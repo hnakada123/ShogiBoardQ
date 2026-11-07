@@ -29,10 +29,10 @@ public:
     };
 
     explicit FontSizeHelper(const Config& config, QObject* parent = nullptr);
-    /// 設定（宣言の表の1行）から初期値を読み、変更を同じ設定に保存する
-    explicit FontSizeHelper(const Setting<int>& setting, int minSize = 8, int maxSize = 24, int step = 1,
-                            QObject* parent = nullptr)
-        : FontSizeHelper(Config{setting(), minSize, maxSize, step, [&setting](int size) { setting.set(size); }},
+    /// 設定（宣言の表の1行）から初期値と範囲を読み、変更を同じ設定に保存する
+    explicit FontSizeHelper(const BoundedSetting<int>& setting, int step = 1, QObject* parent = nullptr)
+        : FontSizeHelper(Config{setting(), setting.minimum(), setting.maximum(), step,
+                                [&setting](int size) { setting.set(size); }},
                          parent)
     {
     }

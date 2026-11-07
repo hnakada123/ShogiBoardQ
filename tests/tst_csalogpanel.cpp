@@ -115,7 +115,7 @@ private slots:
     {
         NetworkSettings::csaLogFontSize.set(10);
         NetworkSettings::csaLogWrapLines.set(false);
-        const Setting<int> otherFont{"FontSize/testOtherLog", 10};
+        const BoundedSetting<int> otherFont{"FontSize/testOtherLog", 10, 8, 24};
         const Setting<bool> otherWrap{"TestOtherLog/wrapLines", false};
         CsaLogPanel dock;
         LogPanel other(otherFont, otherWrap, LogPanel::Names{}, nullptr);

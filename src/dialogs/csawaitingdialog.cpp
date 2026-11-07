@@ -45,10 +45,7 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
 
 CsaWaitingDialog::~CsaWaitingDialog()
 {
-    if (m_logWindow) {
-        NetworkSettings::csaLogWindowSize.set(m_logWindow->size());
-        m_logWindow->close();
-    }
+    if (m_logWindow) m_logWindow->close();
 }
 void CsaWaitingDialog::setupUi()
 {
@@ -188,7 +185,7 @@ void CsaWaitingDialog::createLogWindow()
     m_logWindow->setWindowFlags(m_logWindow->windowFlags() & ~Qt::WindowContextHelpButtonHint);
     // 既定の大きさから始め、保存した大きさがあれば戻す（小さすぎる値は使わない）
     m_logWindow->resize(NetworkSettings::csaLogWindowSize.defaultValue());
-    DialogUtils::restoreDialogSize(m_logWindow, NetworkSettings::csaLogWindowSize());
+    DialogUtils::rememberDialogSize(m_logWindow, NetworkSettings::csaLogWindowSize);
 
     // 中身は対局中の CSA 通信ログのドックと同じ部品（文字の大きさの設定も共有する）
     auto* layout = new QVBoxLayout(m_logWindow);

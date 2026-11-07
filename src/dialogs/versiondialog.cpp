@@ -79,13 +79,13 @@ VersionDialog::VersionDialog(QWidget *parent) : QDialog(parent), ui(std::make_un
     showLicenseDocument(0);
     const int savedDocument = AppSettings::versionDialogDocument();
     if (savedDocument >= 0 && savedDocument < documents->count()) documents->setCurrentIndex(savedDocument);
-    resize(AppSettings::versionDialogSize());
-    DialogFontScale::install(this, AppSettings::versionDialogFontSize);
+    DialogFontScale::Options fontOptions;
+    fontOptions.size = &AppSettings::versionDialogSize;
+    DialogFontScale::install(this, AppSettings::versionDialogFontSize, fontOptions);
 }
 
 VersionDialog::~VersionDialog()
 {
-    AppSettings::versionDialogSize.set(size());
     AppSettings::versionDialogDocument.set(findChild<QComboBox*>(QStringLiteral("licenseDocuments"))->currentIndex());
 }
 
