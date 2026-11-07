@@ -1142,6 +1142,72 @@ private slots:
         QVERIFY2(outcome.warning.contains(QStringLiteral("the side to move was corrected")), qPrintable(outcome.warning));
     }
 
+    // 開始局面を読むのは最初の指し手より前の行だけで、コメントの語では変わらない（監査 2026-11-07 F1）
+    void commentWords_doNotChangeTheStartPosition_data()
+    {
+        const QString diagram = QStringLiteral(
+            "後手の持駒：なし\n"
+            "  ９ ８ ７ ６ ５ ４ ３ ２ １\n"
+            "+---------------------------+\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・v玉|一\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|二\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|三\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|四\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|五\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|六\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|七\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|八\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ 玉|九\n"
+            "+---------------------------+\n"
+            "先手の持駒：金\n");
+        const QString moves = QStringLiteral(
+            "手数----指手---------消費時間--\n"
+            "   1 ２二金打     ( 0:00/00:00:00)\n");
+        const QString hirateMoves = QStringLiteral(
+            "手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)\n   2 ３四歩(33)\n   3 ２六歩(27)\n   4 ８四歩(83)\n"
+            "   5 ２五歩(26)\n   6 ８五歩(84)\n   7 ７八金(69)\n   8 ３二金(41)\n"
+            "   9 ２四歩(25)\n  10 同　歩(23)\n");
+        const QString diagramSfen = QStringLiteral("8k/9/9/9/9/9/9/9/8K b G 1");
+
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QString>("startSfen");
+        // 「配置：」の後に9行以上あっても、コメントなら局面図として読まない
+        QTest::newRow("placement-word-before-moves")
+            << QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n*駒の配置：まだ序盤\n") + hirateMoves.sliced(hirateMoves.indexOf(u'\n') + 1)
+            << kHirateSfen;
+        QTest::newRow("placement-word-in-header-info")
+            << QStringLiteral("手合割：平手\n備考：駒の配置：まだ序盤\n") + hirateMoves << kHirateSfen;
+        // 末尾のコメントの「配置：」で局面図を捨てない
+        QTest::newRow("placement-word-after-moves")
+            << diagram + moves + QStringLiteral("*玉の配置：良い\n") << diagramSfen;
+        // コメントの手番・手数を開始局面にしない
+        QTest::newRow("turn-and-move-number-in-comment")
+            << diagram + moves + QStringLiteral("*ここで後手番なら負け。手数＝30\n") << diagramSfen;
+        // 局面図の前のコメントが、実際の手番の行を隠さない
+        QTest::newRow("comment-before-the-turn-line")
+            << QStringLiteral("# ここは先手番の棋譜です\n") + diagram + QStringLiteral("後手番\n手数----指手---------消費時間--\n")
+            << QStringLiteral("8k/9/9/9/9/9/9/9/8K w G 1");
+        // 局面図の手数の行は読む
+        QTest::newRow("move-number-line-of-the-diagram")
+            << diagram + QStringLiteral("手数＝30  ▲２三金打  まで\n\n後手番\n手数----指手---------消費時間--\n")
+            << QStringLiteral("8k/9/9/9/9/9/9/9/8K w G 31");
+        // コメントに書いた局面図は開始局面にしない
+        QTest::newRow("diagram-in-a-comment-after-moves")
+            << QStringLiteral("手合割：平手\n") + hirateMoves + QStringLiteral("*") + diagram.split(u'\n').join(QStringLiteral("\n*")) + QStringLiteral("\n")
+            << kHirateSfen;
+    }
+
+    void commentWords_doNotChangeTheStartPosition()
+    {
+        QFETCH(QString, text);
+        QFETCH(QString, startSfen);
+        const KifuParseOutcome outcome = KifTextParser::parseKif(text);
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.record.mainline.startSfen, startSfen);
+        QVERIFY2(outcome.warning.isEmpty(), qPrintable(outcome.warning));
+    }
+
     // 2手目以降で相手の駒を動かす手は読まない（以前は手番をずらしたまま読んでいた）
     void movingTheOpponentsPiece_isRejected()
     {

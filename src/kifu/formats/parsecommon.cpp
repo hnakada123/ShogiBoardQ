@@ -77,6 +77,14 @@ bool isBookmarkLine(QStringView s)
     return s.startsWith(QLatin1Char('&'));
 }
 
+bool isAnnotationLine(QStringView s)
+{
+    s = s.trimmed();
+    if (s.isEmpty()) return false;
+    const QChar ch = s.front();
+    return ch == QChar(u'#') || ch == QChar(u'＃') || isKifCommentLine(s) || isBookmarkLine(s);
+}
+
 bool isBodHandsLine(QStringView line)
 {
     // 駒落ちの棋譜は先手側を下手、後手側を上手と書く
@@ -101,14 +109,11 @@ QList<KifGameInfoItem> extractHeaderGameInfo(
     static const QRegularExpression kHeaderLine(
         QStringLiteral("^\\s*([^：:]+?)\\s*[：:]\\s*(.*?)\\s*$")
     );
-    static const QRegularExpression kLineIsComment(
-        QStringLiteral("^\\s*[#＃\\*\\＊]")
-    );
 
     for (const QString& rawLine : std::as_const(lines)) {
         const QString t = rawLine.trimmed();
         if (t.isEmpty()) continue;
-        if (kLineIsComment.match(t).hasMatch()) continue;
+        if (isAnnotationLine(t)) continue;
         // 局面図の筋の見出し「９ ８ ７ …」は手数で始まる指し手の行に見えるので、先に読み飛ばす。
         // 局面図の後ろに対局情報を書くソフト（ShogiGUI）がある
         if (isBoardHeaderOrFrame(t)) continue;

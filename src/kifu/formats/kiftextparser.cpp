@@ -38,7 +38,31 @@ bool isCustomTerminal(QStringView text)
         && !text.contains(u"パス") && !KifMoveGrammar::parseMoveText(text);
 }
 
-/// 開始局面（局面図、なければ手合割と手番の行）。kind にはその書き方を入れる
+/// 指し手の行か。局面図の筋の見出しは手数で始まる行に見えるので、呼ぶ前に除く
+bool isMoveLine(const QString& line, Dialect dialect)
+{
+    if (dialect == Dialect::Ki2) return Ki2Lexer::isKi2MoveLine(line);
+    static const QRegularExpression kMoveNumber(QStringLiteral("^\\s*[0-9０-９]+\\s"));
+    return kMoveNumber.match(line).hasMatch();
+}
+
+/**
+ * @brief 開始局面を読む行（最初の指し手の行より前の、コメントとしおりを除いた行）
+ *
+ * 全行を読むと、コメントに書いた語（「配置：」「後手番」「手数＝30」）や局面図で開始局面が変わる
+ */
+QStringList startPositionLines(const QStringList& lines, Dialect dialect)
+{
+    QStringList result;
+    for (const QString& line : lines) {
+        if (KifuParseCommon::isAnnotationLine(line)) continue;
+        if (!KifuParseCommon::isBoardHeaderOrFrame(line) && isMoveLine(line, dialect)) break;
+        result.append(line);
+    }
+    return result;
+}
+
+/// 開始局面（局面図、なければ手合割と手番の行）。lines は startPositionLines の行。kind にはその書き方を入れる
 Position initialPosition(const QStringList& lines, StartKind* kind)
 {
     Position bod;
@@ -68,13 +92,8 @@ Position initialPosition(const QStringList& lines, StartKind* kind)
                                 : Position::hirate();
     // 局面図がなくても、明示された手番を優先する（駒落ちは上手番・下手番と書く）。
     for (const QString& raw : lines) {
-        const QString t = raw.trimmed();
-        if (t == QStringLiteral("後手番") || t == QStringLiteral("上手番")) {
-            initial.setSideToMove(Turn::White);
-            break;
-        }
-        if (t == QStringLiteral("先手番") || t == QStringLiteral("下手番")) {
-            initial.setSideToMove(Turn::Black);
+        if (const std::optional<Turn> side = KifLexer::sideToMoveLine(raw)) {
+            initial.setSideToMove(*side);
             break;
         }
     }
@@ -263,11 +282,7 @@ private:
 
 QList<KifGameInfoItem> gameInfoOf(const QStringList& lines, Dialect dialect)
 {
-    if (dialect == Dialect::Ki2) {
-        return KifuParseCommon::extractHeaderGameInfo(lines, [](const QString& t) { return Ki2Lexer::isKi2MoveLine(t); });
-    }
-    static const QRegularExpression kMoveNumber(QStringLiteral("^\\s*[0-9０-９]+\\s"));
-    return KifuParseCommon::extractHeaderGameInfo(lines, [](const QString& t) { return kMoveNumber.match(t).hasMatch(); });
+    return KifuParseCommon::extractHeaderGameInfo(lines, [dialect](const QString& t) { return isMoveLine(t, dialect); });
 }
 
 } // namespace
@@ -290,7 +305,7 @@ KifuParseOutcome parse(QStringView text, Dialect dialect, const ParseOptions& op
 
     KifParseResult& record = outcome.record;
     {
-        KifLineBuilder main(initialPosition(lines, &outcome.startKind));
+        KifLineBuilder main(initialPosition(startPositionLines(lines, dialect), &outcome.startKind));
         BlockReader reader(dialect, report, main);
         reader.allowStartTurnCorrection();
         if (!reader.read(lines, 0, boundaries.first())) {
@@ -330,7 +345,7 @@ KifuParseOutcome parseBod(QStringView text)
 {
     KifuParseOutcome outcome;
     Position position;
-    if (!KifLexer::readBodPosition(text.toString().split(QLatin1Char('\n')), position)) {
+    if (!KifLexer::readBodPosition(startPositionLines(text.toString().split(QLatin1Char('\n')), Dialect::Kif), position)) {
         outcome.warning = QStringLiteral("BOD: the board diagram could not be read.\n");
         return outcome;
     }
