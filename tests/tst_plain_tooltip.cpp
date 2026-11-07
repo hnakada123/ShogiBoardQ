@@ -8,6 +8,7 @@
 #include <QAction>
 #include <QComboBox>
 #include <QLabel>
+#include <QMenu>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QTableWidget>
@@ -28,6 +29,7 @@
 #include "kifubranchlistmodel.h"
 #include "kifurecordlistmodel.h"
 #include "pvtext.h"
+#include "recentfilesmenu.h"
 #include "menubuttonwidget.h"
 #include "plaintooltip.h"
 #include "sfenutils.h"
@@ -128,6 +130,17 @@ private slots:
         // 読み上げは文字のまま
         QVERIFY(model.data(model.index(0, KifuAnalysisListModel::PvColumn), Qt::AccessibleTextRole).toString()
                     .contains(kExternal));
+    }
+
+    /// 「履歴」のメニューはファイルの場所をツールチップで出す（監査 2026-11-07 F23）
+    void recentFileLocation()
+    {
+        QMenu menu;
+        auto* recent = new RecentFilesMenu(&menu);
+        const QString path = QStringLiteral("/tmp/<b>a</b>/user_book1.db");
+        recent->setFiles({path});
+        QVERIFY(menu.toolTipsVisible());
+        QCOMPARE(shownText(menu.actions().first()->toolTip()), path);
     }
 
     /// 対局情報の値（棋譜の対局情報）
