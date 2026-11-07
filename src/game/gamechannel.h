@@ -16,8 +16,8 @@ class MatchCoordinator;
  * @brief 対局中の利用者の操作の送り先
  *
  * ローカル対局（MatchCoordinator）と通信対局（CsaGameCoordinator）の違いはこの型の実装に閉じ込め、
- * 盤の手・投了・中断・即指し・入玉宣言を受ける側（BoardMoveController・GameSession・NyugyokuDeclarationHandler）は
- * 対局の種類で分岐しない。
+ * 盤の手・投了・中断・即指し・入玉宣言を受ける側（BoardMoveController・GameSession・NyugyokuDeclarationHandler）と、
+ * 人間が指せるかを聞く側（HumanTurnPolicy）は、対局の種類で分岐しない。今の窓口は network の GameChannels が決める。
  */
 class GameChannel
 {
@@ -39,7 +39,9 @@ public:
     /// 手番のエンジンにすぐ指させる
     virtual void moveNow() = 0;
 
-    /// 人間が指す手番か（入玉宣言を人間が行える）
+    /// 対局が進行中か（終局しておらず、通信対局は局と局の間でない）
+    virtual bool isInProgress() const = 0;
+    /// 人間が指す手番で、手を受け付けるか（盤の手・定跡の着手・入玉宣言）
     virtual bool isHumanToMove() const = 0;
     /**
      * @brief 今、投了を受け付けるか
@@ -69,6 +71,7 @@ public:
     void resign() override;
     void breakOff() override;
     void moveNow() override;
+    bool isInProgress() const override;
     bool isHumanToMove() const override;
     bool canResign() const override { return isHumanToMove(); }
     Turn sideToMove() const override;

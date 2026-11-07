@@ -4,10 +4,8 @@
 #include "humanturnpolicy.h"
 
 #include "appactivitystate.h"
-#include "csagamecoordinator.h"
+#include "gamechannels.h"
 #include "livegamesession.h"
-#include "matchcoordinator.h"
-#include "shogiboard.h"
 #include "uistatepolicymanager.h"
 
 HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
@@ -20,17 +18,10 @@ HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
         // 対局していない待機中は、盤上の着手を表示中の手の次の手（変化）として記録する。
         // 終局後も同じ扱いで、指し継いだ手は分岐ツリーに変化として加わる。
         return canEditRecord() ? BoardInput::Variation : BoardInput::None;
-    case AppActivityState::Activity::DuringGame: {
-        const MatchCoordinator* match = m_deps.match;
-        const bool humanTurn = match && m_deps.board && match->canAcceptMove()
-            && match->isHumanSide(m_deps.board->currentPlayer());
-        return humanTurn ? BoardInput::Game : BoardInput::None;
-    }
+    case AppActivityState::Activity::DuringGame:
     case AppActivityState::Activity::DuringCsaGame: {
-        const CsaGameCoordinator* csa = m_deps.csaGame;
-        const bool myTurn = csa && csa->gameState() == CsaGameCoordinator::GameState::InGame && csa->isHumanPlayer()
-            && csa->isMyTurn();
-        return myTurn ? BoardInput::Game : BoardInput::None;
+        const GameChannel* channel = m_deps.channels ? m_deps.channels->active() : nullptr;
+        return channel && channel->isHumanToMove() ? BoardInput::Game : BoardInput::None;
     }
     default:
         return BoardInput::None;
@@ -68,15 +59,6 @@ bool HumanTurnPolicy::isHumanTurnNow() const
 
 bool HumanTurnPolicy::isGameActivelyInProgress() const
 {
-    if (!m_deps.activity) return false;
-    switch (m_deps.activity->activity()) {
-    case AppActivityState::Activity::DuringGame:
-        return m_deps.match && !m_deps.match->isGameOver();
-    case AppActivityState::Activity::DuringCsaGame: {
-        const CsaGameCoordinator* csa = m_deps.csaGame;
-        return csa && csa->gameState() == CsaGameCoordinator::GameState::InGame;
-    }
-    default:
-        return false;
-    }
+    const GameChannel* channel = m_deps.channels ? m_deps.channels->active() : nullptr;
+    return channel && channel->isInProgress();
 }

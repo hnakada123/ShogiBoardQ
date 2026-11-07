@@ -6,7 +6,6 @@
 
 #include <QObject>
 #include <QPoint>
-#include <functional>
 
 #include "boardinputroute.h"
 #include "humanturnpolicy.h"
@@ -15,7 +14,7 @@
 class AppActivityState;
 class BoardInteractionController;
 class BranchTreeEditController;
-class GameChannel;
+class GameChannels;
 class PositionEditSession;
 class GameBoard;
 
@@ -42,14 +41,11 @@ public:
         PositionEditSession* positionEdit = nullptr;        ///< 局面編集（必須）
         BranchTreeEditController* branchEdit = nullptr;     ///< 変化の記録（必須）
         const HumanTurnPolicy* turnPolicy = nullptr;        ///< 盤の手の行き先（必須）
+        const GameChannels* channels = nullptr;             ///< 対局中の手の渡し先（必須）
     };
 
     /// 盤の操作（deps.board）の行き先になる
     explicit BoardMoveController(const Deps& deps, QObject* parent = nullptr);
-
-    /// 対局中の手の渡し先（GameSession::activeChannel。対局していなければ nullptr を返す）。合成ルートが
-    /// 対局のセッションを作った後に渡す
-    void setActiveChannel(std::function<GameChannel*()> activeChannel) { m_activeChannel = std::move(activeChannel); }
 
     // --- BoardInputRoute ---
     bool acceptsInput() const override;
@@ -75,7 +71,6 @@ private:
     void reportResult(const UsiMove& move, bool ok);
 
     Deps m_deps;
-    std::function<GameChannel*()> m_activeChannel;
 };
 
 #endif // BOARDMOVECONTROLLER_H

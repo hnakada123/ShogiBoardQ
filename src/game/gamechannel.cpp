@@ -31,9 +31,14 @@ void LocalGameChannel::moveNow()
     m_match->forceImmediateMove();
 }
 
+bool LocalGameChannel::isInProgress() const
+{
+    return !m_match->isGameOver();
+}
+
 bool LocalGameChannel::isHumanToMove() const
 {
-    return !m_match->isGameOver() && m_match->isHumanSide(m_match->sideToMove());
+    return m_match->canAcceptMove() && m_match->isHumanSide(m_match->sideToMove());
 }
 
 Turn LocalGameChannel::sideToMove() const

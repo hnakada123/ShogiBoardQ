@@ -33,9 +33,14 @@ void CsaGameChannel::moveNow()
     m_coordinator->forceImmediateMove();
 }
 
+bool CsaGameChannel::isInProgress() const
+{
+    return m_coordinator->gameState() == CsaGameCoordinator::GameState::InGame;
+}
+
 bool CsaGameChannel::isHumanToMove() const
 {
-    return m_coordinator->isHumanPlayer() && m_coordinator->isMyTurn();
+    return isInProgress() && m_coordinator->isHumanPlayer() && m_coordinator->isMyTurn();
 }
 
 bool CsaGameChannel::canResign() const

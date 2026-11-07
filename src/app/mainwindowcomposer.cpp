@@ -9,6 +9,7 @@
 #include "docklayoutmanager.h"
 #include "dockregistry.h"
 #include "engineslots.h"
+#include "gamechannels.h"
 #include "humanturnpolicy.h"
 #include "josekiwindowcontroller.h"
 #include "kifudisplaypresenter.h"

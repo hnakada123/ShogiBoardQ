@@ -8,7 +8,7 @@
 #include "boardinteractioncontroller.h"
 #include "branchtreeeditcontroller.h"
 #include "gameboard.h"
-#include "gamechannel.h"
+#include "gamechannels.h"
 #include "logcategories.h"
 #include "positioneditsession.h"
 #include "shogiboard.h"
@@ -70,7 +70,7 @@ bool BoardMoveController::playUsiMove(const UsiMove& move)
     }
     case Input::Game: {
         // ローカル対局は司令塔が合法手を確かめて盤に指し、通信対局はサーバーへ送る（盤は確認を受けてから動かす）
-        GameChannel* channel = m_activeChannel ? m_activeChannel() : nullptr;
+        GameChannel* channel = m_deps.channels->active();
         const GameChannel::MoveResult result = channel ? channel->playMove(move) : GameChannel::MoveResult::Rejected;
         reportResult(move, result == GameChannel::MoveResult::Played);
         if (result == GameChannel::MoveResult::Rejected) qCDebug(lcUi) << "human move rejected";

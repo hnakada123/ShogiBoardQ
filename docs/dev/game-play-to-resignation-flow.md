@@ -550,15 +550,15 @@ QObject::connect(ui->actionResign, &QAction::triggered, session, &GameSession::r
 
 ```
 GameSession::resign()                           （src/app/gamesession.cpp）
-    ↓ activeChannel()->canResign()               … 受け付けなければ知らせて終わる（ローカル対局は手番の人間だけ、通信対局は自分の手番）
-    ↓ activeChannel()->resign()                  … 対局の種類で分岐しない（GameChannel、src/game/gamechannel.h）
+    ↓ GameChannels::active()->canResign()               … 受け付けなければ知らせて終わる（ローカル対局は手番の人間だけ、通信対局は自分の手番）
+    ↓ GameChannels::active()->resign()                  … 対局の種類で分岐しない（GameChannel、src/game/gamechannel.h）
     ├─ CSA通信対局中（DuringCsaGame）: CsaGameChannel::resign() → CsaGameCoordinator::onResign()
     └─ ローカル対局中（DuringGame）:  LocalGameChannel::resign()
            ↓
        MatchCoordinator::handleResign()          （src/game/matchcoordinator.cpp）
 ```
 
-対局していなければ `activeChannel()` は nullptr で、何もしない。中断（`breakOff()` → `GameChannel::breakOff()`）・すぐ指させる（`makeEngineMoveNow()` → `GameChannel::moveNow()`）・入玉宣言（8.5）も同じ窓口を通る。
+対局していなければ `GameChannels::active()` は nullptr で、何もしない。中断（`breakOff()` → `GameChannel::breakOff()`）・すぐ指させる（`makeEngineMoveNow()` → `GameChannel::moveNow()`）・入玉宣言（8.5）も同じ窓口を通る。
 
 ### 5.3 MatchCoordinator::handleResign()
 
@@ -949,7 +949,7 @@ void handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw);
     ↓
 GameSession::declareNyugyoku()                    （src/app/gamesession.cpp）
     ↓
-NyugyokuDeclarationHandler::handleDeclaration(activeChannel())   （src/ui/controllers/nyugyokudeclarationhandler.cpp）
+NyugyokuDeclarationHandler::handleDeclaration(GameChannels::active())   （src/ui/controllers/nyugyokudeclarationhandler.cpp）
     ├─ 対局中でなければ（窓口が nullptr）警告、手番の人間でなければ（GameChannel::isHumanToMove()）案内して終わる
     ├─ 宣言を受け付ける対局か（GameChannel::acceptsDeclaration()。ローカル対局は対局の条件の持将棋ルール MatchStartOptions::jishogiRule が 24点法・27点法のときだけ。通信対局は常に）
     ├─ 確認ダイアログ（宣言する側の呼び名は KifuDocument::usesHandicapNames() で下手・上手にもなる）
@@ -1044,7 +1044,7 @@ MatchCoordinator::handleEngineError(msg)
 actionResign::triggered
     ↓
 GameSession::resign()
-    ↓ activeChannel()（ローカル対局なら LocalGameChannel）->resign()
+    ↓ GameChannels::active()（ローカル対局なら LocalGameChannel）->resign()
 MatchCoordinator::handleResign()
     └─ endGame({Resignation, loser = 手番の側}, loser, Notice::Announce)
         ├─ MatchSessionState::finish(info)
