@@ -92,9 +92,8 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
     m_turnTimer.start();
     syncClockAfterMove(nowMyTurn);
 
-    RecordEntry entry = p.moveRecord(isBlackMove, played.displayText, consumedTimeMs);
-    entry.move = played.move;
-    entry.sfen = played.sfen;
+    RecordEntry entry = played;
+    entry.time = p.moveTime(isBlackMove, consumedTimeMs);
     p.record.entries.append(entry);
     if (m_sink) m_sink->appendRecord(entry);
     emit turnChanged(nowMyTurn);

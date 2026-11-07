@@ -123,7 +123,7 @@ MCPの汎用GUI操作は `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` の明示指定�
 `get_widget_text` は省略表示ラベルの `fullText` プロパティにも対応するため、
 `blackNameLabel` / `whiteNameLabel` で盤面の対局者名を全文取得できる。
 `get_position` と `get_app_state.total_plies`、`goto_ply` の上限は閲覧中の分岐に従い（スキーマの上限は 100000）、
-`get_kifu` は本譜を返す。`get_kifu.truncated` は指定範囲の続きが省略されている場合に true。
+`get_kifu` は表示中の手順を返す（`line=main` なら本譜）。`get_kifu.truncated` は指定範囲の続きが省略されている場合に true。
 `widget.showDock` は `dock.configure` の `operation=show` と同じ処理を呼ぶ（引数1つで選びやすいので名前を残している）。どちらもメインウィンドウのドックだけを対象にし、メインウィンドウがモーダルで塞がれていないことと、ドックが有効なことを確かめる。
 
 `dock.list` の `hidden` は明示的な非表示、`exposed` は表示領域の有無を表す。

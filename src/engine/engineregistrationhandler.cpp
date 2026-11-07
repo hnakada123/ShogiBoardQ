@@ -117,7 +117,7 @@ void EngineRegistrationHandler::onProbeReady()
 void EngineRegistrationHandler::onProbeError(const QString& message)
 {
     if (!m_registrationInProgress) return;
-    qCWarning(lcUi) << "engine registration failed:" << message;
+    qCWarning(lcEngine) << "engine registration failed:" << message;
     setRegistrationInProgress(false);
     setError(m_processStarted ? tr("エンジンからの応答がタイムアウトしました")
                               : tr("エンジンの起動に失敗しました: %1").arg(m_fileName));
@@ -158,7 +158,7 @@ void EngineRegistrationHandler::registerEngine(const QString& engineName, const 
 void EngineRegistrationHandler::removeEngineAt(int index)
 {
     if (index < 0 || index >= m_engines.entries().size()) {
-        qCWarning(lcUi) << "removeEngineAt: invalid index" << index;
+        qCWarning(lcEngine) << "removeEngineAt: invalid index" << index;
         return;
     }
 
@@ -190,7 +190,7 @@ void EngineRegistrationHandler::parseEngineOptionsFromUsiOutput()
 
     if (usiHashIt == m_engineOptions.end()) {
         addOption("USI_Hash", EngineOption::kTypeSpin, "1024", "1", "2000", "1024");
-        qCDebug(lcUi) << tr("USI_Hash option added.");
+        qCDebug(lcEngine) << tr("USI_Hash option added.");
     }
 
     // USI_Ponderは自動追加しない。先読み許可と未報告オプションへの通知方針は
@@ -203,7 +203,7 @@ void EngineRegistrationHandler::parseOptionLine(const QString& line)
     QString parseError;
     const std::optional<EngineOption> parsed = UsiLineParser::parseOption(line, &parseError);
     if (!parsed) {
-        qCWarning(lcUi) << "parseOptionLine: invalid option line:" << parseError << line;
+        qCWarning(lcEngine) << "parseOptionLine: invalid option line:" << parseError << line;
         setError(tr("オプション行の形式が無効です。"));
         return;
     }

@@ -26,7 +26,6 @@ public:
 
     /// 省略する位置（左・中・右）
     void setElideMode(Qt::TextElideMode mode);
-    Qt::TextElideMode elideMode() const;
 
 protected:
     void paintEvent(QPaintEvent*) override;

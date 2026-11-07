@@ -138,9 +138,6 @@ constexpr Piece flipSide(Piece p)
     return p == Piece::None ? p : static_cast<Piece>(PieceCode::value(p) ^ PieceCode::kWhiteBit);
 }
 
-/// 指定の側の駒にする（成り状態を保持）
-constexpr Piece toSide(Piece p, Turn side) { return side == Turn::Black ? toBlack(p) : toWhite(p); }
-
 /// 取った駒を持ち駒にしたときの駒（相手の色の生駒）
 constexpr Piece capturedToHand(Piece captured) { return flipSide(demote(captured)); }
 

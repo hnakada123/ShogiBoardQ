@@ -5,7 +5,6 @@
 #include "recordjson.h"
 #include "kifunavigationstate.h"
 #include "automationdispatcher.h"
-#include "automationparams.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
@@ -16,7 +15,6 @@
 #include "kifunavigationcontroller.h"
 #include "kifusavefile.h"
 #include "outputpath.h"
-#include "sfenutils.h"
 #include "notificationpresenter.h"
 
 #include <QFileInfo>
@@ -205,7 +203,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         if (context.operationPolicy && !context.operationPolicy->canBrowseRecord()) {
             throw AutomationError(ErrorKind::InvalidState,
                                   QStringLiteral("The record cannot be navigated during a game, kifu analysis or position editing"),
-                                  QStringLiteral("Wait until app.state reports ui_state idle, consideration or tsume_search"));
+                                  QStringLiteral("Wait until app.state reports ui_state idle, consideration, tsume_search or csa_connected"));
         }
         nav->goToPly(ply);
         QJsonObject result;

@@ -27,7 +27,7 @@ public:
 
     const Position& board() const { return m_board; }
     /// 次の手を指す側
-    Turn mover() const { return m_mover; }
+    Turn mover() const { return m_board.sideToMove(); }
     /// 直前の手の移動先（「同」の判定に使う）
     BoardSquare previousTo() const { return m_previousTo; }
     /// 局面がノードの手順と合っているか
@@ -48,7 +48,6 @@ private:
     void resync(const KifuBranchNode* node);
 
     Position m_board;
-    Turn m_mover = Turn::Black;
     BoardSquare m_previousTo;
     bool m_synced = false;
 };

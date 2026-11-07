@@ -4,7 +4,6 @@
 #include "csaformatter.h"
 #include "timecontroltext.h"
 #include "gameinfokeys.h"
-#include "kifuexportcommon.h"
 
 #include <QRegularExpression>
 

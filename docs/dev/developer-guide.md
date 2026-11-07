@@ -526,11 +526,11 @@ src/
 │   ├── thinkinginforow.h           #   思考の表・検討の表の1行分の表示データ
 │   ├── enginesearchstatus.h        #   探索状況（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）の値。info 1行ごとに1回送る
 │   ├── mateoracle.cpp/.h           #   詰みの問い合わせ（go mate）の部品 MateOracle と答え MateAnswer
-│   ├── matequeryloop.cpp/.h        #   引き出し型の問い合わせ元（MateQuerySource）を MateOracle で回す
-│   ├── tsumemateengine.cpp/.h      #   詰み判定エンジン（KomoringHeights。MateOracle::askWithin で問い合わせる）
-│   └── tsumeevaluation.h           #   詰みの判定結果（詰み・不詰・不明と手数・読み筋）
+│   └── matequeryloop.cpp/.h        #   引き出し型の問い合わせ元（MateQuerySource）を MateOracle で回す
 │
 ├── analysis/                       # 解析機能（GUI に依存しない）
+│   ├── tsumemateengine.cpp/.h      #   詰み判定エンジン（KomoringHeights。MateOracle::askWithin で問い合わせる）
+│   ├── tsumeevaluation.h           #   詰みの判定結果（詰み・不詰・不明と手数・読み筋）
 │   ├── analysissession.cpp/.h      #   検討・詰み探索のセッション（1つのエンジンで局面を調べる）
 │   ├── analysisoptions.h           #   検討・詰み探索の開始オプション
 │   ├── kifuanalysissession.cpp/.h  #   棋譜解析の実行（エンジン・動作状態のリースと局面の列の解析。画面は KifuAnalysisController）

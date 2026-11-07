@@ -593,14 +593,15 @@ private slots:
     void longFunctionMonitor()
     {
         constexpr int kFunctionLengthWarning = 100;
-        constexpr int kMaxLongFunctionsOver100 = 60; // 実測値: 53 (2026-10-13)
+        constexpr int kMaxLongFunctionsOver100 = 25; // 実測値: 19 (2026-11-07)
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
         const QString srcPath = sourceDir + QStringLiteral("/src");
 
-        // 戻り値付き/コンストラクタ/デストラクタを含む ClassName::methodName( を簡易検出
+        // 戻り値付き/コンストラクタ/デストラクタを含む ClassName::methodName( を簡易検出。定義は行頭に書くので、
+        // 字下げした呼び出しの行（return QString::fromUtf8(...) など）は数えない
         const QRegularExpression methodDefPattern(
-            QStringLiteral(R"(^\s*(?:[\w:<>,~*&]+\s+)?\w[\w:]*::[~\w]+\s*\()"));
+            QStringLiteral(R"(^(?:[\w:<>,~*&]+\s+)?\w[\w:]*::[~\w]+\s*\()"));
         const QRegularExpression commentPattern(QStringLiteral(R"(^\s*//)"));
 
         QDirIterator it(srcPath, {"*.cpp"}, QDir::Files, QDirIterator::Subdirectories);

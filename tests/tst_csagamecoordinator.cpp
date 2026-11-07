@@ -981,7 +981,9 @@ private slots:
         QCOMPARE(progress.blackRemainingMs, 0);
         QCOMPARE(progress.blackTotalMs, 70000);
         QCOMPARE(progress.whiteRemainingMs, 65000);
-        const RecordEntry blackMove = progress.moveRecord(true, QStringLiteral("▲７六歩"), 70000);
+        RecordEntry blackMove = RecordEntry::played({}, QStringLiteral("▲７六歩"), {});
+        blackMove.mover = Turn::Black;
+        blackMove.time = progress.moveTime(true, 70000);
         QCOMPARE(blackMove.time.totalMs, 70000);
         progress.record.entries.append(blackMove);
         QCOMPARE(progress.sideToMove(), Turn::White);

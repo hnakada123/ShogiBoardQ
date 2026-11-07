@@ -44,7 +44,7 @@ void MainWindowActions::resetToInitialState()
 
 void MainWindowActions::startNewRecord()
 {
-    // 動作状態は、止めた検討・通信対局・解析がそれぞれ手放す（「新規」は待機中だけ）
+    // 動作状態は、止めた検討・通信対局・解析がそれぞれ手放す（「新規」は待機中と、通信対局の局と局の間だけ）
     m_deps.analysis->stop();
     m_deps.gameSession->abandonGame();
     // 対局・棋譜解析のエンジンも止める（思考情報の表示は作り直しで消す）

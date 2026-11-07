@@ -62,8 +62,6 @@ public:
     QRect board() const { return m_board; }
     /// 盤の木肌（四辺に座標の帯を含む。反転しても位置は変わらない）
     QRectF surface() const { return m_surface; }
-    /// 筋・段の文字の帯の幅
-    int coordinateBand() const { return m_coordinateBand; }
     /// 筋・段の文字の大きさ（px）
     int labelPixelSize() const { return m_labelPixelSize; }
 

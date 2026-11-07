@@ -224,15 +224,6 @@ int Position::countOnBoard(Piece piece) const
     return count;
 }
 
-BoardSquare Position::kingSquare(Turn side) const
-{
-    const Piece king = makePiece(side, PieceKind::King);
-    for (int i = 0; i < kSquareCount; ++i) {
-        if (m_squares[static_cast<size_t>(i)] == king) return BoardSquare{i % kFiles + 1, i / kFiles + 1};
-    }
-    return {};
-}
-
 int Position::handSlot(Piece piece)
 {
     if (piece == Piece::None) return -1;

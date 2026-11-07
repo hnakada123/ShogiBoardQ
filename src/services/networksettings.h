@@ -47,7 +47,7 @@ inline const Setting<bool> csaUseTls{"CsaGameSettings/useTls", false};
 /// ログインID（デフォルト: 空）
 inline const Setting<QString> csaId{"CsaGameSettings/id", QString()};
 
-/// 旧版が平文で保存していたパスワード。読み込み・保存のたびに消す
+/// 旧版が平文で保存していたパスワード。起動時に消す（app/main.cpp）
 inline const Setting<QString> csaLegacyPassword{"CsaGameSettings/password", QString()};
 
 // --- 通信対局ダイアログの詳細設定 ---

@@ -54,12 +54,10 @@ public:
 
     /// 選んで移れるか（対局中などは選べない）
     void setClickEnabled(bool enabled) { m_clickEnabled = enabled; }
-    bool isClickEnabled() const { return m_clickEnabled; }
 
     // --- 表示設定 ---
 
     /// 変化を空いた段に詰めて表示するか（false なら1変化1段）
-    bool isCompactLayout() const { return m_compactLayout; }
     void setCompactLayout(bool compact);
 
     /// 表示倍率（%）

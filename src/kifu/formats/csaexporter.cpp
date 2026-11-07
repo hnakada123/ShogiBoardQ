@@ -16,7 +16,6 @@
 #include "sfencsapositionconverter.h"
 #include "terminalcodes.h"
 
-#include <QDateTime>
 #include <QStringList>
 
 static void appendCsaComments(const QString& comment, QStringList& out)
@@ -90,8 +89,7 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
     }
 
     // 7) 本譜の指し手（分岐ツリーの各手の指し手・指した側・消費時間・終局をそのまま書く）
-    const KifuBranchTree* tree = &recordTree;
-    const QList<KifuBranchNode*> line = (tree && !tree->isEmpty()) ? tree->mainLine() : QList<KifuBranchNode*>();
+    const QList<KifuBranchNode*> line = !recordTree.isEmpty() ? recordTree.mainLine() : QList<KifuBranchNode*>();
     if (!line.isEmpty()) appendCsaComments(line.first()->comment(), out);   // 開始局面のコメント
 
     int moves = 0;

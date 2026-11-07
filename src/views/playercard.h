@@ -48,7 +48,6 @@ public:
     Turn side() const { return m_side; }
     ElideLabel* nameLabel() const { return m_name; }
     QLabel* clockLabel() const { return m_clock; }
-    QLabel* turnBadge() const { return m_badge; }
 
     /// 名前（▲▼▽△ の印は外す。盤の向きの印は自分で付ける）
     void setName(const QString& name);

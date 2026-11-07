@@ -27,10 +27,6 @@ public:
     // 展開/折りたたみ状態を設定
     void setExpanded(bool expanded);
 
-signals:
-    // 展開状態が変更された時に発行
-    void expandedChanged(bool expanded);
-
 private slots:
     // トグルボタンがクリックされた時の処理
     void onToggleClicked();

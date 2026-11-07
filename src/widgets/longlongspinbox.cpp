@@ -47,12 +47,6 @@ void LongLongSpinBox::setSpinBoxValue(qlonglong newValue)
     if (m_currentValue != boundedValue) {
         // スピンボックスの値を現在の値に設定する。
         m_currentValue = boundedValue;
-
-        // long long型のシグナルを送信する。
-        emit longLongValueChanged(boundedValue);
-
-        // 文字列型のシグナルを送信する。
-        emit textValueChanged(boundedValueString);
     }
 }
 

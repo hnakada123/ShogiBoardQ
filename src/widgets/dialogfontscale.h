@@ -44,8 +44,6 @@ public:
 
     /// 文字の大きさ（範囲と保存）
     FontSizeHelper* fontSize() const { return m_fontSize; }
-    /// 後から作った部品にも今の大きさを付ける（内容を作り直したとき）
-    void rescale();
 
     /// 以後に表示するすべての QMessageBox（静的関数で出すものを含む）に文字サイズ操作を付ける。
     /// 文字サイズはメッセージボックス全体で共有して保存する。

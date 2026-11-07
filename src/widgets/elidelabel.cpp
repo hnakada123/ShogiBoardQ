@@ -31,8 +31,6 @@ void ElideLabel::setElideMode(Qt::TextElideMode m)
     update();
 }
 
-Qt::TextElideMode ElideLabel::elideMode() const { return m_mode; }
-
 QStringList ElideLabel::displayLines() const
 {
     if (!wordWrap() || m_fullText.isEmpty()) return {m_fullText};

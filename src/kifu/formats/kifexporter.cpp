@@ -142,9 +142,7 @@ QStringList KifExporter::exportLines(const KifuBranchTree& recordTree, const Kif
     out << KifFormat::kSeparatorLine.toString();
 
     // 3) 本譜の手順（分岐ツリーの各ノードの最初の子をたどる）
-    const KifuBranchTree* branchTree = &recordTree;
-    const QList<KifuBranchNode*> mainNodes =
-        (branchTree != nullptr) ? branchTree->mainLine() : QList<KifuBranchNode*>();
+    const QList<KifuBranchNode*> mainNodes = recordTree.mainLine();
 
     // 4) 開始局面のしおり・コメントを先に出力
     if (!mainNodes.isEmpty() && mainNodes.first()->ply() == 0) {
@@ -163,8 +161,8 @@ QStringList KifExporter::exportLines(const KifuBranchTree& recordTree, const Kif
                            handicapNames, terminalMove ? terminalMove->record().terminalText : QString());
 
     // 8) 変化（分岐）を出力（KifuBranchTree から）
-    if (branchTree != nullptr && !branchTree->isEmpty()) {
-        QList<BranchLine> lines = branchTree->allLines();
+    if (!recordTree.isEmpty()) {
+        QList<BranchLine> lines = recordTree.allLines();
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
         for (int lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
             const BranchLine& line = lines.at(lineIdx);

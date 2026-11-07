@@ -321,9 +321,9 @@ JosekiMove JosekiMoveDialog::entry() const
     return result;
 }
 
-void JosekiMoveDialog::setEditMoveDisplay(const QString &japaneseMove)
+void JosekiMoveDialog::setEditMoveDisplay(const QString &moveText)
 {
     if (m_editMoveLabel) {
-        m_editMoveLabel->setText(tr("定跡手: %1").arg(japaneseMove));
+        m_editMoveLabel->setText(tr("定跡手: %1").arg(moveText));
     }
 }

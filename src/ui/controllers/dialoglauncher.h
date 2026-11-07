@@ -24,7 +24,7 @@ class EvaluationChartWidget;
  *
  * 結果を使う部品があるダイアログは、その部品が自分で開く（対局開始は GameSession、通信対局は CsaGameUiController、
  * 棋譜の貼り付けと局面集は KifuFileController）。ここで開くのは、結果を受ける部品のないダイアログ
- * （設定・情報・詰将棋）と成りの選択。
+ * （設定・情報・詰将棋）。
  */
 class DialogLauncher : public QObject
 {
