@@ -4,6 +4,7 @@
 #include "josekiwindowcontroller.h"
 #include "notificationpresenter.h"
 
+#include "appactivitystate.h"
 #include "humanturnpolicy.h"
 #include "logcategories.h"
 
@@ -34,7 +35,8 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     , m_displayAction(new QAction(tr("定跡を表示"), this))
     , m_recordBoardMovesAction(new QAction(tr("盤の手を登録"), this))
 {
-    Q_ASSERT(deps.book && deps.boardArrows && m_navState && m_boardMoves && m_branchEdit && deps.navController);
+    Q_ASSERT(deps.book && deps.boardArrows && m_navState && deps.activity && m_boardMoves && m_branchEdit
+             && deps.navController);
     m_displayAction->setCheckable(true);
     m_displayAction->setChecked(JosekiSettings::josekiWindowDisplayEnabled());
     m_recordBoardMovesAction->setCheckable(true);
@@ -52,6 +54,7 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     m_josekiWindow->setHumanCanPlayProvider(std::bind(&JosekiWindowController::determineHumanCanPlay, this));
 
     connect(m_navState, &KifuNavigationState::changed, this, &JosekiWindowController::updateJosekiWindow);
+    connect(deps.activity, &AppActivityState::changed, this, &JosekiWindowController::updateJosekiWindow);
     // 定跡が変わったら、表示中の手順が定跡を外れた手も合わせる
     connect(deps.book, &JosekiBookSession::contentChanged, this, &JosekiWindowController::updateJosekiWindow);
     connect(m_josekiWindow, &JosekiWindow::expandRequested, this, &JosekiWindowController::onExpandRequested);
