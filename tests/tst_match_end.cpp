@@ -9,6 +9,7 @@
 #include <QSignalSpy>
 
 #include "match_test_helper.h"
+#include "usimessages.h"
 #include "gamechannel.h"
 #include "matchending.h"
 #include "nyugyokujudgement.h"

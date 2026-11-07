@@ -15,6 +15,7 @@
 #include <optional>
 
 #include "shogitypes.h"
+#include "usimessages.h"
 #include "usigotime.h"
 #include "engineprofilestore.h"
 #include "usiinfo.h"

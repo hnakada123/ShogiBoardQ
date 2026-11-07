@@ -8,6 +8,7 @@
 #include <QString>
 
 #include "shogitypes.h"
+#include "usimessages.h"
 #include "usimatchhandler.h"
 #include "usiprotocolhandler.h"
 

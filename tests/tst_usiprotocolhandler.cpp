@@ -9,6 +9,7 @@
 #include <QTemporaryDir>
 
 #include "engineprocessmanager.h"
+#include "usimessages.h"
 #include "kifupresentation.h"
 #include "thinkinginfoformatter.h"
 #include "usiinfo.h"

@@ -2,6 +2,7 @@
 /// @brief 対局の終局の原因からの対応の実装
 
 #include "matchending.h"
+#include "usimessages.h"
 
 namespace MatchEnding {
 
