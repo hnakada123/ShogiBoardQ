@@ -119,22 +119,7 @@ void EngineRegistrationDialog::addEngineFromFileSelection()
         return;
     }
 
-    // 同じ実行ファイル（パスを正規化して比べる）を登録していれば断る
-    if (const std::optional<EngineEntry> existing = m_handler->engines().findByPath(fileName)) {
-        QMessageBox::critical(this, tr("エラー"),
-            tr("エンジン %1 は既に追加されています。").arg(existing->name));
-        return;
-    }
-
-    // ファイルのパスが有効でない場合、エラーメッセージを表示し、処理を中断する。
-    if (!m_handler->validateEnginePath(fileName)) {
-        QMessageBox::critical(
-            this, tr("エラー"),
-            tr("指定したファイルは実行可能なエンジンではありません: %1").arg(fileName));
-        return;
-    }
-
-    // エンジン登録処理を開始する。
+    // エンジン登録処理を開始する（登録できないファイルの理由は errorOccurred で届く）。
     m_handler->startRegistration(fileName);
 }
 
