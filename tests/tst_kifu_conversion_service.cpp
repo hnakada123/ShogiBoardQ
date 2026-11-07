@@ -10,6 +10,7 @@
 #include "kifubranchtree.h"
 #include "kifubranchtreebuilder.h"
 #include "kifuconversionservice.h"
+#include "kifubranchnode.h"
 #include "kifuexport.h"
 #include "sfenutils.h"
 #include "kifuloadparser.h"
@@ -842,6 +843,17 @@ private slots:
 
         QVERIFY(!KifuFormats::fromName(QStringLiteral("pgn")).has_value());
         QCOMPARE(KifuFormats::fromPath(QStringLiteral("/tmp/a.KI2U")), Format::Ki2);
+    }
+
+    /// 長い棋譜でも失うものの確かめで手数の深さまで再帰しない（監査 2026-11-07 F20。セキュリティ監査 S5）
+    void lossInDoesNotRecurseOnLongRecords()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(SfenUtils::hirateSfen());
+        KifuBranchNode* current = tree.root();
+        for (int i = 0; i < 200000; ++i)
+            current = tree.addRecord(current, RecordEntry::played({}, QStringLiteral("m"), QStringLiteral("s")));
+        QVERIFY(KifuExport::lossIn(tree, KifuFormat::Kif).isEmpty());
     }
 };
 

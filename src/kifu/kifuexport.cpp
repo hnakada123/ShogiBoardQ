@@ -34,13 +34,18 @@ Exporter exporterFor(KifuFormat format)
     return &KifExporter::exportLines;
 }
 
-/// node と、その下のすべてのノード（変化を含む）
-void collectSubtree(KifuBranchNode* node, QList<KifuBranchNode*>& out)
+/// node と、その下のすべてのノード（変化を含む）。手数の深さまで再帰しないように明示のスタックでたどる
+QList<KifuBranchNode*> subtreeOf(KifuBranchNode* node)
 {
-    if (!node) return;
-    out.append(node);
-    const QList<KifuBranchNode*> children = node->children();
-    for (KifuBranchNode* child : children) collectSubtree(child, out);
+    QList<KifuBranchNode*> nodes;
+    QList<KifuBranchNode*> pending{node};
+    while (!pending.isEmpty()) {
+        KifuBranchNode* current = pending.takeLast();
+        if (!current) continue;
+        nodes.append(current);
+        pending.append(current->children());
+    }
+    return nodes;
 }
 
 } // namespace
@@ -118,9 +123,7 @@ Loss lossIn(const KifuBranchTree& tree, KifuFormat format)
     Loss loss;
     loss.variations = !can.variations && tree.lineCount() > 1;
 
-    QList<KifuBranchNode*> nodes;
-    if (can.variations) collectSubtree(tree.root(), nodes);
-    else nodes = tree.mainLine();
+    const QList<KifuBranchNode*> nodes = can.variations ? subtreeOf(tree.root()) : tree.mainLine();
     for (const KifuBranchNode* node : std::as_const(nodes)) {
         if (!can.times && node->time().isRecorded()) loss.times = true;
         if (!can.comments && !node->comment().trimmed().isEmpty()) loss.comments = true;
