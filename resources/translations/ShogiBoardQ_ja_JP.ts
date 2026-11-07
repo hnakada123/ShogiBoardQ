@@ -8836,32 +8836,32 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>棋譜を保存しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="276"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="279"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation>棋譜を上書き保存しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="284"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="287"/>
         <source>棋譜の自動保存先を作成できません: %1</source>
         <translation>棋譜の自動保存先を作成できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="296"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="299"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation>棋譜データが空のため自動保存をスキップしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="301"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="304"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>棋譜を自動保存しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="305"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="308"/>
         <source>棋譜の自動保存</source>
         <translation>棋譜の自動保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="306"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="309"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>棋譜の自動保存に失敗しました: %1</translation>
     </message>
