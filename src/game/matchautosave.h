@@ -15,6 +15,8 @@ struct MatchAutoSave {
 
     /// 保存するか（有効で、保存先がある）
     bool isActive() const { return enabled && !dir.isEmpty(); }
+    /// 保存すると指定したのに保存先が無い（対局を始めるダイアログが止める）
+    bool lacksDir() const { return enabled && dir.isEmpty(); }
 };
 
 #endif // MATCHAUTOSAVE_H

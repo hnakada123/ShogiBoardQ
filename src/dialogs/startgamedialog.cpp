@@ -8,6 +8,7 @@
 #include "gamesettings.h"
 #include "buttonstyles.h"
 #include "josekiplayoptionsdialog.h"
+#include "matchautosave.h"
 #include "playersetupwidget.h"
 #include "timecontroleditor.h"
 #include <QCoreApplication>
@@ -244,7 +245,7 @@ StartGameDialogData StartGameDialog::data() const
     data.maxMoves = ui->spinBoxMaxMoves->value();
     data.jishogiRule = jishogiRuleAt(ui->comboBoxJishogi->currentIndex());
     data.autoSaveKifu = ui->checkBoxAutoSaveKifu->isChecked();
-    data.kifuSaveDir = ui->lineEditKifuSaveDir->text();
+    data.kifuSaveDir = ui->lineEditKifuSaveDir->text().trimmed();
     data.isShowHumanInFront = ui->checkBoxShowHumanInFront->isChecked();
     data.consecutiveGames = ui->spinBoxConsecutiveGames->value();
     data.isSwitchTurnEachGame = ui->checkBoxSwitchTurnEachGame->isEnabled()
@@ -260,6 +261,11 @@ void StartGameDialog::onStartRequested()
 {
     // 開始できない時間設定なら、設定を保存せずにダイアログを開いたままにする。
     if (!confirmTimeSettings()) return;
+    // 自動保存を指定したのに保存先が無ければ、黙って保存しないまま対局を始めない（通信対局と同じ規則）
+    if (MatchAutoSave{ui->checkBoxAutoSaveKifu->isChecked(), ui->lineEditKifuSaveDir->text().trimmed()}.lacksDir()) {
+        QMessageBox::warning(this, tr("棋譜の自動保存"), tr("棋譜の自動保存先フォルダを指定してください。"));
+        return;
+    }
     saveGameSettings();
     accept();
 }

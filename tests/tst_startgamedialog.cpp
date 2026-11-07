@@ -267,6 +267,24 @@ private slots:
         QCOMPARE(GameSettings::StartGame::jishogiRule(), 2);
     }
 
+    /// 自動保存を指定して保存先が空なら、黙って保存しないまま始めない（通信対局と同じ規則。監査 2026-11-07 F14）
+    void autoSaveWithoutFolderIsRefused_data()
+    {
+        QTest::addColumn<QString>("folder");
+        QTest::newRow("empty") << QString();
+        QTest::newRow("spaces-only") << QStringLiteral("   ");
+    }
+
+    void autoSaveWithoutFolderIsRefused()
+    {
+        QFETCH(QString, folder);
+        StartGameDialog dialog;
+        widget<QCheckBox>(dialog, "checkBoxAutoSaveKifu")->setChecked(true);
+        widget<QLineEdit>(dialog, "lineEditKifuSaveDir")->setText(folder);
+        QVERIFY(acceptExpectingWarning(dialog).contains(QStringLiteral("自動保存先フォルダ")));
+        QCOMPARE(dialog.result(), int(QDialog::Rejected));
+    }
+
     void autoSaveControlsFollowSettingAndRestore()
     {
         const QString path = m_config.path();
