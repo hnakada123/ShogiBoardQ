@@ -179,6 +179,19 @@ private slots:
         p.kifuFileController->overwriteKifuFile();
         QVERIFY2(asked.contains(QStringLiteral("コメント")), qPrintable(asked));
         QCOMPARE(p.document->isModified(), !agree);
+        if (!agree) return;
+
+        // 保存した後に変更が無ければ、失うものは増えないので聞かない
+        bool askedAgain = false;
+        QTimer::singleShot(0, this, [&] {
+            if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) {
+                askedAgain = true;
+                box->button(QMessageBox::Cancel)->click();
+            }
+        });
+        p.kifuFileController->overwriteKifuFile();
+        QCoreApplication::processEvents();
+        QVERIFY(!askedAgain);
     }
 
     void positionOnlyTextBecomesTheStartPosition()

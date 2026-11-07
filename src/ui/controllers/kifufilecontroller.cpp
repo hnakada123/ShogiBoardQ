@@ -261,12 +261,15 @@ bool KifuFileController::writeToPath(const QString& filePath, QWidget* dialogPar
     if (errorText) errorText->clear();
     if (filePath.isEmpty()) return false;
     // 利用者の保存は「名前を付けて保存」と同じく、形式に書けないものがあれば確かめる
-    // （書けないものが消えたまま未保存の印まで消えないように。自動化 API は確認を出さない）
+    // （書けないものが消えたまま未保存の印まで消えないように。自動化 API は確認を出さない）。
+    // 変更が無ければ失うものは増えないので、形式を選んで保存した後の上書き保存では聞かない
     if (dialogParent) {
         m_deps.document->commitPendingEdits();
-        const KifuFormat format = KifuSaveFile::saveFormatForPath(filePath);
-        const KifuExport::Loss loss = KifuExport::lossIn(*m_deps.document->tree(), format);
-        if (!loss.isEmpty() && !KifuSaveDialogs::confirmLossySave(dialogParent, format, loss)) return false;
+        if (hasUnsavedChanges()) {
+            const KifuFormat format = KifuSaveFile::saveFormatForPath(filePath);
+            const KifuExport::Loss loss = KifuExport::lossIn(*m_deps.document->tree(), format);
+            if (!loss.isEmpty() && !KifuSaveDialogs::confirmLossySave(dialogParent, format, loss)) return false;
+        }
     }
     // 名前を付けて保存と同じ基準（拡張子）で保存形式と文字コードを決める。
     // KIF 固定で書くと .csa などに保存したファイルが KIF 内容で上書きされてしまう
