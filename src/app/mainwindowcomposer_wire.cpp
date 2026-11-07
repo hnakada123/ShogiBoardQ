@@ -9,7 +9,7 @@
 #include "branchtreeeditcontroller.h"
 #include "branchtreeview.h"
 #include "candidatearrowpresenter.h"
-#include "commentcoordinator.h"
+#include "commentcontroller.h"
 #include "commenteditorpanel.h"
 #include "consecutivegameseries.h"
 #include "considerationpanel.h"
@@ -87,9 +87,9 @@ void MainWindowComposer::connectRecord()
 
     // コメント・しおり（棋譜欄の行は書いたノードの行だけ描き直す）
     connect(m_c.commentEditor, &CommentEditorPanel::commentUpdated,
-            m_c.commentCoordinator, &CommentCoordinator::onCommentUpdated);
+            m_c.commentController, &CommentController::onCommentUpdated);
     connect(pane, &RecordPane::bookmarkEditRequested,
-            m_c.commentCoordinator, &CommentCoordinator::onBookmarkEditRequested);
+            m_c.commentController, &CommentController::onBookmarkEditRequested);
     KifuDocument* document = m_c.document;
     connect(document, &KifuDocument::commentChanged, m_c.kifuRecord, &KifuRecordListModel::refreshNode);
     connect(document, &KifuDocument::commentChanged, tree, &BranchTreeView::refreshNode);
@@ -100,8 +100,8 @@ void MainWindowComposer::connectRecord()
     // 入力中の編集（対局情報欄のセル・コメント欄の本文）は、保存・書き出しの前に文書へ確定し、未保存に数える
     document->addPendingEditor({std::bind(&GameInfoPane::commitPendingEditor, m_c.gameInfoPane),
                                 std::bind(&GameInfoPane::hasPendingEditor, m_c.gameInfoPane)});
-    document->addPendingEditor({std::bind(&CommentCoordinator::commitPendingComment, m_c.commentCoordinator),
-                                std::bind(&CommentCoordinator::hasPendingComment, m_c.commentCoordinator)});
+    document->addPendingEditor({std::bind(&CommentController::commitPendingComment, m_c.commentController),
+                                std::bind(&CommentController::hasPendingComment, m_c.commentController)});
     // 文書を置き換えたら、ツリーから作られない表示（評価値グラフ・エンジンの表示・解析結果）を消す。
     // 通信ログは対局を始めるときに消す（通信対局はログインとエンジンの起動の後に棋譜を作り直す）
     connect(document, &KifuDocument::replaced, m_c.evalGraph, &EvaluationGraphPresenter::clear);

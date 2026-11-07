@@ -1,7 +1,7 @@
-/// @file commentcoordinator.cpp
+/// @file commentcontroller.cpp
 /// @brief 表示中の手のコメント・しおりの表示と編集
 
-#include "commentcoordinator.h"
+#include "commentcontroller.h"
 #include "commenteditorpanel.h"
 #include "appsettings.h"
 #include "dialogfontscale.h"
@@ -14,16 +14,16 @@
 #include <QInputDialog>
 #include <QStatusBar>
 
-CommentCoordinator::CommentCoordinator(const Deps& deps, QObject* parent)
+CommentController::CommentController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
     Q_ASSERT(m_deps.editor && m_deps.navState && m_deps.document);
-    connect(m_deps.navState, &KifuNavigationState::changed, this, &CommentCoordinator::showCurrentComment);
-    connect(m_deps.document, &KifuDocument::commentChanged, this, &CommentCoordinator::showCurrentComment);
+    connect(m_deps.navState, &KifuNavigationState::changed, this, &CommentController::showCurrentComment);
+    connect(m_deps.document, &KifuDocument::commentChanged, this, &CommentController::showCurrentComment);
 }
 
-void CommentCoordinator::showCurrentComment()
+void CommentController::showCurrentComment()
 {
     const KifuBranchNode* node = m_deps.navState->currentNode();
     const int nodeId = node ? node->nodeId() : -1;
@@ -36,7 +36,7 @@ void CommentCoordinator::showCurrentComment()
     m_deps.editor->setCommentText(node ? node->comment() : QString());
 }
 
-bool CommentCoordinator::confirmLeaveEditingMove()
+bool CommentController::confirmLeaveEditingMove()
 {
     if (!m_deps.editor->hasUnsavedComment()) return true;
     const KifuBranchNode* node = m_deps.document->tree()->nodeAt(m_editingNodeId);
@@ -57,17 +57,17 @@ bool CommentCoordinator::confirmLeaveEditingMove()
     return false;
 }
 
-bool CommentCoordinator::hasPendingComment() const
+bool CommentController::hasPendingComment() const
 {
     return m_deps.editor->hasUnsavedComment();
 }
 
-void CommentCoordinator::commitPendingComment()
+void CommentController::commitPendingComment()
 {
     m_deps.editor->commitPendingComment();
 }
 
-void CommentCoordinator::onCommentUpdated(const QString& newComment)
+void CommentController::onCommentUpdated(const QString& newComment)
 {
     // コメント欄が編集しているのは、コメント欄に出した手（棋譜を作り直して無くなっていれば書かない）
     KifuBranchNode* node = m_deps.document->tree()->nodeAt(m_editingNodeId);
@@ -77,7 +77,7 @@ void CommentCoordinator::onCommentUpdated(const QString& newComment)
         m_deps.statusBar->showMessage(tr("コメントを更新しました（手数: %1）").arg(node->ply()), 3000);
 }
 
-void CommentCoordinator::onBookmarkEditRequested()
+void CommentController::onBookmarkEditRequested()
 {
     KifuBranchNode* node = m_deps.navState->currentNode();
     if (!node) {

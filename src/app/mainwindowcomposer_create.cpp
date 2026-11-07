@@ -15,7 +15,7 @@
 #include "branchtreeview.h"
 #include "boardarrowactions.h"
 #include "candidatearrowpresenter.h"
-#include "commentcoordinator.h"
+#include "commentcontroller.h"
 #include "commenteditorpanel.h"
 #include "consecutivegameseries.h"
 #include "considerationpanel.h"
@@ -189,13 +189,13 @@ void MainWindowComposer::createPanels()
     bs.navState = m_c.navState;
     m_c.boardSync = new BoardSyncPresenter(bs, &m_window);
 
-    CommentCoordinator::Deps cd;
+    CommentController::Deps cd;
     cd.editor = m_c.commentEditor;
     cd.navState = m_c.navState;
     cd.document = m_c.document;
     cd.parentWidget = &m_window;
     cd.statusBar = m_ui.statusbar;
-    m_c.commentCoordinator = new CommentCoordinator(cd, &m_window);
+    m_c.commentController = new CommentController(cd, &m_window);
 }
 
 // ---------------------------------------------------------------------------
@@ -240,7 +240,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     // 利用者の操作で棋譜を移る前の確認。対局中・棋譜解析中・局面編集中は移らない。移れる状態なら、
     // 未更新のコメントを破棄してよいかを確かめる（移れないのにコメントを聞かないよう、この順に聞く）
     m_c.kifuNavController->addLeaveGuard(std::bind(&OperationPolicy::canBrowseRecord, m_c.operationPolicy.get()));
-    m_c.kifuNavController->addLeaveGuard(std::bind(&CommentCoordinator::confirmLeaveEditingMove, m_c.commentCoordinator));
+    m_c.kifuNavController->addLeaveGuard(std::bind(&CommentController::confirmLeaveEditingMove, m_c.commentController));
 
     // 分岐の編集・盤の手の記録・定跡の展開（棋譜を変えてよいかは OperationPolicy::canEditRecord）
     BranchTreeEditController::Deps ed;

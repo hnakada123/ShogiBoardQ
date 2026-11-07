@@ -2,7 +2,7 @@
 /// @brief 表示中の手（KifuNavigationState）と、棋譜欄・分岐候補欄・分岐ツリー・コメント欄の表示が揃うことのテスト
 ///
 /// 表示する部品は状態の写しを持たず、表示中の手が変わるたびにそこから作り直す。
-/// ここでは本体と同じ部品（KifuDisplayPresenter・CommentCoordinator）を組み立て、
+/// ここでは本体と同じ部品（KifuDisplayPresenter・CommentController）を組み立て、
 /// 操作・対局の追記・ツリーの変更のあとに、各表示が表示中の手と一致するかを確かめる。
 
 #include <QtTest>
@@ -19,7 +19,7 @@
 
 #include "branchtreeitemroles.h"
 #include "branchtreeview.h"
-#include "commentcoordinator.h"
+#include "commentcontroller.h"
 #include "commenteditorpanel.h"
 #include "evaluationchartwidget.h"
 #include "operationpolicy.h"
@@ -685,11 +685,11 @@ private slots:
         auto* edit = host.findChild<QTextEdit*>(QStringLiteral("kifuCommentEdit"));
         QVERIFY(edit != nullptr);
         KifuDocument document(&h.tree);
-        CommentCoordinator::Deps deps;
+        CommentController::Deps deps;
         deps.editor = &editor;
         deps.navState = &h.state;
         deps.document = &document;
-        CommentCoordinator comments(deps);
+        CommentController comments(deps);
 
         KifuBranchNode* node3 = TestTree::findByPlyOnMainLine(h.tree, 3);
         document.setComment(node3, QStringLiteral("テストコメント"));

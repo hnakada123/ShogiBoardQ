@@ -145,7 +145,7 @@
 | 2026-10-23 | 名前を役割に合わせた（監査3章）のに合わせて §6・§8・§10・§15・§17・§19 を更新（`KifuLoadCoordinator` を kifu の `KifuLoader` に、`KifuSaveCoordinator` を dialogs の `KifuSaveDialogs` にし、`AboutCoordinator` を削除。未保存の確認は棋譜と定跡で `UnsavedChangesPrompt::ask()`。`LanguageController` は言語の `QActionGroup` の data で言語を受ける） |
 | 2026-10-23 | 小さな修正と使われていないコードの削除（監査4章）に合わせて §6・§8・§9・§12・§14 を更新（`NotationUtils`・`ConsiderationPositionResolver`（`KifuNavigationState::currentUsiPosition()` に）・`CliPosition`・`ShogiGameController::validateAndMove`・`MatchCoordinator::clock`・`ErrorBus::postError` などを削除。矢印の寸法は `ArrowMetrics`、定跡の取り込みの勝敗は `RecordEntry::winner()`、手番の印は `ShogiNotation::isTurnMark`。詰将棋のワーカーは止めるときに待たない。棋譜解析の表の詰みは「3手詰」） |
 | 2026-10-23 | 監査4章で残した名残を片づけたのに合わせて §8・§9・§16・第18章を更新（中身が1行だけの `KifToSfenConverter`・`Ki2ToSfenConverter` を削除し、KIF・KI2 は `KifTextParser::parseKif()`・`parseKi2()`。テストだけが使っていた `ShogiEngineThinkingModel::appendRow`・`MenuButtonWidget::dragStarted` を削除。QObject でないクラス・名前空間の文言は `Q_DECLARE_TR_FUNCTIONS`・`QCoreApplication::translate` で自分の文脈にした（§16.8）。詰将棋の生成は終わるときに件数の内訳をログに出す） |
-| 2026-10-29 | 置き場所と名前を責務に合わせた（監査 2026-10-29 の4章）のに合わせて §1.5・§1.6・§3.1・§3.2・§6・§8・§10・§13・§14・第18章・付録を更新（navigation 層をなくして `KifuNavigationController` を `ui/controllers/` へ。`ui/coordinators/` には `CsaGameUiController`・`CommentCoordinator` だけを残し、`KifuFileController`・`DialogLauncher` は `ui/controllers/`、`UiStatePolicyManager`・`OperationPolicy` は `ui/policy/`、`DockRegistry`・`DockLayoutManager` は `ui/docks/` へ。エンジンの枠を engine の `EngineSlots` に改名。SFEN の検査を core の `SfenValidator`（JSON は headless の `SfenValidationJson`）に、局面集ファイルを kifu に。盤面画像 `BoardImageRenderer` を cli へ、自動化 API の接続先を headless の `AutomationEndpoint` へ。自動化 API のメソッドを名前空間ごとのファイルに分け直した。`MenuWindow` を widgets へ移し、独立ウィンドウの名残（`menuWindowSize` など）を消した。`KifReader`→`KifuTextDecoder`、`JkfMoveParser`→`JkfCodec`、`BoardImageExporter`→`WidgetImageExporter`（`ui/controllers/`）、`startgamedatabridge.h`→`startgamedialogdata.h`。司令塔だけが使う型を `matchcoordinator.h` にまとめた） |
+| 2026-10-29 | 置き場所と名前を責務に合わせた（監査 2026-10-29 の4章）のに合わせて §1.5・§1.6・§3.1・§3.2・§6・§8・§10・§13・§14・第18章・付録を更新（navigation 層をなくして `KifuNavigationController` を `ui/controllers/` へ。`ui/coordinators/` には `CsaGameUiController`・`CommentController` だけを残し、`KifuFileController`・`DialogLauncher` は `ui/controllers/`、`UiStatePolicyManager`・`OperationPolicy` は `ui/policy/`、`DockRegistry`・`DockLayoutManager` は `ui/docks/` へ。エンジンの枠を engine の `EngineSlots` に改名。SFEN の検査を core の `SfenValidator`（JSON は headless の `SfenValidationJson`）に、局面集ファイルを kifu に。盤面画像 `BoardImageRenderer` を cli へ、自動化 API の接続先を headless の `AutomationEndpoint` へ。自動化 API のメソッドを名前空間ごとのファイルに分け直した。`MenuWindow` を widgets へ移し、独立ウィンドウの名残（`menuWindowSize` など）を消した。`KifReader`→`KifuTextDecoder`、`JkfMoveParser`→`JkfCodec`、`BoardImageExporter`→`WidgetImageExporter`（`ui/controllers/`）、`startgamedatabridge.h`→`startgamedialogdata.h`。司令塔だけが使う型を `matchcoordinator.h` にまとめた） |
 | 2026-10-30 | 通信対局の流れをローカル対局と同じ仕組みにした（監査 2026-10-29 の T1）のに合わせて §1.5・§1.6・§6.1〜§6.5・§6.7・§6.9・§8.5・§8.9・§10.2・§10.4・§10.5・§12.1・§12.3・§12.4・§12.8・§14.4・§15.1・§15.5・付録を更新（`CsaGameCoordinator` も `setRecordSink()` で棋譜の受け手 `GameSession` を受け取り、開始で `MatchRecordSink::beginRecord()`、着手と終局で `appendRecord()`、終局で `finishRecord()` を呼ぶ。動作状態 `DuringCsaGame` も司令塔が持ち、シグナル `recordEntryReady` と `GameSession` の `onCsa*` をなくした。ローカル対局の終局も `MatchCoordinator` が `finishRecord()` を呼ぶ。評価値・エラー・通信ログ・盤の手の接続を `CsaGameUiController` から合成ルートの `connectGame()` へ移した。時間の決まりを `MatchStartOptions::time` に入れ、`MatchCoordinator::start()` が盤の手番で時計に入れる（`TimeControlUtil`・`matchtimesettings.h`・`MatchStartOptions::sfenStart` を削除）） |
 | 2026-10-30 | 棋譜解析の実行と局面の列の実行器を1つにした（監査 2026-10-29 の T2）のに合わせて §1.5・§7.5・§7.7・§7.11・§9.1〜§9.3・§9.6・§9.7・§9.10・§10.3・付録を更新（棋譜解析の実行は analysis の `KifuAnalysisSession`（エンジンと動作状態のリース）に移し、`KifuAnalysisController` は画面だけにした。GUI の棋譜解析と CLI の analyze・analyze-kifu は analysis の `EngineAnalysisRunner`（借りた `UsiEngineSession` を使う。候補手の数と bestmove を待つ上限は依頼で決める）を共有し、送る局面は `RecordLine::usiPositions()` で作る。`AnalysisJob` を消し、`EngineAnalysisRunner` を headless から analysis へ移した。検討中の局面送りも開始局面からの手順にし、詰み探索の手番合わせは `MateSearchPosition`（`Position` で合わせる）にして `TsumePositionUtil` を消した） |
 | 2026-10-30 | 盤と指し手の部品の責務を分けた（監査 2026-10-29 の T3）のに合わせて §1.5・§1.6・§3.1・§3.2・§3.3・§3.5・§4.1・§4.2・§4.5・§5.2・§5.4・§6.1〜§6.3・§6.6〜§6.9・§6.11・§7.1・§8.9・§8.11・§10.2〜§10.4・§10.6・§12.3・§12.6・§12.8・§13.5・§13.6・§14.2〜§14.4・§15.2・§15.5・§18.3・§18.4 を更新（`ShogiGameController` を `GameBoard` に改名し、盤のクリックを手にする処理と成りの尋ね方を board の `BoardInteractionController::moveFromClick()`・`setPromotionChooser()` へ移して詰将棋を解く画面と共有した（`prepareMove`・`endDragSignal` を削除。ドラッグは盤の操作が行き先から戻った後に終える）。盤と手番だけを使う部品は `ShogiBoard` を受け取る。棋譜の1行の組み立てを kifu の `MoveRecord::play()` に1つにして棋譜の読み込みと対局の着手で使う。局面編集の操作を board の `PositionEditRules`（`Position` を変える関数 `moved`・`cycled`・`cleared`）へ移し、`ShogiBoard` は局面の包みと、変わった所だけを知らせる `replacePosition()` だけにした（`applyUsiMove`・`updateBoardAndPieceStand`・`promoteOrDemotePiece`・`resetGameBoard`・`setPieceAt` を削除）） |
@@ -156,7 +156,7 @@
 | 2026-10-30 | 棋譜の保存の経路と保存形式の表を1つにした（監査 2026-10-29 の T8）のに合わせて §1.5・§8.1・§8.8・§8.9・§8.12・付録を更新（`KifuIoService` を `KifuSaveFile` にまとめた。拡張子の表 `KifuFormats::saveTargets()` が形式・文字コード `KifuEncoding`・保存の見出しを持ち、保存ダイアログの絞り込みは `KifuFileFilter::forSaving()`・`pathForSaving()` で表から作る。書き出しの文脈 `KifuExportMetadata::encoding` で先頭行の文字コードの宣言を書き、保存のときに文字列を置き換えない。`KifuSaveFile::write` は行を作る関数 `(format, encoding)` を受け、Shift_JIS への変換は1回だけ。CLI・自動化 API の形式の選択肢は `KifuFormats::savableNames()`。定跡ファイルの拡張子と絞り込みは `JosekiBookFile::hasBookSuffix`・`withBookSuffix`・`fileFilter`） |
 | 2026-10-30 | 画面の流れの持ち主をそろえた（監査 2026-10-29 の M1〜M4）のに合わせて §4.4・§6.5・§6.9・§10.4・§10.5・§13.6・§14.3・§14.5・§14.6・§15.5・§16.5・第18章を更新（ui・app の知らせは静的な `NotificationPresenter::information`・`warning`・`critical` で出す（`Wait::No` で待たない）。結果を使う部品が自分でダイアログを開く（CSA 通信対局は `CsaGameUiController::openGameDialog()`、局面集は `KifuFileController::openSfenCollection()`、メニューウィンドウは `MenuWindowController::toggleWindow()`）。「新規」の止める手順は `MainWindowActions::startNewRecord()` に移し、`GameSession` は対局の後始末 `abandonGame()` だけを持つ。メニューの項目の接続は排他の組と保存したレイアウトの一覧を除いて `MenuActionsWiring` に集め、チェックできる項目は設定を持つ部品の値から始める（`DockLayoutManager::wireMenuActions()`・`PositionEditSession::EditActions` を消した） |
 | 2026-10-30 | エンジンと設定の規則の置き場所をそろえた（監査 2026-10-29 の M5・M6・M10・M17）のに合わせて §1.5・§7.9・§9.5・§10.4・§11.2・§11.3・§12.5・第18章を更新（エンジンの登録は登録一覧を `RegisteredEngines` で持ち、検索 `findByPath`・登録名の規則 `uniqueName`・パスの正規化 `canonicalPath` を共有する。エンジンの設定ダイアログは `ChangeEngineSettingsDialog::showFor()` で開く。検討の条件の値 `ConsiderationSettings` を services の `analysissettings.h` に移し、`AnalysisSettings::consideration`（`StructSetting`）で保存する。対局開始の時間の換算と以前の版の開始局面の番号は `gamesettings.cpp` の `Player::time()`・`setTime()`・`startingPosition()`・`setStartingPosition()`） |
-| 2026-10-30 | ウィジェットの共通の部品を足した（監査 2026-10-29 の M7・M8・M16・M18）のに合わせて §1.5・§7.8・§9.8・§11.2・§11.5・§12.5・§13.1・§14.5・第18章を更新（局面送りの6つのボタンは widgets の `StepButtons` が作り、説明は `KifuNavigationController::bindButtons(const StepButtons*)` が `QAction` の文から付ける。列幅は表の見出しに付けた `ColumnWidthMemory` が、利用者がドラッグした列だけを覚えて保存する（0 は自動、正の値は利用者の幅。保存した幅を最小値として扱わない。保存は `ListSetting<int>` にそろえ、棋譜解析の結果と対局情報の以前の版の形は初めて読むときに移す）。`TableHeaderView` はマウスの操作の処理の中で変わった列だけを利用者の操作として知らせる。ドックのパネルの小さなボタンの大きさは `PanelButton::setup()`、A-/A+ は `FontSizeControl` が決める。コメント欄の未更新の確認は `CommentCoordinator` が `UnsavedChangesPrompt`（保存・破棄・キャンセル）で出す） |
+| 2026-10-30 | ウィジェットの共通の部品を足した（監査 2026-10-29 の M7・M8・M16・M18）のに合わせて §1.5・§7.8・§9.8・§11.2・§11.5・§12.5・§13.1・§14.5・第18章を更新（局面送りの6つのボタンは widgets の `StepButtons` が作り、説明は `KifuNavigationController::bindButtons(const StepButtons*)` が `QAction` の文から付ける。列幅は表の見出しに付けた `ColumnWidthMemory` が、利用者がドラッグした列だけを覚えて保存する（0 は自動、正の値は利用者の幅。保存した幅を最小値として扱わない。保存は `ListSetting<int>` にそろえ、棋譜解析の結果と対局情報の以前の版の形は初めて読むときに移す）。`TableHeaderView` はマウスの操作の処理の中で変わった列だけを利用者の操作として知らせる。ドックのパネルの小さなボタンの大きさは `PanelButton::setup()`、A-/A+ は `FontSizeControl` が決める。コメント欄の未更新の確認は `CommentController` が `UnsavedChangesPrompt`（保存・破棄・キャンセル）で出す） |
 | 2026-10-30 | 盤の大きさと ShogiView の残りの持ち主を整えた（監査 2026-10-29 の M9・M11）のに合わせて §11.1・§13.6 を更新（マスの幅の範囲は core の `BoardSquareSize` に置き、`AppSettings::squareSize`・`GameSettings::sfenCollectionSquareSize` は `BoundedSetting`。`ShogiView` はコンストラクタで設定を読まず、本体の盤の大きさは `MainWindowAppearanceController` が読み、変わるたびに保存する。読み筋盤は本体の盤の今の大きさで開く（`PvBoardDialog::setSquareSize()`）。矢印の型は `ShogiViewHighlighting::Arrow` に移し、`ShogiView::setArrows()`・`arrows()` の転送を消した。駒箱の先後の正本は `PositionEditSession`） |
 | 2026-10-30 | 通信対局と局面の文字列の規則の置き場所を整えた（監査 2026-10-29 の M12〜M15）のに合わせて §1.5・§2.3・§5.7・§7.7・§8.2・§8.11・§10.2・§10.5・§12.2・§15.5・第18章を更新（Game_Summary は値 `CsaGameSummary`（持時間は `CsaGameSummary::Time`）と読み取り器 `CsaGameSummaryReader`、`csaclient_parser.cpp`・`_commands.cpp` は `csaclient.cpp` に戻した。ログインの規則は `CsaLogin`、結果の表示名は `CsaGameUiController::resultText`・`causeText`。評価値の向きの直しは `UsiScore::blackView`・`viewedBy`。position コマンド・局面の文字列の語の分け方は `UsiPosition::split` だけで、`SfenUtils::normalizeStart`・`normalizePositionLikeSfen` は `UsiPosition::sfenOf` に、`UsiToSfenConverter::parseUsiPositionString` は消した） |
 | 2026-10-30 | 名残と小さな修正（監査 2026-10-29 の5章）に合わせて §1.5・§7.9・§8.2・§8.5・§12.5・§13.8・第18章を更新（ノードの行 `KifuBranchNode::record()` は読むだけにし、書き換えはツリー・組み立て・文書だけ。`KifuBranchTree::setComment`・`hasBranch`、`RecordLine::displayTexts`、`SfenReplay::applyLenient` の公開、`settingsservice.h`・`enginesettingsconstants.h` を消した。登録エンジンの保存形式のキーは `EngineProfileStore` の中、オプションの型の語は `EngineOption::kType*`、キーのエスケープは `SettingsCommon::escapeKey`） |
@@ -722,7 +722,7 @@ src/
 │   │   ├── dockregistry.cpp/.h          # ドックの表（DockSpec）から作成・規定の配置・状態の保存と復元
 │   │   └── docklayoutmanager.cpp/.h     # 名前付きレイアウト・起動時のレイアウト・ドックの固定
 │   └── coordinators/               #   複数の部品にまたがる UI の流れ
-│       ├── commentcoordinator.cpp/.h    # コメント機能の調整
+│       ├── commentcontroller.cpp/.h    # コメント機能の調整
 │       └── csagameuicontroller.cpp/.h        # CSA通信対局の開始と進行の画面への反映（棋譜と自動保存は GameSession）
 │
 ├── services/                       # クロスカッティングサービス
@@ -1996,7 +1996,7 @@ ShogiBoardQの `ui/` ディレクトリには3種類のクラスが存在する�
 |------|---------|------|-----|
 | **Presenter** | `*Presenter` | **Model→View の表示更新**。データを受け取り、ウィジェットの表示を更新する | `BoardSyncPresenter`, `KifuDisplayPresenter` |
 | **Controller** | `*Controller` | **ユーザー操作のハンドリング**。UIイベントを受け取り、適切なアクションを実行する | `ConsiderationUiController`, `LanguageController` |
-| **Coordinator** | `*Coordinator` | **複数コンポーネントの調整**。複数のウィジェットやコントローラにまたがる操作を司る | `SessionResetCoordinator`, `CommentCoordinator` |
+| **Coordinator** | `*Coordinator` | **複数コンポーネントの調整**。複数のウィジェットやコントローラにまたがる操作を司る | `SessionResetCoordinator`, `CommentController` |
 
 #### データフローの方向
 
@@ -2121,7 +2121,7 @@ public:
 #### Coordinator の実例
 
 **KifuLoader** — 棋譜ファイル・貼り付け・局面を読み、棋譜の文書（`KifuDocument`）を置き換える
-**CommentCoordinator** — 表示中の手のコメントをコメント欄に出し、編集をその手のノードに書く
+**CommentController** — 表示中の手のコメントをコメント欄に出し、編集をその手のノードに書く
 
 #### 命名ガイドライン
 
@@ -4581,7 +4581,7 @@ struct KifuParseOutcome {
 
 #### 対局情報
 
-- 画面で入力中の編集（対局情報欄のセル・コメント欄の未更新の本文）は、上位層へのフック（Hooks パターン）`addPendingEditor(Hooks{commitPendingEdits, hasPendingEdits})` で編集する画面ごとに受け取る。合成ルートが `GameInfoPane`（`commitPendingEditor`・`hasPendingEditor`）と `CommentCoordinator`（`commitPendingComment`・`hasPendingComment`）を1つずつ足す。保存・書き出し・対局の開始の前に確定し、`isModified()` は未確定の編集も未保存に数える。`header()` は読むだけで確定しない
+- 画面で入力中の編集（対局情報欄のセル・コメント欄の未更新の本文）は、上位層へのフック（Hooks パターン）`addPendingEditor(Hooks{commitPendingEdits, hasPendingEdits})` で編集する画面ごとに受け取る。合成ルートが `GameInfoPane`（`commitPendingEditor`・`hasPendingEditor`）と `CommentController`（`commitPendingComment`・`hasPendingComment`）を1つずつ足す。保存・書き出し・対局の開始の前に確定し、`isModified()` は未確定の編集も未保存に数える。`header()` は読むだけで確定しない
 - `editHeader(items)` は利用者が対局情報欄で編集した内容を受け取る（`GameInfoPane::gameInfoEdited` から）
 - `headerPlayerName(side)` は対局情報の対局者名（先手・後手。駒落ちは下手・上手。なければ省略名）。対局していないときの盤と読み筋盤の対局者名（`PlayerInfoPresenter::boardName()`）と棋譜解析の対局者名（`KifuAnalysisController`）に使う
 - `usesHandicapNames()` は対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）。司令塔の終局の知らせと入玉宣言の判定（`MatchCoordinator::usesHandicapNames()`）・利用者の入玉宣言の確認（`NyugyokuDeclarationHandler`。ローカル対局・通信対局で共通）・BOD のコピーが使う
@@ -4600,7 +4600,7 @@ struct KifuParseOutcome {
 #### コメント・しおり
 
 ```
-CommentCoordinator::onCommentUpdated(moveIndex, comment)  ← コメント欄（CommentEditorPanel）の更新
+CommentController::onCommentUpdated(moveIndex, comment)  ← コメント欄（CommentEditorPanel）の更新
   │   コメント欄が編集しているのは表示中の手（KifuNavigationState::currentNode()）
   ▼
 KifuDocument::setComment(node, comment)
@@ -4609,7 +4609,7 @@ KifuDocument::setComment(node, comment)
   ├── ノードの行のコメントを書き換える（ノードの行を書き換えられるのは文書とツリーだけ）
   └── コメントの変更の回数を増やして（未保存になる）commentChanged(nodeId, comment)
         ├── KifuRecordListModel::refreshNode（合成ルートが接続）… 棋譜欄の該当行を更新
-        └── CommentCoordinator::showCurrentComment … コメント欄の本文と手数を更新
+        └── CommentController::showCurrentComment … コメント欄の本文と手数を更新
 ```
 
 しおり（`setBookmark()` → `bookmarkChanged`）も同じ流れで、棋譜欄の該当行を更新する。
@@ -4624,7 +4624,7 @@ KifuDocument::setComment(node, comment)
 | `headerValueSet(key, value)` | `GameInfoPane::updateGameInfoValue` | 対局情報に自動で値を書いた（終了日時など） |
 | `headerEdited()` | `PlayerInfoPresenter`（盤の対局者名） | 対局情報欄で対局情報を書き換えた（対局していなければ盤の対局者名を合わせる） |
 | `playersChanged()` | `EngineDisplayPresenter`（自分でつなぐ。2つ目のエンジン欄・評価値グラフの系列名） | 対局者が変わった（対局の開始・棋譜の置き換え） |
-| `commentChanged(nodeId, comment)` / `bookmarkChanged(nodeId, bookmark)` | `KifuRecordListModel::refreshNode`（コメントは `CommentCoordinator::showCurrentComment` も） | ノードのコメント・しおりが変わった |
+| `commentChanged(nodeId, comment)` / `bookmarkChanged(nodeId, bookmark)` | `KifuRecordListModel::refreshNode`（コメントは `CommentController::showCurrentComment` も） | ノードのコメント・しおりが変わった |
 
 逆向きに、`GameInfoPane::gameInfoEdited(items)` → `KifuDocument::editHeader` をつなぐ（表が変わるたびに文書へ入るので、未保存かは文書だけで決まる）。入力中の編集は `KifuDocument::Hooks`（`commitPendingEdits`・`hasPendingEdits`）に合成ルートが登録し、対局情報欄の入力中のセルとコメント欄の未更新の本文を、保存・書き出し・対局の開始の前に確定し、未保存に数える。
 
@@ -4934,7 +4934,7 @@ KifuNavigationState
 | 変更 | `setCurrentNode(node)` / `setCurrentNode(node, lineEnd)` | 移って経路を記憶する |
 | 変更 | `resetToNode(node)` / `goToRoot()` | 選択を忘れて移る |
 
-`KifuNavigationState` は変わったときだけ `changed()` を1回出す（ツリーを作り直して表示中の手が無くなったときは開始局面へ戻る）。カーソルを動かすのは `KifuNavigationController`（`ui/controllers/`。ボタン・棋譜欄・分岐候補欄・分岐ツリー・評価値グラフからの移動。`goToPly()`・`goToNode()`・`goToPlyOnLine()` など）、`LiveGameSession`（対局中の最新手への追従）、`GameSession`（中断した対局の再開）、`BranchTreeEditController`（分岐の編集）などである。表示の更新は `changed()` を受けた部品が自分で行う。`KifuDisplayPresenter`（棋譜欄・分岐候補欄・分岐ツリー）、`BoardSyncPresenter`（盤と手番）、`CommentCoordinator`（コメント欄）、`EvaluationGraphPresenter`（評価値グラフ）、`AnalysisSession`（検討の追従）、`JosekiWindowController`（定跡ウィンドウ）が接続している。
+`KifuNavigationState` は変わったときだけ `changed()` を1回出す（ツリーを作り直して表示中の手が無くなったときは開始局面へ戻る）。カーソルを動かすのは `KifuNavigationController`（`ui/controllers/`。ボタン・棋譜欄・分岐候補欄・分岐ツリー・評価値グラフからの移動。`goToPly()`・`goToNode()`・`goToPlyOnLine()` など）、`LiveGameSession`（対局中の最新手への追従）、`GameSession`（中断した対局の再開）、`BranchTreeEditController`（分岐の編集）などである。表示の更新は `changed()` を受けた部品が自分で行う。`KifuDisplayPresenter`（棋譜欄・分岐候補欄・分岐ツリー）、`BoardSyncPresenter`（盤と手番）、`CommentController`（コメント欄）、`EvaluationGraphPresenter`（評価値グラフ）、`AnalysisSession`（検討の追従）、`JosekiWindowController`（定跡ウィンドウ）が接続している。
 
 ### 8.11 フォーマット変換器一覧
 
@@ -5747,7 +5747,7 @@ KifuNavigationState::changed
            → KifuNavigationState::changed
               ├── KifuDisplayPresenter::refresh()  … 棋譜欄・分岐候補欄・分岐ツリー
               ├── BoardSyncPresenter::syncToCurrentNode()  … 盤とハイライト
-              ├── CommentCoordinator::showCurrentComment()  … コメント表示
+              ├── CommentController::showCurrentComment()  … コメント表示
               └── EvaluationGraphPresenter::showCurrentPly()  … 評価値グラフの縦線
 ```
 
@@ -6065,7 +6065,7 @@ CsaGameUiController のコンストラクタ
 
 | 接続 | 説明 |
 |------|------|
-| 棋譜をたどる操作 | `connectRecord()` が、棋譜欄・評価値グラフのナビゲーションボタン、`RecordPane::mainRowChanged`・`branchRowActivated`、`BranchTreeView::nodeActivated`、`EvaluationChartWidget::plyClicked` を `KifuNavigationController` の `select*()` へつなぐ。表示の更新は `KifuNavigationState::changed` を受けた `KifuDisplayPresenter`・`BoardSyncPresenter`・`CommentCoordinator` などが各自で行う |
+| 棋譜をたどる操作 | `connectRecord()` が、棋譜欄・評価値グラフのナビゲーションボタン、`RecordPane::mainRowChanged`・`branchRowActivated`、`BranchTreeView::nodeActivated`、`EvaluationChartWidget::plyClicked` を `KifuNavigationController` の `select*()` へつなぐ。表示の更新は `KifuNavigationState::changed` を受けた `KifuDisplayPresenter`・`BoardSyncPresenter`・`CommentController` などが各自で行う |
 | 分岐の編集 | 分岐ツリー（`BranchTreeView::nodeContextMenuAboutToShow(nodeId, menu)`）と分岐候補欄の右クリックを `BranchTreeEditController` へつなぐ。棋譜の文書の `commentChanged` を `BranchTreeView::refreshNode` へつなぎ、図のコメントの印と説明を合わせる |
 | 読み筋のクリック | `ThinkingPanel`・`ConsiderationPanel` の `pvRowClicked` を `PvClickController::onPvRowClicked` へ、`pvDialogClosed` を各表の選択解除へつなぐ |
 | 時計・評価値 | 時計は `TimeDisplayPresenter` がコンストラクタで `ShogiClock::timeUpdated` を自分でつなぐ。`connectGame()` が `MatchCoordinator::engineMovePlayed`・`movesUndone` を `EvaluationGraphPresenter` へつなぐ |
@@ -6076,14 +6076,14 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 
 #### 一覧
 
-`CsaGameUiController`・`CommentCoordinator` は `src/ui/coordinators/`、利用者の操作の窓口の `DialogLauncher`・`KifuFileController` は `src/ui/controllers/`、動作状態からの規則 `UiStatePolicyManager` は `src/ui/policy/`、ドックの `DockRegistry`・`DockLayoutManager` は `src/ui/docks/` にある（ここでは流れの説明のためにまとめて扱う）。棋譜の読み込み器 `KifuLoader` は kifu 層（第8章）、保存で利用者に聞くダイアログ `KifuSaveDialogs` は dialogs 層（第8章）にある。
+`CsaGameUiController`・`CommentController` は `src/ui/coordinators/`、利用者の操作の窓口の `DialogLauncher`・`KifuFileController` は `src/ui/controllers/`、動作状態からの規則 `UiStatePolicyManager` は `src/ui/policy/`、ドックの `DockRegistry`・`DockLayoutManager` は `src/ui/docks/` にある（ここでは流れの説明のためにまとめて扱う）。棋譜の読み込み器 `KifuLoader` は kifu 層（第8章）、保存で利用者に聞くダイアログ `KifuSaveDialogs` は dialogs 層（第8章）にある。
 
 | Coordinator | ソース | 役割 |
 |------------|--------|------|
 | `DialogLauncher` | `dialoglauncher.h` | 結果を受ける部品のないダイアログ（エンジン設定・詰将棋・持将棋・駒音・盤の外観・文字の大きさなど）を、必要な部品を渡して開く（成り・不成の選択は受け持たない。盤の操作に作るときに `PromoteDialog::ask()` を渡す） |
 | `KifuFileController` | `kifufilecontroller.h` | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー（第8章）。局面集ビューア（`openSfenCollection()`。開いている間は1つで、もう一度開くと前面に出す）も開いて、選んだ局面を読む |
 | `CsaGameUiController` | `csagameuicontroller.h` | CSA 通信対局のダイアログ（`openGameDialog()`。1つを使い回し、OK なら未保存を確かめて始める）、対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は `GameSession`） |
-| `CommentCoordinator` | `commentcoordinator.h` | 棋譜コメントとしおりの表示・編集（14.5.3） |
+| `CommentController` | `commentcontroller.h` | 棋譜コメントとしおりの表示・編集（14.5.3） |
 | `UiStatePolicyManager` | `uistatepolicymanager.h` | 動作状態（`AppActivityState`）ごとのメニュー・ボタンの有効・無効・非表示 |
 | `DockRegistry` | `dockregistry.h` | ドックの表（`DockSpec`）から12個のドックを作り、規定の場所に置き、浮動・表示・位置を保存・復元する |
 | `DockLayoutManager` | `docklayoutmanager.h` | 名前付きレイアウトの保存・復元・削除、起動時のレイアウト、ドックの固定（作ったときに保存した状態にする。メニューの項目は `MenuActionsWiring` がつなぎ、保存したレイアウトの一覧の項目は `setSavedLayoutsMenu()` で受け取ったメニューに自分で作る） |
@@ -6229,7 +6229,7 @@ BoardInputRoute::submit(from, to)
                     └── KifuNavigationState::changed
                           ├── KifuDisplayPresenter::refresh() が RecordPane（棋譜欄）などに棋譜行を追加
                           ├── BoardSyncPresenter::syncToCurrentNode() が移動元・移動先をハイライト
-                          └── CommentCoordinator / EvaluationGraphPresenter などが各自で表示を合わせる
+                          └── CommentController / EvaluationGraphPresenter などが各自で表示を合わせる
 ```
 
 <!-- chapter-10-end -->
@@ -7309,7 +7309,7 @@ ShogiClock::setCurrentPlayer(gameBoard->board()->currentPlayer())
 | オブジェクト | 設定方法 | 役割 |
 |-------------|---------|------|
 | `KifuNavigationState` | コンストラクタ | 表示中の手・選んだ手順の管理（非所有）。分岐ツリー（`KifuBranchTree`）は `state()->tree()` から辿る |
-| 移動前の確認 | `addLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認（足した順に聞き、1つでも false なら移らない）。合成ルートが `OperationPolicy::canBrowseRecord()`（対局中・棋譜解析中・局面編集中でない）と `CommentCoordinator::confirmLeaveEditingMove()`（未更新のコメントを更新するか捨てるか尋ねる）をこの順に足す（移れないのにコメントを聞かない） |
+| 移動前の確認 | `addLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認（足した順に聞き、1つでも false なら移らない）。合成ルートが `OperationPolicy::canBrowseRecord()`（対局中・棋譜解析中・局面編集中でない）と `CommentController::confirmLeaveEditingMove()`（未更新のコメントを更新するか捨てるか尋ねる）をこの順に足す（移れないのにコメントを聞かない） |
 
 #### 局面送りの6つの操作（QAction）
 
@@ -7407,7 +7407,7 @@ selectBranchTreeNode(nodeId):
 | `KifuDisplayPresenter` | `KifuNavigationState::changed()`、`LiveGameSession::activeChanged` | 棋譜欄（`KifuRecordListModel`。対局中は最新の手まで）・分岐候補欄（`KifuBranchListModel`）・分岐ツリーの図（`BranchTreeView`。表示中の手を `setCurrentNode()` で伝える。構造の変更は図が自分で受ける）。選択の変更は `QSignalBlocker` で止め、表示に合わせた変更を利用者の操作として扱わない |
 | `BoardSyncPresenter` | `KifuNavigationState::changed()` | 盤を表示中の手の局面に合わせ（違うときだけ入れ替える）、ノードの指し手から直前手のハイライト（`BoardInteractionController::showMoveHighlights()`）を作る。手番の表示は盤のビューが盤の手番から作る |
 | `EvaluationGraphPresenter` | 同上 | 評価値グラフの縦線（`showCurrentPly`） |
-| `CommentCoordinator` | 同上 | 棋譜コメント欄（`showCurrentComment`） |
+| `CommentController` | 同上 | 棋譜コメント欄（`showCurrentComment`） |
 | `JosekiWindowController` | 同上 | 定跡ウィンドウ（`updateJosekiWindow`） |
 | `AnalysisSession` | 同上 | 検討中なら表示中の局面に追従（`followDisplayedPosition`） |
 
@@ -7437,7 +7437,7 @@ flowchart TD
         D1["KifuDisplayPresenter<br/>棋譜欄・分岐候補・分岐ツリー"]
         D2["BoardSyncPresenter<br/>盤面とハイライト"]
         D3["EvaluationGraphPresenter<br/>縦線"]
-        D4["CommentCoordinator /<br/>JosekiWindowController /<br/>AnalysisSession"]
+        D4["CommentController /<br/>JosekiWindowController /<br/>AnalysisSession"]
     end
 
     A1 -->|"clicked"| B
@@ -7747,7 +7747,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 | モデル | `kifuRecord`・`kifuBranch`・`thinking1/2`・`consideration`・`analysis`・`commLog1/2` |
 | 盤・時計 | `gameBoard`（`GameBoard`）・`shogiView`・`boardController`（`BoardInteractionController`）・`boardMoves`（`BoardMoveController`）・`boardSync`（`BoardSyncPresenter`）・`positionEdit`（`PositionEditSession`）・`clock`・`timePresenter` |
 | 画面部品 | `recordPane`・`thinkingPanel`・`considerationTab`・`usiLog`・`csaLog`・`commentEditor`・`branchTreeView`・`evalChart`・`gameInfoPane`・`dockRegistry`（`DockRegistry`。12 個のドックは `dock(DockId)` で引く） |
-| 棋譜の表示と編集 | `kifuDisplay`（`KifuDisplayPresenter`）・`branchEdit`（`BranchTreeEditController`）・`commentCoordinator` |
+| 棋譜の表示と編集 | `kifuDisplay`（`KifuDisplayPresenter`）・`branchEdit`（`BranchTreeEditController`）・`commentController` |
 | 対局・検討・通信対局 | `engines`（`EngineSlots`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaUi`（`CsaGameUiController`）・`operationPolicy`・`sessionReset`（`SessionResetCoordinator`） |
 | 棋譜のファイル | `kifuLoader`・`kifuFileController` |
 | 表示 | `appearance`・`playerInfo`（`PlayerInfoPresenter`）・`engineDisplay`・`evalGraph`・`arrows`（`CandidateArrowPresenter`）・`analysisResults`・`dockLayoutManager`・`uiStatePolicy`・`notificationService` |
@@ -7764,7 +7764,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 - **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `activity`・`match`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
 - **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`OperationPolicy`・`BoardMoveController`・`CsaGameUiController` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
-- **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（移ってよい状態か `OperationPolicy::canBrowseRecord()` と、未更新のコメントの確認 `CommentCoordinator::confirmLeaveEditingMove()`）が、できあがった部品の関数を受け取る（成りの選び方は盤の操作 `BoardInteractionController` を作るときに渡す）。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
+- **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（移ってよい状態か `OperationPolicy::canBrowseRecord()` と、未更新のコメントの確認 `CommentController::confirmLeaveEditingMove()`）が、できあがった部品の関数を受け取る（成りの選び方は盤の操作 `BoardInteractionController` を作るときに渡す）。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
 - **`std::function` はフックだけ**: 上位へ問い合わせ・操作を委ねるフック（`KifuDocument::Hooks::commitPendingEdits`、`UiStatePolicyManager::Deps` の `localGameHasHuman`・`canResumeGame`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
 
 二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。結果を使う部品があるダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その部品（`CsaGameUiController`・`KifuFileController`）が開いて持つ。
@@ -7855,11 +7855,11 @@ m_c.dockLayoutManager = new DockLayoutManager(&m_window, m_c.dockRegistry, &m_wi
 
 ドックを使う部品には `m_c.dockRegistry->dock(DockRegistry::DockId::AnalysisResults)` のように1つずつ渡す（`KifuAnalysisController::Deps::resultsDock`。メニューウィンドウは `MenuWindowController::attachDock()`）。
 
-#### 14.5.3 CommentCoordinator
+#### 14.5.3 CommentController
 
-**ファイル**: `src/ui/coordinators/commentcoordinator.h/.cpp`
+**ファイル**: `src/ui/controllers/commentcontroller.h/.cpp`
 
-表示中の手のコメント・しおりの表示と編集を MainWindow から分離したクラス。コメント・しおりの正本は分岐ツリーのノードで、書き込みは棋譜の文書 `KifuDocument`（`setComment()`・`setBookmark()`。`CommentCoordinator::Deps::document`）を通す（未保存の判定と通知のため）。
+表示中の手のコメント・しおりの表示と編集を MainWindow から分離したクラス。コメント・しおりの正本は分岐ツリーのノードで、書き込みは棋譜の文書 `KifuDocument`（`setComment()`・`setBookmark()`。`CommentController::Deps::document`）を通す（未保存の判定と通知のため）。
 
 **提供機能**:
 - `showCurrentComment()` — `KifuNavigationState::changed()` を受けて、表示中の手のコメントをコメント欄（`CommentEditorPanel`）に出す
@@ -7909,7 +7909,7 @@ MainWindow は `.ui` の保持と閉じるときの処理だけを持ち、ロ�
 | `CsaGameUiController` | CSA 通信対局の開始と、進行の画面への反映 |
 | `SessionResetCoordinator` | 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す |
 | `DockRegistry` | ドックの表からの作成・規定の配置・状態の保存と復元（`DockLayoutManager` は名前付きレイアウト・起動時のレイアウト・固定） |
-| `CommentCoordinator` | 表示中の手のコメント・しおりの表示と編集 |
+| `CommentController` | 表示中の手のコメント・しおりの表示と編集 |
 | `ConsiderationUiController` | 検討タブの操作（開始・中止・エンジン変更・候補手の数）を検討のセッションへ伝える |
 | `PlayerInfoPresenter` | 盤の対局者名の表示 |
 | `EngineDisplayPresenter` | エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）とその消去 |
@@ -9462,7 +9462,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ClockTimeSource | C | engine | ローカル対局の対局時計から読むエンジンの時間の出どころ（`MatchTimeSource` の実装。`MatchCoordinator` が持つ） | 第7章 |
 | CollapsibleGroupBox | C | widgets | 折りたたみ可能なグループボックス | 第11章 |
 | ColumnWidthMemory | C | widgets | 利用者が決めた列幅の覚えと保存（0 は自動、正の値は利用者の幅。表の見出しに付ける） | 第11章 |
-| CommentCoordinator | C | ui/coordinators | コメント編集の統合調整 | 第14章 |
+| CommentController | C | ui/coordinators | コメント編集の統合調整 | 第14章 |
 | ConsecutiveGameSeries | C | game | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） | 第6章 |
 | ConsiderationSettings | S | services | 検討の条件の値（エンジン・時間・候補手の数。範囲もここ。`analysissettings.h`） | 第9章 |
 | ConsiderationPanel | C | widgets | 検討ドックの中身（ツールバー・エンジン情報・候補手の表）。設定の正本と実行の状態（`RunState`）を持つ | 第9章, 第11章 |

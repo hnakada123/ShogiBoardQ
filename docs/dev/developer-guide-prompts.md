@@ -422,7 +422,7 @@ docs/dev/developer-guide.md に第14章「MainWindowの役割と構造」を作�
 - src/app/mainwindow.cpp（冒頭〜200行程度 + ensure*()メソッドのパターン確認）
 - src/app/testautomationhelper.h
 - src/app/dockcreationservice.h
-- src/app/commentcoordinator.h
+- src/app/commentcontroller.h
 
 記述してほしい内容:
 - 設計思想: "MainWindow should stay lean" の原則
@@ -432,7 +432,7 @@ docs/dev/developer-guide.md に第14章「MainWindowの役割と構造」を作�
 - リファクタリング経緯の概要（5,368行 → 4,180行、何をどこに移譲したか）
 - TestAutomationHelper: std::functionコールバックパターンによるMainWindow機能の外部化
 - DockCreationService: ドックウィジェット生成の分離
-- CommentCoordinator: コメント機能の委譲
+- CommentController: コメント機能の委譲
 
 注意:
 - mainwindow.cppは大きいため、全体を読む必要はありません。ensure*()のパターンを数例確認すれば十分です

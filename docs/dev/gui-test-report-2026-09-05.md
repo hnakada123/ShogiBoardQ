@@ -106,7 +106,7 @@ Qt Testでメニューを表示して項目をクリックし、ダイアログ�
 
 実際の結果: **「コメントなし」に戻り、KIFにも入力したコメントが含まれない**。テストでは編集パネルが`commentUpdated(1, "Audit comment at ply one")`を発行したことも確認した。表示更新待ちを入れて再実行しても再現した。
 
-関連処理: [`CommentCoordinator`](../../src/app/commentcoordinator.cpp)、[解析タブのコメント接続](../../src/ui/wiring/analysistabwiring.cpp)。更新シグナルから保存モデル・表示モデルまでの経路が調査対象となる。
+関連処理: [`CommentController`](../../src/app/commentcontroller.cpp)、[解析タブのコメント接続](../../src/ui/wiring/analysistabwiring.cpp)。更新シグナルから保存モデル・表示モデルまでの経路が調査対象となる。
 
 証跡: [テストログ](../../build/gui-audit/before-fixes/commentsAndBookmark.log)、[画面](../../build/gui-audit/before-fixes/screenshots/failure-commentsAndBookmark.png)。
 

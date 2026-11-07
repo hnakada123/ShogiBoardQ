@@ -484,20 +484,20 @@ docs/dev/debug-logging-guidelines.md を読んで従ってください。
 ## 対象ファイル（qDebug 箇所数）
 - mainwindow.cpp（108箇所）
 - main.cpp（13箇所）
-- commentcoordinator.cpp（4箇所）
+- commentcontroller.cpp（4箇所）
 
 ## カテゴリ定義
 - カテゴリ名: "shogi.app"
 - 変数名: lcApp
 - 定義場所: mainwindow.cpp に Q_LOGGING_CATEGORY(lcApp, "shogi.app")
 - mainwindow.h に Q_DECLARE_LOGGING_CATEGORY(lcApp)
-- main.cpp, commentcoordinator.cpp からは mainwindow.h を include して参照
+- main.cpp, commentcontroller.cpp からは mainwindow.h を include して参照
 
 ## 既存プレフィックス例
 - `[MW]`, `[MainWindow]`, `[MainWindow::メソッド名]` — mainwindow.cpp
 - `[CONNECT]` — mainwindow.cpp のシグナル/スロット接続ログ
 - `[i18n]` — main.cpp の国際化関連
-- `[CommentCoordinator]` — commentcoordinator.cpp
+- `[CommentController]` — commentcontroller.cpp
 
 ## 注意: main.cpp の messageHandler
 main.cpp には messageHandler（カスタムログハンドラ）が定義されています。
