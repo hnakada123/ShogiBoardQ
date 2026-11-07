@@ -121,6 +121,7 @@ struct Harness {
     FakeCsaServer server;
     int gameLimit = 0;   ///< 対局数（0 は制限なし）
     bool reconnect = false;   ///< 終局の後にサーバーが切ったら接続し直す
+    std::function<void()> afterLogin;   ///< ログインの成功を返してから対局条件を送るまでの間に呼ぶ
 
     Harness()
     {
@@ -153,6 +154,7 @@ struct Harness {
         if (!server.accept()) return false;
         if (!server.waitForLine(QStringLiteral("LOGIN user pass"))) return false;
         server.send("LOGIN:user OK");
+        if (afterLogin) afterLogin();
         server.send("BEGIN Game_Summary");
         server.send("Protocol_Version:1.2");
         server.send("Protocol_Mode:Server");
@@ -234,6 +236,26 @@ private slots:
         QCOMPARE(h.moveCount(), 2);
         QCOMPARE(h.gc.board()->pieceCharacter(8, 4), Piece::WhitePawn);
         QCOMPARE(h.sink.records.at(1).move.move.toString(), QStringLiteral("8c8d"));
+    }
+
+    /// 対局条件が初期化の途中に届いても、エンジンを起動し直さず readyok を待って同意する（監査 2026-11-07 F11）
+    void gameSummaryDuringInitializationKeepsTheEngine()
+    {
+        qputenv("SBQ_MATCH_INIT_DELAY_MS", "300");
+        Harness h;
+        Usi* engine = nullptr;
+        std::unique_ptr<QSignalSpy> sent;
+        h.afterLogin = [&] {
+            QTRY_VERIFY(h.engines.engineInSlot(1));
+            engine = h.engines.engineInSlot(1);
+            // 最初の usi を送り終えてから、その後の起動を数える
+            QTest::qWait(100);
+            sent = std::make_unique<QSignalSpy>(engine->process(), &EngineProcessManager::commandSent);
+        };
+        QVERIFY(h.start("-", {}, true));
+        qunsetenv("SBQ_MATCH_INIT_DELAY_MS");
+        QCOMPARE(h.engines.engineInSlot(1), engine);
+        for (const QList<QVariant>& command : std::as_const(*sent)) QVERIFY(command.first().toString() != QStringLiteral("usi"));
     }
 
     /// 自分のエンジンはサーバーが示した残り時間から持ち時間を読み、終局でエンジンの枠を空ける（次局は起動し直す）
