@@ -669,7 +669,7 @@ private slots:
         const auto result = convertFile(QStringLiteral("test_branch.kif"), output);
         QVERIFY2(result.ok, qPrintable(result.failure.message));
         QVERIFY(result.hasBranches);
-        QCOMPARE(result.variationsDropped, !writesVariations);
+        QCOMPARE(result.loss.variations, !writesVariations);
         if (output == Format::Sfen) {
             QCOMPARE(result.lines, result.sfens);  // 本譜の局面列
             return;
@@ -683,12 +683,12 @@ private slots:
         QVERIFY2(again.ok, qPrintable(again.failure.message));
         QCOMPARE(again.hasBranches, writesVariations);
         QCOMPARE(again.usiMoves, result.usiMoves);
-        QVERIFY(!again.variationsDropped);
+        QVERIFY(!again.loss.variations);
 
         const auto plain = convertFile(QStringLiteral("test_basic.kif"), output);
         QVERIFY2(plain.ok, qPrintable(plain.failure.message));
         QVERIFY(!plain.hasBranches);
-        QVERIFY(!plain.variationsDropped);
+        QVERIFY(!plain.loss.variations);
     }
 
     /// USI 形式のファイルは、局面として読める最初の行を読む（行の判定も position コマンドと同じ UsiPosition::split

@@ -44,7 +44,6 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
     }
     result.gameInfo = loaded.gameInfo;
     result.hasBranches = !loaded.record.variations.isEmpty();
-    result.variationsDropped = result.hasBranches && !KifuExport::writesVariations(request.outputFormat);
 
     // 一時的な分岐ツリーを組み立てて、GUI と同じ書き出しの表で出力する
     KifuBranchTree tree;
@@ -53,6 +52,7 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
         return result;
     }
 
+    result.loss = KifuExport::lossIn(tree, request.outputFormat);
     result.initialSfen = tree.root() ? tree.root()->sfen() : loaded.startSfen();
     result.sfens = tree.sfenListForLine(0);
     result.mainline = tree.exportLine(0);

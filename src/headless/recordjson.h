@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include "kifuexport.h"
 #include "recordentry.h"
 #include "recordline.h"
 
@@ -18,6 +19,8 @@ QJsonObject entry(int ply, const RecordEntry& entry);
 QJsonArray moves(const RecordLine& line);
 /// 開始局面のコメント・しおりを obj の opening_comment・opening_bookmark に書く（空なら書かない）
 void addOpening(QJsonObject& obj, const QString& comment, const QString& bookmark);
+/// 形式に書けずに失ったものの語の列（variations・times・comments・bookmarks・terminals）。CLI の convert-kifu と kifu.save の lost
+QJsonArray lost(const KifuExport::Loss& loss);
 
 } // namespace RecordJson
 

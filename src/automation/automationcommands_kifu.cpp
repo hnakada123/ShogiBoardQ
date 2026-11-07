@@ -134,6 +134,8 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         QJsonObject result;
         result[QStringLiteral("path")] = path;
         result[QStringLiteral("format")] = info.suffix().toLower();
+        result[QStringLiteral("lost")] =
+            RecordJson::lost(KifuExport::lossIn(*context.document->tree(), KifuSaveFile::saveFormatForPath(path)));
         return result;
     });
 
