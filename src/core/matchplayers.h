@@ -7,6 +7,7 @@
 #include <QMetaType>
 #include <QString>
 #include <array>
+#include <optional>
 #include <utility>
 
 #include "shogitypes.h"
@@ -50,6 +51,15 @@ struct MatchPlayers {
     QString engineName(Turn side) const { return seat(side).engineName; }
     /// side を指す側の名前（エンジンならエンジンの名前）。未入力なら空
     QString name(Turn side) const { return seat(side).name(); }
+
+    /// エンジンの枠 slot（1・2）のエンジンが指す側。枠の決まりは、エンジン同士は先手が E1・後手が E2、
+    /// エンジンが1台ならどちらの側でも E1（MatchEngineSeat の使い方。Strategy がこの決まりで枠に置く）
+    std::optional<Turn> sideInSlot(int slot) const
+    {
+        if (slot == 2) return engineVsEngine() ? std::optional<Turn>(Turn::White) : std::nullopt;
+        if (isEngine(Turn::Black)) return Turn::Black;
+        return isEngine(Turn::White) ? std::optional<Turn>(Turn::White) : std::nullopt;
+    }
 
     /// 先手と後手を入れ替える（連続対局で1局ごとに手番を替える）
     void swapSides() { std::swap(seats[0], seats[1]); }

@@ -162,11 +162,7 @@ void EngineDisplayPresenter::onPlayersChanged()
         graph->setEngine1Name(players.engineName(Turn::Black));
         graph->setEngine2Name(players.engineName(Turn::White));
     }
-    // 枠の決まり（MatchEngineSeat の使い方）: エンジン同士は先手が E1・後手が E2、エンジンが1台ならどちらの側でも E1
-    std::optional<Turn> first;
-    if (players.isEngine(Turn::Black)) first = Turn::Black;
-    else if (players.isEngine(Turn::White)) first = Turn::White;
-    setEngineSides(first, players.engineVsEngine() ? std::optional<Turn>(Turn::White) : std::nullopt);
+    setEngineSides(players.sideInSlot(1), players.sideInSlot(2));
 }
 
 void EngineDisplayPresenter::onActivityChanged()
