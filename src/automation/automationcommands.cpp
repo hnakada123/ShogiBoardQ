@@ -3,6 +3,7 @@
 
 #include "automationcommands.h"
 
+#include "appactivitystate.h"
 #include "automationdispatcher.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
@@ -29,6 +30,9 @@ int AutomationContext::currentPly() const
 
 QString AutomationCommands::currentSfen(const AutomationContext& context)
 {
+    // 局面編集中は編集している盤の局面（表示中の手のノードは編集の前の局面のまま）
+    if (context.board && context.activity && context.activity->is(AppActivityState::Activity::DuringPositionEdit))
+        return context.board->toSfen();
     const QString displayed = context.navState ? context.navState->currentSfen() : QString();
     if (!displayed.isEmpty()) return displayed;
     return context.board ? context.board->toSfen() : QString();
