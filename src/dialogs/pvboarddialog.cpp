@@ -3,6 +3,7 @@
 
 #include "pvboarddialog.h"
 #include "applicationfonts.h"
+#include "plaintooltip.h"
 #include "boardviewerwidget.h"
 #include "kifupresentation.h"
 #include "pvline.h"
@@ -34,7 +35,7 @@ PvBoardDialog::PvBoardDialog(const PvText& pv, QWidget* parent)
     DialogFontScale::install(this, AppSettings::pvBoardDialogFontSize);
 
     m_pvLabel->setText(m_line->displayPv());
-    m_pvLabel->setToolTip(m_line->displayPv(true));
+    m_pvLabel->setToolTip(plainToolTip(m_line->displayPv(true)));
     // 読み筋の各手数の局面を盤に渡す（0 が開始局面）。表示する手数はビューアの番号だけで持つ
     m_viewer->setSfenList(m_line->positions());
 

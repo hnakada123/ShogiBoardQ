@@ -4,6 +4,7 @@
 #include "josekiimportdialog.h"
 
 #include "kifufilefilter.h"
+#include "plaintooltip.h"
 #include "dialogfontscale.h"
 #include "josekibooksession.h"
 #include "josekisettings.h"
@@ -289,7 +290,7 @@ void JosekiImportDialog::onFinished()
     if (!result.failedFiles.isEmpty()) text += QLatin1Char('\n') + tr("読めなかった棋譜: %1 件").arg(result.failedFiles.size());
     if (stats.added + stats.updated > 0) text += QLatin1Char('\n') + tr("定跡ウィンドウで保存してください。");
     m_status->setText(text);
-    m_status->setToolTip(result.failedFiles.join(QLatin1Char('\n')));
+    m_status->setToolTip(plainToolTip(result.failedFiles.join(QLatin1Char('\n'))));
 }
 
 void JosekiImportDialog::updateInputs()

@@ -3,6 +3,7 @@
 
 #include "engineregistrationdialog.h"
 #include "dialogfontscale.h"
+#include "plaintooltip.h"
 #include "engineregistrationhandler.h"
 #include "enginedialogsettings.h"
 #include "ui_engineregistrationdialog.h"
@@ -182,7 +183,7 @@ void EngineRegistrationDialog::rebuildEngineList()
     ui->engineListWidget->clear();
     for (const EngineEntry& engine : m_handler->engines().entries()) {
         auto* item = new QListWidgetItem(engine.name, ui->engineListWidget);
-        item->setToolTip(engine.path);
+        item->setToolTip(plainToolTip(engine.path));
     }
     const QList<QListWidgetItem*> same = ui->engineListWidget->findItems(selectedName, Qt::MatchExactly);
     if (!same.isEmpty()) ui->engineListWidget->setCurrentItem(same.constFirst());

@@ -24,7 +24,10 @@
 #include "globaltooltip.h"
 #include "josekitablemodel.h"
 #include "kifubranchtree.h"
+#include "kifuanalysislistmodel.h"
+#include "kifubranchlistmodel.h"
 #include "kifurecordlistmodel.h"
+#include "pvtext.h"
 #include "menubuttonwidget.h"
 #include "plaintooltip.h"
 #include "sfenutils.h"
@@ -96,6 +99,35 @@ private slots:
         rows.setPath(tree.mainLine());
         QCOMPARE(shownText(rows.data(rows.index(0, KifuRecordListModel::CommentColumn), Qt::ToolTipRole).toString()),
                  kExternal);
+    }
+
+    /// 棋譜欄と分岐候補欄の指し手の列（棋譜に書かれた独自の終局語。監査 2026-11-07 F9）
+    void customTerminalWord()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(SfenUtils::hirateSfen());
+        KifuBranchNode* ending = tree.addRecord(tree.root(), RecordEntry::ending(TerminalType::Custom, Turn::Black, {}, kExternal));
+        KifuRecordListModel rows(&tree);
+        rows.setPath(tree.mainLine());
+        QVERIFY(shownText(rows.data(rows.index(1, KifuRecordListModel::MoveColumn), Qt::ToolTipRole).toString())
+                    .contains(kExternal));
+        KifuBranchListModel branches(&tree);
+        branches.setCandidates({ending}, 0, false);
+        QVERIFY(shownText(branches.data(branches.index(0, 0), Qt::ToolTipRole).toString()).contains(kExternal));
+    }
+
+    /// 棋譜解析の結果の読み筋（局面と合わなければエンジンの語のまま。監査 2026-11-07 F9）
+    void analysisPvWords()
+    {
+        KifuAnalysisRow row;
+        row.pv = PvText::play(SfenUtils::hirateSfen(), QStringList{kExternal});
+        KifuAnalysisListModel model;
+        model.appendRow(row);
+        QVERIFY(shownText(model.data(model.index(0, KifuAnalysisListModel::PvColumn), Qt::ToolTipRole).toString())
+                    .contains(kExternal));
+        // 読み上げは文字のまま
+        QVERIFY(model.data(model.index(0, KifuAnalysisListModel::PvColumn), Qt::AccessibleTextRole).toString()
+                    .contains(kExternal));
     }
 
     /// 対局情報の値（棋譜の対局情報）

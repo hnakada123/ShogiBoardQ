@@ -4,6 +4,7 @@
 #include "josekimergedialog.h"
 
 #include "buttonstyles.h"
+#include "plaintooltip.h"
 #include "dialogfontscale.h"
 #include "fontsizehelper.h"
 #include "josekibook.h"
@@ -200,7 +201,7 @@ void JosekiMergeDialog::updateTargetLabel()
     const QString filePath = m_session->filePath();
     m_targetFileLabel->setText(filePath.isEmpty() ? tr("マージ先: (未設定)")
                                                   : tr("マージ先: %1").arg(QFileInfo(filePath).fileName()));
-    m_targetFileLabel->setToolTip(filePath);
+    m_targetFileLabel->setToolTip(plainToolTip(filePath));
 }
 
 void JosekiMergeDialog::onRegisterButtonClicked(int index)
