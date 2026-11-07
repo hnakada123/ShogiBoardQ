@@ -52,7 +52,7 @@ struct MatchRecordStart;
  * - 時間管理のGUIへの反映
  * - 棋譜の受け手（MatchRecordSink。ローカル対局と同じ GameSession）への記録。対局の開始で新しい棋譜を
  *   作らせて再開局面の既存手順を書き、着手・終局ごとに1行ずつ書いて、終局の行の後で確定させる
- * - 動作状態。棋譜を作った後で「通信対局中」にし、終局・取りやめで待機に戻す（MatchCoordinator と同じ順）
+ * - 動作状態。棋譜を作った後で「通信対局中」にし、終局では棋譜を確定してから接続中に戻すか手放す（MatchCoordinator と同じ順）
  *
  * 1局ぶんの手数・持ち時間・指し手列は値型 CsaGameProgress（m_progress）が持ち、
  * 時間の計算や終局行の組み立てはその関数が値で返す。自分のエンジンが読む持ち時間（MatchTimeSource）も
@@ -185,7 +185,7 @@ public:
     // --- MatchTimeSource（自分のエンジンの持ち時間。サーバーが示した残り時間・遅延・余裕） ---
     MatchSearchTiming snapshot(Turn side, bool pondering) const override;
     /// side の今の手番の考慮時間（サーバーが消費時間を知らせないときの投了の消費時間にも使う）
-    qint64 elapsedThisTurn(Turn side) const override;
+    qint64 elapsedThisTurn(Turn side) const;
 
 signals:
     void connectionStateChanged(bool connected);
@@ -196,7 +196,7 @@ signals:
     /// 自分のエンジンで指す対局が始まった（gameStarted の後。side は自分の手番、engineName は登録名。
     /// 棋譜の対局者はサーバーの名前なので、評価値グラフの系列名はこれで知らせる）
     void matchEngineStarted(Turn side, const QString& engineName);
-    /// 対局が終わった（終局の行を書いた棋譜を確定し、動作状態を待機に戻した後）
+    /// 対局が終わった（終局の行を書いた棋譜を確定し、動作状態を接続中か待機に戻した後）
     void gameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
     void turnChanged(bool isMyTurn);
     void logMessage(const QString& message, bool isError = false);

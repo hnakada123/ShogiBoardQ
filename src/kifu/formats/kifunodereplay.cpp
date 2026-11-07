@@ -8,7 +8,6 @@
 KifuNodeReplay::KifuNodeReplay(const QString& startSfen, const QString& fallbackSfen)
 {
     m_synced = m_board.assignSfen(startSfen) || (!fallbackSfen.isEmpty() && m_board.assignSfen(fallbackSfen));
-    m_mover = m_board.sideToMove();
 }
 
 KifuNodeReplay KifuNodeReplay::after(const KifuBranchNode* node)
@@ -28,12 +27,8 @@ bool KifuNodeReplay::advance(const KifuBranchNode* node)
     if (!node->isActualMove()) return true;
     const UsiMove move = node->move().move;
     // 読み込めた反則手も省かずに書く。持駒不足などの扱いを読み込みと揃える。
-    const bool applied = canWrite(node) && m_board.applyAs(move, m_mover, Position::DropRule::Lenient);
-    if (applied) {
-        m_mover = opponent(m_mover);
-    } else {
-        resync(node);
-    }
+    const bool applied = canWrite(node) && m_board.apply(move, Position::DropRule::Lenient);
+    if (!applied) resync(node);
     m_previousTo = move.isValid() ? move.to : BoardSquare{};
     return applied;
 }
@@ -48,5 +43,4 @@ KifuNodeReplay KifuNodeReplay::branchFrom(const KifuBranchNode* parent) const
 void KifuNodeReplay::resync(const KifuBranchNode* node)
 {
     m_synced = m_board.assignSfen(node->sfen());
-    m_mover = m_synced ? m_board.sideToMove() : opponent(m_mover);
 }

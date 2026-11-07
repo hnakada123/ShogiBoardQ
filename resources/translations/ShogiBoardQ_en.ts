@@ -1048,32 +1048,32 @@ Stands: %3 / Players: %4</translation>
         <translation type="vanished">Turn</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="152"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="151"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="152"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="151"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="153"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="152"/>
         <source>先手の駒を配置（手番は変更しません）</source>
         <translation>Place black pieces (does not change the side to move)</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="153"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="152"/>
         <source>後手の駒を配置（手番は変更しません）</source>
         <translation>Place white pieces (does not change the side to move)</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="228"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="227"/>
         <source>編集終了</source>
         <translation>End Edit</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="230"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="229"/>
         <source>局面編集を終了し、この局面を開始局面にします</source>
         <translation>Finish editing and use this position as the starting position</translation>
     </message>
@@ -2230,14 +2230,14 @@ Discard the changes and move?</translation>
     <name>ConsiderationPanel</name>
     <message>
         <location filename="../../src/widgets/considerationpanel.cpp" line="162"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="377"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="376"/>
         <source>検討中止</source>
         <translation>Stop</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationpanel.cpp" line="162"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="300"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="377"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="299"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="376"/>
         <source>検討開始</source>
         <translation>Start Consideration</translation>
     </message>
@@ -2248,13 +2248,13 @@ Discard the changes and move?</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationpanel.cpp" line="163"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="301"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="300"/>
         <source>検討を開始します</source>
         <translation>Start analysis</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationpanel.cpp" line="186"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="273"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="272"/>
         <source>経過: 0:00</source>
         <translation>Elapsed: 0:00</translation>
     </message>
@@ -2264,82 +2264,81 @@ Discard the changes and move?</translation>
         <translation>Elapsed: %1:%2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="241"/>
         <source>検討に使用するエンジンを選択します</source>
-        <translation>Select the engine for analysis</translation>
+        <translation type="vanished">Select the engine for analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="247"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="246"/>
         <source>エンジン設定</source>
         <translation>Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="249"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="248"/>
         <source>選択したエンジンの設定を変更します</source>
         <translation>Configure the selected engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="254"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="253"/>
         <source>時間無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="256"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="255"/>
         <source>時間制限なしで検討します</source>
         <translation>Analyze without a time limit</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="259"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="258"/>
         <source>検討時間</source>
         <translation>Analysis Time</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="261"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="260"/>
         <source>指定した秒数まで検討します</source>
         <translation>Analyze for the specified number of seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="267"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="266"/>
         <source>検討時間（秒）を指定します</source>
         <translation>Set the analysis time in seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="270"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="269"/>
         <source>秒まで</source>
         <translation>seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="275"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="274"/>
         <source>検討開始からの経過時間</source>
         <translation>Elapsed time since consideration started</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="284"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="283"/>
         <source>候補手の数</source>
         <translation>Candidate moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="288"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="287"/>
         <source>%1手</source>
         <translation>%1 moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="290"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="289"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
         <translation>Specify the number of candidate moves to display in order of evaluation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="293"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="292"/>
         <source>矢印表示</source>
         <translation>Show Arrows</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="295"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="294"/>
         <source>最善手の矢印を盤面に表示します</source>
         <translation>Displays arrows for the best moves on the board</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="368"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="367"/>
         <source>経過: 000:00</source>
         <translation>Elapsed: 000:00</translation>
     </message>
@@ -2836,7 +2835,7 @@ Discard the changes and move?</translation>
         <translation>Game rejected (ID: %1, Rejected by: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="128"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="127"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation>Opponent&apos;s move: %1 (Time: %2ms)</translation>
     </message>
@@ -2867,22 +2866,22 @@ Discard the changes and move?</translation>
         <translation type="vanished">Cannot interpret the move from the server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="118"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="117"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>Failed to apply move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="119"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="118"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>Cannot apply server move to board: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="135"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="134"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation>Move confirmed: %1 (Time: %2ms)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="151"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="150"/>
         <source>エンジンに送る局面を作れません</source>
         <translation>Could not build the position to send to the engine</translation>
     </message>
@@ -2993,7 +2992,7 @@ Discard the changes and move?</translation>
         <translation>Engine %1 started</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="154"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="153"/>
         <source>エンジンが思考中...</source>
         <translation>Engine is thinking...</translation>
     </message>
@@ -3002,7 +3001,7 @@ Discard the changes and move?</translation>
         <translation type="vanished">Engine resigned</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="165"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="164"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>Engine did not return a valid move</translation>
     </message>
@@ -3011,17 +3010,17 @@ Discard the changes and move?</translation>
         <translation type="vanished">Engine move: from=(%1,%2) to=(%3,%4) promote=%5</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="171"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="170"/>
         <source>盤面が取得できませんでした</source>
         <translation>Could not get board state</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="179"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="178"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>Failed to convert move piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="183"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="182"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA format move: %1</translation>
     </message>
@@ -5473,14 +5472,12 @@ Discard changes and move?</translation>
 <context>
     <name>EngineSelector</name>
     <message>
-        <location filename="../../src/widgets/engineselector.cpp" line="136"/>
         <source>エラー</source>
-        <translation>Error</translation>
+        <translation type="vanished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineselector.cpp" line="136"/>
         <source>将棋エンジンが選択されていません。</source>
-        <translation>No shogi engine is selected.</translation>
+        <translation type="vanished">No shogi engine is selected.</translation>
     </message>
 </context>
 <context>
@@ -12005,7 +12002,7 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="231"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="230"/>
         <source>エンジンに送る局面を作れません</source>
         <translation>Could not build the position to send to the engine</translation>
     </message>
@@ -12018,37 +12015,37 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">%1 (book %2%)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="434"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="433"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="434"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="433"/>
         <source>下手</source>
         <translation>Shitate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="435"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="434"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="435"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="434"/>
         <source>上手</source>
         <translation>Uwate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="441"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="440"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="443"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="442"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="445"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="444"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>Maximum moves reached. Jishogi (impasse).</translation>
     </message>
@@ -12057,27 +12054,27 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="447"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="446"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="449"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="448"/>
         <source>千日手が成立しました。</source>
         <translation>Sennichite (draw by repetition).</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="451"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="450"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>Perpetual check by %1. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="457"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="456"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="408"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="407"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
@@ -12106,7 +12103,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Search completed</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="372"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="371"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -12115,7 +12112,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="372"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="371"/>
         <source>対局中断</source>
         <translation>Game interrupted</translation>
     </message>
@@ -14463,7 +14460,7 @@ Choose a file with one SFEN position per line.</translation>
         <translation type="vanished">Place white pieces (does not change the side to move)</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="662"/>
+        <location filename="../../src/views/shogiview.cpp" line="661"/>
         <source>駒箱</source>
         <translation>Piece Box</translation>
     </message>

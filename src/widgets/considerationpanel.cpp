@@ -1,5 +1,5 @@
 /// @file considerationpanel.cpp
-/// @brief 検討タブ管理クラスの実装（状態管理・設定・イベント処理）
+/// @brief 検討タブのパネルの実装（状態管理・設定・イベント処理）
 
 #include "considerationpanel.h"
 #include "actionbinding.h"
@@ -238,7 +238,6 @@ void ConsiderationPanel::buildToolbarControls()
     // エンジン選択コンボボックス
     m_engineComboBox = new QComboBox(m_considerationToolbar);
     m_engineComboBox->setObjectName(QStringLiteral("considerationEngine"));
-    m_engineComboBox->setToolTip(tr("検討に使用するエンジンを選択します"));
     m_engineComboBox->setMinimumWidth(150);
     m_engineComboBox->setMinimumContentsLength(24);
     m_engineComboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);

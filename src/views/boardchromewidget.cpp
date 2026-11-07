@@ -95,8 +95,7 @@ void BoardChromeWidget::setBoardGeometry(const std::optional<BoardGeometry>& geo
     // 手番の札は盤が置かれているときだけ出す。盤より先に手番を受け取ったときは、盤が置かれた時点で出す
     if (m_geometry.has_value() != hadBoard) refreshPlayerStyles();
     // 「編集終了」ボタンは局面編集の間だけ表示する。表示する処理（setEditExitButtonVisible）は
-    // 表示の直前に配置し直すので、隠れている間は配置と
-    // 文字の大きさ合わせを省く（手番が替わるたびにも呼ばれる）
+    // 表示の直前に配置し直すので、隠れている間は配置と文字の大きさ合わせを省く
     if (m_editExitButton && !m_editExitButton->isHidden()) relayoutEditExitButton();
     updateMask();
 }

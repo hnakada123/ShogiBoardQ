@@ -49,11 +49,6 @@ MatchSearchTiming ClockTimeSource::snapshot(Turn side, bool pondering) const
     return result;
 }
 
-qint64 ClockTimeSource::elapsedThisTurn(Turn side) const
-{
-    return m_clock->considerationMs(side);
-}
-
 bool ClockTimeSource::finishTurn()
 {
     m_clock->finishTurn();

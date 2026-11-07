@@ -27,13 +27,6 @@ public slots:
     // スピンボックスに値を設定する。
     void setSpinBoxValue(qlonglong value);
 
-signals:
-    // long long型の値が変更されたときにシグナルを送信する。
-    void longLongValueChanged(qlonglong i);
-
-    // 文字列型の値が変更されたときにシグナルを送信する。
-    void textValueChanged(const QString& text);
-
 protected:
     // キーボードイベントを処理する。
     void keyPressEvent(QKeyEvent* event) override;

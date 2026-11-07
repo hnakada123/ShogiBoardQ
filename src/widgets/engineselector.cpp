@@ -131,12 +131,8 @@ void EngineSelector::onCurrentIndexChanged()
 
 void EngineSelector::onSettingsClicked()
 {
-    const std::optional<EngineEntry> engine = selected();
-    if (!engine) {
-        QMessageBox::critical(m_combo->window(), tr("エラー"), tr("将棋エンジンが選択されていません。"));
-        return;
-    }
-    emit settingsRequested(*engine);
+    // ボタンは選べるエンジンがあるときだけ押せる（updateState）
+    if (const std::optional<EngineEntry> engine = selected()) emit settingsRequested(*engine);
 }
 
 void EngineSelector::updateState()

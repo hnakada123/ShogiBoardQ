@@ -1,5 +1,5 @@
 /// @file branchtreeeditcontroller.cpp
-/// @brief 分岐ツリーの右クリックメニューから分岐を編集するコントローラの実装
+/// @brief 分岐の編集（右クリックのメニュー・盤の手の記録・定跡の展開）のコントローラの実装
 
 #include "branchtreeeditcontroller.h"
 #include "branchtreeview.h"

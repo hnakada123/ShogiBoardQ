@@ -1,5 +1,5 @@
 /// @file clicommands_basic.cpp
-/// @brief shogiboardq-cli の即時応答コマンド（version / list-engines / validate-sfen / convert-kifu / render-board）
+/// @brief shogiboardq-cli の即時応答コマンド（version / describe / environment / list-engines / validate-sfen / convert-kifu / render-board）
 
 #include "clicommands.h"
 

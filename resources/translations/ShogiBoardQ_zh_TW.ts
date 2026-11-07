@@ -1012,32 +1012,32 @@
         <translation type="vanished">行棋方</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="152"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="151"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="152"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="151"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="153"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="152"/>
         <source>先手の駒を配置（手番は変更しません）</source>
         <translation>放置先手棋子（不改變行棋方）</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="153"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="152"/>
         <source>後手の駒を配置（手番は変更しません）</source>
         <translation>放置後手棋子（不改變行棋方）</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="228"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="227"/>
         <source>編集終了</source>
         <translation>結束編輯</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="230"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="229"/>
         <source>局面編集を終了し、この局面を開始局面にします</source>
         <translation>結束局面編輯，並將此局面作為初始局面</translation>
     </message>
@@ -2033,14 +2033,14 @@
     <name>ConsiderationPanel</name>
     <message>
         <location filename="../../src/widgets/considerationpanel.cpp" line="162"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="377"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="376"/>
         <source>検討中止</source>
         <translation>停止</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationpanel.cpp" line="162"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="300"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="377"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="299"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="376"/>
         <source>検討開始</source>
         <translation>開始研究</translation>
     </message>
@@ -2051,13 +2051,13 @@
     </message>
     <message>
         <location filename="../../src/widgets/considerationpanel.cpp" line="163"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="301"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="300"/>
         <source>検討を開始します</source>
         <translation>開始分析</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationpanel.cpp" line="186"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="273"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="272"/>
         <source>経過: 0:00</source>
         <translation>已用時：0:00</translation>
     </message>
@@ -2067,82 +2067,81 @@
         <translation>已用時：%1:%2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="241"/>
         <source>検討に使用するエンジンを選択します</source>
-        <translation>選擇用於研究的引擎</translation>
+        <translation type="vanished">選擇用於研究的引擎</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="247"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="246"/>
         <source>エンジン設定</source>
         <translation>引擎設定</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="249"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="248"/>
         <source>選択したエンジンの設定を変更します</source>
         <translation>設定所選引擎</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="254"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="253"/>
         <source>時間無制限</source>
         <translation>不限時</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="256"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="255"/>
         <source>時間制限なしで検討します</source>
         <translation>不限時研究</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="259"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="258"/>
         <source>検討時間</source>
         <translation>研究時間</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="261"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="260"/>
         <source>指定した秒数まで検討します</source>
         <translation>研究至指定秒數</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="267"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="266"/>
         <source>検討時間（秒）を指定します</source>
         <translation>設定研究時間（秒）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="270"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="269"/>
         <source>秒まで</source>
         <translation>秒</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="275"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="274"/>
         <source>検討開始からの経過時間</source>
         <translation>研究開始後的經過時間</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="284"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="283"/>
         <source>候補手の数</source>
         <translation>候選著法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="288"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="287"/>
         <source>%1手</source>
         <translation>%1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="290"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="289"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
         <translation>指定按評價值從高到低顯示的候選著法數量</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="293"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="292"/>
         <source>矢印表示</source>
         <translation>顯示箭頭</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="295"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="294"/>
         <source>最善手の矢印を盤面に表示します</source>
         <translation>在棋盤上顯示最佳著法的箭頭</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="368"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="367"/>
         <source>経過: 000:00</source>
         <translation>已用時：000:00</translation>
     </message>
@@ -2699,12 +2698,12 @@
         <translation type="vanished">收到座標無效的著法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="128"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="127"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation>對手著法：%1（用時：%2 毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="151"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="150"/>
         <source>エンジンに送る局面を作れません</source>
         <translation>無法產生要傳送給引擎的局面</translation>
     </message>
@@ -2713,17 +2712,17 @@
         <translation type="vanished">無法解析來自伺服器的著法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="118"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="117"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>套用著法失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="119"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="118"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>無法將伺服器著法套用到棋盤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="135"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="134"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation>著法已確認：%1（用時：%2 毫秒）</translation>
     </message>
@@ -2740,7 +2739,7 @@
         <translation type="vanished">無法轉換伺服器的著法確認：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="154"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="153"/>
         <source>エンジンが思考中...</source>
         <translation>引擎思考中...</translation>
     </message>
@@ -2749,22 +2748,22 @@
         <translation type="vanished">引擎認輸</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="165"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="164"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>引擎未傳回有效著法</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="171"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="170"/>
         <source>盤面が取得できませんでした</source>
         <translation>無法取得棋盤狀態</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="179"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="178"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>轉換移動棋子種類失敗</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="183"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="182"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA 格式著法：%1</translation>
     </message>
@@ -4832,14 +4831,12 @@
 <context>
     <name>EngineSelector</name>
     <message>
-        <location filename="../../src/widgets/engineselector.cpp" line="136"/>
         <source>エラー</source>
-        <translation>錯誤</translation>
+        <translation type="vanished">錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineselector.cpp" line="136"/>
         <source>将棋エンジンが選択されていません。</source>
-        <translation>尚未選擇將棋引擎。</translation>
+        <translation type="vanished">尚未選擇將棋引擎。</translation>
     </message>
 </context>
 <context>
@@ -10314,7 +10311,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="231"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="230"/>
         <source>エンジンに送る局面を作れません</source>
         <translation>無法產生要傳送給引擎的局面</translation>
     </message>
@@ -10327,72 +10324,72 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">%1（定跡 %2%）</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="372"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="371"/>
         <source>対局中断</source>
         <translation>對局已中斷</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="372"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="371"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎錯誤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="408"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="407"/>
         <source>対局終了</source>
         <translation>對局結束</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="434"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="433"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="434"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="433"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="435"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="434"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="435"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="434"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="441"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="440"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1認輸。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="443"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="442"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1超時。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="445"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="444"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>已達到最大手數。持將棋（和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="447"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="446"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1犯規。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="449"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="448"/>
         <source>千日手が成立しました。</source>
         <translation>千日手成立（重複局面和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="451"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="450"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>%1連續王手千日手。%2獲勝。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="457"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="456"/>
         <source>対局が終了しました。</source>
         <translation>對局已結束。</translation>
     </message>
@@ -12392,7 +12389,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">放置後手棋子（不改變行棋方）</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="662"/>
+        <location filename="../../src/views/shogiview.cpp" line="661"/>
         <source>駒箱</source>
         <translation>棋子盒</translation>
     </message>

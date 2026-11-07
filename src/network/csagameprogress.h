@@ -89,12 +89,11 @@ struct CsaGameProgress {
     UsiGoTimeInput engineTiming(bool pondering, qint64 elapsedThisTurnMs, int marginMs) const;
 
     /**
-     * @brief 着手の棋譜行を組み立てる（盤面の値は呼び出し側が埋める）
+     * @brief 着手の棋譜行の消費時間
      * @param blackMove 先手の手か
-     * @param displayText 表示用の指し手
      * @param consumedMs 消費時間（recordMoveTime の後に呼ぶ）
      */
-    RecordEntry moveRecord(bool blackMove, const QString& displayText, int consumedMs) const;
+    RecordTime moveTime(bool blackMove, int consumedMs) const;
 
     /**
      * @brief サーバーの結果を対局の終局（原因と負けた側）に直す

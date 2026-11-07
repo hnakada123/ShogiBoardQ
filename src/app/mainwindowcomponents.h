@@ -113,7 +113,7 @@ struct MainWindowComponents {
     KifuNavigationState* navState = nullptr;
     LiveGameSession* liveGameSession = nullptr;
     KifuNavigationController* kifuNavController = nullptr;
-    KifuDocument* document = nullptr;                   ///< 開いている棋譜（対局情報・対局の記録・保存先）
+    KifuDocument* document = nullptr;                   ///< 開いている棋譜（対局情報・保存先）
 
     // --- モデル ---
     KifuRecordListModel* kifuRecord = nullptr;

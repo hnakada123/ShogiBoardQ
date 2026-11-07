@@ -509,7 +509,6 @@ void ShogiView::relayoutPieceBoxSideSelector()
 // 描画
 // ============================================================
 
-// 段・筋の番号（罫線と同じ色）
 void ShogiView::drawPieces(QPainter* painter)
 {
     // 段（r）を降順、筋（c）を昇順に走査し、各マスの駒を描画

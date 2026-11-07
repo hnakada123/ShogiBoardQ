@@ -2,7 +2,7 @@
 #define MATCHENGINESEAT_H
 
 /// @file matchengineseat.h
-/// @brief 対局で指すエンジン1台（枠のリース・手番・持ち時間の出どころ・知らせ・終局の手順）
+/// @brief 対局で指すエンジン1台（枠のリース・持ち時間の出どころ・知らせ・終局の手順）
 
 #include <QObject>
 #include <QPointer>

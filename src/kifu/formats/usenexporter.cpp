@@ -6,7 +6,6 @@
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "logcategories.h"
-#include "kifuexportcommon.h"
 #include "usencodec.h"
 
 // ========================================
@@ -25,9 +24,8 @@ QStringList UsenExporter::exportLines(const KifuBranchTree& recordTree, const Ki
     QString terminalCode;
 
     // 本譜の各手（分岐ツリーのノード）をUSEN形式にエンコード
-    const KifuBranchTree* branchTree = &recordTree;
     const QList<KifuBranchNode*> mainLine =
-        (branchTree && !branchTree->isEmpty()) ? branchTree->mainLine() : QList<KifuBranchNode*>();
+        !recordTree.isEmpty() ? recordTree.mainLine() : QList<KifuBranchNode*>();
     for (const KifuBranchNode* node : mainLine) {
         if (node->isTerminal()) {
             terminalCode = TerminalCodes::usen(node->terminalType());
@@ -45,8 +43,8 @@ QStringList UsenExporter::exportLines(const KifuBranchTree& recordTree, const Ki
     usen += QStringLiteral(".") + terminalCode;
 
     // 3) 分岐を追加
-    if (branchTree != nullptr && !branchTree->isEmpty()) {
-        QList<BranchLine> lines = branchTree->allLines();
+    if (!recordTree.isEmpty()) {
+        QList<BranchLine> lines = recordTree.allLines();
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
         for (int lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
             const BranchLine& line = lines.at(lineIdx);
@@ -77,7 +75,7 @@ QStringList UsenExporter::exportLines(const KifuBranchTree& recordTree, const Ki
 
     out << usen;
 
-    const int branchCount = (branchTree != nullptr) ? (branchTree->lineCount() - 1) : 0;
+    const int branchCount = recordTree.lineCount() - 1;
     qCDebug(lcKifu).noquote() << "toUsenLines: generated USEN with"
                               << mainMoves.size() / 3 << "mainline moves,"
                               << branchCount << "variations";

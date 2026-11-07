@@ -333,9 +333,6 @@ void EngineInfoWidget::setModel(EngineStatusModel* m)
 
 void EngineInfoWidget::onStatusChanged()
 {
-    // 表記の設定は実行中に変わる（指し手の書体が変わる）
-    if (MoveFont::font(font()) != m_moveFont) refreshFonts();
-
     // ノード数・NPS は英語の3桁区切り、深さは「深さ/選択的探索の深さ」、ハッシュは百分率
     static const QLocale numbers(QLocale::English);
     const EngineSearchStatus& status = m_model->status();

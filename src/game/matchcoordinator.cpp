@@ -16,7 +16,6 @@
 #include "logcategories.h"
 #include "matchengineseat.h"
 #include "matchrecordsink.h"
-#include "sfenutils.h"
 #include "usiposition.h"
 #include "shogiboard.h"
 #include "shogiclock.h"

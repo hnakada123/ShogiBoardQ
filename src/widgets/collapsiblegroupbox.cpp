@@ -99,8 +99,6 @@ void CollapsibleGroupBox::setExpanded(bool expanded)
 
         m_animationGroup->start();
     }
-
-    emit expandedChanged(expanded);
 }
 
 void CollapsibleGroupBox::onToggleClicked()

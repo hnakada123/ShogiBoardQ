@@ -2,7 +2,7 @@
 #define CLIARGS_H
 
 /// @file cliargs.h
-/// @brief shogiboardq-cli のコマンド共通の引数解釈（局面・エンジン・数値）
+/// @brief shogiboardq-cli のコマンド共通の引数解釈（局面・エンジン）
 
 #include <QJsonObject>
 #include <QString>

@@ -4,7 +4,6 @@
 #include "usiexporter.h"
 #include "terminalcodes.h"
 #include "logcategories.h"
-#include "kifuexportcommon.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "usiposition.h"
@@ -15,10 +14,9 @@
 
 QStringList UsiExporter::exportLines(const KifuBranchTree& recordTree, const KifuExportMetadata& ctx)
 {
-    const KifuBranchTree* tree = &recordTree;
-    if (!tree || tree->isEmpty()) return exportPosition(ctx.startSfen, {});
-    const QList<KifuBranchNode*> line = tree->mainLine();
-    return exportPosition(ctx.startSfen, tree->mainRecordLine().usiMoves(), line.constLast()->terminalType());
+    if (recordTree.isEmpty()) return exportPosition(ctx.startSfen, {});
+    const QList<KifuBranchNode*> line = recordTree.mainLine();
+    return exportPosition(ctx.startSfen, recordTree.mainRecordLine().usiMoves(), line.constLast()->terminalType());
 }
 
 QStringList UsiExporter::exportPosition(const QString& startSfen, const QStringList& usiMoves,

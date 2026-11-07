@@ -3,7 +3,6 @@
 
 #include "automationcommands.h"
 #include "automationdispatcher.h"
-#include "automationparams.h"
 #include "kifufilecontroller.h"
 #include "kifuloadparser.h"
 #include "sfenutils.h"

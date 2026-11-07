@@ -61,20 +61,14 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
     // thirdIdx+1 から fourthIdx までの局面を調べる
     // thirdIdx+1 は3回目の出現の直後（次の手が指された局面）
     for (int i = thirdIdx + 1; i <= fourthIdx; ++i) {
-        if (const auto position = Position::fromSfen(sfenRecord.at(i))) board = *position;
-
-        // 手番を判定
-        const QStringList tokens = sfenRecord.at(i).split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        if (tokens.size() < 2) continue;
-
-        const bool sideToMoveIsBlack = (tokens.at(1) == QLatin1String("b"));
-        const Turn turn = sideToMoveIsBlack
-                                                   ? Turn::Black
-                                                   : Turn::White;
+        const std::optional<Position> position = Position::fromSfen(sfenRecord.at(i));
+        if (!position) continue;
+        board = *position;
+        const Turn turn = board.sideToMove();
 
         // 手番側の玉が王手されているか（= 直前の相手の手が王手）
         const bool inCheck = EngineMoveValidator::isInCheck(board, turn);
-        if (sideToMoveIsBlack) {
+        if (turn == Turn::Black) {
             // 先手番の局面 = 直前に後手が指した
             ++whiteMoves;
             if (inCheck) ++whiteCheckCount;

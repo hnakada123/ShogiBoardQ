@@ -274,11 +274,6 @@ void DialogFontScale::applySize(int size)
     QTimer::singleShot(0, this, &DialogFontScale::updateLayout);
 }
 
-void DialogFontScale::rescale()
-{
-    applySize(m_fontSize->fontSize());
-}
-
 void DialogFontScale::updateLayout()
 {
     // QMessageBox は文の折り返しと大きさ（固定サイズ）を自分で計算し直す

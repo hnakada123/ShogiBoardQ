@@ -137,13 +137,9 @@ UsiGoTimeInput CsaGameProgress::engineTiming(bool pondering, qint64 elapsedThisT
     return timing;
 }
 
-RecordEntry CsaGameProgress::moveRecord(bool blackMove, const QString& displayText, int consumedMs) const
+RecordTime CsaGameProgress::moveTime(bool blackMove, int consumedMs) const
 {
-    RecordEntry entry;
-    entry.displayText = displayText;
-    entry.mover = blackMove ? Turn::Black : Turn::White;
-    entry.time = RecordTime::fromMilliseconds(consumedMs, totalMs(blackMove));
-    return entry;
+    return RecordTime::fromMilliseconds(consumedMs, totalMs(blackMove));
 }
 
 MatchGameEndInfo CsaGameProgress::endInfo(CsaClient::GameResult result, CsaClient::GameEndCause cause) const

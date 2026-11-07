@@ -32,8 +32,6 @@ public:
 
     /// side が思考を始める（pondering なら先読みする）時点の時間の条件。stop を待った後も呼び直し、期限を延ばさない
     virtual MatchSearchTiming snapshot(Turn side, bool pondering) const = 0;
-    /// side の今の手番の考慮時間（手番でなければ 0）
-    virtual qint64 elapsedThisTurn(Turn side) const = 0;
     /// エンジンの指し手を受けて手番の時間を精算する。時間切れなら false
     virtual bool finishTurn() { return true; }
 };
@@ -47,7 +45,6 @@ public:
     void setTiming(const UsiGoTimeInput& timing) { m_timing = timing; }
 
     MatchSearchTiming snapshot(Turn side, bool pondering) const override;
-    qint64 elapsedThisTurn(Turn) const override { return 0; }
 
 private:
     UsiGoTimeInput m_timing;
@@ -60,7 +57,6 @@ public:
     explicit ClockTimeSource(ShogiClock* clock) : m_clock(clock) {}
 
     MatchSearchTiming snapshot(Turn side, bool pondering) const override;
-    qint64 elapsedThisTurn(Turn side) const override;
     bool finishTurn() override;
 
 private:

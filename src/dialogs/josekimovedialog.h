@@ -54,10 +54,10 @@ public:
     JosekiMove entry() const;
 
     /**
-     * @brief 編集対象の定跡手を日本語で表示（編集モード用）
-     * @param japaneseMove 日本語表記の定跡手（例：▲７六歩(77)）
+     * @brief 編集対象の定跡手を出す（編集モード用）
+     * @param moveText 画面の表記の定跡手（JosekiTableModel::moveText。表記の設定に従う）
      */
-    void setEditMoveDisplay(const QString &japaneseMove);
+    void setEditMoveDisplay(const QString &moveText);
 
 public slots:
     void done(int result) override;

@@ -48,7 +48,7 @@ public:
      */
     void setFlipMode(bool flipped);
 
-    /// 盤のマスの大きさ（px。GUI本体の盤に合わせる。範囲外は変えない）
+    /// 盤のマスの大きさ（px。GUI本体の盤に合わせる。範囲外は端に寄せる）
     void setSquareSize(int squareSize);
 
 private slots:

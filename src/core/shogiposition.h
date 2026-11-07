@@ -73,7 +73,6 @@ public:
     /// 盤上の駒を数える
     int countOnBoard(Piece piece) const;
     /// 盤の上の側の玉のマス（なければ無効なマス）
-    BoardSquare kingSquare(Turn side) const;
 
     // --- 持ち駒 ---
     /// 持ち駒の枚数（駒の色が持ち主。成駒は元の駒として数える）
@@ -129,7 +128,7 @@ public:
      * 移動元が空の手・打つ駒がない手（RequireHand のとき）は指さずに false を返す。
      */
     bool apply(const UsiMove& move, DropRule rule = DropRule::RequireHand);
-    /// 手番を mover にしてから指す（棋譜を書き出すときに、記録の手番で指す）
+    /// 手番を mover にしてから指す（手番を指定して局面を組み立てるテストが使う）
     bool applyAs(const UsiMove& move, Turn mover, DropRule rule = DropRule::RequireHand)
     {
         const Turn saved = m_sideToMove;

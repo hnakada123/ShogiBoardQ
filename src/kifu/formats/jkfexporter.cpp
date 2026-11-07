@@ -161,9 +161,8 @@ QStringList JkfExporter::exportLines(const KifuBranchTree& recordTree, const Kif
     // 3) moves（先頭は開始局面。本譜の手順と、分岐点ごとの forks）
     QJsonObject opening;
     QJsonArray movesArray;
-    const KifuBranchTree* tree = &recordTree;
-    if (tree != nullptr && !tree->isEmpty()) {
-        const KifuBranchNode* rootNode = tree->root();
+    if (!recordTree.isEmpty()) {
+        const KifuBranchNode* rootNode = recordTree.root();
         const QJsonArray comments = commentLines(rootNode->comment());
         if (!comments.isEmpty()) opening[QStringLiteral("comments")] = comments;
 
