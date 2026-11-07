@@ -59,7 +59,11 @@ class AppTools:
         text = f"Loaded {result.get('total_plies', 0)} plies"
         if result.get("kifu_file"):
             text += f" from {result['kifu_file']}"
-        return text + ".", result
+        text += "."
+        # A record cut short at an unreadable move must not read as fully loaded (the structured result has them too).
+        if result.get("warnings"):
+            text += "\nWarnings: " + "; ".join(result["warnings"])
+        return text, result
 
     async def save_kifu(self, args: dict[str, Any]) -> Result:
         # The extensions of the application's Save As (kifu.save refuses the position-only .sfen)
