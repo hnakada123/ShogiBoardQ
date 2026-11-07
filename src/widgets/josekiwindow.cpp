@@ -102,6 +102,8 @@ JosekiWindow::JosekiWindow(JosekiBookSession *session, const Actions &actions, Q
     Q_ASSERT(m_actions.display && m_actions.recordBoardMoves && m_actions.boardArrows);
     setAcceptDrops(true);
     setupUi();
+    // 余白とボタンの見た目はダイアログと同じ（作るときに1度だけ。文字の大きさの変更では触らない）
+    DialogUtils::standardizeDialog(this);
     connect(m_session, &JosekiBookSession::modifiedChanged, this, &JosekiWindow::onModifiedChanged);
     connect(m_session, &JosekiBookSession::busyChanged, this, &JosekiWindow::onEditableChanged);
     connect(m_session, &JosekiBookSession::deferredLoadChanged, this, &JosekiWindow::onEditableChanged);
@@ -251,8 +253,6 @@ QWidget *JosekiWindow::buildToolbar()
 void JosekiWindow::setupUi()
 {
     auto *mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(6);
-    mainLayout->setContentsMargins(8, 8, 8, 8);
     mainLayout->addWidget(buildToolbar());
 
     // --- ファイルと局面の情報 ---
@@ -337,9 +337,11 @@ void JosekiWindow::setupUi()
 
 void JosekiWindow::applyFontSize()
 {
-    // メニュー（履歴・マージ・表の右クリック）も DialogUtils が同じ文字にする
-    const QFont font = DialogUtils::applyFontSize(this, m_fontHelper.fontSize());
     const int fontSize = m_fontHelper.fontSize();
+    QFont font = this->font();
+    font.setPointSize(fontSize);
+    // メニュー（履歴・マージ・表の右クリック）も同じ文字にする
+    DialogUtils::applyFontToAllChildren(this, font);
     const QFontMetrics fm(font);
 
     QHeaderView *header = m_tableView->horizontalHeader();
