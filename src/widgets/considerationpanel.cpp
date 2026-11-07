@@ -104,7 +104,7 @@ void ConsiderationPanel::loadEnginesAndSettings()
 {
     // エンジンの一覧（登録順）。保存した選択を復元し、無ければ先頭のエンジン
     EngineSelector::Options engineOptions;
-    engineOptions.keys = EngineListSettings::considerationSelection();
+    engineOptions.keys = EngineSelectionSettings::considerationSelection();
     m_engineSelector = new EngineSelector({m_engineComboBox, m_btnEngineSettings, nullptr}, engineOptions, this);
     connect(m_engineSelector, &EngineSelector::settingsRequested,
             this, &ConsiderationPanel::engineSettingsRequested);

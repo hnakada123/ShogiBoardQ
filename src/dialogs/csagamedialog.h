@@ -5,7 +5,7 @@
 /// @brief CSA対局ダイアログクラスの定義
 
 #include "recentfilelist.h"
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 #include <QDialog>
 #include "networksettings.h"
 #include "settingsformbinding.h"

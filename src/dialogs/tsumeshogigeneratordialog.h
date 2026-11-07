@@ -4,7 +4,7 @@
 /// @file tsumeshogigeneratordialog.h
 /// @brief 詰将棋局面生成ダイアログクラスの定義
 
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 #include "settingsformbinding.h"
 #include <QDateTime>
 #include <QDialog>

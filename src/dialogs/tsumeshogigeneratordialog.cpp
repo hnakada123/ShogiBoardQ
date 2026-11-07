@@ -61,7 +61,7 @@ TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     fitToFont();
     // エンジンの一覧と前回選んだエンジン
     EngineSelector::Options engineOptions;
-    engineOptions.keys = EngineListSettings::tsumeshogiGeneratorSelection();
+    engineOptions.keys = EngineSelectionSettings::tsumeshogiGeneratorSelection();
     m_engineSelector = new EngineSelector({m_settingsUi.engine, m_settingsUi.engineSettings, nullptr}, engineOptions, this);
     connect(m_engineSelector, &EngineSelector::settingsRequested,
             this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);

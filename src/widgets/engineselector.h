@@ -11,7 +11,7 @@
 #include <functional>
 #include <optional>
 
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 
 class QAbstractButton;
 class QComboBox;
@@ -38,7 +38,7 @@ public:
 
     struct Options {
         /// 選択の保存先（name が nullptr なら保存しない）
-        EngineListSettings::SelectionKeys keys;
+        EngineSelectionSettings::SelectionKeys keys;
         /// 空でなければ、先頭に内蔵エンジン（登録エンジン以外）の項目をこの表示名で置く
         QString builtinLabel;
         /// 一覧に出す登録エンジン（空なら全部）

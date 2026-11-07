@@ -57,7 +57,7 @@ private slots:
         QPushButton settingsButton;
         QLabel hint;
         EngineSelector::Options options;
-        options.keys = EngineListSettings::kifuAnalysisSelection();
+        options.keys = EngineSelectionSettings::kifuAnalysisSelection();
         EngineSelector selector({&combo, &settingsButton, &hint}, options, nullptr);
         QCOMPARE(combo.count(), 2);
         QCOMPARE(selector.selected()->name, QStringLiteral("Alpha"));
@@ -77,15 +77,15 @@ private slots:
     void readsLegacyIndex()
     {
         registerEngines({QStringLiteral("Alpha"), QStringLiteral("Beta")});
-        settings().setValue(EngineListSettings::csaGameSelection().legacyIndex, 1);
+        settings().setValue(EngineSelectionSettings::csaGameSelection().legacyIndex, 1);
         QComboBox combo;
         EngineSelector::Options options;
-        options.keys = EngineListSettings::csaGameSelection();
+        options.keys = EngineSelectionSettings::csaGameSelection();
         EngineSelector selector({&combo, nullptr, nullptr}, options, nullptr);
         QCOMPARE(selector.selected()->name, QStringLiteral("Beta"));
         selector.saveSelection();
-        QCOMPARE(settings().value(EngineListSettings::csaGameSelection().name).toString(), QStringLiteral("Beta"));
-        QVERIFY(!settings().contains(EngineListSettings::csaGameSelection().legacyIndex));
+        QCOMPARE(settings().value(EngineSelectionSettings::csaGameSelection().name).toString(), QStringLiteral("Beta"));
+        QVERIFY(!settings().contains(EngineSelectionSettings::csaGameSelection().legacyIndex));
     }
 
     /// エンジンが無ければ設定ボタンを押せず、案内を出す
@@ -107,7 +107,7 @@ private slots:
     {
         registerEngines({QStringLiteral("Alpha"), QStringLiteral("Mate Solver")});
         EngineSelector::Options options;
-        options.keys = EngineListSettings::tsumeCollectionSelection();
+        options.keys = EngineSelectionSettings::tsumeCollectionSelection();
         options.builtinLabel = QStringLiteral("Builtin");
         options.filter = &isMateEngine;
         QComboBox combo;
@@ -132,18 +132,18 @@ private slots:
     {
         registerEngines({QStringLiteral("Mate Solver")});
         EngineSelector::Options options;
-        options.keys = EngineListSettings::tsumeCollectionSelection();
+        options.keys = EngineSelectionSettings::tsumeCollectionSelection();
         options.builtinLabel = QStringLiteral("Builtin");
         options.filter = &isMateEngine;
 
-        settings().setValue(EngineListSettings::tsumeCollectionSelection().legacyPath, QStringLiteral("@hayanagi"));
+        settings().setValue(EngineSelectionSettings::tsumeCollectionSelection().legacyPath, QStringLiteral("@hayanagi"));
         QComboBox builtinCombo;
         EngineSelector builtin({&builtinCombo, nullptr, nullptr}, options, nullptr);
         QVERIFY(builtin.isBuiltinSelected());
 
         settings().clear();
         registerEngines({QStringLiteral("Mate Solver")});
-        settings().setValue(EngineListSettings::tsumeCollectionSelection().legacyPath, QStringLiteral("/engines/Mate Solver"));
+        settings().setValue(EngineSelectionSettings::tsumeCollectionSelection().legacyPath, QStringLiteral("/engines/Mate Solver"));
         QComboBox pathCombo;
         EngineSelector byPath({&pathCombo, nullptr, nullptr}, options, nullptr);
         QCOMPARE(byPath.selected()->name, QStringLiteral("Mate Solver"));

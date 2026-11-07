@@ -1,7 +1,7 @@
-#ifndef ENGINELISTSETTINGS_H
-#define ENGINELISTSETTINGS_H
+#ifndef ENGINESELECTIONSETTINGS_H
+#define ENGINESELECTIONSETTINGS_H
 
-/// @file enginelistsettings.h
+/// @file engineselectionsettings.h
 /// @brief 機能ごとに選んだエンジンの保存（登録エンジンの一覧と検索は RegisteredEngines）
 
 #include <QString>
@@ -10,7 +10,7 @@
 
 #include "registeredengines.h"
 
-namespace EngineListSettings {
+namespace EngineSelectionSettings {
 
 /**
  * @brief 機能ごとに選んだエンジンを保存する場所
@@ -53,6 +53,6 @@ int restorePlayerEngine(const QString& savedName, const char* legacyIndexKey, co
 /// 選んだエンジンの名前を保存する（以前の版の番号・パスは消す）
 void saveSelection(const SelectionKeys& keys, const QString& engineName);
 
-} // namespace EngineListSettings
+} // namespace EngineSelectionSettings
 
-#endif // ENGINELISTSETTINGS_H
+#endif // ENGINESELECTIONSETTINGS_H

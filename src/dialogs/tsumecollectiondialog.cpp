@@ -48,7 +48,7 @@ TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
     const auto preferences = TsumeshogiSettings::collectionPreferences();
     // 判定エンジン: 内蔵の Hayanagi か、登録した KomoringHeights（未保存なら登録したものを優先する）
     EngineSelector::Options engineOptions;
-    engineOptions.keys = EngineListSettings::tsumeCollectionSelection();
+    engineOptions.keys = EngineSelectionSettings::tsumeCollectionSelection();
     engineOptions.builtinLabel = tr("Hayanagi（内蔵・%1手まで）").arg(TsumePositionAnalyzer::kBuiltInMaxPlies);
     engineOptions.filter = &isMateEngine;
     m_engineSelector = new EngineSelector({m_engine, nullptr, nullptr}, engineOptions, this);

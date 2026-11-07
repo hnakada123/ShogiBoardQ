@@ -12,7 +12,7 @@
 #include <QTemporaryDir>
 #include <QTranslator>
 
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 #include "analysissettings.h"
 #include "applicationfonts.h"
 #include "settingscommon.h"
@@ -82,7 +82,7 @@ private slots:
     void timeSettingsAndIsolation()
     {
         registerEngines();
-        EngineListSettings::saveSelection(EngineListSettings::considerationSelection(), QStringLiteral("Hayanagi 1.5.0"));
+        EngineSelectionSettings::saveSelection(EngineSelectionSettings::considerationSelection(), QStringLiteral("Hayanagi 1.5.0"));
         ConsiderationSettings consideration;
         consideration.unlimitedTime = true;
         consideration.byoyomiSec = 87;
@@ -116,10 +116,10 @@ private slots:
         QTRY_COMPARE(dialog.result(), int(QDialog::Accepted));
         QCOMPARE(dialog.timeLimitMs(), 35000);
         QCOMPARE(AnalysisSettings::tsumeSearchTimeLimitSec(), 35);
-        QCOMPARE(settings().value(QString::fromLatin1(EngineListSettings::tsumeSearchSelection().name)).toString(),
+        QCOMPARE(settings().value(QString::fromLatin1(EngineSelectionSettings::tsumeSearchSelection().name)).toString(),
                  QStringLiteral("YaneuraOu Mate — long engine name for selection and tooltip"));
         QVERIFY(!AnalysisSettings::tsumeSearchUnlimitedTime());
-        QCOMPARE(settings().value(QString::fromLatin1(EngineListSettings::considerationSelection().name)).toString(),
+        QCOMPARE(settings().value(QString::fromLatin1(EngineSelectionSettings::considerationSelection().name)).toString(),
                  QStringLiteral("Hayanagi 1.5.0"));
         QCOMPARE(AnalysisSettings::consideration(), consideration);
 
@@ -158,7 +158,7 @@ private slots:
         QCOMPARE(dialog.result(), int(QDialog::Rejected));
         QCOMPARE(AnalysisSettings::tsumeSearchTimeLimitSec(), 42);
         QVERIFY(!AnalysisSettings::tsumeSearchUnlimitedTime());
-        QVERIFY(!settings().contains(QString::fromLatin1(EngineListSettings::tsumeSearchSelection().name)));
+        QVERIFY(!settings().contains(QString::fromLatin1(EngineSelectionSettings::tsumeSearchSelection().name)));
         QCOMPARE(AnalysisSettings::tsumeSearchFontSize(), 11);
         TsumeShogiSearchDialog restored;
         QCOMPARE(restored.size(), dialog.size());

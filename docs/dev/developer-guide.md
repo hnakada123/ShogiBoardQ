@@ -123,7 +123,7 @@
 | 2026-10-23 | 人間の考慮時間は対局時計の値を正本にした（監査3章）のに合わせて §6 を更新（人間対人間だけが `QElapsedTimer` で測って時計を上書きしていたのをやめ、`MatchStrategyHost::recordConsiderationTime`・`GameModeStrategy::armTurnTimerIfNeeded`・`disarmTurnTimer` を削除した。待ったは時計の `undo()` だけで戻す） |
 | 2026-10-23 | 局面編集の規則を対局の盤から分けた（監査3章）のに合わせて §6・§13 を更新（`ShogiGameController::editPosition`・`switchPiecePromotionStatusOnRightClick` と game の `PieceMoveRules` を削除し、board の `PositionEditRules`（`apply()`・`canMove()`）にした。必成は `ShogiBoard` が `PieceRules::isDeadSquare` で行うので `shouldAutoPromote` と `updateBoardAndPieceStand` の `promote` 引数を消した。右クリックの成・不成は盤の `promoteOrDemotePiece()` を直接呼ぶ） |
 | 2026-10-23 | 対局中に要る値だけを持つようにした（監査3章）のに合わせて §6 を更新（`MatchGameOverState`（テストだけが読む `hasLast`・`moveAppended`・`when`）を廃し、`MatchCoordinator::gameEnd()`（`std::optional<GameEndInfo>`）にした。`clearGameOverState()` は `clearGameEnd()` に改名。`MatchSessionState` は開始の手順を持たず、書くだけだった `MatchStartOptions::resumeFromBreakOff` を削除。再開は中断までの手順の最後の局面から盤を作る） |
-| 2026-10-23 | 登録エンジンの扱いを1つにした（監査3章）のに合わせて §7・§11・第18章を更新（`EngineEntry` と一覧の検索を値型 `RegisteredEngines`（`src/services/registeredengines.h`。`load()`・`findByName()`・`findByPath()`・`indexOfName()`・`indexOfPath()`）にし、`EngineListSettings` は機能ごとの選択の保存だけにした（`loadEngines`・`indexOfName`・`indexOfPath`・`pathForName`・`nameForPath` を削除。`EngineListSettings` と `EngineProfileStore` が include し合わない）。エンジンが報告したオプションは `UsiLineParser::parseOption()` が直接 `EngineOption` にし、`UsiOptionDeclaration` を削除した） |
+| 2026-10-23 | 登録エンジンの扱いを1つにした（監査3章）のに合わせて §7・§11・第18章を更新（`EngineEntry` と一覧の検索を値型 `RegisteredEngines`（`src/services/registeredengines.h`。`load()`・`findByName()`・`findByPath()`・`indexOfName()`・`indexOfPath()`）にし、`EngineSelectionSettings` は機能ごとの選択の保存だけにした（`loadEngines`・`indexOfName`・`indexOfPath`・`pathForName`・`nameForPath` を削除。`EngineSelectionSettings` と `EngineProfileStore` が include し合わない）。エンジンが報告したオプションは `UsiLineParser::parseOption()` が直接 `EngineOption` にし、`UsiOptionDeclaration` を削除した） |
 | 2026-10-23 | 「成れた手か」の判定と KI2 の表記を1つにした（監査3章）のに合わせて §5・§8 を更新（`KifMoveText::couldPromote` は `PieceRules::couldPromote` を使い、`Ki2MoveNotation::Annotation::canPromote` を削除した。`Ki2MoveNotation::format` は `KifMoveText::format`（`Notes::withoutSource`・`dropMarkFromModifier`）で文字列を作る） |
 | 2026-10-23 | USEN の符号を `UsiMove` で受け渡すようにした（監査3章）のに合わせて §8 を更新（`UsenCodec::encodeMove(UsiMove)`・`decodeMove()` は `std::optional<UsiMove>`、手順は `decodeLines()` が "~" で1回だけ分けて `UsenLine` の列にする。`decodeMoves`・`UsenDecodeResult`・`UsenToSfenConverter::parseUsenString`（"~0." で組み直していた）を削除） |
 | 2026-10-23 | `ShogiBoard` の公開を絞った（監査3章）のに合わせて §5 を更新（局面を変えるのは置き換え・指し手・局面編集の3つの操作だけにし、駒台の増減・駒の移動の部品を非公開にした。src から呼ばれず局面を変えても知らせない `flipSides()` を削除） |
@@ -203,7 +203,7 @@
 | 2026-11-03 | 盤を使う表示の部品を views に移した（監査 2026-11-01 P1）のに合わせて §1.5・§3.1・§3.2・§11.1.2・第17章・第18章を更新（`BoardViewerWidget`・`TsumePositionPreview` を widgets から views へ移し、層の順を「widgets → views」にした（views は widgets の `ElideLabel`・`GlobalToolTip` を使い、widgets は views を使わない。`tst_layer_dependencies` の widgets の行に views を足した）。筋・段の文字の描き方は `BoardStaticLayer::drawCoordinates()` の1つにし、`ShogiView::drawRanksAndFiles` とプレビューの写しを消した） |
 | 2026-11-03 | 棋譜ファイルの絞り込みを kifu に移した（監査 2026-11-01 P2）のに合わせて §1.5・§8.8 を更新（`KifuFileFilter` は QtWidgets を使わず、kifu の拡張子の表（`KifuFormats::saveTargets()`）が翻訳の文脈に指定しているので、widgets から kifu へ移した。使う側（dialogs の `KifuSaveDialogs`・`CsaGameDialog`・`JosekiImportDialog`、ui の `KifuFileController`・`JosekiMergeController`）は include を変えずにそのまま使う） |
 | 2026-11-03 | headless の部品の説明を直し、棋譜解析の依頼の名前を変えた（監査 2026-11-01 P3・P4）のに合わせて §1.5・§9.3・§9.6・第18章・付録を更新（`KifuConversionService`・`EngineCatalog`・`MateSearchRunner`・`TsumeVerificationRunner`・`SfenValidationJson` は今は CLI だけが使う（自動化 API にはエンジンを受け取るメソッドがない）。core〜analysis だけを使う部品なので headless に置いたまま、「自動化 API と共有」の記述を直した。棋譜解析の依頼 `AnalysisRequest` を `KifuAnalysisRequest` に改名（検討の `AnalysisOptions` と紛らわしかった）） |
-| 2026-11-03 | 設定のキーの定数を使う .cpp に入れた（監査 2026-11-01 P6）のに合わせて §1.5・第12章（関数として書く項目）・第17章を更新（`settingskeys.h` を消した。列幅の配列のキーは `analysissettings.cpp`、名前を付けたドックのレイアウトのグループは `docksettings.cpp` の無名名前空間の定数、機能ごとのエンジンの選択のキーは `enginelistsettings.cpp` の各関数の中の文字にした。テストは `EngineListSettings::csaGameSelection()` などの宣言から読む） |
+| 2026-11-03 | 設定のキーの定数を使う .cpp に入れた（監査 2026-11-01 P6）のに合わせて §1.5・第12章（関数として書く項目）・第17章を更新（`settingskeys.h` を消した。列幅の配列のキーは `analysissettings.cpp`、名前を付けたドックのレイアウトのグループは `docksettings.cpp` の無名名前空間の定数、機能ごとのエンジンの選択のキーは `engineselectionsettings.cpp` の各関数の中の文字にした。テストは `EngineSelectionSettings::csaGameSelection()` などの宣言から読む） |
 | 2026-11-03 | 以前の版の値の引き継ぎを設定の関数に移した（監査 2026-11-01 P7）のに合わせて第12章（関数として書く項目）・§1.5 を更新（思考の表と定跡ウィンドウの列の数が変わった列幅は `AnalysisSettings::thinkingViewColumnWidths()`・`JosekiSettings::josekiWindowColumnWidths()`（列の番号は設定の側の定数で、表の部品が `static_assert` で照らす）、持将棋の点数ダイアログの小さい保存サイズは `GameSettings::jishogiScoreDialogSize()`（最小の大きさ `kJishogiScoreDialogMinimumSize`）、詰将棋生成の偶数の目標手数は `TsumeshogiSettings::upgradeLegacyGeneratorTargetMoves()`、問題一覧の以前の版のファイルは `TsumeshogiSettings::lastCollectionFile()`。解く画面の設定の使われていない `lastFile`・`problemIndex` を消した。`josekisettings.cpp`・`tsumeshogisettings.cpp` を足した） |
 | 2026-11-04 | エンジン同士の連続対局の途中の局で終局の知らせを待たないようにした（監査 2026-11-01 U4）のに合わせて §4.3・§6.2・§10.5 を更新（`MatchCoordinator::gameOverMessage` は `GameSession::showGameOverMessage` につなぎ、次の局が残っていれば `NotificationPresenter::Wait::No` で出して次の局へ進め、前の局の知らせは閉じる。`NotificationPresenter::information()` は待たずに出したメッセージボックスを返す） |
 | 2026-11-04 | USEN に千日手を `j` で書かないようにした（監査 2026-11-01 U7）のに合わせて §8.9 を更新（USEN の仕様に千日手の符号は無く、作者の実装は `j` を宣言勝ちとして読むので、千日手・連続王手の千日手は書けない終局にした（`TerminalCodes::usen` が空。保存の確認で知らせる）。`j` は持将棋だけで、読むと持将棋（引き分け）） |
@@ -729,7 +729,7 @@ src/
 │   ├── engineprofilestore.cpp/.h   #   登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所
 │   ├── engineoption.h              #   USIオプション1つの値（EngineOption）
 │   ├── registeredengines.cpp/.h    #   登録エンジンの一覧と名前・実行ファイルでの検索（EngineEntry・RegisteredEngines）
-│   ├── enginelistsettings.cpp/.h   #   機能ごとに選んだエンジンの保存
+│   ├── engineselectionsettings.cpp/.h   #   機能ごとに選んだエンジンの保存
 │   ├── apppaths.h                  #   設定・データ・キャッシュの置き場所
 │   ├── applicationtranslations.cpp/.h # 起動時の言語と翻訳の読み込み
 │   ├── notationstyle.cpp/.h        #   表示言語と棋譜の表記の設定（NotationStyle。ApplicationTranslations が決め、KifuPresentation が読む）
@@ -4045,7 +4045,7 @@ USI プロトコルの `option` コマンドで報告される情報を格納す
 
 登録ハンドラは登録一覧を `RegisteredEngines` の値で持ち（`engines()`）、検索（`findByPath`）と登録名の規則（`uniqueName`）は GUI・CLI・自動化 API と同じ関数を使う。登録したエンジンの設定ダイアログは `ChangeEngineSettingsDialog::showFor(engine, parent)` で開く（エンジンを選ぶ部品 `EngineSelector` の「設定」を受けるダイアログ・検討タブも同じ）。
 
-エンジン情報とオプション値は `QSettings`（INI ファイル）に配列で保存される。配列やグループを開いたまま読み書きするため、ほかの設定のような宣言の表（§12.5）は使わない。この保存形式を知るのは `EngineProfileStore`（`src/services/engineprofilestore.h`）だけで、登録ダイアログ（`EngineRegistrationHandler`）・設定ダイアログ（`EngineSettingsOptionHandler`）・エンジンの起動（`UsiEngineSession`）はその関数（`saveEngines()`・`loadOptions()`・`saveOptions()`・`removeEngine()`・`launchOptions()` など）を使い、設定ファイルを開かない。登録一覧を読むときは `EngineListSettings::loadEngines()` を使う。
+エンジン情報とオプション値は `QSettings`（INI ファイル）に配列で保存される。配列やグループを開いたまま読み書きするため、ほかの設定のような宣言の表（§12.5）は使わない。この保存形式を知るのは `EngineProfileStore`（`src/services/engineprofilestore.h`）だけで、登録ダイアログ（`EngineRegistrationHandler`）・設定ダイアログ（`EngineSettingsOptionHandler`）・エンジンの起動（`UsiEngineSession`）はその関数（`saveEngines()`・`loadOptions()`・`saveOptions()`・`removeEngine()`・`launchOptions()` など）を使い、設定ファイルを開かない。登録一覧を読むときは `EngineSelectionSettings::loadEngines()` を使う。
 
 ```
 [Engines]
@@ -6409,7 +6409,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 
 エンジンを選ぶ画面に共通の処理を1か所にまとめた部品である。
 部品は呼び出し側が置き（.ui の部品でもよい。objectName は変わらない）、`Widgets{combo, settingsButton, hint}` で結ぶ。コンボは必須で、ほかは無ければ `nullptr`。
-`Options` には選択の保存先 `keys`（`EngineListSettings::SelectionKeys`。設定の詳細は `settings-service.md` の7章）、内蔵エンジンの項目の表示名 `builtinLabel`（空なら置かない）、一覧に出す登録エンジンの絞り込み `filter` を渡す。
+`Options` には選択の保存先 `keys`（`EngineSelectionSettings::SelectionKeys`。設定の詳細は `settings-service.md` の7章）、内蔵エンジンの項目の表示名 `builtinLabel`（空なら置かない）、一覧に出す登録エンジンの絞り込み `filter` を渡す。
 
 | 操作 | 内容 |
 |---|---|
@@ -6427,7 +6427,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 
 使う画面は次のとおり。
 
-| 画面 | 保存先（`EngineListSettings`） | 「設定」の受け手 |
+| 画面 | 保存先（`EngineSelectionSettings`） | 「設定」の受け手 |
 |---|---|---|
 | `KifuAnalysisDialog` | `kifuAnalysisSelection()` | ダイアログ自身 |
 | `TsumeShogiSearchDialog` | `tsumeSearchSelection()` | ダイアログ自身 |
@@ -9490,7 +9490,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | EngineInfoWidget | C | widgets | 思考の表の上のエンジン情報の帯（項目の幅は書体だけで決める） | 第11章 |
 | EngineLease | C | game | 枠のエンジンを使う権利（move-only。`EngineSlots::acquire()` が返し、手放すと枠を空ける） | 第6章 |
 | EngineSlots | C | game | エンジンの枠 E1・E2 の生成・起動・破棄と手番との対応（対局・検討・棋譜解析・通信対局で共有。使う側には `EngineLease` を渡し、取り上げたら `engineRevoked`） | 第6章 |
-| EngineListSettings | NS | services | 登録エンジン一覧の検索（名前・パス）と機能ごとに選んだエンジンの保存 | 第7章 |
+| EngineSelectionSettings | NS | services | 登録エンジン一覧の検索（名前・パス）と機能ごとに選んだエンジンの保存 | 第7章 |
 | EngineMoveValidator | C | core | 合法手判定・合法手の一覧 | 第2章, 第5章 |
 | EngineOptionDescriptions | C | engine | USIエンジンオプション説明データベース | 第7章 |
 | EnginePosition | C | core | エンジン内部の局面データ（`fmv` の合法手生成が使う） | 第5章 |

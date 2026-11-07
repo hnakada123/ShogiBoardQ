@@ -62,7 +62,7 @@ set(SETTINGS_SOURCES
     ${SRC}/services/gamesettings.cpp
     ${SRC}/services/josekisettings.cpp
     ${SRC}/services/tsumeshogisettings.cpp
-    ${SRC}/services/enginelistsettings.cpp
+    ${SRC}/services/engineselectionsettings.cpp
     ${SRC}/services/registeredengines.cpp
     ${SRC}/services/engineprofilestore.cpp
 )
@@ -444,7 +444,7 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/services/enginelistsettings.cpp
+    ${SRC}/services/engineselectionsettings.cpp
     ${SRC}/services/registeredengines.cpp
     ${SRC}/services/engineprofilestore.cpp
     ${SRC}/services/gamesettings.cpp
@@ -477,7 +477,7 @@ add_shogi_test(tst_engineprofilestore
     ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/services/enginelistsettings.cpp
+    ${SRC}/services/engineselectionsettings.cpp
     ${SRC}/services/registeredengines.cpp
     ${SRC}/services/engineprofilestore.cpp
     ${SRC}/services/settingscommon.cpp

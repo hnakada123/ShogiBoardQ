@@ -20,7 +20,7 @@
 #include "networksettings.h"
 #include "tsumeshogisettings.h"
 #include "appearancesettings.h"
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 #include "settingscommon.h"
 #include <QSettings>
 
@@ -521,21 +521,21 @@ private slots:
         const RegisteredEngines engines(entries);
         const RegisteredEngines reordered({entries.at(2), entries.at(0), entries.at(1)});
         QSettings& s = SettingsCommon::openSettings();
-        for (const auto& keys : {EngineListSettings::considerationSelection(), EngineListSettings::kifuAnalysisSelection(),
-                                 EngineListSettings::tsumeSearchSelection(),
-                                 EngineListSettings::tsumeshogiGeneratorSelection()}) {
+        for (const auto& keys : {EngineSelectionSettings::considerationSelection(), EngineSelectionSettings::kifuAnalysisSelection(),
+                                 EngineSelectionSettings::tsumeSearchSelection(),
+                                 EngineSelectionSettings::tsumeshogiGeneratorSelection()}) {
             s.remove(QString::fromLatin1(keys.name));
             if (keys.legacyIndex) s.setValue(keys.legacyIndex, 1);
             if (keys.legacyPath) s.setValue(keys.legacyPath, QStringLiteral("/engines/b"));
-            QCOMPARE(EngineListSettings::restoreSelection(keys, engines), 1);  // 以前の版の保存（B）
+            QCOMPARE(EngineSelectionSettings::restoreSelection(keys, engines), 1);  // 以前の版の保存（B）
 
-            EngineListSettings::saveSelection(keys, QStringLiteral("B"));
+            EngineSelectionSettings::saveSelection(keys, QStringLiteral("B"));
             if (keys.legacyIndex) QVERIFY(!s.contains(keys.legacyIndex));
             if (keys.legacyPath) QVERIFY(!s.contains(keys.legacyPath));
-            QCOMPARE(EngineListSettings::restoreSelection(keys, reordered), 2);  // 並びが変わっても B
+            QCOMPARE(EngineSelectionSettings::restoreSelection(keys, reordered), 2);  // 並びが変わっても B
 
-            EngineListSettings::saveSelection(keys, QStringLiteral("removed"));
-            QCOMPARE(EngineListSettings::restoreSelection(keys, engines), -1);
+            EngineSelectionSettings::saveSelection(keys, QStringLiteral("removed"));
+            QCOMPARE(EngineSelectionSettings::restoreSelection(keys, engines), -1);
         }
     }
 

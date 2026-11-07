@@ -59,7 +59,7 @@ struct ConsiderationSettings {
     static constexpr int kMaxByoyomiSec = 3600;
     static constexpr int kMaxMultiPV = 10;
 
-    /// 検討に使うエンジン（登録名。保存は検討タブのエンジンの選択 EngineListSettings::considerationSelection）
+    /// 検討に使うエンジン（登録名。保存は検討タブのエンジンの選択 EngineSelectionSettings::considerationSelection）
     QString engineName;
     bool unlimitedTime = true;   ///< 時間無制限で検討する
     int byoyomiSec = 20;         ///< 時間を決めるときの1局面の検討時間（秒）
