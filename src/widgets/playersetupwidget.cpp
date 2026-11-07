@@ -171,20 +171,10 @@ void PlayerSetupWidget::load()
 {
     m_humanName->setText(m_saved.humanName.valueOr(tr("You")));
     const RegisteredEngines& engines = m_selector->engines();
-    int index = -1;
-    if (!m_saved.isHuman()) {
-        const QString name = m_saved.engineName();
-        if (!name.isEmpty()) {
-            // 保存したエンジンが削除されていれば人間に戻す（別のエンジンに替えない）
-            index = engines.indexOfName(name);
-        } else {
-            // 名前の無い以前の版は番号・パスで探す。何も保存していなければ先頭の登録エンジン
-            index = EngineListSettings::restoreSelection({nullptr, m_saved.engineNumber.key(),
-                                                          m_saved.enginePath.key()},
-                                                         engines);
-            if (index < 0 && !engines.isEmpty()) index = 0;
-        }
-    }
+    // 保存したエンジンが削除されていれば人間に戻す
+    const int index = m_saved.isHuman() ? -1
+        : EngineListSettings::restorePlayerEngine(m_saved.engineName(), m_saved.engineNumber.key(),
+                                                  m_saved.enginePath.key(), engines);
     if (index >= 0) m_selector->select(engines.entries().at(index).name);
     else m_selector->selectBuiltin();
     setJosekiOptions(JosekiSettings::playOptions(m_side)());

@@ -70,6 +70,15 @@ int EngineListSettings::restoreSelection(const SelectionKeys& keys, const Regist
     return -1;
 }
 
+int EngineListSettings::restorePlayerEngine(const QString& savedName, const char* legacyIndexKey,
+                                            const char* legacyPathKey, const RegisteredEngines& engines)
+{
+    if (!savedName.isEmpty()) return engines.indexOfName(savedName);
+    const int index = restoreSelection({nullptr, legacyIndexKey, legacyPathKey}, engines);
+    if (index >= 0) return index;
+    return engines.isEmpty() ? -1 : 0;
+}
+
 void EngineListSettings::saveSelection(const SelectionKeys& keys, const QString& engineName)
 {
     QSettings& settings = SettingsCommon::openSettings();
