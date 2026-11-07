@@ -1240,6 +1240,55 @@ private slots:
         QCOMPARE(outcome.record.mainline.startSfen, QStringLiteral("8k/9/9/9/9/9/9/9/8K b R2G2p 1"));
     }
 
+    // 読めない開始局面は別の局面にせず、棋譜全体を読めなかったことにする（監査 2026-11-07 F3）
+    void unreadableStartPosition_failsTheRecord_data()
+    {
+        const auto diagram = [](const QString& firstRow, const QString& blackHands) {
+            return QStringLiteral(
+                "後手の持駒：なし\n"
+                "  ９ ８ ７ ６ ５ ４ ３ ２ １\n"
+                "+---------------------------+\n") + firstRow + QStringLiteral("\n"
+                "| ・ ・ ・ ・ ・ ・ ・ ・ ・|二\n"
+                "| ・ ・ ・ ・ ・ ・ ・ ・ ・|三\n"
+                "| ・ ・ ・ ・ ・ ・ ・ ・ ・|四\n"
+                "| ・ ・ ・ ・ ・ ・ ・ ・ ・|五\n"
+                "| ・ ・ ・ ・ ・ ・ ・ ・ ・|六\n"
+                "| ・ ・ ・ ・ ・ ・ ・ ・ ・|七\n"
+                "| ・ ・ ・ ・ ・ ・ ・ ・ ・|八\n"
+                "| ・ ・ ・ ・ ・ ・ ・ ・ 玉|九\n"
+                "+---------------------------+\n"
+                "先手の持駒：") + blackHands + QStringLiteral("\n手数----指手---------消費時間--\n   1 投了\n");
+        };
+        const QString king = QStringLiteral("| ・ ・ ・ ・ ・ ・ ・ ・v玉|一");
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QString>("reason");
+        const QString diagramReason = QStringLiteral("board diagram");
+        QTest::newRow("sanity-readable") << diagram(king, QStringLiteral("金")) << QString();
+        QTest::newRow("unknown-piece") << diagram(QStringLiteral("| ・ ・ ・ ・ ・ ・ X銀 ・v玉|一"), QStringLiteral("金")) << diagramReason;
+        QTest::newRow("short-row") << diagram(QStringLiteral("| ・ ・ ・ ・ ・ ・ ・v玉|一"), QStringLiteral("金")) << diagramReason;
+        QTest::newRow("long-row") << diagram(QStringLiteral("| ・ ・ ・ ・ ・ ・ ・ ・ ・v玉|一"), QStringLiteral("金")) << diagramReason;
+        QTest::newRow("gote-mark-without-piece") << diagram(QStringLiteral("| ・ ・ ・ ・ ・ ・ ・ ・ v|一"), QStringLiteral("金")) << diagramReason;
+        QTest::newRow("missing-rank") << diagram(king, QStringLiteral("金")).remove(QStringLiteral("| ・ ・ ・ ・ ・ ・ ・ ・ ・|五\n")) << diagramReason;
+        QTest::newRow("unknown-piece-in-hand") << diagram(king, QStringLiteral("金　X二")) << diagramReason;
+        QTest::newRow("king-in-hand") << diagram(king, QStringLiteral("玉")) << diagramReason;
+        const QString moves = QStringLiteral("手数----指手---------消費時間--\n   1 ７六歩(77)\n");
+        const QString unknownHandicap = QStringLiteral("unknown handicap");
+        QTest::newRow("unknown-handicap") << QStringLiteral("手合割：九枚落ち\n") + moves << unknownHandicap;
+        QTest::newRow("other-without-diagram") << QStringLiteral("手合割：その他\n") + moves << unknownHandicap;
+        // 局面図があれば手合割の名前は使わない
+        QTest::newRow("other-with-diagram") << QStringLiteral("手合割：その他\n") + diagram(king, QStringLiteral("金")) << QString();
+        QTest::newRow("empty-handicap") << QStringLiteral("手合割：\n") + moves << QString();
+    }
+
+    void unreadableStartPosition_failsTheRecord()
+    {
+        QFETCH(QString, text);
+        QFETCH(QString, reason);
+        const KifuParseOutcome outcome = KifTextParser::parseKif(text);
+        QCOMPARE(outcome.success, reason.isEmpty());
+        QVERIFY2(outcome.warning.contains(reason), qPrintable(outcome.warning));
+    }
+
     // 2手目以降で相手の駒を動かす手は読まない（以前は手番をずらしたまま読んでいた）
     void movingTheOpponentsPiece_isRejected()
     {

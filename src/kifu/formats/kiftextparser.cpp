@@ -62,14 +62,26 @@ QStringList startPositionLines(const QStringList& lines, Dialect dialect)
     return result;
 }
 
-/// 開始局面（局面図、なければ手合割と手番の行）。lines は startPositionLines の行。kind にはその書き方を入れる
-Position initialPosition(const QStringList& lines, StartKind* kind)
+/**
+ * @brief 開始局面（局面図、なければ手合割と手番の行）
+ *
+ * 開始局面が違うと以後の手がすべて意味を失うので、読めなければ report を失敗にする（戻り値は使わない）。
+ * @param lines startPositionLines の行
+ * @param kind 開始局面の書き方を入れる
+ */
+Position initialPosition(const QStringList& lines, StartKind* kind, const QString& tag, ParseReport& report)
 {
     Position bod;
-    if (KifLexer::readBodPosition(lines, bod)) {
+    switch (KifLexer::readBodPosition(lines, bod)) {
+    case KifLexer::BodRead::Read:
         *kind = StartKind::Diagram;
         qCDebug(lcKifu).noquote() << "BOD detected. sfen =" << bod.toSfen();
         return bod;
+    case KifLexer::BodRead::Unreadable:
+        report.fail(QStringLiteral("%1: the board diagram could not be read.").arg(tag));
+        return bod;
+    case KifLexer::BodRead::NotFound:
+        break;
     }
 
     // 手合割の行は「手合割：」「手合：」で始まる行だけ（コメントや対局者名の中の「手合割：」は読まない。
@@ -86,8 +98,9 @@ Position initialPosition(const QStringList& lines, StartKind* kind)
         }
     }
     *kind = found.isEmpty() ? StartKind::Default : StartKind::Handicap;
-    // 書かれていない・知らない手合割の名前は平手にする
+    // 手合割が書かれていなければ平手。知らない名前（局面図のない「その他」も）は開始局面が分からない
     const Handicaps::Handicap* handicap = Handicaps::byLabel(name);
+    if (!name.isEmpty() && !handicap) report.fail(QStringLiteral("%1: unknown handicap: %2").arg(tag, name));
     Position initial = handicap ? Position::fromSfen(QString::fromLatin1(handicap->sfen)).value_or(Position::hirate())
                                 : Position::hirate();
     // 局面図がなくても、明示された手番を優先する（駒落ちは上手番・下手番と書く）。
@@ -305,7 +318,12 @@ KifuParseOutcome parse(QStringView text, Dialect dialect, const ParseOptions& op
 
     KifParseResult& record = outcome.record;
     {
-        KifLineBuilder main(initialPosition(startPositionLines(lines, dialect), &outcome.startKind));
+        const Position start = initialPosition(startPositionLines(lines, dialect), &outcome.startKind, tag, report);
+        if (report.failed()) {
+            outcome.warning = report.warnings();
+            return outcome;
+        }
+        KifLineBuilder main(start);
         BlockReader reader(dialect, report, main);
         reader.allowStartTurnCorrection();
         if (!reader.read(lines, 0, boundaries.first())) {
@@ -345,7 +363,8 @@ KifuParseOutcome parseBod(QStringView text)
 {
     KifuParseOutcome outcome;
     Position position;
-    if (!KifLexer::readBodPosition(startPositionLines(text.toString().split(QLatin1Char('\n')), Dialect::Kif), position)) {
+    if (KifLexer::readBodPosition(startPositionLines(text.toString().split(QLatin1Char('\n')), Dialect::Kif), position)
+        != KifLexer::BodRead::Read) {
         outcome.warning = QStringLiteral("BOD: the board diagram could not be read.\n");
         return outcome;
     }

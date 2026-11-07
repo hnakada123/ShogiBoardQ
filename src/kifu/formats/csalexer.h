@@ -35,12 +35,13 @@ bool isTurnMarker(const QString& token);
 
 // === P行（初期局面）解析 ===
 
-/// P1..P9 行を盤に適用
+/// P1..P9 行を盤に適用。読めない駒があるか9マスでなければ false
 bool applyPRowLine(const QString& raw, Position& board);
 
 /**
  * @brief P+/P- 行を盤・駒台に適用
  * @param allRemainingTo 00AL（残りの駒すべて）を指定した側。最初の 00AL だけを覚える
+ * @return 読めない駒・マスがあるか、持駒に玉を置く行なら false
  */
 bool applyPPlusMinusLine(const QString& raw, Position& board, std::optional<Turn>& allRemainingTo);
 
@@ -49,7 +50,8 @@ void giveRemainingPiecesTo(Position& board, Turn side);
 
 // === 開始局面解析 ===
 
-/// CSA開始局面（PI/P1..P9/P+/P-/+/-）を盤に組み立てる（手番は "+"・"-" の行か最初の指し手の符号）
+/// CSA開始局面（PI/P1..P9/P+/P-/+/-）を盤に組み立てる（手番は "+"・"-" の行か最初の指し手の符号）。
+/// 読めない行があれば false（飛ばすと別の局面になる）
 bool parseStartPos(const QStringList& lines, int& idx, Position& board);
 
 // === 指し手解析 ===

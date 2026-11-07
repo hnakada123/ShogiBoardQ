@@ -574,6 +574,41 @@ private slots:
     // 異常入力テスト: 未知の特殊結果文字列
     // ========================================
 
+    /// 開始局面の読めない行は飛ばさず、棋譜全体を読めなかったことにする（監査 2026-11-07 F3）
+    void parse_unreadableStartPosition_data()
+    {
+        const QByteArray rows = "P2 * -HI *  *  *  *  * -KA * \n"
+                                "P3-FU-FU-FU-FU-FU-FU-FU-FU-FU\n"
+                                "P4 *  *  *  *  *  *  *  *  * \n"
+                                "P5 *  *  *  *  *  *  *  *  * \n"
+                                "P6 *  *  *  *  *  *  *  *  * \n"
+                                "P7+FU+FU+FU+FU+FU+FU+FU+FU+FU\n"
+                                "P8 * +KA *  *  *  *  * +HI * \n"
+                                "P9+KY+KE+GI+KI+OU+KI+GI+KE+KY\n";
+        QTest::addColumn<QByteArray>("text");
+        QTest::newRow("short-row") << "P1-KY-KE-GI-KI-OU-KI-GI-KE\n" + rows + "+\n";
+        QTest::newRow("unknown-piece-on-row") << "P1-KY-KE-GI-KI-OU-KI-GI-KE-XX\n" + rows + "+\n";
+        QTest::newRow("unknown-piece-in-place-line") << QByteArray("PI\nP+55XX\n+\n");
+        QTest::newRow("bad-square") << QByteArray("PI\nP+5AFU\n+\n");
+        QTest::newRow("truncated-place-line") << QByteArray("PI\nP+55F\n+\n");
+        QTest::newRow("king-in-hand") << QByteArray("PI\nP+00OU\n+\n");
+    }
+
+    void parse_unreadableStartPosition()
+    {
+        QFETCH(QByteArray, text);
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_badstart_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write(text);
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        QVERIFY(!KifuFile::parse<KifuFormat::Csa>(tmp.fileName(), result, &warn));
+        QVERIFY2(warn.contains(QStringLiteral("start position")), qPrintable(warn));
+    }
+
     void parse_unknownSpecialMove()
     {
         QTemporaryFile tmp;
@@ -739,9 +774,9 @@ private slots:
         QTest::newRow("PI-six-piece-handicap")
             << QByteArray("PI82HI22KA11KY91KY21KE81KE\n-\n")
             << QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
-        // 持駒の成駒は生駒にし、玉は持駒にしない
-        QTest::newRow("hand-promoted-and-king")
-            << QByteArray("P-51OU\nP+59OU00TO00UM00OU\n+\n")
+        // 持駒の成駒は生駒にする（持駒の玉は読まない。parse_unreadableStartPosition）
+        QTest::newRow("hand-promoted")
+            << QByteArray("P-51OU\nP+59OU00TO00UM\n+\n")
             << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b BP 1");
         // 00AL は盤上と両者の持駒にない駒（玉を除く）を、指定した側の持駒にする
         QTest::newRow("AL-white-after-board-and-hands")
