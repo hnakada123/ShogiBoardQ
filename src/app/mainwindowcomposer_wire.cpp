@@ -20,7 +20,7 @@
 #include "errorbus.h"
 #include "docklayoutmanager.h"
 #include "evaluationchartwidget.h"
-#include "csagamesession.h"
+#include "csagameuicontroller.h"
 #include "enginedisplaypresenter.h"
 #include "evaluationgraphpresenter.h"
 #include "gameinfopane.h"
@@ -167,13 +167,13 @@ void MainWindowComposer::connectGame()
             session, &GameSession::startNextGame);
     connect(session, &GameSession::gameStarting, m_c.engineDisplay, &EngineDisplayPresenter::clearEngineLogs);
 
-    // 通信対局（棋譜と動作状態は司令塔が受け手と動作状態に書く。開始・終局の画面は CsaGameSession）。
+    // 通信対局（棋譜と動作状態は司令塔が受け手と動作状態に書く。開始・終局の画面は CsaGameUiController）。
     // 盤で選んだ手は BoardMoveController が対局中の窓口（CsaGameChannel）からサーバーへ送り、着手のハイライトは
     // ローカル対局と同じく棋譜の表示中の手から出る
     CsaGameCoordinator* csa = m_c.csaGame;
     connect(csa, &CsaGameCoordinator::engineMovePlayed, m_c.evalGraph, &EvaluationGraphPresenter::plotEngineScore);
     connect(csa, &CsaGameCoordinator::matchEngineStarted, m_c.engineDisplay, &EngineDisplayPresenter::showMatchEngine);
-    connect(m_c.csaSession, &CsaGameSession::gameStarting, m_c.engineDisplay, &EngineDisplayPresenter::clearEngineLogs);
+    connect(m_c.csaUi, &CsaGameUiController::gameStarting, m_c.engineDisplay, &EngineDisplayPresenter::clearEngineLogs);
     connect(csa, &CsaGameCoordinator::errorOccurred, m_c.notifications, &NotificationPresenter::displayErrorMessage);
     CsaLogPanel* csaLog = m_c.csaLog;
     connect(csa, &CsaGameCoordinator::connectionStateChanged, csaLog, &CsaLogPanel::setConnected);
@@ -228,7 +228,7 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.kifuFiles = m_c.kifuFileController;
     md.clipboard = m_c.kifuClipboard;
     md.session = m_c.gameSession;
-    md.csaSession = m_c.csaSession;
+    md.csaUi = m_c.csaUi;
     md.menuWindow = m_c.menuWindowController;
     md.analysis = analysis;
     md.positionEdit = m_c.positionEdit;

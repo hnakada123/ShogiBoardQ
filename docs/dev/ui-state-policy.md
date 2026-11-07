@@ -49,7 +49,7 @@ Idle ──PositionEditSession::begin()─────────────�
 ```
 
 CSA通信対局のリースは、ローカル対局の `MatchCoordinator` と同じく司令塔の `CsaGameCoordinator` が持つ。待機ダイアログの
-キャンセル（`CsaGameSession::onWaitingCancelled()`）・対局が始まらなかったとき・「新規」は、司令塔の `stopGame()` が Idle に戻す。
+キャンセル（`CsaGameUiController::onWaitingCancelled()`）・対局が始まらなかったとき・「新規」は、司令塔の `stopGame()` が Idle に戻す。
 
 ## ポリシー（Policy）
 
@@ -176,7 +176,7 @@ MatchCoordinator::resumeAvailabilityChanged ──► refreshResumeAvailability(
     → stop() → リースを手放す（Idle） → considerationModeEnded
 ```
 
-**注意**: CSA通信対局は `CsaGameCoordinator`（エンジンのエラーは `MatchEngineSeat::errorOccurred` → `onEngineError()`）と `CsaGameSession` が独自にエラー管理するため、`MatchCoordinator::handleEngineError()` では対象外。
+**注意**: CSA通信対局は `CsaGameCoordinator`（エンジンのエラーは `MatchEngineSeat::errorOccurred` → `onEngineError()`）と `CsaGameUiController` が独自にエラー管理するため、`MatchCoordinator::handleEngineError()` では対象外。
 
 ## 設計上の注意点
 

@@ -51,7 +51,7 @@ class AnalysisSession;
 class KifuAnalysisSession;
 class ConsecutiveGameSeries;
 class CsaGameCoordinator;
-class CsaGameSession;
+class CsaGameUiController;
 class EngineSlots;
 class GameSession;
 class OperationPolicy;
@@ -160,7 +160,7 @@ struct MainWindowComponents {
     ConsecutiveGameSeries* consecutiveGames = nullptr;
     CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局の司令塔
     GameSession* gameSession = nullptr;                 ///< 対局の利用者の操作と棋譜の受け手
-    CsaGameSession* csaSession = nullptr;               ///< 通信対局の開始と画面への反映
+    CsaGameUiController* csaUi = nullptr;               ///< 通信対局の開始と画面への反映
     std::unique_ptr<GameChannels> gameChannels;
     std::unique_ptr<OperationPolicy> operationPolicy;
     std::unique_ptr<SessionResetCoordinator> sessionReset;

@@ -6,7 +6,7 @@
 
 #include "analysissession.h"
 #include "boardinteractioncontroller.h"
-#include "csagamesession.h"
+#include "csagameuicontroller.h"
 #include "docklayoutmanager.h"
 #include "dockregistry.h"
 #include "dialoglauncher.h"
@@ -85,7 +85,7 @@ void wireGameMenu(const Deps& d)
     GameSession* session = d.session;
     DialogLauncher* dialogs = d.dialogs;
     QObject::connect(ui->actionStartGame, &QAction::triggered, session, &GameSession::startGameFromDialog);
-    QObject::connect(ui->actionCSA, &QAction::triggered, d.csaSession, &CsaGameSession::openGameDialog);
+    QObject::connect(ui->actionCSA, &QAction::triggered, d.csaUi, &CsaGameUiController::openGameDialog);
     QObject::connect(ui->actionResign, &QAction::triggered, session, &GameSession::resign);
     QObject::connect(ui->actionUndoMove, &QAction::triggered, session, &GameSession::undoTwoMoves);
     QObject::connect(ui->actionMakeImmediateMove, &QAction::triggered, session, &GameSession::makeEngineMoveNow);
@@ -147,7 +147,7 @@ void wireHelpMenu(const Deps& d)
 
 void wire(const Deps& d)
 {
-    Q_ASSERT(d.ui && d.actions && d.dialogs && d.kifuFiles && d.clipboard && d.session && d.csaSession && d.menuWindow && d.analysis
+    Q_ASSERT(d.ui && d.actions && d.dialogs && d.kifuFiles && d.clipboard && d.session && d.csaUi && d.menuWindow && d.analysis
              && d.positionEdit && d.kifuAnalysis && d.tsumeSearch && d.appearance && d.images
              && d.boardController && d.pieceSound && d.settingsReset && d.dockLayout && d.language);
     wireFileMenu(d);

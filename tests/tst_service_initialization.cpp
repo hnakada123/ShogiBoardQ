@@ -10,7 +10,7 @@
 #include "mainwindowactions.h"
 #include "mainwindowcomposer.h"
 #include "csagamecoordinator.h"
-#include "csagamesession.h"
+#include "csagameuicontroller.h"
 #include "analysissession.h"
 #include "engineslots.h"
 #include "gamesession.h"
@@ -196,7 +196,7 @@ private slots:
         QCOMPARE(window.findChildren<BoardSyncPresenter*>().size(), 1);
         QCOMPARE(window.findChildren<BoardMoveController*>().size(), 1);
         QCOMPARE(window.findChildren<CsaGameCoordinator*>().size(), 1);
-        QCOMPARE(window.findChildren<CsaGameSession*>().size(), 1);
+        QCOMPARE(window.findChildren<CsaGameUiController*>().size(), 1);
         QCOMPARE(window.findChildren<PositionEditSession*>().size(), 1);
         QCOMPARE(window.findChildren<PvClickController*>().size(), 1);
         QCOMPARE(window.findChildren<KifuAnalysisController*>().size(), 1);

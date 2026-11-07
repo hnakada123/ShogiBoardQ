@@ -7,7 +7,7 @@
 namespace Ui { class MainWindow; }
 class AnalysisSession;
 class BoardInteractionController;
-class CsaGameSession;
+class CsaGameUiController;
 class DialogLauncher;
 class DockLayoutManager;
 class DockRegistry;
@@ -45,7 +45,7 @@ struct Deps {
     KifuFileController* kifuFiles = nullptr;           ///< 開く・保存・貼り付け・棋譜と局面のコピー
     KifuClipboardController* clipboard = nullptr;      ///< コピー
     GameSession* session = nullptr;                    ///< 対局の開始・投了・中断・待った・即指し
-    CsaGameSession* csaSession = nullptr;              ///< 通信対局の接続ダイアログ
+    CsaGameUiController* csaUi = nullptr;              ///< 通信対局の接続ダイアログ
     MenuWindowController* menuWindow = nullptr;        ///< メニューウィンドウの表示の切り替え
     AnalysisSession* analysis = nullptr;               ///< 詰み探索の中止
     PositionEditSession* positionEdit = nullptr;   ///< 局面編集の終了

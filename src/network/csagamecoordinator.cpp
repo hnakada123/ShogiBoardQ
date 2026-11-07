@@ -416,7 +416,7 @@ void CsaGameCoordinator::endGame(CsaClient::GameResult result, CsaClient::GameEn
         }
     }
 
-    // 結果の表示（ステータスバー・ダイアログ）は gameEnded を受ける ui の CsaGameSession が出す
+    // 結果の表示（ステータスバー・ダイアログ）は gameEnded を受ける ui の CsaGameUiController が出す
     qCInfo(lcNetwork) << "Game ended:" << result << cause;
     // 対局の段階だけを変え、動作状態は棋譜を確定してから変える（MatchCoordinator と同じ順）
     m_phase = Phase::Ended;

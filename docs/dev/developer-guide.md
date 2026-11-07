@@ -145,8 +145,8 @@
 | 2026-10-23 | 名前を役割に合わせた（監査3章）のに合わせて §6・§8・§10・§15・§17・§19 を更新（`KifuLoadCoordinator` を kifu の `KifuLoader` に、`KifuSaveCoordinator` を dialogs の `KifuSaveDialogs` にし、`AboutCoordinator` を削除。未保存の確認は棋譜と定跡で `UnsavedChangesPrompt::ask()`。`LanguageController` は言語の `QActionGroup` の data で言語を受ける） |
 | 2026-10-23 | 小さな修正と使われていないコードの削除（監査4章）に合わせて §6・§8・§9・§12・§14 を更新（`NotationUtils`・`ConsiderationPositionResolver`（`KifuNavigationState::currentUsiPosition()` に）・`CliPosition`・`ShogiGameController::validateAndMove`・`MatchCoordinator::clock`・`ErrorBus::postError` などを削除。矢印の寸法は `ArrowMetrics`、定跡の取り込みの勝敗は `RecordEntry::winner()`、手番の印は `ShogiNotation::isTurnMark`。詰将棋のワーカーは止めるときに待たない。棋譜解析の表の詰みは「3手詰」） |
 | 2026-10-23 | 監査4章で残した名残を片づけたのに合わせて §8・§9・§16・第18章を更新（中身が1行だけの `KifToSfenConverter`・`Ki2ToSfenConverter` を削除し、KIF・KI2 は `KifTextParser::parseKif()`・`parseKi2()`。テストだけが使っていた `ShogiEngineThinkingModel::appendRow`・`MenuButtonWidget::dragStarted` を削除。QObject でないクラス・名前空間の文言は `Q_DECLARE_TR_FUNCTIONS`・`QCoreApplication::translate` で自分の文脈にした（§16.8）。詰将棋の生成は終わるときに件数の内訳をログに出す） |
-| 2026-10-29 | 置き場所と名前を責務に合わせた（監査 2026-10-29 の4章）のに合わせて §1.5・§1.6・§3.1・§3.2・§6・§8・§10・§13・§14・第18章・付録を更新（navigation 層をなくして `KifuNavigationController` を `ui/controllers/` へ。`ui/coordinators/` には `CsaGameSession`・`CommentCoordinator` だけを残し、`KifuFileController`・`DialogLauncher` は `ui/controllers/`、`UiStatePolicyManager`・`OperationPolicy` は `ui/policy/`、`DockRegistry`・`DockLayoutManager` は `ui/docks/` へ。エンジンの枠を engine の `EngineSlots` に改名。SFEN の検査を core の `SfenValidator`（JSON は headless の `SfenValidationJson`）に、局面集ファイルを kifu に。盤面画像 `BoardImageRenderer` を cli へ、自動化 API の接続先を headless の `AutomationEndpoint` へ。自動化 API のメソッドを名前空間ごとのファイルに分け直した。`MenuWindow` を widgets へ移し、独立ウィンドウの名残（`menuWindowSize` など）を消した。`KifReader`→`KifuTextDecoder`、`JkfMoveParser`→`JkfCodec`、`BoardImageExporter`→`WidgetImageExporter`（`ui/controllers/`）、`startgamedatabridge.h`→`startgamedialogdata.h`。司令塔だけが使う型を `matchcoordinator.h` にまとめた） |
-| 2026-10-30 | 通信対局の流れをローカル対局と同じ仕組みにした（監査 2026-10-29 の T1）のに合わせて §1.5・§1.6・§6.1〜§6.5・§6.7・§6.9・§8.5・§8.9・§10.2・§10.4・§10.5・§12.1・§12.3・§12.4・§12.8・§14.4・§15.1・§15.5・付録を更新（`CsaGameCoordinator` も `setRecordSink()` で棋譜の受け手 `GameSession` を受け取り、開始で `MatchRecordSink::beginRecord()`、着手と終局で `appendRecord()`、終局で `finishRecord()` を呼ぶ。動作状態 `DuringCsaGame` も司令塔が持ち、シグナル `recordEntryReady` と `GameSession` の `onCsa*` をなくした。ローカル対局の終局も `MatchCoordinator` が `finishRecord()` を呼ぶ。評価値・エラー・通信ログ・盤の手の接続を `CsaGameSession` から合成ルートの `connectGame()` へ移した。時間の決まりを `MatchStartOptions::time` に入れ、`MatchCoordinator::start()` が盤の手番で時計に入れる（`TimeControlUtil`・`matchtimesettings.h`・`MatchStartOptions::sfenStart` を削除）） |
+| 2026-10-29 | 置き場所と名前を責務に合わせた（監査 2026-10-29 の4章）のに合わせて §1.5・§1.6・§3.1・§3.2・§6・§8・§10・§13・§14・第18章・付録を更新（navigation 層をなくして `KifuNavigationController` を `ui/controllers/` へ。`ui/coordinators/` には `CsaGameUiController`・`CommentCoordinator` だけを残し、`KifuFileController`・`DialogLauncher` は `ui/controllers/`、`UiStatePolicyManager`・`OperationPolicy` は `ui/policy/`、`DockRegistry`・`DockLayoutManager` は `ui/docks/` へ。エンジンの枠を engine の `EngineSlots` に改名。SFEN の検査を core の `SfenValidator`（JSON は headless の `SfenValidationJson`）に、局面集ファイルを kifu に。盤面画像 `BoardImageRenderer` を cli へ、自動化 API の接続先を headless の `AutomationEndpoint` へ。自動化 API のメソッドを名前空間ごとのファイルに分け直した。`MenuWindow` を widgets へ移し、独立ウィンドウの名残（`menuWindowSize` など）を消した。`KifReader`→`KifuTextDecoder`、`JkfMoveParser`→`JkfCodec`、`BoardImageExporter`→`WidgetImageExporter`（`ui/controllers/`）、`startgamedatabridge.h`→`startgamedialogdata.h`。司令塔だけが使う型を `matchcoordinator.h` にまとめた） |
+| 2026-10-30 | 通信対局の流れをローカル対局と同じ仕組みにした（監査 2026-10-29 の T1）のに合わせて §1.5・§1.6・§6.1〜§6.5・§6.7・§6.9・§8.5・§8.9・§10.2・§10.4・§10.5・§12.1・§12.3・§12.4・§12.8・§14.4・§15.1・§15.5・付録を更新（`CsaGameCoordinator` も `setRecordSink()` で棋譜の受け手 `GameSession` を受け取り、開始で `MatchRecordSink::beginRecord()`、着手と終局で `appendRecord()`、終局で `finishRecord()` を呼ぶ。動作状態 `DuringCsaGame` も司令塔が持ち、シグナル `recordEntryReady` と `GameSession` の `onCsa*` をなくした。ローカル対局の終局も `MatchCoordinator` が `finishRecord()` を呼ぶ。評価値・エラー・通信ログ・盤の手の接続を `CsaGameUiController` から合成ルートの `connectGame()` へ移した。時間の決まりを `MatchStartOptions::time` に入れ、`MatchCoordinator::start()` が盤の手番で時計に入れる（`TimeControlUtil`・`matchtimesettings.h`・`MatchStartOptions::sfenStart` を削除）） |
 | 2026-10-30 | 棋譜解析の実行と局面の列の実行器を1つにした（監査 2026-10-29 の T2）のに合わせて §1.5・§7.5・§7.7・§7.11・§9.1〜§9.3・§9.6・§9.7・§9.10・§10.3・付録を更新（棋譜解析の実行は analysis の `KifuAnalysisSession`（エンジンと動作状態のリース）に移し、`KifuAnalysisController` は画面だけにした。GUI の棋譜解析と CLI の analyze・analyze-kifu は analysis の `EngineAnalysisRunner`（借りた `UsiEngineSession` を使う。候補手の数と bestmove を待つ上限は依頼で決める）を共有し、送る局面は `RecordLine::usiPositions()` で作る。`AnalysisJob` を消し、`EngineAnalysisRunner` を headless から analysis へ移した。検討中の局面送りも開始局面からの手順にし、詰み探索の手番合わせは `MateSearchPosition`（`Position` で合わせる）にして `TsumePositionUtil` を消した） |
 | 2026-10-30 | 盤と指し手の部品の責務を分けた（監査 2026-10-29 の T3）のに合わせて §1.5・§1.6・§3.1・§3.2・§3.3・§3.5・§4.1・§4.2・§4.5・§5.2・§5.4・§6.1〜§6.3・§6.6〜§6.9・§6.11・§7.1・§8.9・§8.11・§10.2〜§10.4・§10.6・§12.3・§12.6・§12.8・§13.5・§13.6・§14.2〜§14.4・§15.2・§15.5・§18.3・§18.4 を更新（`ShogiGameController` を `GameBoard` に改名し、盤のクリックを手にする処理と成りの尋ね方を board の `BoardInteractionController::moveFromClick()`・`setPromotionChooser()` へ移して詰将棋を解く画面と共有した（`prepareMove`・`endDragSignal` を削除。ドラッグは盤の操作が行き先から戻った後に終える）。盤と手番だけを使う部品は `ShogiBoard` を受け取る。棋譜の1行の組み立てを kifu の `MoveRecord::play()` に1つにして棋譜の読み込みと対局の着手で使う。局面編集の操作を board の `PositionEditRules`（`Position` を変える関数 `moved`・`cycled`・`cleared`）へ移し、`ShogiBoard` は局面の包みと、変わった所だけを知らせる `replacePosition()` だけにした（`applyUsiMove`・`updateBoardAndPieceStand`・`promoteOrDemotePiece`・`resetGameBoard`・`setPieceAt` を削除）） |
 | 2026-10-30 | 対局情報の規則に持ち主を置いた（監査 2026-10-29 の T4）のに合わせて §1.5・§3.4・§5.6・§5.7・§8.9・§10.2・第18章を更新（`KifuExportMetadataBuilder` をやめ、対局者の見出し・手合割の値は kifu の `GameInfo`（`playerKey`・`playerSide`・`playerName`・`usesHandicapNames`・`handicapLabel`・`isHandicap`）に。平手・駒落ちの判定は core の `Handicaps::of`・`ofStart`・`isHirate` にまとめ、`SfenUtils::isHirateStart`・`Handicaps::bySfen`・`byBoard` を削除。「無制限」は `TimeControlText` が書き、読む（`kUnlimited`・`Parsed::unlimited`）。対局情報の見出しは `GameInfoKeys` に `QT_TRANSLATE_NOOP` で持ち、`KifuPresentation::infoKey` はその表 `kTranslated` を引く。書き出しの文脈 `KifuExportMetadata` から対局者 `players` を外し、CSA の `N+`・`N-` も対局情報だけから書く） |
@@ -154,11 +154,11 @@
 | 2026-10-30 | 盤の矢印を出すかの正本を1つにした（監査 2026-10-29 の T6）のに合わせて §1.5・§7.4・§7.5・§7.7・§9.5・§10.2〜§10.4・§11.2・§12.5・§14.2・§15.4・付録を更新（手番側・先読み側・検討・定跡手の4つの切り替えは ui の `BoardArrowActions` の checkable な `QAction`（設定の復元と保存もここ。検討の矢印も `AnalysisSettings::considerationArrowsVisible` に保存する）。思考ドック・検討タブ・定跡ウィンドウのチェックと「表示」メニューはそれに結び、`CandidateArrowPresenter` はそれだけを読む。対局の矢印は E1・E2 の思考の表の最新の最善の読み筋から作り、探索中か・先読みかはプロトコルの状態（`isSearching()`・`searchKind()`）、先読みの予想手は読み筋の局面に至った手で決める。`UsiProtocolHandler::SearchCandidate`・`Usi::searchCandidate`・`searchCandidateChanged`・`ConsiderationSettings::showArrows`・`ThinkingPanel::arrowSettingsChanged` を削除） |
 | 2026-10-30 | 外観と駒音の置き場所と外観の持ち主を整理した（監査 2026-10-29 の T7）のに合わせて §1.5・§1.6・§12.5・付録を更新（外観の部品 `BoardAppearance`・`AppearanceState`・`PieceImageProvider`・`PieceStyleCatalog`・`BoardAppearanceCatalog`・`BoardColorPresets`・`BoardColors`・`BoardVisuals` を services・common から style へ移し、外観の設定は style の `AppearanceSettings` にした。駒のセット・配色・見た目の持ち主は `BoardAppearance` 1つ（`state()`・`apply()`・`pieceStyleChanged`）で、`PieceImageProvider` は駒の画像の解決とキャッシュだけ。駒音の `PieceSoundPlayer`・`PieceSoundProcessor` は ui/presenters へ移し、駒音の設定ダイアログは値をシグナルで知らせるだけにした。外観のテーマのコンボ（`BoardColorPresets::themes()`）をやめ、「墨と榧」「琥珀」はおすすめの組み合わせ「標準・墨と榧」「標準・琥珀」にした（26種類。見本を6つ足した）。外観ダイアログは `BoardAppearanceDialog` に改名し、見本の描画を `BoardAppearanceSamples` に出した） |
 | 2026-10-30 | 棋譜の保存の経路と保存形式の表を1つにした（監査 2026-10-29 の T8）のに合わせて §1.5・§8.1・§8.8・§8.9・§8.12・付録を更新（`KifuIoService` を `KifuSaveFile` にまとめた。拡張子の表 `KifuFormats::saveTargets()` が形式・文字コード `KifuEncoding`・保存の見出しを持ち、保存ダイアログの絞り込みは `KifuFileFilter::forSaving()`・`pathForSaving()` で表から作る。書き出しの文脈 `KifuExportMetadata::encoding` で先頭行の文字コードの宣言を書き、保存のときに文字列を置き換えない。`KifuSaveFile::write` は行を作る関数 `(format, encoding)` を受け、Shift_JIS への変換は1回だけ。CLI・自動化 API の形式の選択肢は `KifuFormats::savableNames()`。定跡ファイルの拡張子と絞り込みは `JosekiBookFile::hasBookSuffix`・`withBookSuffix`・`fileFilter`） |
-| 2026-10-30 | 画面の流れの持ち主をそろえた（監査 2026-10-29 の M1〜M4）のに合わせて §4.4・§6.5・§6.9・§10.4・§10.5・§13.6・§14.3・§14.5・§14.6・§15.5・§16.5・第18章を更新（ui・app の知らせは静的な `NotificationPresenter::information`・`warning`・`critical` で出す（`Wait::No` で待たない）。結果を使う部品が自分でダイアログを開く（CSA 通信対局は `CsaGameSession::openGameDialog()`、局面集は `KifuFileController::openSfenCollection()`、メニューウィンドウは `MenuWindowController::toggleWindow()`）。「新規」の止める手順は `MainWindowActions::startNewRecord()` に移し、`GameSession` は対局の後始末 `abandonGame()` だけを持つ。メニューの項目の接続は排他の組と保存したレイアウトの一覧を除いて `MenuActionsWiring` に集め、チェックできる項目は設定を持つ部品の値から始める（`DockLayoutManager::wireMenuActions()`・`PositionEditSession::EditActions` を消した） |
+| 2026-10-30 | 画面の流れの持ち主をそろえた（監査 2026-10-29 の M1〜M4）のに合わせて §4.4・§6.5・§6.9・§10.4・§10.5・§13.6・§14.3・§14.5・§14.6・§15.5・§16.5・第18章を更新（ui・app の知らせは静的な `NotificationPresenter::information`・`warning`・`critical` で出す（`Wait::No` で待たない）。結果を使う部品が自分でダイアログを開く（CSA 通信対局は `CsaGameUiController::openGameDialog()`、局面集は `KifuFileController::openSfenCollection()`、メニューウィンドウは `MenuWindowController::toggleWindow()`）。「新規」の止める手順は `MainWindowActions::startNewRecord()` に移し、`GameSession` は対局の後始末 `abandonGame()` だけを持つ。メニューの項目の接続は排他の組と保存したレイアウトの一覧を除いて `MenuActionsWiring` に集め、チェックできる項目は設定を持つ部品の値から始める（`DockLayoutManager::wireMenuActions()`・`PositionEditSession::EditActions` を消した） |
 | 2026-10-30 | エンジンと設定の規則の置き場所をそろえた（監査 2026-10-29 の M5・M6・M10・M17）のに合わせて §1.5・§7.9・§9.5・§10.4・§11.2・§11.3・§12.5・第18章を更新（エンジンの登録は登録一覧を `RegisteredEngines` で持ち、検索 `findByPath`・登録名の規則 `uniqueName`・パスの正規化 `canonicalPath` を共有する。エンジンの設定ダイアログは `ChangeEngineSettingsDialog::showFor()` で開く。検討の条件の値 `ConsiderationSettings` を services の `analysissettings.h` に移し、`AnalysisSettings::consideration`（`StructSetting`）で保存する。対局開始の時間の換算と以前の版の開始局面の番号は `gamesettings.cpp` の `Player::time()`・`setTime()`・`startingPosition()`・`setStartingPosition()`） |
 | 2026-10-30 | ウィジェットの共通の部品を足した（監査 2026-10-29 の M7・M8・M16・M18）のに合わせて §1.5・§7.8・§9.8・§11.2・§11.5・§12.5・§13.1・§14.5・第18章を更新（局面送りの6つのボタンは widgets の `StepButtons` が作り、説明は `KifuNavigationController::bindButtons(const StepButtons*)` が `QAction` の文から付ける。列幅は表の見出しに付けた `ColumnWidthMemory` が、利用者がドラッグした列だけを覚えて保存する（0 は自動、正の値は利用者の幅。保存した幅を最小値として扱わない。保存は `ListSetting<int>` にそろえ、棋譜解析の結果と対局情報の以前の版の形は初めて読むときに移す）。`TableHeaderView` はマウスの操作の処理の中で変わった列だけを利用者の操作として知らせる。ドックのパネルの小さなボタンの大きさは `PanelButton::setup()`、A-/A+ は `FontSizeControl` が決める。コメント欄の未更新の確認は `CommentCoordinator` が `UnsavedChangesPrompt`（保存・破棄・キャンセル）で出す） |
 | 2026-10-30 | 盤の大きさと ShogiView の残りの持ち主を整えた（監査 2026-10-29 の M9・M11）のに合わせて §11.1・§13.6 を更新（マスの幅の範囲は core の `BoardSquareSize` に置き、`AppSettings::squareSize`・`GameSettings::sfenCollectionSquareSize` は `BoundedSetting`。`ShogiView` はコンストラクタで設定を読まず、本体の盤の大きさは `MainWindowAppearanceController` が読み、変わるたびに保存する。読み筋盤は本体の盤の今の大きさで開く（`PvBoardDialog::setSquareSize()`）。矢印の型は `ShogiViewHighlighting::Arrow` に移し、`ShogiView::setArrows()`・`arrows()` の転送を消した。駒箱の先後の正本は `PositionEditSession`） |
-| 2026-10-30 | 通信対局と局面の文字列の規則の置き場所を整えた（監査 2026-10-29 の M12〜M15）のに合わせて §1.5・§2.3・§5.7・§7.7・§8.2・§8.11・§10.2・§10.5・§12.2・§15.5・第18章を更新（Game_Summary は値 `CsaGameSummary`（持時間は `CsaGameSummary::Time`）と読み取り器 `CsaGameSummaryReader`、`csaclient_parser.cpp`・`_commands.cpp` は `csaclient.cpp` に戻した。ログインの規則は `CsaLogin`、結果の表示名は `CsaGameSession::resultText`・`causeText`。評価値の向きの直しは `UsiScore::blackView`・`viewedBy`。position コマンド・局面の文字列の語の分け方は `UsiPosition::split` だけで、`SfenUtils::normalizeStart`・`normalizePositionLikeSfen` は `UsiPosition::sfenOf` に、`UsiToSfenConverter::parseUsiPositionString` は消した） |
+| 2026-10-30 | 通信対局と局面の文字列の規則の置き場所を整えた（監査 2026-10-29 の M12〜M15）のに合わせて §1.5・§2.3・§5.7・§7.7・§8.2・§8.11・§10.2・§10.5・§12.2・§15.5・第18章を更新（Game_Summary は値 `CsaGameSummary`（持時間は `CsaGameSummary::Time`）と読み取り器 `CsaGameSummaryReader`、`csaclient_parser.cpp`・`_commands.cpp` は `csaclient.cpp` に戻した。ログインの規則は `CsaLogin`、結果の表示名は `CsaGameUiController::resultText`・`causeText`。評価値の向きの直しは `UsiScore::blackView`・`viewedBy`。position コマンド・局面の文字列の語の分け方は `UsiPosition::split` だけで、`SfenUtils::normalizeStart`・`normalizePositionLikeSfen` は `UsiPosition::sfenOf` に、`UsiToSfenConverter::parseUsiPositionString` は消した） |
 | 2026-10-30 | 名残と小さな修正（監査 2026-10-29 の5章）に合わせて §1.5・§7.9・§8.2・§8.5・§12.5・§13.8・第18章を更新（ノードの行 `KifuBranchNode::record()` は読むだけにし、書き換えはツリー・組み立て・文書だけ。`KifuBranchTree::setComment`・`hasBranch`、`RecordLine::displayTexts`、`SfenReplay::applyLenient` の公開、`settingsservice.h`・`enginesettingsconstants.h` を消した。登録エンジンの保存形式のキーは `EngineProfileStore` の中、オプションの型の語は `EngineOption::kType*`、キーのエスケープは `SettingsCommon::escapeKey`） |
 | 2026-11-01 | ShogiHome との棋譜の相互読み込みの検証で直した点に合わせて `KifLineBuilder` の表を更新（持ち駒にない駒・駒のあるマスへの駒打ちは全形式で反則の記録として指し、`lastIrregularity()`・`warnIrregularity()` で警告する。CSA も `Lenient`） |
 | 2026-11-02 | 棋譜を移って・変えてよいかの規則を1つにした（監査 2026-11-01 T2）のに合わせて §3.4・§6.9・§13.1・§14.3 を更新（`OperationPolicy::canBrowseRecord()`（`UiStatePolicyManager` の表の `WidgetNavigation` の行）・`canEditRecord()` を足し、`KifuNavigationController` の移る前の確認・`BranchTreeEditController::canEdit()`・定跡の展開・自動化 API の `kifu.goto` がそれを使う。検討中・詰み探索中も分岐の編集はできる。`PositionEditSession::allowsLeavingMove()` を削除し、`RecordPane::setKifuViewEnabled()` は分岐候補欄も止める `setNavigationEnabled()` にした。棋譜解析の結果の行・グラフの解析の点は確認を通す `selectPlyOnLine()`） |
@@ -171,7 +171,7 @@
 | 2026-11-03 | 通信ログのパネルの設定の変更を、同じ設定を使うパネルに伝えるようにした（監査 2026-11-01 F30）のに合わせて第18章を更新（CSA 通信ログのドックと待機ダイアログのログは、片方で変えた文字の大きさと折り返しにもう片方も合わせる。以前はどちらも作るときに1回だけ設定を読み、ドックは次の起動まで古い値のままで、その後の A+ で古い値から計算して保存し直していた） |
 | 2026-11-03 | 終局の原因からの対応をローカル対局と通信対局で1つにした（監査 2026-11-01 F15）のに合わせて第5章の内部型定義を更新（`MatchCause`・`MatchGameEndInfo` を `src/game/matchending.h` に移し、`MatchCause::MaxMoves` を足した。終局語とエンジンへの gameover は `MatchEnding` だけで決め、通信対局は `CsaGameProgress::endInfo()` でサーバーの結果を原因に直す。最大手数は持将棋と書き（通信対局は「最大手数到達」と書いていた）、最大手数・中断・知らない原因の終局でも通信対局のエンジンに `gameover draw` を送る（今までは送らなかった）。`MatchCoordinator::handleMaxMovesJishogi()` は `handleMaxMoves()`、`endGame()` の `engineLoser` 引数は消した） |
 | 2026-11-03 | 時計の残りから USI の btime/wtime への換算を1つにした（監査 2026-11-01 F14）のに合わせて §7.4・§12.3 を更新（`UsiGoTimeCalculator::fromClock()` と `UsiClockSide` を足し、`ClockTimeSource::snapshot()` と `CsaGameProgress::engineTiming(pondering, elapsedThisTurnMs, marginMs)` が使う。通信対局の先読みの go ponder は、自分の残りから今の手の消費を引き、加算は引かない（以前は今の手の消費を引かず加算を引いていた）。手番側の経過時間は先読みでないときも引く） |
-| 2026-11-03 | 通信対局の開始でその対局の通信ログとエンジン名を消さないようにした（監査 2026-11-01 F12）のに合わせて §4.5・§6.5・§10.2 を更新（文書の置き換えで呼ぶ `EngineDisplayPresenter::clearAll()` は通信ログを消さず、結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。通信ログは対局を始めるとき（`GameSession::gameStarting`・`CsaGameSession::gameStarting`）に `clearEngineLogs()` で消す。通信対局の評価値グラフの自分の系列名は `CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。新規・棋譜の読み込みでは通信ログを消さなくなった） |
+| 2026-11-03 | 通信対局の開始でその対局の通信ログとエンジン名を消さないようにした（監査 2026-11-01 F12）のに合わせて §4.5・§6.5・§10.2 を更新（文書の置き換えで呼ぶ `EngineDisplayPresenter::clearAll()` は通信ログを消さず、結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。通信ログは対局を始めるとき（`GameSession::gameStarting`・`CsaGameUiController::gameStarting`）に `clearEngineLogs()` で消す。通信対局の評価値グラフの自分の系列名は `CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。新規・棋譜の読み込みでは通信ログを消さなくなった） |
 | 2026-11-03 | 盤の人間の手をローカル対局と通信対局で同じ入口にした（監査 2026-11-01 T3 の5つ目）のに合わせて §3.4・§3.5・§6.2・§6.6・§6.7・§6.9・§10.3・§10.4・§10.6・§12.3・§14.6・§15.2・§15.5 を更新（`GameChannel::playMove(UsiMove)`（`MoveResult`: `Rejected`・`Played`・`Sent`）を足し、`BoardMoveController` は対局中の窓口（`setActiveChannel()` で受け取る `GameChannels::active()`）へ渡すだけにした。ローカル対局は `MatchCoordinator::playHumanMove(UsiMove)` がエンジンの手と同じく合法手を確かめて盤に指し、通信対局は `CsaGameCoordinator::sendHumanMove()`（旧 `onHumanMove` スロット）が合法手を確かめてサーバーへ送る。`BoardInput::CsaServer` は `Game` にまとめ、`BoardMoveController::csaMoveRequested`・`MatchCoordinator::onHumanMove(RecordEntry)` を消し、`lastMoveDestination()` は非公開にした） |
 | 2026-11-03 | 通信対局の接続中を動作状態にした（監査 2026-11-01 F13）のに合わせて §3.4・§12.3・§14.2 を更新（`AppActivityState::Activity::DuringCsaConnection` を足し、`CsaGameCoordinator` が接続してから通信対局を続ける間（`sessionContinues()`）持つ。対局の間は `DuringCsaGame`。局と局の間は棋譜を見る・保存・コピーだけで、開く・貼り付け・対局開始・局面編集・棋譜解析・詰み探索・詰将棋生成・検討・エンジン設定・棋譜の編集はできない。「新規」と「中断」（`CsaGameChannel::breakOff()` → `stopGame()`）でログアウトする。自動化 API の `ui_state` は `csa_connected`、`play_mode` は `csa_network`） |
 | 2026-11-03 | `CsaGameCoordinator` の1局の進行に入らない仕事を切り出した（監査 2026-11-01 M6）のに合わせて §12.3 を更新（対局条件の受け入れの判断とログの文は `CsaGameSummary::unsupportedReason()`・`conditionLines()`、裁定の待ちは `CsaVerdictWait`、対局数と再接続は `CsaGameSeries`。LOGIN のパスワードを伏せるのは `CsaClient` だけにし、「すぐ指させる」はローカル対局と同じ `Usi::requestImmediateMove()` にした。使っていない `username()`・`gameSummary()`・`completedGames()`・`gameLimit()` を消した） |
@@ -723,7 +723,7 @@ src/
 │   │   └── docklayoutmanager.cpp/.h     # 名前付きレイアウト・起動時のレイアウト・ドックの固定
 │   └── coordinators/               #   複数の部品にまたがる UI の流れ
 │       ├── commentcoordinator.cpp/.h    # コメント機能の調整
-│       └── csagamesession.cpp/.h        # CSA通信対局の開始と進行の画面への反映（棋譜と自動保存は GameSession）
+│       └── csagameuicontroller.cpp/.h        # CSA通信対局の開始と進行の画面への反映（棋譜と自動保存は GameSession）
 │
 ├── services/                       # クロスカッティングサービス
 │   ├── setting.h                   #   設定1項目の宣言（Setting<T>: キーと既定値。範囲付き・構造体・配列の BoundedSetting・StructSetting・ListSetting・StructListSetting）
@@ -1631,7 +1631,7 @@ Qt Widgetsアプリケーションでは、`QMainWindow` がメニューバー�
 
 - **Presenter クラス**: 状態から表示への反映を分離（`BoardSyncPresenter`, `KifuDisplayPresenter`, `PlayerInfoPresenter` 等）
 - **Controller クラス**: 利用者操作の処理を分離（`BoardMoveController`, `KifuAnalysisController`, `ConsiderationUiController` 等）
-- **Coordinator クラス**: 複数コンポーネントにまたがる流れを調整（`SessionResetCoordinator`, `CsaGameSession` 等）
+- **Coordinator クラス**: 複数コンポーネントにまたがる流れを調整（`SessionResetCoordinator`, `CsaGameUiController` 等）
 - **Wiring**: メニュー・ツールバーの項目と処理する部品の接続だけを行う（`MenuActionsWiring`）
 - **合成ルート**: `MainWindowComposer` が起動時に部品を全部作ってから結ぶ（[composition-root.md](composition-root.md)）
 
@@ -1915,7 +1915,7 @@ ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.ma
 |-------|---------|------|
 | `MenuActionsWiring` | `app/menuactionswiring.h` | メニュー/ツールバーの QAction を処理する部品のスロットへ接続する（ファイル・編集・対局などのメニューごとに関数を分ける） |
 
-メニュー・ツールバーの項目の triggered・toggled は、すべて `MenuActionsWiring` がつなぐ。チェックできる項目（合法手の表示・ツールバー・駒音・ドックの固定・移動元）は、設定を持つ部品の今の値（`BoardInteractionController::legalMovesVisible()`・`MainWindowAppearanceController::isToolBarVisible()`・`PieceSoundPlayer::isEnabled()`・`DockLayoutManager::docksLocked()`・`LanguageController::notationOrigin()`）から始め、変えたらその部品に渡す（保存は部品が行う）。例外は、排他の組（言語・指し手の表記。組と選択の印を持つ `LanguageController`）と、項目を作る部品のメニュー（保存したレイアウトの一覧。`DockLayoutManager::setSavedLayoutsMenu()`）の2つだけ。CSA通信対局のダイアログと画面への反映は `CsaGameSession`（`ui/coordinators/`）、結果を受ける部品のないダイアログの起動は `DialogLauncher`（`ui/controllers/dialoglauncher.h`）、盤の対局者名の表示は `PlayerInfoPresenter`、エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）は `EngineDisplayPresenter`（どちらも `ui/presenters/`）が自分でつなぐ。検討タブの操作は `ConsiderationUiController` が検討のセッションへ伝え、定跡ウィンドウ・メニューウィンドウは配線だけでなく表示も持つので、Controller（`JosekiWindowController`・`MenuWindowController`、`ui/controllers/`）にしている。
+メニュー・ツールバーの項目の triggered・toggled は、すべて `MenuActionsWiring` がつなぐ。チェックできる項目（合法手の表示・ツールバー・駒音・ドックの固定・移動元）は、設定を持つ部品の今の値（`BoardInteractionController::legalMovesVisible()`・`MainWindowAppearanceController::isToolBarVisible()`・`PieceSoundPlayer::isEnabled()`・`DockLayoutManager::docksLocked()`・`LanguageController::notationOrigin()`）から始め、変えたらその部品に渡す（保存は部品が行う）。例外は、排他の組（言語・指し手の表記。組と選択の印を持つ `LanguageController`）と、項目を作る部品のメニュー（保存したレイアウトの一覧。`DockLayoutManager::setSavedLayoutsMenu()`）の2つだけ。CSA通信対局のダイアログと画面への反映は `CsaGameUiController`（`ui/coordinators/`）、結果を受ける部品のないダイアログの起動は `DialogLauncher`（`ui/controllers/dialoglauncher.h`）、盤の対局者名の表示は `PlayerInfoPresenter`、エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）は `EngineDisplayPresenter`（どちらも `ui/presenters/`）が自分でつなぐ。検討タブの操作は `ConsiderationUiController` が検討のセッションへ伝え、定跡ウィンドウ・メニューウィンドウは配線だけでなく表示も持つので、Controller（`JosekiWindowController`・`MenuWindowController`、`ui/controllers/`）にしている。
 
 #### 典型的な構造
 
@@ -2087,7 +2087,7 @@ private slots:
 };
 ```
 
-**EngineDisplayPresenter** — エンジンの表示の持ち主。枠 E1・E2 のエンジンを思考の表・情報欄・通信ログのモデルと結び（`UsiModelBinding`）、検討タブの実行の状態（`ConsiderationPanel::setRunState()`）・情報欄・検討の表への読み筋を検討のセッション（`AnalysisSession`）の知らせだけから決める。2つ目のエンジン欄と評価値グラフの系列名は文書の対局者（`KifuDocument::playersChanged`）から、検討・詰み探索ではそのエンジン（`AnalysisSession::engineNamesChanged`）から、通信対局は司令塔が知らせる自分のエンジン（`CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。棋譜の対局者はサーバーの名前）から決める。棋譜を作り直すときの表示の消去は `clearAll()`（文書の置き換えで呼ぶ。棋譜に結び付く表示だけを消し、通信ログと、結んでいるエンジンの名前は残す）、前の対局の通信ログ（USI・CSA）の消去は `clearEngineLogs()`（対局を始めるときの `GameSession::gameStarting`・`CsaGameSession::gameStarting` で呼ぶ。通信対局はログインとエンジンの起動の後に START で棋譜を作り直すので、棋譜の作り直しでは消さない）:
+**EngineDisplayPresenter** — エンジンの表示の持ち主。枠 E1・E2 のエンジンを思考の表・情報欄・通信ログのモデルと結び（`UsiModelBinding`）、検討タブの実行の状態（`ConsiderationPanel::setRunState()`）・情報欄・検討の表への読み筋を検討のセッション（`AnalysisSession`）の知らせだけから決める。2つ目のエンジン欄と評価値グラフの系列名は文書の対局者（`KifuDocument::playersChanged`）から、検討・詰み探索ではそのエンジン（`AnalysisSession::engineNamesChanged`）から、通信対局は司令塔が知らせる自分のエンジン（`CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。棋譜の対局者はサーバーの名前）から決める。棋譜を作り直すときの表示の消去は `clearAll()`（文書の置き換えで呼ぶ。棋譜に結び付く表示だけを消し、通信ログと、結んでいるエンジンの名前は残す）、前の対局の通信ログ（USI・CSA）の消去は `clearEngineLogs()`（対局を始めるときの `GameSession::gameStarting`・`CsaGameUiController::gameStarting` で呼ぶ。通信対局はログインとエンジンの起動の後に START で棋譜を作り直すので、棋譜の作り直しでは消さない）:
 
 ```cpp
 // src/ui/presenters/enginedisplaypresenter.h（抜粋）
@@ -3128,7 +3128,7 @@ struct MatchTimeSettings {
 | `prepareGameStart(preparation)` | `GameSession::startGame()` | 対局を始める局面に棋譜を整え、ライブ対局を始める。始めたノードを返す |
 | `resetToNewRecord(sfen)` | 「新規」（`MainWindowActions::startNewRecord()`）、局面編集 | 読み込み途中の棋譜を捨て、ライブ対局を破棄して、局面 `sfen` だけの新しい棋譜にする（`KifuDocument::startNew()`） |
 
-評価値グラフとエンジンの表示（思考情報・検討・解析結果。`EngineDisplayPresenter::clearAll()`）は、文書の置き換え（`KifuDocument::replaced`。新規・読み込み・局面の反映・新しい棋譜での対局の開始）を受けて自分で消える。通信ログ（USI・CSA）は消さず、対局を始めるとき（`GameSession::gameStarting`・`CsaGameSession::gameStarting` → `EngineDisplayPresenter::clearEngineLogs()`）に消す。結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。`SessionResetCoordinator` が表示に触るのは、文書を置き換えずに現在局面から対局を続けるとき（評価値グラフを開始の手数で切り詰める）だけ。連続対局の次局（`GameSession::startNextGame()`）と通信対局の開始（司令塔が呼ぶ `GameSession::beginRecord()`）も `prepareGameStart()` を通る。
+評価値グラフとエンジンの表示（思考情報・検討・解析結果。`EngineDisplayPresenter::clearAll()`）は、文書の置き換え（`KifuDocument::replaced`。新規・読み込み・局面の反映・新しい棋譜での対局の開始）を受けて自分で消える。通信ログ（USI・CSA）は消さず、対局を始めるとき（`GameSession::gameStarting`・`CsaGameUiController::gameStarting` → `EngineDisplayPresenter::clearEngineLogs()`）に消す。結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。`SessionResetCoordinator` が表示に触るのは、文書を置き換えずに現在局面から対局を続けるとき（評価値グラフを開始の手数で切り詰める）だけ。連続対局の次局（`GameSession::startNextGame()`）と通信対局の開始（司令塔が呼ぶ `GameSession::beginRecord()`）も `prepareGameStart()` を通る。
 
 #### prepareGameStart() の処理フロー
 
@@ -5647,7 +5647,7 @@ graph TB
             direction LR
             Co1[DialogLauncher]
             Co2[KifuLoader]
-            Co3[CsaGameSession]
+            Co3[CsaGameUiController]
             Co4[UiStatePolicyManager]
             Co5["... 他7種"]
         end
@@ -5800,7 +5800,7 @@ ShogiClock::timeUpdated()（tick・状態の変化・ShogiClock::notifyTimeUpdat
 
 | メソッド | 説明 |
 |---------|------|
-| `plotEngineScore(side, ply, score)` | エンジンが指した手の評価値を足す（`MatchCoordinator::engineMovePlayed` からつなぐ。通信対局の自分のエンジンの評価値も `CsaGameSession` が自分の側で呼ぶ）。先手の手は1つ目の系列、後手の手は2つ目の系列に置く。`score` は指した側から見た値で、先手から見た値への直しは `EvaluationSeries` が行う |
+| `plotEngineScore(side, ply, score)` | エンジンが指した手の評価値を足す（`MatchCoordinator::engineMovePlayed` からつなぐ。通信対局の自分のエンジンの評価値も `CsaGameUiController` が自分の側で呼ぶ）。先手の手は1つ目の系列、後手の手は2つ目の系列に置く。`score` は指した側から見た値で、先手から見た値への直しは `EvaluationSeries` が行う |
 | `beginAnalysis(engineName, lineEndNodeId)` | 棋譜解析を始める（点を消し、1つ目の系列名を解析のエンジン名にし、解析する手順（末尾の手）とその名前を付ける。`KifuAnalysisController` から）。分岐ツリーの形が変わるたび（`nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset`）に手順の名前を付け直す |
 | `plotAnalysisScore(ply, blackScore)` | 棋譜解析の ply 手目の評価値（先手から見た値）を1つ目の系列に足す |
 | `showCurrentPly()` | 縦線を表示中の手の手数に合わせる（`KifuNavigationState::changed` から）。対局中の手は評価値の点を足すときに描くので動かさない |
@@ -5950,7 +5950,7 @@ ShogiBoardQ では多数のシグナル/スロット接続が必要であり、�
 | `MainWindowComposer::connectGame()` | 同上 | `MatchCoordinator` → 時計の表示・評価値グラフ・終局の処理・連続対局 |
 | `MainWindowComposer::connectAnalysisAndUi()` | 同上 | 検討タブ・思考タブ・読み筋のクリック・USIコマンド・メニュー・通知 |
 
-コンストラクタで済む接続は、各部品が自分でつなぐ（例: `BoardSyncPresenter` は `KifuNavigationState::changed` を、`BoardMoveController` は `BoardInteractionController` の行き先になって `AppActivityState::changed` を、`CsaGameSession` は `CsaGameCoordinator` のシグナルを自分のコンストラクタでつなぐ）。部品の生成と接続の順序は `docs/dev/composition-root.md` を参照。
+コンストラクタで済む接続は、各部品が自分でつなぐ（例: `BoardSyncPresenter` は `KifuNavigationState::changed` を、`BoardMoveController` は `BoardInteractionController` の行き先になって `AppActivityState::changed` を、`CsaGameUiController` は `CsaGameCoordinator` のシグナルを自分のコンストラクタでつなぐ）。部品の生成と接続の順序は `docs/dev/composition-root.md` を参照。
 
 #### 共通パターン
 
@@ -5992,7 +5992,7 @@ wire()
   │                      BoardInteractionController（合法手の表示）、
   │                      DockLayoutManager（既定の配置に戻す・名前を付けて保存・ドックの固定）
   ├── wireGameMenu     → GameSession（対局開始・投了・待った・即指し・中断・再開・入玉宣言）、
-  │                      CsaGameSession（CSA通信対局）、DialogLauncher（詰将棋の対局と生成・持将棋）、
+  │                      CsaGameUiController（CSA通信対局）、DialogLauncher（詰将棋の対局と生成・持将棋）、
   │                      KifuAnalysisController（棋譜解析と中止）、
   │                      TsumeSearchController（詰み探索）、AnalysisSession（詰み探索の中止）
   ├── wireSettingsMenu → DialogLauncher（エンジン設定・駒音の設定）、PieceSoundPlayer（駒音）、
@@ -6033,7 +6033,7 @@ MainWindowComposer::connectAnalysisAndUi()
 
 #### CSA通信対局の配線
 
-CSA 通信対局の接続は Wiring クラスを持たず、ローカル対局と同じく合成ルートの `MainWindowComposer::connectGame()` が `CsaGameCoordinator` のシグナルを実際の受け手へ直接つなぐ（中継シグナルを持たない）。開始・手番・終局の画面への反映（待機ダイアログ・結果のダイアログ・ステータスバー・盤の反転）だけは `CsaGameSession`（10.5 節）が自分のコンストラクタでつなぐ。
+CSA 通信対局の接続は Wiring クラスを持たず、ローカル対局と同じく合成ルートの `MainWindowComposer::connectGame()` が `CsaGameCoordinator` のシグナルを実際の受け手へ直接つなぐ（中継シグナルを持たない）。開始・手番・終局の画面への反映（待機ダイアログ・結果のダイアログ・ステータスバー・盤の反転）だけは `CsaGameUiController`（10.5 節）が自分のコンストラクタでつなぐ。
 
 棋譜はシグナルではなく、司令塔が棋譜の受け手（`MatchRecordSink`。ローカル対局と同じ `GameSession`。合成ルートが `setRecordSink()` で渡す）へ書く。動作状態（`DuringCsaGame`）も司令塔が持ち、棋譜を作ってから対局中にし、終局では棋譜を確定してから待機に戻すので、シグナルをつないだ順に頼らない。着手のハイライトはローカル対局と同じく、棋譜の表示中の手が変わったのを受けて `BoardSyncPresenter` が出す。
 
@@ -6045,7 +6045,7 @@ MainWindowComposer::connectGame()
   └── CsaLogPanel::csaRawCommandRequested   → CsaGameCoordinator::sendRawCommand
   （盤の手は BoardMoveController が対局中の窓口 CsaGameChannel::playMove → sendHumanMove で渡す。シグナルではない）
 
-CsaGameSession のコンストラクタ
+CsaGameUiController のコンストラクタ
   └── gameStarted / gameEnded / turnChanged / logMessage → 自身のスロット（画面の切り替え）
 ```
 
@@ -6076,13 +6076,13 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 
 #### 一覧
 
-`CsaGameSession`・`CommentCoordinator` は `src/ui/coordinators/`、利用者の操作の窓口の `DialogLauncher`・`KifuFileController` は `src/ui/controllers/`、動作状態からの規則 `UiStatePolicyManager` は `src/ui/policy/`、ドックの `DockRegistry`・`DockLayoutManager` は `src/ui/docks/` にある（ここでは流れの説明のためにまとめて扱う）。棋譜の読み込み器 `KifuLoader` は kifu 層（第8章）、保存で利用者に聞くダイアログ `KifuSaveDialogs` は dialogs 層（第8章）にある。
+`CsaGameUiController`・`CommentCoordinator` は `src/ui/coordinators/`、利用者の操作の窓口の `DialogLauncher`・`KifuFileController` は `src/ui/controllers/`、動作状態からの規則 `UiStatePolicyManager` は `src/ui/policy/`、ドックの `DockRegistry`・`DockLayoutManager` は `src/ui/docks/` にある（ここでは流れの説明のためにまとめて扱う）。棋譜の読み込み器 `KifuLoader` は kifu 層（第8章）、保存で利用者に聞くダイアログ `KifuSaveDialogs` は dialogs 層（第8章）にある。
 
 | Coordinator | ソース | 役割 |
 |------------|--------|------|
 | `DialogLauncher` | `dialoglauncher.h` | 結果を受ける部品のないダイアログ（エンジン設定・詰将棋・持将棋・駒音・盤の外観・文字の大きさなど）を、必要な部品を渡して開く（成り・不成の選択は受け持たない。盤の操作に作るときに `PromoteDialog::ask()` を渡す） |
 | `KifuFileController` | `kifufilecontroller.h` | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー（第8章）。局面集ビューア（`openSfenCollection()`。開いている間は1つで、もう一度開くと前面に出す）も開いて、選んだ局面を読む |
-| `CsaGameSession` | `csagamesession.h` | CSA 通信対局のダイアログ（`openGameDialog()`。1つを使い回し、OK なら未保存を確かめて始める）、対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は `GameSession`） |
+| `CsaGameUiController` | `csagameuicontroller.h` | CSA 通信対局のダイアログ（`openGameDialog()`。1つを使い回し、OK なら未保存を確かめて始める）、対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は `GameSession`） |
 | `CommentCoordinator` | `commentcoordinator.h` | 棋譜コメントとしおりの表示・編集（14.5.3） |
 | `UiStatePolicyManager` | `uistatepolicymanager.h` | 動作状態（`AppActivityState`）ごとのメニュー・ボタンの有効・無効・非表示 |
 | `DockRegistry` | `dockregistry.h` | ドックの表（`DockSpec`）から12個のドックを作り、規定の場所に置き、浮動・表示・位置を保存・復元する |
@@ -6092,7 +6092,7 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 
 **ソース**: `src/ui/controllers/dialoglauncher.h`, `src/ui/controllers/dialoglauncher.cpp`
 
-メニューから開くダイアログのうち、結果を受ける部品のないもの（設定・情報・詰将棋）の起動窓口である。依存（`Deps`）は `MainWindowComposer` が起動時に作って渡す。結果を使う部品があるダイアログは、その部品が自分で開いて受ける。対局開始は `GameSession`、CSA 通信対局は `CsaGameSession::openGameDialog()`、棋譜の貼り付けと局面集は `KifuFileController`、検討・詰み探索・棋譜解析の条件ダイアログは、それぞれ `ConsiderationUiController`・`TsumeSearchController`・`KifuAnalysisController` が出す。メニューウィンドウはダイアログではなくドックなので、`MenuWindowController::toggleWindow()`（ドックの `toggleViewAction()` で出し入れし、出したら前面に出す）が受ける。
+メニューから開くダイアログのうち、結果を受ける部品のないもの（設定・情報・詰将棋）の起動窓口である。依存（`Deps`）は `MainWindowComposer` が起動時に作って渡す。結果を使う部品があるダイアログは、その部品が自分で開いて受ける。対局開始は `GameSession`、CSA 通信対局は `CsaGameUiController::openGameDialog()`、棋譜の貼り付けと局面集は `KifuFileController`、検討・詰み探索・棋譜解析の条件ダイアログは、それぞれ `ConsiderationUiController`・`TsumeSearchController`・`KifuAnalysisController` が出す。メニューウィンドウはダイアログではなくドックなので、`MenuWindowController::toggleWindow()`（ドックの `toggleViewAction()` で出し入れし、出したら前面に出す）が受ける。
 
 **管理するダイアログ群:**
 
@@ -6129,9 +6129,9 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
 
 同期版（`loadFile()`・`loadText()`・`loadPositionFromSfen()`）は自動化 API とテストが使い、失敗時は `errorOccurred` を出してから `false` を返す。`loadPositionFromSfen()` は position コマンドと同じ読み方（`UsiPosition::parse()`）で局面を確かめ、読めないか、棋譜の開始局面と同じ規則（`KifuLoadParser::startPositionProblem()`。盤と持駒として成り立つか。玉の無い図と手番でない側に王手がかかった図は受け付ける）に合わなければ棋譜を置き換えない。自動化 API の `position.set` も同じ規則で、局面集・詰将棋問題一覧のファイルの行だけは、検討・詰み探索に使う局面なのでより厳しい `SfenValidator` で読む。読み込み中に別の読み込みを始めると、前の処理は取り消す（`cancelLoad()`）。
 
-#### CsaGameSession — CSA通信対局の進行
+#### CsaGameUiController — CSA通信対局の進行
 
-**ソース**: `src/ui/coordinators/csagamesession.h`, `src/ui/coordinators/csagamesession.cpp`
+**ソース**: `src/ui/controllers/csagameuicontroller.h`, `src/ui/controllers/csagameuicontroller.cpp`
 
 通信対局の1回の接続（1局または連続した対局）を始め、画面に知らせる。通信の手順は `CsaGameCoordinator` が行い、このクラスは接続ダイアログの値で対局を始め（待機ダイアログ）、対局の開始・手番・終局を盤の向き・ステータスバー・結果のダイアログへ反映する（表示だけを受け持つ）。棋譜（対局者・開始と終了の日時・着手の行・自動保存）と動作状態は、ローカル対局と同じく司令塔と `GameSession` が受け持ち、知らせを受けるときには済んでいる。評価値グラフ・通信ログ・エラー・盤の手は合成ルートがつなぐ。
 
@@ -6713,7 +6713,7 @@ network層はCSA（Computer Shogi Association）プロトコルによるネッ�
 │             │ signals                  │ signals                │
 │             └──────────┬───────────────┘                        │
 │                        ↓                                        │
-│              CsaGameSession (ui/coordinators層)                 │
+│              CsaGameUiController (ui/coordinators層)                 │
 │              棋譜・盤・ステータスバーなどへの反映                │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -6896,7 +6896,7 @@ CsaClientが発行するシグナルはすべて `CsaGameCoordinator` のスロ�
 | `IllegalAction` | `#ILLEGAL_ACTION` | 不正行為 |
 | `Unknown` | — | 不明 |
 
-結果と原因の表示名（「勝ち」「投了」など）は network に置かず、結果を画面に出す ui の `CsaGameSession::resultText()`・`causeText()` が持つ（ステータスバーと結果のダイアログ）。
+結果と原因の表示名（「勝ち」「投了」など）は network に置かず、結果を画面に出す ui の `CsaGameUiController::resultText()`・`causeText()` が持つ（ステータスバーと結果のダイアログ）。
 
 #### ログインの規則（CsaLogin）
 
@@ -6963,7 +6963,7 @@ CsaGameCoordinatorは2種類の対局形態をサポートする。
 ```mermaid
 sequenceDiagram
     participant Sink as GameSession（MatchRecordSink）
-    participant UI as CsaGameSession
+    participant UI as CsaGameUiController
     participant Coord as CsaGameCoordinator
     participant Client as CsaClient
     participant Server as CSAサーバー
@@ -7048,9 +7048,9 @@ struct Deps {
 
 棋譜の受け手は `setRecordSink(MatchRecordSink*)` で受け取る（司令塔は受け手より先に作るので、合成ルートが `createSessions()` で渡す。`MatchCoordinator` と同じ）。盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `GameBoard`、棋譜行は棋譜の受け手へ書き（盤のハイライトは棋譜の表示中の手から `BoardSyncPresenter` が出す）、通信ログは `csaCommLogAppended`、自分のエンジンの評価値は `engineMovePlayed(side, ply, score)`（`MatchCoordinator` と同じ形。合成ルートが `EvaluationGraphPresenter::plotEngineScore` につなぐ）で知らせる。エンジンで指すときは、ローカル対局と同じ `MatchEngineSeat`（`m_engineSeat`）が枠 E1 にエンジンを借りて起動する（`Params::timeSource` に司令塔自身を渡す）。終局は `MatchEngineSeat::finish()`（勝ち・負け・引き分け。探索・先読みを止めて gameover と quit）で、ローカル対局と同じ手順で知らせ、接続を終えるときに `release()` で枠を空ける。通信対局の最中にほかの処理が枠を取ったときは、エンジンの異常と同じく `errorOccurred` → `onEngineError()` で知らせる。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isInitializing()`）は readyok を待ってから同意する（`onEngineInitialized()`）。それ以外はすぐ同意する。思考の依頼は `Usi::requestMatchMove(const UsiPosition&)` で、時間は渡さない（エンジンが `MatchTimeSource` として司令塔から読む）。指し手は `MatchEngineSeat::moveReady` → `onEngineMoveReady(UsiMatchMove)`、投了・入玉宣言勝ちは `resigned`・`declaredWin` で届く。思考情報・USI通信ログのモデルは枠が持つ。
 
-### 12.4 CsaGameSession — CSA通信対局の画面への反映
+### 12.4 CsaGameUiController — CSA通信対局の画面への反映
 
-**ソース**: `src/ui/coordinators/csagamesession.h/.cpp`
+**ソース**: `src/ui/controllers/csagameuicontroller.h/.cpp`
 
 CSA通信対局の開始（待機ダイアログ）と、`CsaGameCoordinator` の進行を盤の向き・ステータスバー・結果のダイアログへ反映するクラス（表示だけ）。通信の手順も棋譜も動作状態も持たない。棋譜（対局者・持ち時間・開始と終了の日時・着手の行・自動保存）はローカル対局と同じく司令塔が `GameSession` に書き（6.9 節）、動作状態 `DuringCsaGame` も司令塔が持つ。評価値グラフ・通信ログ・エラー・盤の手の接続は合成ルートの `connectGame()` が行う（10.5 節）。
 
@@ -7748,7 +7748,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 | 盤・時計 | `gameBoard`（`GameBoard`）・`shogiView`・`boardController`（`BoardInteractionController`）・`boardMoves`（`BoardMoveController`）・`boardSync`（`BoardSyncPresenter`）・`positionEdit`（`PositionEditSession`）・`clock`・`timePresenter` |
 | 画面部品 | `recordPane`・`thinkingPanel`・`considerationTab`・`usiLog`・`csaLog`・`commentEditor`・`branchTreeView`・`evalChart`・`gameInfoPane`・`dockRegistry`（`DockRegistry`。12 個のドックは `dock(DockId)` で引く） |
 | 棋譜の表示と編集 | `kifuDisplay`（`KifuDisplayPresenter`）・`branchEdit`（`BranchTreeEditController`）・`commentCoordinator` |
-| 対局・検討・通信対局 | `engines`（`EngineSlots`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaSession`（`CsaGameSession`）・`operationPolicy`・`sessionReset`（`SessionResetCoordinator`） |
+| 対局・検討・通信対局 | `engines`（`EngineSlots`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaUi`（`CsaGameUiController`）・`operationPolicy`・`sessionReset`（`SessionResetCoordinator`） |
 | 棋譜のファイル | `kifuLoader`・`kifuFileController` |
 | 表示 | `appearance`・`playerInfo`（`PlayerInfoPresenter`）・`engineDisplay`・`evalGraph`・`arrows`（`CandidateArrowPresenter`）・`analysisResults`・`dockLayoutManager`・`uiStatePolicy`・`notificationService` |
 | 利用者の操作 | `boardArrows`（`BoardArrowActions`。盤の矢印を出すかの切り替え）・`actions`（`MainWindowActions`）・`dialogLauncher`・`kifuAnalysis`・`tsumeSearch`・`considerationUi`・`pvClickController`・`usiCommandController`・`joseki`・`menuWindowController`・`languageController`・`images`・`settingsReset` など |
@@ -7763,11 +7763,11 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 `MainWindowComposer` は部品を依存する部品より後に作り、依存はコンストラクタの `Deps` で渡す。共通の規則は [4.2節](#42-合成ルートでの組み立て) を参照。
 
 - **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `activity`・`match`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
-- **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`OperationPolicy`・`BoardMoveController`・`CsaGameSession` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
+- **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`OperationPolicy`・`BoardMoveController`・`CsaGameUiController` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
 - **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（移ってよい状態か `OperationPolicy::canBrowseRecord()` と、未更新のコメントの確認 `CommentCoordinator::confirmLeaveEditingMove()`）が、できあがった部品の関数を受け取る（成りの選び方は盤の操作 `BoardInteractionController` を作るときに渡す）。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
 - **`std::function` はフックだけ**: 上位へ問い合わせ・操作を委ねるフック（`KifuDocument::Hooks::commitPendingEdits`、`UiStatePolicyManager::Deps` の `localGameHasHuman`・`canResumeGame`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
 
-二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。結果を使う部品があるダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その部品（`CsaGameSession`・`KifuFileController`）が開いて持つ。
+二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。結果を使う部品があるダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その部品（`CsaGameUiController`・`KifuFileController`）が開いて持つ。
 
 「新規」・対局開始前・局面編集・棋譜読み込み前の、棋譜とモデルの消去は `SessionResetCoordinator` が行う。「新規」（`MainWindowActions::startNewRecord()`）も、検討・対局・エンジンを止めてから、このコーディネータで平手の開始局面だけの棋譜にする。
 
@@ -7787,7 +7787,7 @@ MainWindow::MainWindow()
      ├─ createPanels()                 // 棋譜欄・ドックの中身（思考・検討・通信ログ・コメント・分岐ツリー）・評価値グラフ・対局情報、棋譜の表示と編集
      ├─ createMatchAndAnalysis()       // エンジンの枠・司令塔・検討・通信対局の司令塔、人間の手番の判定、盤の着手（BoardMoveController）、局面編集
      ├─ createPresentersAndDocks()     // 評価値グラフ・エンジンの表示（EngineDisplayPresenter。評価値グラフの後）・候補手の矢印・対局者情報、メニューウィンドウ・定跡ウィンドウ・棋譜解析結果、ドックの生成と配置
-     ├─ createSessions()               // UI 状態ポリシー・通知・駒音、棋譜の読み込み・保存、GameSession、CsaGameSession
+     ├─ createSessions()               // UI 状態ポリシー・通知・駒音、棋譜の読み込み・保存、GameSession、CsaGameUiController
      ├─ createControllers()            // 言語・読み筋クリック・検討・棋譜解析・詰み探索・MainWindowActions・DialogLauncher など
      │
      │  2) シグナル接続（mainwindowcomposer_wire.cpp）
@@ -7906,7 +7906,7 @@ MainWindow は `.ui` の保持と閉じるときの処理だけを持ち、ロ�
 | `MainWindowActions` | 複数の部品にまたがる操作（新規・局面編集の開始・終了） |
 | `AppActivityState` | 動作状態 |
 | `GameSession` | 対局の開始・投了・中断と再開・入玉宣言・待った・終局後の表示、対局の棋譜の追記（ローカル対局・通信対局の棋譜と自動保存） |
-| `CsaGameSession` | CSA 通信対局の開始と、進行の画面への反映 |
+| `CsaGameUiController` | CSA 通信対局の開始と、進行の画面への反映 |
 | `SessionResetCoordinator` | 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す |
 | `DockRegistry` | ドックの表からの作成・規定の配置・状態の保存と復元（`DockLayoutManager` は名前付きレイアウト・起動時のレイアウト・固定） |
 | `CommentCoordinator` | 表示中の手のコメント・しおりの表示と編集 |
@@ -8246,7 +8246,7 @@ CSAプロトコルを使用したネットワーク対局の、接続からロ�
 sequenceDiagram
     participant User as ユーザー
     participant CGD as CsaGameDialog
-    participant CGS as CsaGameSession
+    participant CGS as CsaGameUiController
     participant CGC as CsaGameCoordinator
     participant CC as CsaClient
     participant Srv as CSAサーバー
@@ -8254,7 +8254,7 @@ sequenceDiagram
     participant GS as GameSession
     participant MES as MatchEngineSeat
 
-    User->>CGD: 接続情報を入力しOK（CsaGameSession::openGameDialog）
+    User->>CGD: 接続情報を入力しOK（CsaGameUiController::openGameDialog）
     CGD->>CGS: 未保存を確かめて startGame(dialog->selection())
     Note over CGS: 待機ダイアログ（CsaWaitingDialog）を出し、<br/>対局が始まるかエラー・キャンセルまで待つ
     CGS->>CGC: startGame(StartOptions)
@@ -8331,7 +8331,7 @@ sequenceDiagram
 | クラス | 責務 |
 |--------|------|
 | `CsaGameDialog` | CSA通信対局の接続設定UI（ホスト・ポート・ユーザー名・パスワード・エンジン選択（`EngineSelector`）） |
-| `CsaGameSession` | 通信対局の1回の接続を画面に反映する。接続ダイアログの値で `CsaGameCoordinator` に開始を頼み（待機ダイアログ）、対局の開始・手番・終局を盤の向き・ステータスバー・結果のダイアログへ映す（`src/ui/coordinators/`） |
+| `CsaGameUiController` | 通信対局の1回の接続を画面に反映する。接続ダイアログの値で `CsaGameCoordinator` に開始を頼み（待機ダイアログ）、対局の開始・手番・終局を盤の向き・ステータスバー・結果のダイアログへ映す（`src/ui/coordinators/`） |
 | `GameSession` | 通信対局の棋譜（作り直し・対局者・持ち時間・開始と終了の日時・着手の行・自動保存）を、ローカル対局と同じ棋譜の受け手（`MatchRecordSink`）として受け持つ。投了・中断・入玉宣言は `CsaGameChannel` 経由でサーバーへ送る（`src/app/`） |
 | `CsaGameCoordinator` | CSA通信対局の進行管理（合成ルートが起動時に1つ作る）。1局の進行（持ち時間・手数・手順）は `CsaGameProgress` に持ち、手順は `record`（`RecordLine`）1つだけ。自分の手番は持たず `CsaClient::isMyTurn()` を見る。棋譜は受け手に書き、動作状態 `DuringCsaGame` は自分で持つ（`MatchCoordinator` と同じ順） |
 | `CsaClient` | CSAプロトコルのTCP/IP通信実装。メッセージの送受信と状態管理。Game_Summary は `CsaGameSummaryReader` が読んで値 `CsaGameSummary`（`myTurn` は `std::optional<Turn>`、`toMove` は `Turn`）にする |
@@ -9475,7 +9475,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | CsaGameProgress | S | network | 通信対局1局ぶんの進行（手順 `RecordLine`・持ち時間・消費時間） | 第12章 |
 | CsaGameSummary | S | network | 対局条件（Game_Summary）の値。持時間は `CsaGameSummary::Time` | 第12章 |
 | CsaGameSummaryReader | C | network | Game_Summary を1行ずつ読み、読み終え・上限超えを状態で返す | 第12章 |
-| CsaGameSession | C | ui/coordinators | 通信対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は `GameSession`） | 第10章, 第12章 |
+| CsaGameUiController | C | ui/coordinators | 通信対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は `GameSession`） | 第10章, 第12章 |
 | CsaLogPanel | C | widgets | CSA通信ログドックの中身（`LogPanel` の派生。接続状態・接続中だけ送れるコマンド） | 第11章, 第12章 |
 | LogPanel | C | widgets | 通信ログのパネルの共通部分（USI・CSA） | 第11章 |
 | CsaMoveConverter | NS | network | CSA と USI の指し手の変換（`toCsa`・`toUsi`） | 第12章 |
