@@ -80,9 +80,10 @@ public:
 
     /// 表示中の手順が定跡を外れた手を出す（ply > 0 ならその手数の手 moveText、0 ならすべて定跡、負なら出さない）
     void setBookDeviation(int ply, const QString &moveText);
-    /// 棋譜を移る・変える操作（「定跡を外れた手」へ移る・「棋譜に展開...」）を押せるようにするか
-    /// （対局中・棋譜解析中・局面編集中は押せない。UiStatePolicyManager が棋譜欄と同じ規則で切り替える）
-    void setRecordOperationsEnabled(bool enabled);
+    /// 「定跡を外れた手」へ移れるようにするか（棋譜を移ってよい状態。UiStatePolicyManager が棋譜欄と同じ規則で切り替える）
+    void setDeviationEnabled(bool enabled);
+    /// 「棋譜に展開...」を押せるようにするか（棋譜を変えてよい状態。JosekiWindowController が動作状態に合わせる）
+    void setExpandEnabled(bool enabled);
 
 public slots:
     /// 状態表示に text を少しの間出す（「読み込み中...」など）
@@ -204,7 +205,8 @@ private:
     /// 表示中の手順が定跡を外れた手（押すとその手へ移る）
     QPushButton  *m_deviationButton = nullptr;
     int           m_deviationPly = -1;
-    bool          m_recordOperationsEnabled = true;  ///< 棋譜を移る・変える操作を押せるか
+    bool          m_deviationEnabled = true;  ///< 「定跡を外れた手」へ移れるか
+    bool          m_expandEnabled = true;     ///< 「棋譜に展開...」を押せるか
     Actions       m_actions;
 
     // === 状態表示 ===

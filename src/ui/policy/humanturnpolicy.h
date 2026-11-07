@@ -43,7 +43,8 @@ public:
     /**
      * @brief 利用者の操作で表示中の手を移ってよいか
      *
-     * 盤と棋譜を見るだけの状態（待機中・検討中・詰み探索中。UiStatePolicyManager の表の WidgetNavigation の行）
+     * 盤と棋譜を見るだけの状態（待機中・検討中・詰み探索中・通信対局の局と局の間。UiStatePolicyManager の表の
+     * WidgetNavigation の行）
      * だけ移れる。対局中・通信対局中・棋譜解析中・局面編集中は、表示中の手が対局の盤・解析・編集中の局面と
      * 結び付いているので移らない
      */

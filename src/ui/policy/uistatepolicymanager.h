@@ -85,9 +85,8 @@ public:
         SettingsReset,
 
         // --- ウィジェット ---
-        WidgetNavigation,      ///< 棋譜を移る・変える操作（局面送りのボタン・棋譜欄と分岐候補欄・評価値グラフのクリック・
-                               ///< 定跡ウィンドウの「定跡を外れた手」と「棋譜に展開...」）。HumanTurnPolicy::canBrowseRecord もこの行
-        WidgetBranchTree,      ///< 分岐ツリークリック
+        WidgetNavigation,      ///< 棋譜を移る操作（局面送りのボタン・棋譜欄と分岐候補欄・分岐ツリー・評価値グラフのクリック・
+                               ///< 定跡ウィンドウの「定跡を外れた手」）。HumanTurnPolicy::canBrowseRecord もこの行
         WidgetConsiderationStart, ///< 検討ドック「検討開始」ボタン
 
         Count  ///< 要素数（番兵）
