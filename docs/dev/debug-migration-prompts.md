@@ -396,7 +396,7 @@ docs/dev/debug-logging-guidelines.md を読んで従ってください。
 ### src/ui/（21ファイル、260箇所）
 - coordinators/kifudisplaycoordinator.cpp（50箇所）
 - coordinators/dialogcoordinator.cpp（35箇所）
-- controllers/pvclickcontroller.cpp（32箇所）
+- controllers/pvboardcontroller.cpp（32箇所）
 - controllers/evaluationgraphcontroller.cpp（32箇所）
 - wiring/josekiwindowwiring.cpp（16箇所）
 - presenters/boardsyncpresenter.cpp（16箇所）
@@ -447,7 +447,7 @@ docs/dev/debug-logging-guidelines.md を読んで従ってください。
   （循環依存が生じる場合は、src/ui/ 直下に loggingcategory.h を新設し宣言を置いてよい）
 
 ## 既存プレフィックス例
-- `[PvClick]` — pvclickcontroller.cpp
+- `[PvClick]` — pvboardcontroller.cpp
 - `[PlayerInfo]` — playerinfocontroller.cpp
 - `[CHART]` — evaluationchartwidget.cpp
 - `[ENGINE_INFO]` — engineinfowidget.cpp

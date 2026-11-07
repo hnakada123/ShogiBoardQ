@@ -42,7 +42,7 @@
 #include "menuactionswiring.h"
 #include "piecesoundplayer.h"
 #include "positioneditsession.h"
-#include "pvclickcontroller.h"
+#include "pvboardcontroller.h"
 #include "recordpane.h"
 #include "gameboard.h"
 #include "shogiview.h"
@@ -211,11 +211,11 @@ void MainWindowComposer::connectAnalysisAndUi()
             registration, &JosekiRegistrationController::onAnalysisRowContextMenu);
 
     // 読み筋のクリック（思考の表と検討の表）。読み筋ダイアログを閉じたら、その表の選択を外す
-    PvClickController* pv = m_c.pvClickController;
-    connect(thinking, &ThinkingPanel::pvRowClicked, pv, &PvClickController::onPvRowClicked);
-    connect(consideration, &ConsiderationPanel::pvRowClicked, pv, &PvClickController::onPvRowClicked);
-    connect(pv, &PvClickController::pvDialogClosed, thinking, &ThinkingPanel::clearSelection);
-    connect(pv, &PvClickController::pvDialogClosed, consideration, &ConsiderationPanel::clearViewSelection);
+    PvBoardController* pv = m_c.pvBoardController;
+    connect(thinking, &ThinkingPanel::pvRowClicked, pv, &PvBoardController::onPvRowClicked);
+    connect(consideration, &ConsiderationPanel::pvRowClicked, pv, &PvBoardController::onPvRowClicked);
+    connect(pv, &PvBoardController::pvDialogClosed, thinking, &ThinkingPanel::clearSelection);
+    connect(pv, &PvBoardController::pvDialogClosed, consideration, &ConsiderationPanel::clearViewSelection);
 
     // USI コマンドの手入力
     connect(m_c.usiLog, &UsiLogPanel::usiCommandRequested, m_c.usiCommandController, &UsiCommandController::sendCommand);

@@ -611,8 +611,8 @@ set(SRC_UI
     src/ui/controllers/menuwindowcontroller.h
     src/ui/controllers/nyugyokudeclarationhandler.cpp
     src/ui/controllers/nyugyokudeclarationhandler.h
-    src/ui/controllers/pvclickcontroller.cpp
-    src/ui/controllers/pvclickcontroller.h
+    src/ui/controllers/pvboardcontroller.cpp
+    src/ui/controllers/pvboardcontroller.h
     src/ui/controllers/screenshotservice.cpp
     src/ui/controllers/screenshotservice.h
     src/ui/controllers/settingsresetcontroller.cpp

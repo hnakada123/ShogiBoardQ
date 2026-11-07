@@ -64,7 +64,7 @@
 #include "piecesoundplayer.h"
 #include "playerinfopresenter.h"
 #include "positioneditsession.h"
-#include "pvclickcontroller.h"
+#include "pvboardcontroller.h"
 #include "recordpane.h"
 #include "sessionresetcoordinator.h"
 #include "settingsresetcontroller.h"
@@ -476,12 +476,12 @@ void MainWindowComposer::createControllers()
     ld.notationWestern = m_ui.actionNotationWestern;
     m_c.languageController = new LanguageController(ld, &m_window);
 
-    PvClickController::Deps pv;
+    PvBoardController::Deps pv;
     pv.navState = m_c.navState;
     pv.document = m_c.document;
     pv.activity = &m_activity;
     pv.shogiView = m_c.shogiView;
-    m_c.pvClickController = new PvClickController(pv, &m_window);
+    m_c.pvBoardController = new PvBoardController(pv, &m_window);
     m_c.usiCommandController = new UsiCommandController({m_c.engines, m_c.usiLog}, &m_window);
 
     ConsiderationUiController::Deps cw;
@@ -499,7 +499,7 @@ void MainWindowComposer::createControllers()
     kd.resultsPanel = m_c.analysisResults;
     kd.resultsDock = m_c.dockRegistry->dock(DockRegistry::DockId::AnalysisResults);
     kd.navState = m_c.navState;
-    kd.pvBoards = m_c.pvClickController;
+    kd.pvBoards = m_c.pvBoardController;
     kd.navController = m_c.kifuNavController;
     kd.evalGraph = m_c.evalGraph;
     m_c.kifuAnalysis = new KifuAnalysisController(kd, &m_window);

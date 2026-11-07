@@ -1,7 +1,7 @@
-/// @file pvclickcontroller.cpp
+/// @file pvboardcontroller.cpp
 /// @brief 読み筋の行から読み筋ダイアログを開く
 
-#include "pvclickcontroller.h"
+#include "pvboardcontroller.h"
 
 #include "kifunavigationstate.h"
 #include "logcategories.h"
@@ -13,14 +13,14 @@
 #include "shogiinforecord.h"
 #include "shogiview.h"
 
-PvClickController::PvClickController(const Deps& deps, QObject* parent)
+PvBoardController::PvBoardController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
     Q_ASSERT(m_deps.document && m_deps.activity);
 }
 
-void PvClickController::onPvRowClicked(ShogiEngineThinkingModel* model, int row)
+void PvBoardController::onPvRowClicked(ShogiEngineThinkingModel* model, int row)
 {
     const ShogiInfoRecord* record = model && row >= 0 && row < model->rowCount() ? model->recordAt(row) : nullptr;
     if (!record || record->pv().isEmpty()) return;
@@ -49,10 +49,10 @@ void PvClickController::onPvRowClicked(ShogiEngineThinkingModel* model, int row)
 
     PvBoardDialog* dlg = showPvBoard(pv, lastUsiMove);
     m_dialogSources.insert(dlg, model);
-    connect(dlg, &QDialog::finished, this, &PvClickController::onPvDialogFinished);
+    connect(dlg, &QDialog::finished, this, &PvBoardController::onPvDialogFinished);
 }
 
-PvBoardDialog* PvClickController::showPvBoard(const PvText& pv, const QString& lastUsiMove)
+PvBoardDialog* PvBoardController::showPvBoard(const PvText& pv, const QString& lastUsiMove)
 {
     auto* dlg = new PvBoardDialog(pv, qobject_cast<QWidget*>(parent()));
     // 対局者名は本体の盤と同じ（対局中は対局者、対局していなければ対局情報の名前）
@@ -67,7 +67,7 @@ PvBoardDialog* PvClickController::showPvBoard(const PvText& pv, const QString& l
     return dlg;
 }
 
-void PvClickController::onPvDialogFinished()
+void PvBoardController::onPvDialogFinished()
 {
     // 閉じたダイアログの読み筋の行の選択を解く
     const auto source = m_dialogSources.constFind(sender());

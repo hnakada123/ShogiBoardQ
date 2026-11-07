@@ -14,7 +14,7 @@
 #include "kifunavigationstate.h"
 #include "kifuanalysisrow.h"
 #include "kifuanalysisrowpresenter.h"
-#include "pvclickcontroller.h"
+#include "pvboardcontroller.h"
 
 #include <QDockWidget>
 #include <limits>
