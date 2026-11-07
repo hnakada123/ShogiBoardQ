@@ -2,6 +2,7 @@
 /// @brief 対局での position/go/bestmove のやり取りの実装
 
 #include "usimatchhandler.h"
+#include "usimessages.h"
 
 #include "logcategories.h"
 #include "usienginesession.h"

@@ -613,8 +613,8 @@ set(SRC_UI
     src/ui/controllers/nyugyokudeclarationhandler.h
     src/ui/controllers/pvboardcontroller.cpp
     src/ui/controllers/pvboardcontroller.h
-    src/ui/controllers/screenshotservice.cpp
-    src/ui/controllers/screenshotservice.h
+    src/ui/screenshotservice.cpp
+    src/ui/screenshotservice.h
     src/ui/controllers/settingsresetcontroller.cpp
     src/ui/controllers/settingsresetcontroller.h
     src/ui/controllers/tsumesearchcontroller.cpp

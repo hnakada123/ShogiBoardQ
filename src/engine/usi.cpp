@@ -2,6 +2,7 @@
 /// @brief GUI から使う USI エンジン1台の窓口の実装
 
 #include "usi.h"
+#include "usimessages.h"
 
 #include "engineprocessmanager.h"
 #include "thinkinginfoformatter.h"

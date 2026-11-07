@@ -2,6 +2,7 @@
 /// @brief 対局で指すエンジン1台の実装
 
 #include "matchengineseat.h"
+#include "usimessages.h"
 
 #include "usi.h"
 

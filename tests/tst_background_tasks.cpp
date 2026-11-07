@@ -1,6 +1,7 @@
 #include <QtTest>
 
 #include "timecontrol_test_helper.h"
+#include "usimessages.h"
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QThread>

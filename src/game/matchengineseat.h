@@ -9,6 +9,7 @@
 #include <QString>
 
 #include "engineslots.h"
+#include "usimessages.h"
 #include "shogitypes.h"
 #include "usimatchhandler.h"
 

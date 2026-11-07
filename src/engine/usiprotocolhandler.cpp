@@ -2,6 +2,7 @@
 /// @brief USI エンジン1台の状態とコマンドの送受信の実装
 
 #include "usiprotocolhandler.h"
+#include "usimessages.h"
 
 #include "engineprocessmanager.h"
 #include "logcategories.h"

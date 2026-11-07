@@ -5,6 +5,7 @@
 /// @brief 対局の終局の原因と、原因から棋譜の終局の行・エンジンへの gameover への対応（ローカル対局・通信対局で共通）
 
 #include "recordentry.h"
+#include "usimessages.h"
 #include "shogitypes.h"
 #include "terminaltype.h"
 
