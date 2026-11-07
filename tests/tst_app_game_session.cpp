@@ -77,7 +77,7 @@ class TestAppGameSession : public QObject
     /// 通信対局の司令塔の終局の処理を直接呼ぶ（自分の投了勝ち）
     static void endCsaGame(CsaGameCoordinator* csa)
     {
-        csa->onClientGameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
+        csa->endGame(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0, true);
     }
 
     /// 対局開始ダイアログから人間同士の対局を始める

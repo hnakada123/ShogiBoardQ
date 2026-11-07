@@ -250,7 +250,7 @@ signals:
     /// 自分の指し手がサーバーで確認された時に発行する（→ CsaGameCoordinator::onMoveConfirmed）
     void moveConfirmed(const QString& move, int consumedTimeMs);
 
-    /// 対局が終了した時に発行する（→ CsaGameCoordinator::onClientGameEnded）
+    /// 対局が終了した時に発行する（→ CsaGameCoordinator::onServerGameEnded）
     void gameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
 
     /// 中断が通知された時に発行する（→ CsaGameCoordinator::onGameInterrupted）
