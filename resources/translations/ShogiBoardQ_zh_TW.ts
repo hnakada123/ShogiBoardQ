@@ -7396,7 +7396,7 @@ YaneuraOu 會以此著法進行背景思考。</translation>
     <message>
         <location filename="../../src/widgets/josekiwindow.cpp" line="717"/>
         <source>棋譜から定跡手を集めています...</source>
-        <translation>正在從棋譜收集定式...</translation>
+        <translation>正在從棋譜收集定跡著法...</translation>
     </message>
     <message>
         <location filename="../../src/widgets/josekiwindow.cpp" line="718"/>
