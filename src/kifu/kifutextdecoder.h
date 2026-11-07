@@ -17,19 +17,6 @@
 namespace KifuTextDecoder {
 
 /**
- * @brief 文字コードを決めてテキストを1行ずつ取得する（decodeAuto の規則）
- * @param filePath 読み込み対象のファイルパス
- * @param outLines 出力先の行リスト
- * @param usedEncoding 実際に使われたエンコーディング名（例: "utf-8", "cp932"）
- * @param warn 読み込み中の注意点を追記する先
- * @return 読み込み成功なら true
- */
-bool readAllLinesAuto(const QString& filePath,
-                      QStringList& outLines,
-                      QString* usedEncoding = nullptr,
-                      QString* warn = nullptr);
-
-/**
  * @brief 文字コードを決めてバイト列をテキストにする（BOM → 宣言 → UTF-8 → CP932 → EUC-JP → ローカル 8bit）
  * @param usedEncoding 実際に使われたエンコーディング名（宣言に従ったときは "cp932(declared)" のように付ける）
  * @param warn どれとも決められずにローカル 8bit で読んだときの注意を追記する先

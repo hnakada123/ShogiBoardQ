@@ -15,7 +15,7 @@ class TestKifuTextDecoder : public QObject
     Q_OBJECT
 
 private slots:
-    void readAllLinesAuto_detectsBom_data()
+    void readAllTextAuto_detectsBom_data()
     {
         QTest::addColumn<QByteArray>("content");
         QTest::addColumn<QString>("expectedEncoding");
@@ -32,7 +32,7 @@ private slots:
             << QStringList{QStringLiteral("AB"), QString()};
     }
 
-    void readAllLinesAuto_detectsBom()
+    void readAllTextAuto_detectsBom()
     {
         QFETCH(QByteArray, content);
         QFETCH(QString, expectedEncoding);
@@ -43,17 +43,18 @@ private slots:
         QCOMPARE(file.write(content), content.size());
         file.close();
 
-        QStringList lines;
+        QString text;
         QString usedEncoding;
         QString warn;
-        QVERIFY(KifuTextDecoder::readAllLinesAuto(file.fileName(), lines, &usedEncoding, &warn));
+        QVERIFY(KifuTextDecoder::readAllTextAuto(file.fileName(), text, &usedEncoding, &warn));
+        const QStringList lines = KifuTextDecoder::splitLines(text);
 
         QCOMPARE(usedEncoding, expectedEncoding);
         QCOMPARE(lines, expectedLines);
         QVERIFY2(warn.isEmpty(), qPrintable(warn));
     }
 
-    void readAllLinesAuto_decodesShiftJis()
+    void readAllTextAuto_decodesShiftJis()
     {
         QTemporaryFile file(QDir::tempPath() + QStringLiteral("/kifutextdecoder_XXXXXX.kif"));
         QVERIFY(file.open());
@@ -61,9 +62,10 @@ private slots:
         QCOMPARE(file.write(content), content.size());
         file.close();
 
-        QStringList lines;
+        QString text;
         QString usedEncoding;
-        QVERIFY(KifuTextDecoder::readAllLinesAuto(file.fileName(), lines, &usedEncoding));
+        QVERIFY(KifuTextDecoder::readAllTextAuto(file.fileName(), text, &usedEncoding));
+        const QStringList lines = KifuTextDecoder::splitLines(text);
 
         QCOMPARE(usedEncoding, QStringLiteral("cp932"));
         QCOMPARE(lines, (QStringList{QStringLiteral("▲７六歩"), QString()}));
@@ -169,9 +171,9 @@ private slots:
         QCOMPARE(bytes.size(), 101);
 #ifndef Q_OS_WIN
         if (QFileInfo::exists(QStringLiteral("/dev/zero"))) {
-            QStringList lines;
+            QString text;
             QString warn;
-            QVERIFY(!KifuTextDecoder::readAllLinesAuto(QStringLiteral("/dev/zero"), lines, nullptr, &warn));
+            QVERIFY(!KifuTextDecoder::readAllTextAuto(QStringLiteral("/dev/zero"), text, nullptr, &warn));
             QVERIFY(warn.contains(QStringLiteral("not a regular file")));
         }
 #endif
