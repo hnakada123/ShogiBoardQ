@@ -12,6 +12,8 @@ RecentFilesMenu::RecentFilesMenu(QMenu* menu)
     : QObject(menu)
     , m_menu(menu)
 {
+    // 項目の名前はファイル名だけなので、場所をツールチップで出す（メニューの既定では出ない）
+    m_menu->setToolTipsVisible(true);
     setFiles({});
 }
 
