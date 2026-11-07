@@ -21,7 +21,7 @@
 #include "considerationpanel.h"
 #include "considerationuicontroller.h"
 #include "csagamecoordinator.h"
-#include "csagamesession.h"
+#include "csagameuicontroller.h"
 #include "csalogpanel.h"
 #include "dialoglauncher.h"
 #include "promotedialog.h"
@@ -448,14 +448,14 @@ void MainWindowComposer::createSessions()
     m_c.match->setRecordSink(m_c.gameSession);
     m_c.csaGame->setRecordSink(m_c.gameSession);
 
-    CsaGameSession::Deps cd;
+    CsaGameUiController::Deps cd;
     cd.coordinator = m_c.csaGame;
     cd.shogiView = m_c.shogiView;
     cd.appearance = m_c.appearance;
     cd.statusBar = m_ui.statusbar;
     cd.parentWidget = &m_window;
     cd.kifuFiles = m_c.kifuFileController;
-    m_c.csaSession = new CsaGameSession(cd, &m_window);
+    m_c.csaUi = new CsaGameUiController(cd, &m_window);
 }
 
 // ---------------------------------------------------------------------------

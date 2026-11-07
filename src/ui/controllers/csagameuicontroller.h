@@ -1,7 +1,7 @@
-#ifndef CSAGAMESESSION_H
-#define CSAGAMESESSION_H
+#ifndef CSAGAMEUICONTROLLER_H
+#define CSAGAMEUICONTROLLER_H
 
-/// @file csagamesession.h
+/// @file csagameuicontroller.h
 /// @brief CSA 通信対局の開始（待機ダイアログ）と、通信対局の進行の画面への反映
 
 #include <QMessageBox>
@@ -27,7 +27,7 @@ class ShogiView;
  * 棋譜（対局者・開始と終了・自動保存）と動作状態は、ローカル対局と同じく司令塔と GameSession が受け持ち、
  * 評価値グラフ・通信ログ・エラー・盤の手の接続は合成ルートがつなぐ。
  */
-class CsaGameSession : public QObject
+class CsaGameUiController : public QObject
 {
     Q_OBJECT
 
@@ -41,7 +41,7 @@ public:
         KifuFileController* kifuFiles = nullptr;           ///< 始める前の未保存の棋譜の確認
     };
 
-    explicit CsaGameSession(const Deps& deps, QObject* parent = nullptr);
+    explicit CsaGameUiController(const Deps& deps, QObject* parent = nullptr);
 
     /**
      * @brief 接続ダイアログの値で通信対局を始める
@@ -81,4 +81,4 @@ private:
     QPointer<QMessageBox> m_resultNotice;  ///< 待たずに出した続きの対局の結果の知らせ（次の局の結果で閉じる）
 };
 
-#endif // CSAGAMESESSION_H
+#endif // CSAGAMEUICONTROLLER_H

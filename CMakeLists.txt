@@ -623,8 +623,8 @@ set(SRC_UI
     src/ui/controllers/usicommandcontroller.h
     src/ui/coordinators/commentcoordinator.cpp
     src/ui/coordinators/commentcoordinator.h
-    src/ui/coordinators/csagamesession.cpp
-    src/ui/coordinators/csagamesession.h
+    src/ui/controllers/csagameuicontroller.cpp
+    src/ui/controllers/csagameuicontroller.h
     src/ui/presenters/kifuanalysisrowpresenter.cpp
     src/ui/presenters/kifuanalysisrowpresenter.h
     src/ui/presenters/boardsyncpresenter.cpp

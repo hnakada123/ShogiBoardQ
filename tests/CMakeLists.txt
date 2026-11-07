@@ -738,12 +738,12 @@ target_compile_definitions(tst_app_error_handling PRIVATE
 )
 
 # ============================================================
-# Unit 31: CsaGameSession（司令塔のシグナルの届け先・動作状態の切り替え）
+# Unit 31: CsaGameUiController（司令塔のシグナルの届け先・動作状態の切り替え）
 # ============================================================
-add_shogi_test(tst_csagamesession
-    tst_csagamesession.cpp
+add_shogi_test(tst_csagameuicontroller
+    tst_csagameuicontroller.cpp
 )
-target_link_libraries(tst_csagamesession PRIVATE shogiboardq_static)
+target_link_libraries(tst_csagameuicontroller PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 31b: CsaGameCoordinator 指し手進行・棋譜行（偽 CSA サーバー）

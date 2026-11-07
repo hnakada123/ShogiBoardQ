@@ -1,5 +1,5 @@
-/// @file tst_csagamesession.cpp
-/// @brief CsaGameSession が通信対局の司令塔の知らせを画面（ステータスバー・ダイアログ）に出すことを確かめる
+/// @file tst_csagameuicontroller.cpp
+/// @brief CsaGameUiController が通信対局の司令塔の知らせを画面（ステータスバー・ダイアログ）に出すことを確かめる
 
 #include <QtTest>
 #include <QLabel>
@@ -9,10 +9,10 @@
 #include "csagamecoordinator.h"
 #include "csawaitingdialog.h"
 #include "csagamedialog.h"
-#include "csagamesession.h"
+#include "csagameuicontroller.h"
 #include "notificationpresenter.h"
 
-class TestCsaGameSession : public QObject
+class TestCsaGameUiController : public QObject
 {
     Q_OBJECT
     QTemporaryDir m_config;
@@ -31,20 +31,20 @@ private slots:
         QStringList results;
         for (const Result result : {Result::Win, Result::Lose, Result::Draw, Result::Censored, Result::Chudan,
                                     Result::Unknown}) {
-            results << CsaGameSession::resultText(result);
+            results << CsaGameUiController::resultText(result);
         }
         QStringList causes;
         for (const Cause cause : {Cause::Resign, Cause::TimeUp, Cause::IllegalMove, Cause::Sennichite,
                                   Cause::OuteSennichite, Cause::Jishogi, Cause::MaxMoves, Cause::Chudan,
                                   Cause::IllegalAction, Cause::Unknown}) {
-            causes << CsaGameSession::causeText(cause);
+            causes << CsaGameUiController::causeText(cause);
         }
         for (const QStringList& texts : {results, causes}) {
             QVERIFY(!texts.contains(QString()));
             QCOMPARE(QSet<QString>(texts.cbegin(), texts.cend()).size(), texts.size());
         }
-        QCOMPARE(CsaGameSession::resultText(Result::Win), QStringLiteral("勝ち"));
-        QCOMPARE(CsaGameSession::causeText(Cause::Resign), QStringLiteral("投了"));
+        QCOMPARE(CsaGameUiController::resultText(Result::Win), QStringLiteral("勝ち"));
+        QCOMPARE(CsaGameUiController::causeText(Cause::Resign), QStringLiteral("投了"));
     }
 
     /// 司令塔のログはステータスバーに出る
@@ -52,10 +52,10 @@ private slots:
     {
         CsaGameCoordinator coordinator;
         QStatusBar status;
-        CsaGameSession::Deps deps;
+        CsaGameUiController::Deps deps;
         deps.coordinator = &coordinator;
         deps.statusBar = &status;
-        CsaGameSession session(deps);
+        CsaGameUiController session(deps);
         emit coordinator.logMessage(QStringLiteral("connected"), false);
         QCOMPARE(status.currentMessage(), QStringLiteral("connected"));
     }
@@ -126,15 +126,15 @@ private slots:
         box->close();
     }
 
-    /// 接続ダイアログは CsaGameSession が開き、入力した値を残すため使い回す。キャンセルなら始めない
+    /// 接続ダイアログは CsaGameUiController が開き、入力した値を残すため使い回す。キャンセルなら始めない
     void gameDialogIsOpenedAndReused()
     {
         CsaGameCoordinator coordinator;
         QWidget parent;
-        CsaGameSession::Deps deps;
+        CsaGameUiController::Deps deps;
         deps.coordinator = &coordinator;
         deps.parentWidget = &parent;
-        CsaGameSession session(deps);
+        CsaGameUiController session(deps);
         for (int i = 0; i < 2; ++i) {
             QTimer::singleShot(0, this, []() {
                 if (auto* dialog = qobject_cast<CsaGameDialog*>(QApplication::activeModalWidget())) dialog->reject();
@@ -150,15 +150,15 @@ private slots:
     {
         CsaGameCoordinator coordinator;
         QStatusBar status;
-        CsaGameSession::Deps deps;
+        CsaGameUiController::Deps deps;
         deps.coordinator = &coordinator;
         deps.statusBar = &status;
-        CsaGameSession session(deps);
+        CsaGameUiController session(deps);
 
         emit coordinator.gameStarted(QStringLiteral("Black"), QStringLiteral("White"));
         QVERIFY(status.currentMessage().contains(QStringLiteral("Black")));
         QVERIFY(status.currentMessage().contains(QStringLiteral("White")));
     }
 };
-QTEST_MAIN(TestCsaGameSession)
-#include "tst_csagamesession.moc"
+QTEST_MAIN(TestCsaGameUiController)
+#include "tst_csagameuicontroller.moc"

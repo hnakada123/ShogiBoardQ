@@ -36,7 +36,7 @@
  * - 対局中のキープアライブ（LF のみの行）
  *
  * 対局条件（Game_Summary）の値は CsaGameSummary、その読み取りは CsaGameSummaryReader、
- * ログインの規則は CsaLogin、結果の表示名は ui の CsaGameSession が持つ。
+ * ログインの規則は CsaLogin、結果の表示名は ui の CsaGameUiController が持つ。
  */
 class CsaClient : public QObject
 {

@@ -1,7 +1,7 @@
-/// @file csagamesession.cpp
+/// @file csagameuicontroller.cpp
 /// @brief CSA 通信対局の開始と、通信対局の進行の画面への反映の実装
 
-#include "csagamesession.h"
+#include "csagameuicontroller.h"
 
 #include "csagamecoordinator.h"
 #include "csagamedialog.h"
@@ -14,7 +14,7 @@
 
 #include <QStatusBar>
 
-CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
+CsaGameUiController::CsaGameUiController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
@@ -22,17 +22,17 @@ CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
     CsaGameCoordinator* const c = m_deps.coordinator;
 
     // 対局の開始・終局・手番・ログの反映
-    connect(c, &CsaGameCoordinator::gameStarted, this, &CsaGameSession::onGameStarted);
-    connect(c, &CsaGameCoordinator::gameEnded, this, &CsaGameSession::onGameEnded);
-    connect(c, &CsaGameCoordinator::turnChanged, this, &CsaGameSession::onTurnChanged);
-    connect(c, &CsaGameCoordinator::logMessage, this, &CsaGameSession::onLogMessage);
+    connect(c, &CsaGameCoordinator::gameStarted, this, &CsaGameUiController::onGameStarted);
+    connect(c, &CsaGameCoordinator::gameEnded, this, &CsaGameUiController::onGameEnded);
+    connect(c, &CsaGameCoordinator::turnChanged, this, &CsaGameUiController::onTurnChanged);
+    connect(c, &CsaGameCoordinator::logMessage, this, &CsaGameUiController::onLogMessage);
 }
 
 // ============================================================
 // 対局の開始
 // ============================================================
 
-void CsaGameSession::openGameDialog()
+void CsaGameUiController::openGameDialog()
 {
     if (!m_gameDialog) m_gameDialog = new CsaGameDialog(m_deps.parentWidget);
     m_gameDialog->refreshChoices();
@@ -42,14 +42,14 @@ void CsaGameSession::openGameDialog()
     startGame(m_gameDialog->selection());
 }
 
-bool CsaGameSession::startGame(const CsaGameDialog::Selection& selection)
+bool CsaGameUiController::startGame(const CsaGameDialog::Selection& selection)
 {
     const CsaGameCoordinator::StartOptions& options = selection.start;
     m_autoFlipBoard = selection.autoFlipBoard;
 
     CsaGameCoordinator* const c = m_deps.coordinator;
     CsaWaitingDialog waitingDialog(c, m_deps.parentWidget);
-    connect(&waitingDialog, &CsaWaitingDialog::cancelRequested, this, &CsaGameSession::onWaitingCancelled);
+    connect(&waitingDialog, &CsaWaitingDialog::cancelRequested, this, &CsaGameUiController::onWaitingCancelled);
 
     // 待機ダイアログがシグナルを受け取れるようになってから始める。ログインから START までの通信ログと
     // エンジンの起動の通信ログを残すため、前の対局のログは接続の前に消す
@@ -62,7 +62,7 @@ bool CsaGameSession::startGame(const CsaGameDialog::Selection& selection)
     return started;
 }
 
-void CsaGameSession::onWaitingCancelled()
+void CsaGameUiController::onWaitingCancelled()
 {
     qCDebug(lcUi) << "onWaitingCancelled: cancelled by user";
     m_deps.coordinator->stopGame();
@@ -73,7 +73,7 @@ void CsaGameSession::onWaitingCancelled()
 // 司令塔からの通知
 // ============================================================
 
-void CsaGameSession::onGameStarted(const QString& blackName, const QString& whiteName)
+void CsaGameUiController::onGameStarted(const QString& blackName, const QString& whiteName)
 {
     qCDebug(lcUi) << "onGameStarted:" << blackName << "vs" << whiteName;
     CsaGameCoordinator* const c = m_deps.coordinator;
@@ -87,7 +87,7 @@ void CsaGameSession::onGameStarted(const QString& blackName, const QString& whit
     showStatus(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
 }
 
-void CsaGameSession::onGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
+void CsaGameUiController::onGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
 {
     const QString shownResult = resultText(result);
     const QString shownCause = causeText(cause);
@@ -98,13 +98,13 @@ void CsaGameSession::onGameEnded(CsaClient::GameResult result, CsaClient::GameEn
     showStatus(tr("対局終了: %1 (%2)").arg(shownResult, shownCause), 5000);
 }
 
-void CsaGameSession::onTurnChanged(bool isMyTurn)
+void CsaGameUiController::onTurnChanged(bool isMyTurn)
 {
     const bool isBlackTurn = m_deps.coordinator->isBlackSide() ? isMyTurn : !isMyTurn;
     showStatus(isBlackTurn ? tr("先手番") : tr("後手番"), 2000);
 }
 
-void CsaGameSession::onLogMessage(const QString& message, bool isError)
+void CsaGameUiController::onLogMessage(const QString& message, bool isError)
 {
     if (isError) qCWarning(lcUi) << message;
     else qCDebug(lcUi) << message;
@@ -115,7 +115,7 @@ void CsaGameSession::onLogMessage(const QString& message, bool isError)
 // 表示
 // ============================================================
 
-QString CsaGameSession::resultText(CsaClient::GameResult result)
+QString CsaGameUiController::resultText(CsaClient::GameResult result)
 {
     switch (result) {
     case CsaClient::GameResult::Win:      return tr("勝ち");
@@ -128,7 +128,7 @@ QString CsaGameSession::resultText(CsaClient::GameResult result)
     return tr("不明");
 }
 
-QString CsaGameSession::causeText(CsaClient::GameEndCause cause)
+QString CsaGameUiController::causeText(CsaClient::GameEndCause cause)
 {
     switch (cause) {
     case CsaClient::GameEndCause::Resign:         return tr("投了");
@@ -145,7 +145,7 @@ QString CsaGameSession::causeText(CsaClient::GameEndCause cause)
     return tr("不明");
 }
 
-void CsaGameSession::showGameEndDialog(const QString& title, const QString& message)
+void CsaGameUiController::showGameEndDialog(const QString& title, const QString& message)
 {
     // 対局を続けるときは、結果の表示が次の対局の開始を止めないようにする
     NotificationPresenter::replaceInformation(m_resultNotice, m_deps.parentWidget, title, message,
@@ -154,7 +154,7 @@ void CsaGameSession::showGameEndDialog(const QString& title, const QString& mess
                                                   : NotificationPresenter::Wait::UntilClosed);
 }
 
-void CsaGameSession::showStatus(const QString& message, int timeoutMs) const
+void CsaGameUiController::showStatus(const QString& message, int timeoutMs) const
 {
     if (m_deps.statusBar) m_deps.statusBar->showMessage(message, timeoutMs);
 }

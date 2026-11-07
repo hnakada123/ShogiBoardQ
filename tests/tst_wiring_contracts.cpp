@@ -21,7 +21,7 @@
 #include "consecutivegameseries.h"
 #include "boardmovecontroller.h"
 #include "csagamecoordinator.h"
-#include "csagamesession.h"
+#include "csagameuicontroller.h"
 #include "csalogpanel.h"
 #include "evaluationgraphpresenter.h"
 #include "notificationpresenter.h"
@@ -150,7 +150,7 @@ private slots:
         QCOMPARE(p.uiStatePolicy->currentState(), UiStatePolicyManager::Activity::Idle);
     }
     /// 通信対局の司令塔の知らせは、ローカル対局と同じく合成ルートが受け手へ1本ずつ直接つなぐ
-    /// （CsaGameSession は中継しない）。棋譜の受け手はローカル対局と同じ GameSession
+    /// （CsaGameUiController は中継しない）。棋譜の受け手はローカル対局と同じ GameSession
     void csaSignalsReachReceiversDirectly()
     {
         MainWindow window;
@@ -161,7 +161,7 @@ private slots:
                 && !QObject::disconnect(sender, signal, receiver, QMetaMethod());
         };
         const QMetaMethod error = QMetaMethod::fromSignal(&CsaGameCoordinator::errorOccurred);
-        QVERIFY(!QObject::disconnect(csa, error, p.csaSession, QMetaMethod()));
+        QVERIFY(!QObject::disconnect(csa, error, p.csaUi, QMetaMethod()));
         QVERIFY(connectedOnce(csa, error, p.notifications));
         QVERIFY(connectedOnce(csa, QMetaMethod::fromSignal(&CsaGameCoordinator::engineMovePlayed), p.evalGraph));
         QVERIFY(connectedOnce(csa, QMetaMethod::fromSignal(&CsaGameCoordinator::csaCommLogAppended), p.csaLog));
