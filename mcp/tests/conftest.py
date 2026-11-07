@@ -10,6 +10,7 @@ Environment variables (set by CTest, or manually when running pytest directly):
 
 from __future__ import annotations
 
+import shutil
 import asyncio
 import os
 import sys
@@ -67,6 +68,10 @@ def test_config(tmp_path_factory) -> Path:
         engines.append(("TestUsi", usi))
     if mate:
         engines.append(("TestMate", mate))
+    # A program that is not a USI engine and exits at once
+    broken = shutil.which("false")
+    if broken:
+        engines.append(("TestBroken", broken))
     lines = ["[Engines]", f"size={len(engines)}"]
     for i, (name, path) in enumerate(engines, start=1):
         lines += [f"{i}\\name={name}", f"{i}\\path={path}", f"{i}\\author=test"]

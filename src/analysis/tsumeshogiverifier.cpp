@@ -1,5 +1,7 @@
 #include "tsumeshogiverifier.h"
 
+#include "tsumeshogisettings.h"
+
 #include <position.h>
 #include <algorithm>
 #include <map>
@@ -193,7 +195,7 @@ void TsumeshogiVerifier::start(const QString& sfen, int targetMoves, const Optio
     auto& state = *m_impl;
     state.options = options;
     shogi::Position position;
-    if (targetMoves < 1 || targetMoves > 99 || targetMoves % 2 != 1
+    if (!TsumeshogiSettings::GeneratorLimits::isTargetMoves(targetMoves)
         || !position.set_sfen(sfen.toStdString(), true)) return;
     state.attacker = position.side_to_move();
     const auto defender = shogi::opposite(state.attacker);
