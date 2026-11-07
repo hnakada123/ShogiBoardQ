@@ -5,8 +5,12 @@
 /// 形式の判定・上書き保存先・未保存の印・失敗時に元の棋譜を残すことを、振る舞いで確かめる。
 
 #include <QtTest>
+#include <QApplication>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QTimer>
 
 #include "appactivitystate.h"
 #include "evaluationgraphpresenter.h"
@@ -140,6 +144,43 @@ private slots:
     }
 
     /// SFEN・BOD の局面だけのテキストは、その局面だけの棋譜にする
+    /// 上書き保存も、形式に書けないものを確かめる。やめたら保存せず、未保存のまま残す（監査 2026-11-07 F6）
+    void overwritingAsksWhatTheFormatCannotHold_data()
+    {
+        QTest::addColumn<bool>("agree");
+        QTest::newRow("cancel") << false;
+        QTest::newRow("agree") << true;
+    }
+
+    void overwritingAsksWhatTheFormatCannotHold()
+    {
+        QFETCH(bool, agree);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("game.usi"));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("position startpos moves 7g7f 3c3d\n");
+        file.close();
+
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QVERIFY(p.kifuFileController->loadKifuFile(path));
+        QCOMPARE(p.document->filePath(), path);
+        p.document->setComment(p.branchTree->mainLine().last(), QStringLiteral("USI に書けないコメント"));
+        QVERIFY(p.document->isModified());
+
+        QString asked;
+        QTimer::singleShot(0, this, [&] {
+            auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+            QVERIFY(box);
+            asked = box->text();
+            box->button(agree ? QMessageBox::Ok : QMessageBox::Cancel)->click();
+        });
+        p.kifuFileController->overwriteKifuFile();
+        QVERIFY2(asked.contains(QStringLiteral("コメント")), qPrintable(asked));
+        QCOMPARE(p.document->isModified(), !agree);
+    }
+
     void positionOnlyTextBecomesTheStartPosition()
     {
         MainWindow window;

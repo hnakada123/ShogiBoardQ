@@ -40,6 +40,8 @@ public:
                                  const LossOf& lossOf,
                                  QString* outError = nullptr);
 
+    /// 情報が失われる形式への保存を確認する。続行なら true（「名前を付けて保存」と上書き保存で共通）
+    static bool confirmLossySave(QWidget* parent, KifuFormat format, const KifuExport::Loss& loss);
     /// 失うものの一覧の文（「分岐、消費時間、コメント」。保存の確認とコピーの知らせで共通）
     static QString lostItemsText(const KifuExport::Loss& loss);
     /// 知らせの文に書く形式の名前（"KI2"・"USEN" など）
@@ -54,8 +56,6 @@ public:
 private:
     /// Shift_JIS で表せない文字があるとき、UTF-8 で保存するか確認する。保存するなら true
     static bool confirmUtf8Fallback(QWidget* parent, const QString& characters);
-    /// 情報が失われる形式への保存を確認する。続行なら true
-    static bool confirmLossySave(QWidget* parent, KifuFormat format, const KifuExport::Loss& loss);
 };
 
 #endif // KIFUSAVEDIALOGS_H
