@@ -15,7 +15,7 @@ class QCheckBox;
 class QLabel;
 class QMenu;
 class ThinkingTableView;
-class UsiCommLogModel;
+class EngineStatusModel;
 
 /**
  * @brief 対局・棋譜解析のエンジンの思考を出す思考ドックの中身
@@ -41,7 +41,7 @@ public:
 
     /// 表に出す思考情報と、情報欄に出すエンジン名・状態（log）
     void setModels(ShogiEngineThinkingModel* thinking1, ShogiEngineThinkingModel* thinking2,
-                   UsiCommLogModel* log1, UsiCommLogModel* log2);
+                   EngineStatusModel* log1, EngineStatusModel* log2);
 
     /// 2つ目のエンジンの情報欄と表を出すか
     void setSecondEngineVisible(bool on);

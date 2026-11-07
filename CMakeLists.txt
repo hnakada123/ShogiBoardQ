@@ -890,8 +890,8 @@ set(SRC_MODELS
     src/models/shogiinforecord.h
     src/models/evaluationseries.cpp
     src/models/evaluationseries.h
-    src/models/usicommlogmodel.cpp
-    src/models/usicommlogmodel.h
+    src/models/enginestatusmodel.cpp
+    src/models/enginestatusmodel.h
 )
 
 set(SRC_SERVICES
@@ -1085,7 +1085,6 @@ set(SBQ_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/board
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/controllers
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/coordinators
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/docks
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/policy
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/presenters

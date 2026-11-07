@@ -12,7 +12,7 @@
 #include <QPushButton>
 
 #include "analysissettings.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 
 namespace {
 const QColor kEngine1Color(0x20, 0x60, 0xa0);
@@ -71,22 +71,22 @@ UsiLogPanel::UsiLogPanel(QWidget* parent)
 
 UsiLogPanel::~UsiLogPanel() = default;
 
-void UsiLogPanel::setModels(UsiCommLogModel* log1, UsiCommLogModel* log2)
+void UsiLogPanel::setModels(EngineStatusModel* log1, EngineStatusModel* log2)
 {
     m_log1 = log1;
     m_log2 = log2;
 
     if (m_log1) {
-        connect(m_log1, &UsiCommLogModel::logLineAppended,
+        connect(m_log1, &EngineStatusModel::logLineAppended,
                 this, &UsiLogPanel::onLog1Line, Qt::UniqueConnection);
-        connect(m_log1, &UsiCommLogModel::engineNameChanged,
+        connect(m_log1, &EngineStatusModel::engineNameChanged,
                 this, &UsiLogPanel::onEngine1NameChanged, Qt::UniqueConnection);
         onEngine1NameChanged();
     }
     if (m_log2) {
-        connect(m_log2, &UsiCommLogModel::logLineAppended,
+        connect(m_log2, &EngineStatusModel::logLineAppended,
                 this, &UsiLogPanel::onLog2Line, Qt::UniqueConnection);
-        connect(m_log2, &UsiCommLogModel::engineNameChanged,
+        connect(m_log2, &EngineStatusModel::engineNameChanged,
                 this, &UsiLogPanel::onEngine2NameChanged, Qt::UniqueConnection);
         onEngine2NameChanged();
     }

@@ -9,7 +9,7 @@
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"
 #include "thinkingtableview.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 
 #include <QAction>
 #include <QCheckBox>
@@ -87,7 +87,7 @@ ThinkingPanel::ThinkingPanel(const ArrowActions& actions, QWidget* parent)
 }
 
 void ThinkingPanel::setModels(ShogiEngineThinkingModel* thinking1, ShogiEngineThinkingModel* thinking2,
-                              UsiCommLogModel* log1, UsiCommLogModel* log2)
+                              EngineStatusModel* log1, EngineStatusModel* log2)
 {
     m_view1->setThinkingModel(thinking1);
     m_view2->setThinkingModel(thinking2);

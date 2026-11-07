@@ -34,7 +34,6 @@ set(TEST_INCLUDES
     ${SRC}/services
     ${SRC}/ui
     ${SRC}/ui/controllers
-    ${SRC}/ui/coordinators
     ${SRC}/ui/docks
     ${SRC}/ui/policy
     ${SRC}/ui/presenters
@@ -1216,7 +1215,7 @@ add_shogi_test(tst_usilogpanel
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/elidelabel.cpp
     ${SRC}/style/plaintooltip.cpp
-    ${SRC}/models/usicommlogmodel.cpp
+    ${SRC}/models/enginestatusmodel.cpp
     ${SRC}/style/applicationfonts.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/services/analysissettings.cpp

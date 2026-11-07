@@ -23,7 +23,7 @@ class KifuDocument;
 class ShogiEngineThinkingModel;
 class ThinkingPanel;
 class Usi;
-class UsiCommLogModel;
+class EngineStatusModel;
 class UsiLogPanel;
 class UsiModelBinding;
 
@@ -53,8 +53,8 @@ public:
         AnalysisSession* analysis = nullptr;              ///< 検討・詰み探索のセッション
         const AppActivityState* activity = nullptr;       ///< 動作状態（手番の印を消す）
         const KifuDocument* document = nullptr;           ///< 対局者（2つ目のエンジン欄・系列名）
-        UsiCommLogModel* commLog1 = nullptr;
-        UsiCommLogModel* commLog2 = nullptr;
+        EngineStatusModel* commLog1 = nullptr;
+        EngineStatusModel* commLog2 = nullptr;
         ShogiEngineThinkingModel* thinking1 = nullptr;
         ShogiEngineThinkingModel* thinking2 = nullptr;
         ShogiEngineThinkingModel* consideration = nullptr; ///< 検討の表

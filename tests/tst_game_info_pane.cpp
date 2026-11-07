@@ -32,7 +32,7 @@
 #include "thinkingpanel.h"
 #include "thinkingtableview.h"
 #include "shogienginethinkingmodel.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 #include "engineinfowidget.h"
 #include "analysissettings.h"
 #include "elidelabel.h"
@@ -583,8 +583,8 @@ private slots:
         saved.set({});
         ShogiEngineThinkingModel thinking1;
         ShogiEngineThinkingModel thinking2;
-        UsiCommLogModel log1;
-        UsiCommLogModel log2;
+        EngineStatusModel log1;
+        EngineStatusModel log2;
         CheckableAction match, ponder;
         ThinkingPanel tab({&match, &ponder});
         tab.setModels(&thinking1, &thinking2, &log1, &log2);

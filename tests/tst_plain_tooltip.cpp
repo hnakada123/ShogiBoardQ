@@ -33,7 +33,7 @@
 #include "menubuttonwidget.h"
 #include "plaintooltip.h"
 #include "sfenutils.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 
 namespace {
 
@@ -188,7 +188,7 @@ private slots:
         QCOMPARE(shownText(combo.itemData(0, Qt::ToolTipRole).toString()), kExternal);
         QCOMPARE(shownText(combo.toolTip()), kExternal);
 
-        UsiCommLogModel log;
+        EngineStatusModel log;
         EngineInfoWidget info;
         info.setModel(&log);
         log.setEngineName(kExternal);

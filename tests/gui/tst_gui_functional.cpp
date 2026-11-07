@@ -90,7 +90,7 @@
 #include "boardappearancepreview.h"
 #include "thinkingpanel.h"
 #include "engineinfowidget.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 #include "usilogpanel.h"
 #include "gamesettings.h"
 #include "sfencollectiondialog.h"
@@ -601,8 +601,8 @@ private slots:
         QVERIFY(panel);
         dock->show();
         dock->raise();
-        UsiCommLogModel first;
-        UsiCommLogModel second;
+        EngineStatusModel first;
+        EngineStatusModel second;
         first.setEngineName(QStringLiteral("Hayanagi 1.5.0"));
         second.setEngineName(QStringLiteral("Engine 2"));
         panel->setModels(&first, &second);
@@ -3594,7 +3594,7 @@ private slots:
         QVERIFY(status->text().contains(QStringLiteral("解析完了")));
         QVERIFY(table->model()->index(0, 7).data(Qt::ToolTipRole).toString().contains(pv));
         QVERIFY(container->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/analysis-layout.png")));
-        QSignalSpy boardRequests(&presenter, &AnalysisResultsPanel::rowDoubleClicked);
+        QSignalSpy boardRequests(&presenter, &AnalysisResultsPanel::boardRequested);
         table->setCurrentIndex(model.index(0, 6));
         table->setFocus();
         QTest::keyClick(table, Qt::Key_Return);
@@ -4075,7 +4075,7 @@ private slots:
         multiPV->setCurrentIndex(multiPV->findData(6));
         QCOMPARE(manager->settings().multiPV, 6);
         manager->setConsiderationEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
-        auto* summary = new UsiCommLogModel(window.get());
+        auto* summary = new EngineStatusModel(window.get());
         summary->setEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
         EngineSearchStatus summaryStatus;
         summaryStatus.searchedMove = QStringLiteral("▲７六歩(77)");
@@ -4129,7 +4129,7 @@ private slots:
     }
     void engineInfoLayout()
     {
-        UsiCommLogModel model;
+        EngineStatusModel model;
         EngineInfoWidget info;
         model.setEngineName(QStringLiteral("Hayanagi 1.5.0"));
         model.setPredictedMove(QStringLiteral("▲７六歩(77)"));

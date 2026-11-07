@@ -14,7 +14,7 @@
 
 #include "analysissettings.h"
 #include "settingscommon.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 #include "usilogpanel.h"
 
 class TestUsiLogPanel : public QObject
@@ -227,8 +227,8 @@ private slots:
         auto* clear = page->findChild<QAction*>("usiLogClear");
         QVERIFY(!copy->isEnabled());
         QVERIFY(!clear->isEnabled());
-        UsiCommLogModel first;
-        UsiCommLogModel second;
+        EngineStatusModel first;
+        EngineStatusModel second;
         panel.setModels(&first, &second);
         first.appendLogLine(QStringLiteral("▶ E1: position startpos moves 7g7f"));
         second.appendLogLine(QStringLiteral("◀ E2: info string <test> & ready"));

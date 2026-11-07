@@ -1,7 +1,7 @@
-#ifndef USICOMMLOGMODEL_H
-#define USICOMMLOGMODEL_H
+#ifndef ENGINESTATUSMODEL_H
+#define ENGINESTATUSMODEL_H
 
-/// @file usicommlogmodel.h
+/// @file enginestatusmodel.h
 /// @brief エンジン1台の情報欄（エンジン名・探索状況）と通信ログの行
 
 #include <QObject>
@@ -16,12 +16,12 @@
  *   書式は表示する側（EngineInfoWidget）が決める
  * - 通信ログ: 行を溜めずに logLineAppended で知らせる（UsiLogPanel が表示する）
  */
-class UsiCommLogModel : public QObject
+class EngineStatusModel : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit UsiCommLogModel(QObject* parent = nullptr);
+    explicit EngineStatusModel(QObject* parent = nullptr);
 
     QString engineName() const { return m_engineName; }
     /// 探索状況（info に含まれた項目を重ねたもの）
@@ -55,4 +55,4 @@ private:
     QString m_predictedMove;
 };
 
-#endif // USICOMMLOGMODEL_H
+#endif // ENGINESTATUSMODEL_H

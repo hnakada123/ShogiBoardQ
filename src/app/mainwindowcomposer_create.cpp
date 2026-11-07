@@ -79,7 +79,7 @@
 #include "notificationpresenter.h"
 #include "uistatepolicymanager.h"
 #include "usicommandcontroller.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 #include "usilogpanel.h"
 #ifdef QT_DEBUG
 #include "debugscreenshotshortcut.h"
@@ -105,8 +105,8 @@ void MainWindowComposer::createRecordAndModels()
 
     m_c.kifuRecord = new KifuRecordListModel(m_c.branchTree, &m_window);
     m_c.kifuBranch = new KifuBranchListModel(m_c.branchTree, &m_window);
-    m_c.commLog1 = new UsiCommLogModel(&m_window);
-    m_c.commLog2 = new UsiCommLogModel(&m_window);
+    m_c.commLog1 = new EngineStatusModel(&m_window);
+    m_c.commLog2 = new EngineStatusModel(&m_window);
     m_c.thinking1 = new ShogiEngineThinkingModel(&m_window);
     m_c.thinking2 = new ShogiEngineThinkingModel(&m_window);
     // 検討タブの思考情報モデル。検討・読み筋表示・矢印が同じものを使う

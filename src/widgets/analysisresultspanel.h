@@ -59,7 +59,7 @@ signals:
     void stopRequested();
     
     /// 盤面列クリック時に発行（→ KifuAnalysisController が読み筋の盤を出す）
-    void rowDoubleClicked(int row);
+    void boardRequested(int row);
     
     /// 行選択時に発行（KifuAnalysisController が棋譜をその手へ移す）
     void rowSelected(int row);
@@ -83,7 +83,7 @@ private slots:
     /// レイアウト変更時に再配置を行う
     void onLayoutChanged();
 
-    /// 「盤面」が押された（解析中でなければ rowDoubleClicked で知らせる）
+    /// 「盤面」が押された（解析中でなければ boardRequested で知らせる）
     void onBoardRequested(int row);
 
     /// 選択行変更時に通知を行う

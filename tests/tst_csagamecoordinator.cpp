@@ -18,7 +18,7 @@
 #include "engineprocessmanager.h"
 #include "engineprofilestore.h"
 #include "usi.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 #include "usilogpanel.h"
 #include "operationpolicy.h"
 #include "uistatepolicymanager.h"
@@ -390,8 +390,8 @@ private slots:
     void startKeepsLogsAndEngineName()
     {
         Harness h;
-        UsiCommLogModel commLog1;
-        UsiCommLogModel commLog2;
+        EngineStatusModel commLog1;
+        EngineStatusModel commLog2;
         UsiLogPanel usiLog;
         usiLog.setModels(&commLog1, &commLog2);
         CsaLogPanel csaLog;
