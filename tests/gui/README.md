@@ -92,7 +92,7 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 `engineAnalysisCancelPreservesGraph` は条件ダイアログをキャンセルしても既存の2系列と選択手数が保持されることを確認します。
 `engineAnalysisRecord` はビルド済みのHayanagiと自作のテスト棋譜で開始局面から14手目までを解析し、局面移動と読み筋盤面の表示を確認します。`ANALYSIS_AUDIT_KIF` で入力棋譜を指定できます。`analysis-settings.png`、`analysis-settings-large.png`、`analysis-layout.png`、`analysis-narrow.png`、`analysis-record.png` を保存します。
 
-各シナリオは独立したプロセスで実行し、35秒でタイムアウトする。通常のアプリ設定は使用せず、テスト用一時ディレクトリに隔離する。結果は`build/gui-audit/`に保存される。
+各シナリオは独立したプロセスで実行し、35秒（時間のかかるシナリオは `run.py` の `LONG_SCENARIOS` の秒数）でタイムアウトする。通常のアプリ設定は使用せず、テスト用一時ディレクトリに隔離する。結果は`build/gui-audit/`に保存される。
 
 `engineMemoryLifecycle` は同じ MainWindow で、人間対エンジン対局・中断、棋譜貼り付け、棋譜解析、
 詰み探索、検討の開始・停止、詰将棋生成画面の開始・停止と開き直しを12周実行する（上限180秒）。

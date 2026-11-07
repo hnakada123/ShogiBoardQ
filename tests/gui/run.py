@@ -20,8 +20,9 @@ env.update(SHOGIBOARDQ_CONFIG_HOME=env['XDG_CONFIG_HOME'],
 names = sys.argv[1:] or [s.removesuffix('()') for s in subprocess.check_output(
     [str(audit / 'test-build/tst_gui_functional'), '-functions'], env=env, text=True).splitlines()
     if s.endswith('()')]
-# 駒の種類ごとに盤面を描く pieceVariants などは、既定の35秒では終わらない
-LONG_SCENARIOS = {'engineMemoryLifecycle': 180, 'pieceVariants': 300}
+# 駒の種類ごとに盤面を描く pieceVariants などは、既定の35秒では終わらない。
+# captureKeepsWindowGeometry は3つの条件で19手ずつ指すので40秒以上かかる
+LONG_SCENARIOS = {'captureKeepsWindowGeometry': 90, 'engineMemoryLifecycle': 180, 'pieceVariants': 300}
 results = []
 actions = set()
 for name in names:
