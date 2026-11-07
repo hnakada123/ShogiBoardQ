@@ -4,6 +4,7 @@
 #include <QtTest>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPointer>
 #include <QTemporaryDir>
 #include <QStatusBar>
 #include "csagamecoordinator.h"
@@ -158,6 +159,21 @@ private slots:
         emit coordinator.gameStarted(QStringLiteral("Black"), QStringLiteral("White"));
         QVERIFY(status.currentMessage().contains(QStringLiteral("Black")));
         QVERIFY(status.currentMessage().contains(QStringLiteral("White")));
+    }
+
+    /// 続きの対局の結果の知らせは、前の知らせを閉じてから出す（積み重ねない。監査 2026-11-07 F13）
+    void resultNoticeReplacesThePreviousOne()
+    {
+        QPointer<QMessageBox> notice;
+        const auto wait = NotificationPresenter::Wait::No;
+        NotificationPresenter::replaceInformation(notice, nullptr, QStringLiteral("t"), QStringLiteral("1局目"), wait);
+        QVERIFY(notice);
+        QPointer<QMessageBox> first = notice;
+        NotificationPresenter::replaceInformation(notice, nullptr, QStringLiteral("t"), QStringLiteral("2局目"), wait);
+        QVERIFY(notice && notice != first);
+        QTRY_VERIFY(first.isNull());  // 閉じると消える
+        QCOMPARE(notice->text(), QStringLiteral("2局目"));
+        notice->close();
     }
 };
 QTEST_MAIN(TestCsaGameUiController)
