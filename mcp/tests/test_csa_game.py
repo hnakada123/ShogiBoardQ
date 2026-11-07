@@ -629,8 +629,8 @@ OUTE_SENNICHITE = {
 }
 # 終局行・KIF の結び・CSA/JKF の終局（どちらも後手の反則で先手の勝ち）
 OUTE_SENNICHITE_RESULT = {
-    "check": ("▲反則勝ち", "まで18手で先手の勝ち", "%-ILLEGAL_ACTION", "-ILLEGAL_ACTION"),
-    "escape": ("△反則負け", "まで19手で先手の勝ち", "%ILLEGAL_MOVE", "ILLEGAL_MOVE"),
+    "check": ("▲反則勝ち", "まで18手で先手の反則勝ち", "%-ILLEGAL_ACTION", "-ILLEGAL_ACTION"),
+    "escape": ("△反則負け", "まで19手で後手の反則負け", "%ILLEGAL_MOVE", "ILLEGAL_MOVE"),
 }
 
 
