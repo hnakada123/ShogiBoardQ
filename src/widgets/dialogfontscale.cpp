@@ -143,7 +143,9 @@ QFont DialogFontScale::messageBoxFont(const QFont& font)
 {
     // install() と同じく、ボックスの文字の大きさを既定値として保存済みの大きさを読む
     QFont result = font;
-    result.setPointSize(qBound(8, AppSettings::messageBoxFontSize.valueOr(qMax(8, font.pointSize())), 24));
+    const Options range;
+    result.setPointSize(qBound(range.minSize, AppSettings::messageBoxFontSize.valueOr(qMax(range.minSize, font.pointSize())),
+                               range.maxSize));
     return result;
 }
 

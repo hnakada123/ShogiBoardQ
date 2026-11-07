@@ -47,7 +47,7 @@ public:
         QString sendButton;
     };
 
-    LogPanel(const Setting<int>& fontSize, const Setting<bool>& wrapLines, const Names& names, QWidget* parent);
+    LogPanel(const BoundedSetting<int>& fontSize, const Setting<bool>& wrapLines, const Names& names, QWidget* parent);
     ~LogPanel() override;
 
     /// 1行足す（色を指定しなければ文字の既定の色）
@@ -89,7 +89,7 @@ private:
     QList<LogPanel*> panelsSharingFontSize() const;
     QList<LogPanel*> panelsSharingWrapLines() const;
 
-    const Setting<int>& m_fontSizeSetting;
+    const BoundedSetting<int>& m_fontSizeSetting;
     const Setting<bool>& m_wrapLines;
     FontSizeHelper m_fontSize;   ///< ログ・コマンドの欄の文字の大きさ（変更のたびに保存する）
     QToolBar* m_toolbar = nullptr;

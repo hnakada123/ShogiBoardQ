@@ -240,7 +240,7 @@ void BoardAppearanceDialog::createAppearancePage()
     auto* form = new QFormLayout;
     m_pieceScale = new QSpinBox(page);
     m_pieceScale->setObjectName(QStringLiteral("boardPieceScale"));
-    m_pieceScale->setRange(90, 112);
+    m_pieceScale->setRange(BoardVisuals::kMinPieceScale, BoardVisuals::kMaxPieceScale);
     m_pieceScale->setSuffix(QStringLiteral(" %"));
     form->addRow(tr("駒の大きさ"), m_pieceScale);
     layout->addLayout(form);

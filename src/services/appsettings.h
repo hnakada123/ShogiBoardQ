@@ -82,7 +82,7 @@ inline const Setting<QStringList> menuWindowFavorites{"MenuWindow/favorites", QS
 inline const BoundedSetting<int> menuWindowButtonSize{"MenuWindow/buttonSize", 104, 48, 120};
 
 /// メニューウィンドウのフォントサイズ（デフォルト: 12）
-inline const Setting<int> menuWindowFontSize{"MenuWindow/fontSize", 12};
+inline const BoundedSetting<int> menuWindowFontSize{"MenuWindow/fontSize", 12, 7, 24};
 
 /// メニューウィンドウで最後に選択したタブ
 inline const Setting<int> menuWindowCurrentTab{"MenuWindow/currentTab", 0};

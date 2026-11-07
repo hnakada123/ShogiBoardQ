@@ -21,6 +21,13 @@ struct JosekiPlayOptions {
         FirstMove = 2,    ///< 表の先頭の手
     };
 
+    // 項目の範囲（normalized と条件のダイアログの欄で共通）
+    static constexpr int kMaxPly = 9999;
+    static constexpr int kMaxValue = 99999;         ///< 評価値の差の上限と、評価値の下限の範囲（±）
+    static constexpr int kMaxDepth = 9999;
+    static constexpr double kMaxRatioPercent = 100.0;
+    static constexpr int kMaxFrequency = 999999999;
+
     bool enabled = false;          ///< 定跡を使う
     int maxPly = 40;               ///< この手数（これから指す手の手数）まで定跡を使う
     int method = ByFrequency;      ///< 手の選び方（Method）
@@ -35,13 +42,13 @@ struct JosekiPlayOptions {
     JosekiPlayOptions normalized() const
     {
         JosekiPlayOptions options = *this;
-        options.maxPly = qBound(1, maxPly, 9999);
+        options.maxPly = qBound(1, maxPly, kMaxPly);
         options.method = (method == ByValue || method == FirstMove) ? method : ByFrequency;
-        options.valueDiff = qBound(0, valueDiff, 99999);
-        options.minValue = qBound(-99999, minValue, 99999);
-        options.minDepth = qBound(0, minDepth, 9999);
-        options.minRatioPercent = qBound(0.0, minRatioPercent, 100.0);
-        options.minFrequency = qBound(0, minFrequency, 999999999);
+        options.valueDiff = qBound(0, valueDiff, kMaxValue);
+        options.minValue = qBound(-kMaxValue, minValue, kMaxValue);
+        options.minDepth = qBound(0, minDepth, kMaxDepth);
+        options.minRatioPercent = qBound(0.0, minRatioPercent, kMaxRatioPercent);
+        options.minFrequency = qBound(0, minFrequency, kMaxFrequency);
         return options;
     }
 

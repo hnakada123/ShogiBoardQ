@@ -128,14 +128,14 @@ inline constexpr int kThinkingViewBoundColumn = 4;
 ListSetting<int> thinkingViewColumnWidths(ThinkingTable table);
 
 /// USI通信ログタブのフォントサイズ（デフォルト: 10）
-inline const Setting<int> usiLogFontSize{"FontSize/usiLog", 10};
+inline const BoundedSetting<int> usiLogFontSize{"FontSize/usiLog", 10, 8, 24};
 
 inline const Setting<bool> usiLogWrapLines{"UsiLog/wrapLines", false};
 /// コマンド送信先（0=E1、1=E2、2=両方）
 inline const BoundedSetting<int> usiLogCommandTarget{"UsiLog/commandTarget", 0, 0, 2};
 
 /// 思考タブのフォントサイズ（デフォルト: 10）
-inline const Setting<int> thinkingFontSize{"FontSize/thinking", 10};
+inline const BoundedSetting<int> thinkingFontSize{"FontSize/thinking", 10, 8, 24};
 
 /// 対局のエンジンの手番側の読みを盤に矢印で出す（思考タブの「対局中の矢印表示」。デフォルト: false）
 inline const Setting<bool> matchArrowsVisible{"ThinkingView/matchArrowsVisible", false};
@@ -148,7 +148,7 @@ inline const Setting<bool> ponderArrowsVisible{"ThinkingView/ponderArrowsVisible
 inline const Setting<int> kifuAnalysisDialogFontSize{"KifuAnalysis/dialogFontSize", 0};
 /// 棋譜解析の結果ドックのフォントサイズ（デフォルト: 10）。以前の版はダイアログと結果ドックがこのキーを共有して
 /// いたので、保存してある値は結果ドックが引き継ぐ（ダイアログは kifuAnalysisDialogFontSize から始め直す）
-inline const Setting<int> kifuAnalysisResultsFontSize{"KifuAnalysis/fontSize", 10};
+inline const BoundedSetting<int> kifuAnalysisResultsFontSize{"KifuAnalysis/fontSize", 10, 8, 24};
 
 /// 解析結果の表の読み筋より前の列の幅（列ごと。0 は内容に合わせる）。
 /// 以前の版が1つの値（QVariantList）で保存していれば、初めて読むときに配列に移す
@@ -184,7 +184,7 @@ inline const StructSetting<ConsiderationSettings> consideration{
 inline const Setting<bool> considerationArrowsVisible{"Consideration/arrowsVisible", true};
 
 /// 検討タブのフォントサイズ（デフォルト: 10）
-inline const Setting<int> considerationFontSize{"ConsiderationTab/fontSize", 10};
+inline const BoundedSetting<int> considerationFontSize{"ConsiderationTab/fontSize", 10, 8, 24};
 
 // --- 詰み探索（検討とは独立して保存） ---
 

@@ -30,7 +30,7 @@
 ConsiderationPanel::ConsiderationPanel(QAction* arrows, QWidget* parent)
     : QWidget(parent)
     , m_arrowsAction(arrows)
-    , m_considerationFontSize(AnalysisSettings::considerationFontSize, 8, 24)
+    , m_considerationFontSize(AnalysisSettings::considerationFontSize)
 {
     Q_ASSERT(m_arrowsAction);
     auto* layout = new QVBoxLayout(this);

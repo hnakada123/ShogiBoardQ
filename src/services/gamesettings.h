@@ -27,7 +27,7 @@ inline const Setting<QString> lastKifuSaveDirectory{"General/lastKifuSaveDirecto
 // --- 棋譜欄 ---
 
 /// 棋譜欄・分岐候補欄のフォントサイズ（デフォルト: 10）
-inline const Setting<int> kifuPaneFontSize{"FontSize/kifuPane", 10};
+inline const BoundedSetting<int> kifuPaneFontSize{"FontSize/kifuPane", 10, 8, 24};
 
 /// 棋譜欄の消費時間列の表示状態（デフォルト: true）
 inline const Setting<bool> kifuTimeColumnVisible{"RecordPane/timeColumnVisible", true};
@@ -44,10 +44,10 @@ inline const Setting<bool> kifuBranchExpanded{"RecordPane/branchExpanded", true}
 // --- メインタブ（コメント・対局情報） ---
 
 /// 棋譜コメントタブのフォントサイズ（デフォルト: 10）
-inline const Setting<int> commentFontSize{"FontSize/comment", 10};
+inline const BoundedSetting<int> commentFontSize{"FontSize/comment", 10, 8, 24};
 
 /// 対局情報タブのフォントサイズ（デフォルト: 10）
-inline const Setting<int> gameInfoFontSize{"FontSize/gameInfo", 10};
+inline const BoundedSetting<int> gameInfoFontSize{"FontSize/gameInfo", 10, 8, 24};
 
 /// 対局情報の表の列幅（項目名の列だけ。0 は内容に合わせる）。
 /// 以前の版の項目名の列幅（GameInfo/keyColumnWidth）は、初めて読むときにこの配列に移す

@@ -56,11 +56,11 @@ QList<LogPanel*>& livePanels()
 }
 } // namespace
 
-LogPanel::LogPanel(const Setting<int>& fontSize, const Setting<bool>& wrapLines, const Names& names, QWidget* parent)
+LogPanel::LogPanel(const BoundedSetting<int>& fontSize, const Setting<bool>& wrapLines, const Names& names, QWidget* parent)
     : QWidget(parent)
     , m_fontSizeSetting(fontSize)
     , m_wrapLines(wrapLines)
-    , m_fontSize(fontSize, 8, 24)
+    , m_fontSize(fontSize)
 {
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(4, 4, 4, 4);
