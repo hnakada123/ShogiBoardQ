@@ -134,8 +134,9 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaGameSummary& summary)
         return;
     }
 
-    if (!isHumanPlayer() && (!m_engineSeat || !m_engineSeat->isReady())) {
-        // 初めての対局か、前局の終局で終えたエンジンを起動し直す
+    // 初期化中のエンジンは起動し直さず、readyok を待つ（ログインのときに起動を始めている）
+    if (!isHumanPlayer() && (!m_engineSeat || (!m_engineSeat->isReady() && !m_engineSeat->isInitializing()))) {
+        // 前局の終局で終えたエンジンを起動し直す
         startEngine();
         // 起動に失敗したら対局条件は拒否済み
         if (gameState() != GameState::WaitingForAgree) return;
