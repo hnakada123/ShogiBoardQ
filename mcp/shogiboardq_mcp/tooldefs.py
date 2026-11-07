@@ -461,7 +461,9 @@ PHASE2_TOOLS: list[types.Tool] = [
         {**_spec("method", "kifu.load", override={"path": {"description": "Kifu file. " + ABS_PATH_DESC}}),
          "oneOf": [{"required": ["path"]}, {"required": ["text"]}]},
         {"type": "object", "properties": {"total_plies": {"type": "integer"}, "start_sfen": {"type": "string"},
-                                          "kifu_file": {"type": "string"}}, "required": ["total_plies"]},
+                                          "kifu_file": {"type": "string"},
+                                          "warnings": {"type": "array", "items": {"type": "string"}}},
+         "required": ["total_plies"]},
         destructive=True,
     ),
     _tool(

@@ -85,7 +85,13 @@ async def test_app_round_trip(app_env, tmp_path):
         text, saved, is_error = await _call(session, "save_kifu", path=str(out))
         assert is_error and "overwrite" in text
 
-        text, data, is_error = await _call(session, "load_kifu", text="position startpos moves 7g7f 3c3d")
+        # A record cut short at a move that cannot be read says so in the text, too.
+        text, data, is_error = await _call(session, "load_kifu", discard_unsaved=True, text=(
+            "手合割：平手\n手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 ５五歩(11)\n"))
+        assert not is_error, text
+        assert "Warnings:" in text and data["warnings"]
+
+        text, data, is_error = await _call(session, "load_kifu", discard_unsaved=True, text="position startpos moves 7g7f 3c3d")
         assert not is_error, text
         assert data["total_plies"] == 2
         # the pasted record is unsaved, so replacing it needs discard_unsaved
@@ -199,6 +205,9 @@ async def test_position_edit_piece_box_clicks(app_env):
         await call("click_board_square", file=12, rank=8)  # a king in the piece box
         await call("click_board_square", file=5, rank=9)
         await wait_board("9/9/9/9/9/9/9/9/4K4")
+        # While editing, the position shown is the edited board, not the node it started from.
+        assert (await call("get_position"))["sfen"].startswith("9/9/9/9/9/9/9/9/4K4 ")
+        assert (await call("get_app_state"))["sfen"].startswith("9/9/9/9/9/9/9/9/4K4 ")
 
         # Ranks without a piece cell are refused by the same table as the hands.
         for file, rank in [(12, 9), (10, 9), (11, 1)]:
