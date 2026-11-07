@@ -39,7 +39,6 @@ KifuLoadResult KifuLoadParser::parseFile(const QString& path, std::optional<Kifu
         result.filePath = path;
         return result;
     }
-    const KifuFormat format = requested ? *requested : KifuFormats::detectFile(path);
     QString text;
     QString warning;
     // 文字コード（BOM・先頭の宣言・判別）は形式によらず KifuTextDecoder の1つの規則で決める
@@ -51,6 +50,8 @@ KifuLoadResult KifuLoadParser::parseFile(const QString& path, std::optional<Kifu
                            .arg(QFileInfo(path).fileName(), QLatin1Char('\n') + warning);
         return result;
     }
+    // 形式の判別も、読んだ内容で行う（ファイルを読むのは1回）
+    const KifuFormat format = requested ? *requested : KifuFormats::detectFile(path, text);
     KifuLoadResult result = parseContent(text, format, cancel, QFileInfo(path).fileName());
     result.filePath = path;
     if (!warning.isEmpty()) result.warning.prepend(warning);

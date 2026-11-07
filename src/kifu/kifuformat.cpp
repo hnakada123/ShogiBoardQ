@@ -133,27 +133,23 @@ QStringList writableSuffixes()
     return suffixes;
 }
 
-KifuFormat detectFile(const QString& filePath)
+KifuFormat detectFile(const QString& filePath, const QString& content)
 {
     if (const auto format = fromPath(filePath)) return *format == KifuFormat::Sfen ? KifuFormat::Usi : *format;
 
     // JKF は .json で配布されることも多い。拡張子で決まらないときは内容で判定する。
-    QStringList lines;
-    QString usedEncoding;
-    if (KifuTextDecoder::readAllLinesAuto(filePath, lines, &usedEncoding, nullptr)) {
-        switch (const KifuFormat detected = detect(lines.join(QLatin1Char('\n')))) {
-        case KifuFormat::Ki2:
-        case KifuFormat::Csa:
-        case KifuFormat::Jkf:
-        case KifuFormat::Usen:
-        case KifuFormat::Usi:
-            return detected;
-        case KifuFormat::Sfen:
-            return KifuFormat::Usi;
-        case KifuFormat::Kif:
-        case KifuFormat::Bod:
-            break;
-        }
+    switch (const KifuFormat detected = detect(content)) {
+    case KifuFormat::Ki2:
+    case KifuFormat::Csa:
+    case KifuFormat::Jkf:
+    case KifuFormat::Usen:
+    case KifuFormat::Usi:
+        return detected;
+    case KifuFormat::Sfen:
+        return KifuFormat::Usi;
+    case KifuFormat::Kif:
+    case KifuFormat::Bod:
+        break;
     }
     return KifuFormat::Kif;
 }

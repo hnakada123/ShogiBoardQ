@@ -206,18 +206,6 @@ bool readAllTextAuto(const QString& filePath,
     return true;
 }
 
-bool readAllLinesAuto(const QString& filePath,
-                      QStringList& outLines,
-                      QString* usedEncoding,
-                      QString* warn)
-{
-    outLines.clear();
-    QString text;
-    if (!readAllTextAuto(filePath, text, usedEncoding, warn)) return false;
-    outLines = splitLines(text);
-    return true;
-}
-
 QStringList splitLines(const QString& text)
 {
     QStringList lines;

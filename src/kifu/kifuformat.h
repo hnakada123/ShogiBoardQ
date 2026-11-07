@@ -62,7 +62,7 @@ KifuFormat detect(const QString& content);
 
 /// ファイルの形式。拡張子で決まらない場合（.json や未知の拡張子）は内容から判定し、
 /// それでも棋譜の形式でなければ Kif とみなす（局面だけのファイルは Usi）
-KifuFormat detectFile(const QString& filePath);
+KifuFormat detectFile(const QString& filePath, const QString& content);
 
 } // namespace KifuFormats
 

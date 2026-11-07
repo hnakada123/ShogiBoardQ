@@ -100,7 +100,7 @@ private slots:
         QVERIFY(file.open());
         file.write(content);
         file.close();
-        QCOMPARE(int(KifuFormats::detectFile(file.fileName())), expected);
+        QCOMPARE(int(KifuFormats::detectFile(file.fileName(), QString::fromUtf8(content))), expected);
     }
 
     // CLI・自動化 API の形式名と拡張子
