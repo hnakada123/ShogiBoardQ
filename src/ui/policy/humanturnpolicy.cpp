@@ -45,6 +45,13 @@ bool HumanTurnPolicy::canBrowseRecord() const
         == UiStatePolicyManager::Policy::Enabled;
 }
 
+bool HumanTurnPolicy::canSaveRecord() const
+{
+    if (m_disabled || !m_deps.activity) return false;
+    return UiStatePolicyManager::tablePolicy(m_deps.activity->activity(), UiStatePolicyManager::UiElement::FileSaveAs)
+        == UiStatePolicyManager::Policy::Enabled;
+}
+
 bool HumanTurnPolicy::canEditRecord() const
 {
     // 対局の棋譜を書いている間は、ツリーに手を足している最中なので変えない。通信対局の局と局の間は見るだけ

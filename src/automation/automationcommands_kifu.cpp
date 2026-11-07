@@ -114,6 +114,12 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Not a record file name: %1").arg(path),
                                   QStringLiteral("Use one of %1").arg(KifuSaveFile::knownSaveExtensionsText()));
         }
+        // GUI の保存と同じ規則。対局中の途中の棋譜や、局面編集の前の棋譜を保存済みにしない
+        if (context.turnPolicy && !context.turnPolicy->canSaveRecord()) {
+            throw AutomationError(ErrorKind::InvalidState,
+                                  QStringLiteral("The record cannot be saved during a game, analysis or position editing"),
+                                  QStringLiteral("Save after the operation ends"));
+        }
         const QFileInfo info(path);
         KifuFileController* controller = requireFileController(context);
         QString error;

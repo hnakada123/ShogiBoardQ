@@ -467,7 +467,8 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Save kifu",
         # The extensions are the application's Save As (test_environment.py checks them against the CLI)
         "Save the record shown in ShogiBoardQ to a file. The format follows the extension (.kifu .kif .ki2u .ki2 "
-        ".csa .jkf .usen .usi; .kif and .ki2 are Shift_JIS). Existing files are only replaced with overwrite=true.",
+        ".csa .jkf .usen .usi; .kif and .ki2 are Shift_JIS). Existing files are only replaced with overwrite=true. "
+        "Like the application's Save, this fails with invalid_state during a game, analysis or position editing.",
         _spec("method", "kifu.save", override={"path": {"description": "Destination file. " + ABS_PATH_DESC}}),
         {"type": "object", "properties": {"path": {"type": "string"}, "format": {"type": "string"}}, "required": ["path"]},
     ),
