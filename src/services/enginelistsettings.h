@@ -41,6 +41,15 @@ std::optional<QString> savedSelectionName(const SelectionKeys& keys);
 /// 保存した選択を一覧の位置にする（名前を優先し、無ければ以前の番号・パス）。見つからなければ -1
 int restoreSelection(const SelectionKeys& keys, const RegisteredEngines& engines);
 
+/**
+ * @brief 対局者の欄の保存を一覧の位置にする
+ *
+ * 名前があればその名前だけで探す（削除されていれば -1。別のエンジンに替えない）。名前の無い以前の版は番号・パスで
+ * 探し、何も保存していなければ先頭の登録エンジン。空の一覧なら -1
+ */
+int restorePlayerEngine(const QString& savedName, const char* legacyIndexKey, const char* legacyPathKey,
+                        const RegisteredEngines& engines);
+
 /// 選んだエンジンの名前を保存する（以前の版の番号・パスは消す）
 void saveSelection(const SelectionKeys& keys, const QString& engineName);
 
