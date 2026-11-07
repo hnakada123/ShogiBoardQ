@@ -106,7 +106,7 @@
                     <li>Edit and Delete: buttons that edit or delete the book move (Play appears on your turn during games and whenever no game is in progress)</li>
                 </ul>
                 <p class="guide-step-text">When you select a move in the game record or a game advances, the table switches to the book moves of that position. Move numbers are ignored, so the same position always shows the same book moves. If the book file registers the same position separately under different move numbers, the entry for the displayed move number (or else the first one in the file) is shown and edited. Saving keeps each of these entries.</p>
-                <p class="guide-step-text">Details shows the SFEN of the position and of the book entry. ■ Stop pauses the book display and ▶ Resume restarts it. While the Joseki window is behind another tab it is not updated; when it comes to the front again it shows the book moves of the displayed position. The bottom line shows the file name, the number of positions and the number of book moves for this position. While a file is being loaded or saved, it also shows Loading... or Saving... (a large book file can take a few seconds to load). A hint is shown inside the table when no book file is open or the position has no book moves.</p>
+                <p class="guide-step-text">The Position line also shows the SFEN of the displayed position, and Copy copies it. Hover over the SFEN to check the SFEN registered in the book as well. If the same position is registered under different move numbers, those move numbers are shown on the line too. ■ Stop pauses the book display and ▶ Resume restarts it. While the Joseki window is behind another tab it is not updated; when it comes to the front again it shows the book moves of the displayed position. The bottom line shows the file name, the number of positions and the number of book moves for this position. While a file is being loaded or saved, it also shows Loading... or Saving... (a large book file can take a few seconds to load). A hint is shown inside the table when no book file is open or the position has no book moves.</p>
             </div>
 
             <div class="guide-step">
@@ -198,11 +198,12 @@
                     <span class="guide-step-number">7</span>
                     <span class="guide-step-title">Add a Book Move</span>
                 </div>
-                <p class="guide-step-text">+ Add adds a book move to the displayed position. Choose the move from a list of the legal moves of the position, written in game-record notation (moves that cannot be played are not listed). The response is chosen from the legal moves of the position after that move, and None can be chosen.</p>
+                <p class="guide-step-text">+ Add adds a book move to the displayed position. Move a piece on the board in the dialog: that move goes into 1. Move, and the board shows the position after it. The next move you play on the board goes into 2. Expected response. You can also drop pieces from hand, and you are asked when a move can either promote or not. Only legal moves can be played. The expected response is optional: click Add straight away to register it as None.</p>
+                <p class="guide-step-text">Each move can also be chosen from the list on the right, and a move chosen there is shown on the board as well. Choose again clears the chosen move (clearing the move also clears the expected response). The size and direction set with －, ＋ and Flip Board are kept for the next time.</p>
                 <p class="guide-step-text">Add stays disabled until a move is chosen. If the move is already registered, you are asked whether to overwrite it.</p>
-                <div class="screenshot-item screenshot-item--compact">
+                <div class="screenshot-item">
                     <img src="../../images/en/joseki/joseki-03-add.png" alt="Add Book Move dialog">
-                    <p class="screenshot-caption">Add Book Move: choose the move and the response from the legal moves of the position</p>
+                    <p class="screenshot-caption">Add Book Move: after ▲P-7f, playing the expected response on the board</p>
                 </div>
             </div>
 
@@ -224,9 +225,9 @@
                     <span class="guide-step-number">9</span>
                     <span class="guide-step-title">Edit a Book Move</span>
                 </div>
-                <p class="guide-step-text">Edit changes the response, score, search depth, frequency and comment (the move itself cannot be changed; the response is chosen from the legal moves of the position after the book move). Right-click a row for a menu with Play, Edit, Delete and copying the move.</p>
+                <p class="guide-step-text">Edit changes the response, score, search depth, frequency and comment (the move itself cannot be changed; to change the response, click Choose again and play it on the board, or choose it from the list). Right-click a row for a menu with Play, Edit, Delete and copying the move.</p>
                 <p class="guide-step-text">After a change, Unsaved and a reminder to save appear.</p>
-                <div class="screenshot-item screenshot-item--compact">
+                <div class="screenshot-item">
                     <img src="../../images/en/joseki/joseki-04-edit.png" alt="Edit Book Move dialog">
                     <p class="screenshot-caption">Edit Book Move: change the score, search depth, frequency and comment</p>
                 </div>
