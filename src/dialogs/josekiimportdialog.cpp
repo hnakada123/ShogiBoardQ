@@ -23,28 +23,10 @@
 #include <QListWidget>
 #include <QMimeData>
 #include <QProgressBar>
-#include <QPromise>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QUrl>
 #include <QVBoxLayout>
-#include <QtConcurrentRun>
-
-namespace {
-
-/// ワーカースレッドで、ファイル・フォルダから棋譜を集めて読み、登録する手を集める
-void runImport(QPromise<JosekiImport::Result> &promise, const QStringList &paths, const JosekiImport::Options &options)
-{
-    const QStringList files = JosekiImport::expandPaths(paths);
-    promise.setProgressRange(0, static_cast<int>(files.size()));
-    JosekiImport::Result result = JosekiImport::collect(files, options, [&promise](int done) {
-        promise.setProgressValue(done);
-        return !promise.isCanceled();
-    });
-    promise.addResult(std::move(result));
-}
-
-} // namespace
 
 JosekiImportDialog::JosekiImportDialog(JosekiBookSession *session, const QStringList &paths, QWidget *parent)
     : QDialog(parent)
@@ -139,11 +121,9 @@ JosekiImportDialog::JosekiImportDialog(JosekiBookSession *session, const QString
     connect(m_remove, &QPushButton::clicked, this, &JosekiImportDialog::removeSelected);
     connect(m_clear, &QPushButton::clicked, this, &JosekiImportDialog::clearPaths);
     connect(m_list, &QListWidget::itemSelectionChanged, this, &JosekiImportDialog::updateInputs);
-    connect(&m_watcher, &QFutureWatcher<JosekiImport::Result>::progressRangeChanged,
-            this, &JosekiImportDialog::onProgressRangeChanged);
-    connect(&m_watcher, &QFutureWatcher<JosekiImport::Result>::progressValueChanged,
-            this, &JosekiImportDialog::onProgressValueChanged);
-    connect(&m_watcher, &QFutureWatcher<JosekiImport::Result>::finished, this, &JosekiImportDialog::onFinished);
+    connect(m_session, &JosekiBookSession::importRangeChanged, this, &JosekiImportDialog::onProgressRangeChanged);
+    connect(m_session, &JosekiBookSession::importProgressChanged, this, &JosekiImportDialog::onProgressValueChanged);
+    connect(m_session, &JosekiBookSession::importFinished, this, &JosekiImportDialog::onFinished);
 
     m_binding.add(m_maxPly, JosekiSettings::josekiImportMaxPly);
     m_binding.add(m_sides, JosekiSettings::josekiImportSides);
@@ -161,10 +141,7 @@ JosekiImportDialog::JosekiImportDialog(JosekiBookSession *session, const QString
 
 JosekiImportDialog::~JosekiImportDialog()
 {
-    if (isRunning()) {
-        m_watcher.cancel();
-        m_watcher.waitForFinished();
-    }
+    m_session->cancelImportAndWait();
 }
 
 QStringList JosekiImportDialog::paths() const
@@ -187,7 +164,7 @@ JosekiImport::Options JosekiImportDialog::options() const
 
 bool JosekiImportDialog::isRunning() const
 {
-    return m_watcher.isRunning();
+    return m_session->activity() == JosekiBookSession::Activity::Importing;
 }
 
 void JosekiImportDialog::appendPaths(const QStringList &paths)
@@ -237,22 +214,22 @@ void JosekiImportDialog::start()
     m_progress->setRange(0, 0);
     m_status->setText(tr("棋譜を探しています..."));
     m_status->setToolTip(QString());
-    m_watcher.setFuture(QtConcurrent::run(&runImport, paths(), options()));
+    if (!m_session->startImport(paths(), options())) {
+        m_progress->setRange(0, 1);
+        m_status->setText(tr("定跡の読み書き中のため、登録できませんでした"));
+    }
     updateInputs();
 }
 
 void JosekiImportDialog::cancel()
 {
-    if (isRunning()) m_watcher.cancel();
+    m_session->cancelImport();
 }
 
 void JosekiImportDialog::reject()
 {
     // 集めている最中に閉じたら止める（棋譜1つを読み終わるまで待つ）
-    if (isRunning()) {
-        m_watcher.cancel();
-        m_watcher.waitForFinished();
-    }
+    m_session->cancelImportAndWait();
     QDialog::reject();
 }
 
@@ -267,22 +244,15 @@ void JosekiImportDialog::onProgressValueChanged(int value)
     m_status->setText(tr("棋譜を読んでいます: %1 / %2").arg(value).arg(m_progress->maximum()));
 }
 
-void JosekiImportDialog::onFinished()
+void JosekiImportDialog::onFinished(const JosekiImport::Result &result, const JosekiBookSession::ImportStats &stats)
 {
-    const bool canceled = m_watcher.isCanceled() || m_watcher.future().resultCount() == 0;
-    const JosekiImport::Result result = canceled ? JosekiImport::Result{} : m_watcher.result();
     m_progress->setRange(0, 1);
-    m_progress->setValue(canceled || result.canceled ? 0 : 1);
+    m_progress->setValue(result.canceled ? 0 : 1);
     updateInputs();
-    if (canceled || result.canceled) {
+    if (result.canceled) {
         m_status->setText(tr("中止しました（定跡は変えていません）"));
         return;
     }
-    if (!m_session->canEdit()) {
-        m_status->setText(tr("定跡の読み書き中のため、登録できませんでした"));
-        return;
-    }
-    const JosekiBookSession::ImportStats stats = m_session->importMoves(result.moves);
     // 登録済みの手が無ければ、出現頻度を増やした手の数は書かない
     QString text = stats.updated > 0 ? tr("棋譜 %1 局から、定跡手を %2 手足し、%3 手の出現頻度を増やしました。")
                                            .arg(result.gameCount).arg(stats.added).arg(stats.updated)
