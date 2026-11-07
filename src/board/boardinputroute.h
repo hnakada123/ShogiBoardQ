@@ -10,9 +10,9 @@
  * @brief 盤の操作（BoardInteractionController）が、つまむ・指すたびに問い合わせる行き先
  *
  * 主画面では動作状態（局面編集・変化の記録・対局・通信対局）ごとに行き先が決まり、
- * 詰将棋を解くダイアログでは解答の受け付けが行き先になる。
- * 盤の操作はクリックを移動元・移動先の候補にすることとハイライトだけを受け持ち、
- * 手番の判定・成りの選択・着手と、局面編集の盤の変更（駒の移動・右クリックの巡回）は行き先が行う。
+ * 詰将棋を解くダイアログでは解答の受け付け、定跡手のダイアログでは指した手の知らせが行き先になる。
+ * 盤の操作はクリックを移動元・移動先の候補にすること（成りの選択を含む。moveFromClick）とハイライトだけを
+ * 受け持ち、手番の判定・着手と、局面編集の盤の変更（駒の移動・右クリックの巡回）は行き先が行う。
  */
 class BoardInputRoute
 {
@@ -22,12 +22,12 @@ public:
     /// 盤の駒をつまめるか（人間が指せる手番か。局面編集中は常に true）
     virtual bool acceptsInput() const = 0;
     /// 局面編集中か（両方の駒・駒台・駒箱を動かせる。合法な移動先は出さず、右クリックで成り・不成を替える）
-    virtual bool isEditing() const = 0;
+    virtual bool isEditing() const { return false; }
     /// つまんだ駒の行き先が決まった。結果は BoardInteractionController::onMoveApplied で返す
     virtual void submit(const QPoint& from, const QPoint& to) = 0;
     /// 局面編集中に square（表示の座標）を右クリックした。駒の成・不成・先後を巡らせる
     /// （局面編集をしない行き先は何もしない）
-    virtual void cycle(const QPoint& square) = 0;
+    virtual void cycle(const QPoint& square) { Q_UNUSED(square) }
 };
 
 #endif // BOARDINPUTROUTE_H

@@ -184,6 +184,24 @@ void BoardInteractionController::clearAllHighlights()
     m_view->highlighting()->setHighlights(BoardHighlightLayer::LastMoveTo, {});
 }
 
+void BoardInteractionController::cancelInput()
+{
+    m_view->endDrag();
+    cancelPendingClick();
+    clearSelectionHighlight();
+}
+
+void BoardInteractionController::showLastMove(const QString& usiMove)
+{
+    const std::optional<UsiMove> played = UsiMove::parse(usiMove);
+    if (!played) {
+        clearAllHighlights();
+        return;
+    }
+    const Turn mover = opponent(m_board->currentPlayer());
+    showMoveHighlights(BoardCoordinates::fromSquare(*played, mover), BoardCoordinates::toSquare(*played));
+}
+
 void BoardInteractionController::cancelPendingClick()
 {
     finalizeDrag();

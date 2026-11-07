@@ -3,7 +3,6 @@
 
 #include "josekimoveboard.h"
 
-#include "boardcoordinates.h"
 #include "boardinteractioncontroller.h"
 #include "boardviewerwidget.h"
 #include "josekisettings.h"
@@ -55,16 +54,8 @@ void JosekiMoveBoard::showPosition(const QString& sfen, const QString& lastMove,
 
     m_sfen = sfen;
     m_lastMove = lastMove;
-    ShogiBoard* board = m_viewer->board();
-    board->setSfen(sfen);
-    // 直前の手は、今の手番の相手が指した手
-    if (const std::optional<UsiMove> played = UsiMove::parse(lastMove)) {
-        const Turn mover = board->currentPlayer() == Turn::Black ? Turn::White : Turn::Black;
-        m_interaction->showMoveHighlights(BoardCoordinates::fromSquare(*played, mover),
-                                          BoardCoordinates::toSquare(*played));
-    } else {
-        m_interaction->clearAllHighlights();
-    }
+    m_viewer->board()->setSfen(sfen);
+    m_interaction->showLastMove(lastMove);
 }
 
 void JosekiMoveBoard::submit(const QPoint& from, const QPoint& to)
@@ -77,9 +68,7 @@ void JosekiMoveBoard::submit(const QPoint& from, const QPoint& to)
 
 void JosekiMoveBoard::cancelSelection()
 {
-    m_viewer->view()->endDrag();
-    m_interaction->cancelPendingClick();
-    m_interaction->clearSelectionHighlight();
+    m_interaction->cancelInput();
 }
 
 void JosekiMoveBoard::saveSquareSize()

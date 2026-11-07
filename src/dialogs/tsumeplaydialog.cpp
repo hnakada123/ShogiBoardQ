@@ -9,7 +9,6 @@
 #include "tsumeshogisettings.h"
 #include "tsumeprogressstore.h"
 #include "tsumesolutionreplay.h"
-#include "boardcoordinates.h"
 
 #include <QHBoxLayout>
 #include <QFontMetrics>
@@ -230,9 +229,7 @@ void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
 
 void TsumePlayDialog::cancelBoardSelection()
 {
-    m_view->endDrag();
-    m_interaction->cancelPendingClick();
-    m_interaction->clearSelectionHighlight();
+    m_interaction->cancelInput();
 }
 
 void TsumePlayDialog::applyBoardOrientation()
@@ -295,16 +292,7 @@ void TsumePlayDialog::updatePosition(const QString& sfen, const QString& move)
     m_view->endDrag();
     m_interaction->cancelPendingClick();
     m_board->setSfen(sfen);
-    const bool blackTurn = m_board->currentPlayer() == Turn::Black;
-    if (move.isEmpty()) m_interaction->clearAllHighlights();
-    else {
-        // 直前の手は、今の手番の相手が指した手
-        if (const auto played = UsiMove::parse(move)) {
-            const Turn mover = blackTurn ? Turn::White : Turn::Black;
-            m_interaction->showMoveHighlights(BoardCoordinates::fromSquare(*played, mover),
-                                              BoardCoordinates::toSquare(*played));
-        }
-    }
+    m_interaction->showLastMove(move);
     // 局面・手番・ハイライトは、盤がそれぞれ変わった所だけを描き直すので、全体の描き直しは頼まない
 }
 
