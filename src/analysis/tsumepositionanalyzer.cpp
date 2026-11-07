@@ -12,9 +12,6 @@
 #include "version.h"  // Hayanagi の HAYANAGI_VERSION
 
 namespace {
-// 内蔵Hayanagiで初期局面を判定する手数の上限
-constexpr int kBuiltInMaxPlies = 31;
-
 TsumeEvaluation evaluateInternal(shogi::Position position, int milliseconds, bool requireLine,
                                 const std::atomic_bool& stop)
 {
@@ -23,7 +20,7 @@ TsumeEvaluation evaluateInternal(shogi::Position position, int milliseconds, boo
     const TsumeThreadBudget budget;
     shogi::TsumeSearch solver;
     const auto attacker = position.side_to_move();
-    auto search = solver.solve(position, attacker, kBuiltInMaxPlies, milliseconds, stop, budget.threads());
+    auto search = solver.solve(position, attacker, TsumePositionAnalyzer::kBuiltInMaxPlies, milliseconds, stop, budget.threads());
     if (search.status == shogi::TsumeStatus::NoMate) return {TsumeEvaluation::Status::NoMate, 0, {}, {}};
     if (search.status != shogi::TsumeStatus::Mate) return {};
     TsumeEvaluation result{TsumeEvaluation::Status::Mate, search.plies, {}, {}};
@@ -129,7 +126,7 @@ void TsumePositionAnalyzer::internalFinished()
     auto result = watcher->result();
     watcher->deleteLater();
     if (result.status == TsumeEvaluation::Status::Unknown)
-        result.detail = tr("内蔵判定の時間または31手の上限に達しました。KomoringHeightsで再判定できます。");
+        result.detail = tr("内蔵判定の時間または%1手の上限に達しました。KomoringHeightsで再判定できます。").arg(kBuiltInMaxPlies);
     complete(result);
 }
 

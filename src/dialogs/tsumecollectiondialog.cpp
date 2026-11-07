@@ -7,6 +7,7 @@
 #include "engineselector.h"
 #include "positioncollectionfile.h"
 #include "tsumecollectionsession.h"
+#include "tsumepositionanalyzer.h"
 #include "tsumeshogisettings.h"
 #include <QComboBox>
 #include <QAbstractItemView>
@@ -48,7 +49,7 @@ TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
     // 判定エンジン: 内蔵の Hayanagi か、登録した KomoringHeights（未保存なら登録したものを優先する）
     EngineSelector::Options engineOptions;
     engineOptions.keys = EngineListSettings::tsumeCollectionSelection();
-    engineOptions.builtinLabel = tr("Hayanagi（内蔵・31手まで）");
+    engineOptions.builtinLabel = tr("Hayanagi（内蔵・%1手まで）").arg(TsumePositionAnalyzer::kBuiltInMaxPlies);
     engineOptions.filter = &isMateEngine;
     m_engineSelector = new EngineSelector({m_engine, nullptr, nullptr}, engineOptions, this);
     const int pageSizeIndex = m_pageSize->findData(preferences.pageSize);
@@ -210,7 +211,8 @@ void TsumeCollectionDialog::engineChanged()
     m_session->setEngine(engine ? engine->path : QString());
     m_notice->setText(m_session->usesEngine()
         ? tr("玉方はHayanagi、詰み判定はKomoringHeightsです。参考手順の手数と、確認済みの詰み手数を区別して表示します。")
-        : tr("内蔵判定は31手までです。長手数を解く場合はエンジン登録でKomoringHeightsを登録し、ここで選択してください。"));
+        : tr("内蔵判定は%1手までです。長手数を解く場合はエンジン登録でKomoringHeightsを登録し、ここで選択してください。")
+              .arg(TsumePositionAnalyzer::kBuiltInMaxPlies));
     showStoreError();
     rebuildPage();
 }

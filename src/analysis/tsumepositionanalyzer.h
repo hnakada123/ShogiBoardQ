@@ -16,6 +16,9 @@ class TsumePositionAnalyzer : public QObject
 {
     Q_OBJECT
 public:
+    /// 内蔵の Hayanagi で初期局面を判定する手数の上限
+    static constexpr int kBuiltInMaxPlies = 31;
+
     explicit TsumePositionAnalyzer(QObject* parent = nullptr);
     ~TsumePositionAnalyzer() override;
     void configure(const QString& enginePath, TsumeProgressStore* store);
