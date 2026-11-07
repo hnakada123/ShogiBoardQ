@@ -28,7 +28,7 @@ struct JosekiPlayOptions {
     bool useMinValue = false;      ///< 評価値の下限を使う
     int minValue = 0;              ///< 指す側から見た評価値の下限
     int minDepth = 0;              ///< 深さの下限
-    double minRatioPercent = 0.0;  ///< 出現頻度の比率（その局面の出現頻度の合計に対する割合）の下限（%）
+    double minRatioPercent = 0.0;  ///< 出現頻度の比率（その局面の出現頻度の合計に対する割合）の下限（%）。合計が0の局面では絞らない
     int minFrequency = 0;          ///< 出現頻度の下限
 
     /// 各項目を範囲に収めた値

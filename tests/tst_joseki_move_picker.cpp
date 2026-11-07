@@ -82,6 +82,17 @@ private slots:
                  (QStringList{QStringLiteral("7g7f"), QStringLiteral("2g2f")}));
     }
 
+    /// 出現頻度を持たない定跡は比率で絞らない（棋譜への展開と同じ。監査 2026-11-07 F22）
+    void candidates_ratioDoesNotFilterWithoutFrequencies()
+    {
+        const QList<JosekiMove> moves{{QStringLiteral("7g7f"), std::nullopt, 0, 0, 0, {}},
+                                      {QStringLiteral("2g2f"), std::nullopt, 0, 0, 0, {}}};
+        JosekiPlayOptions options = enabled();
+        options.minRatioPercent = 50.0;
+        QCOMPARE(movesOf(JosekiMovePicker::candidates(moves, hirate(), options)),
+                 (QStringList{QStringLiteral("7g7f"), QStringLiteral("2g2f")}));
+    }
+
     /// 使わない設定・手数を超えた・定跡の無い局面・条件に合う手が無いときは選ばない
     void pick_returnsNothingWhenNotApplicable()
     {
