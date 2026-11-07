@@ -3,6 +3,7 @@
 
 #include "kifuanalysislistmodel.h"
 #include "shogienginethinkingmodel.h"
+#include "plaintooltip.h"
 #include "movefont.h"
 #include "applicationfonts.h"
 #include "kifupresentation.h"
@@ -104,7 +105,8 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
             : column == PvColumn ? display(entry, PvDisplay, true) : data(index, Qt::DisplayRole).toString();
         if (column == BoardColumn) return tr("この局面からの読み筋を盤面で表示します。");
         const QString description = headerData(index.column(), Qt::Horizontal, Qt::ToolTipRole).toString();
-        return description.isEmpty() ? value : value + QLatin1Char('\n') + description;
+        const QString text = description.isEmpty() ? value : value + QLatin1Char('\n') + description;
+        return role == Qt::ToolTipRole ? plainToolTip(text) : text;
     }
 
     // 盤面列はボタンの文字

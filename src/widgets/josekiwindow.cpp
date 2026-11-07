@@ -320,6 +320,7 @@ void JosekiWindow::setupUi()
     auto *statusLayout = new QHBoxLayout(statusFrame);
     statusLayout->setContentsMargins(8, 2, 8, 2);
     m_statusLabel = new QLabel(this);
+    m_statusLabel->setTextFormat(Qt::PlainText);  // 定跡ファイルの名前を出す
     statusLayout->addWidget(m_statusLabel, 1);
     mainLayout->addWidget(statusFrame);
 
@@ -681,7 +682,7 @@ void JosekiWindow::updateStatusDisplay()
     const bool hasData = !m_session->isEmpty();
     m_addMoveButton->setEnabled(canEdit() && !m_currentSfen.isEmpty());
     m_expandButton->setEnabled(m_recordOperationsEnabled && !m_session->isBusy() && !m_model->moves().isEmpty());
-    if (m_filePathLabel->toolTip() != filePath) m_filePathLabel->setToolTip(filePath);
+    if (const QString tip = plainToolTip(filePath); m_filePathLabel->toolTip() != tip) m_filePathLabel->setToolTip(tip);
     m_noticeLabel->setVisible(modified);
 
     QString text;

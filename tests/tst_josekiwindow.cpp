@@ -17,6 +17,7 @@
 
 #include "settingscommon.h"
 #include "josekisettings.h"
+#include "plaintooltip.h"
 // private メンバへは JosekiWindow・JosekiBookController の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "josekiwindow.h"
 #include "josekitableview.h"
@@ -607,7 +608,7 @@ void TestJosekiWindow::testMergeFollowsOpenBook()
     QVERIFY(merge && merge->isVisible());
     auto *label = merge->findChild<QLabel*>(QStringLiteral("mergeTargetLabel"));
     QVERIFY(label);
-    QCOMPARE(label->toolTip(), path);
+    QCOMPARE(shownToolTipText(label->toolTip()), path);
     QVERIFY(!merge->findChild<QTableWidget*>()->cellWidget(0, 2)->isEnabled());
 
     if (operation == QStringLiteral("new")) panel.controller.m_files->newBook();
@@ -617,7 +618,7 @@ void TestJosekiWindow::testMergeFollowsOpenBook()
     QVERIFY(merge->isVisible());
     QVERIFY(merge->isEnabled());
     const bool fresh = operation == QStringLiteral("new");
-    QCOMPARE(label->toolTip(), fresh ? QString() : target);
+    QCOMPARE(shownToolTipText(label->toolTip()), fresh ? QString() : target);
     // 新しい定跡には 7g7f が無いので登録できる
     QCOMPARE(merge->findChild<QTableWidget*>()->cellWidget(0, 2)->isEnabled(), fresh);
 }

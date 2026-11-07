@@ -1,5 +1,6 @@
 #include "tsumecollectiondialog.h"
 #include "engineprofilestore.h"
+#include "plaintooltip.h"
 #include "tsumemateengine.h"
 #include "dialogfontscale.h"
 #include "dialogutils.h"
@@ -250,7 +251,7 @@ void TsumeCollectionDialog::updateCard(QPushButton* card)
     auto* history = card->findChild<QLabel*>(QStringLiteral("cardProgress"));
     length->setText(lengthText(index));
     const TsumeEvaluation result = m_session->result(index).value_or(TsumeEvaluation{});
-    length->setToolTip(result.detail);
+    length->setToolTip(plainToolTip(result.detail));
     history->setText(progress.text());
     history->setToolTip(tr("最終挑戦: %1\n最終正答: %2").arg(progress.lastAttempt, progress.lastSolved));
     // QPushButton の標準 sizeHint は内部レイアウトの高さを含まない。
@@ -296,7 +297,7 @@ bool TsumeCollectionDialog::loadFile(const QString& path)
         return false;
     }
     m_fileLabel->setText(QFileInfo(path).fileName());
-    m_fileLabel->setToolTip(path);
+    m_fileLabel->setToolTip(plainToolTip(path));
     m_resetCollection->setEnabled(true);
     showStoreError();
     filterChanged();

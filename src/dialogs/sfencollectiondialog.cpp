@@ -3,6 +3,7 @@
 
 #include "sfencollectiondialog.h"
 #include "buttonstyles.h"
+#include "plaintooltip.h"
 #include "boardviewerwidget.h"
 #include "shogiboard.h"
 #include "shogiview.h"
@@ -187,7 +188,7 @@ bool SfenCollectionDialog::loadFromFile(const QString& filePath)
     m_fileLabel->setText(skippedLines > 0
                              ? tr("ファイル: %1（読めない %2 行を飛ばしました）").arg(fi.fileName(), QString::number(skippedLines))
                              : tr("ファイル: %1").arg(fi.fileName()));
-    m_fileLabel->setToolTip(fi.absoluteFilePath());
+    m_fileLabel->setToolTip(plainToolTip(fi.absoluteFilePath()));
 
     // 最後に開いたディレクトリを保存
     GameSettings::sfenCollectionLastDirectory.set(fi.absolutePath());

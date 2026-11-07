@@ -2,6 +2,7 @@
 /// @brief 「履歴」ボタンのメニューの実装
 
 #include "recentfilesmenu.h"
+#include "plaintooltip.h"
 
 #include <QAction>
 #include <QFileInfo>
@@ -24,7 +25,7 @@ void RecentFilesMenu::setFiles(const QStringList& files)
     for (const QString& filePath : files) {
         QAction* action = m_menu->addAction(QFileInfo(filePath).fileName());
         action->setData(filePath);
-        action->setToolTip(filePath);
+        action->setToolTip(plainToolTip(filePath));
         connect(action, &QAction::triggered, this, &RecentFilesMenu::onFileActionTriggered);
     }
     m_menu->addSeparator();

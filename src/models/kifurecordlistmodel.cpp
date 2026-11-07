@@ -63,7 +63,7 @@ QVariant KifuRecordListModel::data(const QModelIndex& index, int role) const
         default: return QVariant();
         }
     case Qt::ToolTipRole:
-        if (col == MoveColumn) return moveText(node, true);
+        if (col == MoveColumn) return plainToolTip(moveText(node, true));
         if (col == CommentColumn && !node->comment().isEmpty()) return plainToolTip(node->comment());
         return QVariant();
     case Qt::FontRole:

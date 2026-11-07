@@ -3,6 +3,7 @@
 
 #include "kifubranchlistmodel.h"
 #include "movefont.h"
+#include "plaintooltip.h"
 #include "applicationfonts.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
@@ -45,7 +46,7 @@ QVariant KifuBranchListModel::data(const QModelIndex& index, int role) const
     case Qt::DisplayRole:
         return backRow ? tr("本譜へ戻る") : moveText(node, false);
     case Qt::ToolTipRole:
-        return backRow ? QVariant() : QVariant(moveText(node, true));
+        return backRow ? QVariant() : QVariant(plainToolTip(moveText(node, true)));
     case Qt::FontRole: {
         if (backRow) {
             QFont f;
