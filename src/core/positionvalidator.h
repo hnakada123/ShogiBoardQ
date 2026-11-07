@@ -21,7 +21,6 @@ namespace PositionValidator {
 enum class Problem {
     None,
     PieceCountOver,   ///< 駒の種類ごとの枚数（盤と持ち駒の合計。成駒は元の駒に数える）が上限を超える
-    KingInHand,       ///< 持ち駒に玉がある
     DuplicatedKing,   ///< 同じ側の玉が盤に2枚以上
     NoKing,           ///< 盤に玉が1枚も無い
     OpponentInCheck,  ///< 手番でない側の玉に王手がかかっている（対局では生じない）

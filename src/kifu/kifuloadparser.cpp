@@ -20,16 +20,10 @@ QString KifuLoadParser::startPositionProblem(const QString& sfen)
 {
     const std::optional<Position> position = Position::fromSfen(sfen);
     if (!position) return QCoreApplication::translate("KifuLoader", "局面を読めません");
-    return startPositionProblem(*position);
-}
-
-QString KifuLoadParser::startPositionProblem(const Position& position)
-{
     using Problem = PositionValidator::Problem;
-    switch (PositionValidator::boardProblem(position)) {
+    switch (PositionValidator::boardProblem(*position)) {
     case Problem::PieceCountOver:
         return QCoreApplication::translate("KifuLoader", "駒の数が上限を超えています（盤と持駒の合計）");
-    case Problem::KingInHand: return QCoreApplication::translate("KifuLoader", "持駒に玉があります");
     case Problem::DuplicatedKing: return QCoreApplication::translate("KifuLoader", "同じ側の玉が2枚以上あります");
     case Problem::NoKing:
     case Problem::OpponentInCheck:

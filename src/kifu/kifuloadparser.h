@@ -47,8 +47,6 @@ KifuLoadResult parseContent(const QString& content, KifuFormat format,
  * 局面集・詰将棋問題一覧のファイルの行は、検討・詰み探索に使う局面なので、より厳しい SfenValidator で読む
  */
 QString startPositionProblem(const QString& sfen);
-/// 読んだ局面で確かめる（SFEN に書き戻すと持駒の玉は消えるので、読んだ局面を渡す）
-QString startPositionProblem(const Position& position);
 }
 
 #endif // KIFULOADPARSER_H

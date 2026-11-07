@@ -26,7 +26,6 @@ QString problemText(PositionValidator::Problem problem)
     using Problem = PositionValidator::Problem;
     switch (problem) {
     case Problem::PieceCountOver: return QStringLiteral("Piece count is over the limit (board and hands combined)");
-    case Problem::KingInHand: return QStringLiteral("A king cannot be in hand");
     case Problem::DuplicatedKing: return QStringLiteral("A side has more than one king");
     case Problem::NoKing: return QStringLiteral("Both kings are missing");
     case Problem::OpponentInCheck: return QStringLiteral("The side not to move is in check; the position cannot arise in a game");
@@ -68,7 +67,7 @@ SfenValidation SfenValidator::validate(const QString& sfenLike)
     const std::optional<Position> position = Position::fromSfen(full);
     if (!position) {
         result.errors.append(QStringLiteral("Board or hand is invalid (unknown piece letter, wrong rank length, "
-                                            "or a piece that can never move again)"));
+                                            "a king in hand, or a piece that can never move again)"));
         return result;
     }
     const PositionValidator::Report report = PositionValidator::check(*position);

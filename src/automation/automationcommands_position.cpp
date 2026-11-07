@@ -34,7 +34,7 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
         // 王手がかかった図も受け付ける。引数の誤りは棋譜を置き換えられるかより先に返す
         const std::optional<UsiPosition> position = UsiPosition::parse(sfen);
         if (!position) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Invalid SFEN: %1").arg(sfen));
-        if (const QString reason = KifuLoadParser::startPositionProblem(position->position()); !reason.isEmpty())
+        if (const QString reason = KifuLoadParser::startPositionProblem(position->sfen()); !reason.isEmpty())
             throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Invalid SFEN: %1").arg(reason));
         KifuFileController* controller = AutomationCommands::requireReplaceableRecord(context, discard);
         if (!controller->applySfenPosition(sfen)) {

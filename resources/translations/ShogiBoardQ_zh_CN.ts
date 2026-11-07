@@ -5429,17 +5429,16 @@ ABC abc 0123456789</translation>
         <translation>棋子数量超过上限（棋盘与驹台合计）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="64"/>
         <source>駒台に王・玉があります。</source>
-        <translation>驹台上有玉将。</translation>
+        <translation type="vanished">驹台上有玉将。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="67"/>
+        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="64"/>
         <source>手番でない側の玉に王手がかかっています。</source>
         <translation>非走棋方的玉将正被将军。</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="74"/>
+        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="71"/>
         <source>対局を開始できません。
 %1
 「編集」→「局面編集開始」で配置を修正してください。</source>
@@ -6419,7 +6418,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">起点和终点必须是不同的格子。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="213"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="215"/>
         <source>指し手が現在の局面の合法手ではありません。移動元・移動先・成りを確認してください。</source>
         <translation>此着法在当前局面不合法。请检查起点、终点和升变设置。</translation>
     </message>
@@ -6432,17 +6431,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">预期应手在执行此着法后的局面不合法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="292"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="294"/>
         <source>登録する局面: %1番</source>
         <translation>定跡局面：%1行棋</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="292"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="294"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="292"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="294"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
@@ -6527,32 +6526,32 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="211"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="213"/>
         <source>指し手を選んでください。</source>
         <translation>请选择着法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="214"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="216"/>
         <source>予想応手を選ぶか、「なし」を選んでください。</source>
         <translation>请选择预想应手，或选择“无”。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="244"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="246"/>
         <source>指し手を盤で指すか、一覧から選んでください</source>
         <translation>请在棋盘上走棋，或从列表中选择着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="247"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="249"/>
         <source>予想応手を盤で指すか、一覧から選べます（省略できます）</source>
         <translation>可在棋盘上走棋或从列表中选择预期应手（选填）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="250"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="252"/>
         <source>指し手と予想応手が決まりました</source>
         <translation>着法和预期应手已确定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="325"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="327"/>
         <source>定跡手: %1</source>
         <translation>定跡着法：%1</translation>
     </message>
@@ -6568,27 +6567,27 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">打入持驹</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="69"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="70"/>
         <source>指し直す</source>
         <translation>重新选择</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="71"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="72"/>
         <source>選んだ手を取り消す</source>
         <translation>取消所选的着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="125"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="126"/>
         <source>局面がありません</source>
         <translation>没有局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="125"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="126"/>
         <source>合法手から選んでください</source>
         <translation>请从合法着法中选择</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="118"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="119"/>
         <source>なし</source>
         <translation>无</translation>
     </message>
@@ -8550,42 +8549,42 @@ OKを選択すると保存先が指定できます。</source>
         <translation>所有文件 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="26"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="29"/>
         <source>KIF形式 UTF-8</source>
         <translation>KIF UTF-8</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="27"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="30"/>
         <source>KIF形式 Shift_JIS</source>
         <translation>KIF Shift_JIS</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="28"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="31"/>
         <source>KI2形式 UTF-8</source>
         <translation>KI2 UTF-8</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="29"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="32"/>
         <source>KI2形式 Shift_JIS</source>
         <translation>KI2 Shift_JIS</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="30"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="33"/>
         <source>CSA形式</source>
         <translation>CSA</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="31"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="34"/>
         <source>JKF形式</source>
         <translation>JKF</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="32"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="35"/>
         <source>USEN形式</source>
         <translation>USEN</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="33"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="36"/>
         <source>USI形式</source>
         <translation>USI</translation>
     </message>
@@ -8673,7 +8672,7 @@ OKを選択すると保存先が指定できます。</source>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="127"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="121"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>载入失败：无法从 %1 获取着法。</translation>
     </message>
@@ -8688,56 +8687,55 @@ OKを選択すると保存先が指定できます。</source>
         <translation>无法读取局面</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="31"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="26"/>
         <source>駒の数が上限を超えています（盤と持駒の合計）</source>
         <translation>棋子数量超过上限（棋盘与持驹合计）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="32"/>
         <source>持駒に玉があります</source>
-        <translation>持驹中有王</translation>
+        <translation type="vanished">持驹中有王</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="33"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="27"/>
         <source>同じ側の玉が2枚以上あります</source>
         <translation>同一方有两枚以上的王</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="56"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="114"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="50"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="108"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
         <translation>载入棋谱文件失败：%1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="110"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="104"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>解析 BOD 格式失败。%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="113"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="107"/>
         <source>棋譜の読み込みに失敗しました。%1</source>
         <translation>载入棋谱失败。%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="126"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="120"/>
         <source>棋譜から指し手を取得できませんでした。</source>
         <translation>无法从棋谱获取着法。</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifuloader.cpp" line="101"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="135"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="129"/>
         <source>棋譜の開始局面が不正です: %1</source>
         <translation>棋谱的初始局面无效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="136"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="130"/>
         <source>棋譜ファイルの開始局面が不正です: %1
 %2</source>
         <translation>棋谱文件的初始局面无效：%1
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="146"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="140"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>要粘贴的文本为空。</translation>
     </message>
