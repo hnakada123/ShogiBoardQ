@@ -245,16 +245,16 @@ F13 は、「前の知らせを閉じて次を出す」小さな部品（また�
 
 | # | 現在 | 問題 | 案 |
 |---|---|---|---|
-| P1 | `HumanTurnPolicy`（ui/policy） | T2（前回）で「棋譜を移って・変えてよいか」が入り、手番の判定だけではなくなった。`context.turnPolicy->canBrowseRecord()` と読みにくい | `OperationPolicy` など |
-| P2 | `CsaGameSession`（ui/coordinators） | `GameSession` の通信対局版に見えるが、棋譜を持たない。ダイアログ・ステータスバー・盤の反転だけ | 役割に合う名前にする（`CsaGameUi` など）。CLAUDE.md の役割の表に `*Session` を足す |
-| P3 | `CommentCoordinator`（ui/coordinators） | 複数部品の流れではなく、コメント欄1つの表示と操作 | `CommentController` |
-| P4 | `PvClickController`（ui/controllers） | 棋譜解析の結果からも開く。「読み筋盤を開く」部品 | `PvBoardController` |
-| P5 | `UsiCommLogModel`（models） | 中身はエンジン名・探索状況・予想手で、通信ログは行を素通しするだけ | `EngineStatusModel` など |
-| P6 | `AnalysisResultsPanel::rowDoubleClicked` | 「盤面」ボタンのクリック・Enter で出る。ダブルクリックとは関係がない。同じ操作に3つの名前がある | `boardRequested` に揃える |
-| P7 | `EngineListSettings`（services） | 一覧は `RegisteredEngines`・`EngineProfileStore` に移り、残るのは機能ごとの選択だけ | `EngineSelectionSettings` |
-| P8 | `TsumeMateEngine`・`TsumeEvaluation`（engine） | 使うのは analysis の Tsume 系と `tsumecollectiondialog.cpp` だけ。KomoringHeights 専用のオプションと「再判定」の訳文を持つ | analysis へ移す |
-| P9 | `SpecialMove`・`parseSpecialMove`・`GameOverResult`（`core/shogitypes.h:26-51`） | 基本型の見出しに USI の語が混ざる。使うのは engine と game だけ | `engine/usimessages.h` へ移す |
-| P10 | `ScreenshotService`（ui/controllers） | 利用者の操作ではなく、自動化 API も使う | controllers の外へ移す |
+| P1 | `HumanTurnPolicy`（ui/policy） | T2（前回）で「棋譜を移って・変えてよいか」が入り、手番の判定だけではなくなった。`context.turnPolicy->canBrowseRecord()` と読みにくい | `OperationPolicy` など<br>**状態: 済（ea4beb46）。自動化 API の `turnPolicy` なども `operationPolicy` にした** |
+| P2 | `CsaGameSession`（ui/coordinators） | `GameSession` の通信対局版に見えるが、棋譜を持たない。ダイアログ・ステータスバー・盤の反転だけ | 役割に合う名前にする（`CsaGameUi` など）。CLAUDE.md の役割の表に `*Session` を足す<br>**状態: 済（e3cecf96）。`CsaGameUiController`（`ConsiderationUiController` に合わせた名前）にして controllers へ移した。`ui/coordinators` は空になったので消した** |
+| P3 | `CommentCoordinator`（ui/coordinators） | 複数部品の流れではなく、コメント欄1つの表示と操作 | `CommentController`<br>**状態: 済（f6f8ee63）** |
+| P4 | `PvClickController`（ui/controllers） | 棋譜解析の結果からも開く。「読み筋盤を開く」部品 | `PvBoardController`<br>**状態: 済（f6046a68）** |
+| P5 | `UsiCommLogModel`（models） | 中身はエンジン名・探索状況・予想手で、通信ログは行を素通しするだけ | `EngineStatusModel` など<br>**状態: 済（80f77792）** |
+| P6 | `AnalysisResultsPanel::rowDoubleClicked` | 「盤面」ボタンのクリック・Enter で出る。ダブルクリックとは関係がない。同じ操作に3つの名前がある | `boardRequested` に揃える<br>**状態: 済（80f77792）** |
+| P7 | `EngineListSettings`（services） | 一覧は `RegisteredEngines`・`EngineProfileStore` に移り、残るのは機能ごとの選択だけ | `EngineSelectionSettings`<br>**状態: 済（c8b47870）** |
+| P8 | `TsumeMateEngine`・`TsumeEvaluation`（engine） | 使うのは analysis の Tsume 系と `tsumecollectiondialog.cpp` だけ。KomoringHeights 専用のオプションと「再判定」の訳文を持つ | analysis へ移す<br>**状態: 済（dda3e1c3）** |
+| P9 | `SpecialMove`・`parseSpecialMove`・`GameOverResult`（`core/shogitypes.h:26-51`） | 基本型の見出しに USI の語が混ざる。使うのは engine と game だけ | `engine/usimessages.h` へ移す<br>**状態: 済（14324437）。既存の `usimessages.h` に移した** |
+| P10 | `ScreenshotService`（ui/controllers） | 利用者の操作ではなく、自動化 API も使う | controllers の外へ移す<br>**状態: 済（14324437）。`src/ui` に置いた** |
 
 翻訳の文脈はクラス名で決まるので、改名で訳が unfinished になったら、旧文脈の vanished 訳から埋め直す。
 
