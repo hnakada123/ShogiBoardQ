@@ -1902,58 +1902,103 @@
     </message>
 </context>
 <context>
-    <name>CommentCoordinator</name>
+    <name>CommentController</name>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="44"/>
+        <location filename="../../src/ui/controllers/commentcontroller.cpp" line="44"/>
         <source>開始局面のコメント</source>
         <translation>開始局面のコメント</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="44"/>
+        <location filename="../../src/ui/controllers/commentcontroller.cpp" line="44"/>
         <source>%1手目のコメント</source>
         <translation>%1手目のコメント</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="45"/>
+        <location filename="../../src/ui/controllers/commentcontroller.cpp" line="45"/>
         <source>未保存のコメント</source>
         <translation>未保存のコメント</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="46"/>
+        <location filename="../../src/ui/controllers/commentcontroller.cpp" line="46"/>
         <source>コメントが編集されていますが、まだ棋譜に更新されていません。
 更新してから移動しますか？</source>
         <translation>コメントが編集されていますが、まだ棋譜に更新されていません。
 更新してから移動しますか？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="77"/>
+        <location filename="../../src/ui/controllers/commentcontroller.cpp" line="77"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>コメントを更新しました（手数: %1）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="84"/>
+        <location filename="../../src/ui/controllers/commentcontroller.cpp" line="84"/>
         <source>手を選択してください</source>
         <translation>手を選択してください</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="89"/>
+        <location filename="../../src/ui/controllers/commentcontroller.cpp" line="89"/>
         <source>しおりを編集</source>
         <translation>しおりを編集</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="90"/>
+        <location filename="../../src/ui/controllers/commentcontroller.cpp" line="90"/>
         <source>しおり名（手数: %1）:</source>
         <translation>しおり名（手数: %1）:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="99"/>
+        <location filename="../../src/ui/controllers/commentcontroller.cpp" line="99"/>
         <source>しおりを削除しました（手数: %1）</source>
         <translation>しおりを削除しました（手数: %1）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="100"/>
+        <location filename="../../src/ui/controllers/commentcontroller.cpp" line="100"/>
         <source>しおりを設定しました（手数: %1）</source>
         <translation>しおりを設定しました（手数: %1）</translation>
+    </message>
+</context>
+<context>
+    <name>CommentCoordinator</name>
+    <message>
+        <source>開始局面のコメント</source>
+        <translation type="vanished">開始局面のコメント</translation>
+    </message>
+    <message>
+        <source>%1手目のコメント</source>
+        <translation type="vanished">%1手目のコメント</translation>
+    </message>
+    <message>
+        <source>未保存のコメント</source>
+        <translation type="vanished">未保存のコメント</translation>
+    </message>
+    <message>
+        <source>コメントが編集されていますが、まだ棋譜に更新されていません。
+更新してから移動しますか？</source>
+        <translation type="vanished">コメントが編集されていますが、まだ棋譜に更新されていません。
+更新してから移動しますか？</translation>
+    </message>
+    <message>
+        <source>コメントを更新しました（手数: %1）</source>
+        <translation type="vanished">コメントを更新しました（手数: %1）</translation>
+    </message>
+    <message>
+        <source>手を選択してください</source>
+        <translation type="vanished">手を選択してください</translation>
+    </message>
+    <message>
+        <source>しおりを編集</source>
+        <translation type="vanished">しおりを編集</translation>
+    </message>
+    <message>
+        <source>しおり名（手数: %1）:</source>
+        <translation type="vanished">しおり名（手数: %1）:</translation>
+    </message>
+    <message>
+        <source>しおりを削除しました（手数: %1）</source>
+        <translation type="vanished">しおりを削除しました（手数: %1）</translation>
+    </message>
+    <message>
+        <source>しおりを設定しました（手数: %1）</source>
+        <translation type="vanished">しおりを設定しました（手数: %1）</translation>
     </message>
 </context>
 <context>
@@ -3292,117 +3337,94 @@
 <context>
     <name>CsaGameSession</name>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="69"/>
         <source>通信対局をキャンセルしました</source>
-        <translation>通信対局をキャンセルしました</translation>
+        <translation type="vanished">通信対局をキャンセルしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="87"/>
         <source>CSA通信対局開始: %1 vs %2</source>
-        <translation>CSA通信対局開始: %1 vs %2</translation>
+        <translation type="vanished">CSA通信対局開始: %1 vs %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="97"/>
         <source>対局終了</source>
-        <translation>対局終了</translation>
+        <translation type="vanished">対局終了</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="97"/>
         <source>対局が終了しました。
 
 結果: %1
 原因: %2</source>
-        <translation>対局が終了しました。
+        <translation type="vanished">対局が終了しました。
 
 結果: %1
 原因: %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="98"/>
         <source>対局終了: %1 (%2)</source>
-        <translation>対局終了: %1 (%2)</translation>
+        <translation type="vanished">対局終了: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="104"/>
         <source>先手番</source>
-        <translation>先手番</translation>
+        <translation type="vanished">先手番</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="104"/>
         <source>後手番</source>
-        <translation>後手番</translation>
+        <translation type="vanished">後手番</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="121"/>
         <source>勝ち</source>
-        <translation>勝ち</translation>
+        <translation type="vanished">勝ち</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="122"/>
         <source>負け</source>
-        <translation>負け</translation>
+        <translation type="vanished">負け</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="123"/>
         <source>引き分け</source>
-        <translation>引き分け</translation>
+        <translation type="vanished">引き分け</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="124"/>
         <source>打ち切り</source>
-        <translation>打ち切り</translation>
+        <translation type="vanished">打ち切り</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="125"/>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="141"/>
         <source>中断</source>
-        <translation>中断</translation>
+        <translation type="vanished">中断</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="128"/>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="145"/>
         <source>不明</source>
-        <translation>不明</translation>
+        <translation type="vanished">不明</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="134"/>
         <source>投了</source>
-        <translation>投了</translation>
+        <translation type="vanished">投了</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="135"/>
         <source>時間切れ</source>
-        <translation>時間切れ</translation>
+        <translation type="vanished">時間切れ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="136"/>
         <source>反則</source>
-        <translation>反則</translation>
+        <translation type="vanished">反則</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="137"/>
         <source>千日手</source>
-        <translation>千日手</translation>
+        <translation type="vanished">千日手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="138"/>
         <source>連続王手の千日手</source>
-        <translation>連続王手の千日手</translation>
+        <translation type="vanished">連続王手の千日手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="139"/>
         <source>入玉宣言</source>
-        <translation>入玉宣言</translation>
+        <translation type="vanished">入玉宣言</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="140"/>
         <source>手数制限</source>
-        <translation>手数制限</translation>
+        <translation type="vanished">手数制限</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="142"/>
         <source>不正行為</source>
-        <translation>不正行為</translation>
+        <translation type="vanished">不正行為</translation>
     </message>
 </context>
 <context>
@@ -3471,6 +3493,122 @@
         <location filename="../../src/network/csagamesummary.cpp" line="105"/>
         <source>Protocol_Mode が Server ではありません: %1</source>
         <translation>Protocol_Mode が Server ではありません: %1</translation>
+    </message>
+</context>
+<context>
+    <name>CsaGameUiController</name>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="69"/>
+        <source>通信対局をキャンセルしました</source>
+        <translation>通信対局をキャンセルしました</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="87"/>
+        <source>CSA通信対局開始: %1 vs %2</source>
+        <translation>CSA通信対局開始: %1 vs %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="97"/>
+        <source>対局終了</source>
+        <translation>対局終了</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="97"/>
+        <source>対局が終了しました。
+
+結果: %1
+原因: %2</source>
+        <translation>対局が終了しました。
+
+結果: %1
+原因: %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="98"/>
+        <source>対局終了: %1 (%2)</source>
+        <translation>対局終了: %1 (%2)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="104"/>
+        <source>先手番</source>
+        <translation>先手番</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="104"/>
+        <source>後手番</source>
+        <translation>後手番</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="121"/>
+        <source>勝ち</source>
+        <translation>勝ち</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="122"/>
+        <source>負け</source>
+        <translation>負け</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="123"/>
+        <source>引き分け</source>
+        <translation>引き分け</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="124"/>
+        <source>打ち切り</source>
+        <translation>打ち切り</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="125"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="141"/>
+        <source>中断</source>
+        <translation>中断</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="128"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="145"/>
+        <source>不明</source>
+        <translation>不明</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="134"/>
+        <source>投了</source>
+        <translation>投了</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="135"/>
+        <source>時間切れ</source>
+        <translation>時間切れ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="136"/>
+        <source>反則</source>
+        <translation>反則</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="137"/>
+        <source>千日手</source>
+        <translation>千日手</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="138"/>
+        <source>連続王手の千日手</source>
+        <translation>連続王手の千日手</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="139"/>
+        <source>入玉宣言</source>
+        <translation>入玉宣言</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="140"/>
+        <source>手数制限</source>
+        <translation>手数制限</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="142"/>
+        <source>不正行為</source>
+        <translation>不正行為</translation>
     </message>
 </context>
 <context>
@@ -10556,7 +10694,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>MatchEngineSeat</name>
     <message>
-        <location filename="../../src/game/matchengineseat.cpp" line="81"/>
+        <location filename="../../src/game/matchengineseat.cpp" line="82"/>
         <source>エンジンを別の処理が使い始めたため、対局のエンジンを止めました</source>
         <translation>エンジンを別の処理が使い始めたため、対局のエンジンを止めました</translation>
     </message>
@@ -13471,32 +13609,32 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeMateEngine</name>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="90"/>
+        <location filename="../../src/analysis/tsumemateengine.cpp" line="90"/>
         <source>最短手数を確認できるKomoringHeightsを選択してください。</source>
         <translation>最短手数を確認できるKomoringHeightsを選択してください。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="102"/>
+        <location filename="../../src/analysis/tsumemateengine.cpp" line="102"/>
         <source>詰みを調べる局面を読めません。</source>
         <translation>詰みを調べる局面を読めません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="134"/>
+        <location filename="../../src/analysis/tsumemateengine.cpp" line="134"/>
         <source>エンジンが判定を完了できませんでした。時間を増やして再判定できます。</source>
         <translation>エンジンが判定を完了できませんでした。時間を増やして再判定できます。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="151"/>
+        <location filename="../../src/analysis/tsumemateengine.cpp" line="151"/>
         <source>判定エンジンを実行できません: %1</source>
         <translation>判定エンジンを実行できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="154"/>
+        <location filename="../../src/analysis/tsumemateengine.cpp" line="154"/>
         <source>判定エンジンが終了しました。実行ファイルを確認してください。</source>
         <translation>判定エンジンが終了しました。実行ファイルを確認してください。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="159"/>
+        <location filename="../../src/analysis/tsumemateengine.cpp" line="159"/>
         <source>制限時間内に判定が完了しませんでした。不詰とは判定していません。</source>
         <translation>制限時間内に判定が完了しませんでした。不詰とは判定していません。</translation>
     </message>
@@ -14505,7 +14643,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>エンジンのファイルパスが指定されていません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="91"/>
+        <location filename="../../src/engine/usi.cpp" line="92"/>
         <location filename="../../src/engine/usienginesession.cpp" line="252"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>エンジンから指し手（bestmove）が返ってきません（タイムアウト）。</translation>
@@ -14616,7 +14754,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>UsiMatchHandler</name>
     <message>
-        <location filename="../../src/engine/usimatchhandler.cpp" line="127"/>
+        <location filename="../../src/engine/usimatchhandler.cpp" line="128"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>エンジンの指し手（bestmove）の形式が正しくありません: 「%1」</translation>
     </message>
@@ -14624,17 +14762,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>UsiProtocolHandler</name>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="113"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="114"/>
         <source>Timeout waiting for usiok</source>
         <translation>エンジンから usiok が返ってきません（タイムアウト）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="113"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="114"/>
         <source>Timeout waiting for readyok</source>
         <translation>エンジンから readyok が返ってきません（タイムアウト）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="294"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="295"/>
         <source>Invalid bestmove format: %1</source>
         <translation>エンジンの指し手（bestmove）の形式が正しくありません: %1</translation>
     </message>
