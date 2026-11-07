@@ -43,15 +43,22 @@ QList<NumberedMove> readNumberedMoves(const QString& line);
 /// 手番の行（「先手番」「下手番」「後手番」「上手番」だけの行）が指す手番。手番の行でなければ nullopt
 [[nodiscard]] std::optional<Turn> sideToMoveLine(QStringView line);
 
+/// 局面図を読んだ結果
+enum class BodRead {
+    NotFound,    ///< 局面図が無い
+    Read,        ///< 読めた
+    Unreadable,  ///< 局面図はあるが、読めない駒があるか9段がそろっていない
+};
+
 /**
  * @brief 局面図（BOD・「配置：」）を局面にする
  *
  * 盤の9段・両者の持駒・手番（「後手番」「上手番」）・手数（「手数＝N」の次の手）を読む。
- * 9段がそろわなければ false。
+ * 読めない部分を飛ばすと別の局面になるので、一部でも読めなければ Unreadable を返す。
  *
  * lines には開始局面の行だけを渡す（指し手とコメントの行を渡さない。KifTextParser の startPositionLines）
  */
-bool readBodPosition(const QStringList& lines, Position& out);
+BodRead readBodPosition(const QStringList& lines, Position& out);
 
 } // namespace KifLexer
 

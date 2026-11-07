@@ -229,9 +229,11 @@ bool applyPRowLine(const QString& raw, Position& board)
             board.setPieceAt(square, Piece::None);
             continue;
         }
-        if (t.size() != 3) return false;
+        if (t.size() != 3 || (t.at(0) != QLatin1Char('+') && t.at(0) != QLatin1Char('-'))) return false;
         const Turn side = (t.at(0) == QLatin1Char('+')) ? Turn::Black : Turn::White;
-        board.setPieceAt(square, ShogiNotation::pieceFromCsaCode(QStringView(t).mid(1, 2), side));
+        const Piece piece = ShogiNotation::pieceFromCsaCode(QStringView(t).mid(1, 2), side);
+        if (piece == Piece::None) return false;
+        board.setPieceAt(square, piece);
     }
     return true;
 }
@@ -247,7 +249,7 @@ bool applyPPlusMinusLine(const QString& raw, Position& board, std::optional<Turn
     QString noSpace = raw.mid(2).trimmed();
     noSpace.remove(QLatin1Char(' '));
 
-    int matched = 0;
+    if (noSpace.size() % 4 != 0) return false;
     for (qsizetype pos = 0; pos + 3 < noSpace.size(); pos += 4) {
         const int file = noSpace.at(pos + 0).digitValue();
         const int rank = noSpace.at(pos + 1).digitValue();
@@ -255,23 +257,23 @@ bool applyPPlusMinusLine(const QString& raw, Position& board, std::optional<Turn
 
         if (file == 0 && rank == 0 && code == u"AL") {
             if (!allRemainingTo) allRemainingTo = side;
-            ++matched;
             continue;
         }
 
         const Piece piece = ShogiNotation::pieceFromCsaCode(code, side);
+        if (piece == Piece::None) return false;
         if (file == 0 && rank == 0) {
-            // 持駒は生駒で数える（玉は持駒にしない）
+            // 持駒は生駒で数える（玉は持駒にできない）
             const Piece inHand = demote(piece);
-            if (inHand != Piece::None && toBlack(inHand) != Piece::BlackKing) board.addToHand(inHand);
+            if (toBlack(inHand) == Piece::BlackKing) return false;
+            board.addToHand(inHand);
         } else {
             const BoardSquare square{file, rank};
-            if (!square.isValid()) continue;
+            if (!square.isValid()) return false;
             board.setPieceAt(square, piece);
         }
-        ++matched;
     }
-    return matched > 0;
+    return true;
 }
 
 void giveRemainingPiecesTo(Position& board, Turn side)
@@ -314,10 +316,11 @@ bool parseStartPos(const QStringList& lines, int& idx, Position& board)
 
         if (raw.size() >= 2 && raw.at(0) == QLatin1Char('P')) {
             if (raw.at(1).isDigit()) {
-                applyPRowLine(raw, board);
+                // 読めない行を飛ばすと別の局面になる
+                if (!applyPRowLine(raw, board)) return false;
                 continue;
             } else if (raw.at(1) == QLatin1Char('+') || raw.at(1) == QLatin1Char('-')) {
-                applyPPlusMinusLine(raw, board, allRemainingTo);
+                if (!applyPPlusMinusLine(raw, board, allRemainingTo)) return false;
                 continue;
             }
         }

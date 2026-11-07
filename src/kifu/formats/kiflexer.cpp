@@ -226,64 +226,37 @@ bool extractFramedContent(const QString& line, QString& inner, QChar& rankKanji)
     return true;
 }
 
-QStringList tokenizeBodRowContent(const QString& inner)
+/// 局面図の1段を9マスの駒の名前にする（"v" は後手、"・" は空き）。読めない文字があるか9マスでなければ nullopt
+std::optional<QStringList> tokenizeBodRowContent(const QString& inner)
 {
     static const QString promotedSingles = QStringLiteral("と杏圭全馬龍竜");
     static const QString baseSingles = QStringLiteral("歩香桂銀金角飛玉王") + promotedSingles;
 
     QStringList tokens;
-    qsizetype i = 0, n = inner.size();
-    while (i < n && tokens.size() < 9) {
+    qsizetype i = 0;
+    const qsizetype n = inner.size();
+    while (true) {
         while (i < n && isSpaceLike(inner.at(i))) ++i;
         if (i >= n) break;
+        if (tokens.size() == 9) return std::nullopt;
 
-        QChar ch = inner.at(i);
-
-        if (ch == QChar(0xFF65)) { tokens << QStringLiteral("・"); ++i; continue; }
-        if (ch == QChar(0xFF56)) { ch = QLatin1Char('v'); }
-
-        if (ch == QChar(0x30FB)) {
+        QChar ch = inner.at(i++);
+        if (ch == QChar(0xFF65) || ch == QChar(0x30FB)) {
             tokens << QStringLiteral("・");
-            ++i;
             continue;
         }
-
+        if (ch == QChar(0xFF56)) ch = QLatin1Char('v');
         if (ch == QLatin1Char('v')) {
-            ++i;
             while (i < n && isSpaceLike(inner.at(i))) ++i;
-            if (i < n && baseSingles.contains(inner.at(i))) {
-                tokens << (QStringLiteral("v") + inner.at(i));
-                ++i;
-            } else {
-                tokens << QStringLiteral("・");
-            }
+            if (i >= n || !baseSingles.contains(inner.at(i))) return std::nullopt;
+            tokens << (QStringLiteral("v") + inner.at(i++));
             continue;
         }
-
-        if (baseSingles.contains(ch)) {
-            tokens << QString(ch);
-            ++i;
-            continue;
-        }
-
-        ++i;
+        if (!baseSingles.contains(ch)) return std::nullopt;
+        tokens << QString(ch);
     }
-
-    while (tokens.size() < 9) tokens << QStringLiteral("・");
+    if (tokens.size() != 9) return std::nullopt;
     return tokens;
-}
-
-bool parseBodRow(const QString& line, QStringList& outTokens, QChar& outRankKanji, bool hasFrame)
-{
-    QString inner;
-    if (hasFrame) {
-        if (!extractFramedContent(line, inner, outRankKanji)) return false;
-    } else {
-        inner = line.trimmed();
-        outRankKanji = QChar();
-    }
-    outTokens = tokenizeBodRowContent(inner);
-    return true;
 }
 
 /// 局面図の1段（9筋から1筋の順の9つの駒の名前。"v" は後手、"・" は空き）を局面に置く
@@ -297,18 +270,18 @@ void placeBodRow(const QStringList& tokens, int rank, Position& out)
     }
 }
 
-/// 持駒の行（「先手の持駒：飛　角　歩三」。駒落ちは下手・上手）を局面の持ち駒に足す
-void addBodHands(const QString& line, Position& out)
+/// 持駒の行（「先手の持駒：飛　角　歩三」。駒落ちは下手・上手）を局面の持ち駒に足す。読めない駒があれば false
+bool addBodHands(const QString& line, Position& out)
 {
     const QString t = line.trimmed();
     const std::optional<Turn> side = KifuParseCommon::bodHandsSide(t);
-    if (!side) return;
+    if (!side) return true;
 
     qsizetype idx = t.indexOf(QChar(u'：')); if (idx < 0) idx = t.indexOf(QLatin1Char(':'));
-    if (idx < 0) return;
+    if (idx < 0) return true;
 
     QString rhs = t.mid(idx+1).trimmed();
-    if (rhs == QStringLiteral("なし")) return;
+    if (rhs == QStringLiteral("なし")) return true;
 
     rhs.replace(QChar(u'、'), QLatin1Char(' '));
     rhs.replace(QChar(0x3000), QLatin1Char(' '));
@@ -321,9 +294,10 @@ void addBodHands(const QString& line, Position& out)
 
         QChar head = tok.at(0);
         const Piece piece = demote(ShogiNotation::pieceFromName(QStringView(&head, 1)));
-        if (piece == Piece::None || piece == Piece::BlackKing) continue;
+        if (piece == Piece::None || piece == Piece::BlackKing) return false;
         out.addToHand(*side == Turn::Black ? piece : toWhite(piece), parseCountSuffixFlexible(tok));
     }
+    return true;
 }
 
 } // namespace
@@ -340,7 +314,7 @@ std::optional<Turn> sideToMoveLine(QStringView line)
     return std::nullopt;
 }
 
-bool readBodPosition(const QStringList& lines, Position& out)
+BodRead readBodPosition(const QStringList& lines, Position& out)
 {
     Position position;
     int rows = 0;
@@ -355,33 +329,34 @@ bool readBodPosition(const QStringList& lines, Position& out)
     }
 
     if (placementStart >= 0) {
-        int currentRankIdx = 0;
-        for (qsizetype i = placementStart + 1; i < lines.size() && currentRankIdx < 9; ++i) {
-            const QString& raw = lines.at(i);
-            if (raw.trimmed().isEmpty()) continue;
-            QStringList toks; QChar dummyRank;
-            if (parseBodRow(raw, toks, dummyRank, false)) {
-                placeBodRow(toks, currentRankIdx + 1, position);
-                currentRankIdx++;
-            }
+        for (qsizetype i = placementStart + 1; i < lines.size() && rows < 9; ++i) {
+            const QString raw = lines.at(i).trimmed();
+            if (raw.isEmpty()) continue;
+            const std::optional<QStringList> tokens = tokenizeBodRowContent(raw);
+            if (!tokens) return BodRead::Unreadable;
+            placeBodRow(*tokens, ++rows, position);
         }
-        rows = currentRankIdx;
     } else {
         // 段の漢数字で段を決める（同じ段が2度あれば後の行）
         QList<int> seen;
         for (const QString& raw : std::as_const(lines)) {
-            QStringList toks; QChar rankKanji;
-            if (!parseBodRow(raw, toks, rankKanji, true)) continue;
+            QString inner;
+            QChar rankKanji;
+            if (!extractFramedContent(raw, inner, rankKanji)) continue;
+            const std::optional<QStringList> tokens = tokenizeBodRowContent(inner);
+            if (!tokens) return BodRead::Unreadable;
             const int rank = ShogiNotation::rankFromKanji(rankKanji);
-            if (rank < 1 || rank > 9) continue;
-            placeBodRow(toks, rank, position);
+            placeBodRow(*tokens, rank, position);
             if (!seen.contains(rank)) seen.append(rank);
         }
         rows = static_cast<int>(seen.size());
     }
-    if (rows != 9) return false;
+    if (rows == 0) return BodRead::NotFound;
+    if (rows != 9) return BodRead::Unreadable;
 
-    for (const QString& line : std::as_const(lines)) addBodHands(line, position);
+    for (const QString& line : std::as_const(lines)) {
+        if (!addBodHands(line, position)) return BodRead::Unreadable;
+    }
 
     // 手番（駒落ちの棋譜は下手番（先手側）・上手番（後手側）と書く）と手数（「手数＝N」の次の手）
     for (const QString& l : std::as_const(lines)) {
@@ -401,7 +376,7 @@ bool readBodPosition(const QStringList& lines, Position& out)
         }
     }
     out = position;
-    return true;
+    return BodRead::Read;
 }
 
 } // namespace KifLexer
