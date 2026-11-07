@@ -4125,42 +4125,42 @@
         <translation type="vanished">引擎</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="87"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="91"/>
         <source>予想手</source>
         <translation>预测着法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="88"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="92"/>
         <source>探索手</source>
         <translation>搜索着法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="89"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="93"/>
         <source>深さ</source>
         <translation>深度</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="90"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="94"/>
         <source>ノード数</source>
         <translation>节点数</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="92"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="96"/>
         <source>ハッシュ使用率</source>
         <translation>哈希使用率</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="283"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="311"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="283"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="311"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="91"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="95"/>
         <source>探索局面数/秒</source>
         <translation>节点/秒</translation>
     </message>
@@ -6389,12 +6389,12 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>JosekiMoveDialog</name>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="33"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="35"/>
         <source>定跡手の編集</source>
         <translation>编辑定跡着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="33"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="35"/>
         <source>定跡手の追加</source>
         <translation>添加定跡着法</translation>
     </message>
@@ -6419,7 +6419,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">起点和终点必须是不同的格子。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="190"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="213"/>
         <source>指し手が現在の局面の合法手ではありません。移動元・移動先・成りを確認してください。</source>
         <translation>此着法在当前局面不合法。请检查起点、终点和升变设置。</translation>
     </message>
@@ -6432,104 +6432,127 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">预期应手在执行此着法后的局面不合法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="230"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="292"/>
         <source>登録する局面: %1番</source>
         <translation>定跡局面：%1行棋</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="230"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="292"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="230"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="292"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="79"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="98"/>
         <source>評価情報</source>
         <translation>评价信息</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="90"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="115"/>
         <source>評価値:</source>
         <translation>评价值：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="88"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="113"/>
         <source>この指し手を指した時の評価値。
 正の値は手番側が有利、負の値は手番側が不利。</source>
         <translation>执行此着法后的评价值。
 正值有利于行棋方，负值不利。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="97"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="122"/>
         <source>探索深さ:</source>
         <translation>搜索深度：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="121"/>
         <source>この評価値を算出した時の探索深さ。</source>
         <translation>计算此评价值时的搜索深度。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="104"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="129"/>
         <source>出現頻度:</source>
         <translation>次数：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="103"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="128"/>
         <source>この指し手が選択された回数。</source>
         <translation>此着法被选择的次数。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="109"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="63"/>
+        <source>① 指し手</source>
+        <translation>① 着法</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="70"/>
+        <source>② 予想応手（省略可）</source>
+        <translation>② 预期应手（选填）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="134"/>
         <source>コメント（任意）</source>
         <translation>注释（选填）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="140"/>
         <source>コメントを入力（任意）</source>
         <translation>输入注释（选填）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="147"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="167"/>
         <source>更新</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="147"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="167"/>
         <source>追加</source>
         <translation>添加</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="148"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="168"/>
         <source>キャンセル</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="51"/>
         <source>予想応手</source>
-        <translation>预期应手</translation>
+        <translation type="vanished">预期应手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="44"/>
         <source>指し手</source>
-        <translation>着法</translation>
+        <translation type="vanished">着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="188"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="211"/>
         <source>指し手を選んでください。</source>
         <translation>请选择着法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="191"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="214"/>
         <source>予想応手を選ぶか、「なし」を選んでください。</source>
         <translation>请选择预想应手，或选择“无”。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="263"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="244"/>
+        <source>指し手を盤で指すか、一覧から選んでください</source>
+        <translation>请在棋盘上走棋，或从列表中选择着法</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="247"/>
+        <source>予想応手を盤で指すか、一覧から選べます（省略できます）</source>
+        <translation>可在棋盘上走棋或从列表中选择预期应手（选填）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="250"/>
+        <source>指し手と予想応手が決まりました</source>
+        <translation>着法和预期应手已确定</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="325"/>
         <source>定跡手: %1</source>
         <translation>定跡着法：%1</translation>
     </message>
@@ -6545,17 +6568,27 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">打入持驹</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="110"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="69"/>
+        <source>指し直す</source>
+        <translation>重新选择</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="71"/>
+        <source>選んだ手を取り消す</source>
+        <translation>取消所选的着法</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="125"/>
         <source>局面がありません</source>
         <translation>没有局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="110"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="125"/>
         <source>合法手から選んでください</source>
         <translation>请从合法着法中选择</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="103"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="118"/>
         <source>なし</source>
         <translation>无</translation>
     </message>
@@ -6971,87 +7004,87 @@ YaneuraOu 会以此着法进行后台思考。</translation>
         <translation type="vanished">定跡窗口</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="153"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="155"/>
         <source>ファイル</source>
         <translation>文件</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="154"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="156"/>
         <source>新規</source>
         <translation>新建</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="154"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="156"/>
         <source>新しい空の定跡ファイルを作成</source>
         <translation>创建空白定跡文件</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="156"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="158"/>
         <source>開く</source>
         <translation>打开</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="156"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="158"/>
         <source>定跡ファイル(.db)を開く</source>
         <translation>打开定跡文件 (.db)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="158"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="160"/>
         <source>保存</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="158"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="160"/>
         <source>現在のファイルに上書き保存</source>
         <translation>保存到当前文件</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="161"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="163"/>
         <source>別名保存</source>
         <translation>另存为</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="161"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="163"/>
         <source>別の名前で保存</source>
         <translation>以新名称保存</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="163"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="165"/>
         <source>履歴</source>
         <translation>历史记录</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="163"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="165"/>
         <source>最近使ったファイルを開く</source>
         <translation>打开最近使用的文件</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="178"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="180"/>
         <source>棋譜や別の定跡ファイルから定跡に登録（棋譜ファイル・フォルダはウィンドウへのドロップでも登録できる）</source>
         <translation>从棋谱或其他定跡文件注册到定跡（也可以将棋谱文件和文件夹拖放到窗口中注册）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="188"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="190"/>
         <source>複数の棋譜から...</source>
         <translation>从多个棋谱...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="189"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="191"/>
         <source>定跡ファイルから...</source>
         <translation>从定跡文件...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="192"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="194"/>
         <source>棋譜に展開...</source>
         <translation>展开到棋谱...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="192"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="194"/>
         <source>表示中の局面から定跡手をたどり、棋譜の変化として足す</source>
         <translation>从当前局面沿定跡着法前进，作为棋谱的变化加入</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="195"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="197"/>
         <source>盤の手を登録</source>
         <translation>注册棋盘着法</translation>
     </message>
@@ -7060,7 +7093,7 @@ YaneuraOu 会以此着法进行后台思考。</translation>
         <translation type="vanished">将对局以外在棋盘上走的着法注册为走子前局面的定跡着法（不改变已注册的着法；重新启动应用程序后恢复关闭）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="210"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="212"/>
         <source>表示</source>
         <translation>显示</translation>
     </message>
@@ -7073,7 +7106,7 @@ YaneuraOu 会以此着法进行后台思考。</translation>
         <translation type="vanished">放大字号</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="328"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="326"/>
         <source>※ 追加・編集・削除後は「保存」ボタンで定跡ファイルに保存してください</source>
         <translation>添加、编辑或删除着法后，请点击“保存”以保存定跡文件。</translation>
     </message>
@@ -7086,32 +7119,32 @@ YaneuraOu 会以此着法进行后台思考。</translation>
         <translation type="vanished">缩小字号</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="219"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="221"/>
         <source>自動読込</source>
         <translation>自动载入</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="220"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="222"/>
         <source>定跡ウィンドウ表示時に前回のファイルを自動で読み込む</source>
         <translation>打开定跡窗口时自动载入上次的文件</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="174"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="176"/>
         <source>操作</source>
         <translation>操作</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="175"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="177"/>
         <source>＋追加</source>
         <translation>＋添加</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="175"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="177"/>
         <source>現在の局面に定跡手を追加</source>
         <translation>为当前局面添加定跡着法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="177"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="179"/>
         <source>マージ ▼</source>
         <translation>合并 ▼</translation>
     </message>
@@ -7120,73 +7153,70 @@ YaneuraOu 会以此着法进行后台思考。</translation>
         <translation type="vanished">将棋谱合并到定跡库</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="185"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="187"/>
         <source>現在の棋譜から</source>
         <translation>从当前棋谱</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="186"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="188"/>
         <source>棋譜ファイルから</source>
         <translation>从棋谱文件</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="197"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="199"/>
         <source>盤で指した手と対局で指された手（人間・エンジンとも）を、指す前の局面の定跡手として登録する（登録済みの手は変えない。局面編集の手は登録しない。アプリを起動し直すとオフに戻る）</source>
         <translation>将在棋盘上走的着法和对局中走的着法（人和引擎都包括）注册为走子前局面的定跡着法（不改变已注册的着法；局面编辑中的着法不注册；重新启动应用程序后恢复为关闭）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="200"/>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="584"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="202"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="577"/>
         <source>■ 停止</source>
         <translation>■ 停止</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="200"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="202"/>
         <source>定跡表示を停止/再開</source>
         <translation>停止／恢复定跡显示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="222"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="224"/>
         <source>盤に矢印</source>
         <translation>棋盘箭头</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="224"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="226"/>
         <source>表示中の局面の定跡手を盤に矢印で表示する（「表示」メニューの「盤に定跡手を表示」と同じ）</source>
         <translation>在棋盘上用箭头显示当前局面的定跡着法（与“视图”菜单的“在棋盘上显示定跡着法”相同）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="261"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="263"/>
         <source>ファイル:</source>
         <translation>文件：</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="262"/>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="770"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="264"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="776"/>
         <source>未選択</source>
         <translation>未选择</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="274"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="276"/>
         <source>局面:</source>
         <translation>局面：</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="275"/>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="451"/>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="742"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="277"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="740"/>
         <source>(未設定)</source>
         <translation>（未设置）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="278"/>
         <source>詳細</source>
-        <translation>详细</translation>
+        <translation type="vanished">详细</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="278"/>
         <source>SFENの詳細を表示/非表示</source>
-        <translation>显示／隐藏 SFEN 详情</translation>
+        <translation type="vanished">显示／隐藏 SFEN 详情</translation>
     </message>
     <message>
         <source>No.</source>
@@ -7237,7 +7267,7 @@ YaneuraOu 会以此着法进行后台思考。</translation>
         <translation type="vanished">复制着法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="765"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="771"/>
         <source> (未読込)</source>
         <translation>（未载入）</translation>
     </message>
@@ -7262,12 +7292,12 @@ YaneuraOu 会以此着法进行后台思考。</translation>
         <translation type="vanished">错误</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="663"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="656"/>
         <source>定跡: (該当なし)</source>
         <translation>定跡：（无匹配）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="654"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="647"/>
         <source>定跡SFEN: %1</source>
         <translation>定跡 SFEN：%1</translation>
     </message>
@@ -7276,7 +7306,7 @@ YaneuraOu 会以此着法进行后台思考。</translation>
         <translation type="vanished">双击执行着法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="584"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="577"/>
         <source>▶ 再開</source>
         <translation>▶ 恢复</translation>
     </message>
@@ -7289,57 +7319,57 @@ YaneuraOu 会以此着法进行后台思考。</translation>
         <translation type="vanished">已将 %1 注册到定跡</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="611"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="604"/>
         <source>%1手目の%2で定跡を外れています</source>
         <translation>在第 %1 手的%2脱离定跡</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="612"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="605"/>
         <source>押すとその手へ移ります</source>
         <translation>点击后移动到该着法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="614"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="607"/>
         <source>表示中の手順はすべて定跡にあります</source>
         <translation>当前手顺全部在定跡中</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="660"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="653"/>
         <source>（手数違いの登録: %1）</source>
         <translation>（以不同手数分别注册：%1）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="699"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="693"/>
         <source>✓読込済</source>
         <translation>✓已载入</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="714"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="708"/>
         <source>定跡ファイルを足しています...</source>
         <translation>正在合并定跡文件...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="715"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="709"/>
         <source>ファイル: %1</source>
         <translation>文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="715"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="709"/>
         <source>ファイル: 未選択</source>
         <translation>文件：未选择</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="716"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="710"/>
         <source>局面数: %1</source>
         <translation>局面数：%1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="717"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="711"/>
         <source>【停止中】</source>
         <translation>[已停止]</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="717"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="711"/>
         <source>定跡: %1件</source>
         <translation>定跡：%1 条</translation>
     </message>
@@ -7358,7 +7388,7 @@ YaneuraOu 会以此着法进行后台思考。</translation>
 定跡数据可能存在错误。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="775"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="781"/>
         <source>新規ファイル（未保存）</source>
         <translation>新文件（未保存）</translation>
     </message>
@@ -7371,7 +7401,7 @@ YaneuraOu 会以此着法进行后台思考。</translation>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="696"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="690"/>
         <source>未保存</source>
         <translation>未保存</translation>
     </message>
@@ -7460,12 +7490,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">指定定跡保存位置</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="712"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="706"/>
         <source>読み込み中...</source>
         <translation>正在载入...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="713"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="707"/>
         <source>保存中...</source>
         <translation>正在保存...</translation>
     </message>
@@ -7504,51 +7534,61 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">将棋谱合并到定跡库 - %1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="727"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="721"/>
         <source>定跡表示を停止しています。「再開」で表示を再開します。</source>
         <translation>定跡显示已暂停。点击“恢复”重新显示定跡着法。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="725"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="719"/>
         <source>定跡ファイルを読み込んでいます...</source>
         <translation>正在载入定跡文件...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="718"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="285"/>
+        <source>コピー</source>
+        <translation>复制</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="285"/>
+        <source>局面のSFENをコピー</source>
+        <translation>复制局面的 SFEN</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="712"/>
         <source>盤の手を登録中</source>
         <translation>正在注册棋盘着法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="729"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="723"/>
         <source>将棋盤で局面を表示すると、その局面の定跡を確認できます。</source>
         <translation>在棋盘上显示局面，即可查看其定跡着法。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="731"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="725"/>
         <source>「開く」で定跡ファイルを読み込むと、表示中の局面の定跡手が表示されます。
 「新規」で新しい定跡ファイルを作ることもできます。</source>
         <translation>点击“打开”读取定跡文件后，会显示当前局面的定跡着法。
 也可以点击“新建”创建新的定跡文件。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="734"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="728"/>
         <source>この局面には定跡が登録されていません。
 「＋追加」で指し手を登録するか、「マージ」から棋譜を取り込めます。</source>
         <translation>此局面没有定跡着法。
 可通过“添加”输入着法，或通过“合并”导入棋谱。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="747"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="744"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="747"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="744"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="751"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="748"/>
         <source>初期配置</source>
         <translation>初始局面</translation>
     </message>
@@ -7557,17 +7597,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">让子</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="755"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="752"/>
         <source>%1手目</source>
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="756"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="753"/>
         <source>%1 (%2番)</source>
         <translation>%1（%2行棋）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="758"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="761"/>
         <source>局面SFEN: %1</source>
         <translation>局面 SFEN：%1</translation>
     </message>
@@ -7582,7 +7622,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">当前轮到引擎行棋，无法执行着法。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="537"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="530"/>
         <source>「%1」をコピーしました</source>
         <translation>已复制“%1”</translation>
     </message>
@@ -10141,7 +10181,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>MatchEngineSeat</name>
     <message>
-        <location filename="../../src/game/matchengineseat.cpp" line="78"/>
+        <location filename="../../src/game/matchengineseat.cpp" line="81"/>
         <source>エンジンを別の処理が使い始めたため、対局のエンジンを止めました</source>
         <translation>其他处理开始使用引擎，因此已停止对局的引擎</translation>
     </message>

@@ -829,6 +829,8 @@ set(SRC_DIALOGS
     src/dialogs/josekiimportdialog.h
     src/dialogs/josekimergedialog.cpp
     src/dialogs/josekimergedialog.h
+    src/dialogs/josekimoveboard.cpp
+    src/dialogs/josekimoveboard.h
     src/dialogs/josekimovedialog.cpp
     src/dialogs/josekiplayoptionsdialog.cpp
     src/dialogs/josekiplayoptionsdialog.h

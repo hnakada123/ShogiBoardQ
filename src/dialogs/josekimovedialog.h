@@ -8,6 +8,8 @@
 
 #include "josekitypes.h"
 
+class ElideLabel;
+class JosekiMoveBoard;
 class JosekiMoveInputWidget;
 class QDialogButtonBox;
 class QLabel;
@@ -21,7 +23,9 @@ class QSpinBox;
  * やねうら王定跡フォーマットに基づいた定跡手の追加・編集を行うダイアログ。
  * フォーマット: 指し手 予想応手 評価値 深さ 出現頻度 [コメント]
  *
- * 指し手は局面の合法手の一覧から選ぶ（JosekiMoveInputWidget）。値の受け渡しは setEntry()/entry()。
+ * 指し手は盤で指すか、局面の合法手の一覧から選ぶ（JosekiMoveBoard・JosekiMoveInputWidget）。
+ * 盤で指した手は一覧に入れ、盤は一覧で選ばれた手から局面を決めるので、選んだ手の正本は一覧だけ。
+ * 値の受け渡しは setEntry()/entry()。
  */
 class JosekiMoveDialog : public QDialog
 {
@@ -36,7 +40,7 @@ public:
     explicit JosekiMoveDialog(QWidget *parent = nullptr, bool isEdit = false);
     ~JosekiMoveDialog() override = default;
 
-    /// 登録対象の局面（指し手はこの局面の合法手から、予想応手は着手後の局面の合法手から選ぶ）
+    /// 登録対象の局面（指し手はこの局面の手、予想応手は着手後の局面の手を盤で指すか一覧から選ぶ）
     void setCurrentSfen(const QString &sfen);
 
     /**
@@ -61,12 +65,22 @@ public slots:
 private slots:
     void validateInput();
     void updateValidation();
+    /// 盤で手を指した（まだ指し手が無ければ指し手、あれば予想応手にする）
+    void onBoardMovePlayed(const QString &usiMove);
+    /// 指し手を指し直すときは、その後の予想応手も取り消す
+    void clearNextMove();
 
 private:
     void setupUi(bool isEdit);
     QString inputError() const;
+    /// 盤と案内を、選んだ手に合わせる。after は指し手の後の局面（指し手が決まっていなければ空）
+    void updateBoard(const QString &after);
     /// 指し手（編集モードは渡された指し手、追加モードは選んだ指し手）
     QString move() const;
+
+    // 盤と、次に何を指すかの案内
+    JosekiMoveBoard *m_board = nullptr;
+    ElideLabel *m_guideLabel = nullptr;
 
     // 指し手入力ウィジェット
     JosekiMoveInputWidget *m_moveInput = nullptr;

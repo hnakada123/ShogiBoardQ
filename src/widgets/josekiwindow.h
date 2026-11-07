@@ -23,6 +23,7 @@ class QPushButton;
 class QShowEvent;
 class QToolButton;
 class ColumnWidthMemory;
+class ElideLabel;
 class JosekiBookSession;
 class RecentFilesMenu;
 class JosekiTableModel;
@@ -136,7 +137,7 @@ private slots:
     void onMergeMenuTriggered(QAction *action);
 
     // --- 表示 ---
-    void onSfenDetailToggled(bool checked);
+    void onCopySfenClicked();
     void onAutoLoadToggled(bool checked);
     /// 「■ 停止」「▶ 再開」を押した（表示の切り替えを変える）
     void onStopButtonClicked(bool stopped);
@@ -156,6 +157,8 @@ private:
     void clearTable();
     void updateStatusDisplay();
     void updatePositionSummary();
+    /// 局面の行の、定跡の登録の分（SFEN のツールチップと手数違いの登録）
+    void showBookPosition(const QString &bookLine, const QString &registeredPlies);
     void showFilePath();
     void updateRecentFilesMenu();
 
@@ -205,13 +208,12 @@ private:
     Actions       m_actions;
 
     // === 状態表示 ===
-    QLabel       *m_currentSfenLabel = nullptr;
-    QLabel       *m_sfenLineLabel = nullptr;
     QLabel       *m_statusLabel = nullptr;
     QLabel       *m_positionSummaryLabel = nullptr;
+    ElideLabel   *m_sfenLabel = nullptr;             ///< 表示中の局面の SFEN（局面の行に出す）
+    QPushButton  *m_copySfenButton = nullptr;
+    QLabel       *m_registeredPliesLabel = nullptr;  ///< 手数違いの登録があるときだけ出す
     QLabel       *m_noticeLabel = nullptr;
-    QPushButton  *m_showSfenDetailBtn = nullptr;
-    QWidget      *m_sfenDetailWidget = nullptr;
 
     // === 表とコンテキストメニュー ===
     JosekiTableView *m_tableView = nullptr;
