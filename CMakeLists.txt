@@ -512,9 +512,9 @@ set(SRC_ENGINE
     src/engine/mateoracle.h
     src/engine/matequeryloop.cpp
     src/engine/matequeryloop.h
-    src/engine/tsumeevaluation.h
-    src/engine/tsumemateengine.cpp
-    src/engine/tsumemateengine.h
+    src/analysis/tsumeevaluation.h
+    src/analysis/tsumemateengine.cpp
+    src/analysis/tsumemateengine.h
     src/engine/usi.cpp
     src/engine/usi.h
     src/engine/usienginesession.cpp
