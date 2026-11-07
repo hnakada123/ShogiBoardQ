@@ -4,6 +4,7 @@
 /// @file csagamesession.h
 /// @brief CSA 通信対局の開始（待機ダイアログ）と、通信対局の進行の画面への反映
 
+#include <QMessageBox>
 #include <QObject>
 #include <QPointer>
 #include <QString>
@@ -77,6 +78,7 @@ private:
     /// 接続ダイアログ（初めて開くときに作り、入力した値を残すため使い回す）
     QPointer<CsaGameDialog> m_gameDialog;
     bool m_autoFlipBoard = true;         ///< 後手のときは盤を反転する（接続ダイアログの設定）
+    QPointer<QMessageBox> m_resultNotice;  ///< 待たずに出した続きの対局の結果の知らせ（次の局の結果で閉じる）
 };
 
 #endif // CSAGAMESESSION_H

@@ -63,6 +63,13 @@ QMessageBox* NotificationPresenter::information(QWidget* parent, const QString& 
     return show(parent, Kind::Information, title, message, wait);
 }
 
+void NotificationPresenter::replaceInformation(QPointer<QMessageBox>& previous, QWidget* parent, const QString& title,
+                                               const QString& message, Wait wait)
+{
+    if (previous) previous->close();
+    previous = information(parent, title, message, wait);
+}
+
 void NotificationPresenter::warning(QWidget* parent, const QString& title, const QString& message)
 {
     show(parent, Kind::Warning, title, message, Wait::UntilClosed);

@@ -148,9 +148,10 @@ QString CsaGameSession::causeText(CsaClient::GameEndCause cause)
 void CsaGameSession::showGameEndDialog(const QString& title, const QString& message)
 {
     // 対局を続けるときは、結果の表示が次の対局の開始を止めないようにする
-    NotificationPresenter::information(m_deps.parentWidget, title, message,
-                                       m_deps.coordinator->moreGamesWanted() ? NotificationPresenter::Wait::No
-                                                                             : NotificationPresenter::Wait::UntilClosed);
+    NotificationPresenter::replaceInformation(m_resultNotice, m_deps.parentWidget, title, message,
+                                              m_deps.coordinator->moreGamesWanted()
+                                                  ? NotificationPresenter::Wait::No
+                                                  : NotificationPresenter::Wait::UntilClosed);
 }
 
 void CsaGameSession::showStatus(const QString& message, int timeoutMs) const
