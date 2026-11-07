@@ -25,6 +25,9 @@ bool isKifCommentLine(QStringView s);
 // KIF/KI2共通：しおり行判定（先頭が '&'）
 bool isBookmarkLine(QStringView s);
 
+// KIF/KI2共通：棋譜の内容でない行（先頭が '#'・'＃'・'*'・'＊' のコメントか '&' のしおり）
+bool isAnnotationLine(QStringView s);
+
 // KIF/KI2共通：BOD持駒行判定（先手の持駒/後手の持駒/持ち駒）
 bool isBodHandsLine(QStringView line);
 

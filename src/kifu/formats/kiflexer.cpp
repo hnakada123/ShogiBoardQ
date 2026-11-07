@@ -331,13 +331,23 @@ namespace KifLexer {
 
 // === BOD盤面解析 ===
 
+std::optional<Turn> sideToMoveLine(QStringView line)
+{
+    line = line.trimmed();
+    if (line == u"先手番" || line == u"下手番") return Turn::Black;
+    if (line == u"後手番" || line == u"上手番") return Turn::White;
+    return std::nullopt;
+}
+
 bool readBodPosition(const QStringList& lines, Position& out)
 {
     Position position;
     int rows = 0;
     int placementStart = -1;
     for (qsizetype i = 0; i < lines.size(); ++i) {
-        if (lines.at(i).contains(QStringLiteral("配置：")) || lines.at(i).contains(QStringLiteral("配置:"))) {
+        // 「配置：」は次の行から9段が続く見出しで、後ろに何も書かない
+        const QString heading = lines.at(i).trimmed();
+        if (heading.endsWith(QStringLiteral("配置：")) || heading.endsWith(QStringLiteral("配置:"))) {
             placementStart = static_cast<int>(i);
             break;
         }
@@ -374,14 +384,12 @@ bool readBodPosition(const QStringList& lines, Position& out)
 
     // 手番（駒落ちの棋譜は下手番（先手側）・上手番（後手側）と書く）と手数（「手数＝N」の次の手）
     for (const QString& l : std::as_const(lines)) {
-        const QString t = l.trimmed();
-        if (t.contains(QStringLiteral("先手番")) || t.contains(QStringLiteral("下手番"))) break;
-        if (t.contains(QStringLiteral("後手番")) || t.contains(QStringLiteral("上手番"))) {
-            position.setSideToMove(Turn::White);
+        if (const std::optional<Turn> side = sideToMoveLine(l)) {
+            position.setSideToMove(*side);
             break;
         }
     }
-    static const QRegularExpression reTeSu(QStringLiteral("手数\\s*[=＝]\\s*([0-9０-９]+)"));
+    static const QRegularExpression reTeSu(QStringLiteral("^\\s*手数\\s*[=＝]\\s*([0-9０-９]+)"));
     for (const QString& l : std::as_const(lines)) {
         auto mt = reTeSu.match(l);
         if (mt.hasMatch()) {

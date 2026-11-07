@@ -40,11 +40,16 @@ QList<NumberedMove> readNumberedMoves(const QString& line);
 
 // === BOD盤面解析 ===
 
+/// 手番の行（「先手番」「下手番」「後手番」「上手番」だけの行）が指す手番。手番の行でなければ nullopt
+[[nodiscard]] std::optional<Turn> sideToMoveLine(QStringView line);
+
 /**
  * @brief 局面図（BOD・「配置：」）を局面にする
  *
  * 盤の9段・両者の持駒・手番（「後手番」「上手番」）・手数（「手数＝N」の次の手）を読む。
- * 9段がそろわなければ false
+ * 9段がそろわなければ false。
+ *
+ * lines には開始局面の行だけを渡す（指し手とコメントの行を渡さない。KifTextParser の startPositionLines）
  */
 bool readBodPosition(const QStringList& lines, Position& out);
 
