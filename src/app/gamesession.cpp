@@ -132,7 +132,7 @@ void GameSession::finishRecord(bool autoSave)
 
 void GameSession::startGameFromDialog()
 {
-    const bool hasEditedStart = isEditedStart(recordStartSfen()) || isEditedStart(m_deps.match->record().startSfen);
+    const bool hasEditedStart = isEditedStart(recordStartSfen());
 
     StartGameDialog dlg;
     if (hasEditedStart) dlg.forceCurrentPositionSelection();
