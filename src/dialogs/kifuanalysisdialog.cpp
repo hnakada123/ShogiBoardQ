@@ -6,7 +6,7 @@
 #include "changeenginesettingsdialog.h"
 #include "ui_kifuanalysisdialog.h"
 #include "analysissettings.h"
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 #include "engineselector.h"
 #include "buttonstyles.h"
 
@@ -43,7 +43,7 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
 
     // エンジンの一覧と前回選んだエンジン
     EngineSelector::Options engineOptions;
-    engineOptions.keys = EngineListSettings::kifuAnalysisSelection();
+    engineOptions.keys = EngineSelectionSettings::kifuAnalysisSelection();
     m_engineSelector = new EngineSelector({ui->comboBoxEngine1, ui->engineSetting, ui->engineHint}, engineOptions, this);
     connect(m_engineSelector, &EngineSelector::settingsRequested, this, &KifuAnalysisDialog::showEngineSettingsDialog);
 

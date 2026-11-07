@@ -11,7 +11,7 @@
 #include "commenteditorpanel.h"
 #include "considerationpanel.h"
 #include "dialoglauncher.h"
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 #include "engineprofilestore.h"
 #include "thinkingpanel.h"
 #include "usilogpanel.h"

@@ -102,7 +102,7 @@
 #include "josekimoveinputwidget.h"
 #include "menuwindow.h"
 #include "menubuttonwidget.h"
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 #include "commenteditorpanel.h"
 #include "considerationpanel.h"
 #include "thinkingtableview.h"

@@ -59,7 +59,7 @@ getter と setter の組やキー定数は手で書かない。値の範囲を�
 | `src/services/settingscommon.h/.cpp` | 設定ファイルのパス（`settingsFilePath()`）、アプリ全体で共有する `QSettings`（`openSettings()`）、全設定の消去（`resetAllSettings()`） |
 | ドメイン別ヘッダー（下表） | 設定項目の宣言の表。処理が要る項目の関数宣言もここに置く |
 | `src/services/engineprofilestore.h/.cpp` | 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（[7章](#7-エンジンの登録情報engineprofilestore)） |
-| `src/services/enginelistsettings.h/.cpp` | 登録エンジン一覧の検索（名前・パス）と、機能ごとに選んだエンジンの保存（[7章](#7-エンジンの登録情報engineprofilestore)） |
+| `src/services/engineselectionsettings.h/.cpp` | 登録エンジン一覧の検索（名前・パス）と、機能ごとに選んだエンジンの保存（[7章](#7-エンジンの登録情報engineprofilestore)） |
 | `src/services/engineoption.h` | USIオプション1つの値 `EngineOption`（名前・型・既定値・範囲・現在値・選択肢） |
 
 ### ドメイン別ヘッダー
@@ -293,7 +293,7 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 
 | 処理 | 関数 |
 |---|---|
-| 古い保存値の引き継ぎ・不正値の補正 | `AppearanceSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppearanceSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す）、`EngineListSettings::savedSelectionName`（詰将棋問題一覧の判定エンジンの以前の版の `"@hayanagi"` を空の名前として読む）、`GameSettings::StartGame::startingPosition` / `setStartingPosition`（以前の版の開始局面の番号を読み、保存するときに消す）、`AnalysisSettings::kifuAnalysisColumnWidths`（1つのキーに `QVariantList` で保存していた値を配列に移す）、`GameSettings::gameInfoColumnWidths`（項目名の列幅 `GameInfo/keyColumnWidth` を配列に移す） |
+| 古い保存値の引き継ぎ・不正値の補正 | `AppearanceSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppearanceSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す）、`EngineSelectionSettings::savedSelectionName`（詰将棋問題一覧の判定エンジンの以前の版の `"@hayanagi"` を空の名前として読む）、`GameSettings::StartGame::startingPosition` / `setStartingPosition`（以前の版の開始局面の番号を読み、保存するときに消す）、`AnalysisSettings::kifuAnalysisColumnWidths`（1つのキーに `QVariantList` で保存していた値を配列に移す）、`GameSettings::gameInfoColumnWidths`（項目名の列幅 `GameInfo/keyColumnWidth` を配列に移す） |
 | 保存の形と値の形の換算 | `GameSettings::StartGame::Player::time` / `setTime` / `defaultTime`（持ち時間を時間・分・秒の項目に保存し、`TimeControlSide` のミリ秒で読み書きする） |
 | 未保存の項目をほかの項目で代える | `AppearanceSettings::boardVisuals` / `setBoardVisuals`（中身は `StructSetting<BoardVisuals>`。駒台の木目 `standWoodGrain` が未保存なら、それを分ける前の版の将棋盤の木目 `woodGrain` を使う） |
 | 独自の保存形式 | `AppearanceSettings::boardColors` / `setBoardColors`（色を `#RRGGBB`・`#AARRGGBB` の文字列で保存し、不正な色は標準色に戻す）、`DockSettings::dockState` / `setDockState`（グループ名を引数で受ける。キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`。表示の既定値も引数で受ける） |
@@ -396,13 +396,13 @@ gui\sendUnreportedPonderOption=true
 `EngineProfileStore::migrateLegacyOptionGroups()` を呼び、登録済みエンジンの配列（`size` と番号付きのキー）と
 `gui/...` の設定だけを `EngineOptions` の下へ移す（同じ名前のグループにあるほかの設定には触れない）。
 
-登録一覧を読むときは `EngineListSettings::loadEngines()`（`EngineProfileStore::loadEngines()` に任せる）を使う。名前とパスの変換は `pathForName()` / `nameForPath()`、一覧の中の位置は `indexOfName()` / `indexOfPath()`。
+登録一覧を読むときは `EngineSelectionSettings::loadEngines()`（`EngineProfileStore::loadEngines()` に任せる）を使う。名前とパスの変換は `pathForName()` / `nameForPath()`、一覧の中の位置は `indexOfName()` / `indexOfPath()`。
 
 ```cpp
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 
-const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-const int index = EngineListSettings::indexOfName(engines, engineName);
+const QList<EngineSelectionSettings::EngineEntry> engines = EngineSelectionSettings::loadEngines();
+const int index = EngineSelectionSettings::indexOfName(engines, engineName);
 const QString path = index >= 0 ? engines.at(index).path : QString();
 ```
 
@@ -417,7 +417,7 @@ const QString path = index >= 0 ? engines.at(index).path : QString();
 
 ### 機能ごとに選んだエンジン
 
-機能ごとに選んだエンジンは、`EngineListSettings::saveSelection()` で名前（id name）を保存し、`restoreSelection()` で一覧の位置に戻す。
+機能ごとに選んだエンジンは、`EngineSelectionSettings::saveSelection()` で名前（id name）を保存し、`restoreSelection()` で一覧の位置に戻す。
 保存場所は機能ごとの関数が `SelectionKeys`（名前のキーと、以前の版の番号・パスのキー）で返す。
 
 | 機能 | 関数 | 名前のキー | 以前の版のキー（読むだけ） |
@@ -430,7 +430,7 @@ const QString path = index >= 0 ? engines.at(index).path : QString();
 | 詰将棋問題一覧の判定 | `tsumeCollectionSelection()` | `TsumeCollection/engineName`（内蔵の Hayanagi なら空の文字列） | `TsumeCollection/engine`（パス） |
 | 対局開始の対局者 | `GameSettings::StartGame::player1`・`player2` の宣言（`PlayerSetupWidget` が `SelectionKeys` にする） | `GameSettings/engineName1`・`engineName2` | `GameSettings/engineNumber1`・`engineNumber2`（番号）、`enginePath1`・`enginePath2`（パス） |
 
-キーは `enginelistsettings.cpp` の各関数（`csaGameSelection()` など）が返す `SelectionKeys` に文字で書く（テストも `EngineListSettings::csaGameSelection().legacyIndex` のように読む）。
+キーは `engineselectionsettings.cpp` の各関数（`csaGameSelection()` など）が返す `SelectionKeys` に文字で書く（テストも `EngineSelectionSettings::csaGameSelection().legacyIndex` のように読む）。
 CSA通信対局のキーは以前の版と同じで、`NetworkSettings` には宣言しない。
 以前の版のキーは、名前で見つからないときだけ読み、保存時に消す。
 `savedSelectionName(keys)` は保存した名前を返す（保存していなければ `std::nullopt`。空の文字列は登録エンジン以外の項目を選んだ印）。
@@ -442,7 +442,7 @@ CSA通信対局のキーは以前の版と同じで、`NetworkSettings` には�
 
 詰将棋問題一覧の判定エンジンは、内蔵の Hayanagi の項目（`Options::builtinLabel`）と、名前に KomoringHeights を含む登録エンジンだけを出す。
 以前の版は `TsumeCollection/engine` にパスを保存し、内蔵の Hayanagi は `"@hayanagi"` と書いていた。
-保存場所 `EngineListSettings::tsumeCollectionSelection()` は、以前の版のパスのキーに書いた内蔵の印（`SelectionKeys::legacyBuiltinPath` = `"@hayanagi"`）を持ち、
+保存場所 `EngineSelectionSettings::tsumeCollectionSelection()` は、以前の版のパスのキーに書いた内蔵の印（`SelectionKeys::legacyBuiltinPath` = `"@hayanagi"`）を持ち、
 名前が保存されていなければ `savedSelectionName()` がそれを空の名前（内蔵）として返す。パスは以前の版のパスのキーとして `restoreSelection()` が読む。
 どちらも読むだけで、選び直して保存したときに名前を書き、以前の版のキーを消す。
 

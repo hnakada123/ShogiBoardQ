@@ -38,11 +38,11 @@ void EngineSelector::restoreSaved()
 {
     loadList();
     // 保存した名前を優先し、無ければ以前の版の番号・パス。内蔵の項目は空の名前で保存している
-    const std::optional<QString> saved = EngineListSettings::savedSelectionName(m_options.keys);
+    const std::optional<QString> saved = EngineSelectionSettings::savedSelectionName(m_options.keys);
     const bool builtin = !m_options.builtinLabel.isEmpty() && saved.has_value() && saved->isEmpty();
     QString name;
     if (!builtin) {
-        const int index = EngineListSettings::restoreSelection(m_options.keys, m_engines);
+        const int index = EngineSelectionSettings::restoreSelection(m_options.keys, m_engines);
         if (index >= 0) name = m_engines.entries().at(index).name;
     }
     populate(name, builtin);
@@ -111,9 +111,9 @@ void EngineSelector::saveSelection() const
 {
     if (!m_options.keys.name) return;
     if (isBuiltinSelected()) {
-        EngineListSettings::saveSelection(m_options.keys, QString());
+        EngineSelectionSettings::saveSelection(m_options.keys, QString());
     } else if (const std::optional<EngineEntry> engine = selected()) {
-        EngineListSettings::saveSelection(m_options.keys, engine->name);
+        EngineSelectionSettings::saveSelection(m_options.keys, engine->name);
     }
 }
 

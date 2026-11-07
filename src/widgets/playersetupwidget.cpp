@@ -173,7 +173,7 @@ void PlayerSetupWidget::load()
     const RegisteredEngines& engines = m_selector->engines();
     // 保存したエンジンが削除されていれば人間に戻す
     const int index = m_saved.isHuman() ? -1
-        : EngineListSettings::restorePlayerEngine(m_saved.engineName(), m_saved.engineNumber.key(),
+        : EngineSelectionSettings::restorePlayerEngine(m_saved.engineName(), m_saved.engineNumber.key(),
                                                   m_saved.enginePath.key(), engines);
     if (index >= 0) m_selector->select(engines.entries().at(index).name);
     else m_selector->selectBuiltin();

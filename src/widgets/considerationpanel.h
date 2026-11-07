@@ -8,7 +8,7 @@
 #include <QString>
 
 #include "analysissettings.h"
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 #include "fontsizehelper.h"
 #include "shogienginethinkingmodel.h"
 

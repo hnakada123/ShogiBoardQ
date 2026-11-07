@@ -28,7 +28,7 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
 
     // エンジンの一覧と前回選んだエンジン（案内文は選べるかで変えるのでこのダイアログが出す）
     EngineSelector::Options engineOptions;
-    engineOptions.keys = EngineListSettings::tsumeSearchSelection();
+    engineOptions.keys = EngineSelectionSettings::tsumeSearchSelection();
     m_engineSelector = new EngineSelector({ui->comboBoxEngine1, ui->engineSetting, nullptr}, engineOptions, this);
 
     // 探索の制限時間。秒の欄は「時間を指定」のときだけ使える（読み込みで無制限に戻したときも合うよう、読み込む前につなぐ）

@@ -8,7 +8,7 @@
 #include <memory>
 #include <optional>
 
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 #include "settingsformbinding.h"
 
 class EngineSelector;

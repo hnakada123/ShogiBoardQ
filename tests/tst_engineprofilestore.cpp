@@ -9,7 +9,7 @@
 #include <QTemporaryDir>
 
 #include "changeenginesettingsdialog.h"
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 #include "engineprofilestore.h"
 #include "engine_profile_format_helper.h"
 #include "longlongspinbox.h"

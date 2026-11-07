@@ -906,10 +906,10 @@ set(SRC_SERVICES
     src/services/docksettings.cpp
     src/services/docksettings.h
     src/services/enginedialogsettings.h
-    src/services/enginelistsettings.cpp
+    src/services/engineselectionsettings.cpp
     src/services/registeredengines.cpp
     src/services/registeredengines.h
-    src/services/enginelistsettings.h
+    src/services/engineselectionsettings.h
     src/services/engineoption.h
     src/services/engineprofilestore.cpp
     src/services/engineprofilestore.h

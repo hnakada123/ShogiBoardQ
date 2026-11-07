@@ -26,7 +26,7 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
 
     // エンジンの一覧と前回選んだエンジン（名前で保存。以前の版の番号も読む）
     EngineSelector::Options engineOptions;
-    engineOptions.keys = EngineListSettings::csaGameSelection();
+    engineOptions.keys = EngineSelectionSettings::csaGameSelection();
     m_engineSelector = new EngineSelector({ui->comboBoxEngine, ui->pushButtonEngineSettings, nullptr},
                                           engineOptions, this);
 

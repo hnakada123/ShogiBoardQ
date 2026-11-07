@@ -1,7 +1,7 @@
-/// @file enginelistsettings.cpp
+/// @file engineselectionsettings.cpp
 /// @brief 機能ごとに選んだエンジンの保存の実装
 
-#include "enginelistsettings.h"
+#include "engineselectionsettings.h"
 
 #include "settingscommon.h"
 
@@ -9,39 +9,39 @@
 
 // 機能ごとのキー（名前のキーと、以前の版が保存していた番号・パスのキー。以前の版のキーは読むだけ）
 
-EngineListSettings::SelectionKeys EngineListSettings::considerationSelection()
+EngineSelectionSettings::SelectionKeys EngineSelectionSettings::considerationSelection()
 {
     return {"Consideration/engineName", "Consideration/engineIndex", nullptr};
 }
 
-EngineListSettings::SelectionKeys EngineListSettings::kifuAnalysisSelection()
+EngineSelectionSettings::SelectionKeys EngineSelectionSettings::kifuAnalysisSelection()
 {
     return {"KifuAnalysis/engineName", "KifuAnalysis/engineIndex", nullptr};
 }
 
-EngineListSettings::SelectionKeys EngineListSettings::tsumeSearchSelection()
+EngineSelectionSettings::SelectionKeys EngineSelectionSettings::tsumeSearchSelection()
 {
     return {"TsumeSearch/engineName", nullptr, "TsumeSearch/enginePath"};
 }
 
-EngineListSettings::SelectionKeys EngineListSettings::tsumeshogiGeneratorSelection()
+EngineSelectionSettings::SelectionKeys EngineSelectionSettings::tsumeshogiGeneratorSelection()
 {
     return {"TsumeshogiGenerator/engineName", "TsumeshogiGenerator/engineIndex", nullptr};
 }
 
-EngineListSettings::SelectionKeys EngineListSettings::csaGameSelection()
+EngineSelectionSettings::SelectionKeys EngineSelectionSettings::csaGameSelection()
 {
     return {"CsaGameSettings/engineName", "CsaGameSettings/engineNumber", nullptr};
 }
 
-EngineListSettings::SelectionKeys EngineListSettings::tsumeCollectionSelection()
+EngineSelectionSettings::SelectionKeys EngineSelectionSettings::tsumeCollectionSelection()
 {
     // 判定エンジンの名前（内蔵エンジンなら空の文字列）。以前の版は判定エンジンをパスで保存し、
     // 内蔵の Hayanagi は "@hayanagi" と書いていた
     return {"TsumeCollection/engineName", nullptr, "TsumeCollection/engine", "@hayanagi"};
 }
 
-std::optional<QString> EngineListSettings::savedSelectionName(const SelectionKeys& keys)
+std::optional<QString> EngineSelectionSettings::savedSelectionName(const SelectionKeys& keys)
 {
     const QSettings& settings = SettingsCommon::openSettings();
     if (!keys.name) return std::nullopt;
@@ -53,7 +53,7 @@ std::optional<QString> EngineListSettings::savedSelectionName(const SelectionKey
     return std::nullopt;
 }
 
-int EngineListSettings::restoreSelection(const SelectionKeys& keys, const RegisteredEngines& engines)
+int EngineSelectionSettings::restoreSelection(const SelectionKeys& keys, const RegisteredEngines& engines)
 {
     const QSettings& settings = SettingsCommon::openSettings();
     if (keys.name) {
@@ -70,7 +70,7 @@ int EngineListSettings::restoreSelection(const SelectionKeys& keys, const Regist
     return -1;
 }
 
-int EngineListSettings::restorePlayerEngine(const QString& savedName, const char* legacyIndexKey,
+int EngineSelectionSettings::restorePlayerEngine(const QString& savedName, const char* legacyIndexKey,
                                             const char* legacyPathKey, const RegisteredEngines& engines)
 {
     if (!savedName.isEmpty()) return engines.indexOfName(savedName);
@@ -79,7 +79,7 @@ int EngineListSettings::restorePlayerEngine(const QString& savedName, const char
     return engines.isEmpty() ? -1 : 0;
 }
 
-void EngineListSettings::saveSelection(const SelectionKeys& keys, const QString& engineName)
+void EngineSelectionSettings::saveSelection(const SelectionKeys& keys, const QString& engineName)
 {
     QSettings& settings = SettingsCommon::openSettings();
     if (keys.name) settings.setValue(keys.name, engineName);
