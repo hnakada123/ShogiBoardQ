@@ -21,7 +21,7 @@ class KifuAnalysisDialog;
 class KifuAnalysisListModel;
 class KifuNavigationController;
 class KifuNavigationState;
-class PvClickController;
+class PvBoardController;
 class QWidget;
 
 /**
@@ -45,7 +45,7 @@ public:
         QDockWidget* resultsDock = nullptr;             ///< 解析を始めたときに出す、結果の表のドック
         // --- 解析する手順と、結果の反映先（無くてもよい） ---
         const KifuNavigationState* navState = nullptr;      ///< 解析する手順（表示中の手順）
-        PvClickController* pvBoards = nullptr;              ///< 結果の行のダブルクリックで読み筋盤を開く
+        PvBoardController* pvBoards = nullptr;              ///< 結果の行のダブルクリックで読み筋盤を開く
         KifuNavigationController* navController = nullptr;  ///< 解析中・結果の行を選んだ手へ棋譜を移す
         EvaluationGraphPresenter* evalGraph = nullptr;      ///< 評価値グラフの点（解析した局面の評価値）
     };

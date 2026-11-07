@@ -26,7 +26,7 @@
 #include "kifuanalysiscontroller.h"
 #include "tsumesearchcontroller.h"
 #include "boardmovecontroller.h"
-#include "pvclickcontroller.h"
+#include "pvboardcontroller.h"
 #include "considerationuicontroller.h"
 #include "appsettings.h"
 #include "matchcoordinator.h"
@@ -198,7 +198,7 @@ private slots:
         QCOMPARE(window.findChildren<CsaGameCoordinator*>().size(), 1);
         QCOMPARE(window.findChildren<CsaGameUiController*>().size(), 1);
         QCOMPARE(window.findChildren<PositionEditSession*>().size(), 1);
-        QCOMPARE(window.findChildren<PvClickController*>().size(), 1);
+        QCOMPARE(window.findChildren<PvBoardController*>().size(), 1);
         QCOMPARE(window.findChildren<KifuAnalysisController*>().size(), 1);
         QCOMPARE(window.findChildren<TsumeSearchController*>().size(), 1);
         QCOMPARE(window.findChildren<ConsiderationUiController*>().size(), 1);
@@ -458,7 +458,7 @@ private slots:
         QCOMPARE(parts.shogiView->squareSize(), 62);
         QCOMPARE(AppSettings::squareSize(), 62);
 
-        PvBoardDialog* dialog = parts.pvClickController->showPvBoard(
+        PvBoardDialog* dialog = parts.pvBoardController->showPvBoard(
             PvText::play(QStringLiteral("startpos"), QStringLiteral("7g7f 3c3d")), QString());
         QVERIFY(dialog);
         QCOMPARE(dialog->findChild<BoardViewerWidget*>()->view()->squareSize(), 62);
@@ -504,7 +504,7 @@ private slots:
             return view->chrome()->card(side)->nameLabel()->fullText();
         };
         const auto namesMatch = [&](const QString& black, const QString& white) {
-            PvBoardDialog* dialog = parts.pvClickController->showPvBoard(
+            PvBoardDialog* dialog = parts.pvBoardController->showPvBoard(
                 PvText::play(QStringLiteral("startpos"), QStringLiteral("7g7f")), QString());
             const ShogiView* pvView = dialog->findChild<BoardViewerWidget*>()->view();
             const bool same = shownName(pvView, Turn::Black) == shownName(parts.shogiView, Turn::Black)

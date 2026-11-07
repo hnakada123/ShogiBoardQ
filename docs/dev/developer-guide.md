@@ -115,7 +115,7 @@
 | 2026-10-23 | ダイアログの大きさの保存を `DialogFontScale::Options::size` に揃え、`SettingsFormBinding` に小数・ラジオの組・2択を足した（監査 R10 の1つ目）のに合わせて §11・§13 を更新（15のダイアログのデストラクタ・`done`・`closeEvent` の保存を消した。詰将棋を解く画面・問題一覧の大きさは構造体の設定から `TsumeshogiSettings::playDialogSize`・`collectionDialogSize` に分けた（キーは同じ）。CSA 通信対局・定跡の展開・登録・マージのダイアログの入力欄は表で読み書きする。文字の欄は前後の空白を除いて保存し、コンボは範囲外の位置を端に寄せる） |
 | 2026-10-23 | 画面部品の名残を直した（監査 R10 の2〜4つ目）のに合わせて §11・§13・第18章を更新（エンジン登録の画面の一覧はハンドラの一覧（正本）を `enginesChanged` で作り直す。盤の18色の設定のキー・表示名・ボタン名・透明・分類は `BoardColors::fields()` の表1つにし、`settingskeys.h` の色のキー・配色ダイアログの18行・外観の見本の「4番目以降」を消した。棋譜欄は `RecordPaneAppearanceManager` を廃し、見た目の値 `RecordPane::Appearance` と `applyAppearance()` の1か所にした（列は `KifuRecordListModel::Column`。モデルの付け替えの Connection の名残を消した）） |
 | 2026-10-23 | 通信ログのパネルと評価値グラフの設定を整理した（監査 R10 の5・6つ目）のに合わせて §11・§13・第18章を更新（USI・CSA の通信ログは共通の基底 `LogPanel`（`src/widgets/logpanel.h`）にし、CSA の通信ログにも折り返し・最新へを足した（`NetworkSettings::csaLogWrapLines`）。`EvaluationChartConfigurator` を廃し、設定の値 `EvaluationChartSettings`（`AnalysisSettings::evalChart`。キーは同じ）・軸の計算 `EvaluationChartRange`・ダイアログ `EvaluationChartSettingsDialog`（dialogs。`DialogLauncher` が開く）に分けた。`EvaluationChartWidget` の使われていない get/set 11本・2つのシグナル・中身のない `setFloating` を消した） |
-| 2026-10-23 | 棋譜解析で解析した手順をノード ID で覚えるようにした（監査 U3）のに合わせて §9・§10・§11・§18 を更新（`AnalysisRequest::lineEndNodeId`、`KifuNavigationController::goToPlyOnLine()`（`goToLine()` を置き換え）、`KifuBranchTree::nodeOnLine()`、`EvaluationSeries::analysisLineEnd()`・`analysisLineName()`。解析の後に分岐を足す・本譜にする・並べ替えても、結果の行とグラフの点は解析した手順へ移る）。読み筋盤を開く処理は `PvClickController::showPvBoard()` 1つにし（対局者名は対局情報）、`AnalysisResultHandler` は `KifuAnalysisRowPresenter` に改名して表の行を作るだけにした（候補手の「同　」は `KifMoveText` で作る）） |
+| 2026-10-23 | 棋譜解析で解析した手順をノード ID で覚えるようにした（監査 U3）のに合わせて §9・§10・§11・§18 を更新（`AnalysisRequest::lineEndNodeId`、`KifuNavigationController::goToPlyOnLine()`（`goToLine()` を置き換え）、`KifuBranchTree::nodeOnLine()`、`EvaluationSeries::analysisLineEnd()`・`analysisLineName()`。解析の後に分岐を足す・本譜にする・並べ替えても、結果の行とグラフの点は解析した手順へ移る）。読み筋盤を開く処理は `PvBoardController::showPvBoard()` 1つにし（対局者名は対局情報）、`AnalysisResultHandler` は `KifuAnalysisRowPresenter` に改名して表の行を作るだけにした（候補手の「同　」は `KifMoveText` で作る）） |
 | 2026-10-23 | 盤の手の行き先の規則を `OperationPolicy::boardInput()`（`BoardInput{None, Edit, Variation, Game, CsaServer}`）の1か所にした（監査3章・U7）のに合わせて §6・§15 を更新（`BoardMoveController` の2つの switch と `canPlayInGame` をやめ、待機中の手もクリックを `UsiMove` にしてから `BranchTreeEditController::recordMove()` で記録する。`recordBoardMove(QPoint&, QPoint&)`・`canRecordBoardMove()`（`canEdit()` と同じ）を削除。終了処理は `OperationPolicy` を破棄せず `disable()` にする） |
 | 2026-10-23 | 対局者ごとの値を手番で引く形にした（監査3章）のに合わせて §3・§5・§6 を更新（`MatchPlayers` の6欄を `std::array<MatchPlayers::Seat, 2>`（`seat(Turn)`）に、`MatchStartOptions` の `enginePath1/2`・`josekiOptions[2]` を `std::array<EngineSeat, 2>`（`engine(Turn)`。パスと定跡の条件）にした。連続対局の手番の入れ替えは `MatchStartOptions::swapSides()`・`TimeControl::swapSides()` の2つ） |
 | 2026-10-23 | 入玉宣言の判定を core にまとめた（監査3章）のに合わせて第18章を更新（`JishogiCalculator::judge()` が `Rule{Points24, Points27}` で `Verdict{NotDeclarable, ShortOfPoints, Draw, Win}` を返し、点数の閾値は `winningPoints()`・`requiredPoints()` だけで決める。`result24`・`result27`（core で訳語を返していた）を削除。`NyugyokuJudgement` は文言だけを作り、持将棋ルールは `std::optional<JishogiCalculator::Rule>`（「なし」は nullopt）で受ける） |
@@ -195,7 +195,7 @@
 | 2026-11-03 | 外から来た文字列のツールチップの書き方を1つにした（監査 2026-11-01 M12）のに合わせて §1.5・§11.5.3・第18章を更新（style に `plainToolTip()` を置き、棋譜欄のコメント・対局情報・定跡ウィンドウ・思考の表の読み筋・分岐ツリー・メニューウィンドウのボタンと、エスケープせずに入れていたエンジンを選ぶコンボ・エンジン情報欄・`ElideLabel`（エンジン名・対局者名）はこれで出す。空白と改行もそのまま出す（`white-space:pre-wrap`。以前の `<br/>` に替える書き方は連続した空白を詰めていた）。`GlobalToolTip` はラベルを `Qt::PlainText` にし、エスケープした文字（「&amp;」など）を見せないようにした。自動化 API の部品の一覧の `tooltip` は、見える文字 `shownToolTipText()` で返す） |
 | 2026-11-03 | 対局情報の表に出す文字をモデルの1か所で作るようにした（監査 2026-11-01 M13）のに合わせて §11.2・第18章を更新（`GameInfoEditModel::PresentedTextRole` を足し、表のデリゲートは項目名・内容の表記を自分で作らずにこれを描く。項目名の列幅もこれで測る。以前はモデルの `presentedText`（読み上げ・ツールチップ・列幅）とデリゲート（描画）が同じ処理を別々に持っていた） |
 | 2026-11-03 | 局面編集の右クリックの巡回も行き先を通すようにした（監査 2026-11-01 M14）のに合わせて §1.5・§10.3・§13.5・§13.6・第18章を更新（`BoardInputRoute::cycle(square)` を足し、`BoardInteractionController::onRightClick()` は局面編集中なら盤を変えずに行き先へ渡す。主画面の `BoardMoveController::cycle()` が `PositionEditSession::cycleEditPiece()` に渡し、詰将棋を解く画面は何もしない。`togglePiecePromotionOnClick()` を消した） |
-| 2026-11-03 | 盤の対局者名の決め方を1つにした（監査 2026-11-01 M15）のに合わせて §8.5・§10.2・§10.3・§12.7 を更新（`PlayerInfoPresenter::boardName(document, activity, side)` を足し、本体の盤と読み筋盤（`PvClickController::showPvBoard()`。`Deps` に `activity` を足した）がこれを使う。読み筋盤は対局中も対局情報の名前を出していたので、棋譜に先手・後手の行が無いまま途中から続けた対局などで本体の盤と名前が違った。「先手」「後手」の補いは `PvBoardDialog::setPlayerNames()` からも消した） |
+| 2026-11-03 | 盤の対局者名の決め方を1つにした（監査 2026-11-01 M15）のに合わせて §8.5・§10.2・§10.3・§12.7 を更新（`PlayerInfoPresenter::boardName(document, activity, side)` を足し、本体の盤と読み筋盤（`PvBoardController::showPvBoard()`。`Deps` に `activity` を足した）がこれを使う。読み筋盤は対局中も対局情報の名前を出していたので、棋譜に先手・後手の行が無いまま途中から続けた対局などで本体の盤と名前が違った。「先手」「後手」の補いは `PvBoardDialog::setPlayerNames()` からも消した） |
 | 2026-11-03 | ui・app の知らせを NotificationPresenter の直接の呼び出しにそろえた（監査 2026-11-01 M16）のに合わせて §4.6・§9.4・§9.6・§9.7・§10.3・§15 を更新（検討・詰み探索・棋譜解析・棋譜の自動保存・対局開始の知らせは `ErrorBus` を通さず、題名付きの `NotificationPresenter::warning`・`critical` で出す。`ErrorBus` を使うのは core（`ShogiBoard::setSfen()`）だけで、`tst_structural_kpi` が ui・app から流していないかを検査する。定跡ウィンドウの `showMoveFailed()` と「着手」のメッセージボックスを消し、指せるかの確かめと知らせは `JosekiWindowController` が行う） |
 | 2026-11-03 | 棋譜解析・詰み探索のダイアログの入力欄を設定の表で読み書きするようにした（監査 2026-11-01 M17・P5）のに合わせて §9.6・§9.7・§11.2・§11.3 を更新（`KifuAnalysisDialog` は思考時間と範囲のラジオの組、`TsumeShogiSearchDialog` は探索の制限時間の欄とラジオの組を `SettingsFormBinding` で読み書きする。開始・終了手数は `setMaxPly` の後で戻すので手で読み書きする。詰み探索のダイアログは制限時間を `timeLimitMs()`（ms。0 は無制限）の1つで返し、`byoyomiSec()`・`unlimitedTimeFlag()` を削除。欄の名前は `timeLimitSec`・`limitedTimeRadioButton`。棋譜解析のダイアログは `processEngineSettings` を `accept()` の上書きにし、直接呼んでも範囲と思考時間を決めて保存する（エンジンが無ければ閉じない）。`EngineSelector`・`KifuAnalysisDialog`・`CsaGameDialog`・`TsumeshogiGeneratorDialog` の `using Engine = EngineEntry` を消した。§11.2 の `SettingsFormBinding` の表に小数・2択・ラジオの組を足した） |
 | 2026-11-03 | SFEN の手番を文字列で読む写しを消した（監査 2026-11-01 M18）のに合わせて §5.7 を更新（盤の矢印の駒打ちの駒の色は `Position::fromSfenLike()` の手番、定跡の登録（`JosekiRegistrationController`）は `SfenUtils::sideToMove()` で読む。テストからしか使われていなかった `turnToSfen`・`sfenToTurn`（`shogitypes.h`）と `SfenUtils::kHirateBoardSfen`・`hirateBoardSfen()` を削除） |
@@ -704,7 +704,7 @@ src/
 │   │   ├── josekimergecontroller.cpp/.h    # 棋譜・定跡ファイルからのマージのダイアログ
 │   │   ├── menuwindowcontroller.cpp/.h     # メニューウィンドウの表示
 │   │   ├── languagecontroller.cpp/.h       # 言語・棋譜表記の切替
-│   │   ├── pvclickcontroller.cpp/.h        # 読み筋のクリック
+│   │   ├── pvboardcontroller.cpp/.h        # 読み筋のクリック
 │   │   ├── usicommandcontroller.cpp/.h     # USIコマンドの送信
 │   │   ├── imageexportcontroller.cpp/.h    # 盤・評価値グラフの画像のコピー・保存
 │   │   ├── widgetimageexporter.cpp/.h      # 部品の画像のクリップボードへのコピーと、形式を選んだファイルへの保存
@@ -2077,7 +2077,7 @@ public:
     };
 
     /// 盤に出す side の対局者名（対局中は対局者、対局していなければ対局情報の名前。どちらも空なら
-    /// 「先手」「後手」）。読み筋盤（PvClickController）も使う
+    /// 「先手」「後手」）。読み筋盤（PvBoardController）も使う
     static QString boardName(const KifuDocument& document, const AppActivityState& activity, Turn side);
 
 private slots:
@@ -3942,7 +3942,7 @@ KifuPresentation::pv（日本語表記）:
 
 モデルは列0〜3を数で返し、ビューが `NumericRightAlignCommaDelegate` で3桁区切り・右寄せに描く（`ThinkingTableView` の基底の読み筋の表 `PvTableView` が設定する）。列幅は利用者がドラッグした列だけを保存する（`ColumnWidthMemory`。保存していない列は見出しと数値の見本が収まる幅で、保存した幅を最小値として扱わない）。depth/seldepth の形の深さは、表ではなく `UsiCommLogModel` 側の欄（7.6節の手順3）に出る。
 
-列4（盤面）をクリックする（選んで Enter でもよい）と、`PvClickController::onPvRowClicked(model, row)` が読み筋の盤面ダイアログ（`PvBoardDialog`）を開く。行の読み筋（`PvText`）の指せた手で局面をたどる（開始局面が無ければ、表示中の局面の上でエンジンが送った語を指し直す）。
+列4（盤面）をクリックする（選んで Enter でもよい）と、`PvBoardController::onPvRowClicked(model, row)` が読み筋の盤面ダイアログ（`PvBoardDialog`）を開く。行の読み筋（`PvText`）の指せた手で局面をたどる（開始局面が無ければ、表示中の局面の上でエンジンが送った語を指し直す）。
 
 #### 2つの更新モード
 
@@ -5338,7 +5338,7 @@ CandidateArrowPresenter::refresh()
 | `resultsPanel` | `AnalysisResultsPanel*` | 任意 | 結果の表（無ければ自分で作る）。初めて解析するときに `setModel(analysisModel)` で1度だけモデルを結ぶ |
 | `resultsDock` | `QDockWidget*` | 任意 | 結果の表のドック。解析を始めたときに表示して前に出す |
 | `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）とその末尾の手（`KifuAnalysisRequest::lineEndNodeId`）、分岐がある手（`KifuAnalysisRequest::branchPlies`。結果の表で棋譜欄と同じ印を付ける） |
-| `pvBoards` | `PvClickController*` | — | 結果の行のダブルクリックで読み筋盤を開く（`showPvBoard()`。対局者名・盤の向きは思考の表と同じ規則） |
+| `pvBoards` | `PvBoardController*` | — | 結果の行のダブルクリックで読み筋盤を開く（`showPvBoard()`。対局者名・盤の向きは思考の表と同じ規則） |
 | `navController` | `KifuNavigationController*` | — | 解析中・結果の行を選んだ手へ棋譜を移す（`goToPlyOnLine`） |
 | `evalGraph` | `EvaluationGraphPresenter*` | — | 評価値グラフの点（解析した局面の評価値を足す） |
 
@@ -5402,7 +5402,7 @@ showDialogAndStart()
 
 #### PV盤面ダイアログ
 
-結果テーブルの「盤面」列（列6）をクリックすると `AnalysisResultsPanel::rowDoubleClicked` から `KifuAnalysisController::onResultRowDoubleClicked()` が呼ばれ、行の読み筋と、その局面に至った手で `PvClickController::showPvBoard()` が `PvBoardDialog`（`src/dialogs/`）を開く（思考・検討の表と同じ開き方。定跡の行は開かない）。このダイアログは、その局面のSFENから読み筋の指し手を順に再生できるミニ盤面ビューアである。
+結果テーブルの「盤面」列（列6）をクリックすると `AnalysisResultsPanel::rowDoubleClicked` から `KifuAnalysisController::onResultRowDoubleClicked()` が呼ばれ、行の読み筋と、その局面に至った手で `PvBoardController::showPvBoard()` が `PvBoardDialog`（`src/dialogs/`）を開く（思考・検討の表と同じ開き方。定跡の行は開かない）。このダイアログは、その局面のSFENから読み筋の指し手を順に再生できるミニ盤面ビューアである。
 
 ### 9.7 TsumeSearchController — 詰将棋探索
 
@@ -5633,7 +5633,7 @@ graph TB
             C1[BoardMoveController]
             C2[ConsiderationUiController]
             C3[KifuAnalysisController]
-            C4[PvClickController]
+            C4[PvBoardController]
             C5["... 他12種"]
         end
 
@@ -5757,7 +5757,7 @@ KifuNavigationState::changed
 
 **ソース**: `src/ui/presenters/playerinfopresenter.h`, `src/ui/presenters/playerinfopresenter.cpp`
 
-盤の対局者名を出すプレゼンターである（表示だけ）。対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）と対局情報は棋譜の文書（`KifuDocument`、8.5節）が持ち、このクラスは読むだけで書き換えない。盤の対局者名は、対局中は対局者、対局していなければ対局情報の名前（どちらも空なら「先手」「後手」）にする。名前の決め方は静的関数 `boardName(document, activity, side)` の1つで、読み筋盤（`PvClickController::showPvBoard()`）も同じ名前を出す。エンジンの表示（通信ログの見出し・2つ目のエンジン欄・検討タブ・評価値グラフの系列名）は `EngineDisplayPresenter` が受け持つ。
+盤の対局者名を出すプレゼンターである（表示だけ）。対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）と対局情報は棋譜の文書（`KifuDocument`、8.5節）が持ち、このクラスは読むだけで書き換えない。盤の対局者名は、対局中は対局者、対局していなければ対局情報の名前（どちらも空なら「先手」「後手」）にする。名前の決め方は静的関数 `boardName(document, activity, side)` の1つで、読み筋盤（`PvBoardController::showPvBoard()`）も同じ名前を出す。エンジンの表示（通信ログの見出し・2つ目のエンジン欄・検討タブ・評価値グラフの系列名）は `EngineDisplayPresenter` が受け持つ。
 
 `Deps` は `document`（`const KifuDocument*`）・`activity`（`const AppActivityState*`。対局中か）・`shogiView` の3つ。
 
@@ -5840,7 +5840,7 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 | `KifuAnalysisController` | `kifuanalysiscontroller.h` | 棋譜解析の条件ダイアログ、解析の進み具合の表示、結果の行の選択（第9章） | `KifuAnalysisSession`, `AnalysisResultsPanel`, `EvaluationGraphPresenter` |
 | `TsumeSearchController` | `tsumesearchcontroller.h` | 詰み探索の条件ダイアログと探索の開始（第9章） | `AnalysisSession` |
 | `LanguageController` | `languagecontroller.h` | 表示言語・棋譜表記の切り替えと再起動の案内 | `QAction`（言語・表記メニュー） |
-| `PvClickController` | `pvclickcontroller.h` | 読み筋行クリック時のPV盤面ダイアログ表示（棋譜解析の結果の行も `showPvBoard()` で開く） | `ShogiEngineThinkingModel`, `PvBoardDialog` |
+| `PvBoardController` | `pvboardcontroller.h` | 読み筋行クリック時のPV盤面ダイアログ表示（棋譜解析の結果の行も `showPvBoard()` で開く） | `ShogiEngineThinkingModel`, `PvBoardDialog` |
 | `UsiCommandController` | `usicommandcontroller.h` | 手動USIコマンドの送信 | `EngineSlots`, `UsiLogPanel` |
 | `NyugyokuDeclarationHandler` | `nyugyokudeclarationhandler.h` | 利用者の入玉宣言（確認・宣言・結果の表示）をローカル対局・通信対局で同じ手順で行う | `GameChannel`, `KifuDocument` |
 | `JosekiWindowController` | `josekiwindowcontroller.h` | 定跡ウィンドウの生成・更新と、定跡手から着手への変換・棋譜への展開 | `JosekiWindow`, `KifuNavigationState`, `BoardMoveController` |
@@ -5888,9 +5888,9 @@ playUsiMove(move)                   ← playMove()、JosekiWindowController（�
 
 どの場合も、手を受け付けたかを戻り値で返し、`onMoveApplied()` で盤の操作（つまんだ駒の表示）を戻す。クリックは1回だけ `UsiMove` にし、その後の処理は `playUsiMove()` にまとまっている。定跡ウィンドウの手（`JosekiWindowController`）は成り・不成まで決まっているので `playUsiMove()` を直接呼び（盤の座標を経由しない。局面編集中は指さない）、盤で指した手と同じに扱われる。
 
-#### PvClickController — 読み筋クリック処理
+#### PvBoardController — 読み筋クリック処理
 
-**ソース**: `src/ui/controllers/pvclickcontroller.h`, `src/ui/controllers/pvclickcontroller.cpp`
+**ソース**: `src/ui/controllers/pvboardcontroller.h`, `src/ui/controllers/pvboardcontroller.cpp`
 
 `ThinkingPanel`（思考タブ）や検討タブの読み筋（PV）行の「盤面」ボタンを押した際の処理を担当する。読み筋盤を開く処理 `showPvBoard(pv, lastUsiMove)` は棋譜解析の結果の行（`KifuAnalysisController`）も使い、対局者名と盤の向きの規則をここ1か所で決める（対局者名は本体の盤と同じ `PlayerInfoPresenter::boardName()`。そのため `Deps` に文書 `document` と動作状態 `activity` を持つ。盤の向きと大きさは本体の盤 `shogiView` から写す）。クリックされた行から読み筋データを取得し、`PvBoardDialog`（ミニ盤面ビューア）を表示する。`ThinkingPanel::pvRowClicked`・`ConsiderationPanel::pvRowClicked` を `onPvRowClicked()` につなぐのは `MainWindowComposer::connectAnalysisAndUi()` である。
 
@@ -6067,7 +6067,7 @@ CsaGameUiController のコンストラクタ
 |------|------|
 | 棋譜をたどる操作 | `connectRecord()` が、棋譜欄・評価値グラフのナビゲーションボタン、`RecordPane::mainRowChanged`・`branchRowActivated`、`BranchTreeView::nodeActivated`、`EvaluationChartWidget::plyClicked` を `KifuNavigationController` の `select*()` へつなぐ。表示の更新は `KifuNavigationState::changed` を受けた `KifuDisplayPresenter`・`BoardSyncPresenter`・`CommentController` などが各自で行う |
 | 分岐の編集 | 分岐ツリー（`BranchTreeView::nodeContextMenuAboutToShow(nodeId, menu)`）と分岐候補欄の右クリックを `BranchTreeEditController` へつなぐ。棋譜の文書の `commentChanged` を `BranchTreeView::refreshNode` へつなぎ、図のコメントの印と説明を合わせる |
-| 読み筋のクリック | `ThinkingPanel`・`ConsiderationPanel` の `pvRowClicked` を `PvClickController::onPvRowClicked` へ、`pvDialogClosed` を各表の選択解除へつなぐ |
+| 読み筋のクリック | `ThinkingPanel`・`ConsiderationPanel` の `pvRowClicked` を `PvBoardController::onPvRowClicked` へ、`pvDialogClosed` を各表の選択解除へつなぐ |
 | 時計・評価値 | 時計は `TimeDisplayPresenter` がコンストラクタで `ShogiClock::timeUpdated` を自分でつなぐ。`connectGame()` が `MatchCoordinator::engineMovePlayed`・`movesUndone` を `EvaluationGraphPresenter` へつなぐ |
 
 ### 10.5 Coordinators — 複数オブジェクト間の調整
@@ -7751,7 +7751,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 | 対局・検討・通信対局 | `engines`（`EngineSlots`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaUi`（`CsaGameUiController`）・`operationPolicy`・`sessionReset`（`SessionResetCoordinator`） |
 | 棋譜のファイル | `kifuLoader`・`kifuFileController` |
 | 表示 | `appearance`・`playerInfo`（`PlayerInfoPresenter`）・`engineDisplay`・`evalGraph`・`arrows`（`CandidateArrowPresenter`）・`analysisResults`・`dockLayoutManager`・`uiStatePolicy`・`notificationService` |
-| 利用者の操作 | `boardArrows`（`BoardArrowActions`。盤の矢印を出すかの切り替え）・`actions`（`MainWindowActions`）・`dialogLauncher`・`kifuAnalysis`・`tsumeSearch`・`considerationUi`・`pvClickController`・`usiCommandController`・`joseki`・`menuWindowController`・`languageController`・`images`・`settingsReset` など |
+| 利用者の操作 | `boardArrows`（`BoardArrowActions`。盤の矢印を出すかの切り替え）・`actions`（`MainWindowActions`）・`dialogLauncher`・`kifuAnalysis`・`tsumeSearch`・`considerationUi`・`pvBoardController`・`usiCommandController`・`joseki`・`menuWindowController`・`languageController`・`images`・`settingsReset` など |
 | 自動化 | `automationServer`（`--automation` 指定時だけ） |
 
 起動時に作らないのは `AutomationServer`（`--automation` 指定時だけ）だけである。CSA 通信対局の司令塔 `CsaGameCoordinator` も、ほかの部品と同じく起動時に作る（接続は対局を始めるときに行う）。
@@ -7763,7 +7763,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 `MainWindowComposer` は部品を依存する部品より後に作り、依存はコンストラクタの `Deps` で渡す。共通の規則は [4.2節](#42-合成ルートでの組み立て) を参照。
 
 - **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `activity`・`match`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
-- **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`OperationPolicy`・`BoardMoveController`・`CsaGameUiController` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
+- **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`OperationPolicy`・`BoardMoveController`・`CsaGameUiController` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvBoardController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
 - **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（移ってよい状態か `OperationPolicy::canBrowseRecord()` と、未更新のコメントの確認 `CommentController::confirmLeaveEditingMove()`）が、できあがった部品の関数を受け取る（成りの選び方は盤の操作 `BoardInteractionController` を作るときに渡す）。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
 - **`std::function` はフックだけ**: 上位へ問い合わせ・操作を委ねるフック（`KifuDocument::Hooks::commitPendingEdits`、`UiStatePolicyManager::Deps` の `localGameHasHuman`・`canResumeGame`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
 
@@ -9640,7 +9640,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | PositionValidator | NS | core | 局面として成り立つかの検査（駒の数・駒台の玉・玉の重複と有無・手番でない側への王手）と王手・合法手の数 | 第3章 |
 | PromoteDialog | C | dialogs | 成/不成確認ダイアログ（`ask()`。主画面の盤と詰将棋を解く画面で共通） | 第6章, 第11章 |
 | PvBoardDialog | C | dialogs | 読み筋盤面表示ダイアログ | 第11章 |
-| PvClickController | C | ui/controllers | 読み筋クリックの制御 | 第10章 |
+| PvBoardController | C | ui/controllers | 読み筋クリックの制御 | 第10章 |
 | PvLine | C | dialogs | 読み筋盤の読み筋1本の値（各手数の局面・手の表記・直前の手のハイライト `PvLine::Highlight`） | 第11章 |
 | PvText | C | core | 局面の上で指した読み筋の値（表記は `KifuPresentation::pv`） | 第7章 |
 | PvTableView | C | widgets | 読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方。思考の表と棋譜解析の結果の表で使う） | 第11章 |

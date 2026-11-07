@@ -1,7 +1,7 @@
-#ifndef PVCLICKCONTROLLER_H
-#define PVCLICKCONTROLLER_H
+#ifndef PVBOARDCONTROLLER_H
+#define PVBOARDCONTROLLER_H
 
-/// @file pvclickcontroller.h
+/// @file pvboardcontroller.h
 /// @brief 読み筋の行をクリックしたとき、読み筋を盤で再生するダイアログを開く
 
 #include <QHash>
@@ -24,7 +24,7 @@ class ShogiView;
  * 開き方（対局者名と盤の向きは本体の盤と同じ、局面に至った手の強調）は showPvBoard の1か所で決める。
  * 思考の表の読み筋の局面は、エンジンが読み筋を出したときの局面（ShogiInfoRecord::baseSfen）を使う。
  */
-class PvClickController : public QObject
+class PvBoardController : public QObject
 {
     Q_OBJECT
 
@@ -36,7 +36,7 @@ public:
         const ShogiView* shogiView = nullptr;               ///< 本体の盤（反転状態とマスの大きさ）
     };
 
-    explicit PvClickController(const Deps& deps, QObject* parent = nullptr);
+    explicit PvBoardController(const Deps& deps, QObject* parent = nullptr);
 
     /**
      * @brief 読み筋 pv を盤で再生するダイアログを開く（閉じると破棄する）
@@ -60,4 +60,4 @@ private:
     QHash<const QObject*, const ShogiEngineThinkingModel*> m_dialogSources;  ///< 開いているダイアログと元の表
 };
 
-#endif // PVCLICKCONTROLLER_H
+#endif // PVBOARDCONTROLLER_H

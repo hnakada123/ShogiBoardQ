@@ -88,7 +88,7 @@ class MainWindowActions;
 class MenuWindowController;
 class NyugyokuDeclarationHandler;
 class PieceSoundPlayer;
-class PvClickController;
+class PvBoardController;
 class SettingsResetController;
 class TsumeSearchController;
 class NotificationPresenter;
@@ -190,7 +190,7 @@ struct MainWindowComponents {
     KifuAnalysisController* kifuAnalysis = nullptr;
     TsumeSearchController* tsumeSearch = nullptr;
     ConsiderationUiController* considerationUi = nullptr;
-    PvClickController* pvClickController = nullptr;
+    PvBoardController* pvBoardController = nullptr;
     UsiCommandController* usiCommandController = nullptr;
     JosekiWindowController* joseki = nullptr;
     JosekiRegistrationController* josekiRegistration = nullptr;  ///< 思考の表・棋譜解析の結果から定跡に登録
