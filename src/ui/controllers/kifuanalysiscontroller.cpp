@@ -63,7 +63,13 @@ void KifuAnalysisController::showDialogAndStart()
     KifuAnalysisDialog dialog(m_deps.parentWidget);
     dialog.setMaxPly(line.moveCount());
     if (dialog.exec() != QDialog::Accepted) return;
-    if (std::optional<KifuAnalysisRequest> request = requestFromDialog(dialog)) start(std::move(*request));
+    startFromDialog(dialog);
+}
+
+bool KifuAnalysisController::startFromDialog(const KifuAnalysisDialog& dialog)
+{
+    std::optional<KifuAnalysisRequest> request = requestFromDialog(dialog);
+    return request && start(std::move(*request), displayedLineInfo());
 }
 
 std::optional<KifuAnalysisRequest> KifuAnalysisController::requestFromDialog(const KifuAnalysisDialog& dialog) const
@@ -75,15 +81,21 @@ std::optional<KifuAnalysisRequest> KifuAnalysisController::requestFromDialog(con
     }
     KifuAnalysisRequest request;
     request.line = displayedLine();
-    if (m_deps.navState) {
-        const QList<KifuBranchNode*> path = m_deps.navState->selectedPath();
-        if (!path.isEmpty()) request.lineEndNodeId = path.constLast()->nodeId();
-    }
-    request.branchPlies = displayedBranchPlies();
     request.enginePath = engine->path;
     request.engineName = engine->name;
     request.options = dialog.options();   // 範囲は解析する手順の手数（setMaxPly）に収めてある
     return request;
+}
+
+KifuAnalysisController::LineInfo KifuAnalysisController::displayedLineInfo() const
+{
+    LineInfo info;
+    if (m_deps.navState) {
+        const QList<KifuBranchNode*> path = m_deps.navState->selectedPath();
+        if (!path.isEmpty()) info.lineEndNodeId = path.constLast()->nodeId();
+    }
+    info.branchPlies = displayedBranchPlies();
+    return info;
 }
 
 RecordLine KifuAnalysisController::displayedLine() const
@@ -101,21 +113,18 @@ QSet<int> KifuAnalysisController::displayedBranchPlies() const
     return plies;
 }
 
-bool KifuAnalysisController::start(KifuAnalysisRequest request)
+bool KifuAnalysisController::start(KifuAnalysisRequest request, const LineInfo& lineInfo)
 {
     if (request.line.isEmpty()) {
         showError(tr("解析対象の棋譜データが不正です。"));
         return false;
     }
-    const int last = request.line.moveCount();
-    request.options.startPly = qBound(0, request.options.startPly, last);
-    request.options.endPly = request.options.endPly < 0 ? last
-        : qBound(request.options.startPly, request.options.endPly, last);
+    request.options = request.options.boundedTo(request.line.moveCount());
     // 前の解析を止めてから表示を作り直す（前の解析の終わりは前の表示に知らせる）
     stop();
     m_rows.reset();
     m_pendingPlot.reset();
-    m_lineEndNodeId = request.lineEndNodeId;
+    m_lineEndNodeId = lineInfo.lineEndNodeId;
     m_startPly = request.options.startPly;
     m_deps.analysisModel->clear();
 
@@ -126,13 +135,13 @@ bool KifuAnalysisController::start(KifuAnalysisRequest request)
     m_resultsPanel->beginAnalysis(request.options.endPly - request.options.startPly + 1, request.engineName);
 
     // 評価値グラフは解析の結果だけにする（条件ダイアログをやめたときは消さない）
-    if (EvaluationGraphPresenter* graph = m_deps.evalGraph) graph->beginAnalysis(request.engineName, request.lineEndNodeId);
+    if (EvaluationGraphPresenter* graph = m_deps.evalGraph) graph->beginAnalysis(request.engineName, lineInfo.lineEndNodeId);
 
     // 結果の行は、実行が持つ依頼の手順から作る（解析を始めると依頼が置き換わる）
     KifuAnalysisRowPresenter::Refs refs;
     refs.analysisModel = m_deps.analysisModel;
     refs.line = &m_deps.session->request().line;
-    refs.branchPlies = request.branchPlies;
+    refs.branchPlies = lineInfo.branchPlies;
     m_rows = std::make_unique<KifuAnalysisRowPresenter>(refs);
     m_displaying = true;
     // エンジンの起動の失敗は、戻った後に onEngineError で届く（ここで二重に出さない）

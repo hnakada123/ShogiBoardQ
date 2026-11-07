@@ -5,7 +5,6 @@
 /// @brief 棋譜解析の実行（エンジンの枠と動作状態のリース・手順の局面の列の解析）
 
 #include <QObject>
-#include <QSet>
 #include <QString>
 #include <memory>
 
@@ -22,14 +21,20 @@ struct KifuAnalysisRequest {
         int startPly = 0;       ///< 解析を始める手数（0以上）
         int endPly = -1;        ///< 解析を終える手数（-1 は末尾まで）
         int movetimeMs = 1000;  ///< 1局面の思考時間（ms）
+
+        /// 範囲を手数 lastPly の手順に収める（終わりの -1 は末尾まで）
+        Options boundedTo(int lastPly) const
+        {
+            Options bounded = *this;
+            bounded.startPly = qBound(0, startPly, lastPly);
+            bounded.endPly = endPly < 0 ? lastPly : qBound(bounded.startPly, endPly, lastPly);
+            return bounded;
+        }
     };
     RecordLine line;
     Options options;
     QString enginePath;
     QString engineName;
-    /// 解析する手順の末尾の手（KifuBranchTree のノード ID。結果の行・グラフの点から棋譜を移すときに使う。-1 は移さない）
-    int lineEndNodeId = -1;
-    QSet<int> branchPlies;  ///< 分岐がある手の手数（結果の表で分岐の印を付ける）
 };
 
 /**

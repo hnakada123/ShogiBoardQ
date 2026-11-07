@@ -151,7 +151,6 @@ public:
     {
         KifuAnalysisRequest r;
         r.line = line();
-        r.lineEndNodeId = lineEnd();
         return r;
     }
 
@@ -185,8 +184,7 @@ public:
     {
         KifuAnalysisDialog dialog;
         dialog.setMaxPly(static_cast<int>(usiMoves.size()));
-        const std::optional<KifuAnalysisRequest> request = ctrl.requestFromDialog(dialog);
-        return request && ctrl.start(*request);
+        return ctrl.startFromDialog(dialog);
     }
 
     QString lastError() const { return capture.notices().isEmpty() ? QString() : capture.notices().last(); }
@@ -730,7 +728,7 @@ private slots:
         KifuAnalysisRequest request = h.request();
         request.enginePath = mockEngine();
         request.options.startPly = startPly;
-        QVERIFY(ctrl->start(request));
+        QVERIFY(ctrl->start(request, {h.lineEnd(), {}}));
         QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 7000);
         auto* view = h.resultsPanel.view();
         QCOMPARE(view->currentIndex().row(), 2 - startPly);
@@ -769,7 +767,7 @@ private slots:
         request.enginePath = mockEngine();
         request.options.startPly = 1;
         request.options.endPly = 1;
-        QVERIFY(ctrl->start(request));
+        QVERIFY(ctrl->start(request, {h.lineEnd(), {}}));
         QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 7000);
         auto* view = h.resultsPanel.view();
         QSignalSpy selected(&h.resultsPanel, &AnalysisResultsPanel::rowSelected);
@@ -795,10 +793,9 @@ private slots:
         auto ctrl = h.controller();
         KifuAnalysisRequest request;
         request.line = KifuBranchTree::toRecordLine(h.tree.allLines().at(1).nodes());
-        request.lineEndNodeId = h.lineEnd(1);
         request.options.startPly = 1;
         request.enginePath = mockEngine();
-        QVERIFY(ctrl->start(request));
+        QVERIFY(ctrl->start(request, {h.lineEnd(1), {}}));
         QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 7000);
         auto* view = h.resultsPanel.view();
         QCOMPARE(view->currentIndex().row(), 1);

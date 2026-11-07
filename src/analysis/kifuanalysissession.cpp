@@ -30,11 +30,7 @@ bool KifuAnalysisSession::start(KifuAnalysisRequest request)
 {
     if (request.line.isEmpty()) return false;
     stop();
-    // 範囲を手順に収める（終わりの -1 は末尾まで）
-    const int last = request.line.moveCount();
-    KifuAnalysisRequest::Options& options = request.options;
-    options.startPly = qBound(0, options.startPly, last);
-    options.endPly = options.endPly < 0 ? last : qBound(options.startPly, options.endPly, last);
+    request.options = request.options.boundedTo(request.line.moveCount());
     m_request = std::move(request);
 
     // 解析のエンジンは枠 E1 に置く（思考情報・通信ログは E1 の表示に出る）
@@ -55,9 +51,9 @@ bool KifuAnalysisSession::start(KifuAnalysisRequest request)
     EngineAnalysisRunner::Request run;
     run.enginePath = m_request.enginePath;
     run.engineName = m_request.engineName;
-    run.positions = m_request.line.usiPositions(options.startPly, options.endPly);
-    run.firstPly = options.startPly;
-    run.thinkMs = options.movetimeMs;
+    run.positions = m_request.line.usiPositions(m_request.options.startPly, m_request.options.endPly);
+    run.firstPly = m_request.options.startPly;
+    run.thinkMs = m_request.options.movetimeMs;
     run.multiPv = 0;
     run.replyTimeoutMs = EngineAnalysisRunner::kDefaultReplyTimeoutMs;
 
