@@ -138,7 +138,7 @@ QString CsaGameDialog::validationMessage() const
         return tr("ゲーム名は「名前-持時間-秒読み」の形式で入力してください（例: floodgate-300-10F）。");
     case CsaLogin::Issue::None: break;
     }
-    if (ui->checkBoxAutoSave->isChecked() && ui->lineEditAutoSaveDir->text().trimmed().isEmpty()) {
+    if (MatchAutoSave{ui->checkBoxAutoSave->isChecked(), ui->lineEditAutoSaveDir->text().trimmed()}.lacksDir()) {
         return tr("棋譜の自動保存先フォルダを指定してください。");
     }
     return {};
