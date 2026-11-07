@@ -68,6 +68,15 @@ void EngineRegistrationHandler::startRegistration(const QString& filePath)
         setError(tr("エンジンファイルが見つかりません: %1").arg(filePath));
         return;
     }
+    // 同じ実行ファイル（パスを正規化して比べる）は二重に登録しない
+    if (const std::optional<EngineEntry> existing = m_engines.findByPath(filePath)) {
+        setError(tr("エンジン %1 は既に追加されています。").arg(existing->name));
+        return;
+    }
+    if (!validateEnginePath(filePath)) {
+        setError(tr("指定したファイルは実行可能なエンジンではありません: %1").arg(filePath));
+        return;
+    }
     setRegistrationInProgress(true);
     // 起動できなかったときは、戻った後に onProbeError で届く
     m_probe->probeAsync(QFileInfo(filePath).absoluteFilePath());
@@ -117,7 +126,7 @@ void EngineRegistrationHandler::onProbeError(const QString& message)
 void EngineRegistrationHandler::registerEngine(const QString& engineName, const QString& engineAuthor,
                                                const QStringList& optionLines)
 {
-    // 同じ実行ファイルは登録前に断っている。別の実行ファイルが同じ id name を名乗る
+    // 別の実行ファイルが同じ id name を名乗る
     // （評価関数だけ違うビルドなど）ときは、登録名に番号を付けて別のエンジンとして登録する。
     // 登録名は設定（オプション・先読み）を保存する名前にもなるので、エンジンごとに設定が分かれる
     m_engineIdName = m_engines.uniqueName(engineName);

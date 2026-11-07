@@ -130,6 +130,32 @@ class TestEngineRegistrationHandler : public QObject
     QTemporaryDir m_config;
 
 private slots:
+    /// 実行できないファイルと、登録済みの実行ファイルは起動せずに断る（判定はハンドラが持つ。監査 2026-11-07 M7）
+    void startRegistration_refusesWithoutStartingTheEngine()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("notAnEngine"));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.close();
+
+        EngineRegistrationHandler handler;
+        QSignalSpy errors(&handler, &EngineRegistrationHandler::errorOccurred);
+        handler.startRegistration(path);
+        QVERIFY(!handler.isRegistrationInProgress());
+        QCOMPARE(errors.count(), 1);
+        QVERIFY(errors.takeFirst().first().toString().contains(QStringLiteral("実行可能なエンジンではありません")));
+
+        EngineEntry registered;
+        registered.name = QStringLiteral("Registered");
+        registered.path = path;
+        handler.m_engines.append(registered);
+        handler.startRegistration(path);
+        QVERIFY(!handler.isRegistrationInProgress());
+        QCOMPARE(errors.count(), 1);
+        QVERIFY(errors.takeFirst().first().toString().contains(QStringLiteral("既に追加されています")));
+    }
+
     void initTestCase()
     {
         // 登録の試験は設定ファイルに書くので、利用者の設定ファイルを使わない

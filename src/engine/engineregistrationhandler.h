@@ -33,10 +33,8 @@ public:
     /// 登録エンジンの一覧（正本。画面の一覧は enginesChanged で作り直す。同じ実行ファイルの検索は findByPath）
     const RegisteredEngines& engines() const { return m_engines; }
 
-    /// エンジンパスが有効かどうかを検証する
-    bool validateEnginePath(const QString& filePath) const;
-
-    /// エンジン登録を始める（起動して usi〜usiok で名前とオプションを聞く。結果はシグナルで知らせる）
+    /// エンジン登録を始める（起動して usi〜usiok で名前とオプションを聞く。結果はシグナルで知らせる）。
+    /// ファイルが無い・実行できない・同じ実行ファイルを登録済みなら、起動せずに errorOccurred で断る
     void startRegistration(const QString& filePath);
 
     /// 進行中の登録処理をキャンセルする
@@ -78,6 +76,8 @@ private:
 
     // エラー設定＋シグナル送出
     void setError(const QString& message);
+    /// エンジンパスが有効かどうかを検証する
+    bool validateEnginePath(const QString& filePath) const;
 
     UsiEngineSession* m_probe = nullptr;   ///< 登録するエンジンへの接続（QObject parent 所有）
     bool m_processStarted = false;         ///< 登録するエンジンのプロセスが起動した
