@@ -1208,6 +1208,38 @@ private slots:
         QVERIFY2(outcome.warning.isEmpty(), qPrintable(outcome.warning));
     }
 
+    // 持駒の見出しは「持駒」も「持ち駒」も読む（監査 2026-11-07 F2）
+    void boardDiagramHandsHeading_data()
+    {
+        QTest::addColumn<QString>("blackHead");
+        QTest::addColumn<QString>("whiteHead");
+        QTest::newRow("mochigoma") << QStringLiteral("先手の持駒") << QStringLiteral("後手の持駒");
+        QTest::newRow("mochi-goma") << QStringLiteral("先手の持ち駒") << QStringLiteral("後手の持ち駒");
+        QTest::newRow("handicap") << QStringLiteral("下手の持ち駒") << QStringLiteral("上手の持ち駒");
+    }
+
+    void boardDiagramHandsHeading()
+    {
+        QFETCH(QString, blackHead);
+        QFETCH(QString, whiteHead);
+        const KifuParseOutcome outcome = KifTextParser::parseKif(whiteHead + QStringLiteral(
+            "：歩二\n"
+            "  ９ ８ ７ ６ ５ ４ ３ ２ １\n"
+            "+---------------------------+\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・v玉|一\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|二\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|三\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|四\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|五\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|六\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|七\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|八\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ 玉|九\n"
+            "+---------------------------+\n") + blackHead + QStringLiteral("：飛　金二\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.record.mainline.startSfen, QStringLiteral("8k/9/9/9/9/9/9/9/8K b R2G2p 1"));
+    }
+
     // 2手目以降で相手の駒を動かす手は読まない（以前は手番をずらしたまま読んでいた）
     void movingTheOpponentsPiece_isRejected()
     {

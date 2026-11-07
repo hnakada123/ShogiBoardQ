@@ -23,6 +23,7 @@ private slots:
         const QString bod = BodTextGenerator::generate(*Position::fromSfen(sfen), 4, QStringLiteral("△８四歩(83)"));
         QTest::newRow("bod-last-move") << bod << Format::Bod;
         QTest::newRow("bod-no-last-move") << BodTextGenerator::generate(*Position::fromSfen(sfen), 4, {}) << Format::Bod;
+        QTest::newRow("bod-hands-heading-only") << QStringLiteral("後手の持ち駒：なし\n先手の持ち駒：金\n") << Format::Bod;
         QTest::newRow("bod-with-comment") << bod + QStringLiteral("\n*候補手は▲２五歩\n") << Format::Bod;
         QTest::newRow("ki2-with-bod") << bod + QStringLiteral("\n  ▲２五歩  △８五歩\n") << Format::Ki2;
         QTest::newRow("kif-with-bod") << bod + QStringLiteral("\n手数----指手---------消費時間--\n1 ２五歩(26)\n") << Format::Kif;

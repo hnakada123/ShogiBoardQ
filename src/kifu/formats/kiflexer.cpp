@@ -3,6 +3,8 @@
 
 #include "kiflexer.h"
 
+#include "parsecommon.h"
+
 #include <QRegularExpression>
 #include "shoginotation.h"
 
@@ -299,9 +301,8 @@ void placeBodRow(const QStringList& tokens, int rank, Position& out)
 void addBodHands(const QString& line, Position& out)
 {
     const QString t = line.trimmed();
-    const bool sideBlack = t.startsWith(QStringLiteral("先手の持駒")) || t.startsWith(QStringLiteral("下手の持駒"));
-    const bool sideWhite = t.startsWith(QStringLiteral("後手の持駒")) || t.startsWith(QStringLiteral("上手の持駒"));
-    if (!sideBlack && !sideWhite) return;
+    const std::optional<Turn> side = KifuParseCommon::bodHandsSide(t);
+    if (!side) return;
 
     qsizetype idx = t.indexOf(QChar(u'：')); if (idx < 0) idx = t.indexOf(QLatin1Char(':'));
     if (idx < 0) return;
@@ -321,7 +322,7 @@ void addBodHands(const QString& line, Position& out)
         QChar head = tok.at(0);
         const Piece piece = demote(ShogiNotation::pieceFromName(QStringView(&head, 1)));
         if (piece == Piece::None || piece == Piece::BlackKing) continue;
-        out.addToHand(sideBlack ? piece : toWhite(piece), parseCountSuffixFlexible(tok));
+        out.addToHand(*side == Turn::Black ? piece : toWhite(piece), parseCountSuffixFlexible(tok));
     }
 }
 
