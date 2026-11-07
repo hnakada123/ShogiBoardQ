@@ -84,11 +84,16 @@ QString KifuDocument::startSfen() const
 
 QList<KifGameInfoItem> KifuDocument::defaultHeader()
 {
+    return defaultHeader(SfenUtils::hirateSfen());
+}
+
+QList<KifGameInfoItem> KifuDocument::defaultHeader(const QString& startSfen)
+{
     return {{GameInfoKeys::kGameDate, {}},
             {GameInfoKeys::kStartDateTime, {}},
             {GameInfoKeys::kBlackPlayer, {}},
             {GameInfoKeys::kWhitePlayer, {}},
-            {GameInfoKeys::kHandicap, Handicaps::labelOf(Handicaps::kHirate)},
+            {GameInfoKeys::kHandicap, GameInfo::handicapLabel(startSfen)},
             {GameInfoKeys::kTimeControl, {}},
             {GameInfoKeys::kEvent, {}},
             {GameInfoKeys::kSite, {}},
@@ -104,7 +109,7 @@ void KifuDocument::startNew(const QString& sfen, bool keepHeader)
     // 残す対局情報には、対局情報欄で入力中のセルも入れる
     if (keepHeader) commitPendingEdits();
     m_tree->setRootSfen(sfen);
-    finishReplacement(keepHeader ? m_header : defaultHeader(), true);
+    finishReplacement(keepHeader ? m_header : defaultHeader(sfen), true);
 }
 
 bool KifuDocument::replaceWithRecord(const KifParseResult& record, const QList<KifGameInfoItem>& header)

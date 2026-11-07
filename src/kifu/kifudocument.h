@@ -116,6 +116,8 @@ public:
 
     /// 新しい棋譜の対局情報の項目（対局者は「先手」「後手」、ほかは未設定）
     static QList<KifGameInfoItem> defaultHeader();
+    /// startSfen から始める棋譜の対局情報（手合割は開始局面から決める。局面編集の後は「平手」と書かない）
+    static QList<KifGameInfoItem> defaultHeader(const QString& startSfen);
 
 signals:
     /// 文書の中身を置き換えた（新規・読み込み・局面の反映・新しい棋譜での対局の開始）。

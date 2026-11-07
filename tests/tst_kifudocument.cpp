@@ -1133,6 +1133,20 @@ private slots:
         QCOMPARE(document.header(), header);
         document.startNew(kHirateSfen);
         QCOMPARE(document.header(), KifuDocument::defaultHeader());
+
+        // 局面編集の後の対局情報は開始局面に合わせる。平手と書かない（監査 2026-11-07 F21）
+        const auto handicapOf = [](const KifuDocument& doc) {
+            for (const KifGameInfoItem& item : doc.header()) {
+                if (item.key == GameInfoKeys::kHandicap) return item.value;
+            }
+            return QString();
+        };
+        document.startNew(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b R 1"));
+        QCOMPARE(handicapOf(document), GameInfoKeys::kHandicapOther);
+        document.startNew(QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
+        QCOMPARE(handicapOf(document), QStringLiteral("香落ち"));
+        document.startNew(SfenUtils::hirateSfen());
+        QCOMPARE(handicapOf(document), QStringLiteral("平手"));
         QCOMPARE(tree.mainLine().size(), 1);
     }
 
