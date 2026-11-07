@@ -66,7 +66,7 @@ class KifuLoader;
 // 表示
 class AnalysisResultsPanel;
 class CandidateArrowPresenter;
-class CommentCoordinator;
+class CommentController;
 class DockRegistry;
 class DockLayoutManager;
 class EngineDisplayPresenter;
@@ -150,7 +150,7 @@ struct MainWindowComponents {
     // --- 棋譜の表示と編集 ---
     KifuDisplayPresenter* kifuDisplay = nullptr;        ///< 棋譜欄・分岐候補・分岐ツリー
     BranchTreeEditController* branchEdit = nullptr;     ///< 分岐の編集と盤上の変化の記録
-    CommentCoordinator* commentCoordinator = nullptr;
+    CommentController* commentController = nullptr;
 
     // --- 対局・検討・通信対局 ---
     EngineSlots* engines = nullptr;          ///< エンジンの枠 E1・E2（対局と検討で共有）

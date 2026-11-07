@@ -555,22 +555,22 @@ class KifuDocument : public QObject {
 
 ### 5.2 コメント・しおりの書き込み
 
-コメント欄の「コメント更新」は、`CommentCoordinator` が表示中の手のノード（`KifuNavigationState::currentNode()`）に書く:
+コメント欄の「コメント更新」は、`CommentController` が表示中の手のノード（`KifuNavigationState::currentNode()`）に書く:
 
 ```
-CommentCoordinator::onCommentUpdated(moveIndex, text)
+CommentController::onCommentUpdated(moveIndex, text)
     │
     └─→ KifuDocument::setComment(表示中のノード, text)
           ├─ node->record().comment = text  // 棋譜の正本に書く（同じ文なら何もしない）
           ├─ ++m_annotationRevision         // 保存した時点と違うので未保存になる
           └─ emit commentChanged(nodeId, text)
                ├─ KifuRecordListModel::refreshNode(nodeId)   // そのノードの行だけ描き直す
-               └─ CommentCoordinator::showCurrentComment()   // コメント欄
+               └─ CommentController::showCurrentComment()   // コメント欄
 ```
 
-しおり（棋譜欄の「しおり」ボタン → `CommentCoordinator::onBookmarkEditRequested()`）も同じで、
+しおり（棋譜欄の「しおり」ボタン → `CommentController::onBookmarkEditRequested()`）も同じで、
 `KifuDocument::setBookmark()` がノードに書いて `bookmarkChanged` を出し、棋譜欄がその行を描き直す。
-別の手へ移る前に、未更新のコメントを破棄してよいかを `CommentCoordinator::confirmLeaveEditingMove()` で確かめる（6.3）。
+別の手へ移る前に、未更新のコメントを破棄してよいかを `CommentController::confirmLeaveEditingMove()` で確かめる（6.3）。
 棋譜を読み込んだときは、コメント・しおりは `KifuBranchTreeBuilder` がツリーを作るときに各行の `RecordEntry` と一緒にノードへ入る
 （開始局面のコメント・しおりは本譜の `RecordLine::openingComment`・`openingBookmark` から）。
 ノードには項目ごとの setter は無く、変えるときは `KifuBranchNode::record()`（const でない版）の値を直接変える。
@@ -633,7 +633,7 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
         └─ emit changed()（表示中の手か表示中の手順が変わったときだけ1回）
              ├─→ KifuDisplayPresenter::refresh()             棋譜欄・分岐候補欄・分岐ツリー欄
              ├─→ BoardSyncPresenter::syncToCurrentNode()     将棋盤の局面と指し手のハイライト
-             ├─→ CommentCoordinator::showCurrentComment()    コメント欄
+             ├─→ CommentController::showCurrentComment()    コメント欄
              ├─→ EvaluationGraphPresenter::showCurrentPly()  評価値グラフの現在手（対局中は動かさない）
              ├─→ JosekiWindowController::updateJosekiWindow() 定跡ウィンドウ
              └─→ AnalysisSession::followDisplayedPosition()  検討中のエンジンの局面
@@ -986,7 +986,7 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
    reset → KifuNavigationState::onTreeChanged()（分岐ツリー欄・棋譜欄の分岐の印も reset を受けて作り直す）
      表示中のノードが消えたので goToRoot() → changed()
      → KifuDisplayPresenter（棋譜欄は本譜の行、分岐候補欄、分岐ツリー欄）
-     → BoardSyncPresenter（開始局面の盤）・CommentCoordinator（開始局面のコメント）など
+     → BoardSyncPresenter（開始局面の盤）・CommentController（開始局面のコメント）など
    loadFinished(true) → KifuFileController::onAsyncLoadFinished() → finishLoad()
                         （ファイルなら KifuDocument::markSaved(path) で上書き保存先にする。貼り付けた棋譜は markUnsavedContent()）
 ```

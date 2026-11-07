@@ -264,8 +264,8 @@
 - 未保存コメントがある場合、行移動時に確認ダイアログが表示される
 
 **重点確認ポイント:**
-- `CommentCoordinator::showCurrentComment` によるコメント表示（`KifuNavigationState::changed`・`KifuDocument::commentChanged` を受ける）
-- `CommentCoordinator::confirmLeaveEditingMove()` での未保存コメント確認ロジック（棋譜欄の行・分岐候補・分岐ツリー・ボタン・評価値グラフからの移動は、どれも `KifuNavigationController::setLeaveGuard()` に渡した確認を `confirmLeave()` で通る。移るのをやめたら `navigationRejected` で選択を表示中の手に戻す）
+- `CommentController::showCurrentComment` によるコメント表示（`KifuNavigationState::changed`・`KifuDocument::commentChanged` を受ける）
+- `CommentController::confirmLeaveEditingMove()` での未保存コメント確認ロジック（棋譜欄の行・分岐候補・分岐ツリー・ボタン・評価値グラフからの移動は、どれも `KifuNavigationController::setLeaveGuard()` に渡した確認を `confirmLeave()` で通る。移るのをやめたら `navigationRejected` で選択を表示中の手に戻す）
 - `KifuDocument::commentChanged` シグナル（`KifuRecordListModel::refreshNode()` がその行を描き直す）
 - 分岐ツリーを正本とするコメントと棋譜欄・コメント欄の表示の一致
 

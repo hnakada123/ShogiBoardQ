@@ -316,7 +316,7 @@ MainWindow 自身が持つのは `ui` と `m_composer`（`MainWindowComposer`）
 | UI フレームワーク | `std::unique_ptr`（MainWindow） | `ui` (Ui::MainWindow) |
 | 合成ルート | `std::unique_ptr`（MainWindow） | `m_composer` |
 | 非QObject サービス | `std::unique_ptr`（MainWindowComponents） | `operationPolicy`, `sessionReset` |
-| QObject の部品 | QObject parent（MainWindow）+ 生ポインタ | `match`, `gameSession`, `boardSync`, `commentCoordinator`, `kifuLoader` |
+| QObject の部品 | QObject parent（MainWindow）+ 生ポインタ | `match`, `gameSession`, `boardSync`, `commentController`, `kifuLoader` |
 | ドックの中身 | QObject parent（MainWindow。ドックに置くとドックが親になる）+ 生ポインタ | `thinkingPanel`, `considerationTab`, `gameInfoPane` |
 | UI ウィジェット | QObject parent (レイアウト経由) | `shogiView`, `evalChart`, `recordPane` |
 | 自動化 API のサーバー | QObject parent（MainWindow）+ 生ポインタ。`--automation` 指定時だけ作る | `automationServer` |

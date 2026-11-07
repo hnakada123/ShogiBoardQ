@@ -42,7 +42,7 @@ public:
     /// 「コメント更新」を押していない編集があるか
     bool hasUnsavedComment() const { return m_isCommentDirty; }
 
-    /// 未更新の本文を捨てる（本文は次に出す手のコメントで置き換わる。確認は CommentCoordinator が出す）
+    /// 未更新の本文を捨てる（本文は次に出す手のコメントで置き換わる。確認は CommentController が出す）
     void discardPendingComment();
 
     /// 「コメント更新」と同じく、未更新の本文を commentUpdated で知らせる（未更新の本文がなければ何もしない）

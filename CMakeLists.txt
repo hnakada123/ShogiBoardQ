@@ -621,8 +621,8 @@ set(SRC_UI
     src/ui/controllers/tsumesearchcontroller.h
     src/ui/controllers/usicommandcontroller.cpp
     src/ui/controllers/usicommandcontroller.h
-    src/ui/coordinators/commentcoordinator.cpp
-    src/ui/coordinators/commentcoordinator.h
+    src/ui/controllers/commentcontroller.cpp
+    src/ui/controllers/commentcontroller.h
     src/ui/controllers/csagameuicontroller.cpp
     src/ui/controllers/csagameuicontroller.h
     src/ui/presenters/kifuanalysisrowpresenter.cpp

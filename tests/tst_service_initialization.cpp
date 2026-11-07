@@ -14,7 +14,7 @@
 #include "analysissession.h"
 #include "engineslots.h"
 #include "gamesession.h"
-#include "commentcoordinator.h"
+#include "commentcontroller.h"
 #include "commenteditorpanel.h"
 #include "kifudocument.h"
 #include "kifuexport.h"
@@ -96,7 +96,7 @@ private slots:
         KifuBranchNode* ply1 = TestTree::addMove(*tree, tree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"));
         KifuBranchNode* ply2 = TestTree::addMove(*tree, ply1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"));
         parts.navState->setCurrentNode(ply1);
-        CommentCoordinator* coordinator = parts.commentCoordinator;
+        CommentController* coordinator = parts.commentController;
         QVERIFY(coordinator);
         coordinator->onCommentUpdated(QStringLiteral("最初"));
         QCOMPARE(ply1->comment(), QStringLiteral("最初"));
@@ -202,7 +202,7 @@ private slots:
         QCOMPARE(window.findChildren<KifuAnalysisController*>().size(), 1);
         QCOMPARE(window.findChildren<TsumeSearchController*>().size(), 1);
         QCOMPARE(window.findChildren<ConsiderationUiController*>().size(), 1);
-        QCOMPARE(window.findChildren<CommentCoordinator*>().size(), 1);
+        QCOMPARE(window.findChildren<CommentController*>().size(), 1);
         auto* editing = window.findChild<PositionEditSession*>();
         QSignalSpy started(editing, &PositionEditSession::editingStarted);
         QSignalSpy finished(editing, &PositionEditSession::editingFinished);

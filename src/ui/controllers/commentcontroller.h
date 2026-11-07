@@ -1,7 +1,7 @@
-#ifndef COMMENTCOORDINATOR_H
-#define COMMENTCOORDINATOR_H
+#ifndef COMMENTCONTROLLER_H
+#define COMMENTCONTROLLER_H
 
-/// @file commentcoordinator.h
+/// @file commentcontroller.h
 /// @brief 表示中の手のコメント・しおりの表示と編集
 
 #include <QObject>
@@ -20,7 +20,7 @@ class QWidget;
  * コメント欄の本文は、表示した手（コメントを書いている手）に書く。利用者が別の手へ移るときは移る前に未更新の
  * 確認を通し、対局の進行などで表示中の手が変わったときは、書きかけの本文をそれまでの手に確定してから切り替える。
  */
-class CommentCoordinator : public QObject
+class CommentController : public QObject
 {
     Q_OBJECT
 
@@ -33,7 +33,7 @@ public:
         QStatusBar* statusBar = nullptr;             ///< 書き込んだ知らせ
     };
 
-    explicit CommentCoordinator(const Deps& deps, QObject* parent = nullptr);
+    explicit CommentController(const Deps& deps, QObject* parent = nullptr);
 
     /// 別の手へ移る前に、未更新のコメントを更新するか捨てるか尋ねる（棋譜・定跡と同じ UnsavedChangesPrompt。
     /// 「保存」は書いていた手に確定し、「破棄」は捨てる。やめたら false）
@@ -56,4 +56,4 @@ private:
     int m_editingNodeId = -1;   ///< コメント欄に出している手（コメントを書く手）のノード ID
 };
 
-#endif // COMMENTCOORDINATOR_H
+#endif // COMMENTCONTROLLER_H
