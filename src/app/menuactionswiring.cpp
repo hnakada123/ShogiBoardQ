@@ -13,6 +13,7 @@
 #include "gamesession.h"
 #include "imageexportcontroller.h"
 #include "kifuanalysiscontroller.h"
+#include "kifuclipboardcontroller.h"
 #include "kifufilecontroller.h"
 #include "languagecontroller.h"
 #include "mainwindowactions.h"
@@ -54,18 +55,18 @@ void wireFileMenu(const Deps& d)
 void wireEditMenu(const Deps& d)
 {
     Ui::MainWindow* ui = d.ui;
-    KifuFileController* kifu = d.kifuFiles;
-    QObject::connect(ui->actionCopyKIF, &QAction::triggered, kifu, &KifuFileController::copyKifToClipboard);
-    QObject::connect(ui->actionCopyKI2, &QAction::triggered, kifu, &KifuFileController::copyKi2ToClipboard);
-    QObject::connect(ui->actionCopyCSA, &QAction::triggered, kifu, &KifuFileController::copyCsaToClipboard);
-    QObject::connect(ui->actionCopyUSICurrent, &QAction::triggered, kifu, &KifuFileController::copyUsiCurrentToClipboard);
-    QObject::connect(ui->actionCopyUSIAll, &QAction::triggered, kifu, &KifuFileController::copyUsiToClipboard);
-    QObject::connect(ui->actionCopyJKF, &QAction::triggered, kifu, &KifuFileController::copyJkfToClipboard);
-    QObject::connect(ui->actionCopyUSEN, &QAction::triggered, kifu, &KifuFileController::copyUsenToClipboard);
-    QObject::connect(ui->actionCopySFEN, &QAction::triggered, kifu, &KifuFileController::copySfenToClipboard);
-    QObject::connect(ui->actionCopyBOD, &QAction::triggered, kifu, &KifuFileController::copyBodToClipboard);
+    KifuClipboardController* copy = d.clipboard;
+    QObject::connect(ui->actionCopyKIF, &QAction::triggered, copy, &KifuClipboardController::copyKifToClipboard);
+    QObject::connect(ui->actionCopyKI2, &QAction::triggered, copy, &KifuClipboardController::copyKi2ToClipboard);
+    QObject::connect(ui->actionCopyCSA, &QAction::triggered, copy, &KifuClipboardController::copyCsaToClipboard);
+    QObject::connect(ui->actionCopyUSICurrent, &QAction::triggered, copy, &KifuClipboardController::copyUsiCurrentToClipboard);
+    QObject::connect(ui->actionCopyUSIAll, &QAction::triggered, copy, &KifuClipboardController::copyUsiToClipboard);
+    QObject::connect(ui->actionCopyJKF, &QAction::triggered, copy, &KifuClipboardController::copyJkfToClipboard);
+    QObject::connect(ui->actionCopyUSEN, &QAction::triggered, copy, &KifuClipboardController::copyUsenToClipboard);
+    QObject::connect(ui->actionCopySFEN, &QAction::triggered, copy, &KifuClipboardController::copySfenToClipboard);
+    QObject::connect(ui->actionCopyBOD, &QAction::triggered, copy, &KifuClipboardController::copyBodToClipboard);
     QObject::connect(ui->actionPasteKifu, &QAction::triggered, d.kifuFiles, &KifuFileController::pasteKifuFromClipboard);
-    QObject::connect(ui->actionSfenCollectionViewer, &QAction::triggered, kifu, &KifuFileController::openSfenCollection);
+    QObject::connect(ui->actionSfenCollectionViewer, &QAction::triggered, d.kifuFiles, &KifuFileController::openSfenCollection);
     QObject::connect(ui->actionCopyBoardToClipboard, &QAction::triggered, d.images, &ImageExportController::copyBoardToClipboard);
     QObject::connect(ui->actionCopyEvalGraphToClipboard, &QAction::triggered, d.images, &ImageExportController::copyEvalGraphToClipboard);
     // 局面編集（終了と、編集中の盤の操作）
@@ -146,7 +147,7 @@ void wireHelpMenu(const Deps& d)
 
 void wire(const Deps& d)
 {
-    Q_ASSERT(d.ui && d.actions && d.dialogs && d.kifuFiles && d.session && d.csaSession && d.menuWindow && d.analysis
+    Q_ASSERT(d.ui && d.actions && d.dialogs && d.kifuFiles && d.clipboard && d.session && d.csaSession && d.menuWindow && d.analysis
              && d.positionEdit && d.kifuAnalysis && d.tsumeSearch && d.appearance && d.images
              && d.boardController && d.pieceSound && d.settingsReset && d.dockLayout && d.language);
     wireFileMenu(d);

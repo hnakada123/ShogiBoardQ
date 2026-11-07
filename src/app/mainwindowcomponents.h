@@ -59,6 +59,7 @@ class MatchCoordinator;
 class SessionResetCoordinator;
 
 // 棋譜のファイル
+class KifuClipboardController;
 class KifuFileController;
 class KifuLoader;
 
@@ -167,6 +168,7 @@ struct MainWindowComponents {
     // --- 棋譜のファイル ---
     KifuLoader* kifuLoader = nullptr;
     KifuFileController* kifuFileController = nullptr;
+    KifuClipboardController* kifuClipboard = nullptr;
     JosekiBookSession* josekiBook = nullptr;            ///< 開いている定跡ファイル（定跡ウィンドウが表示・編集する）
 
     // --- 表示 ---

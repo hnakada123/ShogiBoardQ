@@ -597,6 +597,8 @@ set(SRC_UI
     src/ui/controllers/josekiwindowcontroller.h
     src/ui/controllers/kifuanalysiscontroller.cpp
     src/ui/controllers/kifuanalysiscontroller.h
+    src/ui/controllers/kifuclipboardcontroller.cpp
+    src/ui/controllers/kifuclipboardcontroller.h
     src/ui/controllers/kifufilecontroller.cpp
     src/ui/controllers/kifufilecontroller.h
     src/ui/controllers/kifunavigationcontroller.cpp

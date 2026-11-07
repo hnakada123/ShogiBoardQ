@@ -14,6 +14,7 @@ class DockRegistry;
 class GameSession;
 class ImageExportController;
 class KifuAnalysisController;
+class KifuClipboardController;
 class KifuFileController;
 class LanguageController;
 class MainWindowActions;
@@ -42,6 +43,7 @@ struct Deps {
     MainWindowActions* actions = nullptr;               ///< 新規・終了・局面編集の開始
     DialogLauncher* dialogs = nullptr;
     KifuFileController* kifuFiles = nullptr;           ///< 開く・保存・貼り付け・棋譜と局面のコピー
+    KifuClipboardController* clipboard = nullptr;      ///< コピー
     GameSession* session = nullptr;                    ///< 対局の開始・投了・中断・待った・即指し
     CsaGameSession* csaSession = nullptr;              ///< 通信対局の接続ダイアログ
     MenuWindowController* menuWindow = nullptr;        ///< メニューウィンドウの表示の切り替え
