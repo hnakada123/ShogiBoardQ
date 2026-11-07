@@ -49,9 +49,7 @@ private slots:
 private:
     // --- BoardInputRoute（盤で指した手） ---
     bool acceptsInput() const override { return m_acceptsInput; }
-    bool isEditing() const override { return false; }
     void submit(const QPoint& from, const QPoint& to) override;
-    void cycle(const QPoint&) override {}
 
     BoardViewerWidget* m_viewer = nullptr;
     BoardInteractionController* m_interaction = nullptr;

@@ -25,7 +25,7 @@ public:
     // デストラクタ
     ~PromoteDialog() override;
 
-    /// 成るかを尋ねる（成る: true、成らない・閉じた: false）。主画面の盤と詰将棋を解く画面で共通
+    /// 成るかを尋ねる（成る: true、成らない・閉じた: false）。主画面の盤・詰将棋を解く画面・定跡手のダイアログで共通
     static bool ask(QWidget* parent);
 
 private:

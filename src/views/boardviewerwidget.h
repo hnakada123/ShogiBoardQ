@@ -15,7 +15,7 @@ class QPushButton;
 class QScrollArea;
 
 /**
- * @brief 読み筋・局面集・詰将棋・外観の見本で共通に使う盤の表示部品
+ * @brief 読み筋・局面集・詰将棋・定跡手・外観の見本で共通に使う盤の表示部品
  *
  * 次の部品を持つ（Features で選ぶ）。
  * - 盤の上の操作列: 縮小・拡大・盤面の回転（toolbarLayout() に呼び出し側のボタンを足せる）

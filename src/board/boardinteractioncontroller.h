@@ -21,8 +21,8 @@ class ShogiBoard;
  *
  * 2クリック方式で移動元・移動先を決め、行き先（BoardInputRoute）へ渡す。つまめるか・局面編集中かは
  * 行き先に問い合わせる。選択・直前の手・合法な移動先のハイライトは盤の層（BoardHighlightLayer）に出す。
- * 移動元・移動先を手番の側の手にする処理（成り・不成の尋ね方を含む）もここに置き、主画面と詰将棋を
- * 解く画面の行き先が使う（moveFromClick）。
+ * 移動元・移動先を手番の側の手にする処理（成り・不成の尋ね方を含む）もここに置き、主画面・詰将棋を
+ * 解く画面・定跡手のダイアログの行き先が使う（moveFromClick）。
  */
 class BoardInteractionController : public QObject
 {
@@ -65,6 +65,10 @@ public:
 public slots:
     /// 2クリック入力の途中状態をキャンセルする（新規・動作状態や手番が変わったとき）
     void cancelPendingClick();
+    /// つまんでいた駒を放し、選択を消す（盤の拡大・縮小・回転のとき）
+    void cancelInput();
+    /// 今の手番の相手が指した手 usiMove を直前の手として示す（空や読めない手なら消す）
+    void showLastMove(const QString& usiMove);
 
     /// 左クリック: 駒選択→移動先指定の2クリック処理
     void onLeftClick(const QPoint& pt);
