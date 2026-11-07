@@ -31,7 +31,7 @@
 #include "livegamesession.h"
 #include "shogiboard.h"
 #include "gameboard.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "shogimove.h"
 
 namespace {
@@ -76,7 +76,7 @@ struct EditHarness {
     LiveGameSession live;
     KifuDocument document;   ///< 未保存かどうか（ツリーの変更で決まる）
     AppActivityState activity;
-    HumanTurnPolicy policy;
+    OperationPolicy policy;
     BranchTreeEditController controller;
 
     explicit EditHarness(KifuBranchTree& tree)
@@ -89,16 +89,16 @@ struct EditHarness {
     {
     }
 
-    static HumanTurnPolicy::Deps policyDeps(const AppActivityState& activity, const LiveGameSession& live)
+    static OperationPolicy::Deps policyDeps(const AppActivityState& activity, const LiveGameSession& live)
     {
-        HumanTurnPolicy::Deps d;
+        OperationPolicy::Deps d;
         d.activity = &activity;
         d.liveSession = &live;
         return d;
     }
 
     static BranchTreeEditController::Deps deps(KifuBranchTree& tree, KifuNavigationState& state,
-                                               KifuNavigationController& nav, const HumanTurnPolicy& policy)
+                                               KifuNavigationController& nav, const OperationPolicy& policy)
     {
         BranchTreeEditController::Deps d;
         d.tree = &tree;
@@ -300,7 +300,7 @@ private slots:
         QCOMPARE(h.controller.isApplicable(BranchTreeEditController::Operation::DeleteFromHere, f.b2), editable);
         QCOMPARE(h.controller.apply(BranchTreeEditController::Operation::DeleteFromHere, f.b2, false), editable);
         // 盤で指した手を記録するのは待機中だけ（検討中・詰み探索中は記録しない）
-        QCOMPARE(h.policy.boardInput() == HumanTurnPolicy::BoardInput::Variation,
+        QCOMPARE(h.policy.boardInput() == OperationPolicy::BoardInput::Variation,
                  activity == int(AppActivityState::Activity::Idle));
         // 棋譜を移れるのも同じ状態（対局中・棋譜解析中・局面編集中は移らない）
         QCOMPARE(h.policy.canBrowseRecord(), editable);

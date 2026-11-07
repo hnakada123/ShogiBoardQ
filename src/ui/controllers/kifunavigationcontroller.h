@@ -44,7 +44,7 @@ public:
     void setStepActionsEnabled(bool on);
 
     /// 利用者の操作で別の手へ移る前の確認を足す（足した順に聞き、1つでも false なら移らない）。
-    /// 移ってよい状態か（HumanTurnPolicy::canBrowseRecord）・未更新のコメントの確認を合成ルートが足す
+    /// 移ってよい状態か（OperationPolicy::canBrowseRecord）・未更新のコメントの確認を合成ルートが足す
     void addLeaveGuard(std::function<bool()> guard) { m_leaveGuards.append(std::move(guard)); }
 
     KifuNavigationState* state() const { return m_state; }

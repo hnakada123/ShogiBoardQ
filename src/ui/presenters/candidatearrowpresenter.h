@@ -16,7 +16,7 @@ class AnalysisSession;
 class AppActivityState;
 class BoardArrowActions;
 class EngineSlots;
-class HumanTurnPolicy;
+class OperationPolicy;
 class JosekiBookSession;
 class MatchCoordinator;
 class ShogiEngineThinkingModel;
@@ -50,7 +50,7 @@ public:
         const BoardArrowActions* arrows = nullptr;
         const JosekiBookSession* josekiBook = nullptr; ///< 定跡手の矢印の元（定跡ウィンドウで開いている定跡）
         const QAction* josekiDisplay = nullptr;        ///< 定跡ウィンドウの定跡の表示（オフなら出さない。無ければ出す）
-        const HumanTurnPolicy* humanTurn = nullptr;    ///< 対局中は人間の手番だけ出す（無ければいつでも出す）
+        const OperationPolicy* operationPolicy = nullptr;    ///< 対局中は人間の手番だけ出す（無ければいつでも出す）
     };
 
     explicit CandidateArrowPresenter(const Deps& deps, QObject* parent = nullptr);

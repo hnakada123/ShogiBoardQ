@@ -55,7 +55,7 @@ m_c.match = new MatchCoordinator(md, &m_window);
 - 裸の `new` + 生ポインタ保持は原則禁止
 
 **unique_ptr を使用する基準:**
-- 非QObject クラス（`GameModeStrategy`, `HumanTurnPolicy`, `SessionResetCoordinator` 等）
+- 非QObject クラス（`GameModeStrategy`, `OperationPolicy`, `SessionResetCoordinator` 等）
 - QObject 派生だが parent chain 不要の場合（MainWindow の `m_composer`（`MainWindowComposer`）、`KifuAnalysisSession` の `EngineAnalysisRunner`、`EngineProcessManager` の `QProcess` など）
 - MainWindow が排他的に寿命を管理するサービス
 
@@ -315,7 +315,7 @@ MainWindow 自身が持つのは `ui` と `m_composer`（`MainWindowComposer`）
 |---------|---------|-----|
 | UI フレームワーク | `std::unique_ptr`（MainWindow） | `ui` (Ui::MainWindow) |
 | 合成ルート | `std::unique_ptr`（MainWindow） | `m_composer` |
-| 非QObject サービス | `std::unique_ptr`（MainWindowComponents） | `humanTurnPolicy`, `sessionReset` |
+| 非QObject サービス | `std::unique_ptr`（MainWindowComponents） | `operationPolicy`, `sessionReset` |
 | QObject の部品 | QObject parent（MainWindow）+ 生ポインタ | `match`, `gameSession`, `boardSync`, `commentCoordinator`, `kifuLoader` |
 | ドックの中身 | QObject parent（MainWindow。ドックに置くとドックが親になる）+ 生ポインタ | `thinkingPanel`, `considerationTab`, `gameInfoPane` |
 | UI ウィジェット | QObject parent (レイアウト経由) | `shogiView`, `evalChart`, `recordPane` |

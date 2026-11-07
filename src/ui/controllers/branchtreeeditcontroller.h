@@ -14,7 +14,7 @@ class KifuBranchNode;
 class KifuBranchTree;
 class KifuNavigationController;
 class KifuNavigationState;
-class HumanTurnPolicy;
+class OperationPolicy;
 class QAction;
 class QMenu;
 class QPoint;
@@ -29,7 +29,7 @@ class GameBoard;
  * - 盤の手の記録: 待機中に盤で指した手を、表示中の手の次の手（変化）として足す（recordMove）
  * - 定跡の展開: 定跡の手順をまとめて変化として足す（addVariationLines）
  *
- * 変えてよいかは HumanTurnPolicy::canEditRecord だけで決める（対局中・棋譜解析中・局面編集中は変えない。
+ * 変えてよいかは OperationPolicy::canEditRecord だけで決める（対局中・棋譜解析中・局面編集中は変えない。
  * 検討中・詰み探索中は変えてよい）。未保存の印は棋譜の文書がツリーの変更から決める。
  */
 class BranchTreeEditController : public QObject
@@ -41,7 +41,7 @@ public:
         KifuBranchTree* tree = nullptr;                  ///< 棋譜の正本（必須）
         KifuNavigationState* navState = nullptr;         ///< 表示中の手（必須）
         KifuNavigationController* navController = nullptr; ///< 移る前の確認（必須）
-        const HumanTurnPolicy* policy = nullptr;         ///< 棋譜を変えてよいか（必須）
+        const OperationPolicy* policy = nullptr;         ///< 棋譜を変えてよいか（必須）
         QWidget* parentWidget = nullptr;                 ///< 確認ダイアログの親
     };
 
@@ -55,7 +55,7 @@ public:
 
     explicit BranchTreeEditController(const Deps& deps, QObject* parent = nullptr);
 
-    /// 分岐の編集・盤の手の記録・定跡の展開ができるか（HumanTurnPolicy::canEditRecord。棋譜が空でも開始局面から記録する）
+    /// 分岐の編集・盤の手の記録・定跡の展開ができるか（OperationPolicy::canEditRecord。棋譜が空でも開始局面から記録する）
     bool canEdit() const;
 
     /// 指定ノードに操作を適用する（右クリックメニュー・テストから使う）。

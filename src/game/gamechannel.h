@@ -17,7 +17,7 @@ class MatchCoordinator;
  *
  * ローカル対局（MatchCoordinator）と通信対局（CsaGameCoordinator）の違いはこの型の実装に閉じ込め、
  * 盤の手・投了・中断・即指し・入玉宣言を受ける側（BoardMoveController・GameSession・NyugyokuDeclarationHandler）と、
- * 人間が指せるかを聞く側（HumanTurnPolicy）は、対局の種類で分岐しない。今の窓口は network の GameChannels が決める。
+ * 人間が指せるかを聞く側（OperationPolicy）は、対局の種類で分岐しない。今の窓口は network の GameChannels が決める。
  */
 class GameChannel
 {

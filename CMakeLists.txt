@@ -649,8 +649,8 @@ set(SRC_UI
     src/ui/presenters/timedisplaypresenter.h
     src/ui/presenters/usimodelbinding.cpp
     src/ui/presenters/usimodelbinding.h
-    src/ui/policy/humanturnpolicy.cpp
-    src/ui/policy/humanturnpolicy.h
+    src/ui/policy/operationpolicy.cpp
+    src/ui/policy/operationpolicy.h
     src/ui/policy/uistatepolicymanager.cpp
     src/ui/policy/uistatepolicymanager.h
     src/ui/docks/docklayoutmanager.cpp

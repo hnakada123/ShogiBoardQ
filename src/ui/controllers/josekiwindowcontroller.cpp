@@ -5,7 +5,7 @@
 #include "notificationpresenter.h"
 
 #include "appactivitystate.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "logcategories.h"
 
 #include "boardmovecontroller.h"
@@ -30,7 +30,7 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     , m_book(deps.book)
     , m_branchEdit(deps.branchEdit)
     , m_navState(deps.navState)
-    , m_humanTurn(deps.humanTurn)
+    , m_operationPolicy(deps.operationPolicy)
     , m_boardMoves(deps.boardMoves)
     , m_displayAction(new QAction(tr("定跡を表示"), this))
     , m_recordBoardMovesAction(new QAction(tr("盤の手を登録"), this))
@@ -132,7 +132,7 @@ void JosekiWindowController::updateExpandEnabled()
 
 void JosekiWindowController::onExpandRequested()
 {
-    // 棋譜を変えてよいか（HumanTurnPolicy::canEditRecord）は、条件を聞く前と、ダイアログを閉じた後に確かめる
+    // 棋譜を変えてよいか（OperationPolicy::canEditRecord）は、条件を聞く前と、ダイアログを閉じた後に確かめる
     // （開いている間に対局・棋譜解析・局面編集が始まることがある）
     if (!m_branchEdit->canEdit()) {
         showExpandRefused();
@@ -174,7 +174,7 @@ bool JosekiWindowController::determineHumanCanPlay() const
 {
     // 盤面クリックと同じ判定を使う。対局中は人間の手番だけ、対局外（終局後を含む）は
     // 指した手を棋譜の変化として記録できる待機中だけ指せる
-    return m_humanTurn && m_humanTurn->isHumanTurnNow();
+    return m_operationPolicy && m_operationPolicy->isHumanTurnNow();
 }
 
 void JosekiWindowController::onJosekiMoveSelected(const QString& usiMove)

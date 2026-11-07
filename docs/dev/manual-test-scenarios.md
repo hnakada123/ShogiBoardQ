@@ -61,7 +61,7 @@
 **重点確認ポイント:**
 - `MatchPlayers` で後手だけがエンジン（`whiteIsEngine`）になっているか
 - エンジンの初期化・接続（USI isready → readyok）
-- `HumanTurnPolicy::isHumanTurnNow()` が先手の手番で `true` を返すか
+- `OperationPolicy::isHumanTurnNow()` が先手の手番で `true` を返すか
 - 時計への持ち時間の適用（`MatchCoordinator::start()` が `MatchStartOptions::time` を `ShogiClock` に設定し、`KifuDocument::beginMatch()` が対局情報に持ち時間と開始日時を書く）
 - 対局者名・エンジン名の表示（盤の対局者名は `PlayerInfoPresenter`、評価値グラフの系列名と思考タブの2つ目のエンジン欄は `KifuDocument::playersChanged` → `EngineDisplayPresenter`）
 
@@ -166,7 +166,7 @@
 - `MatchCoordinator::appendTerminalRecord()` による終局手追記（`MatchRecordSink::appendRecord` 経由）
 - 司令塔が終局で呼ぶ `GameSession::finishRecord()` で `LiveGameSession::commit()` が呼ばれ（中断も。中断して再開を待つ間も盤で変化を指せ、分岐を編集できるか）、終局日時が記録され（`KifuDocument::recordMatchEnd()`）、自動保存を設定していれば棋譜が保存されるか
 - `UiStatePolicyManager` の状態遷移（`DuringGame` → `Idle`）
-- `HumanTurnPolicy::isGameActivelyInProgress()` が `false` を返すか
+- `OperationPolicy::isGameActivelyInProgress()` が `false` を返すか
 - `MatchCoordinator::gameOverState().isOver` の設定
 
 ### 5-B: 連続対局（エンジン vs エンジン）

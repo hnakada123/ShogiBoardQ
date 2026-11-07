@@ -10,7 +10,7 @@
 #include "kifubranchtree.h"
 #include "kifudocument.h"
 #include "kifuexport.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "inputpath.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationcontroller.h"
@@ -115,7 +115,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                                   QStringLiteral("Use one of %1").arg(KifuSaveFile::knownSaveExtensionsText()));
         }
         // GUI の保存と同じ規則。対局中の途中の棋譜や、局面編集の前の棋譜を保存済みにしない
-        if (context.turnPolicy && !context.turnPolicy->canSaveRecord()) {
+        if (context.operationPolicy && !context.operationPolicy->canSaveRecord()) {
             throw AutomationError(ErrorKind::InvalidState,
                                   QStringLiteral("The record cannot be saved during a game, analysis or position editing"),
                                   QStringLiteral("Save after the operation ends"));
@@ -202,7 +202,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                                   QStringLiteral("Load a record with kifu.load first"));
         }
         // 棋譜欄・分岐候補欄などの GUI の入口と同じ規則（対局の盤・解析・編集中の局面を表示中の手から外さない）
-        if (context.turnPolicy && !context.turnPolicy->canBrowseRecord()) {
+        if (context.operationPolicy && !context.operationPolicy->canBrowseRecord()) {
             throw AutomationError(ErrorKind::InvalidState,
                                   QStringLiteral("The record cannot be navigated during a game, kifu analysis or position editing"),
                                   QStringLiteral("Wait until app.state reports ui_state idle, consideration or tsume_search"));

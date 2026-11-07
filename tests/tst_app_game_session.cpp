@@ -37,7 +37,7 @@
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "matchcoordinator.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "branchtree_test_util.h"
@@ -199,10 +199,10 @@ private slots:
         ActivityLease lease = activity.begin(AppActivityState::Activity::DuringCsaGame, nullptr);
         auto csa = std::make_unique<CsaGameCoordinator>();
         GameChannels channels(&activity, nullptr, csa.get());
-        HumanTurnPolicy::Deps deps;
+        OperationPolicy::Deps deps;
         deps.activity = &activity;
         deps.channels = &channels;
-        HumanTurnPolicy policy(deps);
+        OperationPolicy policy(deps);
         QVERIFY(!policy.isHumanTurnNow());
 
         csa->m_phase = CsaGameCoordinator::Phase::Playing;
@@ -225,9 +225,9 @@ private slots:
     {
         GameBoard gc;
         AppActivityState activity;
-        HumanTurnPolicy::Deps deps;
+        OperationPolicy::Deps deps;
         deps.activity = &activity;
-        HumanTurnPolicy policy(deps);
+        OperationPolicy policy(deps);
         ActivityLease lease;
         for (const auto state : {AppActivityState::Activity::DuringAnalysis, AppActivityState::Activity::DuringTsumeSearch,
                                  AppActivityState::Activity::DuringConsideration}) {
@@ -446,7 +446,7 @@ private slots:
         QVERIFY(p.uiStatePolicy->isEnabled(UiStatePolicyManager::UiElement::GameResume));
         // 再開を待つ間も記録は確定している（盤で変化を指せ、分岐を編集でき、評価値グラフも追う）
         QVERIFY(!p.liveGameSession->isActive());
-        QCOMPARE(p.humanTurnPolicy->boardInput(), HumanTurnPolicy::BoardInput::Variation);
+        QCOMPARE(p.operationPolicy->boardInput(), OperationPolicy::BoardInput::Variation);
         const int interruptNode = p.match->interruptedGame()->terminalNodeId;
         QVERIFY(p.branchTree->nodeAt(interruptNode));
 

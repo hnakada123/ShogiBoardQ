@@ -8,7 +8,7 @@
 #include <QPoint>
 
 #include "boardinputroute.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "usimove.h"
 
 class AppActivityState;
@@ -21,7 +21,7 @@ class GameBoard;
 /**
  * @brief 主画面の盤で指した手の行き先（BoardInputRoute）
  *
- * 受け付けるかと行き先は HumanTurnPolicy::boardInput() の1か所で決まる。このクラスは行き先ごとに処理する。
+ * 受け付けるかと行き先は OperationPolicy::boardInput() の1か所で決まる。このクラスは行き先ごとに処理する。
  * - 局面編集: 駒の配置を変える（PositionEditSession）
  * - 変化: 表示中の手の次の手として棋譜に記録する（BranchTreeEditController）
  * - 対局（ローカル・通信）: 対局相手の窓口（GameChannel::playMove）へ渡す。ローカル対局は司令塔が合法手を確かめて
@@ -40,7 +40,7 @@ public:
         const AppActivityState* activity = nullptr;         ///< 動作状態（必須）
         PositionEditSession* positionEdit = nullptr;        ///< 局面編集（必須）
         BranchTreeEditController* branchEdit = nullptr;     ///< 変化の記録（必須）
-        const HumanTurnPolicy* turnPolicy = nullptr;        ///< 盤の手の行き先（必須）
+        const OperationPolicy* operationPolicy = nullptr;        ///< 盤の手の行き先（必須）
         const GameChannels* channels = nullptr;             ///< 対局中の手の渡し先（必須）
     };
 
@@ -66,7 +66,7 @@ public:
     bool playUsiMove(const UsiMove& move);
 
 private:
-    using Input = HumanTurnPolicy::BoardInput;
+    using Input = OperationPolicy::BoardInput;
     /// 指した手の結果を盤の操作へ返す（ハイライト・つまんだ駒の表示）
     void reportResult(const UsiMove& move, bool ok);
 

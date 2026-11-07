@@ -142,7 +142,7 @@ cmake --build build --target translations
   - `csagamecoordinator.cpp/.h` - CSA game coordination（手順と持ち時間と手番は `CsaGameProgress`。対局の状態 `gameState()` は持たずに、接続の段階を `CsaClient::ConnectionState` から、対局中・終局後・失敗を司令塔の段階 `Phase` から求める）。棋譜はローカル対局と同じ受け手（`MatchRecordSink`）に書き、動作状態も自分で持つ（接続してから通信対局を続ける間（`sessionContinues()`。ログアウト・失敗・予定の対局数を終えるまで）は `DuringCsaConnection` で、局と局の間は棋譜を見る・保存するだけ。対局の間は、棋譜を作ってから `DuringCsaGame` にし、終局では棋譜を確定してから接続中に戻すか手放す。`MatchCoordinator` と同じ順。局と局の間の「中断」（`CsaGameChannel::breakOff`）と「新規」はログアウトする）
   - `csagameseries.cpp/.h`・`csaverdictwait.cpp/.h` - 1つの接続（再接続を含む）で続ける対局の数と終局後の再接続の待ち `CsaGameSeries`、解釈できない指し手行の後のサーバーの裁定の待ち `CsaVerdictWait`（仕様 3.4）。対局条件の受け入れの判断とログの文は `CsaGameSummary::unsupportedReason`・`conditionLines`。LOGIN のパスワードを伏せるのは `CsaClient` だけ
   - `csagamechannel.cpp/.h` - 通信対局の窓口 `CsaGameChannel`（`GameChannel` の実装。操作はサーバーへ送り、入玉宣言の成否はサーバーが判定する）
-  - `gamechannels.cpp/.h` - ローカル対局と通信対局の窓口の組 `GameChannels`（`active()` が今の動作状態の窓口を返す。`game` と `network` の両方を使うのでここに置く。合成ルートが司令塔の直後に作り、`GameSession`・`BoardMoveController`・`HumanTurnPolicy` に渡す。人間が指せるか `isHumanToMove()`・対局が進行中か `isInProgress()` は窓口だけが決める）
+  - `gamechannels.cpp/.h` - ローカル対局と通信対局の窓口の組 `GameChannels`（`active()` が今の動作状態の窓口を返す。`game` と `network` の両方を使うのでここに置く。合成ルートが司令塔の直後に作り、`GameSession`・`BoardMoveController`・`OperationPolicy` に渡す。人間が指せるか `isHumanToMove()`・対局が進行中か `isInProgress()` は窓口だけが決める）
 
 - **style/**: ウィジェットの書体と見た目（QWidget に依存する。analysis・network の上、models の下の層。`engine`〜`network`・`models` を参照しない）
   - `applicationfonts` - 表示言語に応じた書体 `ApplicationFonts`
@@ -171,7 +171,7 @@ cmake --build build --target translations
   - **coordinators/**: 複数の部品にまたがる UI の流れ（`csagamesession`（通信対局のダイアログ（`openGameDialog`。開いて結果を受け、対局を始める）・待機ダイアログ・結果のダイアログ（結果・終局の原因の表示名 `resultText`・`causeText` もここ）・ステータスバー・盤の反転だけ。評価値・エラー・通信ログ・盤の手は合成ルートの `connectGame()` がつなぐ）・`commentcoordinator`（コメント欄の表示と、別の手へ移る前の未更新のコメントの確認。確認は棋譜・定跡と同じ `UnsavedChangesPrompt` で、保存は書いていた手に確定する。コメント欄（`CommentEditorPanel`）は未更新か・確定・破棄を受けるだけ））
   - **policy/**: 動作状態からの規則
     - `uistatepolicymanager` - 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
-    - `humanturnpolicy` - 盤の手の行き先 `boardInput()`（`BoardInput`。動作状態ごとの規則はここだけ）・棋譜を移ってよいか `canBrowseRecord()`（`UiStatePolicyManager` の表の `WidgetNavigation` の行。待機中・検討中・詰み探索中・通信対局の局と局の間）・変えてよいか `canEditRecord()`（移ってよく、対局の棋譜を書いていない。検討中・詰み探索中も分岐の編集・定跡の展開はできる。盤の手を記録するのは待機中だけ）・人間が指せる手番か・対局が進行中か。棋譜を移る・変える入口（棋譜欄・分岐候補欄・分岐ツリー・評価値グラフ・定跡ウィンドウ・棋譜解析の結果・自動化 API の `kifu.goto`）はすべてこの2つを通す
+    - `operationpolicy` - 盤の手の行き先 `boardInput()`（`BoardInput`。動作状態ごとの規則はここだけ）・棋譜を移ってよいか `canBrowseRecord()`（`UiStatePolicyManager` の表の `WidgetNavigation` の行。待機中・検討中・詰み探索中・通信対局の局と局の間）・変えてよいか `canEditRecord()`（移ってよく、対局の棋譜を書いていない。検討中・詰み探索中も分岐の編集・定跡の展開はできる。盤の手を記録するのは待機中だけ）・人間が指せる手番か・対局が進行中か。棋譜を移る・変える入口（棋譜欄・分岐候補欄・分岐ツリー・評価値グラフ・定跡ウィンドウ・棋譜解析の結果・自動化 API の `kifu.goto`）はすべてこの2つを通す
   - **docks/**: ドック
     - `dockregistry` - ドックの表 `DockRegistry`（`DockId`・`DockSpec`）。12個のドックをこの表だけから作り（`createAll()`）、規定の場所に置き（同じ場所のドックは表で前のドックのタブに重ねる。起動時と `resetToDefault()` で同じ配置）、浮動・表示・位置を保存・復元する（`saveStates()`・`DockSettings::DockState`）。ドックを足すときは `DockId` と表に1行足す
     - `docklayoutmanager` - 名前付きレイアウト・起動時のレイアウト・ドックの固定（ドックは `DockRegistry` から取る）

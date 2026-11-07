@@ -1,7 +1,7 @@
-#ifndef HUMANTURNPOLICY_H
-#define HUMANTURNPOLICY_H
+#ifndef OPERATIONPOLICY_H
+#define OPERATIONPOLICY_H
 
-/// @file humanturnpolicy.h
+/// @file operationpolicy.h
 /// @brief 盤を人間が操作できるか・棋譜を移って・変えてよいか・対局が進行中かの判定
 
 class AppActivityState;
@@ -16,7 +16,7 @@ class LiveGameSession;
  * 定跡ウィンドウ・棋譜解析の結果・自動化 API）はすべてこれを通す。対局中に人間が指せるかは、対局の種類で
  * 分岐せず対局相手の窓口（GameChannels）に聞く。QObject 非継承。
  */
-class HumanTurnPolicy
+class OperationPolicy
 {
 public:
     struct Deps {
@@ -35,7 +35,7 @@ public:
     };
 
     /// 依存が無いものは「操作できない」「対局していない」と答える
-    explicit HumanTurnPolicy(const Deps& deps) : m_deps(deps) {}
+    explicit OperationPolicy(const Deps& deps) : m_deps(deps) {}
 
     /// 今の動作状態で、盤で指した手をどう扱うか
     BoardInput boardInput() const;
@@ -75,4 +75,4 @@ private:
     bool m_disabled = false;
 };
 
-#endif // HUMANTURNPOLICY_H
+#endif // OPERATIONPOLICY_H

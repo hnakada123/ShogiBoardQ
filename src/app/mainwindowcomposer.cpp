@@ -10,7 +10,7 @@
 #include "dockregistry.h"
 #include "engineslots.h"
 #include "gamechannels.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "josekiwindowcontroller.h"
 #include "kifudisplaypresenter.h"
 #include "kifufilecontroller.h"
@@ -78,7 +78,7 @@ void MainWindowComposer::shutdown()
     }
 
     // 終了処理中に盤がクリックされても、操作できない手番として扱う（盤の操作が参照し続けるので破棄はしない）
-    if (m_c.humanTurnPolicy) m_c.humanTurnPolicy->disable();
+    if (m_c.operationPolicy) m_c.operationPolicy->disable();
 }
 
 bool MainWindowComposer::confirmClose()
