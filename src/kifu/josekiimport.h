@@ -48,6 +48,8 @@ struct Result {
     bool canceled = false;    ///< 途中で止めた（moves は空）
 };
 
+/// 局面（手数は問わない）と指し手のキー。1局で同じ局面と指し手は1回と数え、棋譜の間で同じ手を束ねるのに使う
+QString moveKey(const QString &sfen, const QString &usiMove);
 /// 棋譜ファイルとして読む拡張子か（KIF・KI2・CSA・JKF・USI・USEN）
 bool isKifuFile(const QString &path);
 /// ファイルとフォルダ（サブフォルダの中まで）から棋譜ファイルを集める（重複を除き、フォルダの中は名前順）

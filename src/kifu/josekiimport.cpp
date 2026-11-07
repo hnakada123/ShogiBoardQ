@@ -31,6 +31,11 @@ std::optional<Turn> winnerOf(const RecordLine &line)
 
 } // namespace
 
+QString moveKey(const QString &sfen, const QString &usiMove)
+{
+    return SfenUtils::normalizeSfenKey(sfen) + QLatin1Char(' ') + usiMove;
+}
+
 bool isKifuFile(const QString &path)
 {
     // 開ける棋譜ファイル（JKF の .json を含む）のうち、手順のある形式（局面だけの .sfen は除く）
@@ -112,7 +117,7 @@ void Collector::addLine(const QString &startSfen, const RecordLine &line, std::o
         }
         const QString usiMove = entry.move.move.toString();
         if (take && !usiMove.isEmpty()) {
-            const QString key = SfenUtils::normalizeSfenKey(before) + QLatin1Char(' ') + usiMove;
+            const QString key = moveKey(before, usiMove);
             if (!seenInGame.contains(key)) {
                 seenInGame.insert(key);
                 // 定跡のコメントは1行で書くので、改行は空白にする
