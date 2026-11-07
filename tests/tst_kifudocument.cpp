@@ -12,6 +12,7 @@
 #include "csaformatter.h"
 
 #include "gameinfokeys.h"
+#include "kifuclipboardcontroller.h"
 #include "kifudocument.h"
 #include "gameinfo_test_util.h"
 #include "timecontroltext.h"
@@ -50,15 +51,15 @@ struct FileHarness {
         KifuFileController::Deps deps;
         deps.document = &document;
         deps.loader = &loader;
-        deps.board = gc.board();
-        deps.navState = nav;
         controller = std::make_unique<KifuFileController>(deps);
+        clipboard = std::make_unique<KifuClipboardController>(KifuClipboardController::Deps{&document, gc.board(), nav});
     }
 
     KifuDocument document;
     KifuLoader loader;
     GameBoard gc;
     std::unique_ptr<KifuFileController> controller;
+    std::unique_ptr<KifuClipboardController> clipboard;
 };
 
 class TestKifuDocument : public QObject
@@ -653,7 +654,7 @@ private slots:
         addTestMove(tree, tree.root(), move, QStringLiteral("1手目"));
         nav.setCurrentNode(TestTree::findByPlyOnMainLine(tree, 1));
         files.gc.board()->setSfen(nav.currentSfen());
-        QVERIFY(files.controller->copyBodToClipboard());
+        QVERIFY(files.clipboard->copyBodToClipboard());
         const QStringList bod = QApplication::clipboard()->text().split(QLatin1Char('\n'));
         for (const QString& line : std::as_const(lines)) {
             QVERIFY2(bod.contains(line), qPrintable(bod.join(QLatin1Char('\n'))));
@@ -673,14 +674,14 @@ private slots:
         const QString end = headerValue(files.document, GameInfoKeys::kEndDateTime);
         QVERIFY(!end.isEmpty());
 
-        QVERIFY(files.controller->copyKifToClipboard());
+        QVERIFY(files.clipboard->copyKifToClipboard());
         QCOMPARE(QApplication::clipboard()->text(),
                  KifuExport::lines(files.document, KifuFormat::Kif).join(QLatin1Char('\n')));
         QVERIFY(QApplication::clipboard()->text().contains(QStringLiteral("持ち時間：10:30")));
         QVERIFY(QApplication::clipboard()->text().contains(end));
-        QVERIFY(files.controller->copyKi2ToClipboard());
+        QVERIFY(files.clipboard->copyKi2ToClipboard());
         QVERIFY(QApplication::clipboard()->text().contains(end));
-        QVERIFY(files.controller->copyCsaToClipboard());
+        QVERIFY(files.clipboard->copyCsaToClipboard());
         const QString csa = QApplication::clipboard()->text();
         QVERIFY2(csa.contains(QStringLiteral("$START_TIME:")) && csa.contains(QStringLiteral("$END_TIME:")), qPrintable(csa));
     }
@@ -770,9 +771,9 @@ private slots:
         QVERIFY(session.commit());
 
         FileHarness files(&tree, &nav);
-        if (format == QStringLiteral("csa")) QVERIFY(files.controller->copyCsaToClipboard());
-        else if (format == QStringLiteral("usi")) QVERIFY(files.controller->copyUsiToClipboard());
-        else QVERIFY(files.controller->copyUsenToClipboard());
+        if (format == QStringLiteral("csa")) QVERIFY(files.clipboard->copyCsaToClipboard());
+        else if (format == QStringLiteral("usi")) QVERIFY(files.clipboard->copyUsiToClipboard());
+        else QVERIFY(files.clipboard->copyUsenToClipboard());
 
         QTemporaryFile tmp;
         const QByteArray text = QApplication::clipboard()->text().toUtf8();
@@ -792,7 +793,7 @@ private slots:
 
         // 現在手までのUSIコピーでは、本譜の先頭から指定手数に制限する。
         nav.setCurrentNode(TestTree::findByPlyOnMainLine(tree, 1));
-        QVERIFY(files.controller->copyUsiCurrentToClipboard());
+        QVERIFY(files.clipboard->copyUsiCurrentToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos moves 7g7f"));
     }
 
@@ -808,7 +809,7 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         KifuNavigationState nav(&tree);
         FileHarness files(&tree, &nav);
-        QVERIFY(files.controller->copyUsiToClipboard());
+        QVERIFY(files.clipboard->copyUsiToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos"));
     }
 

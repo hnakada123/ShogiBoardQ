@@ -32,6 +32,7 @@
 #include "josekiwindowcontroller.h"
 #include "kifudisplaypresenter.h"
 #include "kifudocument.h"
+#include "kifuclipboardcontroller.h"
 #include "kifufilecontroller.h"
 #include "kifuloader.h"
 #include "kifunavigationcontroller.h"
@@ -122,6 +123,7 @@ void MainWindowComposer::connectRecord()
     connect(m_c.evalChart, &EvaluationChartWidget::settingsRequested,
             m_c.dialogLauncher, &DialogLauncher::displayEvaluationChartSettings);
     connect(m_c.kifuFileController, &KifuFileController::statusMessage, m_ui.statusbar, &QStatusBar::showMessage);
+    connect(m_c.kifuClipboard, &KifuClipboardController::statusMessage, m_ui.statusbar, &QStatusBar::showMessage);
 }
 
 // ---------------------------------------------------------------------------
@@ -224,6 +226,7 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.actions = m_c.actions;
     md.dialogs = m_c.dialogLauncher;
     md.kifuFiles = m_c.kifuFileController;
+    md.clipboard = m_c.kifuClipboard;
     md.session = m_c.gameSession;
     md.csaSession = m_c.csaSession;
     md.menuWindow = m_c.menuWindowController;

@@ -15,17 +15,15 @@
 class AppActivityState;
 class KifuDocument;
 class KifuLoader;
-class KifuNavigationState;
 class KifuPasteDialog;
 class QProgressDialog;
 class SfenCollectionDialog;
 class QWidget;
-class ShogiBoard;
 
 /**
  * @brief 開いている棋譜の文書（KifuDocument）とファイルをつなぐ
  *
- * 読み込み（ファイル・貼り付け・局面）と保存（名前を付けて・上書き・自動）と、棋譜・局面のクリップボードへのコピー。
+ * 読み込み（ファイル・貼り付け・局面）と保存（名前を付けて・上書き・自動）。コピーは KifuClipboardController。
  * 画面からの操作（ダイアログ・非同期の読み込み）と自動化 API の操作（ダイアログなし・同期）は、
  * 読み込み・保存の後始末（上書き保存先と未保存の状態）を同じ関数で行う。
  */
@@ -38,8 +36,6 @@ public:
         QWidget* parentWidget = nullptr;                ///< ダイアログの親（必須）
         KifuDocument* document = nullptr;               ///< 開いている棋譜（必須）
         KifuLoader* loader = nullptr; ///< 読み込み（全部の読み込みで1つを使い回す。必須）
-        const ShogiBoard* board = nullptr;              ///< 盤（局面のコピー。必須）
-        const KifuNavigationState* navState = nullptr;  ///< 表示中の手（局面のコピー・現在の手までのコピー。必須）
         /// 動作状態（棋譜を置き換えてよいかの判定。必須）
         const AppActivityState* activity = nullptr;
     };
@@ -64,20 +60,6 @@ public slots:
     void openSfenCollection();
     /// SFEN局面集から選択された局面を反映
     void onSfenCollectionPositionSelected(const QString& sfen);
-
-    // --- クリップボードへのコピー ---
-    bool copyKifToClipboard() { return copyRecord(KifuFormat::Kif); }
-    bool copyKi2ToClipboard() { return copyRecord(KifuFormat::Ki2); }
-    bool copyCsaToClipboard() { return copyRecord(KifuFormat::Csa); }
-    bool copyUsiToClipboard() { return copyRecord(KifuFormat::Usi); }
-    bool copyJkfToClipboard() { return copyRecord(KifuFormat::Jkf); }
-    bool copyUsenToClipboard() { return copyRecord(KifuFormat::Usen); }
-    /// USI 形式で、表示中の手順の表示中の手までをコピーする
-    bool copyUsiCurrentToClipboard();
-    /// 盤の局面を SFEN でコピーする
-    bool copySfenToClipboard();
-    /// 盤の局面を BOD（局面図）でコピーする
-    bool copyBodToClipboard();
 
 public:
     /// 棋譜を saveDir へ自動保存する（対局の終局時。形式は拡張子 extension）。保存したファイルを上書き保存先にする
@@ -128,10 +110,6 @@ private:
     /// path に保存する（形式は拡張子）。dialogParent があれば Shift_JIS で表せない文字を確認する
     bool writeToPath(const QString& filePath, QWidget* dialogParent, QString* errorText);
     void markSaved(const QString& filePath, const QString& message);
-    bool copyRecord(KifuFormat format);
-    bool setClipboardText(const QString& text, const QString& successMsg);
-    /// 盤の局面の SFEN（手数は表示中の手の次の手）
-    QString boardSfen() const;
 
     Deps m_deps;
     QPointer<KifuPasteDialog> m_kifuPasteDialog;

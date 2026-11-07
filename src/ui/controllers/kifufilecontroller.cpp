@@ -6,20 +6,16 @@
 
 #include "kifufilefilter.h"
 #include "appactivitystate.h"
-#include "bodtextgenerator.h"
 #include "gamesettings.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
 #include "kifuexport.h"
 #include "kifuloader.h"
-#include "kifunavigationstate.h"
 #include "kifupastedialog.h"
 #include "kifusavedialogs.h"
 #include "logcategories.h"
 #include "sfencollectiondialog.h"
-#include "shogiboard.h"
-#include "usiexporter.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -34,7 +30,7 @@ KifuFileController::KifuFileController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.document && m_deps.loader && m_deps.board && m_deps.navState);
+    Q_ASSERT(m_deps.document && m_deps.loader);
     connect(m_deps.loader, &KifuLoader::loadFinished, this, &KifuFileController::onAsyncLoadFinished);
 }
 
@@ -305,104 +301,4 @@ void KifuFileController::autoSaveKifu(const QString& saveDir, const QString& ext
     qCWarning(lcKifu).noquote() << "autoSaveKifu failed:" << errorText;
     NotificationPresenter::critical(m_deps.parentWidget, tr("棋譜の自動保存"),
                                     tr("棋譜の自動保存に失敗しました: %1").arg(errorText));
-}
-
-// ============================================================
-// クリップボードへのコピー
-// ============================================================
-
-bool KifuFileController::setClipboardText(const QString& text, const QString& successMsg)
-{
-    if (QClipboard* clipboard = QApplication::clipboard()) {
-        clipboard->setText(text);
-        emit statusMessage(successMsg, 3000);
-        return true;
-    }
-    emit statusMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
-    return false;
-}
-
-bool KifuFileController::copyRecord(KifuFormat format)
-{
-    // 局面だけの形式は棋譜としてはコピーしない（局面のコピーは別の操作）
-    if (format == KifuFormat::Sfen || format == KifuFormat::Bod) return false;
-    const QString name = KifuSaveDialogs::formatName(format);
-    const QStringList lines = exportLines(format);
-    if (lines.isEmpty()) {
-        emit statusMessage(tr("%1形式の棋譜データがありません").arg(name), 3000);
-        return false;
-    }
-    // 書き出しで確定した入力中のコメントも数える。失うものは保存の確認と同じ表（KifuExport::lossIn）で決める
-    const KifuExport::Loss loss = KifuExport::lossIn(*m_deps.document->tree(), format);
-    return setClipboardText(lines.join(QStringLiteral("\n")),
-                            loss.isEmpty() ? tr("%1形式の棋譜をクリップボードにコピーしました").arg(name)
-                                           : tr("%1形式の棋譜をクリップボードにコピーしました（%1形式は%2に対応していないため、含みません）")
-                                                 .arg(name, KifuSaveDialogs::lostItemsText(loss)));
-}
-
-bool KifuFileController::copyUsiCurrentToClipboard()
-{
-    // 表示中の手順の、表示中の手までの指し手（終局の行まで来ていればその終局）
-    QList<KifuBranchNode*> nodes;
-    TerminalType terminal = TerminalType::None;
-    const KifuNavigationState* nav = m_deps.navState;
-    const int limit = nav->currentPly();
-    for (KifuBranchNode* node : nav->selectedPath()) {
-        if (node->ply() > limit) break;
-        if (node->isTerminal()) {
-            terminal = node->terminalType();
-            break;
-        }
-        nodes.append(node);
-    }
-    const QStringList moves = KifuBranchTree::toRecordLine(nodes).usiMoves();
-    const QStringList lines = UsiExporter::exportPosition(m_deps.document->startSfen(), moves, terminal);
-    if (lines.isEmpty()) {
-        emit statusMessage(tr("USI形式の棋譜データがありません"), 3000);
-        return false;
-    }
-    return setClipboardText(lines.join(QStringLiteral("\n")),
-                            tr("USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました"));
-}
-
-QString KifuFileController::boardSfen() const
-{
-    // 局面編集による変更も含め、盤に出している局面・手番・持ち駒をコピーする
-    const ShogiBoard* board = m_deps.board;
-    // 手数は表示中の手の局面の手数（無ければ表示中の手数の次）
-    bool ok = false;
-    int moveNumber = m_deps.navState->currentSfen().section(QLatin1Char(' '), 3, 3).toInt(&ok);
-    if (!ok) moveNumber = m_deps.navState->currentPly() + 1;
-    return board->position().toSfen(board->currentPlayer(), moveNumber);
-}
-
-bool KifuFileController::copySfenToClipboard()
-{
-    const QString sfen = boardSfen();
-    if (sfen.isEmpty()) {
-        emit statusMessage(tr("SFEN形式の局面データがありません"), 3000);
-        return false;
-    }
-    return setClipboardText(sfen, tr("SFEN形式の局面をクリップボードにコピーしました"));
-}
-
-bool KifuFileController::copyBodToClipboard()
-{
-    const QString sfen = boardSfen();
-    if (sfen.isEmpty()) {
-        emit statusMessage(tr("BOD形式の局面データがありません"), 3000);
-        return false;
-    }
-    const std::optional<Position> position = Position::fromSfen(sfen);
-    if (!position) {
-        emit statusMessage(tr("SFEN形式の解析に失敗しました"), 3000);
-        return false;
-    }
-    // 最終手は表示中の手（局面図の「手数＝N ▲７六歩 まで」）
-    const KifuBranchNode* node = m_deps.navState->currentNode();
-    const int ply = node ? node->ply() : 0;
-    const QString lastMove = node && node->isActualMove() ? node->displayText() : QString();
-    // 駒落ちは KIF の局面図と同じく、対局情報の見出しに合わせて下手・上手と呼ぶ
-    const QString bodText = BodTextGenerator::generate(*position, ply, lastMove, m_deps.document->usesHandicapNames());
-    return setClipboardText(bodText, tr("BOD形式の局面をクリップボードにコピーしました"));
 }

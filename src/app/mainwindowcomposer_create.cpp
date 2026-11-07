@@ -47,6 +47,7 @@
 #include "kifubranchtree.h"
 #include "kifudisplaypresenter.h"
 #include "kifudocument.h"
+#include "kifuclipboardcontroller.h"
 #include "kifufilecontroller.h"
 #include "kifuloader.h"
 #include "kifunavigationcontroller.h"
@@ -420,10 +421,9 @@ void MainWindowComposer::createSessions()
     fd.parentWidget = &m_window;
     fd.document = m_c.document;
     fd.loader = m_c.kifuLoader;
-    fd.board = m_c.gameBoard->board();
-    fd.navState = m_c.navState;
     fd.activity = &m_activity;
     m_c.kifuFileController = new KifuFileController(fd, &m_window);
+    m_c.kifuClipboard = new KifuClipboardController({m_c.document, m_c.gameBoard->board(), m_c.navState}, &m_window);
 
     // 対局の利用者の操作と、対局の手順の書き先
     m_c.nyugyokuHandler = new NyugyokuDeclarationHandler(&m_window, m_c.document, &m_window);
