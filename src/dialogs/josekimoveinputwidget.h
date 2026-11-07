@@ -7,13 +7,14 @@
 #include <QGroupBox>
 
 class QComboBox;
-class QLabel;
+class QPushButton;
 
 /**
  * @brief 定跡手入力ウィジェット
  *
  * 局面の合法手を棋譜の表記（「▲７六歩(77)」）で並べ、その中から選ばせる（指せない手は入力できない）。
  * 「指し手」と「予想応手」の両方に使う。予想応手には先頭に「なし」を置ける。
+ * 盤で指した手も setUsiMove で受けるので、盤と一覧の選択は同じ手を指す。「指し直す」で選ぶ前に戻す。
  */
 class JosekiMoveInputWidget : public QGroupBox
 {
@@ -39,19 +40,25 @@ public:
     /// 合法手を並べる局面（空なら何も並べない）。選んでいた手が合法手にあれば選んだままにする
     void setCurrentSfen(const QString &sfen);
 
+    /// 盤の手がこの欄に入るときは欄を色で示す
+    void setBoardInputTarget(bool target);
+
 signals:
     /// 選んだ指し手が変わった
     void moveChanged();
+    /// 「指し直す」を押した（選んでいた手は取り消してある）
+    void retried();
 
 private slots:
     void onCurrentIndexChanged();
+    void onRetryClicked();
 
 private:
     void populate();
     void selectRequested();
 
     QComboBox *m_combo = nullptr;
-    QLabel *m_previewLabel = nullptr;
+    QPushButton *m_retryButton = nullptr;
     bool m_hasNoneOption = false;
     QString m_currentSfen;
     QString m_requested; ///< 選びたい指し手（局面が変わっても合法手なら選び直す）

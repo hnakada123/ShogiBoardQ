@@ -8,9 +8,10 @@
 #include "shogiposition.h"
 
 #include <QComboBox>
-#include <QLabel>
+#include <QHBoxLayout>
+#include <QPalette>
+#include <QPushButton>
 #include <QSignalBlocker>
-#include <QVBoxLayout>
 
 #include <algorithm>
 
@@ -57,22 +58,21 @@ JosekiMoveInputWidget::JosekiMoveInputWidget(const QString &name, const QString 
     if (hasNoneOption) m_requested = kNoMove;
     setObjectName(name);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-    auto *layout = new QVBoxLayout(this);
+    auto *layout = new QHBoxLayout(this);
 
     m_combo = new QComboBox(this);
     m_combo->setObjectName(name + QStringLiteral("Combo"));
     m_combo->setMaxVisibleItems(20);
     connect(m_combo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onCurrentIndexChanged);
-    layout->addWidget(m_combo);
+    layout->addWidget(m_combo, 1);
+    setFocusProxy(m_combo);
 
-    m_previewLabel = new QLabel(this);
-    m_previewLabel->setObjectName(QStringLiteral("movePreview"));
-    m_previewLabel->setTextFormat(Qt::PlainText);
-    QFont previewFont = m_previewLabel->font();
-    previewFont.setPointSize(previewFont.pointSize() + 2);
-    previewFont.setBold(true);
-    m_previewLabel->setFont(previewFont);
-    layout->addWidget(m_previewLabel);
+    m_retryButton = new QPushButton(tr("指し直す"), this);
+    m_retryButton->setObjectName(name + QStringLiteral("Retry"));
+    m_retryButton->setToolTip(tr("選んだ手を取り消す"));
+    m_retryButton->setAutoDefault(false);
+    connect(m_retryButton, &QPushButton::clicked, this, &JosekiMoveInputWidget::onRetryClicked);
+    layout->addWidget(m_retryButton);
 
     populate();
 }
@@ -93,6 +93,22 @@ void JosekiMoveInputWidget::setCurrentSfen(const QString &sfen)
     if (sfen == m_currentSfen) return;
     m_currentSfen = sfen;
     populate();
+}
+
+void JosekiMoveInputWidget::setBoardInputTarget(bool target)
+{
+    if (target == autoFillBackground()) return;
+    setAutoFillBackground(target);
+    if (!target) {
+        setPalette(QPalette());
+        return;
+    }
+    // 配色の種類（明暗）によらないよう、選択の色を薄くして敷く
+    QColor tint = QPalette().color(QPalette::Highlight);
+    tint.setAlpha(45);
+    QPalette tinted;
+    tinted.setColor(QPalette::Window, tint);
+    setPalette(tinted);
 }
 
 void JosekiMoveInputWidget::populate()
@@ -127,6 +143,12 @@ void JosekiMoveInputWidget::onCurrentIndexChanged()
     const QString move = usiMove();
     // 利用者が選び直したら、局面が変わってもその手を選ぶ
     if (!move.isEmpty()) m_requested = move;
-    m_previewLabel->setText(m_combo->currentIndex() >= 0 ? m_combo->currentText() : QString());
+    m_retryButton->setEnabled(!move.isEmpty() && move != kNoMove);
     emit moveChanged();
+}
+
+void JosekiMoveInputWidget::onRetryClicked()
+{
+    setUsiMove(m_hasNoneOption ? kNoMove : QString());
+    emit retried();
 }

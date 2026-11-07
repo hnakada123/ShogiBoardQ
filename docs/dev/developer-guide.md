@@ -214,6 +214,7 @@
 | 2026-11-04 | テストからしか使われない公開の口を整理した（監査 2026-11-01 5章）のに合わせて §13.6 を更新（外から呼ぶ所の無い `PositionEditRules::cycled`・`cleared`・`canMove` を .cpp の中へ。中だけで使う `CandidateArrowPresenter::considerationActive`・`CommentEditorPanel::setCommentHtml`・`convertUrlsToLinks`・`ShogiViewHighlighting::arrowsPaintRect` を非公開に。定跡ウィンドウだけが使う `FontSizeHelper::applyTo` を消し（`fontsizehelper.h` は `dialogutils.h` を include しない）、接続の無い `MenuWindow::favoritesChanged` を消した。テストだけが使う `RecordTime::fromText` はテストの補助 `recordtime_test_util.h` へ移した。`RecordPane` の列の切り替えは private slots にし、GUI テストは列のボタンで切り替える） |
 | 2026-11-04 | 古い説明・コメントを直した（監査 2026-11-01 5章）。このガイドの本文の変更は無い（CLAUDE.md の `UnsavedChangesPrompt` の層・`dialogfontscale`・`MenuActionsWiring` の例外・`environment` の出力、composition-root.md の規則5・6と後から渡す例外、mcp-server.md のツールとメソッドの表・古い名前、versioning.md の MCP の版、src のコメントを直した。MCP サーバーの版は `mcp/shogiboardq_mcp/__init__.py` の1か所にした） |
 | 2026-11-06 | 思考タブの情報欄を1行の帯にし、先手・後手の項目と列を揃えたのに合わせて §11.2 の該当の表（`ThinkingPanel`・`EngineInfoWidget`）と §12.5 の設定の説明を更新（`EngineInfoWidget` は表をやめ、項目の幅は書体だけで決める。手番の印は `EngineDisplayPresenter` が決める。思考の表の列幅は `AnalysisSettings::ThinkingTable::Match` の1つにし、`engineInfoColumnWidths` は廃止。定跡手の探索手の表記は `KifuPresentation::bookMove`） |
+| 2026-11-07 | 定跡ウィンドウの「詳細」をやめて局面の行に SFEN とコピーを置き、定跡手ダイアログに盤を付けたのに合わせて §11.3 の該当の表と第18章を更新（`JosekiMoveBoard`、`JosekiWindow::m_sfenLabel`。`JosekiSettings::josekiWindowSfenDetailVisible` は削除） |
 
 <!-- chapter-0-end -->
 
@@ -6517,7 +6518,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | PvBoardDialog | QDialog | なし | 読み筋（PV）再生ウィンドウ（ShogiView を内蔵、ナビゲーションボタン付き）。読み筋の値は `PvLine`（`pvline.h`。各手数の局面 `positions()`・手の表記 `moveText(ply)`・読み筋全体の表記 `displayPv()`・直前の手のハイライト `highlight(ply)`）で、表示する手数は `BoardViewerWidget` だけが持つ |
 | KifuPasteDialog | QDialog | なし | クリップボードからの棋譜テキスト取り込み（形式自動判定） |
 | JosekiWindow | QWidget | なし | 定跡ドックの中身（widgets）。表示中の局面の定跡手の表と、ファイル・定跡手・マージ・展開の操作。操作は意図のシグナルで知らせ、ダイアログは ui の `JosekiBookController`・`JosekiWindowController` が出す。定跡の表示・盤の手の登録・盤の矢印の切り替えは `JosekiWindowController` が渡す `QAction`（`Actions`。必須）を正本にし、チェックは `ActionBinding::bindCheckable()` で結ぶ |
-| JosekiMoveDialog | QDialog | なし | 定跡手の追加・編集（やねうら王形式）。指し手は局面の合法手を画面の表記（`KifuPresentation::move`。定跡ウィンドウの表と同じく表記の設定に従う）で並べた一覧から選び（`JosekiMoveInputWidget`。一覧は `moveInputCombo`）、予想応手は着手後の局面の合法手と先頭の「なし」から選ぶ（`nextMoveInputCombo`）。値は `setEntry(const JosekiMove&)`・`entry()` で受け渡し、編集モードでは渡した指し手を変えない |
+| JosekiMoveDialog | QDialog | なし | 定跡手の追加・編集（やねうら王形式）。指し手は盤で指すか（`JosekiMoveBoard`。盤で指した手は一覧に入れ、盤の局面は一覧の手から `updateBoard()` が決める）、局面の合法手を画面の表記（`KifuPresentation::move`。定跡ウィンドウの表と同じく表記の設定に従う）で並べた一覧から選び（`JosekiMoveInputWidget`。一覧は `moveInputCombo`）、予想応手は着手後の局面の手を同じく盤で指すか、合法手と先頭の「なし」から選ぶ（`nextMoveInputCombo`）。「指し直す」は `moveInputRetry`・`nextMoveInputRetry`。値は `setEntry(const JosekiMove&)`・`entry()` で受け渡し、編集モードでは渡した指し手を変えない |
 | JosekiMergeDialog | QDialog | なし | 表示中の手順・棋譜ファイルの本譜（`RecordLine`）の手を、開いている定跡に1手ずつか全部登録する（`JosekiBookSession::importMoves`。保存はしない）。「登録済」は定跡に手があるか（`hasMove`）で決め、定跡が変わると表を作り直す |
 | MenuWindow | QWidget | なし | メニュー項目のボタン一覧表示（お気に入り・カテゴリ別タブ） |
 
@@ -9542,6 +9543,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | JosekiBookSession | C | kifu | 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き） | 第8章, 第11章 |
 | JosekiMergeDialog | C | dialogs | 定跡結合ダイアログ | 第11章 |
 | JosekiMoveDialog | C | dialogs | 定跡手入力ダイアログ（値は `setEntry()`・`entry()`） | 第11章 |
+| JosekiMoveBoard | C | dialogs | 定跡手ダイアログの盤（`BoardInputRoute` の行き先。指した手を `movePlayed` で知らせる） | 第11章 |
 | JosekiMoveInputWidget | C | dialogs | 定跡手の入力欄（局面の合法手を画面の表記で並べた一覧。データは USI） | 第11章 |
 | JosekiWindow | C | widgets | 定跡ドックの中身（定跡手の表と操作。操作は意図のシグナルで知らせる） | 第11章 |
 | JosekiWindowController | C | ui/controllers | 定跡ウィンドウの表示・更新と、選んだ定跡手の着手の要求 | 第10章 |

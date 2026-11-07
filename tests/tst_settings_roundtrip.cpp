@@ -849,11 +849,14 @@ private slots:
         JosekiSettings::josekiWindowDisplayEnabled.set(true);
         QCOMPARE(JosekiSettings::josekiWindowDisplayEnabled(), true);
 
-        JosekiSettings::josekiWindowSfenDetailVisible.set(true);
-        QCOMPARE(JosekiSettings::josekiWindowSfenDetailVisible(), true);
+        JosekiSettings::josekiMoveBoardFlipped.set(true);
+        QCOMPARE(JosekiSettings::josekiMoveBoardFlipped(), true);
 
-        JosekiSettings::josekiWindowSfenDetailVisible.set(false);
-        QCOMPARE(JosekiSettings::josekiWindowSfenDetailVisible(), false);
+        JosekiSettings::josekiMoveBoardFlipped.set(false);
+        QCOMPARE(JosekiSettings::josekiMoveBoardFlipped(), false);
+
+        JosekiSettings::josekiMoveBoardSquareSize.set(60);
+        QCOMPARE(JosekiSettings::josekiMoveBoardSquareSize(), 60);
 
         QString lastPath = QStringLiteral("/home/test/joseki/book.db");
         JosekiSettings::josekiWindowLastFilePath.set(lastPath);

@@ -5,6 +5,7 @@
 #include "dialogutils.h"
 #include "actionbinding.h"
 #include "columnwidthmemory.h"
+#include "elidelabel.h"
 #include "recentfilesmenu.h"
 #include "fontsizecontrol.h"
 #include "flowlayout.h"
@@ -17,6 +18,7 @@
 #include "josekitablemodel.h"
 #include "josekitableview.h"
 #include "kifupresentation.h"
+#include "plaintooltip.h"
 #include "shogiposition.h"
 #include "tablestyles.h"
 #include "tableheaderview.h"
@@ -275,9 +277,19 @@ void JosekiWindow::setupUi()
     m_positionSummaryLabel = new QLabel(tr("(未設定)"), this);
     m_positionSummaryLabel->setStyleSheet(QStringLiteral("color: #0066cc; font-weight: bold;"));
     positionInfoLayout->addWidget(m_positionSummaryLabel);
-    m_showSfenDetailBtn = makeToolButton(tr("詳細"), tr("SFENの詳細を表示/非表示"), toolButtonStyle(), this);
-    m_showSfenDetailBtn->setCheckable(true);
-    positionInfoLayout->addWidget(m_showSfenDetailBtn);
+    // SFEN は局面の行の中に置き、表の位置を動かさない。行が足りなければ SFEN から省略する
+    m_sfenLabel = new ElideLabel(this);
+    m_sfenLabel->setObjectName(QStringLiteral("josekiSfen"));
+    m_sfenLabel->setStyleSheet(QStringLiteral("color: #46515c;"));
+    positionInfoLayout->addWidget(m_sfenLabel, 1);
+    m_copySfenButton = makeToolButton(tr("コピー"), tr("局面のSFENをコピー"), toolButtonStyle(), this);
+    m_copySfenButton->setObjectName(QStringLiteral("josekiCopySfen"));
+    m_copySfenButton->setEnabled(false);
+    positionInfoLayout->addWidget(m_copySfenButton);
+    m_registeredPliesLabel = new QLabel(this);
+    m_registeredPliesLabel->setObjectName(QStringLiteral("josekiRegisteredPlies"));
+    m_registeredPliesLabel->setVisible(false);
+    positionInfoLayout->addWidget(m_registeredPliesLabel);
     m_deviationButton = new QPushButton(this);
     m_deviationButton->setObjectName(QStringLiteral("josekiDeviation"));
     m_deviationButton->setFlat(true);
@@ -289,20 +301,6 @@ void JosekiWindow::setupUi()
     positionInfoLayout->addStretch();
     infoLayout->addLayout(positionInfoLayout, 1, 1, 1, 2);
     mainLayout->addLayout(infoLayout);
-
-    m_sfenDetailWidget = new QWidget(this);
-    auto *sfenDetailLayout = new QVBoxLayout(m_sfenDetailWidget);
-    sfenDetailLayout->setContentsMargins(20, 0, 0, 0);
-    sfenDetailLayout->setSpacing(2);
-    m_currentSfenLabel = new QLabel(this);
-    m_sfenLineLabel = new QLabel(this);
-    for (QLabel *label : {m_currentSfenLabel, m_sfenLineLabel}) {
-        label->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        label->setWordWrap(true);
-        sfenDetailLayout->addWidget(label);
-    }
-    m_sfenDetailWidget->setVisible(false);
-    mainLayout->addWidget(m_sfenDetailWidget);
 
     // --- 定跡手の表（ボタンの列・右クリックの操作は rowActionRequested で受ける） ---
     m_tableView = new JosekiTableView(m_model, this);
@@ -328,7 +326,7 @@ void JosekiWindow::setupUi()
     m_noticeLabel = new QLabel(tr("※ 追加・編集・削除後は「保存」ボタンで定跡ファイルに保存してください"), this);
     mainLayout->addWidget(m_noticeLabel);
 
-    connect(m_showSfenDetailBtn, &QPushButton::toggled, this, &JosekiWindow::onSfenDetailToggled);
+    connect(m_copySfenButton, &QPushButton::clicked, this, &JosekiWindow::onCopySfenClicked);
     connect(m_deviationButton, &QPushButton::clicked, this, &JosekiWindow::onDeviationClicked);
     connect(m_tableView, &JosekiTableView::rowActionRequested, this, &JosekiWindow::onRowActionRequested);
 
@@ -366,16 +364,17 @@ void JosekiWindow::applyFontSize()
     // QPushButton と QToolButton は標準の高さが違うため、このウィンドウ内でそろえる。
     const QList<QAbstractButton *> buttons = {m_newButton, m_openButton, m_saveButton, m_saveAsButton,
         m_recentButton, m_addMoveButton, m_mergeButton, m_stopButton,
-        m_fontDecreaseButton, m_fontIncreaseButton, m_showSfenDetailBtn};
+        m_fontDecreaseButton, m_fontIncreaseButton, m_copySfenButton};
     int buttonHeight = qMax(32, fm.height() + 12);
     for (QAbstractButton *button : buttons) buttonHeight = qMax(buttonHeight, button->sizeHint().height());
     for (QAbstractButton *button : buttons) button->setFixedHeight(buttonHeight);
 
-    // 注意書きと SFEN の詳細は1段小さい文字で出す
+    // 注意書きと SFEN は1段小さい文字で出す
     const int smallSize = qMax(fontSize - 1, 6);
     m_noticeLabel->setStyleSheet(QStringLiteral("color: #cc6600; font-size: %1pt;").arg(smallSize));
-    m_currentSfenLabel->setStyleSheet(QStringLiteral("color: #0066cc; font-size: %1pt;").arg(smallSize));
-    m_sfenLineLabel->setStyleSheet(QStringLiteral("color: #228b22; font-size: %1pt;").arg(smallSize));
+    QFont sfenFont = font;
+    sfenFont.setPointSize(smallSize);
+    m_sfenLabel->setFont(sfenFont);
     updateJosekiDisplay();
 }
 
@@ -389,9 +388,6 @@ void JosekiWindow::loadSettings()
     m_autoLoadCheckBox->setChecked(m_session->autoLoadEnabled());
     showFilePath();
     onDisplayToggled(isDisplayEnabled());
-    const bool sfenDetailVisible = JosekiSettings::josekiWindowSfenDetailVisible();
-    m_showSfenDetailBtn->setChecked(sfenDetailVisible);
-    m_sfenDetailWidget->setVisible(sfenDetailVisible);
 }
 
 // ============================================================
@@ -446,9 +442,6 @@ void JosekiWindow::setCurrentSfen(const QString &sfen)
 {
     const bool sameSfen = (sfen == m_currentSfen);
     m_currentSfen = sfen;
-
-    if (m_currentSfenLabel)
-        m_currentSfenLabel->setText(m_currentSfen.isEmpty() ? tr("(未設定)") : m_currentSfen);
 
     // 1手ごとに複数の経路から同じ局面が届く。表に出している局面と同じで、人間が指せるかも
     // 変わらなければ作り直さない（定跡データの変更は onContentChanged で作り直す）
@@ -621,10 +614,9 @@ void JosekiWindow::onDeviationClicked()
     if (m_recordOperationsEnabled && m_deviationPly > 0) emit deviationPlyRequested(m_deviationPly);
 }
 
-void JosekiWindow::onSfenDetailToggled(bool checked)
+void JosekiWindow::onCopySfenClicked()
 {
-    m_sfenDetailWidget->setVisible(checked);
-    JosekiSettings::josekiWindowSfenDetailVisible.set(checked);
+    QApplication::clipboard()->setText(m_currentSfen);
 }
 
 void JosekiWindow::onRestoreStatusDisplay() { updateStatusDisplay(); }
@@ -647,23 +639,24 @@ void JosekiWindow::updateJosekiDisplay()
     m_displayedSfen = m_currentSfen;
 
     QList<JosekiMove> moves;
-    QString sfenLine;
+    QString bookLine;
+    QString registeredPlies;
     if (isDisplayEnabled() && !m_currentSfen.isEmpty()) {
         if (m_session->hasPosition(m_currentSfen)) {
             moves = m_session->movesAt(m_currentSfen);
-            sfenLine = tr("定跡SFEN: %1").arg(m_session->registeredSfen(m_currentSfen));
+            bookLine = tr("定跡SFEN: %1").arg(m_session->registeredSfen(m_currentSfen));
             // 同じ局面を手数違いで別々に登録していれば、その手数も示す（表示中の手数の登録、無ければ最初の登録を出す）
             const QList<int> plies = m_session->registeredPlies(m_currentSfen);
             if (plies.size() > 1) {
                 QStringList plyTexts;
                 for (const int ply : plies) plyTexts.append(QString::number(ply));
-                sfenLine += QLatin1Char(' ') + tr("（手数違いの登録: %1）").arg(plyTexts.join(QStringLiteral(", ")));
+                registeredPlies = tr("（手数違いの登録: %1）").arg(plyTexts.join(QStringLiteral(", ")));
             }
         } else {
-            sfenLine = tr("定跡: (該当なし)");
+            bookLine = tr("定跡: (該当なし)");
         }
     }
-    m_sfenLineLabel->setText(sfenLine);
+    showBookPosition(bookLine, registeredPlies);
     // 選択と表示位置は初めに戻す
     m_tableView->setCurrentIndex(QModelIndex());
     m_tableView->clearSelection();
@@ -678,6 +671,7 @@ void JosekiWindow::clearTable()
 {
     m_model->setMoves(QString(), {}, m_model->humanCanPlay());
     m_displayedSfen.clear();
+    showBookPosition(QString(), QString());
 }
 
 void JosekiWindow::updateStatusDisplay()
@@ -738,9 +732,12 @@ void JosekiWindow::updateStatusDisplay()
 
 void JosekiWindow::updatePositionSummary()
 {
+    m_sfenLabel->setFullText(m_currentSfen);
+    // 文字の幅までに抑え、コピーのボタンを SFEN のすぐ後ろに置く（余りは行の右の空きになる）
+    m_sfenLabel->setMaximumWidth(m_sfenLabel->fontMetrics().horizontalAdvance(m_currentSfen) + 2);
+    m_copySfenButton->setEnabled(!m_currentSfen.isEmpty());
     if (m_currentSfen.isEmpty()) {
         m_positionSummaryLabel->setText(tr("(未設定)"));
-        m_currentSfenLabel->setText(QString());
         return;
     }
     const PositionInfo info = describePosition(m_currentSfen);
@@ -755,7 +752,16 @@ void JosekiWindow::updatePositionSummary()
         positionDesc = tr("%1手目").arg(info.ply);
     m_positionSummaryLabel->setText(tr("%1 (%2番)").arg(positionDesc, turn));
     m_positionSummaryLabel->setToolTip(m_currentSfen);
-    m_currentSfenLabel->setText(tr("局面SFEN: %1").arg(m_currentSfen));
+}
+
+void JosekiWindow::showBookPosition(const QString &bookLine, const QString &registeredPlies)
+{
+    // 定跡の登録の SFEN は表示中の局面とほとんど同じなので、ツールチップで読めるようにする
+    // （定跡ファイルの文字列なので、文字のまま出す）
+    const QString positionLine = m_currentSfen.isEmpty() ? QString() : tr("局面SFEN: %1").arg(m_currentSfen);
+    m_sfenLabel->setToolTip(plainToolTip(QStringList{positionLine, bookLine}));
+    m_registeredPliesLabel->setText(registeredPlies);
+    m_registeredPliesLabel->setVisible(!registeredPlies.isEmpty());
 }
 
 void JosekiWindow::showFilePath()

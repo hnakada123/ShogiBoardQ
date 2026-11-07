@@ -28,6 +28,10 @@
 #include "josekimergecontroller.h"
 #include "josekimergedialog.h"
 #include "josekiexpanddialog.h"
+#include "boardcoordinates.h"
+#include "boardviewerwidget.h"
+#include "elidelabel.h"
+#include "josekimoveboard.h"
 #include "josekimovedialog.h"
 #include "josekimoveinputwidget.h"
 #include "kifubranchtree.h"
@@ -39,6 +43,8 @@
 #include "recordline.h"
 #include "sfenreplay.h"
 #include "sfenutils.h"
+#include "shogiboard.h"
+#include "shogiview.h"
 #include "test_replay.h"
 #include "header_drag_helper.h"
 #include "checkable_action.h"
@@ -80,6 +86,26 @@ void setMoves(JosekiMoveDialog &dialog, const QString &move, const QString &next
     dialog.setEntry(entry);
 }
 
+/// 定跡手ダイアログの盤
+ShogiView *boardViewOf(const JosekiMoveDialog &dialog)
+{
+    return dialog.findChild<JosekiMoveBoard*>()->view();
+}
+
+/// 定跡手ダイアログの盤を2回クリックして手を指す（座標は筋・段）
+void playOnBoard(const JosekiMoveDialog &dialog, const QPoint &from, const QPoint &to)
+{
+    ShogiView *view = boardViewOf(dialog);
+    emit view->clicked(from);
+    emit view->clicked(to);
+}
+
+/// 定跡手ダイアログの「指し直す」を押す（name は入力欄のオブジェクト名）
+void clickRetry(const JosekiMoveDialog &dialog, const QString &name)
+{
+    dialog.findChild<QPushButton*>(name + QStringLiteral("Retry"))->click();
+}
+
 /// 平手の初期局面から moves を指した手順（棋譜欄と同じく表記を付ける。表示中の手は1手目）
 RecordLine lineOf(const QStringList &moves)
 {
@@ -105,7 +131,6 @@ private slots:
     void testFontSizePersistence();
     void testAutoLoadPersistence();
     void testDisplayEnabledPersistence();
-    void testSfenDetailVisiblePersistence();
     void testLastFilePathClearOnHistoryClear();
 
     // JosekiWindow フォント適用テスト
@@ -158,6 +183,12 @@ private slots:
     void testMoveListPlaceholder();
     void testMoveListFollowsNotation();
     void testFontButtonsKeepWidth();
+    void testSfenRowKeepsTablePosition();
+    void testSfenElidesInNarrowWindow();
+    void testBoardEntersMoveAndReply();
+    void testBoardEntersDropAndForcedPromotion();
+    void testEditBoardKeepsMove();
+    void testMoveBoardKeepsSizeAndDirection();
 
 private:
     static QString initialSfen();
@@ -243,19 +274,6 @@ void TestJosekiWindow::testDisplayEnabledPersistence()
 
     // true に戻す
     JosekiSettings::josekiWindowDisplayEnabled.set(true);
-}
-
-void TestJosekiWindow::testSfenDetailVisiblePersistence()
-{
-    // デフォルト値
-    QCOMPARE(JosekiSettings::josekiWindowSfenDetailVisible(), false);
-
-    // true に変更して読み出し
-    JosekiSettings::josekiWindowSfenDetailVisible.set(true);
-    QCOMPARE(JosekiSettings::josekiWindowSfenDetailVisible(), true);
-
-    // false に戻す
-    JosekiSettings::josekiWindowSfenDetailVisible.set(false);
 }
 
 void TestJosekiWindow::testLastFilePathClearOnHistoryClear()
@@ -1036,17 +1054,17 @@ void TestJosekiWindow::testReplyValidationAndPreview()
     auto *input = dialog.findChild<JosekiMoveInputWidget*>(QStringLiteral("moveInput"));
     auto *reply = dialog.findChild<JosekiMoveInputWidget*>(QStringLiteral("nextMoveInput"));
     QVERIFY(input && reply && buttons);
-    QCOMPARE(input->findChild<QLabel*>(QStringLiteral("movePreview"))->text(), QStringLiteral("▲７六歩(77)"));
     // 指し手は局面の合法手の一覧から選ぶ（30手）。予想応手は着手後の局面の合法手と「なし」
     auto *moves = input->findChild<QComboBox*>(QStringLiteral("moveInputCombo"));
     auto *replies = reply->findChild<QComboBox*>(QStringLiteral("nextMoveInputCombo"));
     QVERIFY(moves && replies);
+    QCOMPARE(moves->currentText(), QStringLiteral("▲７六歩(77)"));
     QCOMPARE(moves->count(), 30);
     QCOMPARE(replies->count(), 31);
     QCOMPARE(replies->itemData(0).toString(), QStringLiteral("none"));
     setMoves(dialog, QStringLiteral("7g7f"), QStringLiteral("8c8d"));
     QVERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());
-    QCOMPARE(reply->findChild<QLabel*>(QStringLiteral("movePreview"))->text(), QStringLiteral("△８四歩(83)"));
+    QCOMPARE(replies->currentText(), QStringLiteral("△８四歩(83)"));
     // 着手後の局面の合法手でない予想応手は選べない
     setMoves(dialog, QStringLiteral("7g7f"), QStringLiteral("7f7e"));
     QVERIFY(!buttons->button(QDialogButtonBox::Ok)->isEnabled());
@@ -1205,7 +1223,8 @@ void TestJosekiWindow::testEmptyAndStoppedDisplay()
     QVERIFY(window.m_tableView->findChild<QLabel *>(QStringLiteral("josekiEmptyGuide"))->text().contains(QStringLiteral("停止")));
     window.setCurrentSfen(QString());
     QCOMPARE(window.m_positionSummaryLabel->text(), QStringLiteral("(未設定)"));
-    QVERIFY(window.m_sfenLineLabel->text().isEmpty());
+    QVERIFY(window.m_sfenLabel->fullText().isEmpty());
+    QVERIFY(!window.m_copySfenButton->isEnabled());
     QVERIFY(!window.m_addMoveButton->isEnabled());
     window.m_stopButton->click();
     QVERIFY(window.isDisplayEnabled());
@@ -1214,11 +1233,14 @@ void TestJosekiWindow::testEmptyAndStoppedDisplay()
 void TestJosekiWindow::testDialogCancelPersistsSize()
 {
     JosekiMoveDialog dialog;
-    dialog.resize(780, 650);
+    dialog.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+    const QSize size = dialog.size() + QSize(30, 40);
+    dialog.resize(size);
     dialog.reject();
-    QCOMPARE(JosekiSettings::josekiMoveDialogSize(), dialog.size());
+    QCOMPARE(JosekiSettings::josekiMoveDialogSize(), size);
     JosekiMoveDialog restored;
-    QCOMPARE(restored.size(), dialog.size());
+    QCOMPARE(restored.size(), size);
 }
 
 void TestJosekiWindow::acceptMoveAfterPositionChange()
@@ -1639,6 +1661,215 @@ void TestJosekiWindow::testStalePlayLeavesNoticeToController()
     QVERIFY(!window.m_model->humanCanPlay());   // 着手ボタンは消えた
 }
 
+void TestJosekiWindow::testSfenRowKeepsTablePosition()
+{
+    JosekiBookSession session;
+    JosekiPanel panel(&session);
+    JosekiWindow &window = panel.window;
+    // 同じ局面を1手目と3手目に別々に登録した定跡
+    const QString path = m_tempDir.filePath(QStringLiteral("registered-plies.db"));
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        const QByteArray position = initialSfen().section(QLatin1Char(' '), 0, 2).toUtf8();
+        file.write("#YANEURAOU-DB2016 1.00\n"
+                   "sfen " + position + " 1\n7g7f none 0 32 1\n"
+                   "sfen " + position + " 3\n2g2f none 0 32 1\n");
+    }
+    QSignalSpy loaded(&session, &JosekiBookSession::loaded);
+    QVERIFY(session.startLoad(path));
+    QVERIFY(loaded.count() > 0 || loaded.wait(5000));
+
+    window.setCurrentSfen(QString());
+    window.resize(1100, 500);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QCoreApplication::processEvents();
+    const int tableTop = window.m_tableView->y();
+
+    // 登録のある局面: SFEN を局面の行に出し、定跡の登録はツールチップと手数違いの印で示す
+    window.setCurrentSfen(initialSfen());
+    QCoreApplication::processEvents();
+    QCOMPARE(window.m_sfenLabel->fullText(), initialSfen());
+    QVERIFY(window.m_sfenLabel->toolTip().contains(QStringLiteral("定跡SFEN")));
+    QVERIFY(window.m_registeredPliesLabel->isVisible());
+    QVERIFY(window.m_registeredPliesLabel->text().contains(QStringLiteral("1, 3")));
+    QCOMPARE(window.m_tableView->y(), tableTop);
+    // コピーのボタンは SFEN のすぐ後ろに置く
+    QVERIFY(window.m_copySfenButton->x() - window.m_sfenLabel->geometry().right() < 20);
+    QVERIFY(window.m_sfenLabel->width() >= window.m_sfenLabel->fontMetrics().horizontalAdvance(initialSfen()));
+
+    // 登録のない局面
+    const QString after = SfenReplay::positionAfter(initialSfen(), QStringLiteral("7g7f"));
+    window.setCurrentSfen(after);
+    QCoreApplication::processEvents();
+    QVERIFY(window.m_sfenLabel->toolTip().contains(QStringLiteral("該当なし")));
+    QVERIFY(!window.m_registeredPliesLabel->isVisible());
+    QCOMPARE(window.m_tableView->y(), tableTop);
+
+    window.m_copySfenButton->click();
+    QCOMPARE(QApplication::clipboard()->text(), after);
+
+    // 表示を止めても行は同じ
+    window.m_stopButton->click();
+    QCoreApplication::processEvents();
+    QCOMPARE(window.m_sfenLabel->fullText(), after);
+    QVERIFY(!window.m_sfenLabel->toolTip().contains(QStringLiteral("該当なし")));
+    QCOMPARE(window.m_tableView->y(), tableTop);
+    window.m_stopButton->click();
+}
+
+void TestJosekiWindow::testSfenElidesInNarrowWindow()
+{
+    JosekiBookSession session;
+    JosekiPanel panel(&session);
+    JosekiWindow &window = panel.window;
+    window.setCurrentSfen(initialSfen());
+    window.resize(window.minimumSizeHint().width(), 500);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QCoreApplication::processEvents();
+    // SFEN が行を押し広げず、コピーのボタンはウィンドウの中に残る
+    QVERIFY(window.m_sfenLabel->width() < window.m_sfenLabel->fontMetrics().horizontalAdvance(initialSfen()));
+    QVERIFY(window.rect().contains(window.m_copySfenButton->geometry()));
+}
+
+void TestJosekiWindow::testBoardEntersMoveAndReply()
+{
+    JosekiMoveDialog dialog;
+    dialog.setCurrentSfen(initialSfen());
+    dialog.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+    QCoreApplication::processEvents();
+    auto *ok = dialog.findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok);
+    auto *replies = dialog.findChild<QComboBox*>(QStringLiteral("nextMoveInputCombo"));
+    auto *moves = dialog.findChild<QComboBox*>(QStringLiteral("moveInputCombo"));
+    auto *guide = dialog.findChild<ElideLabel*>(QStringLiteral("moveGuide"));
+    ShogiView *view = boardViewOf(dialog);
+    QVERIFY(ok && replies && moves && guide);
+    QCOMPARE(QApplication::focusWidget(), moves);  // 開いたらキーボードで一覧を選べる
+    const QPoint boardPosition = view->mapTo(&dialog, QPoint());
+    const QString moveGuide = guide->fullText();
+    QVERIFY(!moveGuide.isEmpty());
+    QVERIFY(!ok->isEnabled());
+    QVERIFY(!dialog.findChild<QLabel*>(QStringLiteral("moveError"))->isVisible());  // 開いた直後は誤りではない
+    QCOMPARE(view->board()->toSfen(), initialSfen());
+
+    // 盤で指した手が指し手になり、盤は指した後の局面になる
+    playOnBoard(dialog, QPoint(7, 7), QPoint(7, 6));
+    QCOMPARE(moves->currentData().toString(), QStringLiteral("7g7f"));
+    QCOMPARE(dialog.entry().nextMove, std::nullopt);
+    QVERIFY(ok->isEnabled());
+    QVERIFY(guide->fullText() != moveGuide);
+    const QString after = SfenReplay::positionAfter(initialSfen(), QStringLiteral("7g7f"));
+    QCOMPARE(view->board()->toSfen(), after);
+    QCOMPARE(view->board()->currentPlayer(), Turn::White);
+
+    // 手番でない側の駒はつまめない
+    playOnBoard(dialog, QPoint(2, 7), QPoint(2, 6));
+    QCOMPARE(dialog.entry().nextMove, std::nullopt);
+
+    // 次に盤で指した手が予想応手になる
+    playOnBoard(dialog, QPoint(3, 3), QPoint(3, 4));
+    QCOMPARE(dialog.entry().move, QStringLiteral("7g7f"));
+    QCOMPARE(dialog.entry().nextMove.value_or(QString()), QStringLiteral("3c3d"));
+    QCOMPARE(view->board()->toSfen(), SfenReplay::positionAfter(after, QStringLiteral("3c3d")));
+
+    // 両方決まったら盤では指せない
+    playOnBoard(dialog, QPoint(2, 7), QPoint(2, 6));
+    QCOMPARE(dialog.entry().nextMove.value_or(QString()), QStringLiteral("3c3d"));
+
+    // 予想応手を指し直す
+    clickRetry(dialog, QStringLiteral("nextMoveInput"));
+    QCOMPARE(dialog.entry().nextMove, std::nullopt);
+    QCOMPARE(view->board()->toSfen(), after);
+    playOnBoard(dialog, QPoint(8, 3), QPoint(8, 4));
+    QCOMPARE(dialog.entry().nextMove.value_or(QString()), QStringLiteral("8c8d"));
+
+    // 一覧で選んだ手も盤に出る
+    replies->setCurrentIndex(replies->findData(QStringLiteral("3c3d")));
+    QCOMPARE(view->board()->toSfen(), SfenReplay::positionAfter(after, QStringLiteral("3c3d")));
+
+    // 指し手を指し直すと予想応手も取り消して、登録する局面に戻る
+    clickRetry(dialog, QStringLiteral("moveInput"));
+    QVERIFY(dialog.entry().move.isEmpty());
+    QCOMPARE(dialog.entry().nextMove, std::nullopt);
+    QCOMPARE(view->board()->toSfen(), initialSfen());
+    QVERIFY(!ok->isEnabled());
+    QCOMPARE(guide->fullText(), moveGuide);
+    playOnBoard(dialog, QPoint(2, 7), QPoint(2, 6));
+    QCOMPARE(dialog.entry().move, QStringLiteral("2g2f"));
+    QCOMPARE(dialog.entry().nextMove, std::nullopt);
+
+    // 案内の文や選んだ手が変わっても盤は動かない
+    QCoreApplication::processEvents();
+    QCOMPARE(view->mapTo(&dialog, QPoint()), boardPosition);
+}
+
+void TestJosekiWindow::testBoardEntersDropAndForcedPromotion()
+{
+    // 持ち駒を打つ手
+    JosekiMoveDialog drop;
+    drop.setCurrentSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b P 1"));
+    playOnBoard(drop, BoardCoordinates::standSquareOf(Piece::BlackPawn), QPoint(5, 5));
+    QCOMPARE(drop.entry().move, QStringLiteral("P*5e"));
+
+    // 成るしかない手は尋ねない
+    JosekiMoveDialog promote;
+    promote.setCurrentSfen(QStringLiteral("4k4/P8/9/9/9/9/9/9/4K4 b - 1"));
+    playOnBoard(promote, QPoint(9, 2), QPoint(9, 1));
+    QCOMPARE(promote.entry().move, QStringLiteral("9b9a+"));
+}
+
+void TestJosekiWindow::testEditBoardKeepsMove()
+{
+    JosekiMoveDialog dialog(nullptr, true);
+    dialog.setCurrentSfen(initialSfen());
+    setMoves(dialog, QStringLiteral("7g7f"), QStringLiteral("8c8d"));
+    ShogiView *view = boardViewOf(dialog);
+    const QString after = SfenReplay::positionAfter(initialSfen(), QStringLiteral("7g7f"));
+    QCOMPARE(view->board()->toSfen(), SfenReplay::positionAfter(after, QStringLiteral("8c8d")));
+
+    // 編集で変えられるのは予想応手だけ
+    clickRetry(dialog, QStringLiteral("nextMoveInput"));
+    QCOMPARE(view->board()->toSfen(), after);
+    playOnBoard(dialog, QPoint(3, 3), QPoint(3, 4));
+    QCOMPARE(dialog.entry().move, QStringLiteral("7g7f"));
+    QCOMPARE(dialog.entry().nextMove.value_or(QString()), QStringLiteral("3c3d"));
+
+    // 局面に合わない指し手（定跡ファイルの手）は誤りを出し、盤では指せない
+    JosekiMoveDialog broken(nullptr, true);
+    broken.setCurrentSfen(initialSfen());
+    setMoves(broken, QStringLiteral("7g7e"));
+    QCOMPARE(boardViewOf(broken)->board()->toSfen(), initialSfen());
+    playOnBoard(broken, QPoint(7, 7), QPoint(7, 6));
+    QCOMPARE(broken.entry().move, QStringLiteral("7g7e"));
+    QVERIFY(!broken.findChild<QLabel*>(QStringLiteral("moveError"))->text().isEmpty());
+}
+
+void TestJosekiWindow::testMoveBoardKeepsSizeAndDirection()
+{
+    const int defaultSize = JosekiSettings::josekiMoveBoardSquareSize.defaultValue();
+    int enlarged = 0;
+    {
+        JosekiMoveDialog dialog;
+        auto *viewer = dialog.findChild<BoardViewerWidget*>();
+        QVERIFY(viewer);
+        QCOMPARE(viewer->view()->squareSize(), defaultSize);
+        QVERIFY(!viewer->isFlipped());
+        viewer->flipButton()->click();
+        viewer->enlargeButton()->click();
+        enlarged = viewer->view()->squareSize();
+        QVERIFY(enlarged > defaultSize);
+    }
+    JosekiMoveDialog restored;
+    auto *viewer = restored.findChild<BoardViewerWidget*>();
+    QVERIFY(viewer->isFlipped());
+    QCOMPARE(viewer->view()->squareSize(), enlarged);
+    JosekiSettings::josekiMoveBoardFlipped.set(false);
+    JosekiSettings::josekiMoveBoardSquareSize.set(defaultSize);
+}
+
 QTEST_MAIN(TestJosekiWindow)
 void TestJosekiWindow::testMoveListPlaceholder()
 {
@@ -1684,7 +1915,7 @@ void TestJosekiWindow::testMoveListFollowsNotation()
         QCOMPARE(combo->itemText(combo->findData(QStringLiteral("3d3c+"))), QString::fromUtf8(style.promote));
         QCOMPARE(combo->itemText(combo->findData(QStringLiteral("3d3c"))), QString::fromUtf8(style.decline));
         input.setUsiMove(QStringLiteral("3d3c+"));
-        QCOMPARE(input.findChild<QLabel*>(QStringLiteral("movePreview"))->text(), QString::fromUtf8(style.promote));
+        QCOMPARE(combo->currentText(), QString::fromUtf8(style.promote));
     }
     NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("japanese"), false);
 }

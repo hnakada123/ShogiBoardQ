@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QSize>
 #include <QList>
+#include "boardsquaresize.h"
 #include "josekiplayoptions.h"
 #include "setting.h"
 
@@ -30,9 +31,6 @@ inline const Setting<QStringList> josekiWindowRecentFiles{"JosekiWindow/recentFi
 /// 定跡ウィンドウの表示停止状態（デフォルト: true＝表示有効）
 inline const Setting<bool> josekiWindowDisplayEnabled{"JosekiWindow/displayEnabled", true};
 
-/// 定跡ウィンドウのSFEN詳細表示状態（デフォルト: false）
-inline const Setting<bool> josekiWindowSfenDetailVisible{"JosekiWindow/sfenDetailVisible", false};
-
 /// 定跡ウィンドウの表の列の数と、比率の列の位置（models の JosekiTableModel::Column と同じ番号。
 /// services は models を include できないので、ここに番号を書き、定跡ウィンドウが static_assert で照らす）
 inline constexpr int kJosekiWindowColumnCount = 11;
@@ -45,8 +43,16 @@ ListSetting<int> josekiWindowColumnWidths();
 /// 定跡手編集ダイアログのフォントサイズ（デフォルト: 10）
 inline const Setting<int> josekiMoveDialogFontSize{"JosekiWindow/moveDialogFontSize", 10};
 
-/// 定跡手編集ダイアログのウィンドウサイズ（デフォルト: 500x600）
-inline const Setting<QSize> josekiMoveDialogSize{"SizeRelated/josekiMoveDialogSize", QSize(500, 600)};
+/// 定跡手編集ダイアログのウィンドウサイズ（未保存なら盤と入力欄が収まる大きさで開く。
+/// 盤のなかった版の幅の狭い大きさは使わないので、キーを分けた）
+inline const Setting<QSize> josekiMoveDialogSize{"SizeRelated/josekiMoveBoardDialogSize", QSize()};
+
+/// 定跡手編集ダイアログの盤のマスの幅
+inline const BoundedSetting<int> josekiMoveBoardSquareSize{"JosekiWindow/moveBoardSquareSize", 42,
+                                                           BoardSquareSize::kMin, BoardSquareSize::kMax};
+
+/// 定跡手編集ダイアログの盤の向き（true なら後手を手前にする）
+inline const Setting<bool> josekiMoveBoardFlipped{"JosekiWindow/moveBoardFlipped", false};
 
 /// 定跡マージダイアログのフォントサイズ（デフォルト: 10）
 inline const Setting<int> josekiMergeDialogFontSize{"JosekiWindow/mergeDialogFontSize", 10};
