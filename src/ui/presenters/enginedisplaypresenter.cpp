@@ -15,7 +15,7 @@
 #include "shogienginethinkingmodel.h"
 #include "thinkingpanel.h"
 #include "usi.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 #include "usilogpanel.h"
 #include "usimodelbinding.h"
 
@@ -67,7 +67,7 @@ void EngineDisplayPresenter::bindEngines()
 
 void EngineDisplayPresenter::clearEngineOutput()
 {
-    const std::array<UsiCommLogModel*, 2> logs{m_deps.commLog1, m_deps.commLog2};
+    const std::array<EngineStatusModel*, 2> logs{m_deps.commLog1, m_deps.commLog2};
     for (size_t i = 0; i < logs.size(); ++i) {
         if (!logs[i]) continue;
         // 結んでいるエンジンの名前は残す（通信対局は、エンジンを起動した後に棋譜を作り直す）

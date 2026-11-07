@@ -9,7 +9,7 @@
 #include "shogienginethinkingmodel.h"
 #include "thinkinginfoformatter.h"
 #include "usi.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 
 namespace {
 /// 思考の表に残す行数

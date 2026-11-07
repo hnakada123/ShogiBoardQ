@@ -8,7 +8,7 @@
 #include "kifupresentation.h"
 #include "movefont.h"
 #include "tablestyles.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 
 #include <QEvent>
 #include <QFontMetrics>
@@ -313,7 +313,7 @@ void EngineInfoWidget::setSide(std::optional<Turn> side)
     updateBandLayout();
 }
 
-void EngineInfoWidget::setModel(UsiCommLogModel* m)
+void EngineInfoWidget::setModel(EngineStatusModel* m)
 {
     if (m_model == m) return;
     if (m_model) disconnect(m_model, nullptr, this, nullptr);
@@ -325,8 +325,8 @@ void EngineInfoWidget::setModel(UsiCommLogModel* m)
         return;
     }
 
-    connect(m_model, &UsiCommLogModel::engineNameChanged, this, &EngineInfoWidget::onNameChanged);
-    connect(m_model, &UsiCommLogModel::statusChanged, this, &EngineInfoWidget::onStatusChanged);
+    connect(m_model, &EngineStatusModel::engineNameChanged, this, &EngineInfoWidget::onNameChanged);
+    connect(m_model, &EngineStatusModel::statusChanged, this, &EngineInfoWidget::onStatusChanged);
     onNameChanged();
     onStatusChanged();
 }

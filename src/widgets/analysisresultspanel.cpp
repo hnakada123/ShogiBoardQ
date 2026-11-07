@@ -240,7 +240,7 @@ void AnalysisResultsPanel::onBoardRequested(int row)
     // 解析中は盤面を開かない
     if (m_runState == RunState::Running) return;
     qCDebug(lcAnalysis).noquote() << "onBoardRequested: row=" << row;
-    Q_EMIT rowDoubleClicked(row);
+    Q_EMIT boardRequested(row);
 }
 
 void AnalysisResultsPanel::onTableSelectionChanged(const QModelIndex& current, const QModelIndex& /*previous*/)

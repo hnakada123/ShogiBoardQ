@@ -27,7 +27,7 @@ KifuAnalysisController::KifuAnalysisController(const Deps& deps, QObject* parent
     Q_ASSERT(m_deps.session && m_deps.analysisModel && m_resultsPanel);
     m_resultsPanel->setModel(m_deps.analysisModel);
     connect(m_resultsPanel, &AnalysisResultsPanel::stopRequested, this, &KifuAnalysisController::stop);
-    connect(m_resultsPanel, &AnalysisResultsPanel::rowDoubleClicked,
+    connect(m_resultsPanel, &AnalysisResultsPanel::boardRequested,
             this, &KifuAnalysisController::onResultRowDoubleClicked);
     connect(m_resultsPanel, &AnalysisResultsPanel::rowSelected, this, &KifuAnalysisController::onResultRowSelected);
     KifuAnalysisSession* const session = m_deps.session;

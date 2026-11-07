@@ -85,7 +85,7 @@
 | 2026-10-16 | 局面の値 `Position`（`shogiposition.h`）とエンジンに探索させる局面 `UsiPosition`（`usiposition.h`）を足したのに合わせて §1.5・§2.1〜§2.4・§5.1・§5.2（`Position` と `ShogiBoard` に書き直し）・§5.4・§6.2・§6.6・§7.4〜§7.7・§8・§9.3〜§9.7・§10.6・§12.3・§13.6・§13.8・第15章・第18章を更新（`Piece` は種類＋後手なら16、`piecerules.h`、`RecordLine::usiPosition()`、先読みの局面は `UsiMatchHandler` だけが持つ、「同」の基準は呼び出し側が手順から渡す） |
 | 2026-10-16 | 棋譜の読み込みの作り直しに合わせて §1.5・§2.5・§5.1・§5.2・§5.8・§8.1・§8.2・§8.4・§8.5・§8.7・§8.11・§13.8・§13.9・§15.3・§18.3・§18.4 を更新（形式ごとの変換器は `parse()` を1つだけ持ち `KifuParseOutcome` を返す、KIF・KI2 は `KifTextParser`・`KifMoveGrammar` を共有、手順は全形式で `KifLineBuilder` が組み立てる、読めない手の扱いは `ParseOptions`・`ParseReport`、手順の型は `RecordLine` だけ（`KifLine`・`KifDisplayItem` を削除）、`KifuBranchTree::exportLine()`、ノードの setter を削除して `record()` を直接変える、`SfenReplay` は `applyLenient()`・`positionAfter()` だけ） |
 | 2026-10-16 | 棋譜の文書 `KifuDocument`（`kifudocument.h`）と形式ごとの書き出しの表 `KifuExport`（`kifuexport.h`）に合わせて §1.5・§3.4・§3.5・§4.4・§4.5・§6.1・§6.3・§6.5・§6.9・§8.1・§8.2・§8.4・§8.5・§8.7〜§8.9・§9.6・§10.2〜§10.5・§12.4・§12.7・§14.2・§14.3・§14.5・§14.7・§15.1・§15.3・§18 を更新（`GameRecordModel`・`KifuExportController` を削除。対局情報・対局者・持ち時間・上書き保存先は文書が持ち、`AppState` は動作状態だけ。未保存は保存した時点との比較で求める。`MatchTimeRecord` を `src/kifu/` に移した） |
-| 2026-10-16 | エンジンの表示の持ち主を `EngineDisplayPresenter` に1つにしたのに合わせて §1.5・§3.3・§4.1・§4.2・§4.4・§4.5・§6.5・§6.9・§7.1・§7.6・§7.10・§8.5・§9.1・§9.2・§9.4〜§9.6・§10.2〜§10.4・§11.2・§12.7・§14.4・§14.7・§15.1・§15.4・第18章を更新（探索状況は `EngineSearchStatus` で info 1行ごとに1回送り、書式は `EngineInfoWidget` が決める。`UsiCommLogModel` は状況＋`statusChanged` と `logLineAppended`。評価値グラフの点は `EvaluationSeries` に置き、書き手は `EvaluationGraphPresenter` だけ。検討タブは `ConsiderationSettings` を正本として持ち、実行の状態 `RunState` は `EngineDisplayPresenter` が `AnalysisSession` の知らせから設定する。検討中かどうかの正本は `AnalysisSession::isConsidering()`。`ConsiderationUiController` は操作を伝えるだけ、`PlayerInfoPresenter` は盤の対局者名だけ、`SessionResetCoordinator` は表示の消去を `EngineDisplayPresenter::clearAll()` に任せる） |
+| 2026-10-16 | エンジンの表示の持ち主を `EngineDisplayPresenter` に1つにしたのに合わせて §1.5・§3.3・§4.1・§4.2・§4.4・§4.5・§6.5・§6.9・§7.1・§7.6・§7.10・§8.5・§9.1・§9.2・§9.4〜§9.6・§10.2〜§10.4・§11.2・§12.7・§14.4・§14.7・§15.1・§15.4・第18章を更新（探索状況は `EngineSearchStatus` で info 1行ごとに1回送り、書式は `EngineInfoWidget` が決める。`EngineStatusModel` は状況＋`statusChanged` と `logLineAppended`。評価値グラフの点は `EvaluationSeries` に置き、書き手は `EvaluationGraphPresenter` だけ。検討タブは `ConsiderationSettings` を正本として持ち、実行の状態 `RunState` は `EngineDisplayPresenter` が `AnalysisSession` の知らせから設定する。検討中かどうかの正本は `AnalysisSession::isConsidering()`。`ConsiderationUiController` は操作を伝えるだけ、`PlayerInfoPresenter` は盤の対局者名だけ、`SessionResetCoordinator` は表示の消去を `EngineDisplayPresenter::clearAll()` に任せる） |
 | 2026-10-16 | 盤の入力・局面編集・ハイライトの整理（監査 R7）に合わせて §1.5・§3.4・§3.5・§3.6・§4.2・§4.4・§4.5・§5.4・§6.1・§6.6・§6.8・§6.9・§10・§11.1・§12.3・§13.5・§13.6・§13.9・§14.2・§14.3・§14.6・§15.2・§18 を更新（盤で指した手の行き先 `BoardInputRoute`、`BoardInteractionController` の `Mode`・`moveRequested`・手番のコールバックの削除、`PositionEditController`・`PositionEditCoordinator` を `PositionEditSession` に統合、`OperationPolicy` を `src/ui/controllers/` へ移動、ハイライトを層 `BoardHighlightLayer` ごとの値に、`setForcedPromotion()` の削除と定跡の手の `playUsiMove()`） |
 | 2026-10-16 | 思考の表と棋譜解析の結果の表の行を値で持つようにしたのに合わせて §1.5・§7.8・§7.10・§9.6・§9.8・§9.9・§10.2・§11.2・§18.3・§18.4 を更新（`AbstractListModel`・`KifuAnalysisResultsDisplay` を削除。行は `ShogiInfoRecord`・`KifuAnalysisRow` の値、表の部品は `PvTableView`、指し手の書体の規則は `MoveFont`） |
 | 2026-10-16 | 局面送りと編集のボタンを `QAction` の組で共有したのに合わせて §1.5・§11.2・§13.1・§18.3・§18.4 を更新（`KifuNavigationController` が局面送りの6つの `QAction`（`Step`・`action()`）を持ち、棋譜欄と評価値グラフのボタンを `bindButtons()` で結ぶ。`connectButtons()`・`RecordPane::setArrowButtonsEnabled()`・`setNavigationEnabled()`・`arrowButtonsEnabledChanged`・`EvaluationChartWidget::setNavigationEnabled()` を削除し、`UiStatePolicyManager` は `setStepActionsEnabled()` と `RecordPane::setKifuViewEnabled()` で切り替える。元に戻す〜貼り付けは標準ショートカット付きの `EditActions`（`src/widgets/`）にし、コメント欄と対局情報で使う） |
@@ -171,7 +171,7 @@
 | 2026-11-03 | 通信ログのパネルの設定の変更を、同じ設定を使うパネルに伝えるようにした（監査 2026-11-01 F30）のに合わせて第18章を更新（CSA 通信ログのドックと待機ダイアログのログは、片方で変えた文字の大きさと折り返しにもう片方も合わせる。以前はどちらも作るときに1回だけ設定を読み、ドックは次の起動まで古い値のままで、その後の A+ で古い値から計算して保存し直していた） |
 | 2026-11-03 | 終局の原因からの対応をローカル対局と通信対局で1つにした（監査 2026-11-01 F15）のに合わせて第5章の内部型定義を更新（`MatchCause`・`MatchGameEndInfo` を `src/game/matchending.h` に移し、`MatchCause::MaxMoves` を足した。終局語とエンジンへの gameover は `MatchEnding` だけで決め、通信対局は `CsaGameProgress::endInfo()` でサーバーの結果を原因に直す。最大手数は持将棋と書き（通信対局は「最大手数到達」と書いていた）、最大手数・中断・知らない原因の終局でも通信対局のエンジンに `gameover draw` を送る（今までは送らなかった）。`MatchCoordinator::handleMaxMovesJishogi()` は `handleMaxMoves()`、`endGame()` の `engineLoser` 引数は消した） |
 | 2026-11-03 | 時計の残りから USI の btime/wtime への換算を1つにした（監査 2026-11-01 F14）のに合わせて §7.4・§12.3 を更新（`UsiGoTimeCalculator::fromClock()` と `UsiClockSide` を足し、`ClockTimeSource::snapshot()` と `CsaGameProgress::engineTiming(pondering, elapsedThisTurnMs, marginMs)` が使う。通信対局の先読みの go ponder は、自分の残りから今の手の消費を引き、加算は引かない（以前は今の手の消費を引かず加算を引いていた）。手番側の経過時間は先読みでないときも引く） |
-| 2026-11-03 | 通信対局の開始でその対局の通信ログとエンジン名を消さないようにした（監査 2026-11-01 F12）のに合わせて §4.5・§6.5・§10.2 を更新（文書の置き換えで呼ぶ `EngineDisplayPresenter::clearAll()` は通信ログを消さず、結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。通信ログは対局を始めるとき（`GameSession::gameStarting`・`CsaGameUiController::gameStarting`）に `clearEngineLogs()` で消す。通信対局の評価値グラフの自分の系列名は `CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。新規・棋譜の読み込みでは通信ログを消さなくなった） |
+| 2026-11-03 | 通信対局の開始でその対局の通信ログとエンジン名を消さないようにした（監査 2026-11-01 F12）のに合わせて §4.5・§6.5・§10.2 を更新（文書の置き換えで呼ぶ `EngineDisplayPresenter::clearAll()` は通信ログを消さず、結んでいるエンジンの名前も残す（`EngineStatusModel::clearStatus()`）。通信ログは対局を始めるとき（`GameSession::gameStarting`・`CsaGameUiController::gameStarting`）に `clearEngineLogs()` で消す。通信対局の評価値グラフの自分の系列名は `CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。新規・棋譜の読み込みでは通信ログを消さなくなった） |
 | 2026-11-03 | 盤の人間の手をローカル対局と通信対局で同じ入口にした（監査 2026-11-01 T3 の5つ目）のに合わせて §3.4・§3.5・§6.2・§6.6・§6.7・§6.9・§10.3・§10.4・§10.6・§12.3・§14.6・§15.2・§15.5 を更新（`GameChannel::playMove(UsiMove)`（`MoveResult`: `Rejected`・`Played`・`Sent`）を足し、`BoardMoveController` は対局中の窓口（`setActiveChannel()` で受け取る `GameChannels::active()`）へ渡すだけにした。ローカル対局は `MatchCoordinator::playHumanMove(UsiMove)` がエンジンの手と同じく合法手を確かめて盤に指し、通信対局は `CsaGameCoordinator::sendHumanMove()`（旧 `onHumanMove` スロット）が合法手を確かめてサーバーへ送る。`BoardInput::CsaServer` は `Game` にまとめ、`BoardMoveController::csaMoveRequested`・`MatchCoordinator::onHumanMove(RecordEntry)` を消し、`lastMoveDestination()` は非公開にした） |
 | 2026-11-03 | 通信対局の接続中を動作状態にした（監査 2026-11-01 F13）のに合わせて §3.4・§12.3・§14.2 を更新（`AppActivityState::Activity::DuringCsaConnection` を足し、`CsaGameCoordinator` が接続してから通信対局を続ける間（`sessionContinues()`）持つ。対局の間は `DuringCsaGame`。局と局の間は棋譜を見る・保存・コピーだけで、開く・貼り付け・対局開始・局面編集・棋譜解析・詰み探索・詰将棋生成・検討・エンジン設定・棋譜の編集はできない。「新規」と「中断」（`CsaGameChannel::breakOff()` → `stopGame()`）でログアウトする。自動化 API の `ui_state` は `csa_connected`、`play_mode` は `csa_network`） |
 | 2026-11-03 | `CsaGameCoordinator` の1局の進行に入らない仕事を切り出した（監査 2026-11-01 M6）のに合わせて §12.3 を更新（対局条件の受け入れの判断とログの文は `CsaGameSummary::unsupportedReason()`・`conditionLines()`、裁定の待ちは `CsaVerdictWait`、対局数と再接続は `CsaGameSeries`。LOGIN のパスワードを伏せるのは `CsaClient` だけにし、「すぐ指させる」はローカル対局と同じ `Usi::requestImmediateMove()` にした。使っていない `username()`・`gameSummary()`・`completedGames()`・`gameLimit()` を消した） |
@@ -579,7 +579,7 @@ src/
 │   ├── kifuanalysisrow.h           #   棋譜解析の結果の表の1行（作った後は変えない値）
 │   ├── shogienginethinkingmodel.cpp/.h # 思考の表のモデル（行は ShogiInfoRecord の値）
 │   ├── shogiinforecord.cpp/.h      #   思考の表の1行（エンジンの info 1件）
-│   ├── usicommlogmodel.cpp/.h      #   エンジン1台の情報欄（エンジン名・探索状況・予想手）と通信ログの行の知らせ
+│   ├── enginestatusmodel.cpp/.h      #   エンジン1台の情報欄（エンジン名・探索状況・予想手）と通信ログの行の知らせ
 │   ├── evaluationseries.cpp/.h     #   評価値グラフの点（先手から見た評価値の列が2本・系列名・解析した手順の番号）
 │   ├── josekitablemodel.cpp/.h     #   定跡ウィンドウの表のモデル（データは kifu/josekibooksession。予想応手の無い手には導いた応手を出す）
 │   └── gameinfoeditmodel.cpp/.h    #   対局情報の表の中身と編集の履歴
@@ -721,9 +721,6 @@ src/
 │   ├── docks/                      #   ドック
 │   │   ├── dockregistry.cpp/.h          # ドックの表（DockSpec）から作成・規定の配置・状態の保存と復元
 │   │   └── docklayoutmanager.cpp/.h     # 名前付きレイアウト・起動時のレイアウト・ドックの固定
-│   └── coordinators/               #   複数の部品にまたがる UI の流れ
-│       ├── commentcontroller.cpp/.h    # コメント機能の調整
-│       └── csagameuicontroller.cpp/.h        # CSA通信対局の開始と進行の画面への反映（棋譜と自動保存は GameSession）
 │
 ├── services/                       # クロスカッティングサービス
 │   ├── setting.h                   #   設定1項目の宣言（Setting<T>: キーと既定値。範囲付き・構造体・配列の BoundedSetting・StructSetting・ListSetting・StructListSetting）
@@ -799,7 +796,6 @@ src/
 | `ui/controllers/` | 42 | 4,223 | 利用者操作の処理（棋譜の読み書き・ナビゲーション・ダイアログの起動を含む） |
 | `ui/policy/` | 4 | 503 | 動作状態からの規則（メニュー・ボタンの有効/無効、盤の手の行き先） |
 | `ui/docks/` | 4 | 701 | ドックの表とレイアウト |
-| `ui/coordinators/` | 4 | 335 | 複数の部品にまたがる UI の流れ（通信対局・コメント） |
 | `views/` | 18 | 3,172 | 将棋盤描画 |
 | `widgets/` | 105 | 12,952 | カスタムウィジェット |
 | `dialogs/` | 79 | 12,869 | ダイアログ |
@@ -3128,7 +3124,7 @@ struct MatchTimeSettings {
 | `prepareGameStart(preparation)` | `GameSession::startGame()` | 対局を始める局面に棋譜を整え、ライブ対局を始める。始めたノードを返す |
 | `resetToNewRecord(sfen)` | 「新規」（`MainWindowActions::startNewRecord()`）、局面編集 | 読み込み途中の棋譜を捨て、ライブ対局を破棄して、局面 `sfen` だけの新しい棋譜にする（`KifuDocument::startNew()`） |
 
-評価値グラフとエンジンの表示（思考情報・検討・解析結果。`EngineDisplayPresenter::clearAll()`）は、文書の置き換え（`KifuDocument::replaced`。新規・読み込み・局面の反映・新しい棋譜での対局の開始）を受けて自分で消える。通信ログ（USI・CSA）は消さず、対局を始めるとき（`GameSession::gameStarting`・`CsaGameUiController::gameStarting` → `EngineDisplayPresenter::clearEngineLogs()`）に消す。結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。`SessionResetCoordinator` が表示に触るのは、文書を置き換えずに現在局面から対局を続けるとき（評価値グラフを開始の手数で切り詰める）だけ。連続対局の次局（`GameSession::startNextGame()`）と通信対局の開始（司令塔が呼ぶ `GameSession::beginRecord()`）も `prepareGameStart()` を通る。
+評価値グラフとエンジンの表示（思考情報・検討・解析結果。`EngineDisplayPresenter::clearAll()`）は、文書の置き換え（`KifuDocument::replaced`。新規・読み込み・局面の反映・新しい棋譜での対局の開始）を受けて自分で消える。通信ログ（USI・CSA）は消さず、対局を始めるとき（`GameSession::gameStarting`・`CsaGameUiController::gameStarting` → `EngineDisplayPresenter::clearEngineLogs()`）に消す。結んでいるエンジンの名前も残す（`EngineStatusModel::clearStatus()`）。`SessionResetCoordinator` が表示に触るのは、文書を置き換えずに現在局面から対局を続けるとき（評価値グラフを開始の手数で切り詰める）だけ。連続対局の次局（`GameSession::startNextGame()`）と通信対局の開始（司令塔が呼ぶ `GameSession::beginRecord()`）も `prepareGameStart()` を通る。
 
 #### prepareGameStart() の処理フロー
 
@@ -3518,7 +3514,7 @@ EngineProcessManager::onReadyReadStdout()
 UsiProtocolHandler::onDataReceived()    UsiModelBinding::onLineReceived()
     │                                      │ （通信ログの行「◀ E1: ...」を知らせる）
     │                                      ▼
-    │                                   UsiCommLogModel::appendLogLine() → logLineAppended
+    │                                   EngineStatusModel::appendLogLine() → logLineAppended
     │
     ├─ "bestmove" → UsiLineParser::parseBestMove()
     │              emit bestMoveReceived(UsiBestMove)
@@ -3537,7 +3533,7 @@ UsiProtocolHandler::onDataReceived()    UsiModelBinding::onLineReceived()
     │              UsiModelBinding
     │                   ├─ ShogiEngineThinkingModel::prependRow()
     │                   ├─ ShogiEngineThinkingModel::updateByMultipv()
-    │                   └─ UsiCommLogModel::updateStatus()
+    │                   └─ EngineStatusModel::updateStatus()
     │
     ├─ "readyok" → handleReadyOk()  → initializationFinished(true)
     └─ "usiok"   → handleUsiOk()
@@ -3828,7 +3824,7 @@ processInfo(info)
   ├── 2. 探索手（currmove、無ければ読み筋の最初の手）の表示を作る
   │
   ├── 3. EngineSearchStatus を作って searchStatusUpdated を発行
-  │     （UsiModelBinding が UsiCommLogModel::updateStatus() で前の値に重ねる）
+  │     （UsiModelBinding が EngineStatusModel::updateStatus() で前の値に重ねる）
   │     ├── searchedMove → 探索手（表記の設定に合わせた表示。手ごとに作った表示を覚えておく）
   │     ├── depth・seldepth → 深さ
   │     ├── nodes・nps   → ノード数・NPS
@@ -3846,7 +3842,7 @@ processInfo(info)
 
 #### 通信ログの整形
 
-送信・受信・エラーの各ログは、`UsiModelBinding` がエンジンタグ付きのフォーマットで整形して `UsiCommLogModel::appendLogLine()` に渡す。モデルは行を溜めず、`logLineAppended` で `UsiLogPanel` に知らせる。
+送信・受信・エラーの各ログは、`UsiModelBinding` がエンジンタグ付きのフォーマットで整形して `EngineStatusModel::appendLogLine()` に渡す。モデルは行を溜めず、`logLineAppended` で `UsiLogPanel` に知らせる。
 
 ```
 ▶ E1: position startpos moves 7g7f     （送信：▶）
@@ -3940,7 +3936,7 @@ KifuPresentation::pv（日本語表記）:
 | 4 | 盤面 | 固定文字列「表示」（中央揃え） | ビューが `TableButtonDelegate` で角丸のボタン風に描く |
 | 5 | 読み筋 | `ShogiInfoRecord::displayPv()` | 表記の設定に合わせた読み筋（ツールチップは移動元付きの全文） |
 
-モデルは列0〜3を数で返し、ビューが `NumericRightAlignCommaDelegate` で3桁区切り・右寄せに描く（`ThinkingTableView` の基底の読み筋の表 `PvTableView` が設定する）。列幅は利用者がドラッグした列だけを保存する（`ColumnWidthMemory`。保存していない列は見出しと数値の見本が収まる幅で、保存した幅を最小値として扱わない）。depth/seldepth の形の深さは、表ではなく `UsiCommLogModel` 側の欄（7.6節の手順3）に出る。
+モデルは列0〜3を数で返し、ビューが `NumericRightAlignCommaDelegate` で3桁区切り・右寄せに描く（`ThinkingTableView` の基底の読み筋の表 `PvTableView` が設定する）。列幅は利用者がドラッグした列だけを保存する（`ColumnWidthMemory`。保存していない列は見出しと数値の見本が収まる幅で、保存した幅を最小値として扱わない）。depth/seldepth の形の深さは、表ではなく `EngineStatusModel` 側の欄（7.6節の手順3）に出る。
 
 列4（盤面）をクリックする（選んで Enter でもよい）と、`PvBoardController::onPvRowClicked(model, row)` が読み筋の盤面ダイアログ（`PvBoardDialog`）を開く。行の読み筋（`PvText`）の指せた手で局面をたどる（開始局面が無ければ、表示中の局面の上でエンジンが送った語を指し直す）。
 
@@ -4073,11 +4069,11 @@ YaneuraOu\3\type=check
 
 起動時は `EngineProfileStore::launchOptions()` がこの設定から送るオプション（`LaunchOptions`。button 型は値が `on` のものだけ）を作り、`UsiProtocolHandler::setLaunchOptions()` に渡す。`UsiProtocolHandler` は設定ファイルを開かず、渡された値から `setoption` コマンド群を構築する。エンジンが報告していないオプションは送らない。`USI_Ponder` だけはここでは送らず、GUI の先読み設定（`EngineProfileStore::loadPonder()`。エンジンごとのグループの `gui/ponderEnabled` など）から初期化時に一度だけ送る（通知を省略する設定で、エンジンも報告していなければ送らない）。
 
-### 7.10 UsiCommLogModel と UsiModelBinding — 情報欄・通信ログ
+### 7.10 EngineStatusModel と UsiModelBinding — 情報欄・通信ログ
 
-**ソース**: `src/models/usicommlogmodel.h/.cpp`, `src/ui/presenters/usimodelbinding.h/.cpp`
+**ソース**: `src/models/enginestatusmodel.h/.cpp`, `src/ui/presenters/usimodelbinding.h/.cpp`
 
-`UsiCommLogModel` はエンジン1台の情報欄の値（エンジン名・探索状況・予想手）を持ち、通信ログの行を知らせるモデルである。探索状況は `EngineSearchStatus`（`src/engine/enginesearchstatus.h`）の数値のまま持ち、書式（3桁区切り・百分率）は表示する側の `EngineInfoWidget` が決める。通信ログの行は溜めず、届くたびに `logLineAppended` で `UsiLogPanel` に知らせる。
+`EngineStatusModel` はエンジン1台の情報欄の値（エンジン名・探索状況・予想手）を持ち、通信ログの行を知らせるモデルである。探索状況は `EngineSearchStatus`（`src/engine/enginesearchstatus.h`）の数値のまま持ち、書式（3桁区切り・百分率）は表示する側の `EngineInfoWidget` が決める。通信ログの行は溜めず、届くたびに `logLineAppended` で `UsiLogPanel` に知らせる。
 
 #### 値とシグナル
 
@@ -4090,20 +4086,20 @@ YaneuraOu\3\type=check
 
 #### UsiModelBinding — エンジンとモデルを結ぶ
 
-`UsiModelBinding`（`ui/presenters`）はエンジン1台（`Usi`）を親にして作り、エンジンのシグナルを受けて表示のモデルを更新する。`Models` 構造体で `UsiCommLogModel`（情報欄と通信ログ）と思考の表の `ShogiEngineThinkingModel` を渡し、検討の表は `setConsideration(model, maxMultiPV)` で後から足す。
+`UsiModelBinding`（`ui/presenters`）はエンジン1台（`Usi`）を親にして作り、エンジンのシグナルを受けて表示のモデルを更新する。`Models` 構造体で `EngineStatusModel`（情報欄と通信ログ）と思考の表の `ShogiEngineThinkingModel` を渡し、検討の表は `setConsideration(model, maxMultiPV)` で後から足す。
 
 | 受けるシグナル | 反映先 |
 |----------------|--------|
 | `ThinkingInfoFormatter::thinkingInfoUpdated` | 思考の表 `prependRow()`、検討の表 `updateByMultipv()` |
 | `ThinkingInfoFormatter::clearThinkingInfoRequested` | 思考の表 `clear()` |
-| `ThinkingInfoFormatter::searchStatusUpdated` | `UsiCommLogModel::updateStatus()` |
+| `ThinkingInfoFormatter::searchStatusUpdated` | `EngineStatusModel::updateStatus()` |
 | `EngineProcessManager::commandSent`・`dataReceived`・`stderrReceived` | `appendLogLine()`（`▶`・`◀`・`⚠` とエンジンタグを付ける） |
 | `UsiProtocolHandler::bestMoveReceived` | 予想手の表示（指した後の局面の表記で `setPredictedMove()`） |
 
 #### 更新の流れ
 
 ```
-ThinkingInfoFormatter           UsiModelBinding              UsiCommLogModel
+ThinkingInfoFormatter           UsiModelBinding              EngineStatusModel
   │                                │                            │
   │ emit searchStatusUpdated(...)  │                            │
   │ ─────────────────────────────▶ │                            │
@@ -4159,7 +4155,7 @@ ThinkingInfoFormatter           UsiModelBinding              UsiCommLogModel
                     ┌────────┴──────────┐
                     ▼                   ▼
         ┌──────────────────┐    ┌──────────────────────┐
-        │UsiCommLogModel   │    │ShogiEngineThinking   │
+        │EngineStatusModel   │    │ShogiEngineThinking   │
         │                  │    │Model                 │
         │ Q_PROPERTY       │    │                      │
         │ バインディング     │    │ 思考タブTableView    │
@@ -5813,7 +5809,7 @@ ShogiClock::timeUpdated()（tick・状態の変化・ShogiClock::notifyTimeUpdat
 
 #### EngineDisplayPresenter と UsiModelBinding — エンジンの表示
 
-エンジンは表示のモデルに触れない。`EngineDisplayPresenter`（`enginedisplaypresenter.h`）が、エンジンの枠（`EngineSlots`）にエンジンが入るたびに `UsiModelBinding` を作り、エンジンのシグナルを思考の表（先頭に足す）・検討の表（multipv の行を更新する）・情報欄と通信ログ（`UsiCommLogModel`）へ反映する。検討の間は E1 のエンジンの読み筋を検討の表にも出す（候補手の数は `AnalysisSession` に合わせる）。
+エンジンは表示のモデルに触れない。`EngineDisplayPresenter`（`enginedisplaypresenter.h`）が、エンジンの枠（`EngineSlots`）にエンジンが入るたびに `UsiModelBinding` を作り、エンジンのシグナルを思考の表（先頭に足す）・検討の表（multipv の行を更新する）・情報欄と通信ログ（`EngineStatusModel`）へ反映する。検討の間は E1 のエンジンの読み筋を検討の表にも出す（候補手の数は `AnalysisSession` に合わせる）。
 
 `EngineDisplayPresenter` はエンジンの表示の持ち主で、ほかの部品はエンジンの表示を直接変えない。
 
@@ -6378,7 +6374,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | BranchTreeView | QGraphicsView | 分岐ツリーのドック（ドックの中身そのもの。objectName は `branchTreeView`） | 分岐ツリーの図（`KifuBranchTree` を読むだけの観察者）。`setTree(tree)` でツリーの型付きの知らせを自分で受け、`nodeAppended` で手順の末尾に1手足しただけならその手だけを描き足し、それ以外（新しい変化・並べ替え・削除・作り直し）は作り直す。外とは `KifuBranchNode` の ID だけでやり取りする（`setCurrentNode(nodeId, center)`・`currentNodeId()`、シグナル `nodeActivated(nodeId)`・`nodeContextMenuAboutToShow(nodeId, menu)`、スロット `refreshNode(nodeId)`）。描く前に届いた表示中の手は、描いた時点で目立たせる。キー・マウス・ホイール・右クリックは `QGraphicsView` のイベント関数の上書きで受ける（イベントフィルタは使わない）。折りたたみもノード ID で指定する（`setCollapsed`・`isCollapsed`・`isCollapsible`・`expandAll`）。選べるかは `setClickEnabled()`（`UiStatePolicyManager` が決める）。テスト・自動化用に `isDrawn(nodeId)`・`laneOf(nodeId)`・`rebuildCount()` を持つ。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
 | BranchNodeItem | QGraphicsPathItem | BranchTreeView の中 | 図の1手（開始局面も同じクラスで、少し大きく太い枠で描く）。ノード ID・行・手数を型付きのメンバで持ち、`setCurrent()`・`setComment()`・`setCollapsedBadge()` で見た目を変える。`BranchTreeItemRoles`（`src/common/branchtreeitemroles.h`）の項目は自動化 API が読むためだけに付ける |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線）。点は `setSeries()` で渡された `EvaluationSeries`（書き手は `EvaluationGraphPresenter`）を描くだけ。表示の設定は値 `EvaluationChartSettings`（`chartSettings()`・`setChartSettings()`。変えると `AnalysisSettings::evalChart` に保存）、軸は `EvaluationChartRange::compute()` が設定・点の範囲・描く場所の大きさから決める（`axes()`）。「表示設定…」は `settingsRequested` を出すだけで、ダイアログは `DialogLauncher` が開く |
-| EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報帯。思考の表のすぐ上） | `UsiCommLogModel` の値を、手番の印・エンジン名に続けて「項目名 値」で1行に並べる（予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の項目は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。項目の幅は項目名と見本の値を実際に描く書体で測るだけで決め、届いた値では変えない。余った幅はエンジン名、さらに余れば探索手の定跡の表記（`KifuPresentation::bookMove`）に使うので、同じ幅の帯はエンジン名や値によらず同じ位置に揃う。想定より長い値は `ElideLabel` が省略し、全文はツールチップで読める。1行に収まらなければエンジン名と指し手の行と数値の行に折り返す。高さは固定で親の最小の高さになるので、隠れている間は折り返さず、行を増やすのは画面に描いた後にする（ドックのタブの裏の帯は `isVisible()` でも見えている扱いのまま起動時の仮の幅で残り、そこで増やすとメインウィンドウを押し広げる）。部品は大きさを固定して置くので、値の更新で配置を計算しない。手番の印は `setSide()` で受ける（`EngineDisplayPresenter` が決める） |
+| EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報帯。思考の表のすぐ上） | `EngineStatusModel` の値を、手番の印・エンジン名に続けて「項目名 値」で1行に並べる（予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の項目は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。項目の幅は項目名と見本の値を実際に描く書体で測るだけで決め、届いた値では変えない。余った幅はエンジン名、さらに余れば探索手の定跡の表記（`KifuPresentation::bookMove`）に使うので、同じ幅の帯はエンジン名や値によらず同じ位置に揃う。想定より長い値は `ElideLabel` が省略し、全文はツールチップで読める。1行に収まらなければエンジン名と指し手の行と数値の行に折り返す。高さは固定で親の最小の高さになるので、隠れている間は折り返さず、行を増やすのは画面に描いた後にする（ドックのタブの裏の帯は `isVisible()` でも見えている扱いのまま起動時の仮の幅で残り、そこで増やすとメインウィンドウを押し広げる）。部品は大きさを固定して置くので、値の更新で配置を計算しない。手番の印は `setSide()` で受ける（`EngineDisplayPresenter` が決める） |
 | GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加など）＋ QTableView。中身・編集の履歴は `GameInfoEditModel`（`src/models/`）。`Qt::DisplayRole`・`Qt::EditRole` は書いたままの文字列（編集・コピー・棋譜に使う）で、画面に出す文字（項目名・内容の表記と、空の内容の薄い案内文）はモデルの `PresentedTextRole` の1つで作る。表の描画（デリゲート）・項目名の列幅・読み上げ・ツールチップはどれもそれを読む。編集は表に入れた時点で文書に入る（「対局情報更新」のボタンは無い）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
 | AnalysisResultsPanel | QWidget | 棋譜解析の結果ドック | 結果の表（`PvTableView`）・停止ボタン・文字の大きさ。モデルは `setModel()` で1度だけ結ぶ。列幅は自分で保存する。ドックの表示は `KifuAnalysisController` が行う（9.8節） |
 | MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/widgets/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
@@ -7257,7 +7253,7 @@ MyDialog::MyDialog(QWidget* parent)
 
 #### 通信ログの見出し（E1・E2）
 
-2つの通信ログ（E1=上段, E2=下段）の見出しには、その枠（`EngineSlots` の E1・E2）に入ったエンジンの名前を出す（`UsiModelBinding` が結ぶときに `UsiCommLogModel::setEngineName()` する）。
+2つの通信ログ（E1=上段, E2=下段）の見出しには、その枠（`EngineSlots` の E1・E2）に入ったエンジンの名前を出す（`UsiModelBinding` が結ぶときに `EngineStatusModel::setEngineName()` する）。
 
 | 対局者 | E1 | E2 |
 |-------|----|----|
@@ -9697,7 +9693,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | Usi | C | engine | GUI から使う USI エンジン1台の窓口（型付きの送信メソッド） | 第7章 |
 | UsiBestMove | S | engine | エンジンが返した bestmove の値型 | 第7章 |
 | UsiCommandController | C | ui/controllers | USIエンジンコマンド送信の制御 | 第10章 |
-| UsiCommLogModel | C | models | エンジン1台の情報欄（エンジン名・探索状況・予想手）と通信ログの行の知らせ | 第7章, 第11章 |
+| EngineStatusModel | C | models | エンジン1台の情報欄（エンジン名・探索状況・予想手）と通信ログの行の知らせ | 第7章, 第11章 |
 | UsiEngineSession | C | engine | USI エンジン1台への接続（起動・初期化・探索・終了）。GUI と CLI が共用する | 第7章 |
 | UsiExporter | C | kifu/formats | USI形式の書き出し | 第8章 |
 | UsiInfo | S | engine | info 行を解析した値（UsiScore を含む） | 第7章 |

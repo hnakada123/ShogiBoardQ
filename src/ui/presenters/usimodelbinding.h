@@ -13,13 +13,13 @@
 
 class ShogiEngineThinkingModel;
 class Usi;
-class UsiCommLogModel;
+class EngineStatusModel;
 
 /**
  * @brief エンジン1台（Usi）の思考情報・情報欄の値・通信ログを、表示のモデルへ反映する
  *
  * エンジンは表示のモデルに触れない。このクラスがエンジンのシグナルを受けて、思考の表（先頭に足す）・
- * 検討の表（multipv の行を更新する）・情報欄と通信ログ（UsiCommLogModel）を更新する。
+ * 検討の表（multipv の行を更新する）・情報欄と通信ログ（EngineStatusModel）を更新する。
  * エンジンを親にして作り、エンジンと一緒に破棄される。
  */
 class UsiModelBinding : public QObject
@@ -28,7 +28,7 @@ class UsiModelBinding : public QObject
 
 public:
     struct Models {
-        UsiCommLogModel* commLog = nullptr;             ///< 情報欄と通信ログ
+        EngineStatusModel* commLog = nullptr;             ///< 情報欄と通信ログ
         ShogiEngineThinkingModel* thinking = nullptr;   ///< 思考の表
     };
 
@@ -51,7 +51,7 @@ private:
     void appendLog(const QString& mark, const QString& text);
 
     QString m_engineTag;   ///< 通信ログの行に付ける "E1"・"E2"
-    QPointer<UsiCommLogModel> m_commLog;
+    QPointer<EngineStatusModel> m_commLog;
     QPointer<ShogiEngineThinkingModel> m_thinking;
     QPointer<ShogiEngineThinkingModel> m_consideration;
     int m_considerationMaxMultiPV = 1;

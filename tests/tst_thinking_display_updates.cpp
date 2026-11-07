@@ -29,7 +29,7 @@
 #include "shogienginethinkingmodel.h"
 #include "shogiinforecord.h"
 #include "tablestyles.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 
 /// 思考情報が届くたびの表示の更新が、余計な描き直しやレイアウトの再計算を起こさないことを検証する。
 
@@ -437,7 +437,7 @@ private slots:
         auto* info = new EngineInfoWidget(&window);
         layout->addWidget(info);
         layout->addStretch();
-        UsiCommLogModel log;
+        EngineStatusModel log;
         info->setModel(&log);
         window.resize(1600, 120);
         window.show();
@@ -490,8 +490,8 @@ private slots:
     // 2つのエンジンの帯は、エンジン名の長さや値によらず、どの幅でもすべての項目が同じ位置に並ぶ
     void engineBandsAlignWhateverTheyShow()
     {
-        UsiCommLogModel log1;
-        UsiCommLogModel log2;
+        EngineStatusModel log1;
+        EngineStatusModel log2;
         log1.setEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2 with a very long display name"));
         log2.setEngineName(QStringLiteral("H"));
         log1.setPredictedMove(QStringLiteral("△９四歩(93)"));
@@ -714,7 +714,7 @@ private slots:
         QCOMPARE(KifuPresentation::bookMove(move, 0.0), QCoreApplication::translate("KifuPresentation", "%1（定跡）").arg(move));
         QCOMPARE(KifuPresentation::bookMove(move, 39.94), QCoreApplication::translate("KifuPresentation", "%1（定跡 %2%）").arg(move, QStringLiteral("39.9")));
 
-        UsiCommLogModel log;
+        EngineStatusModel log;
         const QString engineName = QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2");
         log.setEngineName(engineName);
         EngineSearchStatus status;
@@ -753,7 +753,7 @@ private slots:
         wider.setLetterSpacing(QFont::AbsoluteSpacing, 3);
         QApplication::setFont(wider, "QLabel");
         {
-            UsiCommLogModel log;
+            EngineStatusModel log;
             const QString engineName = QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2");
             log.setEngineName(engineName);
             EngineInfoWidget info;

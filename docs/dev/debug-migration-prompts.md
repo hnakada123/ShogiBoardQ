@@ -166,7 +166,7 @@ docs/dev/debug-logging-guidelines.md を読んで従ってください。
 - shogiengineinfoparser.cpp（8箇所）
 - engineprocessmanager.cpp（5箇所）
 - usiprotocolhandler.cpp（5箇所）
-- usicommlogmodel.cpp（1箇所）
+- enginestatusmodel.cpp（1箇所）
 
 ## カテゴリ定義
 - カテゴリ名: "shogi.engine"

@@ -182,7 +182,7 @@ docs/dev/developer-guide.md に第7章「engine層：USIエンジン連携」を
 - src/engine/shogiengineinfoparser.h
 - src/engine/enginesettingscoordinator.h
 - src/services/engineoption.h
-- src/engine/usicommlogmodel.h
+- src/engine/enginestatusmodel.h
 
 記述してほしい内容:
 - 3層構造の解説: EngineProcessManager（プロセス管理） → UsiProtocolHandler（プロトコル処理） → Usi（ファサード）
@@ -191,7 +191,7 @@ docs/dev/developer-guide.md に第7章「engine層：USIエンジン連携」を
 - ThinkingInfoPresenter: info行のパース、読み筋(PV)の漢字変換処理
 - ShogiEngineThinkingModel: Qtモデルとしての役割、TableViewへのバインド
 - EngineSettingsCoordinator: エンジン登録・設定変更のフロー
-- UsiCommLogModel: 通信ログの記録と表示
+- EngineStatusModel: 通信ログの記録と表示
 
 注意:
 - 他の章の内容は変更しないでください

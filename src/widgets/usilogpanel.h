@@ -10,7 +10,7 @@
 
 class QComboBox;
 class ElideLabel;
-class UsiCommLogModel;
+class EngineStatusModel;
 
 /**
  * @brief USI通信ログの表示・操作を担うパネル
@@ -27,7 +27,7 @@ public:
     ~UsiLogPanel() override;
 
     /// USI通信ログモデルを設定（エンジン名・ログ表示を接続）
-    void setModels(UsiCommLogModel* log1, UsiCommLogModel* log2);
+    void setModels(EngineStatusModel* log1, EngineStatusModel* log2);
 
     /// 色付きログ行を追記
     void appendColoredLog(const QString& logLine, const QColor& lineColor) { appendLine(logLine, lineColor); }
@@ -51,8 +51,8 @@ private:
     ElideLabel* m_engine1Label = nullptr;
     ElideLabel* m_engine2Label = nullptr;
     QComboBox* m_targetCombo = nullptr;
-    UsiCommLogModel* m_log1 = nullptr;
-    UsiCommLogModel* m_log2 = nullptr;
+    EngineStatusModel* m_log1 = nullptr;
+    EngineStatusModel* m_log2 = nullptr;
 };
 
 #endif // USILOGPANEL_H

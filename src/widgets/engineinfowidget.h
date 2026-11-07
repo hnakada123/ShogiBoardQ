@@ -17,7 +17,7 @@
 
 class ElideLabel;
 class QLabel;
-class UsiCommLogModel;
+class EngineStatusModel;
 
 /**
  * @brief 手番の印・エンジン名と、予想手・探索手・深さ・ノード数などを「項目名 値」で1行に並べる情報の帯
@@ -36,7 +36,7 @@ class EngineInfoWidget : public QWidget {
     Q_OBJECT
 public:
     explicit EngineInfoWidget(QWidget* parent = nullptr, bool showPredictedMove = true);
-    void setModel(UsiCommLogModel* model);
+    void setModel(EngineStatusModel* model);
     void setDisplayNameFallback(const QString& name);
     /// このエンジンが指す側（エンジン名の前に ▲・△ を出す）。片方の側を指していない（検討など）なら nullopt
     void setSide(std::optional<Turn> side);
@@ -98,7 +98,7 @@ private:
     void placeName(const QRect& rect);
     void placeField(const FieldCell& cell, const QRect& rect);
 
-    UsiCommLogModel* m_model = nullptr;
+    EngineStatusModel* m_model = nullptr;
     QLabel* m_sideMark = nullptr;
     ElideLabel* m_name = nullptr;
     std::array<FieldCell, FieldCount> m_fields;

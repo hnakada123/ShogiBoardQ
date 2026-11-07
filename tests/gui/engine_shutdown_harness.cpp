@@ -19,7 +19,7 @@
 #include "settingscommon.h"
 #include "engineprofilestore.h"
 #include "shogiview.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 #include "matchcoordinator.h"
 
 static void auditMessage(QtMsgType type, const QMessageLogContext&, const QString& message)
@@ -38,8 +38,8 @@ public:
     {
         connect(&m_poll, &QTimer::timeout, this, &ShutdownScenario::poll);
         connect(&m_dialogs, &QTimer::timeout, this, &ShutdownScenario::handleDialogs);
-        for (auto* model : window.findChildren<UsiCommLogModel*>())
-            connect(model, &UsiCommLogModel::logLineAppended, this, &ShutdownScenario::logLine);
+        for (auto* model : window.findChildren<EngineStatusModel*>())
+            connect(model, &EngineStatusModel::logLineAppended, this, &ShutdownScenario::logLine);
         m_elapsed.start();
         m_poll.start(20);
         m_dialogs.start(10);

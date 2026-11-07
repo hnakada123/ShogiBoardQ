@@ -51,7 +51,7 @@
 #include "test_replay.h"
 #include "usienginesession.h"
 #include "usi.h"
-#include "usicommlogmodel.h"
+#include "enginestatusmodel.h"
 #include "mateoracle.h"
 #include "usimodelbinding.h"
 #include "header_drag_helper.h"
@@ -111,7 +111,7 @@ public:
     AnalysisResultsPanel resultsPanel;
     EvaluationChartWidget evalChart;
     EvaluationGraphPresenter evalGraph{{&evalChart, &nav, nullptr}};
-    UsiCommLogModel logModel;
+    EngineStatusModel logModel;
     ShogiEngineThinkingModel thinkingModel;
     ShogiClock clock;
     EngineSlots engines;

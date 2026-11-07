@@ -23,7 +23,7 @@ class KifuAnalysisListModel;
 class KifuBranchListModel;
 class KifuRecordListModel;
 class ShogiEngineThinkingModel;
-class UsiCommLogModel;
+class EngineStatusModel;
 
 // 盤・時計
 class BoardInteractionController;
@@ -122,8 +122,8 @@ struct MainWindowComponents {
     ShogiEngineThinkingModel* thinking2 = nullptr;
     ShogiEngineThinkingModel* consideration = nullptr;  ///< 検討・読み筋表示・矢印が同じものを使う
     KifuAnalysisListModel* analysis = nullptr;          ///< 棋譜解析の結果
-    UsiCommLogModel* commLog1 = nullptr;
-    UsiCommLogModel* commLog2 = nullptr;
+    EngineStatusModel* commLog1 = nullptr;
+    EngineStatusModel* commLog2 = nullptr;
 
     // --- 盤・時計 ---
     GameBoard* gameBoard = nullptr;
