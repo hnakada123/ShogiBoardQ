@@ -164,14 +164,16 @@ def _tool(
     idempotent: bool = False,
     open_world: bool = False,
     unrestricted: bool = False,
+    queued: bool = False,
 ) -> types.Tool:
     if unrestricted:
         UNRESTRICTED_TOOLS.add(name)
     schema = dict(input_schema)
     schema.setdefault("type", "object")
     schema.setdefault("additionalProperties", False)
-    if output_schema and "queued" in output_schema.get("properties", {}):
+    if queued:
         # The application answers before it performs a UI operation; AppClient.call_queued then waits for it.
+        output_schema = output_schema or {"type": "object", "properties": {}}
         output_schema = {**output_schema, "properties": {**output_schema["properties"], **QUEUED_OUTPUT}}
         description += QUEUED_NOTE
     return types.Tool(
@@ -526,6 +528,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         _spec("method", "action.trigger"),
         {"type": "object", "properties": {"name": {"type": "string"}, "triggered": {"type": "boolean"}}, "required": ["name", "triggered"]},
         unrestricted=True,
+        queued=True,
     ),
     _tool(
         "click_board_square",
@@ -540,6 +543,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         _spec("method", "board.click"),
         {"type": "object", "properties": {"target": {"type": "string"}, "file": {"type": "integer"},
             "rank": {"type": "integer"}, "queued": {"type": "boolean"}}, "required": ["target", "file", "rank", "queued"]},
+        queued=True,
     ),
     _tool(
         "click_dialog_button",
@@ -552,6 +556,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"},
             "text": {"type": "string"}}, "required": ["queued", "object_name", "text"]},
         unrestricted=True,
+        queued=True,
     ),
     _tool(
         "list_docks", "List dock panels",
@@ -571,11 +576,12 @@ PHASE2_TOOLS: list[types.Tool] = [
         "coordinates x/y; it cannot drag OS-native floating title bars. "
         "Movement respects dock locks and allowed areas; a tabify relative must be visible and docked. "
         "For float, optional geometry is the global client rectangle (Qt minimum sizes still apply). "
-        "Operations are queued and blocked by modal dialogs; poll list_docks to check completion. "
+        "Operations are blocked by modal dialogs. "
         "Use trigger_action(actionResetDockLayout) to reset the layout.",
         _spec("method", "dock.configure"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
+        queued=True,
     ),
     _tool(
         "show_dock", "Show dock panel",
@@ -585,6 +591,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         _spec("method", "widget.showDock"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
+        queued=True,
     ),
     _tool(
         "click_widget", "Click widget button",
@@ -596,6 +603,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
         unrestricted=True,
+        queued=True,
     ),
     _tool(
         "get_clipboard", "Read clipboard",
@@ -618,6 +626,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
         unrestricted=True,
+        queued=True,
     ),
     _tool(
         "set_widget_value", "Set widget value",
@@ -632,16 +641,18 @@ PHASE2_TOOLS: list[types.Tool] = [
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
         unrestricted=True,
+        queued=True,
     ),
     _tool(
         "click_table_cell", "Click table cell",
         "Click a zero-based row and column in a table identified by object name or selector through normal mouse events. "
         "Use considerationView column 5 (header 盤面) to open the principal variation board. Scrolls the cell "
-        "into view; hidden, disabled and modally blocked cells are refused. Returns when queued.",
+        "into view; hidden, disabled and modally blocked cells are refused.",
         _spec("method", "widget.clickCell"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
         unrestricted=True,
+        queued=True,
     ),
     _tool(
         "capture_screenshot",
@@ -673,6 +684,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         {"type": "object", "properties": {"closed": {"type": "boolean"}, "object_name": {"type": "string"}, "title": {"type": "string"}},
          "required": ["closed"]},
         idempotent=True,
+        queued=True,
     ),
     _tool(
         "get_widget_text",
@@ -703,6 +715,7 @@ PHASE2_TOOLS += [
         _spec("method", "menu.select"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "text": {"type": "string"}}, "required": ["queued", "text"]},
         unrestricted=True,
+        queued=True,
     ),
     _tool(
         "menu_favorites", "Get or replace menu favorites",
@@ -720,6 +733,7 @@ PHASE2_TOOLS += [
         "Scrolls to the node and follows the normal GUI navigation path. Refresh node ids after reloading a record.",
         _spec("method", "branch.click"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "id": {"type": "integer"}}, "required": ["queued", "id"]},
+        queued=True,
     ),
 ]
 
