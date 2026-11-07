@@ -267,8 +267,7 @@ void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState sta
         switch (m_phase) {
         case Phase::Playing:
             // 対局中の切断は中断として終局させる
-            m_series->setLastEndedByServer(false);
-            onClientGameEnded(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0);
+            endGame(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0, false);
             return;
         case Phase::Ended:
             // shogi-server は終局のたびに切断する。対局数が残っていれば接続し直して次を待つ
@@ -296,8 +295,7 @@ void CsaGameCoordinator::onClientError(const QString& message)
 {
     emit logMessage(tr("エラー: %1").arg(message), true);
     if (m_phase == Phase::Playing) {
-        m_series->setLastEndedByServer(false);
-        onClientGameEnded(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0);
+        endGame(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0, false);
         return;
     }
     emit errorOccurred(message);
@@ -306,8 +304,7 @@ void CsaGameCoordinator::onClientError(const QString& message)
 void CsaGameCoordinator::onServerGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause,
                                            int consumedTimeMs)
 {
-    m_series->setLastEndedByServer(true);
-    onClientGameEnded(result, cause, consumedTimeMs);
+    endGame(result, cause, consumedTimeMs, true);
 }
 
 void CsaGameCoordinator::onCommandRejected(const QString& reason)
@@ -343,7 +340,7 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
     emit logMessage(tr("対局開始！"));
     setPhase(Phase::Playing);
 
-    if (!setupInitialPosition()) return;
+    setupInitialPosition();
 
     const CsaGameSummary& summary = m_progress.summary;
     const bool myTurn = m_client->isMyTurn();
@@ -383,16 +380,18 @@ void CsaGameCoordinator::onGameRejected(const QString& gameId, const QString& re
     emit logMessage(tr("対局が拒否されました (ID: %1, 拒否者: %2)").arg(gameId, rejector), true);
 }
 
-void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
+void CsaGameCoordinator::endGame(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs,
+                                 bool endedByServer)
 {
     // 解釈できなかった指し手の裁定待ちは、終局で解消する
     m_verdict->clear();
 
     if (m_phase != Phase::Playing) return;
+    m_series->setLastEndedByServer(endedByServer);
     const bool isBlackSide = m_progress.isBlackSide;
     // 連続王手の千日手は終局した局面の手番で決まる
     const bool blackToMove = m_progress.sideToMove() == Turn::Black;
-    qCDebug(lcNetwork).noquote() << "onClientGameEnded ENTER:"
+    qCDebug(lcNetwork).noquote() << "endGame:"
                                 << "result=" << static_cast<int>(result)
                                 << "cause=" << static_cast<int>(cause)
                                 << "consumedTimeMs=" << consumedTimeMs
@@ -419,7 +418,8 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
 
     // 結果の表示（ステータスバー・ダイアログ）は gameEnded を受ける ui の CsaGameSession が出す
     qCInfo(lcNetwork) << "Game ended:" << result << cause;
-    setPhase(Phase::Ended);
+    // 対局の段階だけを変え、動作状態は棋譜を確定してから変える（MatchCoordinator と同じ順）
+    m_phase = Phase::Ended;
 
     // 終局行を棋譜へ書く（対局の手順は終局の行を含めない）
     if (m_sink) m_sink->appendRecord(m_progress.endRecord(result, cause, blackToMove, actualConsumedTimeMs));
@@ -431,14 +431,14 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
                                                        isBlackSide ? Turn::Black : Turn::White));
         m_engineSeat->release();
     }
-    // 対局数を数えてログアウトの要否を先に決める。終局の通知を受ける側（結果の表示）は
-    // moreGamesWanted() で続行の有無を見られ、結果のダイアログが LOGOUT を遅らせない
     m_series->finishGame();
-    handleGameCountAfterEnd();
     // 棋譜を確定して自動保存し（次の対局が始まる前に書き出す）、対局の間の動作状態を終える。
     // 次の対局を待つなら通信対局の接続中に、続けなければ待機に戻す
     if (m_sink) m_sink->finishRecord(/*autoSave=*/true);
-    updateActivity();
+    publishGameState();
+    // ログアウトは終局の通知の前に送る。受ける側（結果の表示）は moreGamesWanted() で続行の有無を見られ、
+    // 結果のダイアログが LOGOUT を遅らせない
+    handleGameCountAfterEnd();
     emit gameEnded(result, cause, actualConsumedTimeMs);
 }
 
@@ -508,14 +508,13 @@ void CsaGameCoordinator::onEngineError(const QString& message)
 void CsaGameCoordinator::failGame(const QString& message)
 {
     const bool inGame = (m_phase == Phase::Playing);
-    m_series->setLastEndedByServer(false);
     if (!inGame) setPhase(Phase::Failed);
     // 同意できなくなった対局条件は、切断の前に拒否する（CsaClient::disconnectFromServer）
     m_client->disconnectFromServer();
     // 対局中に続行できなくなったら中断として終局させ、画面を対局中のまま残さない。
     // 切断の通知で既に終局していれば何もしない
     if (inGame) {
-        onClientGameEnded(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0);
+        endGame(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0, false);
     }
     emit errorOccurred(message);
 }

@@ -224,8 +224,9 @@ private slots:
     void onGameRejected(const QString& gameId, const QString& rejector);
     void onMoveReceived(const QString& move, int consumedTimeMs);
     void onMoveConfirmed(const QString& move, int consumedTimeMs);
-    void onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
-    /// サーバーの裁定で終局した（CsaClient::gameEnded）。切断や内部エラーによる終局と区別する
+    /// 対局を終える。endedByServer はサーバーの裁定による終局か（切断・こちらの失敗なら false。再接続の条件）
+    void endGame(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs, bool endedByServer);
+    /// サーバーの裁定で終局した（CsaClient::gameEnded）
     void onServerGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
     void onGameInterrupted();
     /// 終局後にサーバーが切断したとき、少し待ってから次の対局のために接続し直す（CsaGameSeries::reconnectDue）
@@ -247,7 +248,7 @@ private:
         Active,     ///< 接続してから対局が始まるまで（再接続の後も）
         Playing,    ///< 対局が始まってから終局を記録するまで
         Ended,      ///< 終局を記録した後（同じ接続で次の対局条件を待つ。サーバーが切っても GameOver のまま）
-        Failed      ///< 続けられない失敗（ログイン失敗・不正な局面・エンジンの失敗）
+        Failed      ///< 続けられない失敗（ログイン失敗・エンジンの失敗）
     };
     void setPhase(Phase phase);
     /// gameState() が前に知らせた値から変わっていれば gameStateChanged を出す（動作状態も合わせる）
@@ -259,7 +260,7 @@ private:
     /// （対局の間の DuringCsaGame は、棋譜を作ってから onGameStarted が始める）
     void updateActivity();
     /// 開始局面と再開局面の手を盤に並べる。手を指せなければ失敗にして false
-    bool setupInitialPosition();
+    void setupInitialPosition();
     /// この対局の新しい棋譜（サーバーの開始局面・対局者名・持ち時間と、接続ダイアログの自動保存）
     MatchRecordStart recordStart() const;
     void setupClock();

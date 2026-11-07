@@ -103,12 +103,17 @@ struct RecordedSink final : MatchRecordSink {
     void appendRecord(const RecordEntry& entry) override { records.append(entry); }
     bool canUndoRecords(int) const override { return false; }
     void undoRecords(int) override {}
-    void finishRecord(bool autoSave) override { finishes.append(autoSave); }
+    void finishRecord(bool autoSave) override
+    {
+        finishes.append(autoSave);
+        if (onFinish) onFinish();
+    }
 
     QList<MatchRecordStart> begins;
     QList<RecordEntry> records;
     QList<bool> finishes;   ///< finishRecord の autoSave
     std::function<void()> onBegin;   ///< 新しい棋譜を作るときに呼ぶ（アプリは棋譜の作り直しで表示を消す）
+    std::function<void()> onFinish;  ///< 棋譜を確定するときに呼ぶ
 };
 
 /// 盤・時計・局面列・動作状態・棋譜の受け手と司令塔をそろえ、偽サーバーと対局を始める
@@ -123,6 +128,7 @@ struct Harness {
     int gameLimit = 0;   ///< 対局数（0 は制限なし）
     bool reconnect = false;   ///< 終局の後にサーバーが切ったら接続し直す
     std::function<void()> afterLogin;   ///< ログインの成功を返してから対局条件を送るまでの間に呼ぶ
+    QList<QByteArray> positionLines;    ///< BEGIN Position の中身（空なら平手）
 
     Harness()
     {
@@ -171,9 +177,13 @@ struct Harness {
         server.send("Increment:10");
         server.send("END Time");
         server.send("BEGIN Position");
-        server.send("PI");
-        server.send("+");
-        for (const QByteArray& move : positionMoves) server.send(move);
+        if (positionLines.isEmpty()) {
+            server.send("PI");
+            server.send("+");
+            for (const QByteArray& move : positionMoves) server.send(move);
+        } else {
+            for (const QByteArray& line : positionLines) server.send(line);
+        }
         server.send("END Position");
         server.send("END Game_Summary");
         if (!server.waitForLine(QStringLiteral("AGREE g1"))) return false;
@@ -237,6 +247,24 @@ private slots:
         QCOMPARE(h.moveCount(), 2);
         QCOMPARE(h.gc.board()->pieceCharacter(8, 4), Piece::WhitePawn);
         QCOMPARE(h.sink.records.at(1).move.move.toString(), QStringLiteral("8c8d"));
+    }
+
+    /// 読めない開始局面には同意しない。START の後にサーバーと違う盤で対局しない（監査 2026-11-07 F12）
+    void unreadablePositionIsRejectedBeforeAgreeing_data()
+    {
+        QTest::addColumn<QList<QByteArray>>("position");
+        QTest::newRow("unknown-piece") << QList<QByteArray>{"P1-KY-KE-GI-KI-OU-KI-GI-KE-XX", "+"};
+        QTest::newRow("move-that-cannot-be-played") << QList<QByteArray>{"PI", "+", "+5554FU,T1"};
+    }
+
+    void unreadablePositionIsRejectedBeforeAgreeing()
+    {
+        QFETCH(QList<QByteArray>, position);
+        Harness h;
+        h.positionLines = position;
+        QVERIFY(!h.start("+"));
+        QVERIFY(h.server.lines.contains(QStringLiteral("REJECT g1")));
+        QVERIFY(!h.server.lines.contains(QStringLiteral("AGREE g1")));
     }
 
     /// 対局条件が初期化の途中に届いても、エンジンを起動し直さず readyok を待って同意する（監査 2026-11-07 F11）
@@ -724,6 +752,8 @@ private slots:
         m_endedAfterFinish = false;
         connect(&h.coordinator, &CsaGameCoordinator::gameStarted, this, &TestCsaGameCoordinator::observeStarted);
         connect(&h.coordinator, &CsaGameCoordinator::gameEnded, this, &TestCsaGameCoordinator::observeEnded);
+        // 棋譜を確定するまでは通信対局中のまま（MatchCoordinator と同じ順。監査 2026-11-07 T4）
+        h.sink.onFinish = [&] { QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringCsaGame); };
         QVERIFY(h.start("-"));
         QVERIFY(m_startedAfterRecord);
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringCsaGame);

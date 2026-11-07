@@ -60,6 +60,12 @@ struct CsaGameProgress {
     /// 今の手番（手順の最後の局面の手番。手順が無ければ To_Move）
     Turn sideToMove() const;
     /// 直前の手の移動先（「同」の判定用。手が無ければ無効な升）
+    /**
+     * @brief 対局条件の開始局面と再開局面の手順（消費時間つき）を、盤を使わずに作る
+     *
+     * 同意の前に確かめるための値の計算。読めなければ nullopt で、problem に読めなかった内容を入れる
+     */
+    std::optional<RecordLine> startLine(QString* problem) const;
     BoardSquare previousTo() const { return record.destinationOf(record.moveCount()); }
     /// エンジンに探索させる今の局面（開始局面からの手順。読めなければ nullopt）
     std::optional<UsiPosition> usiPosition() const { return record.usiPosition(record.moveCount()); }

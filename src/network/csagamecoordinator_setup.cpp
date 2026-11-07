@@ -5,59 +5,16 @@
 
 #include "matchengineseat.h"
 #include "usi.h"
-#include "csamoveconverter.h"
 #include "csaverdictwait.h"
 #include "logcategories.h"
-#include "parsecommon.h"
-#include "sfencsapositionconverter.h"
-#include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "gameboard.h"
-#include "usi.h"
-#include <QSignalBlocker>
 
-bool CsaGameCoordinator::setupInitialPosition()
+void CsaGameCoordinator::setupInitialPosition()
 {
-    if (!m_gameBoard || !m_gameBoard->board()) {
-        return true;
-    }
-
-    const QSignalBlocker replayNotifications(m_gameBoard);
-    const QString hiratePosition = SfenUtils::hirateSfen();
-
-    QString parseError;
-    auto startSfen = SfenCsaPositionConverter::fromCsaPositionLines(
-        m_progress.summary.positionLines, &parseError);
-    if (!startSfen || startSfen->isEmpty()) {
-        qCWarning(lcNetwork).noquote()
-            << "CSA position parse failed. fallback to hirate. error=" << parseError;
-        startSfen = hiratePosition;
-    }
-    m_gameBoard->board()->setSfen(*startSfen);
-    m_gameBoard->board()->setMoveNumber(1);
-
-    CsaGameProgress& p = m_progress;
-    p.record = RecordLine{};
-    p.record.startSfen = m_gameBoard->board()->toSfen();
-
-    for (const QString& move : std::as_const(p.summary.moves)) {
-        const std::optional<RecordEntry> played = playCsaMove(move);
-        if (!played) {
-            qCWarning(lcNetwork).noquote()
-                << "Failed to replay CSA move from Game_Summary:" << move;
-            emit logMessage(tr("初期局面の指し手再生に失敗しました: %1").arg(move), true);
-            emit errorOccurred(tr("サーバーから受信した初期局面データが不正です: %1").arg(move));
-            setPhase(Phase::Failed);
-            return false;
-        }
-
-        // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
-        RecordEntry entry = *played;
-        entry.time = p.initialMoveTime(p.moveCount());
-        p.record.entries.append(entry);
-    }
-    return true;
+    // 開始局面と再開局面の手順は、対局条件に同意する前に作ってある（onGameSummaryReceived）
+    if (m_gameBoard && m_gameBoard->board()) m_gameBoard->board()->setSfen(m_progress.record.lastSfen());
 }
 
 void CsaGameCoordinator::setupClock()
@@ -133,6 +90,16 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaGameSummary& summary)
         m_client->reject(summary.gameId);
         return;
     }
+
+    // 読めない局面には同意しない（START の後では、サーバーと違う盤で対局することになる）
+    QString positionProblem;
+    const std::optional<RecordLine> startLine = m_progress.startLine(&positionProblem);
+    if (!startLine) {
+        emit logMessage(tr("対局条件を拒否します: 初期局面を読めません: %1").arg(positionProblem), true);
+        m_client->reject(summary.gameId);
+        return;
+    }
+    m_progress.record = *startLine;
 
     // 初期化中のエンジンは起動し直さず、readyok を待つ（ログインのときに起動を始めている）
     if (!isHumanPlayer() && (!m_engineSeat || (!m_engineSeat->isReady() && !m_engineSeat->isInitializing()))) {

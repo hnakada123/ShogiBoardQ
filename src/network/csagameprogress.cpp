@@ -3,6 +3,10 @@
 
 #include "csagameprogress.h"
 
+#include "csamoveconverter.h"
+#include "moverecord.h"
+#include "sfencsapositionconverter.h"
+
 #include <limits>
 
 CsaGameProgress CsaGameProgress::forSummary(const CsaGameSummary& summary)
@@ -65,6 +69,39 @@ void CsaGameProgress::recordMoveTime(bool blackMove, int consumedMs)
     // CSAの加算は次の手番の開始時に、その手番側の加算時間で行う。
     if (blackMove) whiteRemainingMs = addMs(whiteRemainingMs, summary.incrementMs(false));
     else blackRemainingMs = addMs(blackRemainingMs, summary.incrementMs(true));
+}
+
+std::optional<RecordLine> CsaGameProgress::startLine(QString* problem) const
+{
+    QString parseError;
+    const std::optional<QString> startSfen = SfenCsaPositionConverter::fromCsaPositionLines(summary.positionLines, &parseError);
+    std::optional<Position> position = startSfen ? Position::fromSfen(*startSfen) : std::nullopt;
+    if (!position) {
+        *problem = parseError;
+        return std::nullopt;
+    }
+    position->setMoveNumber(1);
+
+    RecordLine line;
+    line.startSfen = position->toSfen();
+    BoardSquare previousTo;
+    for (int i = 0; i < summary.moves.size(); ++i) {
+        const QString& text = summary.moves.at(i);
+        const std::optional<UsiMove> move = CsaMoveConverter::toUsi(text, *position);
+        std::optional<RecordEntry> played;
+        if (move && move->isValid()) {
+            played = MoveRecord::play(*position, *move, previousTo, {}, {}, Position::DropRule::RequireHand);
+        }
+        if (!played) {
+            *problem = text;
+            return std::nullopt;
+        }
+        // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
+        played->time = initialMoveTime(i);
+        line.entries.append(*played);
+        previousTo = move->to;
+    }
+    return line;
 }
 
 RecordTime CsaGameProgress::initialMoveTime(int index) const
