@@ -53,6 +53,9 @@ public:
      */
     bool canBrowseRecord() const;
 
+    /// 棋譜を保存してよいか（UiStatePolicyManager の表の FileSaveAs の行。自動化 API の kifu.save も同じ規則）
+    bool canSaveRecord() const;
+
     /**
      * @brief 棋譜（分岐ツリー）を変えてよいか（分岐の削除・本譜にする・並べ替え・定跡の展開・盤の手の記録）
      *
