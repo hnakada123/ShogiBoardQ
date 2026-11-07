@@ -79,15 +79,6 @@ void applyFontToAllChildren(QWidget* widget, const QFont& font, const QList<QWid
     }
 }
 
-QFont applyFontSize(QWidget* widget, int size, const QList<QWidget*>& excluded)
-{
-    standardizeDialog(widget);
-    QFont font = widget->font();
-    font.setPointSize(size);
-    applyFontToAllChildren(widget, font, excluded);
-    return font;
-}
-
 void standardizeDialog(QWidget* dialog)
 {
     if (dialog->layout()) {
