@@ -5,13 +5,11 @@
 /// @brief 複数の棋譜ファイル・フォルダから定跡に登録するダイアログ（「マージ ▼」→「複数の棋譜から...」・ドロップ）
 
 #include <QDialog>
-#include <QFutureWatcher>
 #include <QStringList>
 
+#include "josekibooksession.h"
 #include "josekiimport.h"
 #include "settingsformbinding.h"
-
-class JosekiBookSession;
 class QCheckBox;
 class QComboBox;
 class QDragEnterEvent;
@@ -64,7 +62,7 @@ private slots:
     void clearPaths();
     void onProgressRangeChanged(int minimum, int maximum);
     void onProgressValueChanged(int value);
-    void onFinished();
+    void onFinished(const JosekiImport::Result &result, const JosekiBookSession::ImportStats &stats);
     void updateInputs();
 
 private:
@@ -87,7 +85,6 @@ private:
     QPushButton *m_cancel = nullptr;
     QPushButton *m_close = nullptr;
     SettingsFormBinding m_binding;
-    QFutureWatcher<JosekiImport::Result> m_watcher;
 };
 
 #endif // JOSEKIIMPORTDIALOG_H

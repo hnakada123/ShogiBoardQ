@@ -712,6 +712,7 @@ void JosekiWindow::updateStatusDisplay()
     if (activity == JosekiBookSession::Activity::Loading) statusParts << tr("読み込み中...");
     else if (activity == JosekiBookSession::Activity::Saving) statusParts << tr("保存中...");
     else if (activity == JosekiBookSession::Activity::Merging) statusParts << tr("定跡ファイルを足しています...");
+    else if (activity == JosekiBookSession::Activity::Importing) statusParts << tr("棋譜から定跡手を集めています...");
     statusParts << (filePath.isEmpty() ? tr("ファイル: 未選択") : tr("ファイル: %1").arg(QFileInfo(filePath).fileName()));
     statusParts << tr("局面数: %1").arg(QLocale().toString(m_session->positionCount()));
     statusParts << (isDisplayEnabled() ? tr("定跡: %1件").arg(moveCount) : tr("【停止中】"));

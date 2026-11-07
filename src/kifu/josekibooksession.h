@@ -48,7 +48,7 @@ public:
     static constexpr int kMaxRecentFiles = 5;
 
     /// 読み書きの最中の処理（読み込み中・保存中・定跡ファイルを足している間は定跡を変えられない）
-    enum class Activity { Idle, Loading, Saving, Merging };
+    enum class Activity { Idle, Loading, Saving, Merging, Importing };
     /// 棋譜から集めた手を登録した結果
     struct ImportStats {
         int added = 0;    ///< 足した定跡手
@@ -110,6 +110,17 @@ public:
     EngineRegistration registerEnginePv(const QString &sfen, const QStringList &pv, const UsiScore &score, int depth);
     /// 定跡の評価値（手番側から見た値）。詰みはやねうら王と同じく ±(32000 − 手数)、評価値が無ければ 0
     static int valueOf(const UsiScore &score);
+    /**
+     * @brief 棋譜ファイル・フォルダから手を集めて登録する（読むのはワーカースレッド。保存はしない）
+     *
+     * 変えられないとき（canEdit が false）は何もせず false。進み具合と終わりはシグナルで知らせる
+     */
+    bool startImport(const QStringList &paths, const JosekiImport::Options &options);
+    /// 手を集めるのをやめる（読んでいる棋譜1つを読み終えるまでは続く。定跡は変えない）
+    void cancelImport();
+    /// やめて、ワーカーが終わるまで待つ（ダイアログを閉じるとき）
+    void cancelImportAndWait();
+
     /// 棋譜から集めた手を登録する（あれば出現頻度に数を足し、無ければ予想応手なし・評価値0・深さ0で足す。
     /// コメントは定跡にコメントの無い手だけに入れる。JosekiBook::addPlayedMove）。保存はしない
     ImportStats importMoves(const QList<JosekiImport::Move> &moves);
@@ -179,8 +190,15 @@ signals:
     void bookMerged(const QString &filePath, const JosekiBook::MergeStats &stats);
     /// startMergeBook() の定跡ファイルを読めなかった（定跡は変えていない）
     void bookMergeFailed(const QString &errorMessage);
+    /// startImport() の棋譜の数が分かった（棋譜を読み始める前は最小と最大が同じ）
+    void importRangeChanged(int minimum, int maximum);
+    /// startImport() で value 件の棋譜を読んだ
+    void importProgressChanged(int value);
+    /// startImport() が終わった（登録も済んでいる。止めたら result.canceled で、定跡は変えていない）
+    void importFinished(const JosekiImport::Result &result, const JosekiBookSession::ImportStats &stats);
 
 private slots:
+    void onImportFinished();
     void onLoadFinished();
     void onSaveFinished();
     void onMergeBookFinished();
@@ -203,6 +221,7 @@ private:
     QFutureWatcher<JosekiLoadResult> m_loadWatcher;
     QFutureWatcher<JosekiSaveResult> m_saveWatcher;
     QFutureWatcher<JosekiBookMergeResult> m_mergeBookWatcher;
+    QFutureWatcher<JosekiImport::Result> m_importWatcher;
     QString m_pendingMergeBookFilePath;
     QString m_pendingLoadFilePath;
     QString m_pendingSaveFilePath;

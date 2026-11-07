@@ -6,6 +6,7 @@
 #include "josekisettings.h"
 
 #include <QFileInfo>
+#include <QPromise>
 #include <QtConcurrentRun>
 #include <algorithm>
 #include <utility>
@@ -38,9 +39,30 @@ JosekiBookSession::JosekiBookSession(QObject *parent)
             this, &JosekiBookSession::onSaveFinished);
     connect(&m_mergeBookWatcher, &QFutureWatcher<JosekiBookMergeResult>::finished,
             this, &JosekiBookSession::onMergeBookFinished);
+    connect(&m_importWatcher, &QFutureWatcher<JosekiImport::Result>::progressRangeChanged,
+            this, &JosekiBookSession::importRangeChanged);
+    connect(&m_importWatcher, &QFutureWatcher<JosekiImport::Result>::progressValueChanged,
+            this, &JosekiBookSession::importProgressChanged);
+    connect(&m_importWatcher, &QFutureWatcher<JosekiImport::Result>::finished, this, &JosekiBookSession::onImportFinished);
 }
 
 JosekiBookSession::~JosekiBookSession() = default;
+
+namespace {
+
+/// ワーカースレッドで、ファイル・フォルダから棋譜を集めて読み、登録する手を集める
+void runImport(QPromise<JosekiImport::Result> &promise, const QStringList &paths, const JosekiImport::Options &options)
+{
+    const QStringList files = JosekiImport::expandPaths(paths);
+    promise.setProgressRange(0, static_cast<int>(files.size()));
+    JosekiImport::Result result = JosekiImport::collect(files, options, [&promise](int done) {
+        promise.setProgressValue(done);
+        return !promise.isCanceled();
+    });
+    promise.addResult(std::move(result));
+}
+
+} // namespace
 
 // ============================================================
 // 定跡データの読み取り
@@ -290,6 +312,36 @@ bool JosekiBookSession::startMergeBook(const QString &filePath, const JosekiBook
     // 足している間は定跡を変えられないので、写しはデータを共有したまま渡す（足すときにワーカーで複製する）
     m_mergeBookWatcher.setFuture(QtConcurrent::run(&mergeBookFile, m_book, filePath, options));
     return true;
+}
+
+bool JosekiBookSession::startImport(const QStringList &paths, const JosekiImport::Options &options)
+{
+    if (!canEdit()) return false;
+    setActivity(Activity::Importing);
+    m_importWatcher.setFuture(QtConcurrent::run(&runImport, paths, options));
+    return true;
+}
+
+void JosekiBookSession::cancelImport()
+{
+    if (m_activity == Activity::Importing) m_importWatcher.cancel();
+}
+
+void JosekiBookSession::cancelImportAndWait()
+{
+    if (m_activity != Activity::Importing) return;
+    m_importWatcher.cancel();
+    m_importWatcher.waitForFinished();
+}
+
+void JosekiBookSession::onImportFinished()
+{
+    const bool canceled = m_importWatcher.isCanceled() || m_importWatcher.future().resultCount() == 0;
+    JosekiImport::Result result = canceled ? JosekiImport::Result{} : m_importWatcher.result();
+    result.canceled = result.canceled || canceled;
+    setActivity(Activity::Idle);
+    const ImportStats stats = result.canceled ? ImportStats{} : importMoves(result.moves);
+    emit importFinished(result, stats);
 }
 
 void JosekiBookSession::onMergeBookFinished()
