@@ -81,7 +81,7 @@ async def test_app_round_trip(app_env, tmp_path):
         out = tmp_path / "saved.csa"
         text, saved, is_error = await _call(session, "save_kifu", path=str(out))
         assert not is_error, text
-        assert out.exists() and saved["format"] == "csa"
+        assert out.exists() and saved["format"] == "csa" and saved["lost"] == []
         text, saved, is_error = await _call(session, "save_kifu", path=str(out))
         assert is_error and "overwrite" in text
 

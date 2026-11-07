@@ -11,6 +11,7 @@
 
 #include "errorkinds.h"
 #include "kifparsetypes.h"
+#include "kifuexport.h"
 #include "kifuformat.h"
 
 /**
@@ -43,7 +44,7 @@ public:
         QList<KifGameInfoItem> gameInfo;   ///< 対局情報
         QStringList warnings;              ///< 解析時の警告
         bool hasBranches = false;          ///< 変化を含むか
-        bool variationsDropped = false;    ///< 変化を含むが、出力の形式が変化を書けない（本譜だけを書いた）
+        KifuExport::Loss loss;             ///< 出力の形式に書けずに失ったもの（変化なら本譜だけを書いた）
     };
 
     static Result convert(const Request& request);

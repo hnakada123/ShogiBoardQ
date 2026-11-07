@@ -80,6 +80,15 @@ async def test_convert_kifu_from_file_and_text(server_env, tmp_path):
             assert ("only the main line" in text) is dropped, text
             assert ("変化：" in data["text"]) is (output_format == "kif")
 
+        # What the output format cannot hold is reported, not silently dropped.
+        annotated = "手合割：平手\n手数----指手---------消費時間--\n   1 ７六歩(77)   ( 0:01/00:00:01)\n*コメント\n&しおり\n"
+        text, data, is_error = await _call(session, "convert_kifu", text=annotated, output_format="usen")
+        assert not is_error, text
+        assert data["lost"] == ["times", "comments", "bookmarks"] and "Not written in USEN" in text
+        text, data, is_error = await _call(session, "convert_kifu", text=annotated, output_format="kif")
+        assert not is_error, text
+        assert data["lost"] == [] and "Not written" not in text
+
         handicap = "position sfen lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1 moves 3c3d"
         text, data, is_error = await _call(session, "convert_kifu", text=handicap, output_format="kif")
         assert not is_error, text

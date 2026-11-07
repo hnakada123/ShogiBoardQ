@@ -200,7 +200,8 @@ PHASE1_TOOLS: list[types.Tool] = [
         "to max_chars) plus the main-line USI moves, SFEN list, the start position's comment and bookmark "
         "(opening_comment, opening_bookmark) and game information. has_branches tells whether the "
         "record has variations, and variations_dropped whether the output format cannot hold them (only the main "
-        "line is written). Pass output_path to write the result to a file instead of returning the text. Does not "
+        "line is written). lost lists what the output format could not hold (variations, times, comments, bookmarks, "
+        "terminals). Pass output_path to write the result to a file instead of returning the text. Does not "
         "require the GUI.",
         {**_spec("command", "convert-kifu",
                  override={"input_path": {"description": "Kifu file to read. " + ABS_PATH_DESC},
@@ -228,6 +229,7 @@ PHASE1_TOOLS: list[types.Tool] = [
                 "game_info": {"type": "array", "items": {"type": "object"}},
                 "has_branches": {"type": "boolean"},
                 "variations_dropped": {"type": "boolean"},
+                "lost": {"type": "array", "items": {"type": "string"}},
                 "warnings": {"type": "array", "items": {"type": "string"}},
                 "text": {"type": "string"},
                 "truncated": {"type": "boolean"},
@@ -468,9 +470,11 @@ PHASE2_TOOLS: list[types.Tool] = [
         # The extensions are the application's Save As (test_environment.py checks them against the CLI)
         "Save the record shown in ShogiBoardQ to a file. The format follows the extension (.kifu .kif .ki2u .ki2 "
         ".csa .jkf .usen .usi; .kif and .ki2 are Shift_JIS). Existing files are only replaced with overwrite=true. "
+        "lost lists what the format could not hold (variations, times, comments, bookmarks, terminals). "
         "Like the application's Save, this fails with invalid_state during a game, analysis or position editing.",
         _spec("method", "kifu.save", override={"path": {"description": "Destination file. " + ABS_PATH_DESC}}),
-        {"type": "object", "properties": {"path": {"type": "string"}, "format": {"type": "string"}}, "required": ["path"]},
+        {"type": "object", "properties": {"path": {"type": "string"}, "format": {"type": "string"},
+                                          "lost": {"type": "array", "items": {"type": "string"}}}, "required": ["path"]},
     ),
     _tool(
         "get_kifu",

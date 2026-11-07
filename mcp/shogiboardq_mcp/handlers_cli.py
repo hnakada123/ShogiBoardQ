@@ -84,7 +84,7 @@ class CliTools:
 
         structured = {k: result[k] for k in ("input_format", "output_format", "initial_sfen", "is_hirate", "ply_count",
                                               "usi_moves", "sfens", "moves", "opening_comment", "opening_bookmark",
-                                              "game_info", "has_branches", "variations_dropped", "warnings")
+                                              "game_info", "has_branches", "variations_dropped", "lost", "warnings")
                       if k in result}
         # The lists follow the record, so cap them like the text (max_chars): a long record must not flood the client.
         max_moves = int(args["max_moves"])
@@ -107,6 +107,9 @@ class CliTools:
         if result.get("variations_dropped"):
             text_lines.append(f"The record has variations; {output_name} cannot hold them, so only the main line "
                               "is exported.")
+        lost = [name for name in result.get("lost", []) if name != "variations"]
+        if lost:
+            text_lines.append(f"Not written in {output_name}: {', '.join(lost)}.")
         if moves_truncated:
             text_lines.append(f"Only the first {max_moves} moves are listed (moves_truncated); ply_count has the full count.")
         if result.get("warnings"):

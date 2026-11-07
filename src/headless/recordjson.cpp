@@ -28,3 +28,14 @@ void RecordJson::addOpening(QJsonObject& obj, const QString& comment, const QStr
     if (!comment.isEmpty()) obj[QStringLiteral("opening_comment")] = comment;
     if (!bookmark.isEmpty()) obj[QStringLiteral("opening_bookmark")] = bookmark;
 }
+
+QJsonArray RecordJson::lost(const KifuExport::Loss& loss)
+{
+    QJsonArray names;
+    if (loss.variations) names.append(QStringLiteral("variations"));
+    if (loss.times) names.append(QStringLiteral("times"));
+    if (loss.comments) names.append(QStringLiteral("comments"));
+    if (loss.bookmarks) names.append(QStringLiteral("bookmarks"));
+    if (!loss.terminals.isEmpty()) names.append(QStringLiteral("terminals"));
+    return names;
+}
