@@ -621,8 +621,6 @@ set(SRC_UI
     src/ui/controllers/tsumesearchcontroller.h
     src/ui/controllers/usicommandcontroller.cpp
     src/ui/controllers/usicommandcontroller.h
-    src/ui/controllers/widgetimageexporter.cpp
-    src/ui/controllers/widgetimageexporter.h
     src/ui/coordinators/commentcoordinator.cpp
     src/ui/coordinators/commentcoordinator.h
     src/ui/coordinators/csagamesession.cpp

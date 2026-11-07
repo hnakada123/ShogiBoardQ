@@ -5,6 +5,7 @@
 /// @brief 盤と評価値グラフの画像のコピー・保存
 
 #include <QObject>
+#include <QString>
 
 class EvaluationChartWidget;
 class ShogiView;
@@ -12,6 +13,9 @@ class QWidget;
 
 /**
  * @brief メニューの「盤面の画像」「評価値グラフの画像」のコピー・保存を行う
+ *
+ * 部品を grab() した画像をクリップボードへコピーし、形式を選んでファイルに保存する。
+ * 決まった場所へ PNG で保存するのは ScreenshotService。
  */
 class ImageExportController : public QObject
 {
@@ -25,6 +29,11 @@ public:
     };
 
     explicit ImageExportController(const Deps& deps, QObject* parent = nullptr);
+
+    /// 部品の画像をクリップボードにコピーする
+    static void copyToClipboard(QWidget* widget);
+    /// 部品の画像をファイルに保存する（形式を選ぶダイアログ付き）
+    static void saveImage(QWidget* parent, QWidget* widget, const QString& baseName = QStringLiteral("ShogiBoard"));
 
 public slots:
     void copyBoardToClipboard();

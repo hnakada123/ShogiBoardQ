@@ -3,9 +3,19 @@
 
 #include "imageexportcontroller.h"
 
-#include "widgetimageexporter.h"
 #include "evaluationchartwidget.h"
+#include "notificationpresenter.h"
 #include "shogiview.h"
+
+#include <QApplication>
+#include <QClipboard>
+#include <QDateTime>
+#include <QDir>
+#include <QFileDialog>
+#include <QImage>
+#include <QImageWriter>
+#include <QPixmap>
+#include <QStandardPaths>
 
 ImageExportController::ImageExportController(const Deps& deps, QObject* parent)
     : QObject(parent)
@@ -16,21 +26,93 @@ ImageExportController::ImageExportController(const Deps& deps, QObject* parent)
 
 void ImageExportController::copyBoardToClipboard()
 {
-    WidgetImageExporter::copyToClipboard(m_deps.shogiView);
+    copyToClipboard(m_deps.shogiView);
 }
 
 void ImageExportController::copyEvalGraphToClipboard()
 {
-    WidgetImageExporter::copyToClipboard(m_deps.evalChart->chartViewWidget());
+    copyToClipboard(m_deps.evalChart->chartViewWidget());
 }
 
 void ImageExportController::saveBoardImage()
 {
-    WidgetImageExporter::saveImage(m_deps.parentWidget, m_deps.shogiView);
+    saveImage(m_deps.parentWidget, m_deps.shogiView);
 }
 
 void ImageExportController::saveEvalGraphImage()
 {
-    WidgetImageExporter::saveImage(m_deps.parentWidget, m_deps.evalChart->chartViewWidget(),
+    saveImage(m_deps.parentWidget, m_deps.evalChart->chartViewWidget(),
                                   QStringLiteral("EvalGraph"));
+}
+
+// ======================================================================
+// 部品の画像
+// ======================================================================
+
+static bool hasFormat(const QSet<QString>& fmts, const QString& key) {
+    if (key == "jpeg") return fmts.contains("jpeg") || fmts.contains("jpg");
+    return fmts.contains(key);
+}
+
+void ImageExportController::copyToClipboard(QWidget* boardWidget) {
+    if (!boardWidget) return;
+    QApplication::clipboard()->setPixmap(boardWidget->grab());
+}
+
+void ImageExportController::saveImage(QWidget* parent, QWidget* boardWidget, const QString& baseName) {
+    // 処理フロー:
+    // 1. サポートされている画像フォーマットを収集
+    // 2. ファイル保存ダイアログを表示
+    // 3. 選択されたフォーマットで画像を書き出す
+
+    if (!boardWidget) return;
+
+    QSet<QString> fmts;
+    const auto supportedFormats = QImageWriter::supportedImageFormats();
+    for (const QByteArray& f : std::as_const(supportedFormats))
+        fmts.insert(QString::fromLatin1(f).toLower());
+    if (fmts.isEmpty()) {
+        NotificationPresenter::critical(parent, tr("Error"),
+                                        tr("No writable image formats are available."));
+        return;
+    }
+
+    struct F { QString key; QString filter; QString ext; };
+    const QList<F> cands = {
+                              {"png","PNG (*.png)","png"},{"tiff","TIFF (*.tiff *.tif)","tiff"},
+                              {"jpeg","JPEG (*.jpg *.jpeg)","jpg"},{"webp","WebP (*.webp)","webp"},
+                              {"bmp","BMP (*.bmp)","bmp"},{"ppm","PPM (*.ppm)","ppm"},
+                              {"pgm","PGM (*.pgm)","pgm"},{"pbm","PBM (*.pbm)","pbm"},
+                              {"xbm","XBM (*.xbm)","xbm"},{"xpm","XPM (*.xpm)","xpm"},
+                              };
+    QStringList filters; QMap<QString,F> map;
+    for (auto& c : cands) if (hasFormat(fmts, c.key)) { filters<<c.filter; map[c.filter]=c; }
+
+    const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+    const QString base = QStringLiteral("%1_%2").arg(baseName, stamp);
+    const QString dir  = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    const QString defExt = hasFormat(fmts, "png") ? "png" : map[filters.first()].ext;
+    QString selFilter = filters.isEmpty() ? QString() : filters.first();
+
+    QString path = QFileDialog::getSaveFileName(parent, tr("Output the image"),
+                                                QDir(dir).filePath(base + "." + defExt), filters.join(";;"), &selFilter);
+    if (path.isEmpty()) return;
+
+    QString suffix = QFileInfo(path).suffix().toLower();
+    QString fmt;
+    if (suffix.isEmpty()) {
+        const auto f = map.value(selFilter);
+        path += "." + f.ext; fmt = f.key;
+    } else { if (suffix=="jpg") suffix="jpeg"; fmt=suffix; if (!hasFormat(fmts, fmt)) {
+            NotificationPresenter::critical(parent, tr("Error"),
+                                            tr("This image format is not available: %1").arg(suffix));
+            return; } }
+
+    const QImage img = boardWidget->grab().toImage();
+    QImageWriter w(path, fmt.toLatin1());
+    if (fmt=="jpeg" || fmt=="webp") w.setQuality(95);
+    if (!w.write(img)) {
+        NotificationPresenter::critical(parent, tr("Error"),
+                                        tr("Failed to save the image: %1").arg(w.errorString()));
+    }
 }

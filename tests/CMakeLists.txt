@@ -830,15 +830,10 @@ add_shogi_test(tst_tsume_search
 )
 
 # ============================================================
-# Unit: WidgetImageExporter テスト
+# Unit: 画像のコピー・保存（ImageExportController）テスト
 # ============================================================
-add_shogi_test(tst_image_export
-    tst_image_export.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/ui/controllers/widgetimageexporter.cpp
-    ${SRC}/ui/presenters/notificationpresenter.cpp
-    ${SRC}/common/errorbus.cpp
-)
+add_shogi_test(tst_image_export tst_image_export.cpp)
+target_link_libraries(tst_image_export PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit: SfenCollectionDialog テスト
