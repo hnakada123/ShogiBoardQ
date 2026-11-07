@@ -20,7 +20,7 @@
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "usilogpanel.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "uistatepolicymanager.h"
 #include "csagamechannel.h"
 #include "gamechannels.h"
@@ -542,10 +542,10 @@ private slots:
         Harness h;
         QVERIFY(h.start("+"));
         GameChannels channels(&h.activity, nullptr, &h.coordinator);
-        HumanTurnPolicy::Deps deps;
+        OperationPolicy::Deps deps;
         deps.activity = &h.activity;  // 対局が始まると司令塔が通信対局中にしている
         deps.channels = &channels;
-        HumanTurnPolicy policy(deps);
+        OperationPolicy policy(deps);
         // 通信対局中に盤で指した手は、BoardMoveController がそのまま司令塔へ送る
         QVERIFY(policy.isHumanTurnNow());
         h.coordinator.sendHumanMove(*UsiMove::parse(u"7g7f"));
@@ -795,13 +795,13 @@ private slots:
             QCOMPARE(policy(element), P::Policy::Disabled);
         QCOMPARE(policy(P::UiElement::EditStartPosition), P::Policy::Hidden);
         GameChannels channels(&h.activity, nullptr, &h.coordinator);
-        HumanTurnPolicy::Deps turnDeps;
+        OperationPolicy::Deps turnDeps;
         turnDeps.activity = &h.activity;
         turnDeps.channels = &channels;
-        const HumanTurnPolicy turn(turnDeps);
+        const OperationPolicy turn(turnDeps);
         QVERIFY(turn.canBrowseRecord());
         QVERIFY(!turn.canEditRecord());
-        QCOMPARE(turn.boardInput(), HumanTurnPolicy::BoardInput::None);
+        QCOMPARE(turn.boardInput(), OperationPolicy::BoardInput::None);
 
         // 「中断」は局と局の間ならログアウトする
         CsaGameChannel channel(&h.coordinator);

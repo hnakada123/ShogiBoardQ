@@ -18,7 +18,7 @@ BoardMoveController::BoardMoveController(const Deps& deps, QObject* parent)
     , m_deps(deps)
 {
     Q_ASSERT(m_deps.gameBoard && m_deps.board && m_deps.activity && m_deps.positionEdit && m_deps.branchEdit
-             && m_deps.turnPolicy);
+             && m_deps.operationPolicy);
     m_deps.board->setInputRoute(this);
     // 動作状態が変わったら（対局の開始・局面編集の開始など）、つまんでいた駒を戻す
     connect(m_deps.activity, &AppActivityState::changed,
@@ -27,12 +27,12 @@ BoardMoveController::BoardMoveController(const Deps& deps, QObject* parent)
 
 bool BoardMoveController::acceptsInput() const
 {
-    return m_deps.turnPolicy->boardInput() != Input::None;
+    return m_deps.operationPolicy->boardInput() != Input::None;
 }
 
 bool BoardMoveController::isEditing() const
 {
-    return m_deps.turnPolicy->boardInput() == Input::Edit;
+    return m_deps.operationPolicy->boardInput() == Input::Edit;
 }
 
 void BoardMoveController::submit(const QPoint& from, const QPoint& to)
@@ -42,13 +42,13 @@ void BoardMoveController::submit(const QPoint& from, const QPoint& to)
 
 void BoardMoveController::cycle(const QPoint& square)
 {
-    if (m_deps.turnPolicy->boardInput() == Input::Edit) (void)m_deps.positionEdit->cycleEditPiece(square);
+    if (m_deps.operationPolicy->boardInput() == Input::Edit) (void)m_deps.positionEdit->cycleEditPiece(square);
 }
 
 bool BoardMoveController::playMove(const QPoint& from, const QPoint& to)
 {
     qCDebug(lcUi) << "playMove from=" << from << " to=" << to;
-    const Input input = m_deps.turnPolicy->boardInput();
+    const Input input = m_deps.operationPolicy->boardInput();
     if (input == Input::Edit) return m_deps.positionEdit->applyEditMove(from, to);
     // クリックの移動元・移動先を手にする（成り・不成の両方が合法なら利用者に選ばせる。盤の操作が尋ねる）
     const std::optional<UsiMove> move =
@@ -61,7 +61,7 @@ bool BoardMoveController::playMove(const QPoint& from, const QPoint& to)
 bool BoardMoveController::playUsiMove(const UsiMove& move)
 {
     qCDebug(lcUi).noquote() << "playUsiMove" << move.toString();
-    switch (m_deps.turnPolicy->boardInput()) {
+    switch (m_deps.operationPolicy->boardInput()) {
     case Input::Variation: {
         // 対局していないとき：指した手を表示中の手の次の手（変化）として記録する
         const bool ok = m_deps.branchEdit->recordMove(move, m_deps.gameBoard);

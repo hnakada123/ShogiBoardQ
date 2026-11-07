@@ -72,7 +72,7 @@ BoardInteractionController::onLeftClick(pt)
 
 `onLeftClick()` の処理:
 
-1. 受け付けの確認: 盤で指した手の行き先（`BoardInputRoute`、`src/board/boardinputroute.h`）の `acceptsInput()` が false なら無視する。主画面の行き先は `BoardMoveController` で、`BoardMoveController` のコンストラクタが `setInputRoute(this)` で登録する。局面編集中は常に受け付け、それ以外は `HumanTurnPolicy::isHumanTurnNow()`（`src/ui/policy/humanturnpolicy.cpp`）で決める。対局中は `MatchCoordinator::isHumanSide(盤の手番)`、通信対局中は人間が指していて自分の手番か、対局していないときは棋譜を変えてよいか（`HumanTurnPolicy::canEditRecord()`。待機中だけ記録する）。解析中・詰み探索中・検討中は受け付けない。
+1. 受け付けの確認: 盤で指した手の行き先（`BoardInputRoute`、`src/board/boardinputroute.h`）の `acceptsInput()` が false なら無視する。主画面の行き先は `BoardMoveController` で、`BoardMoveController` のコンストラクタが `setInputRoute(this)` で登録する。局面編集中は常に受け付け、それ以外は `OperationPolicy::isHumanTurnNow()`（`src/ui/policy/operationpolicy.cpp`）で決める。対局中は `MatchCoordinator::isHumanSide(盤の手番)`、通信対局中は人間が指していて自分の手番か、対局していないときは棋譜を変えてよいか（`OperationPolicy::canEditRecord()`。待機中だけ記録する）。解析中・詰み探索中・検討中は受け付けない。
 2. 1回目のクリック（駒選択）: 持ち駒のない駒台のマスは無視する。`ShogiView::startDrag()` でドラッグを始め、`selectPieceAndHighlight()` で駒を選ぶ。選んだマスを `BoardHighlightLayer::Selection` の層に、合法な移動先（`EngineMoveValidator` で判定）を `LegalDestinations` の層に出す（メニューで表示を切り替えられる）。相手の駒台や空きマスは選ばない。`m_waitingSecondClick = true` に設定する。
 3. 2回目のクリック（移動先指定）: 同じマスならキャンセルする。別のマスなら行き先の `BoardInputRoute::submit(from, to)` に渡し、行き先から戻ってから `ShogiView::endDrag()` でドラッグを終える（行き先が成り・不成を尋ねている間もドラッグ状態を保つ）。
 
@@ -1091,7 +1091,7 @@ MatchCoordinator::handleResign()
 | 盤で指した手の振り分け | `src/ui/controllers/boardmovecontroller.h` | `src/ui/controllers/boardmovecontroller.cpp` |
 | 部品の生成と配線（司令塔のシグナルの接続） | `src/app/mainwindowcomposer.h` | `src/app/mainwindowcomposer_create.cpp`, `src/app/mainwindowcomposer_wire.cpp` |
 | 盤で指した手の行き先（インターフェース） | `src/board/boardinputroute.h` | - |
-| 盤を人間が操作できるかの判定 | `src/ui/policy/humanturnpolicy.h` | `src/ui/policy/humanturnpolicy.cpp` |
+| 盤を人間が操作できるかの判定 | `src/ui/policy/operationpolicy.h` | `src/ui/policy/operationpolicy.cpp` |
 | 盤（局面と手番） | `src/core/shogiboard.h` | `src/core/shogiboard.cpp` |
 | ゲームコントローラ | `src/game/gameboard.h` | `src/game/gameboard.cpp` |
 | 対局司令塔（一手の確定・終局・待った・中断と再開） | `src/game/matchcoordinator.h` | `src/game/matchcoordinator.cpp` |

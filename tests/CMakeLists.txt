@@ -769,7 +769,7 @@ target_link_libraries(tst_lifecycle_scenario PRIVATE shogiboardq_static)
 target_sources(tst_lifecycle_scenario PRIVATE ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
 
 # ============================================================
-# Unit 37: Lifecycle Runtime (HumanTurnPolicy の Deps 未設定時の既定値)
+# Unit 37: Lifecycle Runtime (OperationPolicy の Deps 未設定時の既定値)
 # ============================================================
 add_shogi_test(tst_lifecycle_runtime tst_lifecycle_runtime.cpp)
 target_link_libraries(tst_lifecycle_runtime PRIVATE shogiboardq_static)

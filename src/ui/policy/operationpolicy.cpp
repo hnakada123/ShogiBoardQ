@@ -1,14 +1,14 @@
-/// @file humanturnpolicy.cpp
+/// @file operationpolicy.cpp
 /// @brief 盤を人間が操作できるか・棋譜を移って・変えてよいか・対局が進行中かの判定の実装
 
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 
 #include "appactivitystate.h"
 #include "gamechannels.h"
 #include "livegamesession.h"
 #include "uistatepolicymanager.h"
 
-HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
+OperationPolicy::BoardInput OperationPolicy::boardInput() const
 {
     if (m_disabled || !m_deps.activity) return BoardInput::None;
     switch (m_deps.activity->activity()) {
@@ -28,7 +28,7 @@ HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
     }
 }
 
-bool HumanTurnPolicy::canBrowseRecord() const
+bool OperationPolicy::canBrowseRecord() const
 {
     if (m_disabled || !m_deps.activity) return false;
     // 移れる状態は UI の表（局面送りのボタン・棋譜欄・評価値グラフを押せる状態）と同じ1か所で決める
@@ -36,14 +36,14 @@ bool HumanTurnPolicy::canBrowseRecord() const
         == UiStatePolicyManager::Policy::Enabled;
 }
 
-bool HumanTurnPolicy::canSaveRecord() const
+bool OperationPolicy::canSaveRecord() const
 {
     if (m_disabled || !m_deps.activity) return false;
     return UiStatePolicyManager::tablePolicy(m_deps.activity->activity(), UiStatePolicyManager::UiElement::FileSaveAs)
         == UiStatePolicyManager::Policy::Enabled;
 }
 
-bool HumanTurnPolicy::canEditRecord() const
+bool OperationPolicy::canEditRecord() const
 {
     // 対局の棋譜を書いている間は、ツリーに手を足している最中なので変えない。通信対局の局と局の間は見るだけ
     // （棋譜は次の対局で置き換わる）
@@ -51,13 +51,13 @@ bool HumanTurnPolicy::canEditRecord() const
         && !m_deps.activity->is(AppActivityState::Activity::DuringCsaConnection);
 }
 
-bool HumanTurnPolicy::isHumanTurnNow() const
+bool OperationPolicy::isHumanTurnNow() const
 {
     const BoardInput input = boardInput();
     return input == BoardInput::Variation || input == BoardInput::Game;
 }
 
-bool HumanTurnPolicy::isGameActivelyInProgress() const
+bool OperationPolicy::isGameActivelyInProgress() const
 {
     const GameChannel* channel = m_deps.channels ? m_deps.channels->active() : nullptr;
     return channel && channel->isInProgress();

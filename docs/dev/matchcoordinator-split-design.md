@@ -129,7 +129,7 @@ Strategy は手番ごとに誰が指すかだけを決め、一手の確定と�
 
 実装は `GameSession`（`src/app/gamesession.cpp`）で、ライブ対局のセッション（`LiveGameSession`）を通して分岐ツリーに書く。通信対局の司令塔（`CsaGameCoordinator`）も `setRecordSink()` で同じ受け手を受け取り、対局の開始で `beginRecord()` と再開局面の手の `appendRecord()`、着手と終局で `appendRecord()`、終局で `finishRecord(true)` を呼ぶ。
 
-シグナル以外に司令塔を直接呼ぶ部品は、`GameSession`（開始の設定と中断・再開、`start()`・`beginPlay()`・`resumeInterruptedGame()`・`attachInterruptedRecord()`）、`LocalGameChannel`（`GameSession` が持つ対局相手の窓口。投了・中断・すぐ指させる・人間の入玉宣言 `declareNyugyoku()`）、`BoardMoveController`（人間の着手）、`HumanTurnPolicy`（人間の手番か）、`CandidateArrowPresenter`（終局状態の読み取り）、`UiStatePolicyManager`（人間が参加しているか・再開できるか。合成ルートが関数で渡す）である。時間切れは司令塔が `ShogiClock::playerTimeOut` を直接受ける。
+シグナル以外に司令塔を直接呼ぶ部品は、`GameSession`（開始の設定と中断・再開、`start()`・`beginPlay()`・`resumeInterruptedGame()`・`attachInterruptedRecord()`）、`LocalGameChannel`（`GameSession` が持つ対局相手の窓口。投了・中断・すぐ指させる・人間の入玉宣言 `declareNyugyoku()`）、`BoardMoveController`（人間の着手）、`OperationPolicy`（人間の手番か）、`CandidateArrowPresenter`（終局状態の読み取り）、`UiStatePolicyManager`（人間が参加しているか・再開できるか。合成ルートが関数で渡す）である。時間切れは司令塔が `ShogiClock::playerTimeOut` を直接受ける。
 
 ---
 

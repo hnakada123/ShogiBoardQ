@@ -44,7 +44,7 @@ constexpr StateSet kAllStates = in(S::Idle) | in(S::DuringGame) | in(S::DuringAn
                               | in(S::DuringTsumeSearch) | in(S::DuringConsideration) | in(S::DuringPositionEdit)
                               | in(S::DuringCsaConnection);
 /// 盤と棋譜を見るだけの状態（局面を変える操作はしないが、棋譜の閲覧・保存はできる）。通信対局の局と局の間も
-/// 見る・保存だけ（棋譜は次の対局で置き換わり、エンジンは次の対局で使う。HumanTurnPolicy::canEditRecord は変えない）
+/// 見る・保存だけ（棋譜は次の対局で置き換わり、エンジンは次の対局で使う。OperationPolicy::canEditRecord は変えない）
 constexpr StateSet kBrowsing = in(S::Idle) | in(S::DuringTsumeSearch) | in(S::DuringConsideration)
                              | in(S::DuringCsaConnection);
 constexpr StateSet kPlaying = in(S::DuringGame) | in(S::DuringCsaGame);
@@ -101,7 +101,7 @@ constexpr Rule kRules[] = {
     {E::SettingsEngine,         in(S::Idle) | in(S::DuringConsideration), Off::Disable},
     {E::SettingsReset,          in(S::Idle),  Off::Disable},  // アプリを終了するので待機中だけ
     // --- ウィジェット ---
-    // 棋譜を移る・変える操作は、見るだけの状態でだけ（HumanTurnPolicy::canBrowseRecord・canEditRecord もこの行で決まる）
+    // 棋譜を移る・変える操作は、見るだけの状態でだけ（OperationPolicy::canBrowseRecord・canEditRecord もこの行で決まる）
     {E::WidgetNavigation,       kBrowsing,    Off::Disable},
     // 局面編集中は盤が編集中の局面なので検討しない（編集を終えてから始める）
     // 通信対局の局と局の間は、次の対局でエンジンを使うので検討しない

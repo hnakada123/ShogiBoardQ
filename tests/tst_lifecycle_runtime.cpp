@@ -2,11 +2,11 @@
 /// @brief ライフサイクル runtime テスト
 ///
 /// shutdown パスでのオブジェクト寿命安全性を実行時に検証する。
-/// HumanTurnPolicy の Deps が無いときも安全側の既定値を返すことを確認（終了処理の二重実行は tst_app_lifecycle_pipeline）。
+/// OperationPolicy の Deps が無いときも安全側の既定値を返すことを確認（終了処理の二重実行は tst_app_lifecycle_pipeline）。
 
 #include <QtTest>
 
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 
 class TestLifecycleRuntime : public QObject
 {
@@ -16,10 +16,10 @@ private slots:
     void testPlayModePolicyServiceWithNullDeps();
 };
 
-/// HumanTurnPolicy の Deps 未設定時に全メソッドがクラッシュせずデフォルト値を返すことを確認
+/// OperationPolicy の Deps 未設定時に全メソッドがクラッシュせずデフォルト値を返すことを確認
 void TestLifecycleRuntime::testPlayModePolicyServiceWithNullDeps()
 {
-    HumanTurnPolicy policy({});
+    OperationPolicy policy({});
 
     QCOMPARE(policy.isHumanTurnNow(), false);
     QCOMPARE(policy.isGameActivelyInProgress(), false);

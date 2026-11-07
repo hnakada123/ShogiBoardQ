@@ -8,7 +8,7 @@
 #include "kifubranchtree.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "kifupresentation.h"
 #include "logcategories.h"
 #include "shogiboard.h"
@@ -27,7 +27,7 @@ BranchTreeEditController::BranchTreeEditController(const Deps& deps, QObject* pa
 
 bool BranchTreeEditController::canEdit() const
 {
-    // 対局中・棋譜解析中・局面編集中は、どの入口からも変えない（規則は HumanTurnPolicy の1か所）
+    // 対局中・棋譜解析中・局面編集中は、どの入口からも変えない（規則は OperationPolicy の1か所）
     return m_deps.policy->canEditRecord();
 }
 

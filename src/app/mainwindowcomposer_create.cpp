@@ -34,7 +34,7 @@
 #include "gameinfopane.h"
 #include "gamesession.h"
 #include "gamechannels.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "imageexportcontroller.h"
 #include "josekibooksession.h"
 #include "josekiwindow.h"
@@ -232,22 +232,22 @@ void MainWindowComposer::createMatchAndAnalysis()
     m_c.gameChannels = std::make_unique<GameChannels>(&m_activity, m_c.match, m_c.csaGame);
 
     // 盤の手の行き先と、棋譜を移って・変えてよいか（棋譜を移る・変える入口はすべてこれを通す）
-    HumanTurnPolicy::Deps hd;
+    OperationPolicy::Deps hd;
     hd.activity = &m_activity;
     hd.channels = m_c.gameChannels.get();
     hd.liveSession = m_c.liveGameSession;
-    m_c.humanTurnPolicy = std::make_unique<HumanTurnPolicy>(hd);
+    m_c.operationPolicy = std::make_unique<OperationPolicy>(hd);
     // 利用者の操作で棋譜を移る前の確認。対局中・棋譜解析中・局面編集中は移らない。移れる状態なら、
     // 未更新のコメントを破棄してよいかを確かめる（移れないのにコメントを聞かないよう、この順に聞く）
-    m_c.kifuNavController->addLeaveGuard(std::bind(&HumanTurnPolicy::canBrowseRecord, m_c.humanTurnPolicy.get()));
+    m_c.kifuNavController->addLeaveGuard(std::bind(&OperationPolicy::canBrowseRecord, m_c.operationPolicy.get()));
     m_c.kifuNavController->addLeaveGuard(std::bind(&CommentCoordinator::confirmLeaveEditingMove, m_c.commentCoordinator));
 
-    // 分岐の編集・盤の手の記録・定跡の展開（棋譜を変えてよいかは HumanTurnPolicy::canEditRecord）
+    // 分岐の編集・盤の手の記録・定跡の展開（棋譜を変えてよいかは OperationPolicy::canEditRecord）
     BranchTreeEditController::Deps ed;
     ed.tree = m_c.branchTree;
     ed.navState = m_c.navState;
     ed.navController = m_c.kifuNavController;
-    ed.policy = m_c.humanTurnPolicy.get();
+    ed.policy = m_c.operationPolicy.get();
     ed.parentWidget = &m_window;
     m_c.branchEdit = new BranchTreeEditController(ed, &m_window);
 
@@ -265,7 +265,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     bd.activity = &m_activity;
     bd.positionEdit = m_c.positionEdit;
     bd.branchEdit = m_c.branchEdit;
-    bd.turnPolicy = m_c.humanTurnPolicy.get();
+    bd.operationPolicy = m_c.operationPolicy.get();
     bd.channels = m_c.gameChannels.get();
     m_c.boardMoves = new BoardMoveController(bd, &m_window);
 }
@@ -309,7 +309,7 @@ void MainWindowComposer::createPresentersAndDocks()
     jd.book = m_c.josekiBook;
     jd.boardArrows = m_c.boardArrows->joseki();
     jd.navState = m_c.navState;
-    jd.humanTurn = m_c.humanTurnPolicy.get();
+    jd.operationPolicy = m_c.operationPolicy.get();
     jd.activity = &m_activity;
     jd.boardMoves = m_c.boardMoves;
     jd.branchEdit = m_c.branchEdit;
@@ -327,7 +327,7 @@ void MainWindowComposer::createPresentersAndDocks()
     ad.arrows = m_c.boardArrows;
     ad.josekiBook = m_c.josekiBook;
     ad.josekiDisplay = m_c.joseki->displayAction();
-    ad.humanTurn = m_c.humanTurnPolicy.get();
+    ad.operationPolicy = m_c.operationPolicy.get();
     m_c.arrows = new CandidateArrowPresenter(ad, &m_window);
 
     PlayerInfoPresenter::Deps pd;

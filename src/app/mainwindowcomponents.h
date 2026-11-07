@@ -54,7 +54,7 @@ class CsaGameCoordinator;
 class CsaGameSession;
 class EngineSlots;
 class GameSession;
-class HumanTurnPolicy;
+class OperationPolicy;
 class MatchCoordinator;
 class SessionResetCoordinator;
 
@@ -162,7 +162,7 @@ struct MainWindowComponents {
     GameSession* gameSession = nullptr;                 ///< 対局の利用者の操作と棋譜の受け手
     CsaGameSession* csaSession = nullptr;               ///< 通信対局の開始と画面への反映
     std::unique_ptr<GameChannels> gameChannels;
-    std::unique_ptr<HumanTurnPolicy> humanTurnPolicy;
+    std::unique_ptr<OperationPolicy> operationPolicy;
     std::unique_ptr<SessionResetCoordinator> sessionReset;
 
     // --- 棋譜のファイル ---

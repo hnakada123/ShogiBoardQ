@@ -22,7 +22,7 @@
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
 #include "evaluationchartwidget.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "kifudocument.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchnode.h"
@@ -88,7 +88,7 @@ struct UiHarness {
     KifuNavigationController nav{&state};
     LiveGameSession live{&tree, &state};
     AppActivityState activity;
-    HumanTurnPolicy policy{policyDeps(activity, live)};
+    OperationPolicy policy{policyDeps(activity, live)};
     KifuRecordListModel recordModel{&tree};
     KifuBranchListModel branchModel{&tree};
     RecordPane recordPane{nullptr};
@@ -117,13 +117,13 @@ struct UiHarness {
         QObject::connect(&nav, &KifuNavigationController::navigationRejected,
                          display.get(), &KifuDisplayPresenter::refresh);
         // 本体（MainWindowComposer::createMatchAndAnalysis）と同じく、移ってよい状態かを最初に確かめる
-        nav.addLeaveGuard(std::bind(&HumanTurnPolicy::canBrowseRecord, &policy));
+        nav.addLeaveGuard(std::bind(&OperationPolicy::canBrowseRecord, &policy));
         display->refresh();
     }
 
-    static HumanTurnPolicy::Deps policyDeps(const AppActivityState& activity, const LiveGameSession& live)
+    static OperationPolicy::Deps policyDeps(const AppActivityState& activity, const LiveGameSession& live)
     {
-        HumanTurnPolicy::Deps deps;
+        OperationPolicy::Deps deps;
         deps.activity = &activity;
         deps.liveSession = &live;
         return deps;

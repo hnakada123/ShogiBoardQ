@@ -15,7 +15,7 @@
 #include "josekilines.h"
 
 class AppActivityState;
-class HumanTurnPolicy;
+class OperationPolicy;
 class BoardMoveController;
 class BranchTreeEditController;
 class JosekiBookController;
@@ -50,7 +50,7 @@ public:
         /// 表示中の手。定跡ウィンドウの局面と、棋譜のマージに使う（非所有）
         const KifuNavigationState* navState = nullptr;
         /// 盤面クリックと同じ「人間が今指せるか」の判定
-        const HumanTurnPolicy* humanTurn = nullptr;   ///< 人間が今指せるか（定跡手を指せるか）
+        const OperationPolicy* operationPolicy = nullptr;   ///< 人間が今指せるか（定跡手を指せるか）
         /// 動作状態。変わると指せるかも変わるので、表の「着手」を合わせる（必須・非所有）
         const AppActivityState* activity = nullptr;
         /// 定跡手を盤に指す（盤の操作と同じ処理。必須）
@@ -130,7 +130,7 @@ private:
     const JosekiBookSession* m_book = nullptr;
     BranchTreeEditController* m_branchEdit = nullptr;
     const KifuNavigationState* m_navState = nullptr;
-    const HumanTurnPolicy* m_humanTurn = nullptr;  ///< 人間が今指せるか
+    const OperationPolicy* m_operationPolicy = nullptr;  ///< 人間が今指せるか
     BoardMoveController* m_boardMoves = nullptr;
 
     // 内部オブジェクト

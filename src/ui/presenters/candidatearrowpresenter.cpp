@@ -4,7 +4,7 @@
 #include "appactivitystate.h"
 #include "boardarrowactions.h"
 #include "engineslots.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "josekibooksession.h"
 #include "kifupresentation.h"
 #include "matchcoordinator.h"
@@ -89,7 +89,7 @@ void CandidateArrowPresenter::appendJosekiArrows(QList<ShogiViewHighlighting::Ar
     if (!m_sources.josekiBook || !arrowsOn(&BoardArrowActions::joseki, false)) return;
     if (m_sources.josekiDisplay && !m_sources.josekiDisplay->isChecked()) return;
     // 対局中は人間の手番だけ（エンジンの手番に定跡手を見せても使えない）
-    const HumanTurnPolicy* turn = m_sources.humanTurn;
+    const OperationPolicy* turn = m_sources.operationPolicy;
     if (turn && turn->isGameActivelyInProgress() && !turn->isHumanTurnNow()) return;
     const QList<JosekiMove> moves = m_sources.josekiBook->movesAt(sfen);
     int maxFrequency = 0;

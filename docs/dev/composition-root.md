@@ -48,7 +48,7 @@
 4. `std::function` は、上位へ問い合わせ・操作を委ねる「フック」にだけ使う（例: `UiStatePolicyManager::Deps::canResumeGame`、
    `KifuDocument::Hooks::commitPendingEdits`）。部品の取得には使わない。フックには部品の関数をそのまま結び
    （`std::bind`）、合成ルートに判断を書かない（判断が要るなら、それを持つ部品の関数にする。例:
-   `HumanTurnPolicy::canBrowseRecord()`・`MatchCoordinator::hasHumanPlayer()`）。司令塔（`MatchCoordinator`・
+   `OperationPolicy::canBrowseRecord()`・`MatchCoordinator::hasHumanPlayer()`）。司令塔（`MatchCoordinator`・
    `CsaGameCoordinator`）はフックを持たず、シグナルと `MatchRecordSink`（対局の棋譜の受け手。実体は `GameSession`）で
    知らせる。棋譜を作ってから動作状態を対局中にし、終局では棋譜を確定してから待機に戻すのも司令塔で、シグナルを
    つないだ順には頼らない。

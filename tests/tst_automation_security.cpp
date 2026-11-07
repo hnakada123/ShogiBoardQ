@@ -14,7 +14,7 @@
 #include "branchtree_test_util.h"
 #include "csagamedialog.h"
 #include "errorkinds.h"
-#include "humanturnpolicy.h"
+#include "operationpolicy.h"
 #include "kifubranchtree.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
@@ -39,7 +39,7 @@ private slots:
     }
 
     /// 自動化 API は GUI の規則を迂回しない。kifu.goto は棋譜欄と同じ規則で、対局中・棋譜解析中・局面編集中は
-    /// 移らずに invalid_state を返す（監査 2026-11-01 F9。HumanTurnPolicy::canBrowseRecord）
+    /// 移らずに invalid_state を返す（監査 2026-11-01 F9。OperationPolicy::canBrowseRecord）
     void kifuGotoFollowsTheBrowseRule()
     {
         KifuBranchTree tree;
@@ -50,15 +50,15 @@ private slots:
         KifuNavigationController nav(&state);
         nav.goToNode(first);
         AppActivityState activity;
-        HumanTurnPolicy::Deps policyDeps;
+        OperationPolicy::Deps policyDeps;
         policyDeps.activity = &activity;
-        const HumanTurnPolicy policy(policyDeps);
+        const OperationPolicy policy(policyDeps);
         AutomationContext context;
         context.branchTree = &tree;
         context.activity = &activity;
         context.navState = &state;
         context.navigationController = &nav;
-        context.turnPolicy = &policy;
+        context.operationPolicy = &policy;
         AutomationDispatcher dispatcher;
         AutomationCommands::registerKifuCommands(dispatcher, context);
         const QJsonObject params{{QStringLiteral("ply"), 0}};

@@ -86,7 +86,7 @@
 | 2026-10-16 | 棋譜の読み込みの作り直しに合わせて §1.5・§2.5・§5.1・§5.2・§5.8・§8.1・§8.2・§8.4・§8.5・§8.7・§8.11・§13.8・§13.9・§15.3・§18.3・§18.4 を更新（形式ごとの変換器は `parse()` を1つだけ持ち `KifuParseOutcome` を返す、KIF・KI2 は `KifTextParser`・`KifMoveGrammar` を共有、手順は全形式で `KifLineBuilder` が組み立てる、読めない手の扱いは `ParseOptions`・`ParseReport`、手順の型は `RecordLine` だけ（`KifLine`・`KifDisplayItem` を削除）、`KifuBranchTree::exportLine()`、ノードの setter を削除して `record()` を直接変える、`SfenReplay` は `applyLenient()`・`positionAfter()` だけ） |
 | 2026-10-16 | 棋譜の文書 `KifuDocument`（`kifudocument.h`）と形式ごとの書き出しの表 `KifuExport`（`kifuexport.h`）に合わせて §1.5・§3.4・§3.5・§4.4・§4.5・§6.1・§6.3・§6.5・§6.9・§8.1・§8.2・§8.4・§8.5・§8.7〜§8.9・§9.6・§10.2〜§10.5・§12.4・§12.7・§14.2・§14.3・§14.5・§14.7・§15.1・§15.3・§18 を更新（`GameRecordModel`・`KifuExportController` を削除。対局情報・対局者・持ち時間・上書き保存先は文書が持ち、`AppState` は動作状態だけ。未保存は保存した時点との比較で求める。`MatchTimeRecord` を `src/kifu/` に移した） |
 | 2026-10-16 | エンジンの表示の持ち主を `EngineDisplayPresenter` に1つにしたのに合わせて §1.5・§3.3・§4.1・§4.2・§4.4・§4.5・§6.5・§6.9・§7.1・§7.6・§7.10・§8.5・§9.1・§9.2・§9.4〜§9.6・§10.2〜§10.4・§11.2・§12.7・§14.4・§14.7・§15.1・§15.4・第18章を更新（探索状況は `EngineSearchStatus` で info 1行ごとに1回送り、書式は `EngineInfoWidget` が決める。`UsiCommLogModel` は状況＋`statusChanged` と `logLineAppended`。評価値グラフの点は `EvaluationSeries` に置き、書き手は `EvaluationGraphPresenter` だけ。検討タブは `ConsiderationSettings` を正本として持ち、実行の状態 `RunState` は `EngineDisplayPresenter` が `AnalysisSession` の知らせから設定する。検討中かどうかの正本は `AnalysisSession::isConsidering()`。`ConsiderationUiController` は操作を伝えるだけ、`PlayerInfoPresenter` は盤の対局者名だけ、`SessionResetCoordinator` は表示の消去を `EngineDisplayPresenter::clearAll()` に任せる） |
-| 2026-10-16 | 盤の入力・局面編集・ハイライトの整理（監査 R7）に合わせて §1.5・§3.4・§3.5・§3.6・§4.2・§4.4・§4.5・§5.4・§6.1・§6.6・§6.8・§6.9・§10・§11.1・§12.3・§13.5・§13.6・§13.9・§14.2・§14.3・§14.6・§15.2・§18 を更新（盤で指した手の行き先 `BoardInputRoute`、`BoardInteractionController` の `Mode`・`moveRequested`・手番のコールバックの削除、`PositionEditController`・`PositionEditCoordinator` を `PositionEditSession` に統合、`HumanTurnPolicy` を `src/ui/controllers/` へ移動、ハイライトを層 `BoardHighlightLayer` ごとの値に、`setForcedPromotion()` の削除と定跡の手の `playUsiMove()`） |
+| 2026-10-16 | 盤の入力・局面編集・ハイライトの整理（監査 R7）に合わせて §1.5・§3.4・§3.5・§3.6・§4.2・§4.4・§4.5・§5.4・§6.1・§6.6・§6.8・§6.9・§10・§11.1・§12.3・§13.5・§13.6・§13.9・§14.2・§14.3・§14.6・§15.2・§18 を更新（盤で指した手の行き先 `BoardInputRoute`、`BoardInteractionController` の `Mode`・`moveRequested`・手番のコールバックの削除、`PositionEditController`・`PositionEditCoordinator` を `PositionEditSession` に統合、`OperationPolicy` を `src/ui/controllers/` へ移動、ハイライトを層 `BoardHighlightLayer` ごとの値に、`setForcedPromotion()` の削除と定跡の手の `playUsiMove()`） |
 | 2026-10-16 | 思考の表と棋譜解析の結果の表の行を値で持つようにしたのに合わせて §1.5・§7.8・§7.10・§9.6・§9.8・§9.9・§10.2・§11.2・§18.3・§18.4 を更新（`AbstractListModel`・`KifuAnalysisResultsDisplay` を削除。行は `ShogiInfoRecord`・`KifuAnalysisRow` の値、表の部品は `PvTableView`、指し手の書体の規則は `MoveFont`） |
 | 2026-10-16 | 局面送りと編集のボタンを `QAction` の組で共有したのに合わせて §1.5・§11.2・§13.1・§18.3・§18.4 を更新（`KifuNavigationController` が局面送りの6つの `QAction`（`Step`・`action()`）を持ち、棋譜欄と評価値グラフのボタンを `bindButtons()` で結ぶ。`connectButtons()`・`RecordPane::setArrowButtonsEnabled()`・`setNavigationEnabled()`・`arrowButtonsEnabledChanged`・`EvaluationChartWidget::setNavigationEnabled()` を削除し、`UiStatePolicyManager` は `setStepActionsEnabled()` と `RecordPane::setKifuViewEnabled()` で切り替える。元に戻す〜貼り付けは標準ショートカット付きの `EditActions`（`src/widgets/`）にし、コメント欄と対局情報で使う） |
 | 2026-10-16 | 駒のセットの表とドックの表（監査 R10-1・R10-2）に合わせて §1.5・§4.4・§9.8・§10.4・§10.5・§11.2・§12.5・§14.2・§14.5.2・§14.6・§14.7・§17.4・§18.3・§18.4 を更新（駒のセットの表 `PieceStyleCatalog`・外観の値 `AppearanceState` を足し、`AppSettings::availablePieceStyles()`・`BoardColorPresets::pieceStyleName()` を削除。ドックは `DockRegistry`（`ui/coordinators/dockregistry.h`）の表から作り・置き・状態を保存し、`DockCreationService`・`DockUiCoordinator`・`DockWidgets`・`DockLayoutManager::DockType`／`registerDock()` を削除。ドックの状態は全12個を `DockSettings::DockState` で保存。メニューウィンドウ・定跡ウィンドウはコントローラのコンストラクタで作る） |
@@ -116,7 +116,7 @@
 | 2026-10-23 | 画面部品の名残を直した（監査 R10 の2〜4つ目）のに合わせて §11・§13・第18章を更新（エンジン登録の画面の一覧はハンドラの一覧（正本）を `enginesChanged` で作り直す。盤の18色の設定のキー・表示名・ボタン名・透明・分類は `BoardColors::fields()` の表1つにし、`settingskeys.h` の色のキー・配色ダイアログの18行・外観の見本の「4番目以降」を消した。棋譜欄は `RecordPaneAppearanceManager` を廃し、見た目の値 `RecordPane::Appearance` と `applyAppearance()` の1か所にした（列は `KifuRecordListModel::Column`。モデルの付け替えの Connection の名残を消した）） |
 | 2026-10-23 | 通信ログのパネルと評価値グラフの設定を整理した（監査 R10 の5・6つ目）のに合わせて §11・§13・第18章を更新（USI・CSA の通信ログは共通の基底 `LogPanel`（`src/widgets/logpanel.h`）にし、CSA の通信ログにも折り返し・最新へを足した（`NetworkSettings::csaLogWrapLines`）。`EvaluationChartConfigurator` を廃し、設定の値 `EvaluationChartSettings`（`AnalysisSettings::evalChart`。キーは同じ）・軸の計算 `EvaluationChartRange`・ダイアログ `EvaluationChartSettingsDialog`（dialogs。`DialogLauncher` が開く）に分けた。`EvaluationChartWidget` の使われていない get/set 11本・2つのシグナル・中身のない `setFloating` を消した） |
 | 2026-10-23 | 棋譜解析で解析した手順をノード ID で覚えるようにした（監査 U3）のに合わせて §9・§10・§11・§18 を更新（`AnalysisRequest::lineEndNodeId`、`KifuNavigationController::goToPlyOnLine()`（`goToLine()` を置き換え）、`KifuBranchTree::nodeOnLine()`、`EvaluationSeries::analysisLineEnd()`・`analysisLineName()`。解析の後に分岐を足す・本譜にする・並べ替えても、結果の行とグラフの点は解析した手順へ移る）。読み筋盤を開く処理は `PvClickController::showPvBoard()` 1つにし（対局者名は対局情報）、`AnalysisResultHandler` は `KifuAnalysisRowPresenter` に改名して表の行を作るだけにした（候補手の「同　」は `KifMoveText` で作る）） |
-| 2026-10-23 | 盤の手の行き先の規則を `HumanTurnPolicy::boardInput()`（`BoardInput{None, Edit, Variation, Game, CsaServer}`）の1か所にした（監査3章・U7）のに合わせて §6・§15 を更新（`BoardMoveController` の2つの switch と `canPlayInGame` をやめ、待機中の手もクリックを `UsiMove` にしてから `BranchTreeEditController::recordMove()` で記録する。`recordBoardMove(QPoint&, QPoint&)`・`canRecordBoardMove()`（`canEdit()` と同じ）を削除。終了処理は `HumanTurnPolicy` を破棄せず `disable()` にする） |
+| 2026-10-23 | 盤の手の行き先の規則を `OperationPolicy::boardInput()`（`BoardInput{None, Edit, Variation, Game, CsaServer}`）の1か所にした（監査3章・U7）のに合わせて §6・§15 を更新（`BoardMoveController` の2つの switch と `canPlayInGame` をやめ、待機中の手もクリックを `UsiMove` にしてから `BranchTreeEditController::recordMove()` で記録する。`recordBoardMove(QPoint&, QPoint&)`・`canRecordBoardMove()`（`canEdit()` と同じ）を削除。終了処理は `OperationPolicy` を破棄せず `disable()` にする） |
 | 2026-10-23 | 対局者ごとの値を手番で引く形にした（監査3章）のに合わせて §3・§5・§6 を更新（`MatchPlayers` の6欄を `std::array<MatchPlayers::Seat, 2>`（`seat(Turn)`）に、`MatchStartOptions` の `enginePath1/2`・`josekiOptions[2]` を `std::array<EngineSeat, 2>`（`engine(Turn)`。パスと定跡の条件）にした。連続対局の手番の入れ替えは `MatchStartOptions::swapSides()`・`TimeControl::swapSides()` の2つ） |
 | 2026-10-23 | 入玉宣言の判定を core にまとめた（監査3章）のに合わせて第18章を更新（`JishogiCalculator::judge()` が `Rule{Points24, Points27}` で `Verdict{NotDeclarable, ShortOfPoints, Draw, Win}` を返し、点数の閾値は `winningPoints()`・`requiredPoints()` だけで決める。`result24`・`result27`（core で訳語を返していた）を削除。`NyugyokuJudgement` は文言だけを作り、持将棋ルールは `std::optional<JishogiCalculator::Rule>`（「なし」は nullopt）で受ける） |
 | 2026-10-23 | 時間の型の名残を消した（監査3章）のに合わせて §7・§12 を更新（`UsiTimingParams`（`UsiGoTimeInput` の一部の写し）を削除し、`FixedTimeSource` と `CsaGameProgress::engineTiming()` は `UsiGoTimeInput` を直接使う。通信対局の `snapshot()` は `FixedTimeSource` を変換に使わない） |
@@ -138,14 +138,14 @@
 | 2026-10-23 | ダイアログに置いていた規則を移した（監査3章）のに合わせて §9・§11・§12 を更新（CSA のパスワード欄の組み立ては `CsaClient::loginPassword()`、接続履歴は `RecentList<T>`（`RecentFileList` はその文字列版）。詰将棋問題一覧の判定エンジンは名前でなく、登録時に報告したオプションで `TsumeMateEngine::canVerifyShortestMate()` が決める。`KifuAnalysisDialog` は範囲と思考時間を `options()`（`AnalysisRequest::Options`）で返し、`initPosition`・`startPly`・`endPly`・`byoyomiSec` を削除） |
 | 2026-10-23 | 棋譜ファイルの選択を形式の表から作るようにした（監査3章）のに合わせて §8・§11 を更新（`KifuFormats::readableSuffixes()`・`isReadableFile()`、開くダイアログの絞り込みは widgets の `KifuFileFilter::forOpening()`。棋譜を開く・定跡に棋譜から登録する・定跡の一括取り込みの3つで同じ絞り込み） |
 | 2026-10-23 | 盤の対局者名を1つの経路で決めるようにした（監査3章）のに合わせて §3・§6・§8・§10 を更新（`PlayerInfoPresenter` は文書と動作状態の知らせを自分で受けて `refresh()` で求め直す。`showPlayers`・`showMatchPlayers`・`syncBoardNamesWithGameInfo`、`GameSession::Deps::playerInfo`、合成ルートの2つの接続を削除） |
-| 2026-10-23 | 合成ルートから判断を除いた（監査3章）のに合わせて §6・§8・§10・§14 を更新（`MainWindowComposer::isHumanTurnNow`・`showConsiderationArrows`・`commitPendingEdits`・`hasPendingEdits` とラムダ2つを削除。定跡ウィンドウは `HumanTurnPolicy*`、矢印は `const ConsiderationSettings*` を受け、文書は `addPendingEditor()` で画面ごとのフックを、棋譜の移動は `addLeaveGuard()` で部品ごとの確認を受ける。待った・投了を出すかは `MatchCoordinator::hasHumanPlayer()`） |
+| 2026-10-23 | 合成ルートから判断を除いた（監査3章）のに合わせて §6・§8・§10・§14 を更新（`MainWindowComposer::isHumanTurnNow`・`showConsiderationArrows`・`commitPendingEdits`・`hasPendingEdits` とラムダ2つを削除。定跡ウィンドウは `OperationPolicy*`、矢印は `const ConsiderationSettings*` を受け、文書は `addPendingEditor()` で画面ごとのフックを、棋譜の移動は `addLeaveGuard()` で部品ごとの確認を受ける。待った・投了を出すかは `MatchCoordinator::hasHumanPlayer()`） |
 | 2026-10-23 | CLI・自動化 API の操作の表と実装を1つにした（監査3章・U9）のに合わせて §14 を更新（CLI は (名前, 実装, 出力の種類) を1行で登録し、`CliCommands::run()` が引数を検査してから検査済みの JSON をコマンドに渡す（`CliArgs::parse` を削除）。`AutomationInteractions::queue()` は予約の時点でも `check` を走らせ、メソッドの予約前の同じ検査を消した。`dock.configure` は操作名を `DockOperation` にしてから振り分ける。指し手の JSON は `headless/recordjson` の `RecordJson::entry`・`moves` で CLI の `convert-kifu` と `kifu.get` が共有する。`kifu.get` の `format=moves` の `total_plies` もほかの形式と同じく終局の行を1手に数える） |
 | 2026-10-23 | 通信対局の状態を1つの正本にした（監査3章）のに合わせて §12 を更新（`CsaGameCoordinator::GameState` は持たずに、接続の段階を `CsaClient::ConnectionState` から、対局中・終局後・失敗を司令塔の段階 `Phase` から求める（`setGameState` を削除）。接続を始められなかったときは接続中のまま残らず `Error`。`m_playerType`・`m_thinkingMarginMs`（開始の設定の写し）と手番の写し `m_turnSide` を削除し、手番は `CsaGameProgress::sideToMove()` で求める） |
 | 2026-10-23 | 設定の名残を片づけた（監査3章）のに合わせて §4・§19 を更新（範囲のある設定は `BoundedSetting` で宣言し、読む側の `qBound` と画面ごとの範囲の定数を消した。`Setting`・`SettingField` はキーの写しを持ち、グループ名だけ違う組は宣言を返す関数から作る。`UiNotificationService` は `ui/presenters/` の `NotificationPresenter`、`ScreenshotService`・`DebugScreenshotShortcut` は `ui/controllers/` へ移し、`AppSettings::loadWindowSize`・`saveWindowAndBoard` を削除） |
 | 2026-10-23 | 名前を役割に合わせた（監査3章）のに合わせて §6・§8・§10・§15・§17・§19 を更新（`KifuLoadCoordinator` を kifu の `KifuLoader` に、`KifuSaveCoordinator` を dialogs の `KifuSaveDialogs` にし、`AboutCoordinator` を削除。未保存の確認は棋譜と定跡で `UnsavedChangesPrompt::ask()`。`LanguageController` は言語の `QActionGroup` の data で言語を受ける） |
 | 2026-10-23 | 小さな修正と使われていないコードの削除（監査4章）に合わせて §6・§8・§9・§12・§14 を更新（`NotationUtils`・`ConsiderationPositionResolver`（`KifuNavigationState::currentUsiPosition()` に）・`CliPosition`・`ShogiGameController::validateAndMove`・`MatchCoordinator::clock`・`ErrorBus::postError` などを削除。矢印の寸法は `ArrowMetrics`、定跡の取り込みの勝敗は `RecordEntry::winner()`、手番の印は `ShogiNotation::isTurnMark`。詰将棋のワーカーは止めるときに待たない。棋譜解析の表の詰みは「3手詰」） |
 | 2026-10-23 | 監査4章で残した名残を片づけたのに合わせて §8・§9・§16・第18章を更新（中身が1行だけの `KifToSfenConverter`・`Ki2ToSfenConverter` を削除し、KIF・KI2 は `KifTextParser::parseKif()`・`parseKi2()`。テストだけが使っていた `ShogiEngineThinkingModel::appendRow`・`MenuButtonWidget::dragStarted` を削除。QObject でないクラス・名前空間の文言は `Q_DECLARE_TR_FUNCTIONS`・`QCoreApplication::translate` で自分の文脈にした（§16.8）。詰将棋の生成は終わるときに件数の内訳をログに出す） |
-| 2026-10-29 | 置き場所と名前を責務に合わせた（監査 2026-10-29 の4章）のに合わせて §1.5・§1.6・§3.1・§3.2・§6・§8・§10・§13・§14・第18章・付録を更新（navigation 層をなくして `KifuNavigationController` を `ui/controllers/` へ。`ui/coordinators/` には `CsaGameSession`・`CommentCoordinator` だけを残し、`KifuFileController`・`DialogLauncher` は `ui/controllers/`、`UiStatePolicyManager`・`HumanTurnPolicy` は `ui/policy/`、`DockRegistry`・`DockLayoutManager` は `ui/docks/` へ。エンジンの枠を engine の `EngineSlots` に改名。SFEN の検査を core の `SfenValidator`（JSON は headless の `SfenValidationJson`）に、局面集ファイルを kifu に。盤面画像 `BoardImageRenderer` を cli へ、自動化 API の接続先を headless の `AutomationEndpoint` へ。自動化 API のメソッドを名前空間ごとのファイルに分け直した。`MenuWindow` を widgets へ移し、独立ウィンドウの名残（`menuWindowSize` など）を消した。`KifReader`→`KifuTextDecoder`、`JkfMoveParser`→`JkfCodec`、`BoardImageExporter`→`WidgetImageExporter`（`ui/controllers/`）、`startgamedatabridge.h`→`startgamedialogdata.h`。司令塔だけが使う型を `matchcoordinator.h` にまとめた） |
+| 2026-10-29 | 置き場所と名前を責務に合わせた（監査 2026-10-29 の4章）のに合わせて §1.5・§1.6・§3.1・§3.2・§6・§8・§10・§13・§14・第18章・付録を更新（navigation 層をなくして `KifuNavigationController` を `ui/controllers/` へ。`ui/coordinators/` には `CsaGameSession`・`CommentCoordinator` だけを残し、`KifuFileController`・`DialogLauncher` は `ui/controllers/`、`UiStatePolicyManager`・`OperationPolicy` は `ui/policy/`、`DockRegistry`・`DockLayoutManager` は `ui/docks/` へ。エンジンの枠を engine の `EngineSlots` に改名。SFEN の検査を core の `SfenValidator`（JSON は headless の `SfenValidationJson`）に、局面集ファイルを kifu に。盤面画像 `BoardImageRenderer` を cli へ、自動化 API の接続先を headless の `AutomationEndpoint` へ。自動化 API のメソッドを名前空間ごとのファイルに分け直した。`MenuWindow` を widgets へ移し、独立ウィンドウの名残（`menuWindowSize` など）を消した。`KifReader`→`KifuTextDecoder`、`JkfMoveParser`→`JkfCodec`、`BoardImageExporter`→`WidgetImageExporter`（`ui/controllers/`）、`startgamedatabridge.h`→`startgamedialogdata.h`。司令塔だけが使う型を `matchcoordinator.h` にまとめた） |
 | 2026-10-30 | 通信対局の流れをローカル対局と同じ仕組みにした（監査 2026-10-29 の T1）のに合わせて §1.5・§1.6・§6.1〜§6.5・§6.7・§6.9・§8.5・§8.9・§10.2・§10.4・§10.5・§12.1・§12.3・§12.4・§12.8・§14.4・§15.1・§15.5・付録を更新（`CsaGameCoordinator` も `setRecordSink()` で棋譜の受け手 `GameSession` を受け取り、開始で `MatchRecordSink::beginRecord()`、着手と終局で `appendRecord()`、終局で `finishRecord()` を呼ぶ。動作状態 `DuringCsaGame` も司令塔が持ち、シグナル `recordEntryReady` と `GameSession` の `onCsa*` をなくした。ローカル対局の終局も `MatchCoordinator` が `finishRecord()` を呼ぶ。評価値・エラー・通信ログ・盤の手の接続を `CsaGameSession` から合成ルートの `connectGame()` へ移した。時間の決まりを `MatchStartOptions::time` に入れ、`MatchCoordinator::start()` が盤の手番で時計に入れる（`TimeControlUtil`・`matchtimesettings.h`・`MatchStartOptions::sfenStart` を削除）） |
 | 2026-10-30 | 棋譜解析の実行と局面の列の実行器を1つにした（監査 2026-10-29 の T2）のに合わせて §1.5・§7.5・§7.7・§7.11・§9.1〜§9.3・§9.6・§9.7・§9.10・§10.3・付録を更新（棋譜解析の実行は analysis の `KifuAnalysisSession`（エンジンと動作状態のリース）に移し、`KifuAnalysisController` は画面だけにした。GUI の棋譜解析と CLI の analyze・analyze-kifu は analysis の `EngineAnalysisRunner`（借りた `UsiEngineSession` を使う。候補手の数と bestmove を待つ上限は依頼で決める）を共有し、送る局面は `RecordLine::usiPositions()` で作る。`AnalysisJob` を消し、`EngineAnalysisRunner` を headless から analysis へ移した。検討中の局面送りも開始局面からの手順にし、詰み探索の手番合わせは `MateSearchPosition`（`Position` で合わせる）にして `TsumePositionUtil` を消した） |
 | 2026-10-30 | 盤と指し手の部品の責務を分けた（監査 2026-10-29 の T3）のに合わせて §1.5・§1.6・§3.1・§3.2・§3.3・§3.5・§4.1・§4.2・§4.5・§5.2・§5.4・§6.1〜§6.3・§6.6〜§6.9・§6.11・§7.1・§8.9・§8.11・§10.2〜§10.4・§10.6・§12.3・§12.6・§12.8・§13.5・§13.6・§14.2〜§14.4・§15.2・§15.5・§18.3・§18.4 を更新（`ShogiGameController` を `GameBoard` に改名し、盤のクリックを手にする処理と成りの尋ね方を board の `BoardInteractionController::moveFromClick()`・`setPromotionChooser()` へ移して詰将棋を解く画面と共有した（`prepareMove`・`endDragSignal` を削除。ドラッグは盤の操作が行き先から戻った後に終える）。盤と手番だけを使う部品は `ShogiBoard` を受け取る。棋譜の1行の組み立てを kifu の `MoveRecord::play()` に1つにして棋譜の読み込みと対局の着手で使う。局面編集の操作を board の `PositionEditRules`（`Position` を変える関数 `moved`・`cycled`・`cleared`）へ移し、`ShogiBoard` は局面の包みと、変わった所だけを知らせる `replacePosition()` だけにした（`applyUsiMove`・`updateBoardAndPieceStand`・`promoteOrDemotePiece`・`resetGameBoard`・`setPieceAt` を削除）） |
@@ -161,7 +161,7 @@
 | 2026-10-30 | 通信対局と局面の文字列の規則の置き場所を整えた（監査 2026-10-29 の M12〜M15）のに合わせて §1.5・§2.3・§5.7・§7.7・§8.2・§8.11・§10.2・§10.5・§12.2・§15.5・第18章を更新（Game_Summary は値 `CsaGameSummary`（持時間は `CsaGameSummary::Time`）と読み取り器 `CsaGameSummaryReader`、`csaclient_parser.cpp`・`_commands.cpp` は `csaclient.cpp` に戻した。ログインの規則は `CsaLogin`、結果の表示名は `CsaGameSession::resultText`・`causeText`。評価値の向きの直しは `UsiScore::blackView`・`viewedBy`。position コマンド・局面の文字列の語の分け方は `UsiPosition::split` だけで、`SfenUtils::normalizeStart`・`normalizePositionLikeSfen` は `UsiPosition::sfenOf` に、`UsiToSfenConverter::parseUsiPositionString` は消した） |
 | 2026-10-30 | 名残と小さな修正（監査 2026-10-29 の5章）に合わせて §1.5・§7.9・§8.2・§8.5・§12.5・§13.8・第18章を更新（ノードの行 `KifuBranchNode::record()` は読むだけにし、書き換えはツリー・組み立て・文書だけ。`KifuBranchTree::setComment`・`hasBranch`、`RecordLine::displayTexts`、`SfenReplay::applyLenient` の公開、`settingsservice.h`・`enginesettingsconstants.h` を消した。登録エンジンの保存形式のキーは `EngineProfileStore` の中、オプションの型の語は `EngineOption::kType*`、キーのエスケープは `SettingsCommon::escapeKey`） |
 | 2026-11-01 | ShogiHome との棋譜の相互読み込みの検証で直した点に合わせて `KifLineBuilder` の表を更新（持ち駒にない駒・駒のあるマスへの駒打ちは全形式で反則の記録として指し、`lastIrregularity()`・`warnIrregularity()` で警告する。CSA も `Lenient`） |
-| 2026-11-02 | 棋譜を移って・変えてよいかの規則を1つにした（監査 2026-11-01 T2）のに合わせて §3.4・§6.9・§13.1・§14.3 を更新（`HumanTurnPolicy::canBrowseRecord()`（`UiStatePolicyManager` の表の `WidgetNavigation` の行）・`canEditRecord()` を足し、`KifuNavigationController` の移る前の確認・`BranchTreeEditController::canEdit()`・定跡の展開・自動化 API の `kifu.goto` がそれを使う。検討中・詰み探索中も分岐の編集はできる。`PositionEditSession::allowsLeavingMove()` を削除し、`RecordPane::setKifuViewEnabled()` は分岐候補欄も止める `setNavigationEnabled()` にした。棋譜解析の結果の行・グラフの解析の点は確認を通す `selectPlyOnLine()`） |
+| 2026-11-02 | 棋譜を移って・変えてよいかの規則を1つにした（監査 2026-11-01 T2）のに合わせて §3.4・§6.9・§13.1・§14.3 を更新（`OperationPolicy::canBrowseRecord()`（`UiStatePolicyManager` の表の `WidgetNavigation` の行）・`canEditRecord()` を足し、`KifuNavigationController` の移る前の確認・`BranchTreeEditController::canEdit()`・定跡の展開・自動化 API の `kifu.goto` がそれを使う。検討中・詰み探索中も分岐の編集はできる。`PositionEditSession::allowsLeavingMove()` を削除し、`RecordPane::setKifuViewEnabled()` は分岐候補欄も止める `setNavigationEnabled()` にした。棋譜解析の結果の行・グラフの解析の点は確認を通す `selectPlyOnLine()`） |
 | 2026-11-02 | 定跡手のダイアログの指し手の一覧を画面の表記にした（監査 2026-11-01 F22）のに合わせて第11章・クラスの一覧を更新（`JosekiMoveInputWidget` は `KifuPresentation::move(Position, UsiMove, Options)` で表記を作り、英語表記なら英語の手を並べる。日本語表記の一覧に「不成」は付けない（定跡ウィンドウの表・棋譜欄と同じ）） |
 | 2026-11-02 | 棋譜解析ダイアログと結果ドックの文字の大きさの設定を分けた（監査 2026-11-01 F23）のに合わせて §9.8 を更新（結果ドックは `kifuAnalysisResultsFontSize`（以前の版と同じ `KifuAnalysis/fontSize` で、保存してある値を引き継ぐ）、ダイアログは新しい `kifuAnalysisDialogFontSize`（`KifuAnalysis/dialogFontSize`）） |
 | 2026-11-02 | 局面集ファイルの読み方を1つにした（監査 2026-11-01 F25・M2）。`PositionCollectionFile::readFile`（通常のファイルだけを上限まで読み、読めない理由を訳した文で返す）と `fileFilter`（`*.txt *.sfen *.usi`）を、局面集ビューア（`SfenCollectionDialog`）と詰将棋問題一覧（`TsumeCollectionSession::load`）が使う |
@@ -717,7 +717,7 @@ src/
 │   │   └── nyugyokudeclarationhandler.cpp/.h # 利用者の入玉宣言（確認・宣言・結果の表示。GameChannel 経由）
 │   ├── policy/                     #   動作状態からの規則
 │   │   ├── uistatepolicymanager.cpp/.h  # 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
-│   │   └── humanturnpolicy.cpp/.h       # 盤を人間が操作できる手番か・対局が進行中かの判定
+│   │   └── operationpolicy.cpp/.h       # 盤を人間が操作できる手番か・対局が進行中かの判定
 │   ├── docks/                      #   ドック
 │   │   ├── dockregistry.cpp/.h          # ドックの表（DockSpec）から作成・規定の配置・状態の保存と復元
 │   │   └── docklayoutmanager.cpp/.h     # 名前付きレイアウト・起動時のレイアウト・ドックの固定
@@ -1481,17 +1481,17 @@ graph LR
 
 #### 動作状態と対局者による動作分岐
 
-**1. 盤面操作の制御**（`HumanTurnPolicy::boardInput()`、`src/ui/policy/humanturnpolicy.h`）
+**1. 盤面操作の制御**（`OperationPolicy::boardInput()`、`src/ui/policy/operationpolicy.h`）
 
-| 状態 | 盤の手の行き先（`HumanTurnPolicy::BoardInput`） |
+| 状態 | 盤の手の行き先（`OperationPolicy::BoardInput`） |
 |------|------------|
 | `DuringPositionEdit` | `Edit`（駒の配置を変える） |
-| `Idle`（終局後を含む） | 棋譜を変えてよければ `Variation`（棋譜の変化として記録。`HumanTurnPolicy::canEditRecord()`） |
+| `Idle`（終局後を含む） | 棋譜を変えてよければ `Variation`（棋譜の変化として記録。`OperationPolicy::canEditRecord()`） |
 | `DuringGame` | 手を受け付け（`MatchCoordinator::canAcceptMove()`）、手番の側を人間が指すとき（`isHumanSide()`）だけ `Game`。エンジン同士では不可 |
 | `DuringCsaGame` | 対局中（`GameState::InGame`）で自分が人間、自分の手番（`isHumanPlayer()` と `isMyTurn()`）のときだけ `Game`（ローカル対局と同じく対局相手の窓口 `GameChannel::playMove()` へ渡し、通信対局の窓口がサーバーへ送る） |
 | 解析・検討・詰み探索・終了処理の後（`disable()`） | `None`（指せない） |
 
-**棋譜を移って・変えてよいか**（`HumanTurnPolicy::canBrowseRecord()`・`canEditRecord()`）
+**棋譜を移って・変えてよいか**（`OperationPolicy::canBrowseRecord()`・`canEditRecord()`）
 
 棋譜を移る・変える入口（局面送りのボタン・棋譜欄・分岐候補欄・分岐ツリー・評価値グラフ・定跡ウィンドウの「定跡を外れた手」と「棋譜に展開...」・棋譜解析の結果の行・自動化 API の `kifu.goto`）は、すべてこの2つの関数で決める。
 
@@ -1590,7 +1590,7 @@ sequenceDiagram
 #### フロー解説
 
 1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`clicked` シグナルで `BoardInteractionController` に盤の座標を通知する。駒をつまめるかは行き先（`BoardInputRoute::acceptsInput()`）に聞く。1回目のクリックで駒を選び、設定により `EngineMoveValidator` で合法な移動先を光らせる
-2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。行き先は `HumanTurnPolicy::boardInput()` の1か所で決まる。局面編集中は `PositionEditSession::applyEditMove()`、それ以外はクリックを盤の操作の `BoardInteractionController::moveFromClick()` で `UsiMove` にしてから、待機中は棋譜の変化として `BranchTreeEditController::recordMove()`、対局中は対局相手の窓口（`GameChannel::playMove()`。`GameChannels::active()` を `setActiveChannel()` で受け取る）へ渡す。通信対局の窓口はサーバーへ送り（盤は確認を受けてから動かす）、ローカル対局は次のとおり
+2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。行き先は `OperationPolicy::boardInput()` の1か所で決まる。局面編集中は `PositionEditSession::applyEditMove()`、それ以外はクリックを盤の操作の `BoardInteractionController::moveFromClick()` で `UsiMove` にしてから、待機中は棋譜の変化として `BranchTreeEditController::recordMove()`、対局中は対局相手の窓口（`GameChannel::playMove()`。`GameChannels::active()` を `setActiveChannel()` で受け取る）へ渡す。通信対局の窓口はサーバーへ送り（盤は確認を受けてから動かす）、ローカル対局は次のとおり
 3. **合法手判定と適用**: ローカル対局では、`MatchCoordinator::isHumanSide()` が真の手番のときだけ `BoardInteractionController::moveFromClick()` が `EngineMoveValidator` で合法手かを判定し、クリックを `UsiMove` にする（詰将棋を解く画面も同じ関数）。成り・不成の両方が合法なら成りの選び方（盤の操作を作るときに合成ルートが渡す `PromoteDialog::ask()`）に従う。ローカル対局の窓口から `MatchCoordinator::playHumanMove(UsiMove)` が呼ばれ、エンジンの手と同じく司令塔が対局の盤 `GameBoard::applyMove()` で指し（合法手の確認はここだけ。棋譜の1行は `MoveRecord::play()` が作り、盤には `ShogiBoard::replacePosition()` で変わった所だけを知らせる）、結果は棋譜の1行（`RecordEntry`）で返る
 4. **一手の確定**: `MatchCoordinator::playHumanMove()` が指した手を対局者の組ごとの Strategy に渡すと、Strategy を通して `completeMove()` が時計・考慮時間を確定し、行を `MatchRecordSink`（`GameSession::appendRecord()`）に書く。`GameSession` はライブ対局のセッション（`LiveGameSession`）経由で分岐ツリー（`KifuBranchTree`）に追記する
 5. **表示の同期**:
@@ -1714,12 +1714,12 @@ public:
 
 #### QObject でない部品の Deps
 
-`HumanTurnPolicy` のように QObject でない部品も `Deps` を `const` で保持する。依存が無いものは「操作できない」「対局していない」と答える。
+`OperationPolicy` のように QObject でない部品も `Deps` を `const` で保持する。依存が無いものは「操作できない」「対局していない」と答える。
 
 ```cpp
-// src/ui/policy/humanturnpolicy.h
+// src/ui/policy/operationpolicy.h
 
-class HumanTurnPolicy
+class OperationPolicy
 {
 public:
     struct Deps {
@@ -1731,7 +1731,7 @@ public:
         const BranchTreeEditController* branchEdit = nullptr;
     };
 
-    explicit HumanTurnPolicy(const Deps& deps) : m_deps(deps) {}
+    explicit OperationPolicy(const Deps& deps) : m_deps(deps) {}
     // ...
 private:
     const Deps m_deps;
@@ -2710,7 +2710,7 @@ struct MatchPlayers {
 
 対局開始ダイアログで選んだ人間の名前とエンジンの名前を両方持ち、手番ごとに指す側の名前を `name()` で返す。駒落ちでは先手が下手、後手が上手である。平手か駒落ちかは持たず、開始局面から判定する（`GameInfo::isHandicap()`）。
 
-対局の条件として `MatchStartOptions::players` で司令塔に渡し、司令塔は `MatchCoordinator::players()`・`isHumanSide(Turn)` で返す。手番の側がエンジンかどうかで、エンジンに思考させるか、盤の操作を受け付けるか（`HumanTurnPolicy`）を決める。
+対局の条件として `MatchStartOptions::players` で司令塔に渡し、司令塔は `MatchCoordinator::players()`・`isHumanSide(Turn)` で返す。手番の側がエンジンかどうかで、エンジンに思考させるか、盤の操作を受け付けるか（`OperationPolicy`）を決める。
 
 ### 5.7 SfenUtils / ShogiNotation / KifMoveText — ユーティリティ
 
@@ -2799,7 +2799,7 @@ app 層・ui 層
   GameSession（利用者の操作の受け口・対局開始の手順・棋譜の受け手 MatchRecordSink）
     ├── SessionResetCoordinator（対局の開始前に棋譜と表示を整える）
     └── 司令塔の知らせの受け手（終局・中断・連続対局の次局）
-  BoardMoveController（盤で指した手の行き先）── HumanTurnPolicy（盤を人間が操作できる手番か）
+  BoardMoveController（盤で指した手の行き先）── OperationPolicy（盤を人間が操作できる手番か）
          │ 操作（開始・投了・中断・待った…）        ▲ シグナル・棋譜の行
          ▼                                           │
 game 層
@@ -2825,7 +2825,7 @@ game 層
 | **ConsecutiveGameSeries** | `consecutivegameseries.h/.cpp` | エンジン同士の連続対局の局数と、次局の計画 |
 | **GameSession** | `app/gamesession.h/.cpp` | 対局の開始・終局・再開の手順と利用者の操作の受け口、棋譜の受け手。UI の部品を扱うので `app/` に置く |
 | **SessionResetCoordinator** | `app/sessionresetcoordinator.h/.cpp` | 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す（UI の部品を扱うので `app/` に置く） |
-| **HumanTurnPolicy** | `ui/controllers/humanturnpolicy.h/.cpp` | 盤を人間が操作できる手番か・対局が進行中かの判定（`BoardMoveController` と定跡ウィンドウが使う。ui は app を include できないので `ui/controllers/` に置く） |
+| **OperationPolicy** | `ui/controllers/operationpolicy.h/.cpp` | 盤を人間が操作できる手番か・対局が進行中かの判定（`BoardMoveController` と定跡ウィンドウが使う。ui は app を include できないので `ui/controllers/` に置く） |
 | **PromoteDialog::ask()** | `dialogs/promotedialog.h/.cpp` | 成り/不成の選択ダイアログを出して答えを返す（主画面と詰将棋を解く画面の盤の操作 `BoardInteractionController` に、作るときに成りの選び方として渡す。ダイアログなので `dialogs/` に置く） |
 
 手番は独立したクラスでは持たず、盤（`ShogiBoard`）だけが持つ（6.7節）。
@@ -3160,7 +3160,7 @@ prepareGameStart(preparation)
 
 ### 6.6 GameBoard — 対局の盤
 
-`GameBoard` は対局で使う盤（`ShogiBoard`）を持ち、`EngineMoveValidator` で指し手を確かめて盤に指す。指した手は棋譜の1行（`RecordEntry`）として返し、対局の手順への追加は呼び出し側（司令塔・通信対局・変化の記録）が行う。盤のクリックを手にする処理と成り・不成の尋ね方は、盤の操作（board の `BoardInteractionController::moveFromClick()`。13章）が持ち、主画面と詰将棋を解く画面で共通にする。盤と手番だけを使う部品（`HumanTurnPolicy`・`KifuFileController`・`BoardSyncPresenter`・`PositionEditSession`・`AutomationContext`・`TsumePlayDialog`）は `GameBoard` ではなく `ShogiBoard` を受け取る。
+`GameBoard` は対局で使う盤（`ShogiBoard`）を持ち、`EngineMoveValidator` で指し手を確かめて盤に指す。指した手は棋譜の1行（`RecordEntry`）として返し、対局の手順への追加は呼び出し側（司令塔・通信対局・変化の記録）が行う。盤のクリックを手にする処理と成り・不成の尋ね方は、盤の操作（board の `BoardInteractionController::moveFromClick()`。13章）が持ち、主画面と詰将棋を解く画面で共通にする。盤と手番だけを使う部品（`OperationPolicy`・`KifuFileController`・`BoardSyncPresenter`・`PositionEditSession`・`AutomationContext`・`TsumePlayDialog`）は `GameBoard` ではなく `ShogiBoard` を受け取る。
 
 **ソース**: `src/game/gameboard.h`, `src/game/gameboard.cpp`
 
@@ -3352,14 +3352,14 @@ MatchCoordinator::gameInterrupted
 
 `GameSession::resumeInterruptedGame()` は、中断の行の親ノードへ表示中の手を戻し（`KifuNavigationState::resetToNode()`）、ライブ対局のセッションを破棄して中断の行を除いてから、そのノードでセッションを開始し直す。終局時刻を消したあと（`KifuDocument::clearMatchEnd()`）、`MatchCoordinator::resumeInterruptedGame()` が手順・盤・時計を復元して（「同」表記の基準は手順の最後の手から導く） Strategy を作り直し、続く `MatchCoordinator::beginPlay()` が時計の始動と初手の要求を行う。
 
-#### 人間/エンジンの判定（HumanTurnPolicy / MatchPlayers）
+#### 人間/エンジンの判定（OperationPolicy / MatchPlayers）
 
 どちらの手番を人間が指すかは、対局者 `MatchPlayers`（`src/core/matchplayers.h`）の `isHuman(Turn)`・`isEngine(Turn)` で決まる。司令塔の `MatchCoordinator::isHumanSide(Turn)` は、対局を一度でも始めていればその対局の `players().isHuman(side)` を返す。
 
-盤で指した手の行き先の規則は `HumanTurnPolicy`（`src/ui/policy/humanturnpolicy.h`）の `boardInput()` 1か所にある（棋譜を移って・変えてよいかの `canBrowseRecord()`・`canEditRecord()` も同じクラス）。動作状態（`AppActivityState`）で、ローカル対局なら司令塔、通信対局なら `CsaGameCoordinator` に聞く。
+盤で指した手の行き先の規則は `OperationPolicy`（`src/ui/policy/operationpolicy.h`）の `boardInput()` 1か所にある（棋譜を移って・変えてよいかの `canBrowseRecord()`・`canEditRecord()` も同じクラス）。動作状態（`AppActivityState`）で、ローカル対局なら司令塔、通信対局なら `CsaGameCoordinator` に聞く。
 
 ```cpp
-HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
+OperationPolicy::BoardInput OperationPolicy::boardInput() const
 {
     if (m_disabled || !m_deps.activity) return BoardInput::None;
     switch (m_deps.activity->activity()) {
@@ -3369,9 +3369,9 @@ HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
         return canEditRecord() ? BoardInput::Variation : BoardInput::None;
     case AppActivityState::Activity::DuringGame: {
         const MatchCoordinator* match = m_deps.match;
-        const bool humanTurn = match && m_deps.board && match->canAcceptMove()
+        const bool operationPolicy = match && m_deps.board && match->canAcceptMove()
             && match->isHumanSide(m_deps.board->currentPlayer());
-        return humanTurn ? BoardInput::Game : BoardInput::None;
+        return operationPolicy ? BoardInput::Game : BoardInput::None;
     }
     case AppActivityState::Activity::DuringCsaGame: ...（対局中・人間・自分の手番なら Game）
     default:
@@ -3380,7 +3380,7 @@ HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
 }
 ```
 
-`isHumanTurnNow()` は行き先が `Variation`・`Game` のどちらかか、`isGameActivelyInProgress()` はローカル対局なら終局前か、通信対局なら `CsaGameCoordinator::GameState::InGame` かを返す。盤のクリックでは、盤で指した手の行き先 `BoardMoveController` が `acceptsInput()`（行き先が `None` でないか）・`isEditing()`（`Edit` か）で使う（`BoardInteractionController` はつまむたびに行き先に聞く）。定跡ウィンドウ（`JosekiWindowController::Deps::humanTurn`）と矢印（`CandidateArrowPresenter::Deps::humanTurn`）はこの `HumanTurnPolicy` を型付きで受ける。終了処理では `disable()` で何も受け付けなくする（盤の操作が参照し続けるので破棄はしない）。
+`isHumanTurnNow()` は行き先が `Variation`・`Game` のどちらかか、`isGameActivelyInProgress()` はローカル対局なら終局前か、通信対局なら `CsaGameCoordinator::GameState::InGame` かを返す。盤のクリックでは、盤で指した手の行き先 `BoardMoveController` が `acceptsInput()`（行き先が `None` でないか）・`isEditing()`（`Edit` か）で使う（`BoardInteractionController` はつまむたびに行き先に聞く）。定跡ウィンドウ（`JosekiWindowController::Deps::operationPolicy`）と矢印（`CandidateArrowPresenter::Deps::operationPolicy`）はこの `OperationPolicy` を型付きで受ける。終了処理では `disable()` で何も受け付けなくする（盤の操作が参照し続けるので破棄はしない）。
 
 ### 6.10 ConsecutiveGameSeries — 連続対局制御
 
@@ -3444,7 +3444,7 @@ startNextGame()
 │    │     ├── GameModeStrategy (対局モード別の手番の進め方)             │
 │    │     └── MatchRecordSink（= GameSession）へ棋譜の行を書く          │
 │    │                                                                  │
-│    ├── HumanTurnPolicy (盤を人間が操作できるか)                       │
+│    ├── OperationPolicy (盤を人間が操作できるか)                       │
 │    │                                                                  │
 │    └── ConsecutiveGameSeries (連続対局)                               │
 │          └── nextGameReady ──▶ GameSession::startNextGame             │
@@ -5859,10 +5859,10 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 
 | `BoardInputRoute` の関数 | `BoardMoveController` での中身 |
 |---|---|
-| `acceptsInput()` | `HumanTurnPolicy::boardInput()` が `None` でないか |
-| `isEditing()` | `HumanTurnPolicy::boardInput()` が `Edit` か（動作状態が `DuringPositionEdit` か） |
+| `acceptsInput()` | `OperationPolicy::boardInput()` が `None` でないか |
+| `isEditing()` | `OperationPolicy::boardInput()` が `Edit` か（動作状態が `DuringPositionEdit` か） |
 | `submit(from, to)` | `playMove(from, to)` |
-| `cycle(square)` | 局面編集中（`HumanTurnPolicy::boardInput()` が `Edit`）なら `PositionEditSession::cycleEditPiece(square)` |
+| `cycle(square)` | 局面編集中（`OperationPolicy::boardInput()` が `Edit`）なら `PositionEditSession::cycleEditPiece(square)` |
 
 主な処理フロー:
 
@@ -5919,7 +5919,7 @@ onPvRowClicked(ShogiEngineThinkingModel* model, row)
 | `LanguageController` | 言語メニュー（システム・日本語・英語・簡体字・繁体字）と棋譜表記のメニューを処理し、言語を変えたら再起動を案内する |
 | `UsiCommandController` | `UsiLogPanel` の手動コマンド入力欄からのUSIコマンドを、エンジンの枠（`EngineSlots` の E1・E2）のエンジンに送る。エンジン未起動時は通信ログにエラーを表示する |
 | `NyugyokuDeclarationHandler` | 利用者の入玉宣言を行う（`handleDeclaration(GameChannel*)`。`GameSession::declareNyugyoku()` が `GameChannels::active()` を渡す。コンストラクタは親ウィジェットと `const KifuDocument*`）。対局中でなければ警告、人間の手番でなければ案内を出す。窓口が宣言を受け付けるか（`acceptsDeclaration()`。ローカル対局は対局の条件の持将棋ルール `MatchStartOptions::jishogiRule` が選ばれているときだけ）を確かめる。確認（宣言する側は `KifuDocument::usesHandicapNames()` で下手・上手とも呼ぶ）の後で `GameChannel::declareNyugyoku()` で宣言し、判定結果が返れば（ローカル対局は `MatchCoordinator::declareNyugyoku(declarer)` が盤面から対局の持将棋ルールで判定して終局する）ダイアログで知らせる。通信対局はサーバーが判定して終局を知らせる |
-| `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと（定跡ウィンドウの `josekiMoveSelected`）、人間が今指せるかを確かめ、USI 文字列を `UsiMove::parse()` で `UsiMove` にし、成りの選択を出さずに `BoardMoveController::playUsiMove()` で指す。指せないとき（表を作った後で終局・手番交代した・読めない手・合法でない手）は自分で `NotificationPresenter` で知らせる（定跡ウィンドウはメッセージボックスを出さない）。人間の手番かどうかは `HumanTurnPolicy` に聞き、その判定を定跡ウィンドウに渡す（`setHumanCanPlayProvider`。表の「着手」のボタンを出すかに使い、押したときに指せなくなっていればボタンを消す）。「棋譜に展開...」では条件のダイアログ（`JosekiExpandDialog`）を出して展開する。定跡の表示（「■ 停止」）と「盤の手を登録」の checkable な `QAction` を持ち（表示は設定に保存する）、「盤に定跡手を表示」（`BoardArrowActions::joseki()`）と合わせて定跡ウィンドウ・盤の矢印・盤の手の登録に渡す |
+| `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと（定跡ウィンドウの `josekiMoveSelected`）、人間が今指せるかを確かめ、USI 文字列を `UsiMove::parse()` で `UsiMove` にし、成りの選択を出さずに `BoardMoveController::playUsiMove()` で指す。指せないとき（表を作った後で終局・手番交代した・読めない手・合法でない手）は自分で `NotificationPresenter` で知らせる（定跡ウィンドウはメッセージボックスを出さない）。人間の手番かどうかは `OperationPolicy` に聞き、その判定を定跡ウィンドウに渡す（`setHumanCanPlayProvider`。表の「着手」のボタンを出すかに使い、押したときに指せなくなっていればボタンを消す）。「棋譜に展開...」では条件のダイアログ（`JosekiExpandDialog`）を出して展開する。定跡の表示（「■ 停止」）と「盤の手を登録」の checkable な `QAction` を持ち（表示は設定に保存する）、「盤に定跡手を表示」（`BoardArrowActions::joseki()`）と合わせて定跡ウィンドウ・盤の矢印・盤の手の登録に渡す |
 | `JosekiBookController` | 定跡ウィンドウの意図のシグナル（新規・開く・保存・履歴・マージ・ドロップ・定跡手の追加/編集/削除）を受けて、ダイアログを出して処理する。ファイルは `JosekiFileController`、定跡手は `JosekiEditController`、マージは `JosekiMergeController`（3つともここが持ち、ダイアログの親は定跡ウィンドウ）。「現在の棋譜から」は表示中の手順（`KifuNavigationState::currentRecordLine()`）を渡す。ドロップは定跡ファイル（.db）1つなら開き、それ以外は複数の棋譜から登録するダイアログに並べる（ドロップの処理の後で）。ドックを閉じるときとアプリを閉じるときに未保存の変更を確かめ（ドックを閉じて「破棄」なら保存した内容に戻す）、未保存の間はドックの題名に「*」を付ける。`JosekiWindowController` が作る |
 | `MenuWindowController` | メニューバーの項目をカテゴリごとに集めて `MenuWindow` を作る（初回だけ）。押されたボタンは `MenuWindow` がその `QAction` を実行する |
 | `BranchTreeEditController` | 分岐ツリーの右クリックメニューで分岐を編集する（本譜にする・並べ替え・削除）。対局していないときの盤上の着手を、現在の手の次の手（変化）として記録する |
@@ -7309,7 +7309,7 @@ ShogiClock::setCurrentPlayer(gameBoard->board()->currentPlayer())
 | オブジェクト | 設定方法 | 役割 |
 |-------------|---------|------|
 | `KifuNavigationState` | コンストラクタ | 表示中の手・選んだ手順の管理（非所有）。分岐ツリー（`KifuBranchTree`）は `state()->tree()` から辿る |
-| 移動前の確認 | `addLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認（足した順に聞き、1つでも false なら移らない）。合成ルートが `HumanTurnPolicy::canBrowseRecord()`（対局中・棋譜解析中・局面編集中でない）と `CommentCoordinator::confirmLeaveEditingMove()`（未更新のコメントを更新するか捨てるか尋ねる）をこの順に足す（移れないのにコメントを聞かない） |
+| 移動前の確認 | `addLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認（足した順に聞き、1つでも false なら移らない）。合成ルートが `OperationPolicy::canBrowseRecord()`（対局中・棋譜解析中・局面編集中でない）と `CommentCoordinator::confirmLeaveEditingMove()`（未更新のコメントを更新するか捨てるか尋ねる）をこの順に足す（移れないのにコメントを聞かない） |
 
 #### 局面送りの6つの操作（QAction）
 
@@ -7473,7 +7473,7 @@ public:
 };
 ```
 
-行き先は `setInputRoute()` で渡す（非所有。無ければクリックを受け付けない）。主画面の行き先は `BoardMoveController`（10.3 節）で、`acceptsInput()` は局面編集中か `HumanTurnPolicy::isHumanTurnNow()`、`isEditing()` は `PositionEditSession::isEditing()` である。詰将棋を解くダイアログ（`TsumePlayDialog`）は自分で `BoardInputRoute` を実装し（正解手順の再生中でなく、解答を待っている（`TsumeGameSession::State::Ready`）ときだけ受け付ける）、指した手を解答として受け取る（局面編集をしないので `cycle()` は何もしない）。着手の結果は行き先が `onMoveApplied(from, to, success)` で返す。
+行き先は `setInputRoute()` で渡す（非所有。無ければクリックを受け付けない）。主画面の行き先は `BoardMoveController`（10.3 節）で、`acceptsInput()` は局面編集中か `OperationPolicy::isHumanTurnNow()`、`isEditing()` は `PositionEditSession::isEditing()` である。詰将棋を解くダイアログ（`TsumePlayDialog`）は自分で `BoardInputRoute` を実装し（正解手順の再生中でなく、解答を待っている（`TsumeGameSession::State::Ready`）ときだけ受け付ける）、指した手を解答として受け取る（局面編集をしないので `cycle()` は何もしない）。着手の結果は行き先が `onMoveApplied(from, to, success)` で返す。
 
 #### 2クリック方式の駒移動
 
@@ -7739,7 +7739,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 #### MainWindowComponents — 部品の一覧
 
-`MainWindowComponents`（`src/app/mainwindowcomponents.h`）は、起動時に `MainWindowComposer` が作る部品の一覧である。QObject は MainWindow を親にした生ポインタ（親が破棄する）、QObject でないもの（`HumanTurnPolicy`・`SessionResetCoordinator`）は `std::unique_ptr` で持つ。どれも起動時に1回だけ作り、作り直さない。
+`MainWindowComponents`（`src/app/mainwindowcomponents.h`）は、起動時に `MainWindowComposer` が作る部品の一覧である。QObject は MainWindow を親にした生ポインタ（親が破棄する）、QObject でないもの（`OperationPolicy`・`SessionResetCoordinator`）は `std::unique_ptr` で持つ。どれも起動時に1回だけ作り、作り直さない。
 
 | グループ | 主なメンバ |
 |---------|-----------|
@@ -7748,7 +7748,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 | 盤・時計 | `gameBoard`（`GameBoard`）・`shogiView`・`boardController`（`BoardInteractionController`）・`boardMoves`（`BoardMoveController`）・`boardSync`（`BoardSyncPresenter`）・`positionEdit`（`PositionEditSession`）・`clock`・`timePresenter` |
 | 画面部品 | `recordPane`・`thinkingPanel`・`considerationTab`・`usiLog`・`csaLog`・`commentEditor`・`branchTreeView`・`evalChart`・`gameInfoPane`・`dockRegistry`（`DockRegistry`。12 個のドックは `dock(DockId)` で引く） |
 | 棋譜の表示と編集 | `kifuDisplay`（`KifuDisplayPresenter`）・`branchEdit`（`BranchTreeEditController`）・`commentCoordinator` |
-| 対局・検討・通信対局 | `engines`（`EngineSlots`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaSession`（`CsaGameSession`）・`humanTurnPolicy`・`sessionReset`（`SessionResetCoordinator`） |
+| 対局・検討・通信対局 | `engines`（`EngineSlots`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaSession`（`CsaGameSession`）・`operationPolicy`・`sessionReset`（`SessionResetCoordinator`） |
 | 棋譜のファイル | `kifuLoader`・`kifuFileController` |
 | 表示 | `appearance`・`playerInfo`（`PlayerInfoPresenter`）・`engineDisplay`・`evalGraph`・`arrows`（`CandidateArrowPresenter`）・`analysisResults`・`dockLayoutManager`・`uiStatePolicy`・`notificationService` |
 | 利用者の操作 | `boardArrows`（`BoardArrowActions`。盤の矢印を出すかの切り替え）・`actions`（`MainWindowActions`）・`dialogLauncher`・`kifuAnalysis`・`tsumeSearch`・`considerationUi`・`pvClickController`・`usiCommandController`・`joseki`・`menuWindowController`・`languageController`・`images`・`settingsReset` など |
@@ -7763,8 +7763,8 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 `MainWindowComposer` は部品を依存する部品より後に作り、依存はコンストラクタの `Deps` で渡す。共通の規則は [4.2節](#42-合成ルートでの組み立て) を参照。
 
 - **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `activity`・`match`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
-- **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`HumanTurnPolicy`・`BoardMoveController`・`CsaGameSession` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
-- **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（移ってよい状態か `HumanTurnPolicy::canBrowseRecord()` と、未更新のコメントの確認 `CommentCoordinator::confirmLeaveEditingMove()`）が、できあがった部品の関数を受け取る（成りの選び方は盤の操作 `BoardInteractionController` を作るときに渡す）。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
+- **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`OperationPolicy`・`BoardMoveController`・`CsaGameSession` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
+- **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（移ってよい状態か `OperationPolicy::canBrowseRecord()` と、未更新のコメントの確認 `CommentCoordinator::confirmLeaveEditingMove()`）が、できあがった部品の関数を受け取る（成りの選び方は盤の操作 `BoardInteractionController` を作るときに渡す）。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
 - **`std::function` はフックだけ**: 上位へ問い合わせ・操作を委ねるフック（`KifuDocument::Hooks::commitPendingEdits`、`UiStatePolicyManager::Deps` の `localGameHasHuman`・`canResumeGame`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
 
 二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。結果を使う部品があるダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その部品（`CsaGameSession`・`KifuFileController`）が開いて持つ。
@@ -7891,7 +7891,7 @@ MainWindow はスロットを持たない。メニュー・盤・棋譜欄の操
 - 待機中: 表示中の手の次の手（変化）として棋譜に記録する（`BranchTreeEditController`）
 - 対局中（ローカル・通信）で人間の手番: 対局中の窓口（`GameChannel::playMove()`）に渡す。ローカル対局は司令塔（`MatchCoordinator::playHumanMove()`）が合法手を確かめて指し、通信対局は `CsaGameCoordinator::sendHumanMove()` がサーバーへ送る
 
-人間が盤で操作できる手番かの判定は `HumanTurnPolicy::isHumanTurnNow()`（対局していなければ、変化の入力を受け付けるか）で、`BoardMoveController::acceptsInput()`（局面編集中は判定を使わずに受け付ける）と定跡ウィンドウが使う。盤面クリックは `UiStatePolicyManager` の表に含めない。矢印ボタンなどの有効・無効は `UiStatePolicyManager` が状態ごとに決める（[UI状態ポリシー](ui-state-policy.md)）。
+人間が盤で操作できる手番かの判定は `OperationPolicy::isHumanTurnNow()`（対局していなければ、変化の入力を受け付けるか）で、`BoardMoveController::acceptsInput()`（局面編集中は判定を使わずに受け付ける）と定跡ウィンドウが使う。盤面クリックは `UiStatePolicyManager` の表に含めない。矢印ボタンなどの有効・無効は `UiStatePolicyManager` が状態ごとに決める（[UI状態ポリシー](ui-state-policy.md)）。
 
 ---
 
@@ -8024,7 +8024,7 @@ sequenceDiagram
     SV-->>BIC: clicked(マス) シグナル → onLeftClick()
     Note over SV: クリック位置は clickedSquare() でマス（筋・段。駒台は筋10・11）にする
     BIC->>BMC: acceptsInput()（BoardInputRoute）
-    Note over BMC: 局面編集中か、HumanTurnPolicy::isHumanTurnNow()
+    Note over BMC: 局面編集中か、OperationPolicy::isHumanTurnNow()
     BIC->>BIC: selectPieceAndHighlight()
     Note over BIC: Selection の層に出す<br/>（設定により合法な移動先も LegalDestinations の層に表示）
 
@@ -8084,7 +8084,7 @@ sequenceDiagram
 | `BoardSyncPresenter` | 表示中の手の局面に盤を合わせ、指し手のハイライトと手番を示す（`src/ui/presenters/`） |
 
 **補足:**
-- `BoardMoveController::playMove()` が行き先（`HumanTurnPolicy::boardInput()`）で振り分ける。局面編集中は `PositionEditSession::applyEditMove()`、待機中は `BranchTreeEditController::recordMove()`、対局中（ローカル・通信）は対局中の窓口の `GameChannel::playMove()` で、ローカル対局は上のフローである。定跡ウィンドウの手は `playUsiMove()` から同じ処理に入る。どの場合も `onMoveApplied()` で手を受け付けたかを盤の操作へ返す
+- `BoardMoveController::playMove()` が行き先（`OperationPolicy::boardInput()`）で振り分ける。局面編集中は `PositionEditSession::applyEditMove()`、待機中は `BranchTreeEditController::recordMove()`、対局中（ローカル・通信）は対局中の窓口の `GameChannel::playMove()` で、ローカル対局は上のフローである。定跡ウィンドウの手は `playUsiMove()` から同じ処理に入る。どの場合も `onMoveApplied()` で手を受け付けたかを盤の操作へ返す
 - 成り・不成は盤の操作の `BoardInteractionController::moveFromClick()` が合法性と合わせて決め、クリックを1回だけ `UsiMove` にする（盤に指すのは `applyMove()`）。両方とも合法なら成りダイアログ（盤の操作を作るときに渡す `PromoteDialog::ask()`）で選ばせ、成りだけが合法（行き所のない駒）なら成る（6.6 節）
 - `MatchCoordinator::playHumanMove()` は合法手を盤に指してから、対局者の組の Strategy（人間対エンジンなら `HumanVsEngineStrategy`）に渡す。Strategy は `MatchStrategyHost::completeHumanMove()` で一手を確定させ、エンジンの手番なら `requestEngineMove()` で `Usi::requestMatchMove()`（position と go）を頼み、`matchMoveReady` シグナルで受けた応手を `applyEngineMove()` で指す
 - 手番は `ShogiBoard` だけが持ち、`ShogiBoard::turnChanged` を `BoardChromeWidget::setActiveSide()` が受けて盤の手番表示を切り替える。時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受けて合わせる
@@ -9529,7 +9529,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | GameStartPlan | S | game | 対局の開始の計画（開始の設定・時間・開始前の整え方・連続対局） | 第6章 |
 | GlobalToolTip | C | widgets | グローバルツールチップ表示ウィジェット | 第11章 |
 | Handicaps | NS | core | 手合割（名前・JKF の preset・開始局面）の表と、局面の手合割（`of`・`ofStart`・`isHirate`） | 第8章 |
-| HumanTurnPolicy | C | ui/controllers | 盤を人間が操作できる手番か・対局が進行中かの判定 | 第6章 |
+| OperationPolicy | C | ui/controllers | 盤を人間が操作できる手番か・対局が進行中かの判定 | 第6章 |
 | HumanVsEngineStrategy | C | game | 人間対エンジンの Strategy | 第6章 |
 | HumanVsHumanStrategy | C | game | 人間対人間の Strategy | 第6章 |
 | InterruptedGameState | S | game | 中断したローカル対局の状態（アプリ起動中だけ保持する） | 第6章 |
