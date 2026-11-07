@@ -33,6 +33,7 @@
 #include "evaluationgraphpresenter.h"
 #include "gameinfopane.h"
 #include "gamesession.h"
+#include "gamechannels.h"
 #include "humanturnpolicy.h"
 #include "imageexportcontroller.h"
 #include "josekibooksession.h"
@@ -227,13 +228,12 @@ void MainWindowComposer::createMatchAndAnalysis()
     cd.engines = m_c.engines;
     cd.activity = &m_activity;
     m_c.csaGame = new CsaGameCoordinator(cd, &m_window);
+    m_c.gameChannels = std::make_unique<GameChannels>(&m_activity, m_c.match, m_c.csaGame);
 
     // 盤の手の行き先と、棋譜を移って・変えてよいか（棋譜を移る・変える入口はすべてこれを通す）
     HumanTurnPolicy::Deps hd;
     hd.activity = &m_activity;
-    hd.board = m_c.gameBoard->board();
-    hd.match = m_c.match;
-    hd.csaGame = m_c.csaGame;
+    hd.channels = m_c.gameChannels.get();
     hd.liveSession = m_c.liveGameSession;
     m_c.humanTurnPolicy = std::make_unique<HumanTurnPolicy>(hd);
     // 利用者の操作で棋譜を移る前の確認。対局中・棋譜解析中・局面編集中は移らない。移れる状態なら、
@@ -265,6 +265,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     bd.positionEdit = m_c.positionEdit;
     bd.branchEdit = m_c.branchEdit;
     bd.turnPolicy = m_c.humanTurnPolicy.get();
+    bd.channels = m_c.gameChannels.get();
     m_c.boardMoves = new BoardMoveController(bd, &m_window);
 }
 
@@ -428,6 +429,7 @@ void MainWindowComposer::createSessions()
     m_c.nyugyokuHandler = new NyugyokuDeclarationHandler(&m_window, m_c.document, &m_window);
     GameSession::Deps gd;
     gd.activity = &m_activity;
+    gd.channels = m_c.gameChannels.get();
     gd.match = m_c.match;
     gd.consecutive = m_c.consecutiveGames;
     gd.reset = m_c.sessionReset.get();
@@ -442,8 +444,6 @@ void MainWindowComposer::createSessions()
     gd.nyugyoku = m_c.nyugyokuHandler;
     gd.josekiBook = m_c.josekiBook;
     m_c.gameSession = new GameSession(gd, &m_window);
-    // 盤で指した手は、対局中の窓口（ローカル対局・通信対局）へ渡す
-    m_c.boardMoves->setActiveChannel(std::bind(&GameSession::activeChannel, m_c.gameSession));
     // 司令塔（ローカル対局・通信対局）は棋譜の受け手（GameSession）より先に作るので、ここで渡す
     m_c.match->setRecordSink(m_c.gameSession);
     m_c.csaGame->setRecordSink(m_c.gameSession);

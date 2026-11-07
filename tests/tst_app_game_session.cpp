@@ -20,6 +20,7 @@
 #include "boardmovecontroller.h"
 #include "elidelabel.h"
 #include "gamechannel.h"
+#include "gamechannels.h"
 #include "gamesettings.h"
 #include "josekibooksession.h"
 #include "josekitablemodel.h"
@@ -197,10 +198,10 @@ private slots:
         AppActivityState activity;
         ActivityLease lease = activity.begin(AppActivityState::Activity::DuringCsaGame, nullptr);
         auto csa = std::make_unique<CsaGameCoordinator>();
+        GameChannels channels(&activity, nullptr, csa.get());
         HumanTurnPolicy::Deps deps;
         deps.activity = &activity;
-        deps.board = gc.board();
-        deps.csaGame = csa.get();
+        deps.channels = &channels;
         HumanTurnPolicy policy(deps);
         QVERIFY(!policy.isHumanTurnNow());
 
@@ -226,7 +227,6 @@ private slots:
         AppActivityState activity;
         HumanTurnPolicy::Deps deps;
         deps.activity = &activity;
-        deps.board = gc.board();
         HumanTurnPolicy policy(deps);
         ActivityLease lease;
         for (const auto state : {AppActivityState::Activity::DuringAnalysis, AppActivityState::Activity::DuringTsumeSearch,
@@ -309,7 +309,7 @@ private slots:
         p.navState->setCurrentNode(first);
         p.document->markSaved(QString());
         startFromDialog(window);
-        GameChannel* channel = p.gameSession->activeChannel();
+        GameChannel* channel = p.gameChannels->active();
         QVERIFY(channel);
         QCOMPARE(channel->playMove(UsiMove::fromString(u"3c3d")), GameChannel::MoveResult::Played);
         QCOMPARE(first->childCount(), 1);
@@ -379,9 +379,9 @@ private slots:
         MainWindow window;
         auto& p = window.composer().parts();
         auto& activity = window.composer().activity();
-        QVERIFY(!p.gameSession->activeChannel());
+        QVERIFY(!p.gameChannels->active());
         startFromDialog(window);
-        GameChannel* local = p.gameSession->activeChannel();
+        GameChannel* local = p.gameChannels->active();
         QVERIFY(local);
         // 入玉宣言は対局ダイアログで選んだ持将棋ルールで受け付ける（対局を始めた後の設定は読まない）
         QCOMPARE(p.match->options().jishogiRule, std::optional(JishogiCalculator::Rule::Points24));
@@ -390,7 +390,7 @@ private slots:
         QVERIFY(local->isHumanToMove());
         QCOMPARE(local->sideToMove(), Turn::Black);
         ActivityLease lease = activity.begin(AppActivityState::Activity::DuringCsaGame, nullptr);
-        GameChannel* csa = p.gameSession->activeChannel();
+        GameChannel* csa = p.gameChannels->active();
         QVERIFY(csa && csa != local);
         QVERIFY(csa->acceptsDeclaration());
         lease = activity.begin(AppActivityState::Activity::DuringGame, nullptr);

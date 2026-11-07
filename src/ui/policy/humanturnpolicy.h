@@ -5,27 +5,23 @@
 /// @brief 盤を人間が操作できるか・棋譜を移って・変えてよいか・対局が進行中かの判定
 
 class AppActivityState;
-class CsaGameCoordinator;
+class GameChannels;
 class LiveGameSession;
-class MatchCoordinator;
-class ShogiBoard;
 
 /**
  * @brief 盤を人間が操作できるか・棋譜を移って・変えてよいか・対局が進行中かを、アプリの動作状態と対局の司令塔から判定する
  *
  * 動作状態ごとの盤の手の行き先（boardInput）と、棋譜を移ってよいか（canBrowseRecord）・変えてよいか
  * （canEditRecord）はここだけで決める。棋譜を移る・変える入口（棋譜欄・分岐候補欄・分岐ツリー・評価値グラフ・
- * 定跡ウィンドウ・棋譜解析の結果・自動化 API）はすべてこれを通す。ローカル対局は MatchCoordinator
- * （どちらの手番が人間か・手を受け付けるか）、通信対局は CsaGameCoordinator に聞く。QObject 非継承。
+ * 定跡ウィンドウ・棋譜解析の結果・自動化 API）はすべてこれを通す。対局中に人間が指せるかは、対局の種類で
+ * 分岐せず対局相手の窓口（GameChannels）に聞く。QObject 非継承。
  */
 class HumanTurnPolicy
 {
 public:
     struct Deps {
         const AppActivityState* activity = nullptr;
-        const ShogiBoard* board = nullptr;                 ///< 盤（手番）
-        const MatchCoordinator* match = nullptr;
-        const CsaGameCoordinator* csaGame = nullptr;     ///< 通信対局の司令塔
+        const GameChannels* channels = nullptr;            ///< 対局相手の窓口（人間が指せるか・対局が進行中か）
         /// 対局の棋譜を書いている間は、棋譜を変えない
         const LiveGameSession* liveSession = nullptr;
     };

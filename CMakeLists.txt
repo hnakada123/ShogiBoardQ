@@ -536,6 +536,8 @@ set(SRC_NETWORK
     src/network/csaclient.h
     src/network/csagamechannel.cpp
     src/network/csagamechannel.h
+    src/network/gamechannels.cpp
+    src/network/gamechannels.h
     src/network/csagamecoordinator.cpp
     src/network/csagamecoordinator.h
     src/network/csagamecoordinator_moves.cpp

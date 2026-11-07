@@ -18,14 +18,12 @@ class AppActivityState;
 class QMessageBox;
 class JosekiBookSession;
 class ConsecutiveGameSeries;
-class CsaGameChannel;
 class CsaGameCoordinator;
-class GameChannel;
+class GameChannels;
 class KifuDocument;
 class KifuFileController;
 class KifuNavigationState;
 class LiveGameSession;
-class LocalGameChannel;
 class MainWindowAppearanceController;
 class NyugyokuDeclarationHandler;
 class SessionResetCoordinator;
@@ -49,7 +47,8 @@ class GameSession : public QObject, public MatchRecordSink
 
 public:
     struct Deps {
-        const AppActivityState* activity = nullptr;         ///< 動作状態（対局中の窓口を決める）
+        const AppActivityState* activity = nullptr;         ///< 動作状態
+        const GameChannels* channels = nullptr;             ///< 対局相手の窓口（投了・中断・即指し・入玉宣言の送り先。必須）
         MatchCoordinator* match = nullptr;                  ///< ローカル対局の司令塔
         ConsecutiveGameSeries* consecutive = nullptr;  ///< 連続対局
         SessionResetCoordinator* reset = nullptr;           ///< 棋譜と表示の作り直し
@@ -80,9 +79,6 @@ public:
 
     /// 計画どおりに対局を始める。beginSeries なら連続対局の1局目として局数を数え始める
     bool startGame(const GameStartPlan& plan, bool beginSeries);
-
-    /// 対局中の対局相手の窓口（対局していなければ nullptr）
-    GameChannel* activeChannel() const;
 
 signals:
     /// 対局（ローカル・通信）で指された手を棋譜に書いた（sfen は指す前の局面。定跡ウィンドウの「盤の手を登録」が受ける）
@@ -130,8 +126,6 @@ private:
     void noteContinuedMatch(const MatchPlayers& players, const TimeControl& timeControl);
 
     Deps m_deps;
-    std::unique_ptr<LocalGameChannel> m_localChannel;
-    std::unique_ptr<CsaGameChannel> m_csaChannel;
     MatchAutoSave m_autoSave;          ///< 進行中の対局の自動保存
     QPointer<QMessageBox> m_gameOverNotice;  ///< 待たずに出した連続対局の途中の局の終局の知らせ（次の知らせで閉じる）
 

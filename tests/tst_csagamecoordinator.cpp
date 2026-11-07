@@ -23,6 +23,7 @@
 #include "humanturnpolicy.h"
 #include "uistatepolicymanager.h"
 #include "csagamechannel.h"
+#include "gamechannels.h"
 #include "csagameprogress.h"
 #include "csagameseries.h"
 #include "csaverdictwait.h"
@@ -512,10 +513,10 @@ private slots:
     {
         Harness h;
         QVERIFY(h.start("+"));
+        GameChannels channels(&h.activity, nullptr, &h.coordinator);
         HumanTurnPolicy::Deps deps;
         deps.activity = &h.activity;  // 対局が始まると司令塔が通信対局中にしている
-        deps.board = h.gc.board();
-        deps.csaGame = &h.coordinator;
+        deps.channels = &channels;
         HumanTurnPolicy policy(deps);
         // 通信対局中に盤で指した手は、BoardMoveController がそのまま司令塔へ送る
         QVERIFY(policy.isHumanTurnNow());
@@ -763,9 +764,10 @@ private slots:
                                            P::UiElement::SettingsEngine, P::UiElement::GameResign})
             QCOMPARE(policy(element), P::Policy::Disabled);
         QCOMPARE(policy(P::UiElement::EditStartPosition), P::Policy::Hidden);
+        GameChannels channels(&h.activity, nullptr, &h.coordinator);
         HumanTurnPolicy::Deps turnDeps;
         turnDeps.activity = &h.activity;
-        turnDeps.csaGame = &h.coordinator;
+        turnDeps.channels = &channels;
         const HumanTurnPolicy turn(turnDeps);
         QVERIFY(turn.canBrowseRecord());
         QVERIFY(!turn.canEditRecord());

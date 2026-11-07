@@ -6,10 +6,9 @@
 
 #include "appactivitystate.h"
 #include "consecutivegameseries.h"
-#include "csagamechannel.h"
 #include "csagamecoordinator.h"
 #include "notificationpresenter.h"
-#include "gamechannel.h"
+#include "gamechannels.h"
 #include "gameinfo.h"
 #include "gameinfokeys.h"
 #include "handicaps.h"
@@ -48,8 +47,6 @@ GameSession::GameSession(const Deps& deps, QObject* parent)
     , m_deps(deps)
 {
     Q_ASSERT(m_deps.activity && m_deps.match && m_deps.csaGame);
-    m_localChannel = std::make_unique<LocalGameChannel>(m_deps.match);
-    m_csaChannel = std::make_unique<CsaGameChannel>(m_deps.csaGame);
 
     // 棋譜を変えたら、中断した対局は再開できない
     KifuBranchTree* tree = m_deps.navState->tree();
@@ -60,17 +57,6 @@ GameSession::GameSession(const Deps& deps, QObject* parent)
 }
 
 GameSession::~GameSession() = default;
-
-GameChannel* GameSession::activeChannel() const
-{
-    const AppActivityState& activity = *m_deps.activity;
-    // 通信対局はサーバーに接続している間（局と局の間も。「中断」でやめられる）
-    if (activity.is(AppActivityState::Activity::DuringCsaGame)
-        || activity.is(AppActivityState::Activity::DuringCsaConnection))
-        return m_csaChannel.get();
-    if (activity.is(AppActivityState::Activity::DuringGame)) return m_localChannel.get();
-    return nullptr;
-}
 
 QString GameSession::recordStartSfen() const
 {
@@ -242,7 +228,7 @@ void GameSession::startNextGame(const GameStartPlan& plan)
 
 void GameSession::resign()
 {
-    GameChannel* channel = activeChannel();
+    GameChannel* channel = m_deps.channels->active();
     if (!channel) return;
     if (!channel->canResign()) {
         NotificationPresenter::information(m_deps.shogiView ? m_deps.shogiView->window() : nullptr, tr("投了"),
@@ -254,17 +240,17 @@ void GameSession::resign()
 
 void GameSession::breakOff()
 {
-    if (GameChannel* channel = activeChannel()) channel->breakOff();
+    if (GameChannel* channel = m_deps.channels->active()) channel->breakOff();
 }
 
 void GameSession::makeEngineMoveNow()
 {
-    if (GameChannel* channel = activeChannel()) channel->moveNow();
+    if (GameChannel* channel = m_deps.channels->active()) channel->moveNow();
 }
 
 void GameSession::declareNyugyoku()
 {
-    m_deps.nyugyoku->handleDeclaration(activeChannel());
+    m_deps.nyugyoku->handleDeclaration(m_deps.channels->active());
 }
 
 void GameSession::undoTwoMoves()

@@ -17,6 +17,7 @@ public:
     void resign() override;
     void breakOff() override;
     void moveNow() override;
+    bool isInProgress() const override;
     bool isHumanToMove() const override;
     bool canResign() const override;
     Turn sideToMove() const override;
