@@ -3,6 +3,8 @@
 
 #include "csamoveconverter.h"
 
+#include "csalexer.h"
+
 #include "shoginotation.h"
 #include "shogiposition.h"
 
@@ -36,32 +38,13 @@ QString toCsa(const UsiMove& move, Turn mover, const Position& board)
 
 std::optional<UsiMove> toUsi(const QString& csaMove, const Position& board)
 {
-    if (csaMove.size() < 7) return std::nullopt;
-    const QChar sign = csaMove.at(0);
-    if (sign != QLatin1Char('+') && sign != QLatin1Char('-')) return std::nullopt;
-    const Turn mover = sign == QLatin1Char('+') ? Turn::Black : Turn::White;
-    if (mover != board.sideToMove()) return std::nullopt;
-
-    const BoardSquare from{csaMove.at(1).digitValue(), csaMove.at(2).digitValue()};
-    const BoardSquare to{csaMove.at(3).digitValue(), csaMove.at(4).digitValue()};
-    const Piece after = ShogiNotation::pieceFromCsaCode(QStringView(csaMove).mid(5, 2));
-    if (!to.isValid() || after == Piece::None) return std::nullopt;
-
-    UsiMove move;
-    move.to = to;
-    if (from.file == 0 && from.rank == 0) {
-        // 打てるのは持ち駒にある玉以外の生駒
-        if (isPromoted(after) || after == Piece::BlackKing) return std::nullopt;
-        move.drop = after;
-        if (board.handCount(move.dropPieceFor(mover)) <= 0) return std::nullopt;
-    } else {
-        // 成る手は、盤の生駒が CSA では成った駒になっている
-        move.from = from;
-        const Piece source = board.pieceAt(from);
-        move.promote = isPromoted(after) && source != Piece::None && !isPromoted(source);
-    }
+    // 書式と成りの読み方は棋譜の CSA の読み込みと同じ（CsaLexer::parseMoveLine）
+    const std::optional<CsaLexer::CsaMove> parsed = CsaLexer::parseMoveLine(csaMove.left(7), board, nullptr);
+    if (!parsed || parsed->written.side != board.sideToMove()) return std::nullopt;
+    const UsiMove& move = parsed->move;
+    if (move.isDrop() && board.handCount(move.dropPieceFor(board.sideToMove())) <= 0) return std::nullopt;
     // 駒種・持ち駒が盤と合うかは、同じ指し手を CSA に戻して確かめる
-    if (!move.isValid() || toCsa(move, mover, board) != csaMove.left(7)) return std::nullopt;
+    if (!move.isValid() || toCsa(move, board.sideToMove(), board) != csaMove.left(7)) return std::nullopt;
     return move;
 }
 

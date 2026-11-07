@@ -41,31 +41,6 @@ void CsaGameCoordinator::onVerdictTimedOut(const QString& failureText)
     failGame(failureText);
 }
 
-QString CsaGameCoordinator::validateMoveText(const QString& move) const
-{
-    if (move.length() < 7) {
-        qCWarning(lcNetwork) << "Invalid CSA move length:" << move;
-        return tr("不正な形式の指し手を受信しました: %1").arg(move);
-    }
-
-    const int fromFile = move[1].digitValue();
-    const int fromRank = move[2].digitValue();
-    const int toFile = move[3].digitValue();
-    const int toRank = move[4].digitValue();
-
-    const bool invalidTo = (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9);
-    const bool invalidFrom = !((fromFile == 0 && fromRank == 0) ||
-                               (fromFile >= 1 && fromFile <= 9 &&
-                                fromRank >= 1 && fromRank <= 9));
-    if (invalidTo || invalidFrom) {
-        qCWarning(lcNetwork) << "Invalid CSA move coordinates:"
-                             << "fromFile=" << fromFile << "fromRank=" << fromRank
-                             << "toFile=" << toFile << "toRank=" << toRank << "move=" << move;
-        return tr("不正な座標の指し手を受信しました: %1").arg(move);
-    }
-    return QString();
-}
-
 // ============================================================
 // 時計
 // ============================================================
@@ -134,16 +109,12 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
 bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn)
 {
     if (m_phase != Phase::Playing || !m_gameBoard || failIfVerdictPending()) return false;
-    const QString problem = validateMoveText(move);
-    if (!problem.isEmpty()) {
-        deferVerdict(problem, tr("サーバーからの指し手を解釈できません: %1").arg(move));
-        return false;
-    }
     // 時計の通知は、棋譜と時計まで確定した後にまとめて送る。
     const QSignalBlocker clockNotifications(m_clock);
 
     const std::optional<RecordEntry> played = playCsaMove(move);
     if (!played) {
+        // 書式の誤りも局面に合わない手も、CsaMoveConverter::toUsi が1か所で断る
         deferVerdict(tr("指し手の適用に失敗しました: %1").arg(move),
                      tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
         return false;

@@ -279,7 +279,6 @@ private:
     /// 着手後に表示用時計をサーバーが示した残り時間に合わせ、次の手番の時計を動かす
     void syncClockAfterMove(bool startMyTurnClock);
     /// 指し手行の書式・座標を確認し、問題があれば通知文を返す（問題なければ空）
-    QString validateMoveText(const QString& move) const;
     /// 解釈できない指し手行を記録し、サーバーの裁定を待つ（CsaVerdictWait）
     void deferVerdict(const QString& logText, const QString& failureText);
     /// 裁定待ちのまま次の行が来たら、続行できないとして終局させる
