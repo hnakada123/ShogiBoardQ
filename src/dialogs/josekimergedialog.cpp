@@ -219,7 +219,7 @@ void JosekiMergeDialog::onRegisterAllButtonClicked()
     QList<JosekiImport::Move> pending;
     QSet<QString> pendingKeys;
     for (const Row &row : std::as_const(m_rows)) {
-        const QString key = SfenUtils::normalizeSfenKey(row.sfen) + QLatin1Char(' ') + row.usiMove;
+        const QString key = JosekiImport::moveKey(row.sfen, row.usiMove);
         if (isRegistered(row) || pendingKeys.contains(key)) continue;
         pendingKeys.insert(key);
         pending.append(JosekiImport::Move{row.sfen, row.usiMove, 1, {}});
