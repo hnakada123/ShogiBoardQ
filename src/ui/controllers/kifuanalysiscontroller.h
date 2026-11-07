@@ -6,8 +6,10 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QSet>
 #include <memory>
 #include <optional>
+#include <utility>
 
 #include "kifuanalysissession.h"
 
@@ -48,13 +50,22 @@ public:
         EvaluationGraphPresenter* evalGraph = nullptr;      ///< 評価値グラフの点（解析した局面の評価値）
     };
 
+    /// 解析する手順の、画面だけが使う値
+    struct LineInfo {
+        /// 手順の末尾の手（KifuBranchTree のノード ID。結果の行・グラフの点から棋譜を移すときに使う。-1 は移さない）
+        int lineEndNodeId = -1;
+        QSet<int> branchPlies;  ///< 分岐がある手の手数（結果の表で分岐の印を付ける）
+    };
+
     explicit KifuAnalysisController(const Deps& deps, QObject* parent = nullptr);
     ~KifuAnalysisController() override;
 
     /// 解析を始める（前の解析は止める）。始められなければ知らせて false
-    bool start(KifuAnalysisRequest request);
+    bool start(KifuAnalysisRequest request, const LineInfo& lineInfo);
+    bool start(KifuAnalysisRequest request) { return start(std::move(request), LineInfo()); }
     /// 表示中の手順と条件ダイアログの値から解析の依頼を作る（エンジンが選ばれていなければ nullopt）
-    std::optional<KifuAnalysisRequest> requestFromDialog(const KifuAnalysisDialog& dialog) const;
+    /// ダイアログの条件で、表示中の手順の解析を始める
+    bool startFromDialog(const KifuAnalysisDialog& dialog);
 
     bool isRunning() const { return m_deps.session->isRunning(); }
 
@@ -76,7 +87,10 @@ private slots:
 
 private:
     /// 解析する手順（表示中の手順。分岐を選んでいればその分岐。終局の行は含まない）
+    std::optional<KifuAnalysisRequest> requestFromDialog(const KifuAnalysisDialog& dialog) const;
     RecordLine displayedLine() const;
+    /// 表示中の手順の LineInfo
+    LineInfo displayedLineInfo() const;
     /// 表示中の手順のうち、分岐がある手の手数（結果の表で棋譜欄と同じ印を付ける）
     QSet<int> displayedBranchPlies() const;
     void showError(const QString& message) const;
