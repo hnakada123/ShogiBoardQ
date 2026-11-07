@@ -14,19 +14,6 @@
 
 namespace {
 
-/// 出現頻度の合計（負の値は0とみなす）
-qint64 frequencyTotal(const QList<JosekiMove> &moves)
-{
-    qint64 total = 0;
-    for (const JosekiMove &move : moves) total += qMax(move.frequency, 0);
-    return total;
-}
-
-double ratioPercent(const JosekiMove &move, qint64 total)
-{
-    return total > 0 ? 100.0 * qMax(move.frequency, 0) / static_cast<double>(total) : 0.0;
-}
-
 /// 出現頻度に比例した確率で選ぶ（出現頻度がすべて0なら等確率）
 qsizetype pickByFrequency(const QList<JosekiMove> &moves, QRandomGenerator &random)
 {
@@ -71,8 +58,7 @@ QList<JosekiMove> candidates(const QList<JosekiMove> &moves, const QString &sfen
         if (!usi || !EngineMoveValidator::isLegal(context, *usi)) continue;
         if (move.depth < conditions.minDepth || move.frequency < conditions.minFrequency) continue;
         if (conditions.useMinValue && move.value < conditions.minValue) continue;
-        // 表の比率（小数1桁）と同じ値が下限ちょうどでも使えるように、わずかな誤差は許す
-        if (ratioPercent(move, total) + 1e-9 < conditions.minRatioPercent) continue;
+        if (!meetsMinRatio(move, total, conditions.minRatioPercent)) continue;
         result.append(move);
     }
     return result;
@@ -97,7 +83,7 @@ std::optional<JosekiPick> pick(const JosekiBook &book, const QString &sfen, cons
     }
     JosekiPick picked;
     picked.move = found.at(index);
-    picked.ratioPercent = ratioPercent(picked.move, frequencyTotal(moves));
+    picked.ratioPercent = frequencyRatioPercent(picked.move, frequencyTotal(moves)).value_or(0.0);
     return picked;
 }
 

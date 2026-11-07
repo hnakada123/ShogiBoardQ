@@ -43,8 +43,7 @@ void JosekiTableModel::setMoves(const QString &sfen, const QList<JosekiMove> &mo
     const int newRows = static_cast<int>(moves.size());
     m_sfen = sfen;
     m_humanCanPlay = humanCanPlay;
-    m_frequencyTotal = 0;
-    for (const JosekiMove &move : moves) m_frequencyTotal += qMax(move.frequency, 0);
+    m_frequencyTotal = frequencyTotal(moves);
     // 定跡手を指した後の局面（予想応手の表記と導いた応手に使う。表示のたびに指し直さない）
     m_afterSfens.clear();
     m_derivedReplies.clear();
@@ -127,10 +126,10 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
     case Value: return locale.toString(move.value);
     case Depth: return locale.toString(move.depth);
     case Frequency: return locale.toString(move.frequency);
-    case Ratio:
-        if (m_frequencyTotal <= 0) return QString();
-        return locale.toString(100.0 * qMax(move.frequency, 0) / static_cast<double>(m_frequencyTotal), 'f', 1)
-            + QLatin1Char('%');
+    case Ratio: {
+        const std::optional<double> ratio = frequencyRatioPercent(move, m_frequencyTotal);
+        return ratio ? locale.toString(*ratio, 'f', 1) + QLatin1Char('%') : QString();
+    }
     case Comment: return move.comment;
     default: return {};
     }

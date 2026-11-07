@@ -41,16 +41,13 @@ private:
     {
         QList<UsiMove> chosen;
         const QList<JosekiMove> moves = m_book.movesAt(position);
-        qint64 total = 0;
-        for (const JosekiMove &move : moves) total += qMax(move.frequency, 0);
+        const qint64 total = frequencyTotal(moves);
         const EngineMoveValidator::Context context = EngineMoveValidator::load(position);
         for (const JosekiMove &move : moves) {
             if (chosen.size() >= m_options.maxMovesPerPosition) break;
             const std::optional<UsiMove> usi = UsiMove::parse(move.move);
             if (!usi || !EngineMoveValidator::isLegal(context, *usi)) continue;
-            // 表の比率（小数1桁）と同じ値が下限ちょうどでも使えるように、わずかな誤差は許す
-            const double ratio = total > 0 ? 100.0 * qMax(move.frequency, 0) / static_cast<double>(total) : 100.0;
-            if (ratio + 1e-9 < m_options.minRatioPercent) continue;
+            if (!meetsMinRatio(move, total, m_options.minRatioPercent)) continue;
             chosen.append(*usi);
         }
         return chosen;
