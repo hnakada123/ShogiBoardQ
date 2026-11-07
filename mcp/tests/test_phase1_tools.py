@@ -80,6 +80,11 @@ async def test_convert_kifu_from_file_and_text(server_env, tmp_path):
             assert ("only the main line" in text) is dropped, text
             assert ("変化：" in data["text"]) is (output_format == "kif")
 
+        # A file whose extension means another format could not be read back.
+        text, data, is_error = await _call(session, "convert_kifu", input_path=str(FIXTURES / "test_basic.kif"),
+                                           output_format="usi", output_path=str(tmp_path / "mismatch.kif"))
+        assert is_error and "invalid_argument" in text and "means kif" in text
+
         # What the output format cannot hold is reported, not silently dropped.
         annotated = "手合割：平手\n手数----指手---------消費時間--\n   1 ７六歩(77)   ( 0:01/00:00:01)\n*コメント\n&しおり\n"
         text, data, is_error = await _call(session, "convert_kifu", text=annotated, output_format="usen")

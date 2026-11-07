@@ -125,6 +125,14 @@ int CliCommands::convertKifu(const QJsonObject& params)
             : OutputPath::check(outputPath, params.value(QStringLiteral("overwrite")).toBool(), QStringLiteral("--overwrite"))) {
         return CliOutput::fail(*problem);
     }
+    // 拡張子が形式を決めるファイルに別の形式を書かない（GUI と kifu.save は拡張子で決めるので、読み戻せなくなる）
+    if (!outputPath.isEmpty() && KifuSaveFile::hasKnownSaveExtension(outputPath)
+        && KifuSaveFile::saveFormatForPath(outputPath) != request.outputFormat) {
+        return CliOutput::fail(ErrorKind::InvalidArgument,
+                               QStringLiteral("The extension of %1 means %2, but the output format is %3")
+                                   .arg(outputPath, KifuFormats::name(KifuSaveFile::saveFormatForPath(outputPath)),
+                                        KifuFormats::name(request.outputFormat)));
+    }
 
     const KifuConversionService::Result result = KifuConversionService::convert(request);
     if (!result.ok) return CliOutput::fail(result.failure);
