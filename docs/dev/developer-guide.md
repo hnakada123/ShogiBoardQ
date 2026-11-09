@@ -367,7 +367,7 @@ qt_add_executable(shogiboardq-cli ${SRC_CLI} resources/shogiboardq.qrc)
 ShogiBoardQ/
 ├── CMakeLists.txt          # トップレベルビルド構成（ソースは SRC_* に列挙）
 ├── CMakePresets.json       # CMake のプリセット
-├── CLAUDE.md               # 開発ガイドライン（AGENTS.md・GEMINI.md は他の AI 向けの同様の文書）
+├── CLAUDE.md               # 開発ガイドライン（AGENTS.md は他の AI 向けの同様の文書）
 ├── README.md               # プロジェクト概要
 ├── LICENSE                 # ライセンス
 ├── .clang-tidy             # 静的解析設定
