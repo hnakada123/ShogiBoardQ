@@ -171,7 +171,7 @@ cmake --build build
 ./build/shogiboardq-cli version      # prints {"ok":true,"version":"..."}</code></pre>
                 </div>
                 <p class="guide-step-text"><strong>If you cloned the repository before its history was rewritten on 2026-11-09, do not run <code>git pull</code>.</strong> It stops with an error or produces a large number of conflicts. Clone again into a different folder with the command above. Before deleting the old folder, move any unpushed commits and local settings. If the folder location changes, also update <code>PYTHONPATH</code> and <code>SHOGIBOARDQ_EXECUTABLE</code> in your client configuration (if you used <code>pip install -e mcp</code>, install again from the new folder).</p>
-                <p class="guide-step-text">To see which history a clone has, run <code>git log -1 --format=%h 2026.11.04</code>. Output starting with <code>376e4362</code> means the old history, and <code>aa9bcc4b</code> means the new one. To keep your build folder, you can instead run <code>git fetch origin --tags --force</code> and then <code>git reset --hard origin/main</code>. This discards uncommitted changes and unpushed commits.</p>
+                <p class="guide-step-text">To see which history a clone has, run <code>git log -1 --format=%h 2026.11.04</code>. Output starting with <code>376e4362</code>, or an error that <code>2026.11.04</code> cannot be found, means the old history, and <code>aa9bcc4b</code> means the new one. To keep your build folder, you can instead run <code>git fetch origin --tags --force</code> and then <code>git reset --hard origin/main</code>. This discards uncommitted changes and unpushed commits.</p>
             </div>
 
             <div class="guide-step">
