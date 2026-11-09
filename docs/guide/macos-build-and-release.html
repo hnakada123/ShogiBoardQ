@@ -163,6 +163,9 @@ clang++ --version     # Apple Clang</code></pre>
 <p>通常対局用の Hayanagi はサブモジュールなので、<code>--recurse-submodules</code> を付けて取得する（付けないと CMake が止まる）：</p>
 <pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
 cd ShogiBoardQ</code></pre>
+<blockquote>
+<p><strong>2026-11-09 の履歴の書き換えより前に clone したリポジトリでは、<code>git pull</code> をしない。</strong> エラーで止まるか、大量のコンフリクトになる。上のコマンドで別のフォルダに clone し直す。古いフォルダを消す前に、push していないコミットや手元の設定を移す。どちらのリポジトリかは <code>git log -1 --format=%h 2026.11.04</code> で確かめられる。<code>376e4362</code> で始まるか、<code>2026.11.04</code> が見つからないエラーになれば古いリポジトリ、<code>aa9bcc4b</code> で始まれば新しいリポジトリである。ビルドのフォルダを残すときは、<code>git fetch origin --tags --force</code> の後に <code>git reset --hard origin/main</code> を実行しても直せる。未コミットの変更と push していないコミットは消える。</p>
+</blockquote>
 <p>取得済みのリポジトリでは <code>git submodule update --init --recursive</code> で記録された版の Hayanagi を取得する。</p>
 <section id="ビルドスクリプト推奨" class="level3">
 <h3>ビルドスクリプト（推奨）</h3>

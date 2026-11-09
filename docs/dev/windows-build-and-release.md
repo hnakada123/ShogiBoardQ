@@ -98,6 +98,8 @@ windeployqt --version # Qt デプロイツール
 
 ## 3. ビルド
 
+> **2026-11-09 の履歴の書き換えより前に clone したリポジトリでは、`git pull` をしない。** エラーで止まるか、大量のコンフリクトになる。`git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git` で別のフォルダに clone し直す。古いフォルダを消す前に、push していないコミットや手元の設定を移す。どちらのリポジトリかは `git log -1 --format=%h 2026.11.04` で確かめられる。`376e4362` で始まるか、`2026.11.04` が見つからないエラーになれば古いリポジトリ、`aa9bcc4b` で始まれば新しいリポジトリである。ビルドのフォルダを残すときは、`git fetch origin --tags --force` の後に `git reset --hard origin/main` を実行しても直せる。未コミットの変更と push していないコミットは消える。
+
 ### ビルドスクリプト（推奨）
 
 `scripts/build-windows.ps1` を使うと、Release ビルドから ZIP 作成まで一括実行できる。

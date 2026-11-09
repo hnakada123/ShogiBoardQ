@@ -261,6 +261,7 @@ T["ja"] = {
         ("h2", "build", "3. ソースの取得とビルド"),
         ("p", "Hayanagi をサブモジュールとして含めてリポジトリを取得する。サブモジュールがないと、ビルドに必要なファイルが欠ける。"),
         ("code", CLONE),
+        ("note", "**2026-11-09 の履歴の書き換えより前に clone したリポジトリでは、`git pull` をしない。** エラーで止まるか、大量のコンフリクトになる。上のコマンドで別のフォルダに clone し直す。古いフォルダを消す前に、push していないコミットや手元の設定を移す。どちらのリポジトリかは `git log -1 --format=%h 2026.11.04` で確かめられる。`376e4362` で始まるか、`2026.11.04` が見つからないエラーになれば古いリポジトリ、`aa9bcc4b` で始まれば新しいリポジトリである。ビルドのフォルダを残すときは、`git fetch origin --tags --force` の後に `git reset --hard origin/main` を実行しても直せる。未コミットの変更と push していないコミットは消える。"),
         ("p", "取得済みのリポジトリでは、`git submodule update --init --recursive` で記録された版の Hayanagi を取得する。"
               "Release ビルドして起動する。"),
         ("code", BUILD),
@@ -562,6 +563,7 @@ T["en"] = {
         ("h2", "build", "3. Getting the source and building"),
         ("p", "Clone the repository together with its Hayanagi submodule. Without the submodule, files needed for the build are missing."),
         ("code", CLONE),
+        ("note", "**If you cloned the repository before its history was rewritten on 2026-11-09, do not run `git pull`.** It stops with an error or produces a large number of conflicts. Clone again into a different folder with the command above. Before deleting the old folder, move any unpushed commits and local settings. To see which history a clone has, run `git log -1 --format=%h 2026.11.04`. Output starting with `376e4362`, or an error that `2026.11.04` cannot be found, means the old history, and `aa9bcc4b` means the new one. To keep your build folder, you can instead run `git fetch origin --tags --force` and then `git reset --hard origin/main`. This discards uncommitted changes and unpushed commits."),
         ("p", "In an existing checkout, run `git submodule update --init --recursive` to fetch the recorded Hayanagi version. "
               "Then build in Release mode and start the application."),
         ("code", BUILD),
@@ -864,6 +866,7 @@ T["zh-cn"] = {
         ("h2", "build", "3. 获取源代码并构建"),
         ("p", "获取仓库时请一并获取 Hayanagi 子模块。缺少子模块时，构建所需的文件会不完整。"),
         ("code", CLONE),
+        ("note", "**如果在 2026-11-09 改写历史之前克隆了仓库，请不要运行 `git pull`。**运行后会因错误而停止，或产生大量冲突。请用上面的命令重新克隆到另一个文件夹。删除旧文件夹之前，请先转移尚未推送的提交和本地设置。可以用 `git log -1 --format=%h 2026.11.04` 确认是哪种仓库。输出以 `376e4362` 开头，或提示找不到 `2026.11.04` 的错误时是旧仓库，以 `aa9bcc4b` 开头的是新仓库。如果想保留构建文件夹，也可以先运行 `git fetch origin --tags --force`，再运行 `git reset --hard origin/main` 来修复。未提交的更改和尚未推送的提交会丢失。"),
         ("p", "对于已获取的仓库，运行 `git submodule update --init --recursive` 获取所记录版本的 Hayanagi。"
               "然后以 Release 方式构建并启动。"),
         ("code", BUILD),
@@ -1142,6 +1145,7 @@ T["zh-tw"] = {
         ("h2", "build", "3. 取得原始碼並建置"),
         ("p", "取得儲存庫時請一併取得 Hayanagi 子模組。缺少子模組時，建置所需的檔案會不完整。"),
         ("code", CLONE),
+        ("note", "**若在 2026-11-09 改寫歷史紀錄之前 clone 了儲存庫，請不要執行 `git pull`。**執行後會因錯誤而停止，或產生大量衝突。請用上面的指令重新 clone 到另一個資料夾。刪除舊資料夾之前，請先移出尚未推送的提交和本機設定。可用 `git log -1 --format=%h 2026.11.04` 確認是哪一種儲存庫。輸出以 `376e4362` 開頭，或出現找不到 `2026.11.04` 的錯誤時是舊儲存庫，以 `aa9bcc4b` 開頭的是新儲存庫。若想保留建置資料夾，也可以先執行 `git fetch origin --tags --force`，再執行 `git reset --hard origin/main` 來修復。未提交的變更和尚未推送的提交會遺失。"),
         ("p", "對於已取得的儲存庫，執行 `git submodule update --init --recursive` 取得所記錄版本的 Hayanagi。"
               "接著以 Release 方式建置並啟動。"),
         ("code", BUILD),

@@ -144,6 +144,9 @@ clang++ --version     # Apple Clang</code></pre>
 <p>用于普通对局的 Hayanagi 是子模块，因此获取时要加上 <code>--recurse-submodules</code>（不加时 CMake 会停止）：</p>
 <pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
 cd ShogiBoardQ</code></pre>
+<blockquote>
+<p><strong>如果在 2026-11-09 改写历史之前克隆了仓库，请不要运行 <code>git pull</code>。</strong>运行后会因错误而停止，或产生大量冲突。请用上面的命令重新克隆到另一个文件夹。删除旧文件夹之前，请先转移尚未推送的提交和本地设置。可以用 <code>git log -1 --format=%h 2026.11.04</code> 确认是哪种仓库。输出以 <code>376e4362</code> 开头，或提示找不到 <code>2026.11.04</code> 的错误时是旧仓库，以 <code>aa9bcc4b</code> 开头的是新仓库。如果想保留构建文件夹，也可以先运行 <code>git fetch origin --tags --force</code>，再运行 <code>git reset --hard origin/main</code> 来修复。未提交的更改和尚未推送的提交会丢失。</p>
+</blockquote>
 <p>对于已获取的仓库，运行 <code>git submodule update --init --recursive</code> 获取所记录版本的 Hayanagi。</p>
 <section id="build-script" class="level3">
 <h3>构建脚本（推荐）</h3>
