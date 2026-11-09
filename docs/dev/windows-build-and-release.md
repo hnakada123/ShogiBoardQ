@@ -7,7 +7,7 @@ Windows ZIP にはアプリ（`ShogiBoardQ.exe`・`shogiboardq-cli.exe`）、実
 README は収録しません。`Hayanagi/source/` と外部の `licenses/` は
 今後の Windows リリースでも収録しません。アプリ内蔵のライセンス表示はそのまま利用します。
 詳細は [Qt 文書とリリース添付の方針](qt-licensing.md) を参照してください。
-Release の添付は実行用 ZIP のみとし、Qt ソースや関連文書を別添付しません。
+Release の添付は実行用 ZIP と、同じファイルを包んだインストーラのみとし、Qt ソースや関連文書を別添付しません。
 
 ---
 
@@ -387,6 +387,25 @@ cmd /c "cd deploy\Hayanagi && (echo usi& echo isready& echo quit) | .\hayanagi.e
 ```powershell
 Compress-Archive -Path deploy\* -DestinationPath ShogiBoardQ-windows.zip
 ```
+
+### 4.6 インストーラの作成
+
+配布用ディレクトリの中身を、[Inno Setup 6](https://jrsoftware.org/isinfo.php) で `ShogiBoardQ-windows-setup.exe` に包む。定義は `packaging/windows/shogiboardq.iss`。ZIP と同じファイルを包むだけで、ビルドはしない。
+
+```powershell
+# 初回のみ
+winget install --id JRSoftware.InnoSetup
+
+# build\installer\ShogiBoardQ-windows-setup.exe を作る
+.\scripts\build-windows-installer.ps1 -DeployDir deploy
+```
+
+版番号は配布用ディレクトリの `shogiboardq-cli.exe` から読む。公開済みの ZIP からインストーラだけを作るときは、ZIP を空のフォルダに展開して `-DeployDir` に渡す。
+
+- 既定は利用者ごとのインストール（管理者権限は不要で、`%LOCALAPPDATA%\Programs\ShogiBoardQ` に入る）。最初のダイアログで全ユーザー向け（`Program Files`）も選べる。
+- `AppId` は版をまたいで変えない。同じ ID なら、新しい版で上書きして更新される。
+- 設定（`%LOCALAPPDATA%\ShogiBoardQ`）はアンインストールしても残る。
+- ウィザードの言語は Inno Setup が標準で持つ日本語と英語だけで、中国語の環境では英語で表示される。
 
 ---
 
