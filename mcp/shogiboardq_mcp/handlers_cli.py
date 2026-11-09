@@ -18,6 +18,7 @@ from . import formatting as fmt
 from . import paths
 from . import specs
 from .cli_backend import run_cli
+from .errors import ToolError
 from .jobs import Job, JobManager
 
 # Game information and warnings returned at most (a record can have any number of header lines).
@@ -51,7 +52,14 @@ class CliTools:
         when the block ends; none may be left behind, even on errors.
         """
         if args.get("input_path"):
-            yield str(paths.resolve_read_path(args["input_path"], "input_path"))
+            resolved = paths.resolve_read_path(args["input_path"], "input_path")
+            # Unlike the other record extensions, .json is also used by settings and credentials: read it as JKF only.
+            if resolved.suffix.lower() == ".json":
+                if args.get("input_format", "auto") not in ("auto", "jkf"):
+                    raise ToolError("invalid_argument", "A .json file can only be read as JKF (input_format auto or jkf).")
+                # Without this, a .json that is not JSON would be read as KIF and its lines could come back as moves.
+                args["input_format"] = "jkf"
+            yield str(resolved)
             return
         # The format names are the choices of convert-kifu in specs.json (the C++ KifuFormats table);
         # each name is also the file suffix of its format
@@ -97,6 +105,9 @@ class CliTools:
         for key in ("game_info", "warnings"):
             if key in structured:
                 structured[key] = structured[key][:MAX_LIST_ITEMS]
+        # max_chars also bounds what the record's author wrote (comments, game information, warnings)
+        structured, free_text_cut = fmt.cap_free_text(structured, int(args["max_chars"]))
+        structured["free_text_truncated"] = free_text_cut
         # Whether the start is the initial position and whether the output lost the variations are decided by the
         # CLI (Handicaps::isHirate, KifuExport::writesVariations), so the rules are not copied here.
         start = "the initial position" if result.get("is_hirate") else result["initial_sfen"]
@@ -112,8 +123,10 @@ class CliTools:
             text_lines.append(f"Not written in {output_name}: {', '.join(lost)}.")
         if moves_truncated:
             text_lines.append(f"Only the first {max_moves} moves are listed (moves_truncated); ply_count has the full count.")
-        if result.get("warnings"):
-            text_lines.append("Warnings: " + "; ".join(result["warnings"]))
+        if free_text_cut:
+            text_lines.append("Comments, game information or warnings were cut to max_chars (free_text_truncated).")
+        if structured.get("warnings"):
+            text_lines.append("Warnings: " + fmt.untrusted("; ".join(structured["warnings"])))
         if output_path is not None:
             structured["output_path"] = str(output_path)
             structured["truncated"] = False
@@ -123,7 +136,7 @@ class CliTools:
             structured["text"] = text
             structured["truncated"] = truncated
             text_lines.append("")
-            text_lines.append(text)
+            text_lines.append(fmt.untrusted(text))
         return "\n".join(text_lines), structured
 
     async def validate_sfen(self, args: dict[str, Any]) -> Result:
@@ -157,9 +170,9 @@ class CliTools:
         return text, {"engines": engines}
 
     async def render_board_image(self, args: dict[str, Any]) -> Result:
-        output_path = paths.resolve_write_path(args["output_path"], bool(args.get("overwrite")),
-                                               suffixes=paths.IMAGE_WRITE)
+        output_path = paths.resolve_image_write_path(args["output_path"], bool(args.get("overwrite")))
         result = await run_cli(self.command("render-board", args, output_path=str(output_path)))
+        paths.remember_image_written(output_path)
         structured = {"output_path": result["output_path"], "width": result["width"], "height": result["height"]}
         return f"Board image written to {result['output_path']} ({result['width']}x{result['height']} px).", structured
 

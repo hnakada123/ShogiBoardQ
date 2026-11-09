@@ -1,14 +1,17 @@
 """File path policy and endpoint discovery.
 
 * File arguments must be absolute and inside one of the allowed directories
-  (``SHOGIBOARDQ_ALLOWED_DIRS``, default: the user's home directory).
+  (``SHOGIBOARDQ_ALLOWED_DIRS``, default: the folder ``~/ShogiBoardQ-MCP``, created when first needed. The home
+  directory would include places such as ``AppData`` and ``Library`` that hold settings and credentials).
 * Below an allowed directory, no name may start with ``.``: hidden files and directories hold settings,
   credentials and start-up scripts, never records.
 * Files must have the extension of a record (or an image, for board images). The lists come from
   ``shogiboardq-cli environment``, so an agent can neither read nor write other kinds of files.
   Converting writes ``kifu_write_suffixes`` (with the position-only ``.sfen``); saving the application's
   record writes ``kifu_save_suffixes``, the extensions of the application's Save As.
-* Existing files are only replaced when the caller passes ``overwrite``.
+* Existing files are only replaced when the caller passes ``overwrite``. ``overwrite`` is an argument of the agent,
+  so images are only replaced when this server wrote them (or the operator sets
+  ``SHOGIBOARDQ_ALLOW_IMAGE_OVERWRITE=1``).
 * The automation socket of a running ShogiBoardQ is discovered through the
   endpoint file the application writes next to its settings.
 """
@@ -16,6 +19,7 @@
 from __future__ import annotations
 
 import json
+import ntpath
 import os
 import tempfile
 from pathlib import Path
@@ -24,11 +28,29 @@ from .environment import environment
 from .errors import ToolError
 
 
+DEFAULT_ALLOWED_DIR_NAME = "ShogiBoardQ-MCP"
+
+
+def default_allowed_dir() -> Path:
+    """The folder files are read from and written to when the operator chose none (made once, private to the user)."""
+    path = Path.home() / DEFAULT_ALLOWED_DIR_NAME
+    try:
+        path.mkdir(mode=0o700, exist_ok=True)
+    except OSError as exc:
+        raise ToolError("not_allowed", f"Could not create the default folder {path}: {exc}. "
+                        "Set SHOGIBOARDQ_ALLOWED_DIRS.") from exc
+    return path
+
+
 def allowed_dirs() -> list[Path]:
-    raw = os.environ.get("SHOGIBOARDQ_ALLOWED_DIRS", "")
-    dirs = [Path(p).expanduser() for p in raw.split(os.pathsep) if p.strip()]
-    if not dirs:
-        dirs = [Path.home()]
+    raw = os.environ.get("SHOGIBOARDQ_ALLOWED_DIRS")
+    if raw is None:
+        dirs = [default_allowed_dir()]
+    else:
+        dirs = [Path(p).expanduser() for p in raw.split(os.pathsep) if p.strip()]
+        # A set value that names nothing, or a relative path, must not silently fall back to another place.
+        if not dirs or any(not d.is_absolute() for d in dirs):
+            raise ToolError("not_allowed", f"SHOGIBOARDQ_ALLOWED_DIRS must list absolute directories, got: {raw!r}")
     resolved: list[Path] = []
     for d in dirs:
         try:
@@ -45,7 +67,30 @@ KIFU_SAVE = "kifu_save_suffixes"   # what the application's kifu.save writes (no
 IMAGE_WRITE = "image_write_suffixes"
 
 
+def _is_unc(raw: str, windows: bool | None = None) -> bool:
+    """Whether a path is a Windows network path (``\\\\server\\share``, ``\\\\?\\UNC\\...``)."""
+    if not (os.name == "nt" if windows is None else windows):
+        return False
+    return ntpath.splitdrive(raw)[0].startswith(("\\\\", "//"))
+
+
+def _unc_allowed(path: Path, roots: list[Path], windows: bool | None = None) -> bool:
+    """Compare a network path with the allowed directories by its text only: opening it would already connect."""
+    if not _is_unc(str(path), windows):
+        return True
+    text = ntpath.normcase(ntpath.normpath(str(path)))
+    for root in roots:
+        prefix = ntpath.normcase(ntpath.normpath(str(root))).rstrip("\\") + "\\"
+        if text.startswith(prefix):
+            return True
+    return False
+
+
 def _check_allowed(path: Path) -> Path:
+    # Path.resolve() opens the path. On Windows a network path would connect to that server and send the user's
+    # credentials before the checks below run, so it is compared first.
+    if not _unc_allowed(path, allowed_dirs()):
+        raise ToolError("not_allowed", f"{path} is a network path outside the allowed directories.")
     resolved = path.resolve()
     inside = False
     for root in allowed_dirs():
@@ -120,6 +165,24 @@ def resolve_write_path(raw: str, overwrite: bool, what: str = "output_path", suf
     if not resolved.parent.is_dir():
         raise ToolError("not_found", f"The directory of {what} does not exist: {resolved.parent}")
     return resolved
+
+
+_images_written: set[Path] = set()
+
+
+def resolve_image_write_path(raw: str, overwrite: bool, what: str = "output_path") -> Path:
+    """Like resolve_write_path for an image. ``overwrite`` is the agent's own argument, so it only replaces what this
+    server wrote; the user's photos stay safe unless the operator allows it."""
+    resolved = resolve_write_path(raw, overwrite, what, suffixes=IMAGE_WRITE)
+    if resolved.exists() and resolved not in _images_written \
+            and os.environ.get("SHOGIBOARDQ_ALLOW_IMAGE_OVERWRITE") != "1":
+        raise ToolError("not_allowed", f"{what} already exists and was not written by this server: {raw}. "
+                        "Choose a new file name, or the operator may set SHOGIBOARDQ_ALLOW_IMAGE_OVERWRITE=1.")
+    return resolved
+
+
+def remember_image_written(path: Path) -> None:
+    _images_written.add(path)
 
 
 def resolve_output_dir(raw: str | None) -> Path:

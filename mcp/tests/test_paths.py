@@ -92,9 +92,59 @@ def test_multiple_allowed_dirs(monkeypatch, tmp_path):
     assert paths.resolve_read_path(str(b / "f.kif")) == (b / "f.kif").resolve()
 
 
-def test_default_allowed_dir_is_home(monkeypatch):
+def test_default_allowed_dir_is_a_dedicated_folder(monkeypatch, tmp_path):
+    # Not the home directory: it holds AppData, Library and other places with settings and credentials.
     monkeypatch.delenv("SHOGIBOARDQ_ALLOWED_DIRS", raising=False)
-    assert paths.allowed_dirs() == [Path.home().resolve()]
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    expected = (tmp_path / paths.DEFAULT_ALLOWED_DIR_NAME).resolve()
+    assert paths.allowed_dirs() == [expected]
+    assert expected.is_dir()
+    (tmp_path / "secret.kif").write_text("x", encoding="utf-8")
+    with pytest.raises(ToolError) as err:
+        paths.resolve_read_path(str(tmp_path / "secret.kif"))
+    assert err.value.code == "not_allowed"
+
+
+@pytest.mark.parametrize("value", ["", " ", os.pathsep, "relative/dir"])
+def test_a_set_but_unusable_allowed_dirs_is_an_error(monkeypatch, value):
+    # It must not silently fall back to another place.
+    monkeypatch.setenv("SHOGIBOARDQ_ALLOWED_DIRS", value)
+    with pytest.raises(ToolError) as err:
+        paths.allowed_dirs()
+    assert err.value.code == "not_allowed"
+
+
+def test_network_paths_are_refused_by_text_before_opening():
+    # Path.resolve() would already connect to the server and send the user's credentials on Windows.
+    roots = [Path("/allowed")]
+    for raw in (r"\\attacker\share\x.kif", "//attacker/share/x.kif", r"\\?\UNC\attacker\share\x.kif"):
+        assert paths._is_unc(raw, windows=True)
+        assert not paths._unc_allowed(Path(raw), roots, windows=True)
+    assert not paths._is_unc(r"C:\Users\me\x.kif", windows=True)
+    assert paths._unc_allowed(Path(r"\\host\share\sub\x.kif"), [Path(r"\\host\share")], windows=True) or os.name != "nt"
+    assert not paths._is_unc(r"\\attacker\share\x.kif", windows=False)
+
+
+def test_images_are_only_replaced_when_this_server_wrote_them(monkeypatch, tmp_path, cli_path):
+    # overwrite is the agent's own argument, so it must not reach the user's photos.
+    monkeypatch.setenv("SHOGIBOARDQ_CLI", str(cli_path))
+    monkeypatch.setenv("SHOGIBOARDQ_ALLOWED_DIRS", str(tmp_path))
+    photo = tmp_path / "family.jpg"
+    photo.write_bytes(b"x")
+    with pytest.raises(ToolError) as err:
+        paths.resolve_image_write_path(str(photo), overwrite=True)
+    assert err.value.code == "not_allowed"
+    paths.remember_image_written(photo.resolve())
+    assert paths.resolve_image_write_path(str(photo), overwrite=True) == photo.resolve()
+    with pytest.raises(ToolError) as err:
+        paths.resolve_image_write_path(str(photo), overwrite=False)
+    assert err.value.code == "file_exists"
+
+    other = tmp_path / "other.png"
+    other.write_bytes(b"x")
+    monkeypatch.setenv("SHOGIBOARDQ_ALLOW_IMAGE_OVERWRITE", "1")
+    assert paths.resolve_image_write_path(str(other), overwrite=True) == other.resolve()
 
 
 def test_socket_and_endpoint_locations(monkeypatch, tmp_path, cli_path):
@@ -220,3 +270,25 @@ def test_record_and_image_extensions_are_accepted(monkeypatch, tmp_path):
     assert paths.resolve_write_path(str(tmp_path / "b.png"), False, suffixes=paths.IMAGE_WRITE) == (tmp_path / "b.png").resolve()
     with pytest.raises(ToolError):
         paths.resolve_write_path(str(tmp_path / "b.kif"), False, suffixes=paths.IMAGE_WRITE)
+
+
+async def _convert_json(args):
+    from shogiboardq_mcp.handlers_cli import CliTools
+    tools = CliTools(None)
+    with tools.kifu_input(args):
+        return args
+
+
+@pytest.mark.anyio
+async def test_a_json_file_is_only_read_as_jkf(monkeypatch, tmp_path, cli_path):
+    # .json is also used by settings and credentials; an error or a misread line must not show its contents.
+    monkeypatch.setenv("SHOGIBOARDQ_CLI", str(cli_path))
+    monkeypatch.setenv("SHOGIBOARDQ_ALLOWED_DIRS", str(tmp_path))
+    config = tmp_path / "config.json"
+    config.write_text('{"api_key":"secret"}', encoding="utf-8")
+    for input_format in ("usi", "kif"):
+        with pytest.raises(ToolError) as err:
+            await _convert_json({"input_path": str(config), "input_format": input_format})
+        assert err.value.code == "invalid_argument"
+    args = await _convert_json({"input_path": str(config), "input_format": "auto"})
+    assert args["input_format"] == "jkf"

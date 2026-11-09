@@ -209,7 +209,7 @@ pip install -e mcp</code></pre>
                     <tbody>
                         <tr><td><code>SHOGIBOARDQ_EXECUTABLE</code></td><td><code>ShogiBoardQ</code> のパス。アプリ操作ツールで起動中のアプリが無いとき <code>--automation</code> 付きで起動します。同じディレクトリの <code>shogiboardq-cli</code> も自動で見つけます</td></tr>
                         <tr><td><code>SHOGIBOARDQ_CLI</code></td><td><code>shogiboardq-cli</code> のパス（別の場所に置いた場合）</td></tr>
-                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>読み書きを許可するディレクトリ（Linux/macOS は <code>:</code> 区切り、Windows は <code>;</code> 区切り）。既定はホームディレクトリ。その下の <code>.</code> で始まるファイル・フォルダは使えません（使うときはそのフォルダ自体を指定します）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>読み書きを許可するディレクトリ（Linux/macOS は <code>:</code> 区切り、Windows は <code>;</code> 区切り）。既定はホームの下の専用フォルダ <code>ShogiBoardQ-MCP</code>。その下の <code>.</code> で始まるファイル・フォルダは使えません（使うときはそのフォルダ自体を指定します）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>スクリーンショットなどの既定の出力先。既定はサーバーごとに一時ディレクトリに作る、自分だけが開けるフォルダ（<code>shogiboardq-output-*</code>）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>自動化ソケットのパス（アプリ側の <code>--automation-socket</code> と共通）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td><code>1</code> にすると、サーバーが起動したアプリをサーバー終了時に閉じます（既定は残す）</td></tr>
@@ -243,6 +243,7 @@ pip install -e mcp</code></pre>
 <pre class="bash"><code>claude mcp add shogiboardq \
   --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  --env PYTHONSAFEPATH=1 \
   -- python3 -m shogiboardq_mcp
 
 claude mcp list      # 接続状態を確認</code></pre>
@@ -263,7 +264,8 @@ claude mcp list      # 接続状態を確認</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -285,7 +287,8 @@ claude mcp list      # 接続状態を確認</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -308,7 +311,8 @@ claude mcp list      # 接続状態を確認</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -326,6 +330,7 @@ claude mcp list      # 接続状態を確認</code></pre>
 <pre class="bash"><code>gemini mcp add -s user \
   -e SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   -e PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -e PYTHONSAFEPATH=1 \
   shogiboardq python3 -m shogiboardq_mcp</code></pre>
 <pre class="json"><code>{
   "mcpServers": {
@@ -334,7 +339,8 @@ claude mcp list      # 接続状態を確認</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -352,6 +358,7 @@ claude mcp list      # 接続状態を確認</code></pre>
 <pre class="bash"><code>codex mcp add shogiboardq \
   --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  --env PYTHONSAFEPATH=1 \
   -- python3 -m shogiboardq_mcp</code></pre>
 <pre class="toml"><code>[mcp_servers.shogiboardq]
 command = "python3"
@@ -479,7 +486,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                     <li>自動化ソケットは所有者だけがアクセスでき、ネットワークには公開しません。<code>--automation</code> を付けたときだけ有効です</li>
                     <li>汎用の GUI 操作（trigger_action・click_widget・set_widget_value など）は既定で無効で、サーバーの環境変数に <code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1</code> を指定したときだけ使えます。通常の棋譜の読み書きには load_kifu / save_kifu を使います</li>
                     <li>通信対局のパスワードは読み取り時に伏せ字になり、利用者がパスワードを表示している間はスクリーンショットを拒否します</li>
-                    <li>ファイルは絶対パスのみ受け付け、<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（既定はホームディレクトリ）の外は拒否します。既存ファイルは <code>overwrite</code> の明示が無ければ上書きしません</li>
+                    <li>ファイルは絶対パスのみ受け付け、<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（既定はホームの下の専用フォルダ <code>ShogiBoardQ-MCP</code>）の外は拒否します。既存ファイルは <code>overwrite</code> の明示が無ければ上書きしません。画像はこのサーバーが書いたものだけを置き換えます</li>
+                    <li>棋譜のコメントや対局者名は他人が書いた文字列で、AI への指示が混ざることがあります。読み書きの範囲は専用のフォルダに絞り、書き込みのツールを自動で承認しないでください</li>
                     <li>許可ディレクトリの下でも、<code>.</code> で始まる名前のファイル・フォルダ（設定・認証情報・起動スクリプトの置き場所）は読み書きしません。読み書きできるのは棋譜（.kif・.kifu・.ki2・.ki2u・.csa・.jkf・.usi・.usen・.sfen。読み込みは .json も）と盤面画像（.png・.jpg・.jpeg・.bmp・.webp）のファイルだけです</li>
                     <li>エンジンは ShogiBoardQ に登録済みの名前だけを受け付けます。汎用の GUI 操作を有効にしても、エンジン登録の「追加」（選んだ実行ファイルを起動する）は操作できません</li>
                     <li>メニュー動作は許可リスト方式で、終了・上書き保存は実行しません。言語切替・名前付きドックレイアウト管理は操作できます</li>

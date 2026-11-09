@@ -23,7 +23,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
-from .cli_backend import cli_env, require_cli
+from .cli_backend import NEW_PROCESS_GROUP, cli_env, kill_process_group, require_cli
 from .errors import ToolError
 
 log = logging.getLogger(__name__)
@@ -103,6 +103,7 @@ class JobManager:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=cli_env(),
+                **NEW_PROCESS_GROUP,
             )
         except OSError as exc:
             raise ToolError("cli_failed", f"Could not start {cli}: {exc}") from exc
@@ -173,6 +174,7 @@ class JobManager:
             if proc.returncode is None:
                 proc.kill()
                 await proc.wait()
+            kill_process_group(proc)
         finally:
             await stderr_task
             if job.state in ("running", "stopping"):
@@ -266,6 +268,9 @@ class JobManager:
                 if proc is not None and proc.returncode is None:
                     proc.kill()
                 await job.task
+            # The CLI did not stop by itself, so its engine may still run (one that ignores the end of its input)
+            if proc is not None:
+                kill_process_group(proc)
         return job
 
     async def shutdown(self) -> None:

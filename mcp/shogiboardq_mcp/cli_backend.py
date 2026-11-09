@@ -11,10 +11,14 @@ import asyncio
 import json
 import os
 import shutil
+import signal
 import sys
 from pathlib import Path
 
 from .errors import ToolError
+
+# The CLI runs in its own process group, so a forced end can also end the engine it started (POSIX only).
+NEW_PROCESS_GROUP: dict = {"start_new_session": True} if os.name == "posix" else {}
 
 _CLI_NAMES = ("shogiboardq-cli.exe", "shogiboardq-cli") if sys.platform.startswith("win") else ("shogiboardq-cli",)
 
@@ -104,6 +108,7 @@ async def run_cli(args: list[str], timeout: float = 60.0) -> dict:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=cli_env(),
+                **NEW_PROCESS_GROUP,
             )
         except OSError as exc:
             raise ToolError("cli_failed", f"Could not start {cli}: {exc}") from exc
@@ -152,6 +157,20 @@ async def _kill(proc: asyncio.subprocess.Process) -> None:
         except ProcessLookupError:
             pass
         await asyncio.shield(proc.wait())
+    kill_process_group(proc)
+
+
+def kill_process_group(proc: asyncio.subprocess.Process) -> None:
+    """End what the CLI started (an engine that ignores the end of its input outlives a killed CLI).
+
+    The CLI is the leader of its own group (NEW_PROCESS_GROUP), so its id is the group's. Not available on Windows.
+    """
+    if not hasattr(os, "killpg") or proc.pid is None:
+        return
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
 
 
 def _last_json(stdout: bytes) -> dict | None:

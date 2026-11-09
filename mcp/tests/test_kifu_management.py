@@ -89,7 +89,7 @@ async def test_opening_comment_and_bookmark(kifu_env, tmp_path):
         assert [m["usi"] for m in kifu["moves"]] == ["7g7f", "3c3d"]
         assert kifu["moves"][0]["comment"] == "初手のコメント"
         text, _, error = result_data(await session.call_tool("get_kifu", {}))
-        assert not error and "Start position comment: 開始局面のコメント" in text
+        assert not error and "Start position comment: <untrusted-data>開始局面のコメント</untrusted-data>" in text
 
         # The fields are left out when the start position has neither.
         await ui.call("load_kifu", path=str(FIXTURES / "test_basic.kif"), discard_unsaved=True)

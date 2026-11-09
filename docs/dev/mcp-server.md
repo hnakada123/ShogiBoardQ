@@ -219,7 +219,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | 項目 | 値 |
 |---|---|
 | ソケットパス（Linux/macOS） | `--automation-socket` → 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `QStandardPaths::RuntimeLocation`（`$XDG_RUNTIME_DIR`）`/shogiboardq/automation.sock`（`AutomationEndpoint::defaultSocketPath()`）。RuntimeLocation が取れなければ設定のフォルダの `automation.sock`（共有の一時ディレクトリの固定名は使わない）。絶対パスに限り、Unix ドメインソケットの制限と Qt が bind に使う一時フォルダの分で Linux は 99 バイト、macOS は 95 バイト以内。ソケットのフォルダは、無ければ所有者専用（0700）で作り、あれば自分の持ち物でほかの利用者が書けないことを確かめる（権限は変えない）。前回の残骸は、ソケットで待ち受けがないときだけ消し、ほかのアプリが待ち受けていれば起動しない。終了時のエンドポイントファイルは自分の pid のものだけ消す |
-| ソケット名（Windows） | 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `shogiboardq-automation-<ユーザー名>`（名前付きパイプ） |
+| ソケット名（Windows） | 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `shogiboardq-automation-<ユーザー名>-<起動ごとの乱数>`（名前付きパイプ。名前を予測させないため。使う側はエンドポイント情報の名前を読む） |
 | エンドポイント情報 | 設定ファイル（`SettingsCommon::settingsFilePath()`）と同じフォルダの `automation-endpoint.json`（`AutomationEndpoint::endpointFilePath()`。`{"socket":..., "pid":..., "version":...}`）。起動時に書き、終了時に削除する。MCP サーバーはこれを読んで接続先を決める |
 | プロトコル | 改行区切りの JSON-RPC 2.0（1 行 1 メッセージ、UTF-8）。バッチは未対応（`-32600`） |
 | メッセージの上限 | 1 メッセージ 8 MiB（`AutomationEndpoint::kMaxMessageBytes`。棋譜テキストを含む）。超えると `-32600`（`invalid_request`）を返して切断する |
@@ -362,7 +362,8 @@ mcp/
 | `SHOGIBOARDQ_CLI` | `shogiboardq-cli` のパス。未指定なら `SHOGIBOARDQ_EXECUTABLE` と同じディレクトリ、次に `PATH` を探す |
 | `SHOGIBOARDQ_EXECUTABLE` | `ShogiBoardQ` のパス。段階 2 ツールでアプリが起動していないときに `--automation` 付きで起動する |
 | `SHOGIBOARDQ_AUTOMATION_SOCKET` | 自動化ソケットのパス（アプリ側と共通） |
-| `SHOGIBOARDQ_ALLOWED_DIRS` | 読み書きを許可するディレクトリ（`os.pathsep` 区切り。既定はホームディレクトリ） |
+| `SHOGIBOARDQ_ALLOWED_DIRS` | 読み書きを許可するディレクトリ（`os.pathsep` 区切りの絶対パス。既定はホームの下の専用フォルダ `ShogiBoardQ-MCP`。空の値・相対パスはエラー） |
+| `SHOGIBOARDQ_ALLOW_IMAGE_OVERWRITE` | `1` で、`render_board_image` の `overwrite` が既存の画像を置き換えられる（既定はこのサーバーが書いた画像だけ） |
 | `SHOGIBOARDQ_OUTPUT_DIR` | スクリーンショットなど出力先未指定時のディレクトリ（既定はサーバーごとに一時ディレクトリに作る、自分だけが開けるフォルダ `shogiboardq-output-*`） |
 | `SHOGIBOARDQ_QUIT_APP_ON_EXIT` | `1` のとき、サーバーが起動したアプリを終了時に閉じる（既定は残す） |
 | `SHOGIBOARDQ_CONFIG_HOME` | 設定の置き場所の親フォルダ（アプリ・CLI と共通）。指定するとその下の `ShogiBoardQ/` を使い、`ShogiBoardQ.ini` と `automation-endpoint.json` もそこに置く。既定は Qt の標準の場所 |
@@ -402,8 +403,8 @@ mcp/
 ## 7. 安全性
 
 - 自動化ソケットは所有者限定（Unix ドメインソケットの権限 / 名前付きパイプの UserAccess）。TCP や HTTP は開かない。
-- ファイル引数は絶対パスのみ。`SHOGIBOARDQ_ALLOWED_DIRS`（既定: ホーム配下）の外は拒否する。上書きは `overwrite: true` が無ければ拒否する。許可ディレクトリと拡張子の検査は MCP サーバー側（`paths.py`）で行う。CLI/アプリ側は、読むファイルを `InputPath::check`（絶対パス・存在・通常のファイル。CLI の `input_path` と `kifu.load`）、書き出し先を `OutputPath::check`（絶対パス・リンクやディレクトリでない・上書きの許可・置き場所。CLI の `output_path` と `kifu.save`）で確かめ、`paths.py` と同じ分類（`invalid_argument`・`not_found`・`file_exists`）で返す。
-- 許可ディレクトリより下に `.` で始まる名前があるパス（シンボリックリンクをたどった先で判定）は `not_allowed` にする。既定の許可ディレクトリはホーム全体なので、これがないと操られたエージェントが資格情報（`~/.netrc` など）を読み、起動時に実行されるファイル（シェルの起動ファイルなど）に書ける（2026-10-23 のセキュリティ監査の S1・S2）。隠しディレクトリを使うときは、そのディレクトリ自体を許可ディレクトリに入れる。
+- ファイル引数は絶対パスのみ。`SHOGIBOARDQ_ALLOWED_DIRS`（既定: ホームの下の専用フォルダ `ShogiBoardQ-MCP`）の外は拒否する。Windows のネットワークパスは、開く前に文字列で許可ディレクトリと比べる（開くだけで接続と認証が走るため）。上書きは `overwrite: true` が無ければ拒否する。許可ディレクトリと拡張子の検査は MCP サーバー側（`paths.py`）で行う。CLI/アプリ側は、読むファイルを `InputPath::check`（絶対パス・存在・通常のファイル。CLI の `input_path` と `kifu.load`）、書き出し先を `OutputPath::check`（絶対パス・リンクやディレクトリでない・上書きの許可・置き場所。CLI の `output_path` と `kifu.save`）で確かめ、`paths.py` と同じ分類（`invalid_argument`・`not_found`・`file_exists`）で返す。
+- 許可ディレクトリより下に `.` で始まる名前があるパス（シンボリックリンクをたどった先で判定）は `not_allowed` にする。許可ディレクトリをホーム全体にしたときに、これがないと操られたエージェントが資格情報（`~/.netrc` など）を読み、起動時に実行されるファイル（シェルの起動ファイルなど）に書ける（2026-10-23 のセキュリティ監査の S1・S2）。隠しディレクトリを使うときは、そのディレクトリ自体を許可ディレクトリに入れる。
 - 拡張子は、棋譜の読み込みが `kifu_read_suffixes`、棋譜の変換の書き出しが `kifu_write_suffixes`（読むだけの `.json` を含まない）、アプリの棋譜の保存（`save_kifu`）が `kifu_save_suffixes`（アプリの「名前を付けて保存」と同じ表 `KifuFormats::saveTargets()`。局面だけの `.sfen` を含まない。アプリの `kifu.save` もこの拡張子だけを保存する）、盤面画像が `image_write_suffixes` に限り、それ以外は `invalid_argument` にする。一覧は `shogiboardq-cli environment` から読む（`paths.allowed_suffixes()`）。
 - クリップボードはほかのアプリと共有するので、`get_clipboard` も汎用GUI操作と同じく `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` が要る。
 - エンジンは `[Engines]` に登録済みの名前だけ。実行ファイルパスは受け付けない。汎用GUI操作を許したときも、エンジン登録ダイアログの「追加」（`addEngineButton`。選んだ実行ファイルを起動して確かめる）は `automationSensitive` で押せない（2026-10-23 のセキュリティ監査の S8）。それ以外の GUI 操作（通信対局の接続先の指定など）はアプリと同じ権限で行える。

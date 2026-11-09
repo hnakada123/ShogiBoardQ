@@ -84,27 +84,32 @@ class AppTools:
             params["line"] = args["line"]
         result = await self.client.call("kifu.get", params)
         if params["format"] == "moves":
+            # max_chars also bounds what the record's author wrote (comments, bookmarks)
+            result, free_text_cut = fmt.cap_free_text(result, int(args["max_chars"]))
+            result["free_text_truncated"] = free_text_cut
             moves = result.get("moves") or []
             line_index = result.get("line", 0)
             line_label = "main line" if line_index == 0 else f"variation line {line_index}"
             lines = [f"{result.get('total_plies', 0)} plies total ({line_label}); "
                      f"showing {len(moves)} from ply {params['from_ply']}."]
+            if free_text_cut:
+                lines.append("Comments or bookmarks were cut to max_chars (free_text_truncated).")
             if result.get("opening_bookmark"):
-                lines.append(f"Start position bookmark: {result['opening_bookmark']}")
+                lines.append(f"Start position bookmark: {fmt.untrusted(result['opening_bookmark'])}")
             if result.get("opening_comment"):
-                lines.append(f"Start position comment: {result['opening_comment']}")
+                lines.append(f"Start position comment: {fmt.untrusted(result['opening_comment'])}")
             for m in moves:
                 extra = ""
                 if m.get("time"):
                     extra += f"  {m['time']}"
                 if m.get("comment"):
-                    extra += f"  # {m['comment']}"
+                    extra += f"  # {fmt.untrusted(m['comment'])}"
                 lines.append(f"{m.get('ply'):>4} {m.get('text', '')} ({m.get('usi', '')}){extra}")
             return "\n".join(lines), result
         text, truncated = fmt.truncate_text(result.get("text", ""), int(args["max_chars"]))
         result["text"] = text
         result["truncated"] = truncated
-        return text, result
+        return fmt.untrusted(text), result
 
     async def goto_ply(self, args: dict[str, Any]) -> Result:
         result = await self.client.call("kifu.goto", {"ply": int(args["ply"])})

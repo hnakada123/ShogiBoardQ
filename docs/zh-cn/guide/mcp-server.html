@@ -209,7 +209,7 @@ pip install -e mcp</code></pre>
                     <tbody>
                         <tr><td><code>SHOGIBOARDQ_EXECUTABLE</code></td><td><code>ShogiBoardQ</code> 的路径。应用操作工具在没有运行中的应用时会加上 <code>--automation</code> 启动它。也会自动找到同一目录中的 <code>shogiboardq-cli</code></td></tr>
                         <tr><td><code>SHOGIBOARDQ_CLI</code></td><td><code>shogiboardq-cli</code> 的路径（放在其他位置时）</td></tr>
-                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>允许读写的目录（Linux/macOS 用 <code>:</code> 分隔，Windows 用 <code>;</code> 分隔）。默认是主目录。其下名称以 <code>.</code> 开头的文件和文件夹不能使用（如需使用，请直接指定该文件夹）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>允许读写的目录（Linux/macOS 用 <code>:</code> 分隔，Windows 用 <code>;</code> 分隔）。默认是主目录下的专用文件夹 <code>ShogiBoardQ-MCP</code>。其下名称以 <code>.</code> 开头的文件和文件夹不能使用（如需使用，请直接指定该文件夹）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>截图等的默认输出位置。默认是每次启动服务器时在临时目录中创建的、只有自己能打开的文件夹（<code>shogiboardq-output-*</code>）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>自动化套接字的路径（与应用的 <code>--automation-socket</code> 相同）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td>设为 <code>1</code> 时，服务器退出时会关闭由服务器启动的应用（默认保留）</td></tr>
@@ -243,6 +243,7 @@ pip install -e mcp</code></pre>
 <pre class="bash"><code>claude mcp add shogiboardq \
   --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  --env PYTHONSAFEPATH=1 \
   -- python3 -m shogiboardq_mcp
 
 claude mcp list      # 确认连接状态</code></pre>
@@ -263,7 +264,8 @@ claude mcp list      # 确认连接状态</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -285,7 +287,8 @@ claude mcp list      # 确认连接状态</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -308,7 +311,8 @@ claude mcp list      # 确认连接状态</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -326,6 +330,7 @@ claude mcp list      # 确认连接状态</code></pre>
 <pre class="bash"><code>gemini mcp add -s user \
   -e SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   -e PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -e PYTHONSAFEPATH=1 \
   shogiboardq python3 -m shogiboardq_mcp</code></pre>
 <pre class="json"><code>{
   "mcpServers": {
@@ -334,7 +339,8 @@ claude mcp list      # 确认连接状态</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -352,6 +358,7 @@ claude mcp list      # 确认连接状态</code></pre>
 <pre class="bash"><code>codex mcp add shogiboardq \
   --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  --env PYTHONSAFEPATH=1 \
   -- python3 -m shogiboardq_mcp</code></pre>
 <pre class="toml"><code>[mcp_servers.shogiboardq]
 command = "python3"
@@ -479,7 +486,7 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                     <li>自动化套接字只有本用户可以访问，不会公开到网络。只有加上 <code>--automation</code> 时才有效</li>
                     <li>通用的 GUI 操作（trigger_action、click_widget、set_widget_value 等）默认禁用，只有在服务器的环境变量中指定 <code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1</code> 时才能使用。普通的棋谱读写请使用 load_kifu / save_kifu</li>
                     <li>网络对局的密码在读取时会被遮盖；用户正在显示密码时，会拒绝截图</li>
-                    <li>文件只接受绝对路径，<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（默认是主目录）以外的路径会被拒绝。没有明确指定 <code>overwrite</code> 时不会覆盖已有文件</li>
+                    <li>文件只接受绝对路径，<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（默认是主目录下的专用文件夹 <code>ShogiBoardQ-MCP</code>，图片只覆盖本服务器写入的文件）以外的路径会被拒绝。没有明确指定 <code>overwrite</code> 时不会覆盖已有文件</li>
                     <li>即使在允许的目录下，也不会读写名称以 <code>.</code> 开头的文件和文件夹（存放设置、认证信息和启动脚本的位置）。只能读写棋谱（.kif、.kifu、.ki2、.ki2u、.csa、.jkf、.usi、.usen、.sfen，读取时还包括 .json）和棋盘图片（.png、.jpg、.jpeg、.bmp、.webp）文件</li>
                     <li>引擎只接受在 ShogiBoardQ 中注册的名称。即使启用通用的 GUI 操作，也无法操作引擎注册中的“添加”（会启动所选的可执行文件）</li>
                     <li>菜单操作采用允许列表，不执行退出和覆盖保存。可以切换语言和管理已命名的面板布局</li>

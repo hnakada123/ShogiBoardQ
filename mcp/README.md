@@ -22,8 +22,9 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `SHOGIBOARDQ_CLI` | `shogiboardq-cli` のパス。未指定なら `SHOGIBOARDQ_EXECUTABLE` と同じディレクトリ、次に `PATH` を探します |
 | `SHOGIBOARDQ_EXECUTABLE` | `ShogiBoardQ` のパス。アプリ操作系ツールで起動中のアプリが無いとき `--automation` 付きで起動します |
 | `SHOGIBOARDQ_AUTOMATION_SOCKET` | 自動化ソケットのパス（アプリ側の `--automation-socket` と共通） |
-| `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI` | `1` のとき汎用GUI操作を許可します。既定は無効。GUI経由のファイル操作・エンジン登録にはディレクトリ制限が適用されないため、アプリと同等の権限を与える設定です |
-| `SHOGIBOARDQ_ALLOWED_DIRS` | 読み書きを許可するディレクトリ（`:` 区切り、Windows は `;`）。既定はホームディレクトリ。その下の `.` で始まるファイル・ディレクトリは使えません（使うときはそのディレクトリ自体を指定します） |
+| `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI` | `1` のとき汎用GUI操作を許可します。既定は無効。GUI経由のファイル操作にはディレクトリ制限が適用されないため、**任意のコードの実行に等しい権限を与える設定です**（エンジンの登録、USI コンソールの送信、エンジン設定のファイルの置き場所の欄は、この設定でも操作できません） |
+| `SHOGIBOARDQ_ALLOWED_DIRS` | 読み書きを許可するディレクトリ（絶対パスを `:` 区切り、Windows は `;`）。既定はホームの下の専用フォルダ `ShogiBoardQ-MCP`（無ければ作ります。ホーム全体には `AppData`・`Library` など設定や資格情報の置き場所があるためです）。その下の `.` で始まるファイル・ディレクトリは使えません（使うときはそのディレクトリ自体を指定します）。空の値や相対パスはエラーにします |
+| `SHOGIBOARDQ_ALLOW_IMAGE_OVERWRITE` | `1` のとき `render_board_image` の `overwrite` で既存の画像を置き換えられます。既定では、このサーバーが書いた画像だけを置き換えます（`overwrite` はエージェントが渡す引数で、運用者の許可ではないため） |
 | `SHOGIBOARDQ_OUTPUT_DIR` | スクリーンショットなど出力先未指定時のディレクトリ。既定はサーバーごとに一時ディレクトリに作る、自分だけが開けるフォルダ（`shogiboardq-output-*`） |
 | `SHOGIBOARDQ_QUIT_APP_ON_EXIT` | `1` のとき、サーバーが起動したアプリをサーバー終了時に閉じ、終了を待ちます。応答しない場合はその子プロセスだけを強制終了します（既定は残す） |
 | `SHOGIBOARDQ_MCP_DEBUG` | `1` で詳細ログを標準エラーに出します |
@@ -187,6 +188,7 @@ kifu_analysis_result(job_id="返されたID", offset=100, max_positions=100)
 
 いずれも「`python3 -m shogiboardq_mcp` を stdio で起動し、環境変数で実行ファイルの場所を渡す」だけです。
 `PYTHONPATH` は `mcp/` ディレクトリ（このファイルのある場所）を指すか、`pip install -e mcp` でインストールしてください。
+`PYTHONSAFEPATH=1` は `python3 -m` が今いるフォルダのコードを先に読み込むのを止めます（Python 3.11 以上。開いたプロジェクトの `shogiboardq_mcp/` などを実行しないためです）。Python 3.10 では効かないので、`pip install -e mcp` で入る `shogiboardq-mcp` コマンドを使ってください。
 以下は Linux の例で、`/path/to/ShogiBoardQ` はリポジトリの場所に置き換えます。
 
 ### Claude Code
@@ -195,6 +197,7 @@ kifu_analysis_result(job_id="返されたID", offset=100, max_positions=100)
 claude mcp add shogiboardq \
   --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  --env PYTHONSAFEPATH=1 \
   -- python3 -m shogiboardq_mcp
 ```
 
@@ -208,7 +211,8 @@ claude mcp add shogiboardq \
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -225,7 +229,8 @@ claude mcp add shogiboardq \
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -243,7 +248,8 @@ claude mcp add shogiboardq \
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -256,6 +262,7 @@ claude mcp add shogiboardq \
 gemini mcp add -s user \
   -e SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   -e PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -e PYTHONSAFEPATH=1 \
   shogiboardq python3 -m shogiboardq_mcp
 ```
 
@@ -269,7 +276,8 @@ gemini mcp add -s user \
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -286,6 +294,7 @@ gemini mcp add -s user \
 codex mcp add shogiboardq \
   --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  --env PYTHONSAFEPATH=1 \
   -- python3 -m shogiboardq_mcp
 ```
 
@@ -307,6 +316,7 @@ env_vars = ["DISPLAY", "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "XAUTHORITY", "DBUS
 [mcp_servers.shogiboardq.env]
 SHOGIBOARDQ_EXECUTABLE = "/path/to/ShogiBoardQ/build/ShogiBoardQ"
 PYTHONPATH = "/path/to/ShogiBoardQ/mcp"
+PYTHONSAFEPATH = "1"
 ```
 
 登録を `codex mcp get shogiboardq` で確認した後、Codex を再起動して新しい会話を開始してください。
@@ -334,7 +344,8 @@ MCP サーバーが自動で起動するアプリは、通常は普段の画面�
 設定・キャッシュ・データは専用のフォルダ（既定 `~/.local/state/shogiboardq-mcp-headless`、`SHOGIBOARDQ_HEADLESS_HOME` で変更）を使います。
 初回だけ普段の `ShogiBoardQ.ini` をコピーするので、登録済みのエンジンもそのまま使えます。
 MCP サーバーが終了するときは、起動したアプリを閉じてから Xvfb を止めます。
-Xvfb（Arch Linux では `xorg-server-xvfb`、Debian・Ubuntu では `xvfb`）が必要です。
+Xvfb と xauth（Arch Linux では `xorg-server-xvfb`・`xorg-xauth`、Debian・Ubuntu では `xvfb`・`xauth`）が必要です。
+Xvfb には認証の鍵をかけるので、同じマシンの別の利用者は仮想ディスプレイにつなげません。
 
 ```bash
 claude mcp add shogiboardq-headless \
@@ -364,7 +375,9 @@ MCP サーバーだけの失敗には `app_unavailable`・`cli_not_found`・`tim
 ## 安全性
 
 - 自動化 API は `ShogiBoardQ --automation` を付けたときだけ有効で、ソケットは所有者のみアクセスできます。ネットワークには公開しません。
-- 専用ツールのファイル引数は最終シンボリックリンク先まで検査します。絶対パスのみ受け付け、`SHOGIBOARDQ_ALLOWED_DIRS`（既定はホーム）の外は拒否します。既存ファイルは `overwrite: true` が無ければ上書きしません。
+- 専用ツールのファイル引数は最終シンボリックリンク先まで検査します。絶対パスのみ受け付け、`SHOGIBOARDQ_ALLOWED_DIRS`（既定はホームの下の専用フォルダ `ShogiBoardQ-MCP`）の外は拒否します。既存ファイルは `overwrite: true` が無ければ上書きしません。画像は `overwrite: true` でもこのサーバーが書いたものだけを置き換えます。
+- 棋譜のコメント・しおり・対局者名などは他人が書いた文字列で、AI エージェントへの指示（プロンプトインジェクション）が混ざることがあります。ツールの結果では `<untrusted-data>` の印で囲みますが、完全には防げません。読み書きの範囲は専用のフォルダに絞り、書き込みのツール（`save_kifu` など）を自動で承認しないでください。
+- `.json` は JKF としてだけ読みます（設定や資格情報にも使われる拡張子なので、エラー文に中身を出しません）。
 - 許可ディレクトリの下でも、`.` で始まる名前のファイル・ディレクトリ（設定・資格情報・起動スクリプトの置き場所）は読み書きしません。
 - 読み書きできるのは棋譜の拡張子（読み込みは `.kif` `.kifu` `.ki2` `.ki2u` `.csa` `.jkf` `.json` `.usi` `.usen` `.sfen`、書き出しは `.json` を除く同じ拡張子）と、盤面画像の `.png` `.jpg` `.jpeg` `.bmp` `.webp` のファイルだけです。一覧は `shogiboardq-cli environment` の `kifu_read_suffixes`・`kifu_write_suffixes`・`image_write_suffixes` です。
 - エンジンは ShogiBoardQ に登録済みの名前だけを受け付け、任意の実行ファイルパスは受け付けません。汎用GUI操作を有効にしても、エンジン登録ダイアログの「追加」（選んだ実行ファイルを起動する）は操作できません。

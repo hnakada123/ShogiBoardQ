@@ -209,7 +209,7 @@ pip install -e mcp</code></pre>
                     <tbody>
                         <tr><td><code>SHOGIBOARDQ_EXECUTABLE</code></td><td>Path of <code>ShogiBoardQ</code>. GUI tools launch it with <code>--automation</code> when no instance is running; <code>shogiboardq-cli</code> next to it is found automatically</td></tr>
                         <tr><td><code>SHOGIBOARDQ_CLI</code></td><td>Path of <code>shogiboardq-cli</code> if it lives elsewhere</td></tr>
-                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>Directories the tools may read and write (<code>:</code> separated on Linux/macOS, <code>;</code> on Windows). Default: your home directory. Files and folders below it whose names start with <code>.</code> cannot be used (to use one, list that folder itself)</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>Directories the tools may read and write (<code>:</code> separated on Linux/macOS, <code>;</code> on Windows). Default: the dedicated folder <code>ShogiBoardQ-MCP</code> in your home directory. Files and folders below it whose names start with <code>.</code> cannot be used (to use one, list that folder itself)</td></tr>
                         <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>Default folder for screenshots and other outputs. Default: a folder only you can open, created in the temp directory for each server (<code>shogiboardq-output-*</code>)</td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>Automation socket path (shared with the app's <code>--automation-socket</code>)</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td>Set to <code>1</code> to close an app the server launched when the server exits (default: keep it running)</td></tr>
@@ -243,6 +243,7 @@ pip install -e mcp</code></pre>
 <pre class="bash"><code>claude mcp add shogiboardq \
   --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  --env PYTHONSAFEPATH=1 \
   -- python3 -m shogiboardq_mcp
 
 claude mcp list      # check the connection</code></pre>
@@ -263,7 +264,8 @@ claude mcp list      # check the connection</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -285,7 +287,8 @@ claude mcp list      # check the connection</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -308,7 +311,8 @@ claude mcp list      # check the connection</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -326,6 +330,7 @@ claude mcp list      # check the connection</code></pre>
 <pre class="bash"><code>gemini mcp add -s user \
   -e SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   -e PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -e PYTHONSAFEPATH=1 \
   shogiboardq python3 -m shogiboardq_mcp</code></pre>
 <pre class="json"><code>{
   "mcpServers": {
@@ -334,7 +339,8 @@ claude mcp list      # check the connection</code></pre>
       "args": ["-m", "shogiboardq_mcp"],
       "env": {
         "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
-        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp",
+        "PYTHONSAFEPATH": "1"
       }
     }
   }
@@ -352,6 +358,7 @@ claude mcp list      # check the connection</code></pre>
 <pre class="bash"><code>codex mcp add shogiboardq \
   --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
   --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  --env PYTHONSAFEPATH=1 \
   -- python3 -m shogiboardq_mcp</code></pre>
 <pre class="toml"><code>[mcp_servers.shogiboardq]
 command = "python3"
@@ -479,7 +486,7 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                     <li>The automation socket is accessible only to your user and is never exposed on the network. It exists only when <code>--automation</code> is given</li>
                     <li>The generic GUI tools (trigger_action, click_widget, set_widget_value and so on) are disabled by default and work only when the server is started with <code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1</code>. Use load_kifu / save_kifu for ordinary record reading and writing</li>
                     <li>The CSA password is masked when read, and screenshots are refused while the user has the password shown</li>
-                    <li>File arguments must be absolute paths inside <code>SHOGIBOARDQ_ALLOWED_DIRS</code> (default: your home directory). Existing files are replaced only with an explicit <code>overwrite</code></li>
+                    <li>File arguments must be absolute paths inside <code>SHOGIBOARDQ_ALLOWED_DIRS</code> (default: the dedicated folder <code>ShogiBoardQ-MCP</code> in your home directory; images are only replaced when this server wrote them). Existing files are replaced only with an explicit <code>overwrite</code></li>
                     <li>Even inside the allowed directories, files and folders whose names start with <code>.</code> (where settings, credentials and start-up scripts live) are never read or written. Only game records (.kif, .kifu, .ki2, .ki2u, .csa, .jkf, .usi, .usen, .sfen, and .json for reading) and board images (.png, .jpg, .jpeg, .bmp, .webp) can be read or written</li>
                     <li>Engines are referenced only by the names registered in ShogiBoardQ. Even with the generic GUI tools enabled, the Add button of the engine registration (which starts the chosen executable) cannot be operated</li>
                     <li>Menu actions are allow-listed; quitting and overwriting are excluded. Language changes and saved dock layouts are supported</li>
