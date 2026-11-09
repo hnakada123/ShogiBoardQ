@@ -152,11 +152,20 @@ T["ja"] = {
     "dl": {
         "windows": ("Windows", "Windows 64ビット版（x64）",
                     ["ZIPをダウンロードしてすべて展開", "<code>ShogiBoardQ.exe</code> を起動"], "Windows版（ZIP）"),
+        "windows_installer": ("Windowsインストーラ", "Windows 64ビット版（x64）",
+                              ["インストーラをダウンロードして実行", "「Windows によって PC が保護されました」と表示されたら「詳細情報」→「実行」", "スタートメニューからShogiBoardQを起動"],
+                              "Windows版（インストーラ）"),
         "macos": ("macOS", "Apple Silicon搭載のMac",
                   ["ZIPを展開してDMGを開く", "<code>ShogiBoardQ.app</code> をアプリケーションフォルダへ", "初回起動が止められたら「システム設定」→「プライバシーとセキュリティ」で許可"],
                   "macOS版（ZIP）"),
         "linux": ("Linux", "x86_64（AppImage）",
                   ["ZIPを展開", "<code>ShogiBoardQ-linux-x86_64.AppImage</code> に実行権限を付けて起動"], "Linux版（ZIP）"),
+        "arch": ("Arch Linux", "x86_64（pacman）",
+                 ["ZIPを展開", "<code>sudo pacman -Syu</code> でシステムを更新", "展開したフォルダで <code>sudo pacman -U ./shogiboardq-*.pkg.tar.zst</code> を実行"],
+                 "Arch Linux版（ZIP）"),
+        "ubuntu": ("Ubuntu", "Ubuntu Desktop 26.04.1 LTS・26.10（x86_64）",
+                   ["ZIPを展開", "<code>sudo apt update</code> でパッケージ一覧を更新", "展開したフォルダで <code>sudo apt install ./shogiboardq_*.deb</code> を実行"],
+                   "Ubuntu版（ZIP）"),
     },
     "dl_note": "各パッケージには、詰将棋問題集（6,000題）と将棋エンジンHayanagi（定跡付き）を同梱しています。動作条件と変更点は<a href=\"{rel}\">リリースノート</a>をご覧ください。",
     "build_title": "ソースからビルド",
@@ -279,11 +288,20 @@ T["en"] = {
     "dl": {
         "windows": ("Windows", "64-bit Windows (x64)",
                     ["Download the ZIP and extract all files", "Run <code>ShogiBoardQ.exe</code>"], "Windows (ZIP)"),
+        "windows_installer": ("Windows Installer", "64-bit Windows (x64)",
+                              ["Download and run the installer", "If “Windows protected your PC” appears, choose More info → Run anyway", "Start ShogiBoardQ from the Start menu"],
+                              "Windows (Installer)"),
         "macos": ("macOS", "Mac with Apple silicon",
                   ["Extract the ZIP and open the DMG", "Drag <code>ShogiBoardQ.app</code> to Applications", "If the first launch is blocked, allow it in System Settings → Privacy &amp; Security"],
                   "macOS (ZIP)"),
         "linux": ("Linux", "x86_64 (AppImage)",
                   ["Extract the ZIP", "Make <code>ShogiBoardQ-linux-x86_64.AppImage</code> executable and run it"], "Linux (ZIP)"),
+        "arch": ("Arch Linux", "x86_64 (pacman)",
+                 ["Extract the ZIP", "Update the system with <code>sudo pacman -Syu</code>", "In the extracted folder, run <code>sudo pacman -U ./shogiboardq-*.pkg.tar.zst</code>"],
+                 "Arch Linux (ZIP)"),
+        "ubuntu": ("Ubuntu", "Ubuntu Desktop 26.04.1 LTS / 26.10 (x86_64)",
+                   ["Extract the ZIP", "Update the package list with <code>sudo apt update</code>", "In the extracted folder, run <code>sudo apt install ./shogiboardq_*.deb</code>"],
+                   "Ubuntu (ZIP)"),
     },
     "dl_note": "Every package includes the tsume shogi collections (6,000 puzzles) and the Hayanagi engine with its opening book. See the <a href=\"{rel}\">release notes</a> (in Japanese) for system requirements and changes.",
     "build_title": "Build from Source",
@@ -406,11 +424,20 @@ T["zh-cn"] = {
     "dl": {
         "windows": ("Windows", "64 位 Windows（x64）",
                     ["下载 ZIP 并全部解压", "运行 <code>ShogiBoardQ.exe</code>"], "Windows 版（ZIP）"),
+        "windows_installer": ("Windows 安装程序", "64 位 Windows（x64）",
+                              ["下载并运行安装程序", "如果显示“Windows 已保护你的电脑”，请点击“更多信息”→“仍要运行”", "从开始菜单启动 ShogiBoardQ"],
+                              "Windows 版（安装程序）"),
         "macos": ("macOS", "搭载 Apple 芯片的 Mac",
                   ["解压 ZIP 并打开 DMG", "将 <code>ShogiBoardQ.app</code> 拖到“应用程序”文件夹", "首次启动被阻止时，请在“系统设置”→“隐私与安全性”中允许"],
                   "macOS 版（ZIP）"),
         "linux": ("Linux", "x86_64（AppImage）",
                   ["解压 ZIP", "为 <code>ShogiBoardQ-linux-x86_64.AppImage</code> 添加执行权限后运行"], "Linux 版（ZIP）"),
+        "arch": ("Arch Linux", "x86_64（pacman）",
+                 ["解压 ZIP", "运行 <code>sudo pacman -Syu</code> 更新系统", "在解压后的文件夹中运行 <code>sudo pacman -U ./shogiboardq-*.pkg.tar.zst</code>"],
+                 "Arch Linux 版（ZIP）"),
+        "ubuntu": ("Ubuntu", "Ubuntu Desktop 26.04.1 LTS / 26.10（x86_64）",
+                   ["解压 ZIP", "运行 <code>sudo apt update</code> 更新软件包列表", "在解压后的文件夹中运行 <code>sudo apt install ./shogiboardq_*.deb</code>"],
+                   "Ubuntu 版（ZIP）"),
     },
     "dl_note": "各安装包<wbr>均附带<wbr>诘棋题集（6,000 道）<wbr>和<wbr>将棋引擎 Hayanagi（含定式文件）。系统要求<wbr>和<wbr>更新内容<wbr>请参阅<wbr><a href=\"{rel}\">发布说明</a>（日文）。",
     "build_title": "从源代码构建",
@@ -533,11 +560,20 @@ T["zh-tw"] = {
     "dl": {
         "windows": ("Windows", "64 位元 Windows（x64）",
                     ["下載 ZIP 並全部解壓縮", "執行 <code>ShogiBoardQ.exe</code>"], "Windows 版（ZIP）"),
+        "windows_installer": ("Windows 安裝程式", "64 位元 Windows（x64）",
+                              ["下載並執行安裝程式", "若顯示「Windows 已保護您的電腦」，請按「其他資訊」→「仍要執行」", "從開始功能表啟動 ShogiBoardQ"],
+                              "Windows 版（安裝程式）"),
         "macos": ("macOS", "搭載 Apple 晶片的 Mac",
                   ["解壓縮 ZIP 並開啟 DMG", "將 <code>ShogiBoardQ.app</code> 拖曳到「應用程式」資料夾", "首次啟動遭到阻擋時，請在「系統設定」→「隱私權與安全性」中允許"],
                   "macOS 版（ZIP）"),
         "linux": ("Linux", "x86_64（AppImage）",
                   ["解壓縮 ZIP", "為 <code>ShogiBoardQ-linux-x86_64.AppImage</code> 加上執行權限後執行"], "Linux 版（ZIP）"),
+        "arch": ("Arch Linux", "x86_64（pacman）",
+                 ["解壓縮 ZIP", "執行 <code>sudo pacman -Syu</code> 更新系統", "在解壓縮後的資料夾中執行 <code>sudo pacman -U ./shogiboardq-*.pkg.tar.zst</code>"],
+                 "Arch Linux 版（ZIP）"),
+        "ubuntu": ("Ubuntu", "Ubuntu Desktop 26.04.1 LTS / 26.10（x86_64）",
+                   ["解壓縮 ZIP", "執行 <code>sudo apt update</code> 更新套件清單", "在解壓縮後的資料夾中執行 <code>sudo apt install ./shogiboardq_*.deb</code>"],
+                   "Ubuntu 版（ZIP）"),
     },
     "dl_note": "各套件<wbr>皆附有<wbr>詰棋題集（6,000 道）<wbr>與<wbr>將棋引擎 Hayanagi（含定跡檔案）。系統需求<wbr>與<wbr>更新內容<wbr>請參閱<wbr><a href=\"{rel}\">發行說明</a>（日文）。",
     "build_title": "從原始碼建置",
@@ -556,7 +592,14 @@ T["zh-tw"] = {
     "foot_site": "網站", "foot_links": "連結", "foot_releases": "發行頁面", "foot_issues": "問題回報與建議",
 }
 
-DL_FILES = {"windows": "ShogiBoardQ-windows.zip", "macos": "ShogiBoardQ-macos.zip", "linux": "ShogiBoardQ-linux.zip"}
+DL_FILES = {
+    "windows": "ShogiBoardQ-windows.zip",
+    "windows_installer": "ShogiBoardQ-windows-setup.exe",
+    "macos": "ShogiBoardQ-macos.zip",
+    "linux": "ShogiBoardQ-linux.zip",
+    "arch": "ShogiBoardQ-arch-linux.zip",
+    "ubuntu": "ShogiBoardQ-ubuntu.zip",
+}
 BUILD_PAGES = ["linux-build-and-release", "windows-build-and-release", "macos-build-and-release"]
 
 GITHUB_SVG = ('<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>')
@@ -817,7 +860,7 @@ def page(code):
         <p class="section-desc">{t['dl_desc']}</p>
         <ul class="download-grid">
 """)
-    for os_key in ("windows", "macos", "linux"):
+    for os_key in DL_FILES:
         name, arch, steps, button = t["dl"][os_key]
         w(f"""            <li class="dl-card">
                 <h3>{name}</h3>
