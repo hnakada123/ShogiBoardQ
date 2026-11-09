@@ -170,6 +170,8 @@ cmake -B build -S . -G Ninja
 cmake --build build
 ./build/shogiboardq-cli version      # {"ok":true,"version":"..."} が表示されれば OK</code></pre>
                 </div>
+                <p class="guide-step-text"><strong>2026-11-09 の履歴の書き換えより前に clone したリポジトリでは、<code>git pull</code> をしないでください。</strong>エラーで止まるか、大量のコンフリクトになります。上のコマンドで別のフォルダに clone し直してください。古いフォルダを消す前に、push していないコミットや手元の設定を移します。フォルダの場所が変わったら、クライアントの設定の <code>PYTHONPATH</code> と <code>SHOGIBOARDQ_EXECUTABLE</code> も直します（<code>pip install -e mcp</code> で入れた場合は、新しいフォルダで入れ直します）。</p>
+                <p class="guide-step-text">どちらのリポジトリかは <code>git log -1 --format=%h 2026.11.04</code> で確かめられます。<code>376e4362</code> で始まれば古いリポジトリ、<code>aa9bcc4b</code> で始まれば新しいリポジトリです。ビルドのフォルダを残したいときは、<code>git fetch origin --tags --force</code> の後に <code>git reset --hard origin/main</code> を実行しても直せます。未コミットの変更と push していないコミットは消えます。</p>
             </div>
 
             <div class="guide-step">
@@ -210,6 +212,7 @@ pip install -e mcp</code></pre>
                         <tr><td><code>SHOGIBOARDQ_EXECUTABLE</code></td><td><code>ShogiBoardQ</code> のパス。アプリ操作ツールで起動中のアプリが無いとき <code>--automation</code> 付きで起動します。同じディレクトリの <code>shogiboardq-cli</code> も自動で見つけます</td></tr>
                         <tr><td><code>SHOGIBOARDQ_CLI</code></td><td><code>shogiboardq-cli</code> のパス（別の場所に置いた場合）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>読み書きを許可するディレクトリ（Linux/macOS は <code>:</code> 区切り、Windows は <code>;</code> 区切り）。既定はホームの下の専用フォルダ <code>ShogiBoardQ-MCP</code>。その下の <code>.</code> で始まるファイル・フォルダは使えません（使うときはそのフォルダ自体を指定します）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOW_IMAGE_OVERWRITE</code></td><td><code>1</code> にすると、<code>render_board_image</code> の <code>overwrite</code> で既存の画像を置き換えられます。既定では、このサーバーが書いた画像だけを置き換えます</td></tr>
                         <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>スクリーンショットなどの既定の出力先。既定はサーバーごとに一時ディレクトリに作る、自分だけが開けるフォルダ（<code>shogiboardq-output-*</code>）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>自動化ソケットのパス（アプリ側の <code>--automation-socket</code> と共通）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td><code>1</code> にすると、サーバーが起動したアプリをサーバー終了時に閉じます（既定は残す）</td></tr>
@@ -217,6 +220,23 @@ pip install -e mcp</code></pre>
                         <tr><td><code>PYTHONPATH</code></td><td><code>pip install -e mcp</code> をしていない場合、リポジトリの <code>mcp</code> ディレクトリを指定します</td></tr>
                     </tbody>
                 </table>
+                <p class="guide-step-text">既定の <code>ShogiBoardQ-MCP</code> のほかの場所のファイルを使うときは、クライアントの設定の <code>env</code> に <code>SHOGIBOARDQ_ALLOWED_DIRS</code> を足して、そのディレクトリを絶対パスで指定します。指定すると既定の <code>ShogiBoardQ-MCP</code> は許可先から外れるので、続けて使うときは一緒に並べてください。<code>kifu</code> は例です。棋譜を置いているフォルダなどに置き換えてください。</p>
+                <p class="guide-step-text">Linux の例（macOS は <code>/home/you</code> を <code>/Users/you</code> に読み替えてください）:</p>
+                <div class="build-steps">
+<pre class="json"><code>"env": {
+  "SHOGIBOARDQ_ALLOWED_DIRS": "/home/you/kifu:/home/you/ShogiBoardQ-MCP"
+}</code></pre>
+                </div>
+                <p class="guide-step-text">Windows の例:</p>
+                <div class="build-steps">
+<pre class="json"><code>"env": {
+  "SHOGIBOARDQ_ALLOWED_DIRS": "C:\\Users\\you\\Documents\\kifu;C:\\Users\\you\\ShogiBoardQ-MCP"
+}</code></pre>
+                </div>
+                <p class="guide-step-text">Claude Code は、<code>claude mcp add</code> に次の指定を足します。</p>
+                <div class="build-steps">
+<pre class="bash"><code>--env SHOGIBOARDQ_ALLOWED_DIRS=/home/you/kifu:/home/you/ShogiBoardQ-MCP</code></pre>
+                </div>
             </div>
         </div>
     </div>

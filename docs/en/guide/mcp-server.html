@@ -170,6 +170,8 @@ cmake -B build -S . -G Ninja
 cmake --build build
 ./build/shogiboardq-cli version      # prints {"ok":true,"version":"..."}</code></pre>
                 </div>
+                <p class="guide-step-text"><strong>If you cloned the repository before its history was rewritten on 2026-11-09, do not run <code>git pull</code>.</strong> It stops with an error or produces a large number of conflicts. Clone again into a different folder with the command above. Before deleting the old folder, move any unpushed commits and local settings. If the folder location changes, also update <code>PYTHONPATH</code> and <code>SHOGIBOARDQ_EXECUTABLE</code> in your client configuration (if you used <code>pip install -e mcp</code>, install again from the new folder).</p>
+                <p class="guide-step-text">To see which history a clone has, run <code>git log -1 --format=%h 2026.11.04</code>. Output starting with <code>376e4362</code> means the old history, and <code>aa9bcc4b</code> means the new one. To keep your build folder, you can instead run <code>git fetch origin --tags --force</code> and then <code>git reset --hard origin/main</code>. This discards uncommitted changes and unpushed commits.</p>
             </div>
 
             <div class="guide-step">
@@ -210,6 +212,7 @@ pip install -e mcp</code></pre>
                         <tr><td><code>SHOGIBOARDQ_EXECUTABLE</code></td><td>Path of <code>ShogiBoardQ</code>. GUI tools launch it with <code>--automation</code> when no instance is running; <code>shogiboardq-cli</code> next to it is found automatically</td></tr>
                         <tr><td><code>SHOGIBOARDQ_CLI</code></td><td>Path of <code>shogiboardq-cli</code> if it lives elsewhere</td></tr>
                         <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>Directories the tools may read and write (<code>:</code> separated on Linux/macOS, <code>;</code> on Windows). Default: the dedicated folder <code>ShogiBoardQ-MCP</code> in your home directory. Files and folders below it whose names start with <code>.</code> cannot be used (to use one, list that folder itself)</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOW_IMAGE_OVERWRITE</code></td><td>Set to <code>1</code> to let the <code>overwrite</code> argument of <code>render_board_image</code> replace existing images. By default, only images this server wrote can be replaced</td></tr>
                         <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>Default folder for screenshots and other outputs. Default: a folder only you can open, created in the temp directory for each server (<code>shogiboardq-output-*</code>)</td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>Automation socket path (shared with the app's <code>--automation-socket</code>)</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td>Set to <code>1</code> to close an app the server launched when the server exits (default: keep it running)</td></tr>
@@ -217,6 +220,23 @@ pip install -e mcp</code></pre>
                         <tr><td><code>PYTHONPATH</code></td><td>The repository's <code>mcp</code> directory unless you ran <code>pip install -e mcp</code></td></tr>
                     </tbody>
                 </table>
+                <p class="guide-step-text">To use files outside the default <code>ShogiBoardQ-MCP</code> folder, add <code>SHOGIBOARDQ_ALLOWED_DIRS</code> to <code>env</code> in your client configuration and give the directories as absolute paths. Setting it removes the default <code>ShogiBoardQ-MCP</code> from the allowed list, so include it as well if you still use it. <code>kifu</code> is only an example; replace it with the folder that holds your game records.</p>
+                <p class="guide-step-text">Linux example (on macOS, replace <code>/home/you</code> with <code>/Users/you</code>):</p>
+                <div class="build-steps">
+<pre class="json"><code>"env": {
+  "SHOGIBOARDQ_ALLOWED_DIRS": "/home/you/kifu:/home/you/ShogiBoardQ-MCP"
+}</code></pre>
+                </div>
+                <p class="guide-step-text">Windows example:</p>
+                <div class="build-steps">
+<pre class="json"><code>"env": {
+  "SHOGIBOARDQ_ALLOWED_DIRS": "C:\\Users\\you\\Documents\\kifu;C:\\Users\\you\\ShogiBoardQ-MCP"
+}</code></pre>
+                </div>
+                <p class="guide-step-text">For Claude Code, add this to <code>claude mcp add</code>:</p>
+                <div class="build-steps">
+<pre class="bash"><code>--env SHOGIBOARDQ_ALLOWED_DIRS=/home/you/kifu:/home/you/ShogiBoardQ-MCP</code></pre>
+                </div>
             </div>
         </div>
     </div>

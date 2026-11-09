@@ -170,6 +170,8 @@ cmake -B build -S . -G Ninja
 cmake --build build
 ./build/shogiboardq-cli version      # 顯示 {"ok":true,"version":"..."} 即可</code></pre>
                 </div>
+                <p class="guide-step-text"><strong>若在 2026-11-09 改寫歷史紀錄之前以 <code>git clone</code> 取得儲存庫，請不要執行 <code>git pull</code>。</strong>執行後會因錯誤而停止，或產生大量衝突。請用上面的指令重新 clone 到另一個資料夾。刪除舊資料夾之前，請先移出尚未推送的提交和本機設定。資料夾位置改變後，也要修改用戶端設定中的 <code>PYTHONPATH</code> 和 <code>SHOGIBOARDQ_EXECUTABLE</code>（若以 <code>pip install -e mcp</code> 安裝，請在新資料夾重新安裝）。</p>
+                <p class="guide-step-text">可用 <code>git log -1 --format=%h 2026.11.04</code> 確認是哪一種儲存庫。輸出以 <code>376e4362</code> 開頭的是舊儲存庫，以 <code>aa9bcc4b</code> 開頭的是新儲存庫。若想保留建置資料夾，也可以先執行 <code>git fetch origin --tags --force</code>，再執行 <code>git reset --hard origin/main</code> 來修復。未提交的變更和尚未推送的提交會遺失。</p>
             </div>
 
             <div class="guide-step">
@@ -210,6 +212,7 @@ pip install -e mcp</code></pre>
                         <tr><td><code>SHOGIBOARDQ_EXECUTABLE</code></td><td><code>ShogiBoardQ</code> 的路徑。應用程式操作工具在沒有執行中的應用程式時會加上 <code>--automation</code> 啟動它。也會自動找到同一目錄中的 <code>shogiboardq-cli</code></td></tr>
                         <tr><td><code>SHOGIBOARDQ_CLI</code></td><td><code>shogiboardq-cli</code> 的路徑（放在其他位置時）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>允許讀寫的目錄（Linux/macOS 用 <code>:</code> 分隔，Windows 用 <code>;</code> 分隔）。預設是家目錄下的專用資料夾 <code>ShogiBoardQ-MCP</code>。其下名稱以 <code>.</code> 開頭的檔案和資料夾不能使用（如需使用，請直接指定該資料夾）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOW_IMAGE_OVERWRITE</code></td><td>設為 <code>1</code> 時，<code>render_board_image</code> 的 <code>overwrite</code> 可以覆寫既有圖片。預設只能覆寫本伺服器寫入的圖片</td></tr>
                         <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>截圖等的預設輸出位置。預設是每次啟動伺服器時在暫存目錄中建立、只有自己能開啟的資料夾（<code>shogiboardq-output-*</code>）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>自動化通訊端的路徑（與應用程式的 <code>--automation-socket</code> 相同）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td>設為 <code>1</code> 時，伺服器結束時會關閉由伺服器啟動的應用程式（預設保留）</td></tr>
@@ -217,6 +220,23 @@ pip install -e mcp</code></pre>
                         <tr><td><code>PYTHONPATH</code></td><td>未執行 <code>pip install -e mcp</code> 時，指定儲存庫的 <code>mcp</code> 目錄</td></tr>
                     </tbody>
                 </table>
+                <p class="guide-step-text">要使用預設資料夾 <code>ShogiBoardQ-MCP</code> 以外的檔案時，請在用戶端設定的 <code>env</code> 中新增 <code>SHOGIBOARDQ_ALLOWED_DIRS</code>，並以絕對路徑指定目錄。指定後，預設的 <code>ShogiBoardQ-MCP</code> 就不在允許範圍內，若要繼續使用，請一併列出。<code>kifu</code> 只是範例，請替換為存放棋譜的資料夾等。</p>
+                <p class="guide-step-text">Linux 範例（macOS 請將 <code>/home/you</code> 替換為 <code>/Users/you</code>）：</p>
+                <div class="build-steps">
+<pre class="json"><code>"env": {
+  "SHOGIBOARDQ_ALLOWED_DIRS": "/home/you/kifu:/home/you/ShogiBoardQ-MCP"
+}</code></pre>
+                </div>
+                <p class="guide-step-text">Windows 範例：</p>
+                <div class="build-steps">
+<pre class="json"><code>"env": {
+  "SHOGIBOARDQ_ALLOWED_DIRS": "C:\\Users\\you\\Documents\\kifu;C:\\Users\\you\\ShogiBoardQ-MCP"
+}</code></pre>
+                </div>
+                <p class="guide-step-text">Claude Code 請在 <code>claude mcp add</code> 中新增以下內容：</p>
+                <div class="build-steps">
+<pre class="bash"><code>--env SHOGIBOARDQ_ALLOWED_DIRS=/home/you/kifu:/home/you/ShogiBoardQ-MCP</code></pre>
+                </div>
             </div>
         </div>
     </div>
