@@ -35,6 +35,7 @@ private:
     QStringList displayLines() const;
 
     QString m_fullText;
+    QString m_shownText;   ///< 表示に使う先頭（外から来た長い文字で描画を止めない）
     Qt::TextElideMode m_mode = Qt::ElideMiddle;
 };
 

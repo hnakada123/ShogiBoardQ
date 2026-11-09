@@ -174,7 +174,7 @@ void MainWindowComposer::connectGame()
     connect(csa, &CsaGameCoordinator::engineMovePlayed, m_c.evalGraph, &EvaluationGraphPresenter::plotEngineScore);
     connect(csa, &CsaGameCoordinator::matchEngineStarted, m_c.engineDisplay, &EngineDisplayPresenter::showMatchEngine);
     connect(m_c.csaUi, &CsaGameUiController::gameStarting, m_c.engineDisplay, &EngineDisplayPresenter::clearEngineLogs);
-    connect(csa, &CsaGameCoordinator::errorOccurred, m_c.notifications, &NotificationPresenter::displayErrorMessage);
+    connect(csa, &CsaGameCoordinator::errorOccurred, m_c.csaUi, &CsaGameUiController::showError);
     CsaLogPanel* csaLog = m_c.csaLog;
     connect(csa, &CsaGameCoordinator::connectionStateChanged, csaLog, &CsaLogPanel::setConnected);
     connect(csa, &CsaGameCoordinator::csaCommLogAppended, csaLog, &CsaLogPanel::append);

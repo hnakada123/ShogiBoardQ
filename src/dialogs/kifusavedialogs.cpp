@@ -22,6 +22,7 @@ bool KifuSaveDialogs::confirmUtf8Fallback(QWidget* parent, const QString& charac
                     "UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を記録します。").arg(characters),
         QMessageBox::Save | QMessageBox::Cancel,
         parent);
+    box.setTextFormat(Qt::PlainText);   // 文には棋譜の文字が入る
     box.button(QMessageBox::Save)->setText(tr("UTF-8で保存"));
     box.button(QMessageBox::Cancel)->setText(tr("キャンセル"));
     box.setDefaultButton(QMessageBox::Save);
@@ -55,13 +56,13 @@ QString KifuSaveDialogs::lostItemsText(const KifuExport::Loss& loss)
 bool KifuSaveDialogs::confirmLossySave(QWidget* parent, KifuFormat format, const KifuExport::Loss& loss)
 {
     const QString name = formatName(format);
-    const auto result = QMessageBox::warning(
-        parent, tr("%1形式で保存").arg(name),
-        tr("%1形式は次の情報に対応していないため、これらは保存されません：\n%2\n\n保存を続けますか？")
-            .arg(name, lostItemsText(loss)),
-        QMessageBox::Ok | QMessageBox::Cancel,
-        QMessageBox::Ok);
-    return result == QMessageBox::Ok;
+    QMessageBox box(QMessageBox::Warning, tr("%1形式で保存").arg(name),
+                    tr("%1形式は次の情報に対応していないため、これらは保存されません：\n%2\n\n保存を続けますか？")
+                        .arg(name, lostItemsText(loss)),
+                    QMessageBox::Ok | QMessageBox::Cancel, parent);
+    box.setTextFormat(Qt::PlainText);
+    box.setDefaultButton(QMessageBox::Ok);
+    return box.exec() == QMessageBox::Ok;
 }
 
 QString KifuSaveDialogs::saveViaDialog(QWidget* parent,

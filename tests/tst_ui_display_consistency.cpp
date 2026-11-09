@@ -37,8 +37,15 @@
 #include "record_rows_helper.h"
 #include "recordpane.h"
 #include "stepbuttons.h"
+#include "commentcontroller.h"
+#include "commenteditorpanel.h"
+#include "kifudocument.h"
 #include "shogimove.h"
 #include "test_replay.h"
+
+#include <QInputDialog>
+#include <QTimer>
+#include <functional>
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -117,7 +124,7 @@ struct UiHarness {
         QObject::connect(&nav, &KifuNavigationController::navigationRejected,
                          display.get(), &KifuDisplayPresenter::refresh);
         // 本体（MainWindowComposer::createMatchAndAnalysis）と同じく、移ってよい状態かを最初に確かめる
-        nav.addLeaveGuard(std::bind(&OperationPolicy::canBrowseRecord, &policy));
+        nav.setBrowseCheck(std::bind(&OperationPolicy::canBrowseRecord, &policy));
         display->refresh();
     }
 
@@ -485,6 +492,76 @@ private slots:
         h.nav.goToNode(branch);
         QCOMPARE(h.branchTreeView.rebuildCount(), rebuildsBefore + 1);
         VERIFY_CONSISTENT(h);
+    }
+
+    /// 長いコメントは先頭だけを読み取り専用で出す（配置で止まらず、省略した本文を上書きできない）
+    void commentPanel_longCommentIsShortenedAndReadOnly()
+    {
+        CommentEditorPanel panel;
+        auto* edit = panel.findChild<QTextEdit*>(QStringLiteral("kifuCommentEdit"));
+        QVERIFY(edit);
+        panel.setCommentText(QString(300000, QLatin1Char('x')));
+        QVERIFY(edit->isReadOnly());
+        QVERIFY(edit->toPlainText().size() < 101000);
+        QCOMPARE(edit->wordWrapMode(), QTextOption::WrapAnywhere);
+        QVERIFY(!panel.hasUnsavedComment());
+
+        panel.setCommentText(QStringLiteral("line\n").repeated(20000));
+        QVERIFY(edit->isReadOnly());
+        QVERIFY(edit->toPlainText().count(QLatin1Char('\n')) <= 5002);
+
+        panel.setCommentText(QStringLiteral("普通のコメント"));
+        QVERIFY(!edit->isReadOnly());
+        QCOMPARE(edit->toPlainText(), QStringLiteral("普通のコメント"));
+        QCOMPARE(edit->wordWrapMode(), QTextOption::WrapAtWordBoundaryOrAnywhere);
+    }
+
+    /// 確認のダイアログの間に棋譜が作り直されたら、確認の前に見つけた手へは移らない（解放済みのノードを使わない）
+    void leaveGuard_recordReplacedDuringConfirmation()
+    {
+        const auto scenario = [](const std::function<void(UiHarness&)>& select) {
+            UiHarness h;
+            h.nav.goToPly(3);
+            bool replaced = false;
+            h.nav.addLeaveGuard([&h, &replaced]() {
+                if (!replaced) h.tree.setRootSfen(kHirateSfen);
+                replaced = true;
+                return true;
+            });
+            select(h);
+            QVERIFY(replaced);
+            QCOMPARE(h.state.currentNode(), h.tree.root());
+        };
+        scenario([](UiHarness& h) { h.nav.selectRecordRow(1); });
+        scenario([](UiHarness& h) { h.nav.selectBranchCandidateRow(1); });
+        scenario([](UiHarness& h) { h.nav.selectBranchTreeNode(h.scenario.branchFirstNode->nodeId()); });
+    }
+
+    /// しおりの入力の間に棋譜が作り直されたら、書き込まない（解放済みのノードを使わない）
+    void bookmarkDialog_recordReplacedWhileOpen()
+    {
+        KifuBranchTree treeOwner;
+        KifuBranchTree* tree = &treeOwner;
+        KifuDocument document(tree);
+        buildScenarioTree(*tree);
+        KifuNavigationState state(tree);
+        state.resetToNode(tree->root()->childAt(0));
+        CommentEditorPanel editor;
+        CommentController::Deps deps;
+        deps.editor = &editor;
+        deps.navState = &state;
+        deps.document = &document;
+        CommentController controller(deps);
+
+        QTimer::singleShot(0, this, [tree]() {
+            auto* dialog = qobject_cast<QInputDialog*>(QApplication::activeModalWidget());
+            QVERIFY(dialog);
+            dialog->setTextValue(QStringLiteral("x"));
+            tree->setRootSfen(kHirateSfen);
+            dialog->accept();
+        });
+        controller.onBookmarkEditRequested();
+        QCOMPARE(tree->root()->bookmark(), QString());
     }
 
     /// 移る前の確認（未更新のコメントの破棄）でやめたときは、ボタン・分岐候補・分岐ツリーの

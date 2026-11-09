@@ -15,8 +15,25 @@ namespace KifuSaveFile {
 
 namespace {
 
-// ファイル名の1つの名前の部分の長さの上限（文字数。2つの名前と日時で、ファイル名の上限 255 バイトに収まる）
+// ファイル名の1つの名前の部分の長さの上限（文字数と UTF-8 のバイト数。2つの名前と日時で、ファイル名の上限 255 バイトに収まる）
 constexpr int kMaxNamePartLength = 40;
+constexpr int kMaxNamePartBytes = 100;
+
+/// UTF-8 にしたときに maxBytes 以下に収まる先頭の長さ（サロゲートペアを分けない）
+qsizetype lengthWithinUtf8Bytes(const QString& s, int maxBytes)
+{
+    int bytes = 0;
+    qsizetype i = 0;
+    while (i < s.size()) {
+        const bool pair = s.at(i).isHighSurrogate() && i + 1 < s.size() && s.at(i + 1).isLowSurrogate();
+        const ushort unit = s.at(i).unicode();
+        const int width = pair ? 4 : unit < 0x80 ? 1 : unit < 0x800 ? 2 : 3;
+        if (bytes + width > maxBytes) break;
+        bytes += width;
+        i += pair ? 2 : 1;
+    }
+    return i;
+}
 
 QString tr(const char* text)
 {
@@ -40,6 +57,7 @@ QString sanitizeForFileName(const QString& s, const QString& placeholder)
         if (t.at(end - 1).isHighSurrogate()) --end;   // サロゲートペアを分けない
         t.truncate(end);
     }
+    t.truncate(lengthWithinUtf8Bytes(t, kMaxNamePartBytes));   // 全角の名前は文字数の上限でも 255 バイトを超える
     return t.isEmpty() ? placeholder : t;
 }
 

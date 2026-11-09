@@ -47,7 +47,11 @@ private:
     void closeMessageBox()
     {
         auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
-        if (!box) return;
+        if (!box) {
+            // ファイルは別スレッドで読むので、箱が出るまで待つ
+            QTimer::singleShot(10, this, &TestSfenCollection::closeMessageBox);
+            return;
+        }
         m_messageText = box->text();
         box->buttons().constFirst()->click();
     }

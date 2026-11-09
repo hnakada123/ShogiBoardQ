@@ -10,6 +10,10 @@
 #include <QMessageBox>
 #include <QAbstractButton>
 #include <QTimer>
+#include <QLabel>
+
+#include "dialogutils.h"
+#include "unsavedchangesprompt.h"
 
 #include "kifufilefilter.h"
 #include "kifusavedialogs.h"
@@ -269,6 +273,45 @@ private slots:
         QCOMPARE(generated, 0);
     }
 
+    /// 確認のダイアログは、外から来た文字列（文も補足の文も）を HTML として読まない
+    void confirmationsAreShownAsPlainText()
+    {
+        Qt::TextFormat textFormat = Qt::AutoText;
+        Qt::TextFormat informativeFormat = Qt::AutoText;
+        QTimer::singleShot(0, this, [&]() {
+            auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+            QVERIFY(box);
+            textFormat = box->textFormat();
+            auto* informative = box->findChild<QLabel*>(QStringLiteral("qt_msgbox_informativelabel"));
+            QVERIFY(informative);
+            informativeFormat = informative->textFormat();
+            box->reject();
+        });
+        UnsavedChangesPrompt::ask(nullptr, QStringLiteral("t"), QStringLiteral("<b>text</b>"), QStringLiteral("<img src=x>"));
+        QCOMPARE(textFormat, Qt::PlainText);
+        QCOMPARE(informativeFormat, Qt::PlainText);
+
+        textFormat = Qt::AutoText;
+        QTimer::singleShot(0, this, [&]() {
+            auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+            QVERIFY(box);
+            textFormat = box->textFormat();
+            box->reject();
+        });
+        DialogUtils::confirmAction(nullptr, QStringLiteral("t"), QStringLiteral("<img src=x>"), QStringLiteral("do"));
+        QCOMPARE(textFormat, Qt::PlainText);
+
+        textFormat = Qt::AutoText;
+        QTimer::singleShot(0, this, [&]() {
+            auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+            QVERIFY(box);
+            textFormat = box->textFormat();
+            box->accept();
+        });
+        DialogUtils::warning(nullptr, QStringLiteral("t"), QStringLiteral("<img src=x>"));
+        QCOMPARE(textFormat, Qt::PlainText);
+    }
+
     void selectedFilterAddsExtension_data()
     {
         QTest::addColumn<QString>("path");
@@ -332,6 +375,20 @@ private slots:
     }
 
     /// 自動保存のファイル名は、対局者名の制御文字・向きを変える文字を置き換え、長さを切る（セキュリティ監査 S21）
+    /// 全角の名前でも、UTF-8 のファイル名が 255 バイトに収まる
+    void defaultSaveFileNameFitsWithWideNames()
+    {
+        const QDateTime now(QDate(2026, 10, 23), QTime(12, 0, 0));
+        const QString name = KifuSaveFile::makeDefaultSaveFileName(QString(41, QChar(u'あ')), QString(41, QChar(u'い')), now);
+        QVERIFY2(name.toUtf8().size() <= 255, qPrintable(name));
+        QVERIFY(name.endsWith(QStringLiteral(".kifu")));
+        // サロゲートペアは分けない
+        const QString emoji = QString::fromUtf8("😀").repeated(60);
+        const QString withEmoji = KifuSaveFile::makeDefaultSaveFileName(emoji, emoji, now);
+        QVERIFY2(withEmoji.toUtf8().size() <= 255, qPrintable(withEmoji));
+        QVERIFY(withEmoji.isValidUtf16());
+    }
+
     void defaultSaveFileNameIsSafe()
     {
         const QString black = QStringLiteral("Alice") + QChar(0) + QStringLiteral("\r../\u202Etxt.exe");

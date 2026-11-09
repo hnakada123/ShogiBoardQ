@@ -85,6 +85,9 @@ std::optional<RecordLine> CsaGameProgress::startLine(QString* problem) const
     RecordLine line;
     line.startSfen = position->toSfen();
     BoardSquare previousTo;
+    // 「１手 / 合計」の合計は、手ごとに先頭から足し直さずに持ち回す
+    qint64 blackConsumedMs = 0;
+    qint64 whiteConsumedMs = 0;
     for (int i = 0; i < summary.moves.size(); ++i) {
         const QString& text = summary.moves.at(i);
         const std::optional<UsiMove> move = CsaMoveConverter::toUsi(text, *position);
@@ -97,24 +100,14 @@ std::optional<RecordLine> CsaGameProgress::startLine(QString* problem) const
             return std::nullopt;
         }
         // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
-        played->time = initialMoveTime(i);
+        const qint64 consumedMs = summary.positionMoveConsumedMs(i);
+        qint64& total = text.startsWith(QLatin1Char('+')) ? blackConsumedMs : whiteConsumedMs;
+        total += consumedMs;
+        played->time = RecordTime::fromMilliseconds(consumedMs, total);
         line.entries.append(*played);
         previousTo = move->to;
     }
     return line;
-}
-
-RecordTime CsaGameProgress::initialMoveTime(int index) const
-{
-    // 再開局面の各手の消費時間と、その側の累計（「１手 / 合計」の表記）
-    const CsaGameSummary& s = summary;
-    if (index < 0 || index >= s.moves.size()) return {};
-    const bool black = s.moves.at(index).startsWith(QLatin1Char('+'));
-    qint64 total = 0;
-    for (int i = 0; i <= index; ++i) {
-        if (s.moves.at(i).startsWith(QLatin1Char('+')) == black) total += s.positionMoveConsumedMs(i);
-    }
-    return RecordTime::fromMilliseconds(s.positionMoveConsumedMs(index), total);
 }
 
 UsiGoTimeInput CsaGameProgress::engineTiming(bool pondering, qint64 elapsedThisTurnMs, int marginMs) const

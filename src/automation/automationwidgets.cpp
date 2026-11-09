@@ -172,6 +172,10 @@ bool isSensitive(const QWidget* widget)
 
 void requireInteractive(QWidget* widget, bool allowPopup, bool allowSensitiveWrite)
 {
+    // エンジンへ生のコマンドを送る欄とファイルの置き場所を渡す欄は、エンジンにファイルを書かせられる（DebugLogFile など）。
+    // 読みも書きもさせない（セキュリティ監査 V26）
+    if (widget && widget->property("automationForbidden").toBool())
+        throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("This control is not available through automation"));
     if (isSensitive(widget) && !(allowSensitiveWrite && qobject_cast<QLineEdit*>(widget)))
         throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("Sensitive controls are not accessible through automation"));
     if (widget) {

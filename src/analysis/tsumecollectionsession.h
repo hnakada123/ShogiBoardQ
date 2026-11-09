@@ -13,6 +13,7 @@
 #include <memory>
 #include <optional>
 
+#include "positioncollectionfile.h"
 #include "tsumecollection.h"
 #include "tsumeevaluation.h"
 #include "tsumeprogressstore.h"
@@ -49,6 +50,15 @@ public:
 
     /// 局面集のファイルを読む。読めなければ errorMessage に理由（形式が不正な行は invalidLines）
     bool load(const QString& path, QString* errorMessage, QList<int>* invalidLines);
+
+    /// 局面集ファイルを読んだ結果（readFile は UI に触らないので別スレッドで呼べる。apply で画面に載せる）
+    struct ReadFile {
+        QString path;
+        PositionCollectionFile::File file;
+        TsumeCollection::Result parsed;
+    };
+    static ReadFile readFile(const QString& path);
+    bool apply(const ReadFile& read, QString* errorMessage, QList<int>* invalidLines);
     const QString& filePath() const { return m_file; }
     int problemCount() const { return static_cast<int>(m_problems.size()); }
     const TsumeProblem& problem(int index) const { return m_problems.at(index); }

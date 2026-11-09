@@ -25,15 +25,28 @@ TsumeCollectionSession::~TsumeCollectionSession() = default;
 // 局面集
 // ============================================================
 
-bool TsumeCollectionSession::load(const QString& path, QString* errorMessage, QList<int>* invalidLines)
+TsumeCollectionSession::ReadFile TsumeCollectionSession::readFile(const QString& path)
 {
     // 読み方と読めない理由の文は局面集ビューアと同じ（PositionCollectionFile::readFile）
-    const PositionCollectionFile::File file = PositionCollectionFile::readFile(path);
-    if (!file.ok) {
-        if (errorMessage) *errorMessage = file.error;
+    ReadFile read;
+    read.path = path;
+    read.file = PositionCollectionFile::readFile(path);
+    if (read.file.ok) read.parsed = TsumeCollection::parse(read.file.text);
+    return read;
+}
+
+bool TsumeCollectionSession::load(const QString& path, QString* errorMessage, QList<int>* invalidLines)
+{
+    return apply(readFile(path), errorMessage, invalidLines);
+}
+
+bool TsumeCollectionSession::apply(const ReadFile& read, QString* errorMessage, QList<int>* invalidLines)
+{
+    if (!read.file.ok) {
+        if (errorMessage) *errorMessage = read.file.error;
         return false;
     }
-    const TsumeCollection::Result parsed = TsumeCollection::parse(file.text);
+    const TsumeCollection::Result& parsed = read.parsed;
     if (parsed.problems.isEmpty()) {
         if (errorMessage) errorMessage->clear();
         return false;
@@ -41,9 +54,9 @@ bool TsumeCollectionSession::load(const QString& path, QString* errorMessage, QL
     cancelEvaluation();
     m_problems = parsed.problems;
     m_ids = parsed.positionIds;
-    m_file = path;
+    m_file = read.path;
     m_results.clear();
-    m_store->setVerifiedCollection(file.bytes, parsed);
+    m_store->setVerifiedCollection(read.file.bytes, parsed);
     refreshProgress();
     if (invalidLines) *invalidLines = parsed.invalidLines;
     return true;

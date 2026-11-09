@@ -48,6 +48,8 @@ struct BranchTreeLayout {
     int parentRow(int row) const;
     /// 段を割り当てる。compact なら手数の区間が重ならない変化を空いた段に詰め、そうでなければ1変化1段
     void assignLanes(bool compact);
+    /// この行数より多いときは詰めた配置にしない（段の探索が行数の二乗の時間になる）
+    static constexpr qsizetype kMaxCompactRows = 5000;
     /// 行の段（隠れている・割り当てていない行は -1）
     int laneForRow(int row) const;
     int laneCount() const { return m_laneCount; }

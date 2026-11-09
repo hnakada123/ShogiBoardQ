@@ -713,6 +713,7 @@ set(SRC_WIDGETS
     src/widgets/dialogfontscale.h
     src/widgets/dialogutils.cpp
     src/widgets/dialogutils.h
+    src/widgets/runoffthread.h
     src/widgets/elidelabel.cpp
     src/widgets/elidelabel.h
     src/widgets/engineinfowidget.cpp

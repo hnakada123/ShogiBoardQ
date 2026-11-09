@@ -79,7 +79,8 @@ KifuParseOutcome UsiToSfenConverter::parse(QStringView text, const ParseOptions&
     const std::optional<UsiPosition::Words> words = UsiPosition::split(content);
     const std::optional<Position> start = words ? Position::fromSfen(words->completeStart()) : std::nullopt;
     if (!start) {
-        outcome.warning = QStringLiteral("Unknown USI position format: %1\n").arg(content.left(80));
+        // 入力の中身は文に入れない（棋譜でないファイルの先頭を、エラー文で読み出せてしまう。セキュリティ監査 V7）
+        outcome.warning = QStringLiteral("Unknown USI position format\n");
         return outcome;
     }
     outcome.startKind = *start == Position::hirate() ? StartKind::Handicap : StartKind::Specified;

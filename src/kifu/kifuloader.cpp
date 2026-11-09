@@ -110,6 +110,22 @@ bool KifuLoader::loadPositionFromSfen(const QString& sfen)
 // 読み込み結果をツリーに載せる
 // ============================================================
 
+QString KifuLoader::shortenedWarning(const QString& warning)
+{
+    // 読めない手が多い棋譜の警告を全部ダイアログに出すと、箱が画面より高くなって固まる（セキュリティ監査 V20）
+    constexpr qsizetype kMaxLines = 30;
+    constexpr qsizetype kMaxLineChars = 300;
+    const QStringList lines = warning.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    QStringList shown;
+    shown.reserve(qMin(lines.size(), kMaxLines));
+    for (const QString& line : lines) {
+        if (shown.size() == kMaxLines) break;
+        shown.append(line.size() > kMaxLineChars ? line.left(kMaxLineChars) + QStringLiteral("…") : line);
+    }
+    if (lines.size() > kMaxLines) shown.append(tr("ほか %1 件").arg(lines.size() - kMaxLines));
+    return shown.join(QLatin1Char('\n'));
+}
+
 bool KifuLoader::applyLoadResult(const KifuLoadResult& result)
 {
     if (!result.success) {
@@ -117,7 +133,8 @@ bool KifuLoader::applyLoadResult(const KifuLoadResult& result)
         return false;
     }
     // 局面だけになった読み込みの警告も出す
-    if (!result.warning.isEmpty()) emit warningOccurred(tr("棋譜の読み込みで警告があります:\n%1").arg(result.warning));
+    if (!result.warning.isEmpty())
+        emit warningOccurred(tr("棋譜の読み込みで警告があります:\n%1").arg(shortenedWarning(result.warning)));
     if (result.positionOnly) return loadPositionFromSfen(result.startSfen());
     return applyRecord(result);
 }

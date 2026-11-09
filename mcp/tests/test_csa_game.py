@@ -101,7 +101,8 @@ class CsaUI:
             assert asyncio.get_running_loop().time() < deadline, state
             await asyncio.sleep(0.05)
 
-    async def connect(self, port, side="b", game="audit-300-5", engine=False, options=None, password=None):
+    async def connect(self, port, side="b", game="audit-300-5", engine=False, options=None, password=None,
+                      wait_for_dialog=True):
         """Fill the connection dialog. `options` sets widgets on the advanced tab (name -> value)."""
         await self.call("trigger_action", name="actionCSA")
         dialog = await self.dialog("CsaGameDialog")
@@ -120,7 +121,7 @@ class CsaUI:
             await self.call("set_widget_value", target=dialog, widget=widget, value=value)
         await self.call("set_widget_value", target=dialog, widget="tabWidget", value=0)
         await self.call("click_dialog_button", target=dialog, widget="pushButtonStart")
-        return await self.dialog("CsaWaitingDialog")
+        return await self.dialog("CsaWaitingDialog") if wait_for_dialog else None
 
     async def move(self, usi, decline_promotion=False):
         if "*" in usi:
@@ -904,7 +905,8 @@ async def test_connection_refused_recovers(csa_env):
         port = sock.getsockname()[1]
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
-        await ui.connect(port)
+        # The refusal is reported without waiting, so the waiting dialog may already be gone.
+        await ui.connect(port, wait_for_dialog=False)
         dialog = await ui.dialog("QMessageBox")
         await ui.call("close_dialog", target=dialog)
         await ui.wait_state(ui_state="idle", play_mode="not_started")

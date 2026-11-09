@@ -77,6 +77,8 @@ private:
     void updateAxes();
     void applyYAxis();
     void applyXAxis();
+    /// X 軸の範囲と間隔を、途中で目盛りが増えない順に変える
+    void setXAxisScale(int limit, int interval);
     void setupAxes();
     void setupChart();
     void setupSeries();

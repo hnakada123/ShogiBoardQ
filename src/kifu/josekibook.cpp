@@ -18,9 +18,17 @@
 #include <QTextStream>
 
 #include <algorithm>
+#include <limits>
 #include <utility>
 
 namespace {
+
+/// 出現頻度の足し算（棋譜と定跡の大きな値で桁あふれさせない。セキュリティ監査 V22）
+qint32 saturatedSum(qint32 a, qint32 b)
+{
+    return static_cast<qint32>(qBound(qint64(std::numeric_limits<qint32>::min()), qint64(a) + qint64(b),
+                                      qint64(std::numeric_limits<qint32>::max())));
+}
 
 /// 指し手の番号: kNoMove は "none"、それより大きく kTokenBase より小さい番号は USI の指し手、
 /// kTokenBase から JosekiBook::kHeader の手前までは USI として読めない文字列の表の番号
@@ -377,7 +385,7 @@ bool JosekiBook::addPlayedMove(const QString &sfen, const QString &usiMove, int 
     const qsizetype index = indexOf(records, range, code);
     if (index >= 0) {
         PackedMove &existing = records[index];
-        existing.frequency += count;
+        existing.frequency = saturatedSum(existing.frequency, count);
         if (existing.comment == 0) existing.comment = storeComment(comment);
         return false;
     }
@@ -418,28 +426,52 @@ JosekiBook::MergeStats JosekiBook::mergeFrom(const JosekiBook &other, const Merg
             continue;
         }
         Records &records = *existing;
-        const QString key = QString::fromUtf8(it.key());
-        const QList<Range> ranges = rangesOf(incoming);
-        for (const Range &from : ranges) {
+        // 登録の一覧は局面ごとに1度だけ作り、足す手は登録ごとに集めて最後に1度で並べ直す（手ごとに探し直して
+        // 差し込むと、同じ局面の登録数と手の数の二乗の時間になる。セキュリティ監査 V23）
+        const QList<Range> targets = rangesOf(records);
+        QHash<int, qsizetype> targetByPly;
+        for (qsizetype t = targets.size() - 1; t >= 0; --t) targetByPly.insert(records.at(targets.at(t).header).value, t);
+        struct MergeJob {
+            qsizetype target;
+            Range from;
+        };
+        QList<MergeJob> jobs;
+        for (const Range &from : rangesOf(incoming)) {
             // 同じ手数の登録（無ければ最初の登録）に足す
-            const QString sfen = key + QLatin1Char(' ') + QString::number(incoming.at(from.header).value);
-            for (qsizetype i = from.header + 1; i < from.end; ++i) {
+            jobs.append({targetByPly.value(incoming.at(from.header).value, 0), from});
+        }
+        std::stable_sort(jobs.begin(), jobs.end(), [](const MergeJob &a, const MergeJob &b) { return a.target < b.target; });
+
+        QList<QList<PackedMove>> additions(targets.size());
+        QHash<quint16, qsizetype> indexByCode;   // 0 以上は records の添字、負は additions の添字の補数
+        qsizetype hashedTarget = -1;
+        qsizetype added = 0;
+        for (const MergeJob &job : std::as_const(jobs)) {
+            if (job.target != hashedTarget) {
+                hashedTarget = job.target;
+                indexByCode.clear();
+                const Range &range = targets.at(job.target);
+                for (qsizetype j = range.end - 1; j > range.header; --j) indexByCode.insert(records.at(j).move, j);
+            }
+            QList<PackedMove> &addedHere = additions[job.target];
+            for (qsizetype i = job.from.header + 1; i < job.from.end; ++i) {
                 const PackedMove &packed = incoming.at(i);
-                const Range range = resolve(records, sfen);
                 const quint16 code = remap(packed.move);
-                const qsizetype index = indexOf(records, range, code);
                 const QString comment = other.m_comments.value(packed.comment);
-                if (index < 0) {
-                    PackedMove added = packed;
-                    added.move = code;
-                    added.next = remap(packed.next);
-                    added.comment = storeComment(comment);
-                    records.insert(range.end, added);
+                const auto found = indexByCode.constFind(code);
+                if (found == indexByCode.constEnd()) {
+                    PackedMove move = packed;
+                    move.move = code;
+                    move.next = remap(packed.next);
+                    move.comment = storeComment(comment);
+                    addedHere.append(move);
+                    indexByCode.insert(code, ~(addedHere.size() - 1));
+                    ++added;
                     ++stats.addedMoves;
                     continue;
                 }
-                PackedMove &target = records[index];
-                const int frequency = options.sumFrequency ? target.frequency + packed.frequency
+                PackedMove &target = *found >= 0 ? records[*found] : addedHere[~*found];
+                const int frequency = options.sumFrequency ? saturatedSum(target.frequency, packed.frequency)
                                       : options.preferIncoming ? packed.frequency
                                                                : target.frequency;
                 if (options.preferIncoming) {
@@ -451,6 +483,16 @@ JosekiBook::MergeStats JosekiBook::mergeFrom(const JosekiBook &other, const Merg
                 target.frequency = frequency;
                 ++stats.updatedMoves;
             }
+        }
+        if (added > 0) {
+            Records merged;
+            merged.reserve(records.size() + added);
+            for (qsizetype t = 0; t < targets.size(); ++t) {
+                const Range &range = targets.at(t);
+                for (qsizetype j = range.header; j < range.end; ++j) merged.append(records.at(j));
+                merged.append(additions.at(t));
+            }
+            records = std::move(merged);
         }
     }
     return stats;

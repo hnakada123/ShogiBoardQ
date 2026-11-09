@@ -94,6 +94,7 @@ TsumeCollection::Result TsumeCollection::parse(const QString& text)
     Result result;
     const PositionCollectionFile::Contents contents = PositionCollectionFile::parse(text);
     result.invalidLines = contents.invalidLines;
+    result.unreadLines = contents.unreadLines;
     for (const auto& line : contents.lines) {
         // position コマンドの行は指した後の局面を問題にし、SFEN に添えた手順は参考手順として持つ
         const bool played = line.movesPlayed && !line.moves.isEmpty();

@@ -35,9 +35,13 @@ struct Line {
 };
 
 /// ファイル全体の読み取り結果
+/// 1つの局面集で読む行数の上限（1行ごとに局面を検査するので、行数がそのまま読み込みの時間になる）
+inline constexpr qsizetype kMaxLines = 200'000;
+
 struct Contents {
     QList<Line> lines;       ///< 読めた行（ファイルの順）
     QList<int> invalidLines; ///< 局面として読めなかった行の番号
+    qsizetype unreadLines = 0;   ///< 行数の上限（kMaxLines）を超えて読まなかった行の数
 };
 
 enum class LineKind { Skipped, Position, Invalid };

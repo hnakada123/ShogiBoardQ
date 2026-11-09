@@ -1,4 +1,4 @@
-"""USI communication log tab: manual commands reach the engines of the running game.
+"""USI communication log tab: the log of the running game, and the console that automation must not use.
 
 Set SHOGIBOARDQ_TEST_USI_ENGINE to a USI engine (registered as "TestUsi").
 """
@@ -63,17 +63,13 @@ async def test_manual_usi_command_reaches_running_engine(server_env, tmp_path):
         # command exactly once, and E2 is reported as absent (USI engines ignore unknown commands).
         probe = "shogiboardq-usi-log-probe"
         await call(session, "set_widget_value", widget="usiCommandTarget", value=2)
-        await call(session, "set_widget_value", widget="usiCommandInput", value=probe, submit=True)
-
-        async def answered():
-            text = await log_text()
-            return text if f"▶ E1: {probe}" in text and "E2: エンジンが起動していません" in text else None
-
-        text = await wait_for(answered)
+        # The console sends any command to the engine (which can write files through its options), so automation
+        # cannot use it, even in unrestricted mode.
+        text, _, error = result_data(await session.call_tool(
+            "set_widget_value", {"widget": "usiCommandInput", "value": probe, "submit": True}))
+        assert error and "not_allowed" in text, text
         await asyncio.sleep(0.3)
-        text = await log_text()
-        assert text.count(f"▶ E1: {probe}") == 1, text
-        assert "E1: エンジンが起動していません" not in text, text
+        assert probe not in await log_text()
 
         await call(session, "trigger_action", name="actionResign")
 

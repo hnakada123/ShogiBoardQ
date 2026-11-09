@@ -26,6 +26,9 @@ class KifuLoader : public QObject
     Q_OBJECT
 
 public:
+    /// 警告の文を先頭の数十行と「ほか N 件」にする（ダイアログが画面より大きくならないようにする）
+    static QString shortenedWarning(const QString& warning);
+
     explicit KifuLoader(KifuDocument* document, QObject* parent = nullptr);
     ~KifuLoader() override;
 

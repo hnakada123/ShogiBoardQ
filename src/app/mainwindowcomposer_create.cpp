@@ -239,7 +239,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     m_c.operationPolicy = std::make_unique<OperationPolicy>(hd);
     // 利用者の操作で棋譜を移る前の確認。対局中・棋譜解析中・局面編集中は移らない。移れる状態なら、
     // 未更新のコメントを破棄してよいかを確かめる（移れないのにコメントを聞かないよう、この順に聞く）
-    m_c.kifuNavController->addLeaveGuard(std::bind(&OperationPolicy::canBrowseRecord, m_c.operationPolicy.get()));
+    m_c.kifuNavController->setBrowseCheck(std::bind(&OperationPolicy::canBrowseRecord, m_c.operationPolicy.get()));
     m_c.kifuNavController->addLeaveGuard(std::bind(&CommentController::confirmLeaveEditingMove, m_c.commentController));
 
     // 分岐の編集・盤の手の記録・定跡の展開（棋譜を変えてよいかは OperationPolicy::canEditRecord）

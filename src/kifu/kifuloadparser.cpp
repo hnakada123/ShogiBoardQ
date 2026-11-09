@@ -1,4 +1,5 @@
 #include "kifuloadparser.h"
+#include "kiflinebuilder.h"
 #include "csatosfenconverter.h"
 #include "jkftosfenconverter.h"
 #include "usentosfenconverter.h"
@@ -92,7 +93,13 @@ KifuLoadResult KifuLoadParser::parseContent(const QString& content, KifuFormat f
     result.format = format;
     if (canceled(cancel)) return result;
 
+    KifMoveBudget moveBudget;
     KifuParseOutcome outcome = parserFor(format)(content, ParseOptions{});
+    if (moveBudget.exhausted()) {
+        result.error = QCoreApplication::translate("KifuLoader", "棋譜の手数が多すぎます（上限は%1手です）。")
+                           .arg(KifMoveBudget::kMaxMoves);
+        return result;
+    }
     result.success = outcome.success;
     result.startKind = outcome.startKind;
     result.positionOnly = outcome.positionOnly;

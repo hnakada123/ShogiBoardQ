@@ -44,6 +44,18 @@ class TestAppKifuLoad : public QObject
     QTemporaryDir m_config;
 
 private slots:
+    /// 警告の文は先頭と「ほか N 件」にする（ダイアログが画面より高くなって固まらない）
+    void longWarningsAreShortened()
+    {
+        QStringList lines;
+        for (int i = 0; i < 1000; ++i) lines.append(QStringLiteral("warning %1").arg(i));
+        const QString shown = KifuLoader::shortenedWarning(lines.join(QLatin1Char('\n')));
+        QVERIFY(shown.count(QLatin1Char('\n')) <= 31);
+        QVERIFY2(shown.contains(QStringLiteral("970")), qPrintable(shown));
+        QVERIFY(!shown.contains(QStringLiteral("warning 999")));
+        QCOMPARE(KifuLoader::shortenedWarning(QStringLiteral("a\nb")), QStringLiteral("a\nb"));
+    }
+
     void initTestCase()
     {
         QVERIFY(m_config.isValid());

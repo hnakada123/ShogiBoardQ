@@ -46,6 +46,7 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     if (!m_optionHandler->engineAuthor().isEmpty()) {
         headerText += tr("\n作者: %1").arg(m_optionHandler->engineAuthor());
     }
+    ui->label->setTextFormat(Qt::PlainText);   // エンジンが名乗った名前・作者を HTML として読まない
     ui->label->setText(headerText);
     ui->label->setStyleSheet(
         "QLabel { background-color: transparent; padding: 8px; "

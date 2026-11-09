@@ -122,8 +122,13 @@ void BranchTreeLayout::assignLanes(bool compact)
     m_rowLane = QList<int>(rows.size(), -1);
     m_laneCount = 1;
     if (rows.isEmpty()) return;
+    // 詰める配置は、変化ごとに既存の全部の段を調べる。変化が多いと変化の数の二乗の時間で
+    // GUI を止めるので、1変化1段にする（セキュリティ監査 V6）
+    if (rows.size() > kMaxCompactRows) compact = false;
 
     m_rowLane[0] = 0;
+    // 祖先が折りたたまれているかは親の行から決まる（親は必ず前の行）。行ごとに祖先をたどらない
+    QList<bool> hiddenRows(rows.size(), false);
     // 段ごとに使用中の手数の区間 [開始, 終了]
     QList<QList<QPair<int, int>>> occupied;
     occupied.append({qMakePair(0, qMax(0, lastVisiblePly(0)))});
@@ -131,7 +136,10 @@ void BranchTreeLayout::assignLanes(bool compact)
     int sequentialLane = 0;
     for (qsizetype row = 1; row < rows.size(); ++row) {
         const int r = static_cast<int>(row);
-        if (isHidden(r)) continue;
+        const int parent = rows.at(r).parent;
+        if (parent >= 1 && parent < r) hiddenRows[r] = hiddenRows.at(parent) || isCollapsed(parent);
+        else hiddenRows[r] = isHidden(r);
+        if (hiddenRows.at(r)) continue;
         const int startPly = qMax(1, rows.at(r).startPly);
         const int endPly = lastVisiblePly(r);
         if (endPly < startPly) continue;

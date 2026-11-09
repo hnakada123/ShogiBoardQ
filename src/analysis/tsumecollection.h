@@ -15,6 +15,7 @@ namespace TsumeCollection {
 struct Result {
     QList<TsumeProblem> problems;
     QList<int> invalidLines;
+    qsizetype unreadLines = 0;   ///< 行数の上限を超えて読まなかった行の数
     QStringList positionIds; // problems と同順。読込時の局面解析から作り、履歴照会で再解析しない。
 };
 Result parse(const QString& text);

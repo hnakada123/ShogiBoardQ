@@ -4,6 +4,7 @@
 #include <QtTest>
 #include <QAbstractButton>
 #include <QApplication>
+#include <QElapsedTimer>
 #include <QGraphicsItem>
 #include <QGraphicsView>
 #include <QMessageBox>
@@ -217,6 +218,21 @@ private slots:
         QVERIFY(!h.document.isModified());
     }
 
+    // 削除の確認の間に棋譜が作り直されたら、削除しない（解放済みのノードを使わない）
+    void controller_recordReplacedDuringDeleteConfirmation()
+    {
+        Fixture f;
+        EditHarness h(f.tree);
+        QTimer::singleShot(0, this, [&f]() {
+            auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+            QVERIFY(box);
+            f.tree.setRootSfen(kHirateSfen);
+            box->button(QMessageBox::Yes)->click();
+        });
+        QVERIFY(!h.controller.apply(BranchTreeEditController::Operation::DeleteFromHere, f.b2));
+        QCOMPARE(f.tree.nodeCount(), 1);
+    }
+
     // 削除の確認の手は、分岐ツリーと同じ表記（英語式の表記なら P-7f）で示す
     void controller_deleteConfirmationUsesDisplayedNotation()
     {
@@ -403,6 +419,36 @@ private slots:
         QCOMPARE(view.laneOf(f.a5->nodeId()), 1);
         QCOMPARE(view.laneOf(f.b2->nodeId()), 2);
         QCOMPARE(view.laneOf(f.c3->nodeId()), 3);
+    }
+
+    /// 変化が多いときは詰めた配置をやめ、手数の二乗の時間にしない
+    void layout_manyRowsUseOneLaneEach()
+    {
+        BranchTreeLayout layout;
+        layout.rows = {{1, -1, -1, 9}};
+        const int count = static_cast<int>(BranchTreeLayout::kMaxCompactRows) * 2;
+        for (int i = 1; i <= count; ++i) layout.rows.append({2, 0, 10 + i, 4});
+        QElapsedTimer timer;
+        timer.start();
+        layout.assignLanes(true);
+        QVERIFY2(timer.elapsed() < 2000, qPrintable(QString::number(timer.elapsed())));
+        QCOMPARE(layout.laneForRow(count), count);
+    }
+
+    /// 変化の中の変化が深くても、祖先をたどり直さずに隠れた行を決める
+    void layout_deepChainStaysLinear()
+    {
+        BranchTreeLayout layout;
+        layout.rows = {{1, -1, -1, 9}};
+        const int count = 50000;
+        for (int i = 1; i <= count; ++i) layout.rows.append({2, i - 1, 10 + i, 4});
+        QElapsedTimer timer;
+        timer.start();
+        layout.assignLanes(true);
+        QVERIFY2(timer.elapsed() < 2000, qPrintable(QString::number(timer.elapsed())));
+        QVERIFY(layout.setCollapsed(1, true));
+        layout.assignLanes(true);
+        QCOMPARE(layout.laneForRow(count), -1);
     }
 
     /// 行の折りたたみと段の割り当ては描画なしで決まる

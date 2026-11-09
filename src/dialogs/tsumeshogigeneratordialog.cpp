@@ -13,7 +13,6 @@
 #include <QComboBox>
 #include <QEvent>
 #include <QLabel>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTableWidget>
@@ -163,7 +162,7 @@ void TsumeshogiGeneratorDialog::onStartClicked()
     if (isRunning()) return;
     const std::optional<EngineEntry> engine = m_engineSelector->selected();
     if (!engine) {
-        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
+        DialogUtils::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
         return;
     }
 
@@ -253,7 +252,7 @@ void TsumeshogiGeneratorDialog::onGeneratorError(const QString& message)
 {
     setRunState(RunState::Failed);
     setStatusText(tr("エラー: %1").arg(message));
-    QMessageBox::warning(this, tr("エラー"), message);
+    DialogUtils::warning(this, tr("エラー"), message);
 }
 
 void TsumeshogiGeneratorDialog::onSaveToFile()
@@ -276,7 +275,7 @@ void TsumeshogiGeneratorDialog::onSaveToFile()
     for (const Result& result : std::as_const(m_results)) lines.append(exportLine(result));
     QString errorMessage;
     if (!TsumeCollectionWriter::save(filePath, header, lines, &errorMessage)) {
-        QMessageBox::warning(this, tr("エラー"), tr("ファイルを保存できませんでした: %1").arg(errorMessage));
+        DialogUtils::warning(this, tr("エラー"), tr("ファイルを保存できませんでした: %1").arg(errorMessage));
     }
 }
 

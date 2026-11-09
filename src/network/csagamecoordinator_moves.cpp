@@ -108,6 +108,13 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
 bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn)
 {
     if (m_phase != Phase::Playing || !m_gameBoard || failIfVerdictPending()) return false;
+    // 手数は対局条件の上限（超えるとサーバーが #MAX_MOVES で終える）と、絶対の上限で打ち切る（セキュリティ監査 V3）
+    const int maxMoves = m_progress.summary.maxMoves;
+    const int limit = maxMoves > 0 ? qMin(maxMoves + 1, CsaGameSummary::kMaxGameMoves) : CsaGameSummary::kMaxGameMoves;
+    if (m_progress.moveCount() >= limit) {
+        failGame(tr("手数の上限（%1手）を超えたので対局を中断しました").arg(limit));
+        return false;
+    }
     // 時計の通知は、棋譜と時計まで確定した後にまとめて送る。
     const QSignalBlocker clockNotifications(m_clock);
 

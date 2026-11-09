@@ -368,6 +368,57 @@ private slots:
         QTRY_COMPARE(coordinator.gameState(), CsaGameCoordinator::GameState::LoggingIn);
     }
 
+    /// ログインの失敗は、段階と接続を片付けてから知らせる（知らせのダイアログの間に次の行を処理しない）
+    void loginFailureIsReportedAfterClosing()
+    {
+        CsaGameCoordinator coordinator;
+        FakeCsaServer server;
+        QVERIFY(server.listen());
+        CsaGameCoordinator::StartOptions options;
+        options.host = QStringLiteral("127.0.0.1");
+        options.port = server.port();
+        options.username = QStringLiteral("user");
+        options.password = QStringLiteral("pass");
+        CsaGameCoordinator::GameState stateAtError = CsaGameCoordinator::GameState::Idle;
+        bool connectedAtError = true;
+        connect(&coordinator, &CsaGameCoordinator::errorOccurred, &coordinator, [&]() {
+            stateAtError = coordinator.gameState();
+            connectedAtError = coordinator.isConnected();
+        });
+        QSignalSpy errors(&coordinator, &CsaGameCoordinator::errorOccurred);
+        coordinator.startGame(options);
+        QVERIFY(server.accept());
+        QVERIFY(server.waitForLine(QStringLiteral("LOGIN user pass")));
+        server.send("LOGIN:incorrect");
+        QTRY_COMPARE(errors.size(), 1);
+        QCOMPARE(stateAtError, CsaGameCoordinator::GameState::Error);
+        QVERIFY(!connectedAtError);
+    }
+
+    /// 同じ接続で続ける局は、前の局の終わりから間を空けて同意する
+    void nextGameIsAgreedAfterTheMinimumInterval()
+    {
+        Harness h;
+        QVERIFY(h.start("+"));
+        h.server.send("#RESIGN");
+        h.server.send("#WIN");
+        QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
+        h.server.lines.clear();
+        h.server.send("BEGIN Game_Summary");
+        h.server.send("Game_ID:g2");
+        h.server.send("Your_Turn:+");
+        h.server.send("To_Move:+");
+        h.server.send("BEGIN Position");
+        h.server.send("PI");
+        h.server.send("+");
+        h.server.send("END Position");
+        h.server.send("END Game_Summary");
+        QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::WaitingForAgree);
+        QTest::qWait(200);
+        QVERIFY(!h.server.waitForLine(QStringLiteral("AGREE g2"), 100));
+        QVERIFY(h.server.waitForLine(QStringLiteral("AGREE g2"), CsaGameCoordinator::kMinGameIntervalMs + 2000));
+    }
+
     /// 引き分けの終局もローカル対局と同じく、探索を止めてから gameover draw を送る
     void drawSendsGameOverDrawToEngine()
     {
@@ -894,6 +945,10 @@ private slots:
         summary.format = QStringLiteral("Shogi 1.0");
         QVERIFY(summary.isTimeUnlimited());
         QVERIFY(summary.unsupportedReason(false).isEmpty());
+        // 再開局面の手数に上限がある（サーバーの手で棋譜の表示を止めない）
+        summary.moves = QStringList(CsaGameSummary::kMaxResumeMoves + 1, QStringLiteral("+7776FU"));
+        QVERIFY(!summary.unsupportedReason(false).isEmpty());
+        summary.moves.clear();
         QVERIFY(!summary.unsupportedReason(true).isEmpty());   // エンジンは時間無制限では指せない
         summary.format = QStringLiteral("Chess 1.0");
         QVERIFY(!summary.unsupportedReason(false).isEmpty());

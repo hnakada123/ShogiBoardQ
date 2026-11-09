@@ -245,6 +245,15 @@ private slots:
         // 表示の消去後もエンジンからの追記が継続する。
         first.appendLogLine(QStringLiteral("◀ E1: readyok"));
         QCOMPARE(view->toPlainText(), QStringLiteral("◀ E1: readyok"));
+
+        // 長い行は先頭だけを表示する（行数の上限だけではメモリを使い切る）
+        clear->trigger();
+        first.appendLogLine(QString(20000, QLatin1Char('x')));
+        QVERIFY(view->toPlainText().size() < 4200);
+        // 文字数の合計でも古い行から捨てる
+        for (int i = 0; i < 1000; ++i) first.appendLogLine(QString(4000, QLatin1Char('y')));
+        QVERIFY(view->toPlainText().size() <= 1000000);
+        QVERIFY(view->toPlainText().endsWith(QLatin1Char('y')));
     }
 
     void commandRoutesFromButtonAndEnter()

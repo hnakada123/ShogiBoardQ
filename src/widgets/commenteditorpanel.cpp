@@ -89,9 +89,54 @@ CommentEditorPanel::~CommentEditorPanel()
     m_commentViewport = nullptr;
 }
 
+namespace {
+// 表示するコメントの上限。QTextEdit の配置は文字数に比例して重く、数 MB では止まってメモリも使い切る。
+// 棋譜のコメントの実用の長さよりずっと大きい値にし、超えたら先頭だけを読み取り専用で出す（セキュリティ監査 V5）
+constexpr qsizetype kMaxShownCommentChars = 100'000;
+constexpr qsizetype kMaxShownCommentLines = 5'000;
+// 空白のない語がこの長さを超えると、語の単位の折り返しが行ごとに語の先頭から測り直して遅くなる
+constexpr qsizetype kMaxWordChars = 1'000;
+
+bool hasLongWord(const QString& text)
+{
+    qsizetype run = 0;
+    for (const QChar ch : text) {
+        run = ch.isSpace() ? 0 : run + 1;
+        if (run > kMaxWordChars) return true;
+    }
+    return false;
+}
+
+/// 上限の中に収まる先頭の長さ（超えなければ text の長さ）
+qsizetype shownCommentLength(const QString& text)
+{
+    qsizetype end = qMin(text.size(), kMaxShownCommentChars);
+    qsizetype lines = 0;
+    for (qsizetype i = 0; i < end; ++i) {
+        if (text.at(i) == QLatin1Char('\n') && ++lines >= kMaxShownCommentLines) {
+            end = i;
+            break;
+        }
+    }
+    if (end > 0 && end < text.size() && text.at(end - 1).isHighSurrogate()) --end;   // サロゲートペアを分けない
+    return end;
+}
+} // namespace
+
 void CommentEditorPanel::setCommentText(const QString& text)
 {
-    setCommentHtml(convertUrlsToLinks(text));
+    const qsizetype shownLength = shownCommentLength(text);
+    const bool truncated = shownLength < text.size();
+    // 省略した本文を編集して確定すると、残りが消えてしまうので、省略したときは編集させない
+    m_comment->setReadOnly(truncated);
+    QString shown = text;
+    if (truncated) {
+        shown = text.left(shownLength) + QStringLiteral("\n\n")
+            + tr("（長いコメントなので、先頭の %1 文字だけを表示しています。ここでは編集できません）").arg(shownLength);
+    }
+    m_comment->setWordWrapMode(hasLongWord(shown) ? QTextOption::WrapAnywhere
+                                                  : QTextOption::WrapAtWordBoundaryOrAnywhere);
+    setCommentHtml(convertUrlsToLinks(shown));
 }
 
 void CommentEditorPanel::setCommentHtml(const QString& html)

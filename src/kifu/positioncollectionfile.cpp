@@ -46,7 +46,9 @@ Contents parse(const QString& text)
 {
     Contents contents;
     const QStringList lines = text.split(QLatin1Char('\n'));
-    for (qsizetype i = 0; i < lines.size(); ++i) {
+    const qsizetype count = qMin(lines.size(), kMaxLines);
+    contents.unreadLines = lines.size() - count;
+    for (qsizetype i = 0; i < count; ++i) {
         const int lineNumber = static_cast<int>(i + 1);
         Line line;
         switch (parseLine(lines.at(i), lineNumber, &line)) {

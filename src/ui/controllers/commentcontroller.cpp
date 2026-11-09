@@ -91,7 +91,12 @@ void CommentController::onBookmarkEditRequested()
     dialog.setTextValue(node->bookmark());
     dialog.ensurePolished();
     DialogFontScale::install(&dialog, AppSettings::bookmarkDialogFontSize, {&AppSettings::bookmarkDialogSize});
+    // 開いている間にイベントループが回り、通信対局の次の局などで棋譜が作り直されることがある。ノードは番号で
+    // 持っておき、閉じた後に引き直す（番号は作り直しても再利用されない。セキュリティ監査 V2）
+    const int nodeId = node->nodeId();
     if (dialog.exec() != QDialog::Accepted) return;
+    node = m_deps.document->tree()->nodeAt(nodeId);
+    if (!node) return;
 
     const QString newBookmark = dialog.textValue();
     m_deps.document->setBookmark(node, newBookmark);

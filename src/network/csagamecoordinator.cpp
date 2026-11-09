@@ -17,9 +17,12 @@ CsaGameCoordinator::CsaGameCoordinator(const Deps& deps, QObject* parent)
     , m_client(new CsaClient(this))
     , m_series(new CsaGameSeries(this))
     , m_verdict(new CsaVerdictWait(kVerdictTimeoutMs, this))
+    , m_agreeDelay(new QTimer(this))
 {
     connect(m_verdict, &CsaVerdictWait::timedOut, this, &CsaGameCoordinator::onVerdictTimedOut);
     connect(m_series, &CsaGameSeries::reconnectDue, this, &CsaGameCoordinator::reconnectForNextGame);
+    m_agreeDelay->setSingleShot(true);
+    connect(m_agreeDelay, &QTimer::timeout, this, &CsaGameCoordinator::agreeToSummary);
     connect(m_client, &CsaClient::connectionStateChanged,
             this, &CsaGameCoordinator::onConnectionStateChanged);
     connect(m_client, &CsaClient::errorOccurred,
@@ -322,9 +325,10 @@ void CsaGameCoordinator::onLoginSucceeded()
 void CsaGameCoordinator::onLoginFailed(const QString& reason)
 {
     emit logMessage(tr("ログイン失敗: %1").arg(reason), true);
-    emit errorOccurred(reason);
+    // 段階と接続を片付けてから知らせる（知らせのダイアログの間に次の受信行を処理しない。セキュリティ監査 V1）
     setPhase(Phase::Failed);
     m_client->disconnectFromServer();
+    emit errorOccurred(reason);
 }
 
 void CsaGameCoordinator::onLogoutCompleted()
@@ -336,6 +340,12 @@ void CsaGameCoordinator::onLogoutCompleted()
 void CsaGameCoordinator::onGameStarted(const QString& gameId)
 {
     Q_UNUSED(gameId)
+
+    // 通信対局を続けていないのに届いた START では、棋譜を置き換えない（セキュリティ監査 V11）
+    if (m_phase == Phase::Off || m_phase == Phase::Failed) {
+        m_client->disconnectFromServer();
+        return;
+    }
 
     emit logMessage(tr("対局開始！"));
     setPhase(Phase::Playing);
@@ -432,6 +442,7 @@ void CsaGameCoordinator::endGame(CsaClient::GameResult result, CsaClient::GameEn
         m_engineSeat->release();
     }
     m_series->finishGame();
+    m_lastGameEnd.start();
     // 棋譜を確定して自動保存し（次の対局が始まる前に書き出す）、対局の間の動作状態を終える。
     // 次の対局を待つなら通信対局の接続中に、続けなければ待機に戻す
     if (m_sink) m_sink->finishRecord(/*autoSave=*/true);
@@ -495,7 +506,7 @@ void CsaGameCoordinator::onEngineDeclaredWin()
 void CsaGameCoordinator::onEngineInitialized()
 {
     emit logMessage(tr("エンジン %1 を起動しました").arg(m_options.engineName));
-    if (gameState() == GameState::WaitingForAgree) m_client->agree(m_progress.summary.gameId);
+    agreeToSummary();
 }
 
 void CsaGameCoordinator::onEngineError(const QString& message)

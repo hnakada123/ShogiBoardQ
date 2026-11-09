@@ -99,6 +99,8 @@ private slots:
 private:
     /// 盤上の手を指す局面（表示中の手。終局の行なら直前の手）。盤をその局面にする。無ければ nullptr
     KifuBranchNode* prepareRecordParent(GameBoard* gameBoard) const;
+    /// node が top かその子孫か
+    static bool isInSubtree(const KifuBranchNode* node, const KifuBranchNode* top);
     /// parent の局面で move を指して記録する
     bool addMove(KifuBranchNode* parent, const UsiMove& move, GameBoard* gameBoard);
     /// menu に node を対象とする編集操作を追加する

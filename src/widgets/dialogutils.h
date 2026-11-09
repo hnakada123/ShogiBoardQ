@@ -52,6 +52,12 @@ void fitWrappedLabels(QWidget* dialog);
 bool confirmAction(QWidget* parent, const QString& title, const QString& text,
                    const QString& actionText, QMessageBox::Icon icon = QMessageBox::Question);
 
+/// 知らせのメッセージボックス（dialogs・widgets 用。ui・app は NotificationPresenter を使う）。
+/// QMessageBox の静的関数は文を自動判定し、外から来た文字列が HTML として読まれるので、文は PlainText で出す
+void warning(QWidget* parent, const QString& title, const QString& text);
+void critical(QWidget* parent, const QString& title, const QString& text);
+void information(QWidget* parent, const QString& title, const QString& text);
+
 } // namespace DialogUtils
 
 #endif // DIALOGUTILS_H

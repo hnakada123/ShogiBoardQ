@@ -518,7 +518,7 @@ private slots:
     }
 
     // ================================================================
-    // i2) ui・app の知らせは NotificationPresenter で出す
+    // i2) ui・app の知らせは NotificationPresenter、dialogs・widgets は DialogUtils で出す
     //     QMessageBox の静的関数を直接使うと、自動化 API の呼び出し中の記録（ScopedCapture）と
     //     文を HTML として読まない指定（PlainText）を通らない。ErrorBus に流すと題名が「Warning」などの
     //     決まった語になる（ErrorBus は core の知らせだけ。監査 2026-11-01 M16）
@@ -528,7 +528,7 @@ private slots:
         const QRegularExpression pattern(QStringLiteral(
             R"(QMessageBox::(warning|information|critical)\s*\(|ErrorBus::instance\(\)\s*\.\s*postMessage)"));
         QStringList offenders;
-        for (const char* dir : {"/src/ui", "/src/app"}) {
+        for (const char* dir : {"/src/ui", "/src/app", "/src/dialogs", "/src/widgets"}) {
             QDirIterator it(QStringLiteral(SOURCE_DIR) + QLatin1String(dir), {QStringLiteral("*.cpp")}, QDir::Files,
                             QDirIterator::Subdirectories);
             while (it.hasNext()) {

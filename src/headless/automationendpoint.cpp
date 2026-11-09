@@ -7,6 +7,7 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QRandomGenerator>
 #include <QStandardPaths>
 
 QString AutomationEndpoint::defaultSocketPath()
@@ -14,8 +15,14 @@ QString AutomationEndpoint::defaultSocketPath()
     QString env = qEnvironmentVariable("SHOGIBOARDQ_AUTOMATION_SOCKET");
     if (!env.isEmpty()) return env;
 #ifdef Q_OS_WIN
-    const QString user = qEnvironmentVariable("USERNAME", QStringLiteral("user"));
-    return QStringLiteral("shogiboardq-automation-") + user;
+    // 名前付きパイプの名前を予測させない（別の利用者に先に作られると待ち受けを奪われる。セキュリティ監査 V33）。
+    // アプリを探す側はエンドポイントファイルの名前を使う。同じプロセスの中では同じ名前を返す
+    static const QString name = [] {
+        const QString user = qEnvironmentVariable("USERNAME", QStringLiteral("user"));
+        return QStringLiteral("shogiboardq-automation-%1-%2")
+            .arg(user, QString::number(QRandomGenerator::system()->generate64(), 16));
+    }();
+    return name;
 #else
     // RuntimeLocation（XDG_RUNTIME_DIR など）は所有者だけが使える。使えなければ設定のフォルダに置き、
     // 共有の一時ディレクトリの固定名は使わない（別の利用者に先に作られると待ち受けを奪われる。セキュリティ監査 S10）

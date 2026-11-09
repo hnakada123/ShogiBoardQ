@@ -2,6 +2,7 @@
 /// @brief エンジン登録ダイアログクラスの実装
 
 #include "engineregistrationdialog.h"
+#include "dialogutils.h"
 #include "dialogfontscale.h"
 #include "plaintooltip.h"
 #include "engineregistrationhandler.h"
@@ -13,7 +14,6 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QMessageBox>
 #include <QAbstractItemModel>
 #include <utility>
 
@@ -133,7 +133,7 @@ void EngineRegistrationDialog::removeEngine()
     // 選択したエンジンが正確に一つであるかをチェックする。
     if (items.count() != 1) {
         // エラーが発生したことを通知する。
-        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンを1つ選択してください。"));
+        DialogUtils::critical(this, tr("エラー"), tr("将棋エンジンを1つ選択してください。"));
         return;
     }
 
@@ -151,7 +151,7 @@ void EngineRegistrationDialog::configureEngine()
     // 選択されたアイテムが正確に一つであるかをチェックする。
     if (items.count() != 1) {
         // エラーメッセージを通知する。
-        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンを1つ選択してください。"));
+        DialogUtils::critical(this, tr("エラー"), tr("将棋エンジンを1つ選択してください。"));
         return;
     }
 
@@ -188,7 +188,7 @@ void EngineRegistrationDialog::onEngineRegistered(const QString& engineName)
 void EngineRegistrationDialog::onHandlerError(const QString& errorMessage)
 {
     // エラーメッセージを表示する。
-    QMessageBox::critical(this, tr("エラー"), errorMessage);
+    DialogUtils::critical(this, tr("エラー"), errorMessage);
 }
 
 // 登録処理の進行状態変化時のスロット

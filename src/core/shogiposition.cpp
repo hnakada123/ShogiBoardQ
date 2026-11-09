@@ -323,6 +323,8 @@ bool Position::apply(const UsiMove& move, DropRule rule)
     const Turn mover = m_sideToMove;
     if (move.isDrop()) {
         const Piece piece = move.dropPieceFor(mover);
+        // 行き所のない段への駒打ちは、後で局面の文字列を読めなくなるので受け付けない（セキュリティ監査 V18）
+        if (PieceRules::isDeadSquare(piece, move.to.rank)) return false;
         if (rule == DropRule::RequireHand) {
             if (pieceAt(move.to) != Piece::None || !takeFromHand(piece)) return false;
         } else {
@@ -342,6 +344,7 @@ bool Position::apply(const UsiMove& move, DropRule rule)
         setPieceAt(move.to, moving);
     }
     m_sideToMove = opponent(mover);
-    if (m_moveNumber < std::numeric_limits<int>::max()) ++m_moveNumber;
+    // 手数は読むときの上限（kMaxMoveNumber）を超えない。超えると、指した後の局面の文字列を読めなくなる
+    if (m_moveNumber < kMaxMoveNumber) ++m_moveNumber;
     return true;
 }

@@ -196,6 +196,15 @@ private slots:
         QVERIFY(name);
         QCOMPARE(shownText(name->toolTip()), kExternal);
 
+        // 数 MB の名前でも、ツールチップと描画に使う長さは上限まで。省略前の文字列は読める
+        {
+            ElideLabel longLabel;
+            const QString huge(1 << 20, QLatin1Char('x'));
+            longLabel.setFullText(huge);
+            QVERIFY(longLabel.toolTip().size() < 10000);
+            QCOMPARE(longLabel.fullText(), huge);
+        }
+
         ElideLabel label;
         label.setFullText(kExternal);
         QCOMPARE(shownText(label.toolTip()), kExternal);

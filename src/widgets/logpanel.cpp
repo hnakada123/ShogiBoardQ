@@ -22,6 +22,7 @@
 #include <QTextDocument>
 #include <QToolBar>
 #include <QToolButton>
+#include <QTextBlock>
 #include <QVBoxLayout>
 
 namespace {
@@ -191,9 +192,13 @@ void LogPanel::addToolbarWidget(QWidget* widget)
     m_toolbar->insertWidget(m_spacerAction, widget);
 }
 
-void LogPanel::appendLine(const QString& line, const QColor& color)
+void LogPanel::appendLine(const QString& rawLine, const QColor& color)
 {
-    if (line.isEmpty()) return;
+    if (rawLine.isEmpty()) return;
+    // 行数の上限だけでは、長い行でメモリを使い切る（通信の1行は 64KB まで届く）。表示は先頭だけにする（セキュリティ監査 V15）
+    constexpr qsizetype kMaxLineChars = 4096;
+    const QString line = rawLine.size() <= kMaxLineChars ? rawLine
+        : rawLine.left(kMaxLineChars) + tr(" …（%1 文字を省略）").arg(rawLine.size() - kMaxLineChars);
 
     // 表示用カーソルを動かさず追記する。過去ログの閲覧位置と選択範囲を保つ。
     auto* vertical = m_logView->verticalScrollBar();
@@ -230,6 +235,21 @@ void LogPanel::appendLine(const QString& line, const QColor& color)
     if (!document->isEmpty()) cursor.insertBlock();
     cursor.insertText(line, format);
     cursor.endEditBlock();
+
+    // 行数の上限だけでは、長い行が続くと行の配置のデータで GB のメモリを使う。文字数でも古い行から捨てる（セキュリティ監査 V15）
+    constexpr int kMaxDocumentChars = 1'000'000;
+    if (document->characterCount() > kMaxDocumentChars) {
+        const int target = kMaxDocumentChars * 9 / 10;
+        int remaining = document->characterCount();
+        QTextBlock oldest = document->begin();
+        while (remaining > target && oldest.next().isValid()) {
+            remaining -= oldest.length();
+            oldest = oldest.next();
+        }
+        QTextCursor trim(document);
+        trim.setPosition(oldest.position(), QTextCursor::KeepAnchor);
+        trim.removeSelectedText();
+    }
 
     const int adjustedVertical = vertical->value();
     if (restoreCursor) {

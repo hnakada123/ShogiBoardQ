@@ -1,4 +1,5 @@
 #include "tsumeplaydialog.h"
+#include "dialogutils.h"
 #include "boardinteractioncontroller.h"
 #include "dialogfontscale.h"
 #include "fontsizehelper.h"
@@ -13,7 +14,6 @@
 #include <QHBoxLayout>
 #include <QFontMetrics>
 #include <QLabel>
-#include <QMessageBox>
 #include "promotedialog.h"
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -351,7 +351,7 @@ void TsumePlayDialog::showOutcome(TsumeGameSession::Outcome outcome, int remaini
         m_outcomeTimer.start(1000);
         return;
     }
-    QMessageBox::information(this, windowTitle(), message);
+    DialogUtils::information(this, windowTitle(), message);
 }
 
 void TsumePlayDialog::showPendingOutcome()
@@ -359,7 +359,7 @@ void TsumePlayDialog::showPendingOutcome()
     const QString message = m_pendingOutcome;
     m_pendingOutcome.clear();
     if (message.isEmpty() || !isVisible()) return;
-    QMessageBox::information(this, windowTitle(), message);
+    DialogUtils::information(this, windowTitle(), message);
 }
 
 void TsumePlayDialog::rejectMove()

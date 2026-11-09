@@ -17,6 +17,7 @@
 #include "outputpath.h"
 #include "notificationpresenter.h"
 
+#include <QApplication>
 #include <QFileInfo>
 #include <QJsonArray>
 
@@ -50,8 +51,19 @@ QJsonObject loadResult(const AutomationContext& context)
 
 } // namespace
 
+void AutomationCommands::requireNoModalDialog()
+{
+    // モーダルのダイアログは棋譜のノードを持ったまま待っていることがある。その間に棋譜を置き換え・移動すると、
+    // 閉じた後の処理と食い違う（セキュリティ監査 V2。docs/dev/mcp-server.md の「モーダルで遮られた対象を拒否」）
+    if (QApplication::activeModalWidget()) {
+        throw AutomationError(ErrorKind::InvalidState, QStringLiteral("A modal dialog is open"),
+                              QStringLiteral("Close the dialog first"));
+    }
+}
+
 KifuFileController* AutomationCommands::requireReplaceableRecord(const AutomationContext& context, bool discardUnsaved)
 {
+    AutomationCommands::requireNoModalDialog();
     KifuFileController* controller = requireFileController(context);
     if (!controller->canReplaceRecord()) {
         throw AutomationError(ErrorKind::InvalidState,
@@ -194,6 +206,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             throw AutomationError(ErrorKind::InvalidArgument,
                                   QStringLiteral("ply %1 is beyond the last move (%2)").arg(ply).arg(total));
         }
+        AutomationCommands::requireNoModalDialog();
         KifuNavigationController* nav = context.navigationController;
         if (!nav || !context.branchTree || context.branchTree->isEmpty()) {
             throw AutomationError(ErrorKind::InvalidState, QStringLiteral("No record is loaded"),
@@ -205,7 +218,14 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                                   QStringLiteral("The record cannot be navigated during a game, kifu analysis or position editing"),
                                   QStringLiteral("Wait until app.state reports ui_state idle, consideration, tsume_search or csa_connected"));
         }
-        nav->goToPly(ply);
+        {
+            // 局面の表示で起きたエラーのダイアログで止まらず、応答で返す（セキュリティ監査 V18）
+            const NotificationPresenter::ScopedCapture capture;
+            nav->goToPly(ply);
+            if (!capture.errors().isEmpty()) {
+                throw AutomationError(ErrorKind::InvalidContent, capture.errors().join(QLatin1Char('\n')));
+            }
+        }
         QJsonObject result;
         result[QStringLiteral("ply")] = context.navState ? context.currentPly() : ply;
         result[QStringLiteral("sfen")] = currentSfen(context);

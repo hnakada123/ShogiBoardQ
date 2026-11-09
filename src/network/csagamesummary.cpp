@@ -70,6 +70,9 @@ QString CsaGameSummary::unsupportedReason(bool playedByEngine) const
     if (!format.isEmpty() && !format.startsWith(QStringLiteral("Shogi"))) {
         return tr("未対応の Format です: %1").arg(format);
     }
+    if (moves.size() > kMaxResumeMoves) {
+        return tr("再開局面の手数が多すぎます（%1手。上限は%2手）").arg(moves.size()).arg(kMaxResumeMoves);
+    }
     // 時間無制限ではエンジンに思考時間を与えられない（ローカル対局と同じ方針）
     if (playedByEngine && isTimeUnlimited()) {
         return tr("時間無制限の対局はエンジンでは行えません");

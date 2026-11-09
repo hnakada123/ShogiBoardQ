@@ -392,6 +392,8 @@ private:
     bool m_isMyTurn = false;            ///< 自分の手番かどうか
     bool m_awaitingMoveConfirmation = false; ///< 送った指し手・意思表示の確認待ち
     bool m_logoutPending = false;       ///< LOGOUT 送信済みで応答待ち
+    bool m_agreeSent = false;           ///< 今の対局条件に AGREE を送った
+    bool m_processingInput = false;     ///< 受信行の処理中（入れ子のイベントループからの再入を防ぐ）
     bool m_keepAliveEnabled = true;     ///< 対局中に空行キープアライブを送るか
     bool m_tcpKeepAliveEnabled = true;  ///< OS の TCP キープアライブを使うか
     QString m_pendingFirstResultLine;   ///< 最初の結果行（#で始まる行）を保持

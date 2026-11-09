@@ -540,6 +540,17 @@ JosekiBook currentBook(const QString &hirateWithPly)
 /// 別の定跡を足す: 無い局面は手数違いの登録もそのまま写し、同じ指し手は選んだ扱いで合わせる
 void TestJosekiBook::mergeFrom_combinesBooks()
 {
+    // 出現頻度の和は桁あふれさせない
+    {
+        JosekiBook first;
+        first.addPlayedMove(kHirateSfenWithPly, QStringLiteral("7g7f"), std::numeric_limits<qint32>::max());
+        first.addPlayedMove(kHirateSfenWithPly, QStringLiteral("7g7f"), std::numeric_limits<qint32>::max());
+        QCOMPARE(first.movesAt(kHirateSfenWithPly).first().frequency, std::numeric_limits<qint32>::max());
+        JosekiBook second = first;
+        first.mergeFrom(second, {});
+        QCOMPARE(first.movesAt(kHirateSfenWithPly).first().frequency, std::numeric_limits<qint32>::max());
+    }
+
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
     const QString path = dir.filePath(QStringLiteral("incoming.db"));

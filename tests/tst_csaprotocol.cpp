@@ -969,9 +969,11 @@ private slots:
         QCOMPARE(rejected.at(1).at(0).toString(), QStringLiteral("game-1"));
 
         client.m_connectionState = CsaClient::ConnectionState::GameReady;
+        // 読めない行は通信ログに残すだけで、エラーの知らせにしない（サーバーの1行ごとにダイアログを出さない）
         client.processLine(QStringLiteral("REJECT:broken"));
-        QCOMPARE(error.count(), 1);
+        QCOMPARE(error.count(), 0);
         QCOMPARE(rejected.count(), 2);
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::GameReady);
     }
 
     // ========================================
@@ -1008,6 +1010,7 @@ private slots:
         QCOMPARE(client.connectionState(), CsaClient::ConnectionState::GameReady);
         QCOMPARE(client.gameSummary().gameId, QStringLiteral("second"));
 
+        client.m_agreeSent = true;
         client.processLine(QStringLiteral("START:second"));
         QCOMPARE(started.count(), 1);
         QCOMPARE(client.connectionState(), CsaClient::ConnectionState::InGame);
@@ -1352,6 +1355,92 @@ private slots:
         QCOMPARE(error.count(), 0);
     }
 
+    /// 行の処理の中でモーダルのダイアログが開いても（入れ子のイベントループ）、次の行は入れ子の中で処理しない
+    void csaClient_socket_nestedEventLoopDoesNotProcessTheNextLine()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        int depth = 0, maxDepth = 0, handled = 0;
+        connect(&client, &CsaClient::loginFailed, &client, [&]() {
+            ++handled;
+            maxDepth = qMax(maxDepth, ++depth);
+            QTest::qWait(30);
+            --depth;
+        });
+        client.connectToServer(QStringLiteral("127.0.0.1"), server.port());
+        QVERIFY(server.accept());
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Connected);
+        for (int i = 0; i < 5; ++i) server.send("LOGIN:incorrect");
+        QTRY_COMPARE(handled, 5);
+        QCOMPARE(maxDepth, 1);
+    }
+
+    /// 受信済みの行が多くても、一度に全部は処理せずイベントループへ返す
+    void csaClient_socket_manyLinesYieldToTheEventLoop()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QVERIFY(bringToWaiting(client, server));
+        QSignalSpy received(&client, &CsaClient::rawMessageReceived);
+        for (int i = 0; i < 500; ++i) client.m_receiveBuffer += "x\n";
+        client.onReadyRead();
+        QVERIFY(received.count() > 0);
+        QVERIFY(received.count() < 500);
+        QTRY_COMPARE(received.count(), 500);
+    }
+
+    /// 頼んでいない LOGOUT: でも接続を閉じる（接続だけが残って、後から対局を始められない）
+    void csaClient_socket_unsolicitedLogoutCloses()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QSignalSpy logout(&client, &CsaClient::logoutCompleted);
+        QVERIFY(bringToWaiting(client, server));
+        server.send("LOGOUT:completed");
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+        QCOMPARE(logout.count(), 1);
+    }
+
+    /// LOGOUT の応答を待つ間に届いた対局条件は受けない
+    void csaClient_socket_summaryIsIgnoredWhileLogoutPending()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QSignalSpy summary(&client, &CsaClient::gameSummaryReceived);
+        QVERIFY(bringToWaiting(client, server));
+        client.disconnectFromServer();
+        QVERIFY(server.waitForLine(QStringLiteral("LOGOUT")));
+        server.send("BEGIN Game_Summary");
+        server.send("Game_ID:g1");
+        server.send("END Game_Summary");
+        server.send("LOGOUT:completed");
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+        QCOMPARE(summary.count(), 0);
+    }
+
+    /// 同意を送っていない START では対局を始めずに切断する
+    void csaClient_socket_startBeforeAgreeDisconnects()
+    {
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QSignalSpy started(&client, &CsaClient::gameStarted);
+        QSignalSpy error(&client, &CsaClient::errorOccurred);
+        QVERIFY(bringToWaiting(client, server));
+        server.send("BEGIN Game_Summary");
+        server.send("Game_ID:g1");
+        server.send("END Game_Summary");
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::GameReady);
+        server.send("START:g1");
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+        QCOMPARE(started.count(), 0);
+        QCOMPARE(error.count(), 1);
+    }
+
     void csaClient_socket_gameReadyDisconnectRejectsThenLogsOut()
     {
         LocalServer server;
@@ -1454,6 +1543,7 @@ private slots:
         // 無効にすると対局中でもタイマーは動かない
         client.setKeepAliveEnabled(false);
         client.m_connectionState = CsaClient::ConnectionState::GameReady;
+        client.m_agreeSent = true;
         client.processLine(QStringLiteral("START:g1"));
         QCOMPARE(client.connectionState(), CsaClient::ConnectionState::InGame);
         QVERIFY(!client.m_keepAliveTimer->isActive());

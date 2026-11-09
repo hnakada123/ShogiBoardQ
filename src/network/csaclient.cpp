@@ -14,11 +14,14 @@
 #include "csaclient.h"
 #include "logcategories.h"
 #include <QRegularExpression>
+#include <QScopedValueRollback>
 
 namespace {
 constexpr int kMinPort = 1;
 constexpr int kMaxPort = 65535;
 constexpr int kRejectPrefixLength = 7;  // "REJECT:"
+/// 1回の呼び出しで処理する受信行の数。超えたらイベントループへ返す（大量の行で画面を止めない。セキュリティ監査 V3）
+constexpr int kMaxLinesPerTurn = 64;
 } // namespace
 
 bool CsaClient::isWaitingState(ConnectionState state)
@@ -161,6 +164,8 @@ void CsaClient::logout()
         closeSocket();
         return;
     }
+    // 読みかけの対局条件は捨てる（残すと LOGOUT の応答を対局条件の行として読んでしまう）
+    m_summaryReader.reset();
     m_logoutPending = true;
     m_logoutTimer->start(kLogoutTimeoutMs);
 }
@@ -172,11 +177,13 @@ void CsaClient::agree(const QString& gameId)
         return;
     }
 
+    if (m_agreeSent) return;
+
     QString cmd = QStringLiteral("AGREE");
     if (!gameId.isEmpty()) {
         cmd += QStringLiteral(" ") + gameId;
     }
-    sendMessage(cmd);
+    m_agreeSent = sendMessage(cmd);
 }
 
 void CsaClient::reject(const QString& gameId)
@@ -267,10 +274,14 @@ void CsaClient::onSocketError(QAbstractSocket::SocketError error)
 
 void CsaClient::onReadyRead()
 {
+    // 行の処理の中でモーダルのダイアログが開くと、その入れ子のイベントループからここへ戻ってくる。1行ごとに
+    // 入れ子が深くなってスタックを使い切らないよう、処理中なら何もしない（続きは外側のループが読む。セキュリティ監査 V1）
+    if (m_processingInput) return;
+    const QScopedValueRollback<bool> processing(m_processingInput, true);
+
     // Bytes are bounded before decoding; UTF-8 characters may span TCP packets.
-    while (m_socket->bytesAvailable() > 0) {
-        const qint64 capacity = kMaxLineBytes + 1 - m_receiveBuffer.size();
-        m_receiveBuffer += m_socket->read(capacity);
+    int linesThisTurn = 0;
+    for (;;) {
         qsizetype newlineIndex;
         while ((newlineIndex = m_receiveBuffer.indexOf('\n')) >= 0) {
             if (newlineIndex > kMaxLineBytes) { rejectOversizedInput(); return; }
@@ -287,8 +298,15 @@ void CsaClient::onReadyRead()
             emit rawMessageReceived(line);
             processLine(line);
             if (!isConnected()) return;
+            if (++linesThisTurn >= kMaxLinesPerTurn) {
+                // 続きは次のイベントループで読む（新しいデータが届かなくても受信済みの行を処理する）
+                QMetaObject::invokeMethod(this, &CsaClient::onReadyRead, Qt::QueuedConnection);
+                return;
+            }
         }
         if (m_receiveBuffer.size() > kMaxLineBytes) { rejectOversizedInput(); return; }
+        if (m_socket->bytesAvailable() <= 0) return;
+        m_receiveBuffer += m_socket->read(kMaxLineBytes + 1 - m_receiveBuffer.size());
     }
 }
 
@@ -326,11 +344,11 @@ void CsaClient::handleLogoutResponse()
 {
     qCInfo(lcNetwork) << "Logout completed";
     emit logoutCompleted();
-    if (m_logoutPending) {
-        m_logoutPending = false;
-        m_logoutTimer->stop();
-        closeSocket();
-    }
+    // こちらから頼んでいない LOGOUT: でも閉じる。残すと、画面は待機に戻ったのに接続だけが生きていて、
+    // 後からサーバーが対局を始められる（セキュリティ監査 V11）
+    m_logoutPending = false;
+    m_logoutTimer->stop();
+    closeSocket();
 }
 
 void CsaClient::closeSocket()
@@ -412,6 +430,7 @@ void CsaClient::resetGameProgressState()
     m_awaitingMoveConfirmation = false;
     m_pendingFirstResultLine.clear();
     m_endMoveConsumedTimeMs = 0;
+    m_agreeSent = false;
 }
 
 void CsaClient::resetSessionState()
@@ -453,6 +472,13 @@ void CsaClient::processLine(const QString& line)
         break;
     case ConnectionState::GameReady:
         if (line.startsWith(QStringLiteral("START:"))) {
+            // 同意を送っていない対局は始めない（セキュリティ監査 V17）
+            if (!m_agreeSent) {
+                qCWarning(lcNetwork) << "START received before AGREE";
+                closeSocket();
+                emit errorOccurred(tr("同意していない対局の開始を受信したため切断しました。"));
+                return;
+            }
             // 対局開始
             QString gameId = line.mid(6);
             resetGameProgressState();
@@ -464,8 +490,8 @@ void CsaClient::processLine(const QString& line)
             // REJECT:<GameID> by <rejector>  （Game_ID 省略時は "REJECT: by <rejector>"）
             qsizetype byIndex = line.indexOf(QStringLiteral(" by "));
             if (byIndex < kRejectPrefixLength || byIndex + 4 >= line.size()) {
+                // 行は通信ログに記録済み。サーバーの1行ごとにダイアログを出さない（セキュリティ監査 V1）
                 qCWarning(lcNetwork) << "Malformed REJECT line:" << line;
-                emit errorOccurred(tr("不正なREJECT応答を受信しました: %1").arg(line));
                 return;
             }
             QString gameId = line.mid(kRejectPrefixLength, static_cast<int>(byIndex) - kRejectPrefixLength);
@@ -503,7 +529,8 @@ void CsaClient::processLoginResponse(const QString& line)
 void CsaClient::processWaitingLine(const QString& line)
 {
     if (line == QStringLiteral("BEGIN Game_Summary")) {
-        m_summaryReader.emplace();
+        // LOGOUT の応答を待つ間は新しい対局を受けない（セキュリティ監査 V11）
+        if (!m_logoutPending) m_summaryReader.emplace();
     } else if (line.startsWith(QStringLiteral("LOGOUT:"))) {
         handleLogoutResponse();
     }
@@ -518,6 +545,7 @@ void CsaClient::processGameSummary(const QString& line)
     case CsaGameSummaryReader::Status::Finished:
         m_gameSummary = m_summaryReader->summary();
         m_summaryReader.reset();
+        m_agreeSent = false;
         setConnectionState(ConnectionState::GameReady);
         emit gameSummaryReceived(m_gameSummary);
         break;

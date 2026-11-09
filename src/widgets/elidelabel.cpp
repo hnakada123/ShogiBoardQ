@@ -13,12 +13,18 @@ ElideLabel::ElideLabel(QWidget* parent)
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 }
 
+namespace {
+// 表示に使う長さの上限。描くたびに文字列全体の配置を測るので、外から来た数 MB の名前で GUI を止めない（セキュリティ監査 V21）
+constexpr qsizetype kMaxShownChars = 2000;
+} // namespace
+
 void ElideLabel::setFullText(const QString& t)
 {
     if (m_fullText == t) return;
     m_fullText = t;
     setProperty("fullText", m_fullText); // 汎用のUI検査でも省略前の文字列を取得できるようにする
-    setToolTip(plainToolTip(m_fullText));   // 対局者名・エンジン名など外から来た文字も文字のまま出す
+    m_shownText = m_fullText.size() > kMaxShownChars ? m_fullText.left(kMaxShownChars) : m_fullText;
+    setToolTip(plainToolTip(m_shownText));   // 対局者名・エンジン名など外から来た文字も文字のまま出す
     update();
 }
 
@@ -33,8 +39,8 @@ void ElideLabel::setElideMode(Qt::TextElideMode m)
 
 QStringList ElideLabel::displayLines() const
 {
-    if (!wordWrap() || m_fullText.isEmpty()) return {m_fullText};
-    QTextLayout layout(m_fullText, font());
+    if (!wordWrap() || m_shownText.isEmpty()) return {m_shownText};
+    QTextLayout layout(m_shownText, font());
     QTextOption option;
     option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     layout.setTextOption(option);
@@ -42,13 +48,13 @@ QStringList ElideLabel::displayLines() const
     QTextLine line = layout.createLine();
     if (!line.isValid()) {
         layout.endLayout();
-        return {m_fullText};
+        return {m_shownText};
     }
     line.setLineWidth(qMax(1, contentsRect().width()));
     const int split = line.textLength();
     layout.endLayout();
-    if (split >= m_fullText.size()) return {m_fullText};
-    return {m_fullText.left(split).trimmed(), m_fullText.mid(split).trimmed()};
+    if (split >= m_shownText.size()) return {m_shownText};
+    return {m_shownText.left(split).trimmed(), m_shownText.mid(split).trimmed()};
 }
 
 void ElideLabel::paintEvent(QPaintEvent* event)

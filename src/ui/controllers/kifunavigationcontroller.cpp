@@ -126,13 +126,14 @@ void KifuNavigationController::goToMainLineAtCurrentPly()
 
 bool KifuNavigationController::confirmLeave()
 {
-    bool allowed = true;
+    bool allowed = !m_canBrowse || m_canBrowse();
     for (const std::function<bool()>& guard : std::as_const(m_leaveGuards)) {
-        if (guard && !guard()) {
-            allowed = false;
-            break;
-        }
+        if (!allowed) break;
+        if (guard && !guard()) allowed = false;
     }
+    // 確認のダイアログの間にイベントループが回り、通信対局の次の局が始まるなどして移れない状態に変わることがある。
+    // 答えを受けた後にもう一度確かめる（セキュリティ監査 V2）
+    if (allowed && m_canBrowse && !m_canBrowse()) allowed = false;
     if (allowed) return true;
     emit navigationRejected();
     return false;
@@ -142,9 +143,10 @@ void KifuNavigationController::selectRecordRow(int row)
 {
     const auto path = m_state->selectedPath();
     if (row < 0 || row >= path.size() || path.at(row) == m_state->currentNode()) return;
+    // 確認のダイアログの間に棋譜が作り直されることがあるので、ノードは番号で持つ（セキュリティ監査 V2）
+    const int nodeId = path.at(row)->nodeId();
     if (!confirmLeave()) return;
-    m_state->setCurrentNode(path.at(row));
-
+    if (KifuBranchNode* node = m_state->tree()->nodeAt(nodeId)) m_state->setCurrentNode(node);
 }
 
 void KifuNavigationController::selectBranchCandidateRow(int row)
@@ -152,13 +154,15 @@ void KifuNavigationController::selectBranchCandidateRow(int row)
     const QList<KifuBranchNode*> candidates = m_state->branchCandidatesAtCurrent();
     const bool backToMain = row == candidates.size() && m_state->offersBackToMainLine();
     if (!backToMain && (row < 0 || row >= candidates.size())) return;
+    const int candidateId = backToMain ? -1 : candidates.at(row)->nodeId();
     if (!confirmLeave()) return;
     if (backToMain) {
         goToMainLineAtCurrentPly();
         return;
     }
     // 候補の手順の終わりまでを選ぶ（その先も同じ分岐をたどる）
-    KifuBranchNode* candidate = candidates.at(row);
+    KifuBranchNode* candidate = m_state->tree()->nodeAt(candidateId);
+    if (!candidate) return;
     KifuBranchNode* end = candidate;
     while (KifuBranchNode* next = end->childAt(0)) end = next;
     m_state->setCurrentNode(candidate, end);
@@ -166,8 +170,9 @@ void KifuNavigationController::selectBranchCandidateRow(int row)
 
 void KifuNavigationController::selectBranchTreeNode(int nodeId)
 {
-    KifuBranchNode* node = m_state->tree()->nodeAt(nodeId);
-    if (!node || !confirmLeave()) return;
+    if (!m_state->tree()->nodeAt(nodeId) || !confirmLeave()) return;
+    KifuBranchNode* node = m_state->tree()->nodeAt(nodeId);   // 確認の間に作り直されていれば移らない
+    if (!node) return;
 
     if (node->parent() == nullptr) {
         m_state->goToRoot();

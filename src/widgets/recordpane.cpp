@@ -310,7 +310,9 @@ void RecordPane::updateKifuTableWidth()
             tableWidth += qMax(120, header->sectionSizeHint(column));
             hasStretchColumn = true;
         } else {
-            tableWidth += header->sectionSize(column);
+            // 内容に合わせる列の幅で、外から来た長い文字（独自の終局語）がウィンドウを広げないようにする
+            static constexpr int kMaxColumnWidth = 600;
+            tableWidth += qMin(header->sectionSize(column), kMaxColumnWidth);
         }
     }
 

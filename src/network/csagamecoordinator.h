@@ -7,6 +7,7 @@
 
 #include <QElapsedTimer>
 #include <QObject>
+#include <QTimer>
 #include <QString>
 #include <QStringList>
 #include <QList>
@@ -181,6 +182,8 @@ public:
 
     /// 裁定が届かないときに中断とみなすまでの時間
     static constexpr int kVerdictTimeoutMs = 5000;
+    /// 同じ接続で続ける局の、前の局の終わりから同意を送るまでの最短の間隔
+    static constexpr int kMinGameIntervalMs = 1000;
 
     // --- MatchTimeSource（自分のエンジンの持ち時間。サーバーが示した残り時間・遅延・余裕） ---
     MatchSearchTiming snapshot(Turn side, bool pondering) const override;
@@ -267,6 +270,8 @@ private:
     void performResign();
     void failGame(const QString& message);
     void cleanup();
+    /// 今の対局条件に同意する（エンジンの初期化中と、前の局の直後は同意を遅らせる）
+    void agreeToSummary();
     /// エンジンを起動し、readyok まで AGREE を保留する
     void startEngine();
     /// 現在のオプションでサーバーへ接続し、ログイン以降の流れを始める
@@ -310,6 +315,8 @@ private:
 
 
     QElapsedTimer m_turnTimer;           ///< 今の手番（m_progress.sideToMove()）が始まってからの時間
+    QElapsedTimer m_lastGameEnd;         ///< 前の局が終わってからの時間（次の局の同意までの間隔）
+    QTimer* m_agreeDelay;                ///< 次の局の同意を遅らせるタイマー
 };
 
 #endif // CSAGAMECOORDINATOR_H

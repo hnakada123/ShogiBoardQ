@@ -127,6 +127,25 @@ private slots:
         box->close();
     }
 
+    /// 通信対局のエラーは待たずに出し、続けて届いても1つに差し替える（入れ子のイベントループに入らない）
+    void errorsDoNotBlockAndReplaceThePreviousOne()
+    {
+        CsaGameCoordinator coordinator;
+        QWidget parent;
+        CsaGameUiController::Deps deps;
+        deps.coordinator = &coordinator;
+        deps.parentWidget = &parent;
+        CsaGameUiController session(deps);
+        for (int i = 0; i < 20; ++i) session.showError(QStringLiteral("error %1").arg(i));
+        QVERIFY(!QApplication::activeModalWidget());
+        QTest::qWait(0);   // close() で消えた箱の削除を走らせる
+        QTRY_COMPARE(parent.findChildren<QMessageBox*>().size(), 1);
+        auto* box = parent.findChild<QMessageBox*>();
+        QCOMPARE(box->text(), QStringLiteral("error 19"));
+        QCOMPARE(box->textFormat(), Qt::PlainText);
+        box->close();
+    }
+
     /// 接続ダイアログは CsaGameUiController が開き、入力した値を残すため使い回す。キャンセルなら始めない
     void gameDialogIsOpenedAndReused()
     {

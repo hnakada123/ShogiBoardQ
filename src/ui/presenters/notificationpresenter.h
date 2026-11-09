@@ -73,8 +73,13 @@ public:
                                    const QString& message, Wait wait);
     /// 題名付きの警告を出す（記録するときは情報と同じく notices）
     static void warning(QWidget* parent, const QString& title, const QString& message);
-    /// 題名付きのエラーを出す（記録するときは errors）
-    static void critical(QWidget* parent, const QString& title, const QString& message);
+    /// 題名付きのエラーを出す（記録するときは errors）。Wait::No なら information と同じく出した非モーダルの箱を返す
+    static QMessageBox* critical(QWidget* parent, const QString& title, const QString& message,
+                                 Wait wait = Wait::UntilClosed);
+    /// 前のエラー（previous）を閉じて新しいエラーを出し、Wait::No なら previous に覚える。外から続けて届くエラー
+    /// （通信対局のサーバーの行）で、ダイアログが積み重ならず、入れ子のイベントループにも入らないようにする
+    static void replaceCritical(QPointer<QMessageBox>& previous, QWidget* parent, const QString& title,
+                                const QString& message, Wait wait);
 
 public slots:
     void displayErrorMessage(const QString& message);

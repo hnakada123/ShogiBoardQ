@@ -2,6 +2,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QLabel>
+#include <QDialog>
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QTemporaryDir>
@@ -78,6 +79,43 @@ private slots:
         const QJsonObject response = call(dispatcher, QStringLiteral("kifu.goto"), params);
         QVERIFY2(!response.contains(QStringLiteral("error")), QJsonDocument(response).toJson().constData());
         QCOMPARE(state.currentNode(), tree.root());
+    }
+
+    /// モーダルのダイアログが開いている間は、棋譜を移らない（ダイアログが持っているノードと食い違う）
+    void kifuGotoIsRefusedWhileAModalDialogIsOpen()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
+        KifuBranchNode* first = TestTree::addMove(tree, tree.root(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
+                                                  QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"));
+        KifuNavigationState state(&tree);
+        KifuNavigationController nav(&state);
+        state.setCurrentNode(first);
+        AutomationContext context;
+        context.branchTree = &tree;
+        context.navState = &state;
+        context.navigationController = &nav;
+        AutomationDispatcher dispatcher;
+        AutomationCommands::registerKifuCommands(dispatcher, context);
+
+        QDialog dialog;
+        dialog.setModal(true);
+        dialog.show();
+        QTRY_VERIFY(QApplication::activeModalWidget() == &dialog);
+        const QJsonObject response = call(dispatcher, QStringLiteral("kifu.goto"), {{QStringLiteral("ply"), 0}});
+        QCOMPARE(response.value(QStringLiteral("error")).toObject().value(QStringLiteral("data")).toObject()
+                     .value(QStringLiteral("slug")).toString(),
+                 ErrorKinds::slug(ErrorKind::InvalidState));
+        QCOMPARE(state.currentNode(), first);
+    }
+
+    /// エンジンへのコマンドの欄とファイルの置き場所の欄は、非制限モードの書き込みでも使えない
+    void forbiddenControlsRejectEvenSensitiveWrites()
+    {
+        QLineEdit edit;
+        edit.setProperty("automationForbidden", true);
+        edit.show();
+        QVERIFY_THROWS_EXCEPTION(AutomationError, AutomationWidgets::requireInteractive(&edit, false, true));
     }
 
     void manuallyRevealedPasswordRemainsPrivate()

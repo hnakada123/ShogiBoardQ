@@ -75,9 +75,16 @@ void NotificationPresenter::warning(QWidget* parent, const QString& title, const
     show(parent, Kind::Warning, title, message, Wait::UntilClosed);
 }
 
-void NotificationPresenter::critical(QWidget* parent, const QString& title, const QString& message)
+QMessageBox* NotificationPresenter::critical(QWidget* parent, const QString& title, const QString& message, Wait wait)
 {
-    show(parent, Kind::Critical, title, message, Wait::UntilClosed);
+    return show(parent, Kind::Critical, title, message, wait);
+}
+
+void NotificationPresenter::replaceCritical(QPointer<QMessageBox>& previous, QWidget* parent, const QString& title,
+                                            const QString& message, Wait wait)
+{
+    if (previous) previous->close();
+    previous = critical(parent, title, message, wait);
 }
 
 QMessageBox* NotificationPresenter::show(QWidget* parent, Kind kind, const QString& title, const QString& message, Wait wait)

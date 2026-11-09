@@ -40,9 +40,12 @@ std::optional<TimeControlSide> parseSide(const QString& text)
     const QRegularExpressionMatch m = re.match(text.trimmed());
     if (!m.hasMatch() || m.captured(2).toInt() >= 60) return std::nullopt;
     TimeControlSide side;
-    side.mainMs = (m.captured(1).toLongLong() * 60 + m.captured(2).toLongLong()) * 1000;
+    // 桁の多い値は上限で止める（桁あふれさせない。セキュリティ監査 V22）
+    constexpr qint64 kMaxMinutes = 60'000'000;
+    constexpr qint64 kMaxExtraSeconds = 365LL * 24 * 60 * 60;
+    side.mainMs = (qMin(m.captured(1).toLongLong(), kMaxMinutes) * 60 + m.captured(2).toLongLong()) * 1000;
     if (!m.captured(3).isEmpty()) {
-        const qint64 extraMs = m.captured(3).toLongLong() * 1000;
+        const qint64 extraMs = qMin(m.captured(3).toLongLong(), kMaxExtraSeconds) * 1000;
         if (m.captured(4).isEmpty()) side.byoyomiMs = extraMs;
         else side.incrementMs = extraMs;
     }

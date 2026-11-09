@@ -74,7 +74,6 @@ struct CsaGameProgress {
     int remainingMs(bool black) const { return black ? blackRemainingMs : whiteRemainingMs; }
 
     /// 再開局面の index 手目の消費時間と累計の表記（棋譜欄用）
-    RecordTime initialMoveTime(int index) const;
 
     /**
      * @brief 自分のエンジンに渡す時間の条件

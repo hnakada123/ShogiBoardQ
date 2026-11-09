@@ -11,6 +11,9 @@
 #include "kifuexportcommon.h"
 #include "kifubranchnode.h"
 #include "kifmovetext.h"
+#include "kiflexer.h"
+#include "parsecommon.h"
+#include "shoginotation.h"
 #include "shogiposition.h"
 
 #include <QStringView>
@@ -66,8 +69,29 @@ static QString formatKifTime(const RecordTime& time)
 static bool hasNextSibling(KifuBranchNode* node)
 {
     if (node == nullptr || node->parent() == nullptr) return false;
-    const int myIndex = node->parent()->indexOfChild(node);
-    return myIndex >= 0 && myIndex < node->parent()->childCount() - 1;
+    // 番号を探さずに末尾の子と比べる（子が多い親で、手ごとの線形探索が二乗の時間になる。セキュリティ監査 V24）
+    KifuBranchNode* parent = node->parent();
+    return parent->childCount() > 0 && parent->childAt(parent->childCount() - 1) != node;
+}
+
+// ヘルパ関数: 読み手が対局情報でなく、指し手・局面図・手合割・コメントとして読むキーか（セキュリティ監査 V14）
+// JKF の header と CSA の $キー は任意の語を持てるので、そのまま書くと保存した棋譜の意味が変わる
+static bool isUnsafeHeaderKey(const QString& key)
+{
+    // 最初のコロンまでが、読み手の見るキー
+    static const QRegularExpression firstColon(QStringLiteral("[：:]"));
+    const qsizetype colon = key.indexOf(firstColon);
+    const QString heading = (colon >= 0 ? key.left(colon) : key).trimmed();
+    if (heading.isEmpty()) return true;
+    const QChar first = heading.front();
+    // 指し手の行（KIF の手数の後ろに空白が続く行・KI2 の手番の印）
+    static const QRegularExpression moveNumber(QStringLiteral("^[0-9０-９]+\\s"));
+    if (moveNumber.match(heading).hasMatch() || ShogiNotation::isTurnMark(first)) return true;
+    if (KifuParseCommon::isAnnotationLine(heading) || first == QLatin1Char('#') || first == QChar(u'＃')) return true;
+    if (KifuParseCommon::isBoardHeaderOrFrame(heading) || KifLexer::sideToMoveLine(heading)) return true;
+    if (KifuParseCommon::isBodHandsLine(heading + QStringLiteral("：")) || heading.endsWith(QStringLiteral("の持駒"))) return true;
+    static const QRegularExpression positionHeading(QStringLiteral("^(手合割?|配置|手数|変化)(\\s|[=＝]|$)"));
+    return heading.endsWith(QStringLiteral("配置")) || positionHeading.match(heading).hasMatch();
 }
 
 // ヘルパ関数: KIF形式の指し手行を生成
@@ -200,9 +224,16 @@ bool KifExporter::appendHeaderLines(const KifuExportMetadata& ctx, QStringList& 
         const QString value = it.value.trimmed();
         if (key.isEmpty()) continue;
         if (!options.consumedTime && key == GameInfoKeys::kConsumedTime) continue;
+        if (key == GameInfoKeys::kHandicap) {
+            // 手合割は見出しの値でなく開始局面から書く（値が開始局面と違うと、読み直したときに別の局面になる）
+            hasHandicap = true;
+            const Handicaps::Handicap* handicap = Handicaps::ofStart(ctx.startSfen);
+            if (!handicap) isNonStandard = true;
+            out << fwColonLine(key, handicap ? Handicaps::labelOf(*handicap) : GameInfoKeys::kHandicapOther);
+            continue;
+        }
+        if (isUnsafeHeaderKey(key)) continue;
         out << fwColonLine(key, value);
-        if (key == GameInfoKeys::kHandicap) hasHandicap = true;
-        if (key == GameInfoKeys::kHandicap && value == GameInfoKeys::kHandicapOther) isNonStandard = true;
     }
 
     if (isNonStandard) {

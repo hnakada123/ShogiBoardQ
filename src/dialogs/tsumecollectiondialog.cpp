@@ -4,6 +4,7 @@
 #include "tsumemateengine.h"
 #include "dialogfontscale.h"
 #include "dialogutils.h"
+#include "runoffthread.h"
 #include "engineselector.h"
 #include "positioncollectionfile.h"
 #include "tsumecollectionsession.h"
@@ -291,9 +292,12 @@ bool TsumeCollectionDialog::loadFile(const QString& path)
 {
     QString error;
     QList<int> invalidLines;
-    if (!m_session->load(path, &error, &invalidLines)) {
+    // 大きなファイルで画面を止めないよう別スレッドで読む（セキュリティ監査 V25）
+    const TsumeCollectionSession::ReadFile read =
+        runOffThread([path]() { return TsumeCollectionSession::readFile(path); });
+    if (!m_session->apply(read, &error, &invalidLines)) {
         // 開けなかった理由は局面集ビューアと同じ文（PositionCollectionFile::readFile）
-        QMessageBox::warning(this, windowTitle(), error.isEmpty()
+        DialogUtils::warning(this, windowTitle(), error.isEmpty()
             ? tr("有効な詰将棋局面がありません。SFEN形式と玉方の玉を確認してください。")
             : error);
         return false;
@@ -304,9 +308,20 @@ bool TsumeCollectionDialog::loadFile(const QString& path)
     showStoreError();
     filterChanged();
     if (!invalidLines.isEmpty()) {
+        // 行の一覧は先頭だけを出す（箱が画面より大きくならないようにする）
+        constexpr qsizetype kMaxShownLines = 50;
         QStringList lines;
-        for (int line : std::as_const(invalidLines)) lines.append(QString::number(line));
-        QMessageBox::warning(this, windowTitle(), tr("次の行は形式が不正なため読み込めませんでした: %1").arg(lines.join(QStringLiteral(", "))));
+        for (int line : std::as_const(invalidLines)) {
+            if (lines.size() == kMaxShownLines) break;
+            lines.append(QString::number(line));
+        }
+        QString text = lines.join(QStringLiteral(", "));
+        if (invalidLines.size() > kMaxShownLines) text += tr(" ほか %1 行").arg(invalidLines.size() - kMaxShownLines);
+        DialogUtils::warning(this, windowTitle(), tr("次の行は形式が不正なため読み込めませんでした: %1").arg(text));
+    }
+    if (read.parsed.unreadLines > 0) {
+        DialogUtils::warning(this, windowTitle(), tr("行数が多いので、先頭の %1 行だけを読みました。")
+                                                      .arg(PositionCollectionFile::kMaxLines));
     }
     return true;
 }
@@ -329,7 +344,7 @@ void TsumeCollectionDialog::resetProgress(bool allCollections)
     confirmation.setEscapeButton(QMessageBox::Cancel);
     if (confirmation.exec() != QMessageBox::Yes) return;
     if (!m_session->resetProgress(allCollections)) {
-        QMessageBox::warning(this, tr("履歴の初期化"), tr("履歴を初期化できませんでした。\n%1").arg(m_session->store()->error()));
+        DialogUtils::warning(this, tr("履歴の初期化"), tr("履歴を初期化できませんでした。\n%1").arg(m_session->store()->error()));
         return;
     }
     rebuildPage();

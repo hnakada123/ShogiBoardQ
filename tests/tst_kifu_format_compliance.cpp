@@ -4,6 +4,9 @@
 #include <QtTest>
 #include <QStringEncoder>
 #include "shogiposition.h"
+#include "csaformatter.h"
+#include "handicaps.h"
+#include "kiflinebuilder.h"
 
 #include "kifuconversionservice.h"
 #include "kifuloadparser.h"
@@ -590,6 +593,60 @@ private slots:
             QVERIFY2(result.failure.message.contains(QStringLiteral("指し手を取得できませんでした")),
                      qPrintable(result.failure.message));
         }
+    }
+
+    /// 別の形式から来た対局情報のキーが、KIF の指し手・局面図・手合割の行にならない
+    void kifHeaderKeysCannotChangeTheRecord()
+    {
+        const QString jkf = QString::fromUtf8(
+            R"json({"header":{"1 ２六歩(27)":"x","手合割":"飛車落ち","先手の持駒":"飛","配置":"y","備考":"ok"},)json"
+            R"json("moves":[{},{"move":{"from":{"x":7,"y":7},"to":{"x":7,"y":6},"piece":"FU","color":0}},)json"
+            R"json({"move":{"from":{"x":3,"y":3},"to":{"x":3,"y":4},"piece":"FU","color":1}}]})json");
+        const auto saved = convert(jkf, Format::Kif, Format::Jkf);
+        QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+        const QString text = saved.lines.join(QLatin1Char('\n'));
+        QVERIFY2(text.contains(QStringLiteral("備考：ok")), qPrintable(text));
+        QVERIFY2(text.contains(QStringLiteral("手合割：平手")), qPrintable(text));
+        QVERIFY2(!text.contains(QStringLiteral("飛車落ち")), qPrintable(text));
+        QVERIFY2(!text.contains(QStringLiteral("２六歩")), qPrintable(text));
+        const auto reread = convert(text, Format::Kif, Format::Kif);
+        QVERIFY2(reread.ok, qPrintable(reread.failure.message));
+        QCOMPARE(reread.usiMoves, QStringList({"7g7f", "3c3d"}));
+        const auto loaded = KifuLoadParser::parseText(text);
+        QVERIFY2(loaded.success, qPrintable(loaded.error));
+        QVERIFY(Handicaps::isHirate(loaded.record.mainline.startSfen));
+    }
+
+    /// 手数の上限を超える棋譜は、メモリを使い切る前に読み込みを失敗にする
+    void tooManyMovesFailsToLoad()
+    {
+        const QString usi = QStringLiteral("position startpos moves ")
+            + QStringLiteral("5i5h 5a5b 5h5i 5b5a ").repeated(KifMoveBudget::kMaxMoves / 4 + 1);
+        const auto loaded = KifuLoadParser::parseText(usi);
+        QVERIFY(!loaded.success);
+        QVERIFY2(loaded.error.contains(QString::number(KifMoveBudget::kMaxMoves)), qPrintable(loaded.error));
+    }
+
+    /// 指した後の局面の文字列は必ず読める（手数の上限で止め、行き所のない段には打たせない）
+    void appliedPositionsStayReadable()
+    {
+        Position droppable = *Position::fromSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b P 1"));
+        QVERIFY(!droppable.apply(*UsiMove::parse(u"P*5a"), Position::DropRule::Lenient));
+        Position capped = Position::hirate();
+        capped.setMoveNumber(Position::kMaxMoveNumber);
+        QVERIFY(capped.apply(*UsiMove::parse(u"7g7f")));
+        QCOMPARE(capped.moveNumber(), Position::kMaxMoveNumber);
+        QVERIFY(Position::fromSfen(capped.toSfen()).has_value());
+    }
+
+    /// 既知の書式でない持ち時間を $TIME_LIMIT に書くとき、改行を残さない（別の CSA の行にならない）
+    void csaTimeLimitStaysOnOneLine()
+    {
+        const QStringList lines = CsaFormatter::convertToCsaTimeLines(QStringLiteral("x\nP1 * \r+2726FU"));
+        QCOMPARE(lines.size(), 1);
+        QVERIFY(lines.first().startsWith(QStringLiteral("$TIME_LIMIT:")));
+        QVERIFY(!lines.first().contains(QLatin1Char('\n')));
+        QVERIFY(!lines.first().contains(QLatin1Char('\r')));
     }
 
     /// CSA V2.2 の $TIME_LIMIT は「時:分+秒読み」。持ち時間の書式（分:秒）と取り違えない（監査 2026-11-01 F5）

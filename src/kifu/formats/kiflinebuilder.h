@@ -30,6 +30,40 @@ struct WrittenMove {
     std::optional<Turn> side;   ///< 指す側（KI2 の手番の印、CSA の符号、JKF の color）。書かない形式は nullopt
 };
 
+/**
+ * @brief 1回の読み込みで受け付ける手の数（本譜と変化の合計）の上限（生きている間、このスレッドの KifLineBuilder に効く）
+ *
+ * ファイルのバイト数の上限だけでは足りない（USEN は1手3バイトで、手1つに約 1.6KB のメモリを使うので、64MiB の入力で
+ * 数 GB になって異常終了する。セキュリティ監査 V19）。
+ */
+class KifMoveBudget
+{
+public:
+    static constexpr int kMaxMoves = 300'000;
+
+    KifMoveBudget();
+    ~KifMoveBudget();
+    KifMoveBudget(const KifMoveBudget&) = delete;
+    KifMoveBudget& operator=(const KifMoveBudget&) = delete;
+
+    /// 手を1つ足してよいか（上限を超えたら false）
+    bool take()
+    {
+        if (m_used >= kMaxMoves) {
+            m_exhausted = true;
+            return false;
+        }
+        ++m_used;
+        return true;
+    }
+    bool exhausted() const { return m_exhausted; }
+
+private:
+    KifMoveBudget* m_previous = nullptr;
+    int m_used = 0;
+    bool m_exhausted = false;
+};
+
 class KifLineBuilder
 {
 public:

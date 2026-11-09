@@ -80,6 +80,7 @@ void PvBoardDialog::buildUi()
 
     // 読み筋ラベル
     m_pvLabel = new QLabel(this);
+    m_pvLabel->setTextFormat(Qt::PlainText);   // エンジンの出力を HTML として読まない
     ApplicationFonts::useJapaneseFont(m_pvLabel,
         KifuPresentation::options().notation == KifuPresentation::Notation::Japanese);
     m_pvLabel->setWordWrap(true);

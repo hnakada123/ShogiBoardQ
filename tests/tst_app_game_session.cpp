@@ -71,6 +71,7 @@ class TestAppGameSession : public QObject
     {
         csa->m_progress.summary.blackName = black;
         csa->m_progress.summary.whiteName = white;
+        csa->m_phase = CsaGameCoordinator::Phase::Active;
         csa->onGameStarted(QStringLiteral("test"));
     }
 
@@ -192,6 +193,19 @@ private slots:
     }
 
     /// 通信対局の盤上の着手は、司令塔の状態（対局中・人間の手番）のときだけ受け付ける
+    /// 通信対局を続けていないのに届いた START では対局を始めない
+    void csaStartOutsideTheSessionIsIgnored()
+    {
+        CsaGameCoordinator csa;
+        QSignalSpy started(&csa, &CsaGameCoordinator::gameStarted);
+        for (const auto phase : {CsaGameCoordinator::Phase::Off, CsaGameCoordinator::Phase::Failed}) {
+            csa.m_phase = phase;
+            csa.onGameStarted(QStringLiteral("test"));
+            QCOMPARE(csa.m_phase, phase);
+        }
+        QCOMPARE(started.count(), 0);
+    }
+
     void csaHumanTurnFollowsCoordinatorState()
     {
         GameBoard gc;

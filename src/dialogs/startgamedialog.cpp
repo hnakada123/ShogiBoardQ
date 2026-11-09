@@ -2,6 +2,7 @@
 /// @brief 対局開始ダイアログクラスの実装
 
 #include "startgamedialog.h"
+#include "dialogutils.h"
 #include "dialogfontscale.h"
 #include "ui_startgamedialog.h"
 #include "changeenginesettingsdialog.h"
@@ -12,7 +13,6 @@
 #include "playersetupwidget.h"
 #include "timecontroleditor.h"
 #include <QCoreApplication>
-#include <QMessageBox>
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QTimer>
@@ -263,7 +263,7 @@ void StartGameDialog::onStartRequested()
     if (!confirmTimeSettings()) return;
     // 自動保存を指定したのに保存先が無ければ、黙って保存しないまま対局を始めない（通信対局と同じ規則）
     if (MatchAutoSave{ui->checkBoxAutoSaveKifu->isChecked(), ui->lineEditKifuSaveDir->text().trimmed()}.lacksDir()) {
-        QMessageBox::warning(this, tr("棋譜の自動保存"), tr("棋譜の自動保存先フォルダを指定してください。"));
+        DialogUtils::warning(this, tr("棋譜の自動保存"), tr("棋譜の自動保存先フォルダを指定してください。"));
         return;
     }
     saveGameSettings();
@@ -406,6 +406,6 @@ bool StartGameDialog::confirmTimeSettings()
                      "持ち時間・秒読み・加算のいずれかを設定してください。");
         break;
     }
-    QMessageBox::warning(this, tr("時間設定"), message);
+    DialogUtils::warning(this, tr("時間設定"), message);
     return false;
 }

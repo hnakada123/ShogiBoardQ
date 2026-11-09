@@ -69,6 +69,15 @@ void CsaGameCoordinator::startEngine()
 
 void CsaGameCoordinator::onGameSummaryReceived(const CsaGameSummary& summary)
 {
+    // 通信対局を続けていないのに届いた対局条件には同意しない（ログアウトの後も接続が残っていたときなど。
+    // セキュリティ監査 V11）
+    if (m_phase == Phase::Off || m_phase == Phase::Failed) {
+        emit logMessage(tr("通信対局を続けていないので、対局条件を拒否します"), true);
+        m_client->reject(summary.gameId);
+        m_client->disconnectFromServer();
+        return;
+    }
+
     // 終局後も同じ接続で次の対局条件を受けるので、前局の記録はここで消す
     m_progress = CsaGameProgress::forSummary(summary);
 
@@ -110,8 +119,21 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaGameSummary& summary)
     }
 
     emit logMessage(tr("対局条件に同意します..."));
+    agreeToSummary();
+}
+
+void CsaGameCoordinator::agreeToSummary()
+{
+    if (gameState() != GameState::WaitingForAgree) return;
     // エンジンの初期化中は readyok を待って同意する（onEngineInitialized）
-    if (!m_engineSeat || !m_engineSeat->isInitializing()) m_client->agree(summary.gameId);
+    if (m_engineSeat && m_engineSeat->isInitializing()) return;
+    // 同じ接続で局が続くときは、前の局の終わりから間を空ける。サーバーが同意を受けてすぐ終局させる局を繰り返しても、
+    // 棋譜の自動保存やエンジンの起動が際限なく走らない（セキュリティ監査 V17）
+    if (m_lastGameEnd.isValid() && m_lastGameEnd.elapsed() < kMinGameIntervalMs) {
+        m_agreeDelay->start(static_cast<int>(kMinGameIntervalMs - m_lastGameEnd.elapsed()));
+        return;
+    }
+    m_client->agree(m_progress.summary.gameId);
 }
 
 // ============================================================
@@ -154,6 +176,7 @@ void CsaGameCoordinator::reconnectForNextGame()
 void CsaGameCoordinator::cleanup()
 {
     m_verdict->clear();
+    m_agreeDelay->stop();
     if (m_engineSeat) m_engineSeat->release();
     m_client->disconnectFromServer();
 }

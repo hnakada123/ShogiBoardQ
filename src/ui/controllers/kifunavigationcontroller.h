@@ -43,8 +43,12 @@ public:
     /// 局面送りの6つの操作をまとめて有効・無効にする（対局中などは無効）
     void setStepActionsEnabled(bool on);
 
+    /// 移ってよい状態か（OperationPolicy::canBrowseRecord）を合成ルートが渡す。確認の前と、確認のダイアログを閉じた
+    /// 後に見る（ダイアログを開いている間に状態が変わることがある）
+    void setBrowseCheck(std::function<bool()> check) { m_canBrowse = std::move(check); }
+
     /// 利用者の操作で別の手へ移る前の確認を足す（足した順に聞き、1つでも false なら移らない）。
-    /// 移ってよい状態か（OperationPolicy::canBrowseRecord）・未更新のコメントの確認を合成ルートが足す
+    /// 未更新のコメントの確認を合成ルートが足す
     void addLeaveGuard(std::function<bool()> guard) { m_leaveGuards.append(std::move(guard)); }
 
     KifuNavigationState* state() const { return m_state; }
@@ -97,6 +101,7 @@ signals:
 private:
     KifuNavigationState* m_state = nullptr;   ///< 表示中の手（非所有）
     QList<std::function<bool()>> m_leaveGuards;   ///< 移動前の確認（無ければ常に移動する）
+    std::function<bool()> m_canBrowse;   ///< 移ってよい状態か（確認の前と後に見る）
     std::array<QAction*, StepCount> m_actions{}; ///< 局面送りの操作（Step の順）
 };
 

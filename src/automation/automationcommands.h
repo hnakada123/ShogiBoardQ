@@ -38,6 +38,8 @@ RecordLine currentRecordLine(const AutomationContext& context);
 /// 棋譜を置き換える操作（kifu.load・position.set）の前の検査。対局・検討・解析・局面編集の間と、
 /// discardUnsaved でない未保存の変更があるときは AutomationError を投げる
 KifuFileController* requireReplaceableRecord(const AutomationContext& context, bool discardUnsaved);
+/// モーダルのダイアログが開いていれば invalid_state にする（棋譜を置き換える・移るメソッドの入口で呼ぶ）
+void requireNoModalDialog();
 /// メインウィンドウのドック name を見せて前面に出す操作を予約する（dock.configure の operation=show と同じ処理と検査。
 /// widget.showDock が使う）
 QJsonObject showDock(const AutomationContext& context, const QString& name);

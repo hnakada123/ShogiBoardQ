@@ -112,6 +112,14 @@ void BranchTreeEditController::onMenuActionTriggered(QAction* action)
     apply(static_cast<Operation>(code), node);
 }
 
+bool BranchTreeEditController::isInSubtree(const KifuBranchNode* node, const KifuBranchNode* top)
+{
+    for (const KifuBranchNode* n = node; n != nullptr; n = n->parent()) {
+        if (n == top) return true;
+    }
+    return false;
+}
+
 bool BranchTreeEditController::confirmDeletion(KifuBranchNode* node) const
 {
     const int count = KifuBranchTree::subtreeSize(node);
@@ -128,23 +136,26 @@ bool BranchTreeEditController::apply(Operation operation, KifuBranchNode* node, 
 {
     if (!isApplicable(operation, node)) return false;
     KifuBranchTree* tree = m_deps.tree;
-    KifuBranchNode* current = m_deps.navState->currentNode();
 
     if (operation == Operation::DeleteFromHere) {
-        if (confirmDelete && !confirmDeletion(node)) return false;
-        // 現在の手が削除範囲にあれば、削除する手の直前へ移る
-        bool currentInside = false;
-        for (const KifuBranchNode* n = current; n != nullptr; n = n->parent()) {
-            if (n == node) {
-                currentInside = true;
-                break;
-            }
+        // 確認のダイアログの間に棋譜が作り直されることがあるので、ノードは番号で持ち、閉じた後に引き直す。
+        // 棋譜を変えてよい状態かも見直す（セキュリティ監査 V2）
+        const int nodeId = node->nodeId();
+        if (confirmDelete) {
+            if (!confirmDeletion(node)) return false;
+            node = tree->nodeAt(nodeId);
+            if (!isApplicable(operation, node)) return false;
         }
-        if (currentInside) {
+        if (isInSubtree(m_deps.navState->currentNode(), node)) {
             if (!m_deps.navController->confirmLeave()) return false;
-            current = node->parent();
+            node = tree->nodeAt(nodeId);
+            if (!isApplicable(operation, node)) return false;
         }
     }
+
+    // 現在の手が削除範囲にあれば、削除する手の直前へ移る
+    KifuBranchNode* current = m_deps.navState->currentNode();
+    if (operation == Operation::DeleteFromHere && isInSubtree(current, node)) current = node->parent();
 
     // 表示中の手を移してからツリーの変更を知らせる（表示は編集後のツリーで1回だけ描き直す）
     tree->beginBatchUpdate();

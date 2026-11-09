@@ -73,8 +73,7 @@ void EvaluationChartWidget::setupAxes()
         axis->setGridLinePen(QPen(QColor(QStringLiteral("#E2E8F0")), 1));
         axis->setLineVisible(false);
     }
-    m_axX->setRange(0, m_axes.xLimit);
-    m_axX->setTickInterval(m_axes.xInterval);
+    setXAxisScale(m_axes.xLimit, m_axes.xInterval);
     m_axY->setRange(-m_axes.yLimit, m_axes.yLimit);
     m_axY->setTickInterval(m_axes.yInterval);
 }
@@ -221,10 +220,22 @@ void EvaluationChartWidget::applyYAxis()
     clearHover();
 }
 
+void EvaluationChartWidget::setXAxisScale(int limit, int interval)
+{
+    // Qt Charts は変更のたびに目盛りの部品を作り直す。古い間隔のまま範囲を広げる（または古い範囲のまま間隔を狭める）と、
+    // 途中の状態で手数に比例した数の部品を作り、1手ごとの更新が手数の二乗で遅くなる（セキュリティ監査 V4）
+    if (interval >= m_axX->tickInterval()) {
+        m_axX->setTickInterval(interval);
+        m_axX->setRange(0, limit);
+    } else {
+        m_axX->setRange(0, limit);
+        m_axX->setTickInterval(interval);
+    }
+}
+
 void EvaluationChartWidget::applyXAxis()
 {
-    m_axX->setRange(0, m_axes.xLimit);
-    m_axX->setTickInterval(m_axes.xInterval);
+    setXAxisScale(m_axes.xLimit, m_axes.xInterval);
     updateReferenceLines();
     updatePresentation();
     clearHover();

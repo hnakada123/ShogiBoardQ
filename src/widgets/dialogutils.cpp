@@ -125,10 +125,35 @@ bool confirmAction(QWidget* parent, const QString& title, const QString& text,
                    const QString& actionText, QMessageBox::Icon icon)
 {
     QMessageBox box(icon, title, text, QMessageBox::Yes | QMessageBox::Cancel, parent);
+    box.setTextFormat(Qt::PlainText);   // 文には棋譜や定跡の文字列が入るので HTML として読まない
     box.button(QMessageBox::Yes)->setText(actionText);
     box.setDefaultButton(QMessageBox::Cancel);
     box.setEscapeButton(QMessageBox::Cancel);
     return box.exec() == QMessageBox::Yes;
+}
+
+namespace {
+void showPlainBox(QWidget* parent, QMessageBox::Icon icon, const QString& title, const QString& text)
+{
+    QMessageBox box(icon, title, text, QMessageBox::Ok, parent);
+    box.setTextFormat(Qt::PlainText);
+    box.exec();
+}
+} // namespace
+
+void warning(QWidget* parent, const QString& title, const QString& text)
+{
+    showPlainBox(parent, QMessageBox::Warning, title, text);
+}
+
+void critical(QWidget* parent, const QString& title, const QString& text)
+{
+    showPlainBox(parent, QMessageBox::Critical, title, text);
+}
+
+void information(QWidget* parent, const QString& title, const QString& text)
+{
+    showPlainBox(parent, QMessageBox::Information, title, text);
 }
 
 } // namespace DialogUtils

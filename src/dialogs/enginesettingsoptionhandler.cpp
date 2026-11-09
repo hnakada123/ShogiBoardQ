@@ -144,6 +144,7 @@ void EngineSettingsOptionHandler::buildOptionWidgets(QVBoxLayout* layout)
 QLabel* EngineSettingsOptionHandler::addNameLabel(const QString& text, QVBoxLayout* layout)
 {
     auto* label = new QLabel(text, m_parentWidget);
+    label->setTextFormat(Qt::PlainText);   // エンジンのオプション名などを HTML として読まない
     label->setStyleSheet(kLabelBoldStyle);
     label->setWordWrap(true);
     layout->addWidget(label);
@@ -155,6 +156,7 @@ void EngineSettingsOptionHandler::addHelpDescription(const QString& optionName, 
     const QString description = EngineOptionDescriptions::description(m_engineName, optionName);
     if (description.isEmpty()) return;
     auto* label = new QLabel(description, m_parentWidget);
+    label->setTextFormat(Qt::PlainText);
     label->setWordWrap(true);
     label->setStyleSheet("QLabel { color: palette(text); padding: 2px 0px 6px 0px; background: transparent; }");
     layout->addWidget(label);
@@ -189,8 +191,12 @@ EngineSettingsOptionHandler::OptionEditor EngineSettingsOptionHandler::createTex
     const bool directory = option.name.contains(QLatin1String("Dir"), Qt::CaseInsensitive);
     if (directory || option.name.contains(QLatin1String("File"), Qt::CaseInsensitive)
         || option.name.contains(QLatin1String("Log"), Qt::CaseInsensitive)) {
-        layout->addWidget(new PathSelectButton(
-            lineEdit, directory ? EngineSettings::FileType::Directory : EngineSettings::FileType::File, m_parentWidget));
+        // 自動化 API から置き場所を変えさせない（エンジンがそこへ書く）
+        lineEdit->setProperty("automationForbidden", true);
+        auto* select = new PathSelectButton(
+            lineEdit, directory ? EngineSettings::FileType::Directory : EngineSettings::FileType::File, m_parentWidget);
+        select->setProperty("automationForbidden", true);
+        layout->addWidget(select);
     }
     return {std::bind(&QLineEdit::setText, lineEdit, std::placeholders::_1), std::bind(&QLineEdit::text, lineEdit)};
 }

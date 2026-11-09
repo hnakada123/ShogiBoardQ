@@ -21,6 +21,14 @@ class TestPositionCollectionFile : public QObject
     Q_OBJECT
 
 private slots:
+    /// 行数が多いファイルは上限までしか読まない
+    void readsAtMostTheLimitOfLines()
+    {
+        const PositionCollectionFile::Contents contents =
+            PositionCollectionFile::parse(QStringLiteral("\n").repeated(PositionCollectionFile::kMaxLines + 9));
+        QCOMPARE(contents.unreadLines, 10);
+    }
+
     void skipsBlankAndCommentLines()
     {
         using PositionCollectionFile::LineKind;

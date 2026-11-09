@@ -31,6 +31,9 @@ UsiLogPanel::UsiLogPanel(QWidget* parent)
 {
     logView()->setAccessibleName(tr("USI通信ログ"));
     logView()->setPlaceholderText(tr("エンジンとの通信ログを表示します（▶ 送信 / ◀ 受信）"));
+    // エンジンへ任意のコマンドを送れる欄は、自動化 API から使わせない（automationwidgets の requireInteractive）
+    commandInput()->setProperty("automationForbidden", true);
+    sendButton()->setProperty("automationForbidden", true);
 
     // 操作列のエンジン名（エンジンごとのログの色）
     m_engine1Label = new ElideLabel(this);

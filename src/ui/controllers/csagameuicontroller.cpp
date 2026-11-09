@@ -154,6 +154,13 @@ void CsaGameUiController::showGameEndDialog(const QString& title, const QString&
                                                   : NotificationPresenter::Wait::UntilClosed);
 }
 
+void CsaGameUiController::showError(const QString& message)
+{
+    // 通信対局のエラーの文はサーバーの受信で何度でも届くので、待たずに出して前のものと差し替える（セキュリティ監査 V1）
+    NotificationPresenter::replaceCritical(m_errorNotice, m_deps.parentWidget, tr("エラー"), message,
+                                           NotificationPresenter::Wait::No);
+}
+
 void CsaGameUiController::showStatus(const QString& message, int timeoutMs) const
 {
     if (m_deps.statusBar) m_deps.statusBar->showMessage(message, timeoutMs);

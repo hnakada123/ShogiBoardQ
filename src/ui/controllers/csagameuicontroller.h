@@ -63,6 +63,8 @@ public slots:
     void openGameDialog();
     /// 待機ダイアログで「キャンセル」した
     void onWaitingCancelled();
+    /// 通信対局のエラーを知らせる（待たずに出し、前のエラーと差し替える）
+    void showError(const QString& message);
 
 private slots:
     void onGameStarted(const QString& blackName, const QString& whiteName);
@@ -79,6 +81,7 @@ private:
     QPointer<CsaGameDialog> m_gameDialog;
     bool m_autoFlipBoard = true;         ///< 後手のときは盤を反転する（接続ダイアログの設定）
     QPointer<QMessageBox> m_resultNotice;  ///< 待たずに出した続きの対局の結果の知らせ（次の局の結果で閉じる）
+    QPointer<QMessageBox> m_errorNotice;   ///< 待たずに出したエラーの知らせ（次のエラーで閉じる）
 };
 
 #endif // CSAGAMEUICONTROLLER_H

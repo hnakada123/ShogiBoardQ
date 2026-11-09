@@ -12,6 +12,8 @@ UnsavedChangesPrompt::Choice UnsavedChangesPrompt::ask(QWidget* parent, const QS
     QMessageBox box(QMessageBox::Warning, title, text, QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
                     parent);
     if (!detail.isEmpty()) box.setInformativeText(detail);
+    // 文と補足の文（定跡のファイル名など）を HTML として読まない。補足の文にも効くよう、設定した後で指定する
+    box.setTextFormat(Qt::PlainText);
     box.button(QMessageBox::Save)->setText(tr("保存"));
     box.button(QMessageBox::Discard)->setText(tr("破棄"));
     box.button(QMessageBox::Cancel)->setText(tr("キャンセル"));

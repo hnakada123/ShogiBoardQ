@@ -161,8 +161,8 @@ private slots:
                 && !QObject::disconnect(sender, signal, receiver, QMetaMethod());
         };
         const QMetaMethod error = QMetaMethod::fromSignal(&CsaGameCoordinator::errorOccurred);
-        QVERIFY(!QObject::disconnect(csa, error, p.csaUi, QMetaMethod()));
-        QVERIFY(connectedOnce(csa, error, p.notifications));
+        QVERIFY(!QObject::disconnect(csa, error, p.notifications, QMetaMethod()));
+        QVERIFY(connectedOnce(csa, error, p.csaUi));
         QVERIFY(connectedOnce(csa, QMetaMethod::fromSignal(&CsaGameCoordinator::engineMovePlayed), p.evalGraph));
         QVERIFY(connectedOnce(csa, QMetaMethod::fromSignal(&CsaGameCoordinator::csaCommLogAppended), p.csaLog));
         QVERIFY(connectedOnce(p.csaLog, QMetaMethod::fromSignal(&CsaLogPanel::csaRawCommandRequested), csa));

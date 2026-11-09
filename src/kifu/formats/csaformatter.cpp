@@ -2,6 +2,7 @@
 /// @brief CSA形式の文字列生成ヘルパ関数の実装
 
 #include "csaformatter.h"
+#include "kifuexportcommon.h"
 #include "timecontroltext.h"
 #include "gameinfokeys.h"
 
@@ -110,7 +111,8 @@ QString convertToCsaTime(const QString& timeStr)
     if (const QRegularExpressionMatch m = reSec.match(timeStr); m.hasMatch())
         return QStringLiteral("$TIME:0+%1+0").arg(m.captured(1).toInt());
 
-    return QStringLiteral("$TIME_LIMIT:%1").arg(timeStr);
+    // 既知の書式でない値はそのまま残すので、1行にしてから書く（改行が残ると別の CSA の行になる。セキュリティ監査 V13）
+    return QStringLiteral("$TIME_LIMIT:%1").arg(KifuExportCommon::singleLine(timeStr));
 }
 
 QStringList convertToCsaTimeLines(const QString& timeStr)
@@ -132,8 +134,11 @@ QString timeLimitToTimeControl(const QString& value)
     const QRegularExpressionMatch m = re.match(value.trimmed());
     if (!m.hasMatch() || m.captured(2).toInt() >= 60) return value;
     TimeControlSide side;
-    side.mainMs = (m.captured(1).toLongLong() * 60 + m.captured(2).toLongLong()) * 60 * 1000;
-    side.byoyomiMs = m.captured(3).toLongLong() * 1000;
+    // 桁の多い値は上限で止める（桁あふれさせない。セキュリティ監査 V22）
+    constexpr qint64 kMaxHours = 1'000'000;
+    constexpr qint64 kMaxByoyomiSeconds = 365LL * 24 * 60 * 60;
+    side.mainMs = (qMin(m.captured(1).toLongLong(), kMaxHours) * 60 + m.captured(2).toLongLong()) * 60 * 1000;
+    side.byoyomiMs = qMin(m.captured(3).toLongLong(), kMaxByoyomiSeconds) * 1000;
     return TimeControlText::format(side);
 }
 

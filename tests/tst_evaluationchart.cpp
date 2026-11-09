@@ -10,6 +10,7 @@
 #include <QSpinBox>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QValueAxis>
 #include "evaluationchartwidget.h"
 #include "stepbuttons.h"
 #include "evaluationchartsettingsdialog.h"
@@ -163,6 +164,33 @@ private slots:
         QCOMPARE(interval % 7, 0);
         QVERIFY(interval >= axes.xInterval);
         QVERIFY(interval - 7 < axes.xInterval);
+    }
+
+    /// 軸の範囲と間隔を変える途中で、目盛りの数が最終の状態より多くならない（手数の二乗で遅くなる）
+    void xAxisChangesNeverPassThroughManyTicks()
+    {
+        TestChart widget;
+        QValueAxis* axis = nullptr;
+        for (QAbstractAxis* candidate : view(widget)->chart()->axes(Qt::Horizontal)) axis = qobject_cast<QValueAxis*>(candidate);
+        QVERIFY(axis);
+        widget.resize(800, 300);
+        widget.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&widget));
+        double maxTicks = 0;
+        const auto track = [&]() { maxTicks = qMax(maxTicks, (axis->max() - axis->min()) / axis->tickInterval()); };
+        connect(axis, &QValueAxis::rangeChanged, &widget, track);
+        connect(axis, &QValueAxis::tickIntervalChanged, &widget, track);
+        EvaluationChartSettings settings;
+        settings.automatic = false;
+        settings.yLimit = 1000;
+        settings.xLimit = 100000;
+        widget.setChartSettings(settings);
+        QVERIFY(maxTicks > 0);
+        QVERIFY2(maxTicks <= 100, qPrintable(QString::number(maxTicks)));
+        maxTicks = 0;
+        settings.xLimit = 20;
+        widget.setChartSettings(settings);
+        QVERIFY2(maxTicks <= 100, qPrintable(QString::number(maxTicks)));
     }
 
     void fixedRangePreservesRawScores()

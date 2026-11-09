@@ -5,6 +5,7 @@
 
 #include "moverecord.h"
 
+#include <limits>
 #include <utility>
 
 KifLineBuilder::KifLineBuilder(const Position& start, int startPly, std::optional<UsiMove> previous, LineKind kind)
@@ -16,9 +17,30 @@ KifLineBuilder::KifLineBuilder(const Position& start, int startPly, std::optiona
     m_line.startPly = startPly;
 }
 
+namespace {
+thread_local KifMoveBudget* t_moveBudget = nullptr;
+} // namespace
+
+KifMoveBudget::KifMoveBudget()
+    : m_previous(t_moveBudget)
+{
+    t_moveBudget = this;
+}
+
+KifMoveBudget::~KifMoveBudget()
+{
+    t_moveBudget = m_previous;
+}
+
 bool KifLineBuilder::addMove(const UsiMove& move, const RecordTime& time, const KifMoveText::Notes& notes,
                              const WrittenMove& written, Position::DropRule rule)
 {
+    // 手の数の上限を超えたら足さない（読み手が読み込みを失敗にする）
+    if (t_moveBudget && !t_moveBudget->take()) {
+        m_lastError = QStringLiteral("Too many moves in the record");
+        return false;
+    }
+
     m_lastError.clear();
     m_lastIrregularity.clear();
     if (ended()) {
@@ -99,7 +121,9 @@ void KifLineBuilder::appendBookmark(const QString& text)
 RecordTime KifLineBuilder::timeFor(Turn side, qint64 elapsedMs, std::optional<qint64> totalMs)
 {
     qint64& total = m_totalMs.at(side == Turn::Black ? 0 : 1);
-    total = totalMs ? *totalMs : total + qMax<qint64>(0, elapsedMs);
+    // 棋譜に書かれた大きな値で桁あふれさせない（セキュリティ監査 V22）
+    if (totalMs) total = *totalMs;
+    else if (qAddOverflow(total, qMax<qint64>(0, elapsedMs), &total)) total = std::numeric_limits<qint64>::max();
     return RecordTime::fromMilliseconds(elapsedMs, total);
 }
 

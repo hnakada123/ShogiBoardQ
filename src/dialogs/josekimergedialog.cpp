@@ -2,6 +2,7 @@
 /// @brief 棋譜の手を選んで定跡に登録するダイアログの実装
 
 #include "josekimergedialog.h"
+#include "dialogutils.h"
 
 #include "buttonstyles.h"
 #include "plaintooltip.h"
@@ -20,7 +21,6 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QSet>
 #include <QTableWidget>
@@ -225,11 +225,11 @@ void JosekiMergeDialog::onRegisterAllButtonClicked()
         pending.append(JosekiImport::Move{row.sfen, row.usiMove, 1, {}});
     }
     if (pending.isEmpty()) {
-        QMessageBox::information(this, tr("情報"), tr("登録する指し手がありません。"));
+        DialogUtils::information(this, tr("情報"), tr("登録する指し手がありません。"));
         return;
     }
     const JosekiBookSession::ImportStats stats = m_session->importMoves(pending);
-    QMessageBox::information(this, tr("一括登録完了"), tr("%1件の指し手を定跡に登録しました。").arg(stats.added));
+    DialogUtils::information(this, tr("一括登録完了"), tr("%1件の指し手を定跡に登録しました。").arg(stats.added));
 }
 
 void JosekiMergeDialog::fitRowsToFont()

@@ -2,6 +2,8 @@
 /// @brief SFEN局面集ビューアダイアログクラスの実装
 
 #include "sfencollectiondialog.h"
+#include "dialogutils.h"
+#include "runoffthread.h"
 #include "buttonstyles.h"
 #include "plaintooltip.h"
 #include "boardviewerwidget.h"
@@ -22,7 +24,6 @@
 #include <QMenu>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QMessageBox>
 
 namespace {
 constexpr QSize kMinimumSize{400, 500};
@@ -167,18 +168,29 @@ bool SfenCollectionDialog::loadFromFile(const QString& filePath)
 {
     QFileInfo fi(filePath);
     // 通常のファイルだけを上限まで読む（FIFO・デバイス・巨大なファイルで止まらない）。読み方と読めない理由の文は
-    // 詰将棋問題一覧と同じ（PositionCollectionFile::readFile）
-    const PositionCollectionFile::File file = PositionCollectionFile::readFile(filePath);
+    // 詰将棋問題一覧と同じ（PositionCollectionFile::readFile）。大きなファイルで画面を止めないよう別スレッドで読む
+    struct Loaded {
+        PositionCollectionFile::File file;
+        QStringList sfens;
+        int skippedLines = 0;
+    };
+    const Loaded loaded = runOffThread([filePath]() {
+        Loaded result;
+        result.file = PositionCollectionFile::readFile(filePath);
+        if (result.file.ok) result.sfens = parseSfenLines(result.file.text, &result.skippedLines);
+        return result;
+    });
+    const PositionCollectionFile::File& file = loaded.file;
     if (!file.ok) {
-        QMessageBox::warning(this, tr("エラー"), file.error);
+        DialogUtils::warning(this, tr("エラー"), file.error);
         return false;
     }
 
     // 局面が1つもないファイルでは、表示中の局面集をそのまま残す（行末の CR は行の規則が除く）
-    int skippedLines = 0;
-    const QStringList sfens = parseSfenLines(file.text, &skippedLines);
+    const int skippedLines = loaded.skippedLines;
+    const QStringList& sfens = loaded.sfens;
     if (sfens.isEmpty()) {
-        QMessageBox::warning(this, tr("エラー"),
+        DialogUtils::warning(this, tr("エラー"),
                              tr("%1 には局面がありません。\n"
                                 "1行に1局面のSFENを書いたファイルを選んでください。").arg(fi.fileName()));
         return false;
@@ -207,7 +219,7 @@ QStringList SfenCollectionDialog::parseSfenLines(const QString& text, int* skipp
     // 規則は詰将棋問題一覧と同じ（PositionCollectionFile）。position コマンドの行は指した後の局面にする
     const PositionCollectionFile::Contents contents = PositionCollectionFile::parse(text);
     QStringList sfens;
-    int skipped = static_cast<int>(contents.invalidLines.size());
+    int skipped = static_cast<int>(contents.invalidLines.size() + contents.unreadLines);
     for (const auto& line : contents.lines) {
         const QString sfen = line.position();
         if (sfen.isEmpty()) {
@@ -224,7 +236,7 @@ void SfenCollectionDialog::onRecentFileTriggered(const QString& filePath)
 {
     if (filePath.isEmpty()) return;
     if (!QFileInfo::exists(filePath)) {
-        QMessageBox::warning(this, tr("エラー"),
+        DialogUtils::warning(this, tr("エラー"),
                              tr("ファイルが見つかりません: %1").arg(filePath));
         if (m_recentFiles.remove(filePath)) onRecentFilesChanged();
         return;
