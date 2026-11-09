@@ -102,7 +102,7 @@
 </tbody>
 </table>
 </div>
-<p>Packaging needs network access: linuxdeploy and appimagetool are downloaded the first time.</p>
+<p>Packaging needs network access: linuxdeploy, appimagetool, and the AppImage runtime are downloaded the first time.</p>
 <blockquote>
 <p><strong>About glibc:</strong> an AppImage runs only on systems whose glibc is the same as or newer than that of the build system. Built on the latest Arch Linux, it requires glibc 2.43 or later and does not start on, for example, Ubuntu 24.04 (glibc 2.39). Release packages are therefore built in a container pinned to Arch Linux as of 2024-07-15 (glibc 2.39, Qt 6.7.2; see <a href="#package-run">5.1</a>). That AppImage requires glibc 2.38 or later and libstdc++ from GCC 14 or later, and runs on Ubuntu 24.04 or later, Debian 13, Fedora 40 or later, and similar (not on Fedora 39, whose libstdc++ is from GCC 13).</p>
 </blockquote>
@@ -231,7 +231,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <li>Check the required tools (cmake and python3; ninja recommended)</li>
 <li>Configure CMake and build in Release mode (ShogiBoardQ and Hayanagi)</li>
 <li>Check the executable, translation files, and the 3- to 13-move collections (one file per move count)</li>
-<li>Download linuxdeploy, its Qt plugin, and appimagetool (first time only; saved in the build directory). Before running them, check them against the SHA-256 values in <code>build-linux.sh</code>. They are continuous builds that upstream replaces, so a replacement makes the check fail and stop; then review the upstream release digest and changes before updating the values</li>
+<li>Download linuxdeploy, its Qt plugin, appimagetool, and the AppImage runtime (first time only; saved in the build directory). Before using them, check them against the SHA-256 values in <code>build-linux.sh</code>. They are continuous builds that upstream replaces, so a replacement makes the check fail and stop; then review the upstream release digest and changes before updating the values</li>
 <li>Create the AppDir and generate the AppImage (files needed to run, plus Qt and bundled library license notices)</li>
 <li>Create the ZIP with the AppImage, puzzle collections, and Hayanagi</li>
 </ol>

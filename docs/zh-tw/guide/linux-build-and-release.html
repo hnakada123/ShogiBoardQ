@@ -102,7 +102,7 @@
 </tbody>
 </table>
 </div>
-<p>製作發行套件時需要連上網路，因為第一次會下載 linuxdeploy 和 appimagetool。</p>
+<p>製作發行套件時需要連上網路，因為第一次會下載 linuxdeploy、appimagetool 和 AppImage 執行階段。</p>
 <blockquote>
 <p><strong>關於 glibc：</strong> AppImage 只能在 glibc 與建置環境相同或更新的系統上執行。在最新的 Arch Linux 上建置時，需要 glibc 2.43 以上，無法在 Ubuntu 24.04（glibc 2.39）等系統上啟動。因此用於發行的發行套件在固定為 2024 年 7 月 15 日 Arch Linux（glibc 2.39、Qt 6.7.2）的容器中建置（<a href="#package-run">5.1</a>）。該 AppImage 需要 glibc 2.38 以上和 GCC 14 以上的 libstdc++，可在 Ubuntu 24.04 以上、Debian 13、Fedora 40 以上等系統上執行（Fedora 39 的 libstdc++ 來自 GCC 13，無法執行）。</p>
 </blockquote>
@@ -231,7 +231,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <li>檢查所需工具（cmake、python3；建議使用 ninja）</li>
 <li>設定 CMake 並以 Release 方式建置（ShogiBoardQ 與 Hayanagi）</li>
 <li>檢查執行檔、翻譯檔，以及 3〜13 手詰的題集（每種手數各 1 個檔案）</li>
-<li>下載 linuxdeploy、其 Qt 外掛程式和 appimagetool（僅第一次；儲存在建置目錄中）。執行前與 <code>build-linux.sh</code> 中記錄的 SHA-256 核對。它們都是上游會替換的 continuous 版本，被替換後核對不一致就會停止；此時先確認上游發行的 digest 和變更，再更新這些值</li>
+<li>下載 linuxdeploy、其 Qt 外掛程式、appimagetool 和 AppImage 執行階段（僅第一次；儲存在建置目錄中）。使用前與 <code>build-linux.sh</code> 中記錄的 SHA-256 核對。它們都是上游會替換的 continuous 版本，被替換後核對不一致就會停止；此時先確認上游發行的 digest 和變更，再更新這些值</li>
 <li>建立 AppDir 並產生 AppImage（執行所需的檔案，以及 Qt 與隨附程式庫的授權文件）</li>
 <li>製作包含 AppImage、題集和 Hayanagi 的 ZIP</li>
 </ol>

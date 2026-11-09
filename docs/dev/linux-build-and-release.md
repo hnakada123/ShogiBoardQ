@@ -34,7 +34,7 @@ ShogiBoardQ を Linux でビルドし、`ShogiBoardQ-linux.zip` を作って Git
 | Docker | リリース用の配布物をコンテナで作る場合 |
 | その他 | Git、curl、file、FUSE 2（AppImage 形式のツールの実行）、ImageMagick（512px を超えるアイコンの縮小） |
 
-配布物を作るときはネットワークに接続できる必要がある。初回に linuxdeploy と appimagetool をダウンロードするため。
+配布物を作るときはネットワークに接続できる必要がある。初回に linuxdeploy と appimagetool、AppImage のランタイムをダウンロードするため。
 
 > **glibc について**: AppImage は、ビルドした環境と同じか、より新しい glibc のシステムでしか動かない。最新の Arch Linux でビルドすると glibc 2.43 以降が必要になり、Ubuntu 24.04（glibc 2.39）などで起動できない。そのためリリース用は、2024年7月15日の Arch Linux（glibc 2.39・Qt 6.7.2）に固定したコンテナでビルドする（[5.1](#package-run)）。この AppImage は glibc 2.38 以降と GCC 14 以降の libstdc++ を必要とし、Ubuntu 24.04 以降、Debian 13、Fedora 40 以降などで動く（Fedora 39 は libstdc++ が GCC 13 で動かない）。
 
@@ -210,7 +210,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 1. 前提ツールの確認（cmake・python3。ninja を推奨）
 2. CMake の構成と Release ビルド（ShogiBoardQ と Hayanagi）
 3. 実行ファイル・翻訳ファイルと、3〜13手詰の問題集（各手数1ファイル）の確認
-4. linuxdeploy・Qt プラグイン・appimagetool のダウンロード（初回のみ。ビルドディレクトリに保存）。実行する前に `build-linux.sh` に書いた SHA-256 と照らし合わせる。どれも上流が差し替える continuous 版なので、差し替えられると一致せずに止まる。そのときは上流のリリースの digest と変更を確かめてから値を更新する
+4. linuxdeploy・Qt プラグイン・appimagetool・AppImage のランタイムのダウンロード（初回のみ。ビルドディレクトリに保存）。使う前に `build-linux.sh` に書いた SHA-256 と照らし合わせる。どれも上流が差し替える continuous 版なので、差し替えられると一致せずに止まる。そのときは上流のリリースの digest と変更を確かめてから値を更新する
 5. AppDir の作成と AppImage の生成（実行に必要なファイルと、Qt・同梱ライブラリのライセンス文書）
 6. AppImage・問題集・Hayanagi を含む ZIP の作成
 

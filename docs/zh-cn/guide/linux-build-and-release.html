@@ -102,7 +102,7 @@
 </tbody>
 </table>
 </div>
-<p>制作发布包时需要联网，因为首次会下载 linuxdeploy 和 appimagetool。</p>
+<p>制作发布包时需要联网，因为首次会下载 linuxdeploy、appimagetool 和 AppImage 运行时。</p>
 <blockquote>
 <p><strong>关于 glibc：</strong> AppImage 只能在 glibc 与构建环境相同或更新的系统上运行。在最新的 Arch Linux 上构建时，需要 glibc 2.43 及以上，无法在 Ubuntu 24.04（glibc 2.39）等系统上启动。因此用于发布的发布包在固定为 2024 年 7 月 15 日 Arch Linux（glibc 2.39、Qt 6.7.2）的容器中构建（<a href="#package-run">5.1</a>）。该 AppImage 需要 glibc 2.38 及以上和 GCC 14 及以上的 libstdc++，可在 Ubuntu 24.04 及以上、Debian 13、Fedora 40 及以上等系统上运行（Fedora 39 的 libstdc++ 来自 GCC 13，无法运行）。</p>
 </blockquote>
@@ -231,7 +231,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <li>检查所需工具（cmake、python3；推荐 ninja）</li>
 <li>配置 CMake 并以 Release 方式构建（ShogiBoardQ 与 Hayanagi）</li>
 <li>检查可执行文件、翻译文件，以及 3〜13 手诘的题集（每种手数各 1 个文件）</li>
-<li>下载 linuxdeploy、其 Qt 插件和 appimagetool（仅首次；保存在构建目录中）。运行前与 <code>build-linux.sh</code> 中记录的 SHA-256 核对。它们都是上游会替换的 continuous 版本，被替换后核对不一致就会停止；此时先确认上游发布的 digest 和改动，再更新这些值</li>
+<li>下载 linuxdeploy、其 Qt 插件、appimagetool 和 AppImage 运行时（仅首次；保存在构建目录中）。使用前与 <code>build-linux.sh</code> 中记录的 SHA-256 核对。它们都是上游会替换的 continuous 版本，被替换后核对不一致就会停止；此时先确认上游发布的 digest 和改动，再更新这些值</li>
 <li>创建 AppDir 并生成 AppImage（运行所需的文件，以及 Qt 与随附库的许可文档）</li>
 <li>制作包含 AppImage、题集和 Hayanagi 的 ZIP</li>
 </ol>

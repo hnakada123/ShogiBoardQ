@@ -36,6 +36,10 @@ if ! command -v Xvfb >/dev/null 2>&1; then
     log "Xvfb が見つかりません（xorg-server-xvfb などを導入してください）"
     exit 1
 fi
+if ! command -v xauth >/dev/null 2>&1; then
+    log "xauth が見つかりません（xorg-xauth などを導入してください）"
+    exit 1
+fi
 
 mkdir -p "$HOME_DIR/config/ShogiBoardQ" "$HOME_DIR/cache" "$HOME_DIR/data" "$HOME_DIR/state"
 # 別の利用者が先に作ったフォルダ・リンクは使わない（ソケットを差し替えられる）
@@ -50,16 +54,27 @@ fi
 # Breeze の色・フォントにするため、KDE の全体設定だけ写す
 cp "$REAL_CONFIG/kdeglobals" "$HOME_DIR/config/kdeglobals" 2>/dev/null || true
 
+# X の認証の鍵。無いと /tmp/.X11-unix のソケットに同じマシンの別の利用者もつなげ、画面を読み、入力を送れる。
+# 鍵はコマンドラインに載せない（ps で見える）。番号が決まる前は仮の番号で登録する（X サーバーは番号を見ない）
+xauth_add() { printf 'add %s . %s\n' "$1" "$XCOOKIE" | xauth -q -f "$XAUTH_FILE" source - 2>/dev/null; }
+XCOOKIE=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+XAUTH_FILE=$(mktemp "$RUNTIME/xauth.XXXXXX")
+if [ "${#XCOOKIE}" -ne 32 ] || ! xauth_add :0; then
+    log "X の認証の鍵を作れませんでした"
+    rm -f "$XAUTH_FILE"
+    exit 1
+fi
+
 # 空いている番号で Xvfb を起動し、準備ができて書き出された番号を読む
 DISPLAY_FILE=$(mktemp "$RUNTIME/display.XXXXXX")
-Xvfb -displayfd 9 -screen 0 "${SHOGIBOARDQ_HEADLESS_SCREEN:-1920x1440x24}" -nolisten tcp \
+Xvfb -displayfd 9 -auth "$XAUTH_FILE" -screen 0 "${SHOGIBOARDQ_HEADLESS_SCREEN:-1920x1440x24}" -nolisten tcp \
     9>"$DISPLAY_FILE" </dev/null >>"$RUNTIME/xvfb.log" 2>&1 &
 XVFB_PID=$!
 SERVER_PID=
 cleanup() {
     [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null
     kill "$XVFB_PID" 2>/dev/null
-    rm -f "$DISPLAY_FILE"
+    rm -f "$DISPLAY_FILE" "$XAUTH_FILE"
 }
 trap cleanup EXIT
 trap 'exit 129' HUP
@@ -77,10 +92,15 @@ if [ -z "$DISPLAY_NUMBER" ]; then
     log "Xvfb を起動できませんでした（$RUNTIME/xvfb.log）"
     exit 1
 fi
+# 実際の番号でも鍵を引けるようにする（Qt はこの番号で XAUTHORITY から鍵を探す）
+if ! xauth_add ":$DISPLAY_NUMBER"; then
+    log "X の認証の鍵を登録できませんでした"
+    exit 1
+fi
 
 # Wayland を外して Qt を Xvfb（xcb）に向け、設定・キャッシュ・データ・ソケットを専用の場所にする
 unset WAYLAND_DISPLAY
-export DISPLAY=":$DISPLAY_NUMBER"
+export DISPLAY=":$DISPLAY_NUMBER" XAUTHORITY="$XAUTH_FILE"
 export QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=kde XDG_CURRENT_DESKTOP=KDE
 export XDG_CONFIG_HOME="$HOME_DIR/config" XDG_CACHE_HOME="$HOME_DIR/cache"
 export XDG_DATA_HOME="$HOME_DIR/data" XDG_STATE_HOME="$HOME_DIR/state" XDG_RUNTIME_DIR="$RUNTIME"
@@ -92,6 +112,9 @@ export SHOGIBOARDQ_QUIT_APP_ON_EXIT=1
 export SHOGIBOARDQ_EXECUTABLE="${SHOGIBOARDQ_EXECUTABLE:-$REPO/build/ShogiBoardQ}"
 export PYTHONPATH="$REPO/mcp${PYTHONPATH:+:$PYTHONPATH}"
 
+# python3 -m は現在のフォルダを import の先頭に入れるので、MCP クライアントが開いているフォルダ（細工した
+# リポジトリかもしれない）のコードを読まないよう、この配布物の mcp/ から起動する
+cd "$REPO/mcp" || exit 1
 # 終了の合図を受けたらすぐ後片付けできるよう、標準入力を渡して裏で動かし wait する
 python3 -m shogiboardq_mcp <&0 &
 SERVER_PID=$!

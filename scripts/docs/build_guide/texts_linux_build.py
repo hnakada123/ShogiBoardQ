@@ -222,7 +222,7 @@ T["ja"] = {
             ["Docker", "リリース用の配布物をコンテナで作る場合"],
             ["その他", "Git、curl、file、FUSE 2（AppImage 形式のツールの実行）、ImageMagick（512px を超えるアイコンの縮小）"],
         ], "labels"),
-        ("p", "配布物を作るときはネットワークに接続できる必要がある。初回に linuxdeploy と appimagetool をダウンロードするため。"),
+        ("p", "配布物を作るときはネットワークに接続できる必要がある。初回に linuxdeploy と appimagetool、AppImage のランタイムをダウンロードするため。"),
         ("note", "**glibc について**: AppImage は、ビルドした環境と同じか、より新しい glibc のシステムでしか動かない。"
                  "最新の Arch Linux でビルドすると glibc 2.43 以降が必要になり、Ubuntu 24.04（glibc 2.39）などで起動できない。"
                  "そのためリリース用は、2024年7月15日の Arch Linux（glibc 2.39・Qt 6.7.2）に固定したコンテナでビルドする"
@@ -331,7 +331,7 @@ T["ja"] = {
             "前提ツールの確認（cmake・python3。ninja を推奨）",
             "CMake の構成と Release ビルド（ShogiBoardQ と Hayanagi）",
             "実行ファイル・翻訳ファイルと、3〜13手詰の問題集（各手数1ファイル）の確認",
-            "linuxdeploy・Qt プラグイン・appimagetool のダウンロード（初回のみ。ビルドディレクトリに保存）。実行する前に "
+            "linuxdeploy・Qt プラグイン・appimagetool・AppImage のランタイムのダウンロード（初回のみ。ビルドディレクトリに保存）。使う前に "
             "`build-linux.sh` に書いた SHA-256 と照らし合わせる。どれも上流が差し替える continuous 版なので、差し替えられると"
             "一致せずに止まる。そのときは上流のリリースの digest と変更を確かめてから値を更新する",
             "AppDir の作成と AppImage の生成（実行に必要なファイルと、Qt・同梱ライブラリのライセンス文書）",
@@ -520,7 +520,7 @@ T["en"] = {
             ["Docker", "To build release packages in the container"],
             ["Other", "Git, curl, file, FUSE 2 (to run AppImage-based tools), ImageMagick (to shrink icons larger than 512 px)"],
         ], "labels"),
-        ("p", "Packaging needs network access: linuxdeploy and appimagetool are downloaded the first time."),
+        ("p", "Packaging needs network access: linuxdeploy, appimagetool, and the AppImage runtime are downloaded the first time."),
         ("note", "**About glibc:** an AppImage runs only on systems whose glibc is the same as or newer than that of the build "
                  "system. Built on the latest Arch Linux, it requires glibc 2.43 or later and does not start on, for example, "
                  "Ubuntu 24.04 (glibc 2.39). Release packages are therefore built in a container pinned to Arch Linux as of "
@@ -635,8 +635,8 @@ T["en"] = {
             "Check the required tools (cmake and python3; ninja recommended)",
             "Configure CMake and build in Release mode (ShogiBoardQ and Hayanagi)",
             "Check the executable, translation files, and the 3- to 13-move collections (one file per move count)",
-            "Download linuxdeploy, its Qt plugin, and appimagetool (first time only; saved in the build directory). Before "
-            "running them, check them against the SHA-256 values in `build-linux.sh`. They are continuous builds that "
+            "Download linuxdeploy, its Qt plugin, appimagetool, and the AppImage runtime (first time only; saved in the build directory). Before "
+            "using them, check them against the SHA-256 values in `build-linux.sh`. They are continuous builds that "
             "upstream replaces, so a replacement makes the check fail and stop; then review the upstream release digest and "
             "changes before updating the values",
             "Create the AppDir and generate the AppImage (files needed to run, plus Qt and bundled library license notices)",
@@ -826,7 +826,7 @@ T["zh-cn"] = {
             ["Docker", "在容器中制作用于发布的发布包时"],
             ["其他", "Git、curl、file、FUSE 2（运行 AppImage 格式的工具）、ImageMagick（缩小超过 512px 的图标）"],
         ], "labels"),
-        ("p", "制作发布包时需要联网，因为首次会下载 linuxdeploy 和 appimagetool。"),
+        ("p", "制作发布包时需要联网，因为首次会下载 linuxdeploy、appimagetool 和 AppImage 运行时。"),
         ("note", "**关于 glibc：** AppImage 只能在 glibc 与构建环境相同或更新的系统上运行。在最新的 Arch Linux 上构建时，"
                  "需要 glibc 2.43 及以上，无法在 Ubuntu 24.04（glibc 2.39）等系统上启动。因此用于发布的发布包在固定为 "
                  "2024 年 7 月 15 日 Arch Linux（glibc 2.39、Qt 6.7.2）的容器中构建（[5.1](#package-run)）。该 AppImage 需要 "
@@ -928,7 +928,7 @@ T["zh-cn"] = {
             "检查所需工具（cmake、python3；推荐 ninja）",
             "配置 CMake 并以 Release 方式构建（ShogiBoardQ 与 Hayanagi）",
             "检查可执行文件、翻译文件，以及 3〜13 手诘的题集（每种手数各 1 个文件）",
-            "下载 linuxdeploy、其 Qt 插件和 appimagetool（仅首次；保存在构建目录中）。运行前与 `build-linux.sh` 中记录的 "
+            "下载 linuxdeploy、其 Qt 插件、appimagetool 和 AppImage 运行时（仅首次；保存在构建目录中）。使用前与 `build-linux.sh` 中记录的 "
             "SHA-256 核对。它们都是上游会替换的 continuous 版本，被替换后核对不一致就会停止；此时先确认上游发布的 digest 和"
             "改动，再更新这些值",
             "创建 AppDir 并生成 AppImage（运行所需的文件，以及 Qt 与随附库的许可文档）",
@@ -1104,7 +1104,7 @@ T["zh-tw"] = {
             ["Docker", "在容器中製作用於發行的發行套件時"],
             ["其他", "Git、curl、file、FUSE 2（執行 AppImage 格式的工具）、ImageMagick（縮小超過 512px 的圖示）"],
         ], "labels"),
-        ("p", "製作發行套件時需要連上網路，因為第一次會下載 linuxdeploy 和 appimagetool。"),
+        ("p", "製作發行套件時需要連上網路，因為第一次會下載 linuxdeploy、appimagetool 和 AppImage 執行階段。"),
         ("note", "**關於 glibc：** AppImage 只能在 glibc 與建置環境相同或更新的系統上執行。在最新的 Arch Linux 上建置時，"
                  "需要 glibc 2.43 以上，無法在 Ubuntu 24.04（glibc 2.39）等系統上啟動。因此用於發行的發行套件在固定為 "
                  "2024 年 7 月 15 日 Arch Linux（glibc 2.39、Qt 6.7.2）的容器中建置（[5.1](#package-run)）。該 AppImage 需要 "
@@ -1206,7 +1206,7 @@ T["zh-tw"] = {
             "檢查所需工具（cmake、python3；建議使用 ninja）",
             "設定 CMake 並以 Release 方式建置（ShogiBoardQ 與 Hayanagi）",
             "檢查執行檔、翻譯檔，以及 3〜13 手詰的題集（每種手數各 1 個檔案）",
-            "下載 linuxdeploy、其 Qt 外掛程式和 appimagetool（僅第一次；儲存在建置目錄中）。執行前與 `build-linux.sh` 中記錄"
+            "下載 linuxdeploy、其 Qt 外掛程式、appimagetool 和 AppImage 執行階段（僅第一次；儲存在建置目錄中）。使用前與 `build-linux.sh` 中記錄"
             "的 SHA-256 核對。它們都是上游會替換的 continuous 版本，被替換後核對不一致就會停止；此時先確認上游發行的 digest "
             "和變更，再更新這些值",
             "建立 AppDir 並產生 AppImage（執行所需的檔案，以及 Qt 與隨附程式庫的授權文件）",

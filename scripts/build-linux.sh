@@ -41,15 +41,20 @@ DESKTOP_PATH="resources/platform/shogiboardq.desktop"
 LINUXDEPLOY_URL="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
 LINUXDEPLOY_QT_URL="https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
 APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+# AppImage の先頭に埋め込むランタイム。配布物を起動したときに最初に動くコードなので、appimagetool に任せて
+# 毎回 continuous から取らせず、固定した版を確かめてから渡す
+APPIMAGE_RUNTIME_URL="https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64"
 # 取得したツールの SHA-256（2026-10-06 に取得して 2026.10 のリリースのビルドに使った continuous 版）。
 # continuous は上流が差し替えるので、一致しなければ実行せずに止まる（セキュリティ監査 S18）。
 # 新しい版を使うときは、上流のリリースの digest と中身を確かめてからここを更新する。
 LINUXDEPLOY_SHA256="8aea8da0f7f7039d2a2cecb14657d752a222a5e1d3825caeef186c82f751cdd1"
 LINUXDEPLOY_QT_SHA256="cfc1055b2b9dbc08412b579f20990b7b41a17b61beaa5847dc9477c96c9e9617"
 APPIMAGETOOL_SHA256="95cbe7cce9717fce90c484e34052ee7c7f1d7635b33c12525b4776826a7d29b6"
+APPIMAGE_RUNTIME_SHA256="617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46"
 LINUXDEPLOY="${BUILD_DIR}/linuxdeploy-x86_64.AppImage"
 LINUXDEPLOY_QT="${BUILD_DIR}/linuxdeploy-plugin-qt-x86_64.AppImage"
 APPIMAGETOOL="${BUILD_DIR}/appimagetool-x86_64.AppImage"
+APPIMAGE_RUNTIME="${BUILD_DIR}/runtime-x86_64"
 
 # ──────────────────────────────────────────────
 # デフォルトオプション
@@ -250,6 +255,7 @@ download_if_missing() {
 download_if_missing "$LINUXDEPLOY_URL" "$LINUXDEPLOY" "$LINUXDEPLOY_SHA256"
 download_if_missing "$LINUXDEPLOY_QT_URL" "$LINUXDEPLOY_QT" "$LINUXDEPLOY_QT_SHA256"
 download_if_missing "$APPIMAGETOOL_URL" "$APPIMAGETOOL" "$APPIMAGETOOL_SHA256"
+download_if_missing "$APPIMAGE_RUNTIME_URL" "$APPIMAGE_RUNTIME" "$APPIMAGE_RUNTIME_SHA256"
 
 # ──────────────────────────────────────────────
 # Step 8: AppDir 作成 + linuxdeploy 実行
@@ -470,7 +476,7 @@ python3 scripts/bundled_licenses.py --appdir "$APPDIR" --qt-plugins "$QT_PLUGINS
     --destination "${APPDIR}/usr/share/licenses/ShogiBoardQ"
 
 info "AppImage を生成中..."
-"$APPIMAGETOOL" "$APPDIR" "$APPIMAGE_NAME"
+"$APPIMAGETOOL" --runtime-file "$APPIMAGE_RUNTIME" "$APPDIR" "$APPIMAGE_NAME"
 
 # ──────────────────────────────────────────────
 # Step 9: 検証
