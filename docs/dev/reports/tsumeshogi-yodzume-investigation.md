@@ -1,6 +1,6 @@
 # 詰将棋局面生成の余詰調査（2026-09-24）
 
-本報告は修正前の `08398bbd7fd3676c66bcf9e89f9be2e024e15b00` を対象とする。
+本報告は修正前の `bfa90cd24b0bb12b4e85f20ac70f56419b2fc97f` を対象とする。
 後続の修正内容・回帰テストは [生成機能の仕様](../tsumeshogi-generator.md) を参照。
 
 ## 結論
@@ -17,7 +17,7 @@
 
 | 対象 | 調査開始時の状態 |
 |---|---|
-| ShogiBoardQ | `08398bbd7fd3676c66bcf9e89f9be2e024e15b00`、作業ツリー clean |
+| ShogiBoardQ | `bfa90cd24b0bb12b4e85f20ac70f56419b2fc97f`、作業ツリー clean |
 | `ShogiBoardQ/Hayanagi` | `30cfce58e0a863f9f2d2144635f1d9e9d4e3e54f`、clean、初期化済み |
 | `/home/nakada/GitHub/Hayanagi` | 同じコミット、既存の未追跡 `docs/` あり。内容・状態を変更していない |
 | 適用指示 | ShogiBoardQ直下の `AGENTS.md` を確認。Hayanagi両ディレクトリ内に追加の `AGENTS.md` はなかった |

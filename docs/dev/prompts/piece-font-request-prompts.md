@@ -185,4 +185,4 @@ GUIでは `pieceVariants:<新規ID>` で各セットを確認します。
 
 比較用HTMLはローカルの `/home/nakada/GitHub/ShogiBoardQ/design/alphabet-shogi/index.html` にあります。
 HTMLがなくても、上記生成スクリプトと採用済みSVGから仕様を確認できます。
-アプリへの組み込みはコミット `9f0c5e01`「明朝体のアルファベット駒を9種類追加する」に記録されています。
+アプリへの組み込みはコミット `ca137f65`「明朝体のアルファベット駒を9種類追加する」に記録されています。

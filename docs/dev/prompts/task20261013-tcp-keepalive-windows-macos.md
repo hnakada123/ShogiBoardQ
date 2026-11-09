@@ -12,7 +12,7 @@ Windows と macOS の分岐は API の仕様に沿って書いただけで、コ
 
 ## 作業環境
 
-- リポジトリ：`https://github.com/hnakada123/ShogiBoardQ`（main）。検証対象のコードはコミット `225955c6`
+- リポジトリ：`https://github.com/hnakada123/ShogiBoardQ`（main）。検証対象のコードはコミット `f80b8a3a`
   「通信対局（CSA）ダイアログに接続の維持と連続対局の設定を追加する」以降に含まれます。
 - ビルド手順は `docs/dev/windows-build-and-release.md`（Visual Studio 2019/2022 の MSVC、Qt 6.x msvc 64-bit）と
   `docs/dev/macos-build-and-release.md`（Homebrew の cmake/ninja、Qt 6.x macos）にあります。

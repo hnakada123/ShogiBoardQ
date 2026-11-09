@@ -229,7 +229,7 @@ private slots:
         }
         m_stage = 4;
         if (m_scenario.startsWith("legacy-")) {
-            // b9ea8b68 はUIの有効条件だけを変更した。旧UIと同じ投了経路を通す。
+            // e5d6576f はUIの有効条件だけを変更した。旧UIと同じ投了経路を通す。
             m_window.findChild<QAction*>("actionResign")->setEnabled(true);
             trigger("actionResign");
             if (m_scenario.contains("wait-")) {

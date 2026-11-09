@@ -2,8 +2,8 @@
 
 「セキュリティ監査」の依頼で、`src/`（約8.8万行）・`mcp/`・ビルドと CI と配布・同梱エンジン Hayanagi の入口を監査した。
 
-- 対象のコミットは e9163c87。本文の行番号はこの時点のもの。
-- 前回の監査 `docs/dev/reports/security-audit-2026-10-23.md`（58113bb6）から257コミット。重点は次の順。
+- 対象のコミットは 85c88928。本文の行番号はこの時点のもの。
+- 前回の監査 `docs/dev/reports/security-audit-2026-10-23.md`（25c34973）から257コミット。重点は次の順。
   1. 前回の修正（S1〜S21）が今も効いているか
   2. 前回より後に足された・書き換えられたコード（特に `src/network/`）
   3. 前回見ていない観点
@@ -25,7 +25,7 @@
   - プロセス内の変異ファズ（6ワーカー40分、完了した入力だけで約40万件以上。KIF・KI2・CSA・JKF・USI・USEN・SFEN・局面図・定跡・局面集・Game_Summary・USI の受信行と、書き出しの読み直し）
 - 監査ではソースを変更していない。
 
-> **修正の進み具合**: 2026-11-09 に V1〜V35 を修正し、main へ push した（ddfe601b〜423e75ed）。各項目の内容と確かめた範囲は「7. 修正の記録」にある。Info は、そこに書いたものを除いて未修正である。
+> **修正の進み具合**: 2026-11-09 に V1〜V35 を修正し、main へ push した（3e4ef04e〜581618cf）。各項目の内容と確かめた範囲は「7. 修正の記録」にある。Info は、そこに書いたものを除いて未修正である。
 >
 > **この文書の置き場所**: リポジトリは公開で、`docs/` は GitHub Pages で公開される。そのため、直すまでは git 管理外に置き、修正を push してから `docs/dev/` に移した。公開にあたり、手元のパスと実験の記録を除いた。
 
@@ -550,7 +550,7 @@ GUI・MCP・パーサの3つの担当が別々に見つけた。原因は2つで
 
 ## 7. 修正の記録（2026-11-09）
 
-V1〜V35 を修正し、4つのコミットで main へ push した（ddfe601b・f35628bc・2e8d9a0a・423e75ed）。修正前の基準の実行では `tst_mcp_python` が落ちた（どのテストかはログが上書きされて分からない）。修正後は全143件が通り、`tests/gui` の `commentsAndBookmark`・`branchNavigation`・`tst_ponder_flow` も通った。
+V1〜V35 を修正し、4つのコミットで main へ push した（3e4ef04e・c84a59ca・2bb4e94c・581618cf）。修正前の基準の実行では `tst_mcp_python` が落ちた（どのテストかはログが上書きされて分からない）。修正後は全143件が通り、`tests/gui` の `commentsAndBookmark`・`branchNavigation`・`tst_ponder_flow` も通った。
 
 | # | 直した内容 | 確かめた結果 |
 |---|---|---|
@@ -588,6 +588,6 @@ V1〜V35 を修正し、4つのコミットで main へ push した（ddfe601b�
 | V32 | CLI を別のプロセスグループで起動し、強制終了のときはグループごと終わらせる（POSIX のみ） | 既存のテスト。EOF を無視するエンジンの再現は未実行 |
 | V33 | Windows のパイプ名を起動ごとの乱数入りにする | Windows は未実行（コードのみ） |
 | V34 | Private vulnerability reporting を有効化。`SECURITY.md` とテンプレートの案内 | API で `{"enabled":true}` |
-| V35 | `.claude/settings.local.json` と `.qtcreator/*.user.*` を追跡から外して `.gitignore` に追加 | コミット ddfe601b で追跡から外した |
+| V35 | `.claude/settings.local.json` と `.qtcreator/*.user.*` を追跡から外して `.gitignore` に追加 | コミット 3e4ef04e で追跡から外した |
 
 Info は V12 と一緒に直したエンジン出力の部品と、`SHOGIBOARDQ_ALLOWED_DIRS` の空の値・相対パス以外は手を付けていない。

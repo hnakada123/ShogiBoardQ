@@ -1,8 +1,8 @@
 # コード監査：責務の整理（2026-11-07）
 
-「ソースコードが責務の見地から整理されているか」という依頼で、`src/` 全体（約8.7万行、757ファイル）と `mcp/` を監査した。前回の対象（452980ae）から143コミットで、src は 4,177 行増え、3,002 行減っている。
+「ソースコードが責務の見地から整理されているか」という依頼で、`src/` 全体（約8.7万行、757ファイル）と `mcp/` を監査した。前回の対象（a98a8780）から143コミットで、src は 4,177 行増え、3,002 行減っている。
 
-- 対象のコミットは ce114a6c。本文の行番号はこの時点のもの。
+- 対象のコミットは 3152bfc1。本文の行番号はこの時点のもの。
 - 6つの範囲に分けてコードを読み、呼び出し元を grep で確かめた。
   - core・kifu
   - engine・game・analysis・network・headless
@@ -74,45 +74,45 @@
 
 | # | 食い違い | 原因 | 確認 |
 |---|---|---|---|
-| F1 | KIF・KI2 のコメントの語で開始局面が変わる。<br>(a) 平手の棋譜の `*駒の配置：まだ序盤` の後に9行以上あると「棋譜ファイルの開始局面が不正です」で読めない。<br>(b) 局面図の棋譜の末尾の `*玉の配置：良い` で局面図を捨て、平手として読む。結果は `ok: true`。<br>(c) 先手番の局面図に `*ここで後手番なら負け。手数＝30` と書くと、開始局面が `w G 31` になる。<br>(d) 局面図の前の `# ここは先手番の棋譜です` が、実際の `後手番` の行を隠す | `KifLexer::readBodPosition` が指し手・コメントを含む全行を `contains` で探す（`kiflexer.cpp:340,378-379,384-386`）。呼び出しは `kiftextparser.cpp:45`。手合割の行（`kiftextparser.cpp:53`）と局面図のないときの手番の行は行頭・完全一致で読むので、規則が2つある | CLI で再現<br>**状態: 済（cc972426）** |
-| F2 | 局面図の見出しが `先手の持ち駒：` だと、持ち駒が消える（`持駒` と書けば読める）。後の打つ手に「持ち駒にない」の警告が出るだけ | 見出しの表が3つある。`isBodHandsLine` は8語（`parsecommon.cpp:84-87`）、`addBodHands` は4語（`kiflexer.cpp:302-303`）、形式の判別は4語（`kifuformat.cpp:215-218`） | CLI で再現<br>**状態: 済（f8011242）** |
-| F3 | 壊れた開始局面の扱いが形式で違う。CSA の駒が8個の `P1` は段ごと捨て、`XX` は空きマスにする。KIF の局面図の `X銀` は先手の銀になる。`手合割：九枚落ち` は平手になる。どれも警告なしで `ok: true`。JKF・USEN・USI は失敗にする | 指し手の `ParseReport` に当たる規則が開始局面にない。`parseStartPos` は行の読みの結果を見ない（`csalexer.cpp:234,262,317,320`）。読めない文字は飛ばす（`kiflexer.cpp:267,270`）。知らない手合割は平手（`kiftextparser.cpp:66-68`） | CLI で再現<br>**状態: 済（8659347e）。Q3 のとおり失敗にする** |
-| F4 | 持駒に玉がある SFEN（`8k/9/9/9/9/9/9/9/8K b K 1`）を、`validate-sfen` は断り、USI の棋譜の読み込みは玉を黙って消して `ok: true` にする。局面の貼り付けも同じ経路を通る（コードで確認）。`automationcommands_position.cpp:33` の「GUI の局面の貼り付けと同じ規則」と合わない | `Position::fromSfen` は持駒の `K` を受け付け、`handsSfen` は7種だけを書くので玉が消える（`shogiposition.cpp:169-173`）。`parseContent` は書き戻した文字列で検査するので `KingInHand` に届かない（`kifuloadparser.cpp:132`）。前回 U1 の「済」の残り | CLI で再現<br>**状態: 済（51bf2303）。Q4 のとおり `fromSfen` が断る** |
-| F8 | `generate-tsume` のエンジンの失敗（起動しない・`go mate` に対応しない）が、MCP では `finished` になる。`engine_error` の語が失われ、「Started…」を返す | 生成器は `errorOccurred` の直後に `finished` を出す（`tsumeshogigenerator.cpp:205-206,214-215,223-224`）。CLI はどちらもイベントに書く（`clicommands_tsume.cpp:60,67`）。`JobManager._apply` は `finished` で状態を上書きする（`jobs.py:217-223`）。ほかの中継役は error で loop を抜ける。`mcp-server.md` の「error → failed」と合わない | CLI のイベント列は再現。`jobs.py` はコードで確認<br>**状態: 済（60b07c27）。error の後に finished を書かない** |
-| F16 | 同じ問題の SFEN で、`mate` は攻方の手番に直して探索し、`verify-tsume` は `invalid` を返す（`4k4/9/4P4/9/9/9/9/9/9 w G 1`） | `MateSearchPosition::attackerToMove` を `mate` だけが通す（`clicommands_engine.cpp:306-308`。`clicommands_tsume.cpp:202` は通さない）。前回 F16 の修正が届いていない | CLI で再現（範囲の監査）、コードで確認<br>**状態: 済（60b07c27）** |
-| F17 | `generate-tsume` は41手を受け付けるのに、`verify-tsume --target-moves 41` は「between 1 and 39」で断る。生成した問題を検査できない | 上限が4か所にある。`clicommandspecs.cpp:226`（39。根拠なし）、`tsumeshogiverifier.cpp:196`（99の直書き）、`tsumeshogicandidatescreener.cpp:14`（63）、`tsumeshogisettings.h:92`（99）。`clicommands_tsume.cpp:197` のコメントも「1〜39」と書く | CLI で再現<br>**状態: 済（60b07c27）。`GeneratorLimits` を正本にする** |
-| F18 | `convert-kifu --output-format usi --output-path m.kif` は成功し、できたファイルを CLI 自身が読めない（`parse_error`） | GUI と `kifu.save` は拡張子が形式を決める（`KifuSaveFile::saveFormatForPath`）。CLI は `output_format` と `output_path` が独立（`clicommands_basic.cpp:119,123,153`）。MCP も拡張子が一覧にあるかだけを見る（`tooldefs.py:207`） | CLI で再現<br>**状態: 済（45286073）** |
-| F19 | AI クライアントが `.usen`・`.usi`・`.csa` へ変換・保存すると、コメント・消費時間・しおりが消えても `warnings: []`。結果の値に出ない | `KifuExport::lossIn` の呼び出しは保存の確認とコピーの知らせだけ（`kifufilecontroller.cpp:236,328`）。`convert-kifu` は変化だけを別の式で求める（`kifuconversionservice.cpp:47`）。`kifu.save` の結果には無い（`automationcommands_kifu.cpp:120-132`） | CLI で再現（範囲の監査）<br>**状態: 済（eddf4d67）。結果の `lost`** |
+| F1 | KIF・KI2 のコメントの語で開始局面が変わる。<br>(a) 平手の棋譜の `*駒の配置：まだ序盤` の後に9行以上あると「棋譜ファイルの開始局面が不正です」で読めない。<br>(b) 局面図の棋譜の末尾の `*玉の配置：良い` で局面図を捨て、平手として読む。結果は `ok: true`。<br>(c) 先手番の局面図に `*ここで後手番なら負け。手数＝30` と書くと、開始局面が `w G 31` になる。<br>(d) 局面図の前の `# ここは先手番の棋譜です` が、実際の `後手番` の行を隠す | `KifLexer::readBodPosition` が指し手・コメントを含む全行を `contains` で探す（`kiflexer.cpp:340,378-379,384-386`）。呼び出しは `kiftextparser.cpp:45`。手合割の行（`kiftextparser.cpp:53`）と局面図のないときの手番の行は行頭・完全一致で読むので、規則が2つある | CLI で再現<br>**状態: 済（108163ee）** |
+| F2 | 局面図の見出しが `先手の持ち駒：` だと、持ち駒が消える（`持駒` と書けば読める）。後の打つ手に「持ち駒にない」の警告が出るだけ | 見出しの表が3つある。`isBodHandsLine` は8語（`parsecommon.cpp:84-87`）、`addBodHands` は4語（`kiflexer.cpp:302-303`）、形式の判別は4語（`kifuformat.cpp:215-218`） | CLI で再現<br>**状態: 済（2451eb2c）** |
+| F3 | 壊れた開始局面の扱いが形式で違う。CSA の駒が8個の `P1` は段ごと捨て、`XX` は空きマスにする。KIF の局面図の `X銀` は先手の銀になる。`手合割：九枚落ち` は平手になる。どれも警告なしで `ok: true`。JKF・USEN・USI は失敗にする | 指し手の `ParseReport` に当たる規則が開始局面にない。`parseStartPos` は行の読みの結果を見ない（`csalexer.cpp:234,262,317,320`）。読めない文字は飛ばす（`kiflexer.cpp:267,270`）。知らない手合割は平手（`kiftextparser.cpp:66-68`） | CLI で再現<br>**状態: 済（a40426f4）。Q3 のとおり失敗にする** |
+| F4 | 持駒に玉がある SFEN（`8k/9/9/9/9/9/9/9/8K b K 1`）を、`validate-sfen` は断り、USI の棋譜の読み込みは玉を黙って消して `ok: true` にする。局面の貼り付けも同じ経路を通る（コードで確認）。`automationcommands_position.cpp:33` の「GUI の局面の貼り付けと同じ規則」と合わない | `Position::fromSfen` は持駒の `K` を受け付け、`handsSfen` は7種だけを書くので玉が消える（`shogiposition.cpp:169-173`）。`parseContent` は書き戻した文字列で検査するので `KingInHand` に届かない（`kifuloadparser.cpp:132`）。前回 U1 の「済」の残り | CLI で再現<br>**状態: 済（67783a9d）。Q4 のとおり `fromSfen` が断る** |
+| F8 | `generate-tsume` のエンジンの失敗（起動しない・`go mate` に対応しない）が、MCP では `finished` になる。`engine_error` の語が失われ、「Started…」を返す | 生成器は `errorOccurred` の直後に `finished` を出す（`tsumeshogigenerator.cpp:205-206,214-215,223-224`）。CLI はどちらもイベントに書く（`clicommands_tsume.cpp:60,67`）。`JobManager._apply` は `finished` で状態を上書きする（`jobs.py:217-223`）。ほかの中継役は error で loop を抜ける。`mcp-server.md` の「error → failed」と合わない | CLI のイベント列は再現。`jobs.py` はコードで確認<br>**状態: 済（9effece3）。error の後に finished を書かない** |
+| F16 | 同じ問題の SFEN で、`mate` は攻方の手番に直して探索し、`verify-tsume` は `invalid` を返す（`4k4/9/4P4/9/9/9/9/9/9 w G 1`） | `MateSearchPosition::attackerToMove` を `mate` だけが通す（`clicommands_engine.cpp:306-308`。`clicommands_tsume.cpp:202` は通さない）。前回 F16 の修正が届いていない | CLI で再現（範囲の監査）、コードで確認<br>**状態: 済（9effece3）** |
+| F17 | `generate-tsume` は41手を受け付けるのに、`verify-tsume --target-moves 41` は「between 1 and 39」で断る。生成した問題を検査できない | 上限が4か所にある。`clicommandspecs.cpp:226`（39。根拠なし）、`tsumeshogiverifier.cpp:196`（99の直書き）、`tsumeshogicandidatescreener.cpp:14`（63）、`tsumeshogisettings.h:92`（99）。`clicommands_tsume.cpp:197` のコメントも「1〜39」と書く | CLI で再現<br>**状態: 済（9effece3）。`GeneratorLimits` を正本にする** |
+| F18 | `convert-kifu --output-format usi --output-path m.kif` は成功し、できたファイルを CLI 自身が読めない（`parse_error`） | GUI と `kifu.save` は拡張子が形式を決める（`KifuSaveFile::saveFormatForPath`）。CLI は `output_format` と `output_path` が独立（`clicommands_basic.cpp:119,123,153`）。MCP も拡張子が一覧にあるかだけを見る（`tooldefs.py:207`） | CLI で再現<br>**状態: 済（40525ea8）** |
+| F19 | AI クライアントが `.usen`・`.usi`・`.csa` へ変換・保存すると、コメント・消費時間・しおりが消えても `warnings: []`。結果の値に出ない | `KifuExport::lossIn` の呼び出しは保存の確認とコピーの知らせだけ（`kifufilecontroller.cpp:236,328`）。`convert-kifu` は変化だけを別の式で求める（`kifuconversionservice.cpp:47`）。`kifu.save` の結果には無い（`automationcommands_kifu.cpp:120-132`） | CLI で再現（範囲の監査）<br>**状態: 済（c9f90d51）。結果の `lost`** |
 
 ### 1.2 コードで確かめたもの
 
 | # | 食い違い | 原因 |
 |---|---|---|
-| F5 | 人間対エンジンで、エンジンの手番に「投了」を押すと、**エンジンの投了**として終局する。人間の勝ちになり、棋譜の終局の行・自動保存もそうなる。エンジンには `gameover lose` が届く | `MatchCoordinator::handleResign` は敗者を無条件に `sideToMove()` とする（`matchcoordinator.cpp:267-272`）。「投了」の QAction は対局中ずっと有効で、見るのは人間が参加するかだけ（`uistatepolicymanager.cpp:88,201-206`）。通信対局は `performResign` が「相手の手番です」で断り（`csagamecoordinator.cpp:213-217`）、入玉宣言は `isHumanToMove()` で断る（`nyugyokudeclarationhandler.cpp:28-32`）。`gamechannel.h:42` の説明は「入玉宣言・投了」と書くが、`isHumanToMove()` を使うのは入玉宣言だけ。テストは人間同士か時計の順序だけで、この場合を試していない<br>**状態: 済（2dd077fe）。Q1 のとおり断る。通信対局は自分の手番なら、エンジンに指させている対局でも人が投了できる（`GameChannel::canResign`）** |
-| F6 | `.csa`・`.usi`・`.usen` を開き、盤で変化を足すかコメントを書いて「上書き保存」すると、その内容がファイルに入らないまま未保存の印が消える。閉じるときも確認が出ない。「名前を付けて保存」なら同じ形式で確認が出る。未保存の確認で「保存」を選んだときも同じ経路 | 確認は `KifuSaveDialogs::saveViaDialog` の中だけ（`kifusavedialogs.cpp:92-96`）。`overwriteKifuFile` → `writeToPath` は `lossIn` を見ず、`markSaved` する（`kifufilecontroller.cpp:60-65,242-253,260-271`）。開いたファイルは `finishLoad` が保存先にする（`:166`）。前回 F31 の状態欄に「上書き保存…で確認しないのは、ほかの形式と同じ」とあるが、これは現状の説明で、決めた記録はない（1.3 の Q2）<br>**状態: 済（62569abc・c75d42f6）。Q2 のとおり、失うものがあるときだけ確認する。変更が無ければ失うものは増えないので、形式を選んで保存した後の上書き保存では聞かない（GUI テスト `fileOpenSave` で分かった）** |
-| F7 | `kifu.save` だけが動作状態を見ない。対局中・棋譜解析中・局面編集中でも保存し、未保存の印を消す。局面編集中は編集前の棋譜を書く。GUI の保存は kBrowsing の間だけ有効 | `automationcommands_kifu.cpp:107-120` に検査がない。`kifu.goto` は `canBrowseRecord`、`kifu.load`・`position.set` は `canReplaceRecord` を通す<br>**状態: 済（0f2fbc84）。`HumanTurnPolicy::canSaveRecord`** |
-| F9 | 棋譜欄・分岐候補欄・棋譜解析の結果の表のツールチップが `plainToolTip` を通らない。KIF の独自の終局語に `<img src="file:///…">` を書いた棋譜の行にマウスを乗せると、セキュリティ監査 S12 と同じくリッチテキストとして描かれる（読み込みは CLI で再現。`△<img src=…>` が表記に入る）。同じ手を出す分岐ツリーの図は包んでいる。読み筋も、指せる手が無いとエンジンの語のまま（`kifupresentation.cpp:103`）で、思考の表は包むが結果の表は包まない | `kifurecordlistmodel.cpp:66`、`kifubranchlistmodel.cpp:47-48`、`kifuanalysislistmodel.cpp:101-108`。前回 M12 の「済」の残り。`tst_plain_tooltip` はこの3つを試していない。CLAUDE.md の「外から来た文字列」の列挙に終局語・読み筋が無い。付随して、`josekiwindow.cpp:322,713` は AutoText のラベルにファイル名を入れる<br>**状態: 済（7d1710c6）。ファイルの場所のツールチップと読み筋盤も包み、定跡ウィンドウの状態の行は PlainText にした** |
-| F10 | 定跡ウィンドウの「着手」が動作状態の変化で更新されない。対局の後は「着手」ボタンが消えたままで、右クリックとダブルクリックでは指せる。検討の開始などでは逆にボタンが残り、押すと知らせが出る。別の手へ移るまで直らない | 表の `humanCanPlay` を作り直すのは、局面の変化・定跡の変化・ドックの表示だけ（`josekiwindowcontroller.cpp:54-56`）。`AppActivityState::changed` を受けない。対局は棋譜の確定の後にリースを手放す（`matchcoordinator.cpp:402-403`）ので、その後に局面の変化は起きない。`JosekiWindow::updateHumanCanPlay` は公開だが、外からの呼び出しは0<br>**状態: 済（e5d7187c）** |
-| F11 | 通信対局: エンジンの初期化中に Game_Summary が届くと、起動中のエンジンを捨てて起動し直す。評価関数の読み込みが長いエンジンで、相手が待っていると、初期化を最初からやり直し、AGREE が遅れる | `onLoginSucceeded` が `startEngine()` を呼ぶ（`csagamecoordinator.cpp:322`）。`onGameSummaryReceived` は `!isReady()` なら再び呼ぶ（`csagamecoordinator_setup.cpp:137-142`）。`isReady()` は初期化中も false で、`MatchEngineSeat::start` の `release()` が前のプロセスを終わらせる。すぐ後の `:146` は初期化中を想定しており、`:109` のコメントとも合わない<br>**状態: 済（583a27e4）** |
-| F12 | 通信対局: 開始局面の失敗の扱いが2通りあり、どちらも START の後に起きる。Position を読めないと警告のログだけで平手にして続け、誤った開始局面の棋譜を自動保存する。再開局面の手を指せないと `setPhase(Failed)` にするが、切断もエンジンの解放もしない | `csagamecoordinator_setup.cpp:29-36,44-53`。`failGame` を通らない（`csagamecoordinator.cpp:508-521`）。読めない局面に AGREE している<br>**状態: 済（a66802cc）。`CsaGameProgress::startLine` で同意の前に確かめ、読めなければ REJECT する** |
-| F13 | 通信対局を続けると、結果の知らせが局の数だけ積み重なる。ローカルの連続対局は前の知らせを閉じる（前回 U4）。`gamesession.h` は「通信対局と同じ」と書く | `csagamesession.cpp:148-154` は `NotificationPresenter::information` の戻り値を捨てる。`gamesession.cpp:298-305` は閉じる<br>**状態: 済（e4a314c5）。`NotificationPresenter::replaceInformation`** |
-| F14 | 自動保存の保存先が空のとき、通信対局は開始できず、ローカル対局は黙って保存しない。空白だけの欄の扱いも違う（通信対局は `trimmed()`） | `csagamedialog.cpp:141-143`、`startgamedialog.cpp:259-265`、`matchautosave.h:17`。`isActive()` が偽なので `autoSaveKifu` の知らせにも届かない。前回 F21・U6 で形式と既定はそろえたが、保存先の規則が残った<br>**状態: 済（625e69a6）。`MatchAutoSave::lacksDir`** |
-| F15 | 局面編集中の `position.get`・`app.state` の `sfen` が編集前の局面になる。説明は「shown in ShogiBoardQ」。制限モードでは編集中の手番・持ち駒を読む手段が無い | 「表示中の局面」の定義が2つある。`AutomationCommands::currentSfen` はノードを先に読み（`automationcommands.cpp:30-35`）、`KifuFileController::boardSfen` は盤を読む（`kifufilecontroller.cpp:360-368`）<br>**状態: 済（731f84d2）** |
-| F20 | `KifuExport::lossIn` の再帰が、セキュリティ監査 S5 を再び開いている。変化を書ける形式の保存・コピーで手数の深さだけ再帰する。読み込みと変換は通るのに、保存の確認で落ちる（範囲の監査の見積もりは 8MB のスタックで約10万手、Windows のメインスレッドで約1.3万手。実行は未確認） | `collectSubtree`（`kifuexport.cpp:38-43,122`）。F20（前回）の d0fd008d で足された。同じ群の `collectLines`・`forgetSubtree`・`subtreeSize`・`~KifuBranchNode` は S5 で明示のスタックにしてある<br>**状態: 済（c1b6e581）** |
-| F21 | 局面編集の後の対局情報が、開始局面によらず「手合割：平手」になる。対局せずに保存すると、KIF には `手合割：平手` と局面図が両方書かれる。このアプリは局面図を優先するので読み戻せる。ほかのソフトの扱いは未確認 | `KifuDocument::startNew` が `defaultHeader()` を使う（`kifudocument.cpp:91,107`）。編集の終わりは `resetRecordForEditedPosition`（`mainwindowactions.cpp:36`）→ `resetToNewRecord` → `startNew`。`GameInfo::handicapLabel` があるのに使っていない<br>**状態: 済（14b52473）。局面図で表す局面は「その他」にする** |
-| F22 | 定跡の比率の計算が3か所にあり、出現頻度がすべて0の局面の扱いが違う。比率の下限を付けると、「棋譜に展開」では全部使われ、対局では1手も使われない | 合計0のとき、`JosekiLines` は100%（`josekilines.cpp:45,52-53`）、`JosekiMovePicker` は0%（`josekimovepicker.cpp:25-28,75`）、`JosekiTableModel` は空欄（`josekitablemodel.cpp:46-47,131-132`）。誤差の `1e-9` も2か所に写している<br>**状態: 済（6cae0aa1）。合計0の局面は比率で絞らないに揃えた（`meetsMinRatio`）** |
-| F23 | 「履歴」メニューの項目のツールチップ（ファイルの場所）が出ない。同じ名前のファイルが別のフォルダにあると区別できない | `RecentFilesMenu` は場所をツールチップに入れる（`recentfilesmenu.cpp:27`）が、`setToolTipsVisible(true)` は src で `pvtableview.cpp:83` だけ。Qt の既定は false。画面では未確認<br>**状態: 済（5b41d608）** |
-| F24 | MCP の `load_kifu` の要約に `warnings` が出ない。読めない手で打ち切った棋譜が「Loaded N plies」としか見えない。`convert_kifu` は要約に書く | `handlers_app.py` の `load_kifu`。出力スキーマにも無い<br>**状態: 済（ecbd0030）** |
+| F5 | 人間対エンジンで、エンジンの手番に「投了」を押すと、**エンジンの投了**として終局する。人間の勝ちになり、棋譜の終局の行・自動保存もそうなる。エンジンには `gameover lose` が届く | `MatchCoordinator::handleResign` は敗者を無条件に `sideToMove()` とする（`matchcoordinator.cpp:267-272`）。「投了」の QAction は対局中ずっと有効で、見るのは人間が参加するかだけ（`uistatepolicymanager.cpp:88,201-206`）。通信対局は `performResign` が「相手の手番です」で断り（`csagamecoordinator.cpp:213-217`）、入玉宣言は `isHumanToMove()` で断る（`nyugyokudeclarationhandler.cpp:28-32`）。`gamechannel.h:42` の説明は「入玉宣言・投了」と書くが、`isHumanToMove()` を使うのは入玉宣言だけ。テストは人間同士か時計の順序だけで、この場合を試していない<br>**状態: 済（b9198b44）。Q1 のとおり断る。通信対局は自分の手番なら、エンジンに指させている対局でも人が投了できる（`GameChannel::canResign`）** |
+| F6 | `.csa`・`.usi`・`.usen` を開き、盤で変化を足すかコメントを書いて「上書き保存」すると、その内容がファイルに入らないまま未保存の印が消える。閉じるときも確認が出ない。「名前を付けて保存」なら同じ形式で確認が出る。未保存の確認で「保存」を選んだときも同じ経路 | 確認は `KifuSaveDialogs::saveViaDialog` の中だけ（`kifusavedialogs.cpp:92-96`）。`overwriteKifuFile` → `writeToPath` は `lossIn` を見ず、`markSaved` する（`kifufilecontroller.cpp:60-65,242-253,260-271`）。開いたファイルは `finishLoad` が保存先にする（`:166`）。前回 F31 の状態欄に「上書き保存…で確認しないのは、ほかの形式と同じ」とあるが、これは現状の説明で、決めた記録はない（1.3 の Q2）<br>**状態: 済（2ea134f2・ceb353f3）。Q2 のとおり、失うものがあるときだけ確認する。変更が無ければ失うものは増えないので、形式を選んで保存した後の上書き保存では聞かない（GUI テスト `fileOpenSave` で分かった）** |
+| F7 | `kifu.save` だけが動作状態を見ない。対局中・棋譜解析中・局面編集中でも保存し、未保存の印を消す。局面編集中は編集前の棋譜を書く。GUI の保存は kBrowsing の間だけ有効 | `automationcommands_kifu.cpp:107-120` に検査がない。`kifu.goto` は `canBrowseRecord`、`kifu.load`・`position.set` は `canReplaceRecord` を通す<br>**状態: 済（1a58b5b0）。`HumanTurnPolicy::canSaveRecord`** |
+| F9 | 棋譜欄・分岐候補欄・棋譜解析の結果の表のツールチップが `plainToolTip` を通らない。KIF の独自の終局語に `<img src="file:///…">` を書いた棋譜の行にマウスを乗せると、セキュリティ監査 S12 と同じくリッチテキストとして描かれる（読み込みは CLI で再現。`△<img src=…>` が表記に入る）。同じ手を出す分岐ツリーの図は包んでいる。読み筋も、指せる手が無いとエンジンの語のまま（`kifupresentation.cpp:103`）で、思考の表は包むが結果の表は包まない | `kifurecordlistmodel.cpp:66`、`kifubranchlistmodel.cpp:47-48`、`kifuanalysislistmodel.cpp:101-108`。前回 M12 の「済」の残り。`tst_plain_tooltip` はこの3つを試していない。CLAUDE.md の「外から来た文字列」の列挙に終局語・読み筋が無い。付随して、`josekiwindow.cpp:322,713` は AutoText のラベルにファイル名を入れる<br>**状態: 済（be1937b5）。ファイルの場所のツールチップと読み筋盤も包み、定跡ウィンドウの状態の行は PlainText にした** |
+| F10 | 定跡ウィンドウの「着手」が動作状態の変化で更新されない。対局の後は「着手」ボタンが消えたままで、右クリックとダブルクリックでは指せる。検討の開始などでは逆にボタンが残り、押すと知らせが出る。別の手へ移るまで直らない | 表の `humanCanPlay` を作り直すのは、局面の変化・定跡の変化・ドックの表示だけ（`josekiwindowcontroller.cpp:54-56`）。`AppActivityState::changed` を受けない。対局は棋譜の確定の後にリースを手放す（`matchcoordinator.cpp:402-403`）ので、その後に局面の変化は起きない。`JosekiWindow::updateHumanCanPlay` は公開だが、外からの呼び出しは0<br>**状態: 済（2a4f1c98）** |
+| F11 | 通信対局: エンジンの初期化中に Game_Summary が届くと、起動中のエンジンを捨てて起動し直す。評価関数の読み込みが長いエンジンで、相手が待っていると、初期化を最初からやり直し、AGREE が遅れる | `onLoginSucceeded` が `startEngine()` を呼ぶ（`csagamecoordinator.cpp:322`）。`onGameSummaryReceived` は `!isReady()` なら再び呼ぶ（`csagamecoordinator_setup.cpp:137-142`）。`isReady()` は初期化中も false で、`MatchEngineSeat::start` の `release()` が前のプロセスを終わらせる。すぐ後の `:146` は初期化中を想定しており、`:109` のコメントとも合わない<br>**状態: 済（adf9bd6c）** |
+| F12 | 通信対局: 開始局面の失敗の扱いが2通りあり、どちらも START の後に起きる。Position を読めないと警告のログだけで平手にして続け、誤った開始局面の棋譜を自動保存する。再開局面の手を指せないと `setPhase(Failed)` にするが、切断もエンジンの解放もしない | `csagamecoordinator_setup.cpp:29-36,44-53`。`failGame` を通らない（`csagamecoordinator.cpp:508-521`）。読めない局面に AGREE している<br>**状態: 済（fc1cd2a1）。`CsaGameProgress::startLine` で同意の前に確かめ、読めなければ REJECT する** |
+| F13 | 通信対局を続けると、結果の知らせが局の数だけ積み重なる。ローカルの連続対局は前の知らせを閉じる（前回 U4）。`gamesession.h` は「通信対局と同じ」と書く | `csagamesession.cpp:148-154` は `NotificationPresenter::information` の戻り値を捨てる。`gamesession.cpp:298-305` は閉じる<br>**状態: 済（105fe086）。`NotificationPresenter::replaceInformation`** |
+| F14 | 自動保存の保存先が空のとき、通信対局は開始できず、ローカル対局は黙って保存しない。空白だけの欄の扱いも違う（通信対局は `trimmed()`） | `csagamedialog.cpp:141-143`、`startgamedialog.cpp:259-265`、`matchautosave.h:17`。`isActive()` が偽なので `autoSaveKifu` の知らせにも届かない。前回 F21・U6 で形式と既定はそろえたが、保存先の規則が残った<br>**状態: 済（1de42979）。`MatchAutoSave::lacksDir`** |
+| F15 | 局面編集中の `position.get`・`app.state` の `sfen` が編集前の局面になる。説明は「shown in ShogiBoardQ」。制限モードでは編集中の手番・持ち駒を読む手段が無い | 「表示中の局面」の定義が2つある。`AutomationCommands::currentSfen` はノードを先に読み（`automationcommands.cpp:30-35`）、`KifuFileController::boardSfen` は盤を読む（`kifufilecontroller.cpp:360-368`）<br>**状態: 済（b4e35428）** |
+| F20 | `KifuExport::lossIn` の再帰が、セキュリティ監査 S5 を再び開いている。変化を書ける形式の保存・コピーで手数の深さだけ再帰する。読み込みと変換は通るのに、保存の確認で落ちる（範囲の監査の見積もりは 8MB のスタックで約10万手、Windows のメインスレッドで約1.3万手。実行は未確認） | `collectSubtree`（`kifuexport.cpp:38-43,122`）。F20（前回）の 5e5837d3 で足された。同じ群の `collectLines`・`forgetSubtree`・`subtreeSize`・`~KifuBranchNode` は S5 で明示のスタックにしてある<br>**状態: 済（e1609a8a）** |
+| F21 | 局面編集の後の対局情報が、開始局面によらず「手合割：平手」になる。対局せずに保存すると、KIF には `手合割：平手` と局面図が両方書かれる。このアプリは局面図を優先するので読み戻せる。ほかのソフトの扱いは未確認 | `KifuDocument::startNew` が `defaultHeader()` を使う（`kifudocument.cpp:91,107`）。編集の終わりは `resetRecordForEditedPosition`（`mainwindowactions.cpp:36`）→ `resetToNewRecord` → `startNew`。`GameInfo::handicapLabel` があるのに使っていない<br>**状態: 済（27dfc984）。局面図で表す局面は「その他」にする** |
+| F22 | 定跡の比率の計算が3か所にあり、出現頻度がすべて0の局面の扱いが違う。比率の下限を付けると、「棋譜に展開」では全部使われ、対局では1手も使われない | 合計0のとき、`JosekiLines` は100%（`josekilines.cpp:45,52-53`）、`JosekiMovePicker` は0%（`josekimovepicker.cpp:25-28,75`）、`JosekiTableModel` は空欄（`josekitablemodel.cpp:46-47,131-132`）。誤差の `1e-9` も2か所に写している<br>**状態: 済（4f1ef5e7）。合計0の局面は比率で絞らないに揃えた（`meetsMinRatio`）** |
+| F23 | 「履歴」メニューの項目のツールチップ（ファイルの場所）が出ない。同じ名前のファイルが別のフォルダにあると区別できない | `RecentFilesMenu` は場所をツールチップに入れる（`recentfilesmenu.cpp:27`）が、`setToolTipsVisible(true)` は src で `pvtableview.cpp:83` だけ。Qt の既定は false。画面では未確認<br>**状態: 済（afa22d2d）** |
+| F24 | MCP の `load_kifu` の要約に `warnings` が出ない。読めない手で打ち切った棋譜が「Loaded N plies」としか見えない。`convert_kifu` は要約に書く | `handlers_app.py` の `load_kifu`。出力スキーマにも無い<br>**状態: 済（15d9f04d）** |
 
 ### 1.3 仕様の判断が要るもの
 
 | # | 問い | 推奨 |
 |---|---|---|
-| Q1 | F5: エンジンの手番の「投了」をどう扱うか | **断る**（「投了は自分の手番で行います」）。通信対局・入玉宣言と同じ扱いで、棋譜の形式の制約（`RecordEntry::forSideToMove`）にも触れない。人間の負けとして受け付ける案は、手番でない側の投了の行が書けない<br>**状態: 済（2dd077fe）** |
-| Q2 | F6: 「上書き保存」で失うものを確認するか | **失うものがあるときだけ確認する**。無ければ今のまま何も出ない。自動保存と自動化 API は確認を出さず、F19 の結果の値で知らせる<br>**状態: 済（62569abc）** |
-| Q3 | F3: 開始局面を読めないとき、失敗にするか警告にするか | **失敗にする**。指し手と違い、開始局面が違うと以後の手がすべて意味を失う。知らない手合割だけは、局面図があれば局面図で読めるので今のままでよい<br>**状態: 済（8659347e）** |
-| Q4 | F4: 持駒の玉を断るか、往復で保つか | **`fromSfen` が断る**。局面編集でも持ち駒にできず（`positioneditrules.cpp:51`）、使う場面がない。`startPositionProblem(Position)` の重ね書きも要らなくなる<br>**状態: 済（51bf2303）** |
-| Q5 | `GameSession::startGameFromDialog` の `hasEditedStart` が前の対局の手順も見る（`gamesession.cpp:149`）。`m_record` は次の対局まで残るので、駒落ちの対局の後に「新規」や平手の棋譜の読み込みをしても、ダイアログが「現在の局面」に固定される。意図か | 意図でなければ `|| isEditedStart(m_deps.match->record().startSfen)` を消す（「中断した対局の再開のため」などの理由があれば、コメントに書く）<br>**状態: 済（19415f4e）。コードの履歴に理由が無いので消した** |
+| Q1 | F5: エンジンの手番の「投了」をどう扱うか | **断る**（「投了は自分の手番で行います」）。通信対局・入玉宣言と同じ扱いで、棋譜の形式の制約（`RecordEntry::forSideToMove`）にも触れない。人間の負けとして受け付ける案は、手番でない側の投了の行が書けない<br>**状態: 済（b9198b44）** |
+| Q2 | F6: 「上書き保存」で失うものを確認するか | **失うものがあるときだけ確認する**。無ければ今のまま何も出ない。自動保存と自動化 API は確認を出さず、F19 の結果の値で知らせる<br>**状態: 済（2ea134f2）** |
+| Q3 | F3: 開始局面を読めないとき、失敗にするか警告にするか | **失敗にする**。指し手と違い、開始局面が違うと以後の手がすべて意味を失う。知らない手合割だけは、局面図があれば局面図で読めるので今のままでよい<br>**状態: 済（a40426f4）** |
+| Q4 | F4: 持駒の玉を断るか、往復で保つか | **`fromSfen` が断る**。局面編集でも持ち駒にできず（`positioneditrules.cpp:51`）、使う場面がない。`startPositionProblem(Position)` の重ね書きも要らなくなる<br>**状態: 済（67783a9d）** |
+| Q5 | `GameSession::startGameFromDialog` の `hasEditedStart` が前の対局の手順も見る（`gamesession.cpp:149`）。`m_record` は次の対局まで残るので、駒落ちの対局の後に「新規」や平手の棋譜の読み込みをしても、ダイアログが「現在の局面」に固定される。意図か | 意図でなければ `|| isEditedStart(m_deps.match->record().startSfen)` を消す（「中断した対局の再開のため」などの理由があれば、コメントに書く）<br>**状態: 済（913db567）。コードの履歴に理由が無いので消した** |
 
 ---
 
@@ -120,7 +120,7 @@
 
 ### T1. 開始局面の読み取りに共通の規則がない（kifu）。F1〜F4 の原因
 
-**状態: 済（cc972426・f8011242・51bf2303・8659347e）**
+**状態: 済（108163ee・2451eb2c・67783a9d・a40426f4）**
 
 前回 T1 で「指し手の読み」は全形式で `KifLineBuilder` → `MoveRecord::play` に揃った。開始局面（局面図・P 行・手合割）は、この整理の外に残っている。
 
@@ -142,7 +142,7 @@
 
 ### T2. 棋譜の保存の規則が入口ごとに違う（kifu・ui・automation・cli・mcp）。F6・F7・F14・F18・F19・F20 の原因
 
-**状態: 済（62569abc・0f2fbc84・eddf4d67・45286073・625e69a6・c1b6e581）**
+**状態: 済（2ea134f2・1a58b5b0・c9f90d51・40525ea8・1de42979・e1609a8a）**
 
 入口は5つある。規則は「名前を付けて保存」に集まっている。
 
@@ -166,7 +166,7 @@
 
 ### T3. 「人間が操作できるか」の正本が分かれている（game・network・ui・app）。F5・F10 の原因
 
-**状態: 済（2dd077fe・5c9669fb・e5d7187c）。窓口の組は `GameChannels`（`game` と `network` を使うので network に置いた。案の ui より下の層）**
+**状態: 済（b9198b44・fb76bb5f・2a4f1c98）。窓口の組は `GameChannels`（`game` と `network` を使うので network に置いた。案の ui より下の層）**
 
 `gamechannel.h:16-19` は「受ける側は対局の種類で分岐しない」と書く。実際には次の3か所に同じ判定がある。
 
@@ -191,7 +191,7 @@
 
 ### T4. 通信対局の開始と終局の流れに、つなぎが残っている（network・ui）。F11〜F13 の原因
 
-**状態: 済（583a27e4・a66802cc・e4a314c5）。再接続の判断は `endGame` の引数にした**
+**状態: 済（adf9bd6c・fc1cd2a1・105fe086）。再接続の判断は `endGame` の引数にした**
 
 前回 M6 で `CsaVerdictWait`・`CsaGameSeries` を切り出し、T3 で時間・終局の対応表はそろった。次の4つが残っている。
 
@@ -204,7 +204,7 @@ F13 は、「前の知らせを閉じて次を出す」小さな部品（また�
 
 ### T5. 詰将棋のヘッドレスの入口の規則が揃っていない（cli・analysis・mcp）。F8・F16・F17 の原因
 
-**状態: 済（60b07c27）**
+**状態: 済（9effece3）**
 
 - `GenerateReporter` が error の後の `finished` を書かないか、`JobManager._apply` が failed を上書きしないようにする（F8）。`mcp/tests/test_jobs.py:63` に error の後に finished が来る場合を足す。
 - `verify-tsume` でも `attackerToMove` を通す（F16）。通さないなら CLI と MCP の説明に書く。
@@ -226,22 +226,22 @@ F13 は、「前の知らせを閉じて次を出す」小さな部品（また�
 
 | # | 箇所 | 問題 | 案 |
 |---|---|---|---|
-| M1 | 盤の入力の手順（dialogs・board） | 新しい `JosekiMoveBoard`（acf2f467）が `TsumePlayDialog` の手順を写している。組み立て（`josekimoveboard.cpp:20-42`・`tsumeplaydialog.cpp:199-213`）、着手（`:70-76`・`:282-290`）、直前の手のハイライト（`:59-66`・`:297-307`）、選択の取り消し。差が1つ生まれている（読めない手のとき、詰将棋は前のハイライトを残し、定跡は消す）。`isEditing()`・`cycle()` は2つの行き先で空の実装 | `BoardInteractionController` に `showPlayedMove(UsiMove)`・`cancelInput()` を置く。`BoardInputRoute` の2つに既定の実装を与える。動作は変わらない<br>**状態: 済（e7f181e9）** |
-| M2 | `KifuFileController`（ui） | ファイルの操作とクリップボードの操作が同居する（`:306-400`）。`Deps` の `board`・`navState` はコピーだけに使う。`boardSfen()` は SFEN を `section(' ', 3, 3)` で切る（10-29 T6 の残り） | `KifuClipboardController` に切り出す。移動だけで済む。`boardSfen()` は `board->toSfen()` にする（F15 と一緒に）<br>**状態: 済（5659357a）** |
-| M3 | 動作状態の規則の表と関数（ui・board） | `canReplaceRecord()`（`kifufilecontroller.cpp:46-49`）と `PositionEditSession::begin`（`:46`）が `Idle` を手書きし、表の `FileOpen` などの写しになっている。`WidgetBranchTree` の行は `WidgetNavigation` と同じ値。「棋譜に展開...」は移ってよい行で有効になるので、通信対局の局と局の間でも押せて断られる。文も実態と合わない | `canReplaceRecord` を policy に移して表から読む。`WidgetBranchTree` の行をまとめる。展開のボタンは `canEditRecord` に合わせる<br>**状態: 済（dfab4276）。`PositionEditSession::begin` の待機中の判定は残した（board は ui の表を読めない層にある）** |
-| M4 | `EngineDisplayPresenter`（ui） | 情報帯の手番の印は、ローカル対局では文書の対局者から枠の決まりを再現し（`:165-168,196`）、通信対局は `matchEngineStarted` の知らせから決める。枠の割り当てを変えると印だけが黙ってずれる（1729903e） | ローカル対局も司令塔が側と枠を知らせ、同じ受け口にする<br>**状態: 済（f2e139ad）。枠の決まりを `MatchPlayers::sideInSlot` に置いた。司令塔からの知らせは足していない（`Strategy` は決まりどおりに枠へ置くだけで、表示の経路を増やすほどの差がない）** |
-| M5 | `KifuAnalysisRequest`（analysis・ui） | `lineEndNodeId`・`branchPlies` はセッションが読まず、同じ `KifuAnalysisController::start` が取り出すだけ（`kifuanalysissession.h:31-32`）。範囲の収め方もセッションとコントローラーに同じ形である | 2つの欄はコントローラーの引数にする（分岐ツリーのノード ID が analysis から消える）。範囲は `Options` の関数に1つ置く<br>**状態: 済（c93d0116）** |
-| M6 | `JosekiImportDialog`（dialogs） | ダイアログの中でワーカーの実行と登録の手順を持つ。`QtConcurrent` を使う src のファイルのうち、analysis・kifu の外にあるのはこれだけ。同じ定跡の非同期処理（読み込み・保存・マージ）は `JosekiBookSession` が持つ | `JosekiBookSession::startImport`＋進み具合・完了のシグナル＋`Activity` の項目にする。実害は小さいので急がない<br>**状態: 済（d650dbb5）。`JosekiBookSession::startImport`** |
-| M7 | エンジンの登録の規則（dialogs・engine） | 同じ実行ファイルの拒否・実行できるか・ファイルかの確認が、ダイアログとハンドラに分かれている（`engineregistrationdialog.cpp:122-134`、`engineregistrationhandler.cpp:45-49,68-71,128`）。`startRegistration` を直接呼ぶと二重に登録できる | 3つとも `startRegistration` に入れ、`errorOccurred` で知らせる<br>**状態: 済（680e11fa）** |
-| M8 | `JosekiMergeDialog`（dialogs・kifu） | 「1局で同じ局面と指し手は1回」の規則と集計のキーを写している（`josekimergedialog.cpp:39-49,216-229`、`josekiimport.cpp:107-136`） | `JosekiImport` に手順1本から `Move` の一覧を作る関数を置く<br>**状態: 済（59bdddb4）。キーを `JosekiImport::moveKey` の1つにした（手順から Move の一覧を作る関数までは要らなかった）** |
-| M9 | 定跡ウィンドウの文字の大きさ（widgets） | ドックになった後も `DialogUtils::applyFontSize` → `standardizeDialog` を通り、`setupUi` の余白を毎回上書きする。`DialogUtils::applyFontSize` の呼び出し元はこの1か所。A-/A+ の見た目もウィンドウが上書きする（CLAUDE.md の「パネルで決めない」と違う） | ほかのパネルと同じ形にして、`DialogUtils::applyFontSize` を消す。今の余白は `setupUi` に書く<br>**状態: 済（84bbf2cb）** |
-| M10 | CSA の指し手の書式（network・kifu） | `validateMoveText`（`csagamecoordinator_moves.cpp:44-67`）・`toUsi`（`csamoveconverter.cpp:37-65`）・`CsaLexer::parseMoveLine` の3か所。`validateMoveText` の検査は直後の `toUsi` が全部行う | `validateMoveText` を消す。`toUsi` は `CsaLexer::parseMoveLine` の上に載せる<br>**状態: 済（e2e2c5aa）** |
-| M11 | 画像の保存（ui） | `ImageExportController` の4関数はどれも1行の転送で、`WidgetImageExporter` の呼び出し元はここだけ | 2クラスを1つにする。ロジックは変わらない<br>**状態: 済（aad3b190）** |
-| M12 | `KifLineBuilder`（kifu） | 反則の駒打ちの判定と文を写している（`kiflinebuilder.cpp:40-45`）。CLAUDE.md の「`mismatchOf` だけで決める」と合わない | `MoveRecord::mismatchText(position.mismatchOf(move, RequireHand))` にする<br>**状態: 済（d612d2a3）** |
-| M13 | 形式の判別の読み取り（kifu） | `.json`・未知の拡張子のファイルは、判別と解析で2回読む（`kifuformat.cpp:132`、`kifuloadparser.cpp:48,52`）。CLAUDE.md の「ファイルを1回読み」と違う | 先に `readAllTextAuto` で読み、パスと本文から形式を決める<br>**状態: 済（6892e3e8）** |
-| M14 | MCP の予約操作の宣言（mcp） | `_tool()` は出力スキーマに `queued` があるときだけ予約の説明を足す。`call_queued` を使う12ツールのうち `trigger_action`・`close_dialog` には付かない。足された説明にも古い文が残る（「Returns when queued」と、直後の「実行まで待つ」が矛盾） | `queued=True` を明示して宣言し、古い文を消す<br>**状態: 済（90d390f1）** |
-| M15 | 以前の版の引き継ぎ（widgets・services） | 「名前の無い以前の版は番号・パスで探す」が `PlayerSetupWidget::load` にある（`:175-186`）。CLAUDE.md の「引き継ぎはパネルの中に書かない」と合わない | 復元の規則を `EngineListSettings` の関数にする<br>**状態: 済（af9124d7）** |
-| M16 | 内蔵の詰み判定の上限（dialogs・analysis） | 31手を `tsumecollectiondialog.cpp:50,212` と `tsumepositionanalyzer.cpp:132` の文が直書きしている。正本 `kBuiltInMaxPlies` は無名名前空間にある | 定数を公開し、文は `%1` にする<br>**状態: 済（9b87a8f2）** |
+| M1 | 盤の入力の手順（dialogs・board） | 新しい `JosekiMoveBoard`（55394042）が `TsumePlayDialog` の手順を写している。組み立て（`josekimoveboard.cpp:20-42`・`tsumeplaydialog.cpp:199-213`）、着手（`:70-76`・`:282-290`）、直前の手のハイライト（`:59-66`・`:297-307`）、選択の取り消し。差が1つ生まれている（読めない手のとき、詰将棋は前のハイライトを残し、定跡は消す）。`isEditing()`・`cycle()` は2つの行き先で空の実装 | `BoardInteractionController` に `showPlayedMove(UsiMove)`・`cancelInput()` を置く。`BoardInputRoute` の2つに既定の実装を与える。動作は変わらない<br>**状態: 済（b9255a14）** |
+| M2 | `KifuFileController`（ui） | ファイルの操作とクリップボードの操作が同居する（`:306-400`）。`Deps` の `board`・`navState` はコピーだけに使う。`boardSfen()` は SFEN を `section(' ', 3, 3)` で切る（10-29 T6 の残り） | `KifuClipboardController` に切り出す。移動だけで済む。`boardSfen()` は `board->toSfen()` にする（F15 と一緒に）<br>**状態: 済（f7f25f0d）** |
+| M3 | 動作状態の規則の表と関数（ui・board） | `canReplaceRecord()`（`kifufilecontroller.cpp:46-49`）と `PositionEditSession::begin`（`:46`）が `Idle` を手書きし、表の `FileOpen` などの写しになっている。`WidgetBranchTree` の行は `WidgetNavigation` と同じ値。「棋譜に展開...」は移ってよい行で有効になるので、通信対局の局と局の間でも押せて断られる。文も実態と合わない | `canReplaceRecord` を policy に移して表から読む。`WidgetBranchTree` の行をまとめる。展開のボタンは `canEditRecord` に合わせる<br>**状態: 済（0b54c5ab）。`PositionEditSession::begin` の待機中の判定は残した（board は ui の表を読めない層にある）** |
+| M4 | `EngineDisplayPresenter`（ui） | 情報帯の手番の印は、ローカル対局では文書の対局者から枠の決まりを再現し（`:165-168,196`）、通信対局は `matchEngineStarted` の知らせから決める。枠の割り当てを変えると印だけが黙ってずれる（bb3ceb1b） | ローカル対局も司令塔が側と枠を知らせ、同じ受け口にする<br>**状態: 済（25fe9570）。枠の決まりを `MatchPlayers::sideInSlot` に置いた。司令塔からの知らせは足していない（`Strategy` は決まりどおりに枠へ置くだけで、表示の経路を増やすほどの差がない）** |
+| M5 | `KifuAnalysisRequest`（analysis・ui） | `lineEndNodeId`・`branchPlies` はセッションが読まず、同じ `KifuAnalysisController::start` が取り出すだけ（`kifuanalysissession.h:31-32`）。範囲の収め方もセッションとコントローラーに同じ形である | 2つの欄はコントローラーの引数にする（分岐ツリーのノード ID が analysis から消える）。範囲は `Options` の関数に1つ置く<br>**状態: 済（83abdf38）** |
+| M6 | `JosekiImportDialog`（dialogs） | ダイアログの中でワーカーの実行と登録の手順を持つ。`QtConcurrent` を使う src のファイルのうち、analysis・kifu の外にあるのはこれだけ。同じ定跡の非同期処理（読み込み・保存・マージ）は `JosekiBookSession` が持つ | `JosekiBookSession::startImport`＋進み具合・完了のシグナル＋`Activity` の項目にする。実害は小さいので急がない<br>**状態: 済（f689c0ce）。`JosekiBookSession::startImport`** |
+| M7 | エンジンの登録の規則（dialogs・engine） | 同じ実行ファイルの拒否・実行できるか・ファイルかの確認が、ダイアログとハンドラに分かれている（`engineregistrationdialog.cpp:122-134`、`engineregistrationhandler.cpp:45-49,68-71,128`）。`startRegistration` を直接呼ぶと二重に登録できる | 3つとも `startRegistration` に入れ、`errorOccurred` で知らせる<br>**状態: 済（22cba726）** |
+| M8 | `JosekiMergeDialog`（dialogs・kifu） | 「1局で同じ局面と指し手は1回」の規則と集計のキーを写している（`josekimergedialog.cpp:39-49,216-229`、`josekiimport.cpp:107-136`） | `JosekiImport` に手順1本から `Move` の一覧を作る関数を置く<br>**状態: 済（ec599f6a）。キーを `JosekiImport::moveKey` の1つにした（手順から Move の一覧を作る関数までは要らなかった）** |
+| M9 | 定跡ウィンドウの文字の大きさ（widgets） | ドックになった後も `DialogUtils::applyFontSize` → `standardizeDialog` を通り、`setupUi` の余白を毎回上書きする。`DialogUtils::applyFontSize` の呼び出し元はこの1か所。A-/A+ の見た目もウィンドウが上書きする（CLAUDE.md の「パネルで決めない」と違う） | ほかのパネルと同じ形にして、`DialogUtils::applyFontSize` を消す。今の余白は `setupUi` に書く<br>**状態: 済（1512ec9f）** |
+| M10 | CSA の指し手の書式（network・kifu） | `validateMoveText`（`csagamecoordinator_moves.cpp:44-67`）・`toUsi`（`csamoveconverter.cpp:37-65`）・`CsaLexer::parseMoveLine` の3か所。`validateMoveText` の検査は直後の `toUsi` が全部行う | `validateMoveText` を消す。`toUsi` は `CsaLexer::parseMoveLine` の上に載せる<br>**状態: 済（45c3b485）** |
+| M11 | 画像の保存（ui） | `ImageExportController` の4関数はどれも1行の転送で、`WidgetImageExporter` の呼び出し元はここだけ | 2クラスを1つにする。ロジックは変わらない<br>**状態: 済（ea266383）** |
+| M12 | `KifLineBuilder`（kifu） | 反則の駒打ちの判定と文を写している（`kiflinebuilder.cpp:40-45`）。CLAUDE.md の「`mismatchOf` だけで決める」と合わない | `MoveRecord::mismatchText(position.mismatchOf(move, RequireHand))` にする<br>**状態: 済（bac54dec）** |
+| M13 | 形式の判別の読み取り（kifu） | `.json`・未知の拡張子のファイルは、判別と解析で2回読む（`kifuformat.cpp:132`、`kifuloadparser.cpp:48,52`）。CLAUDE.md の「ファイルを1回読み」と違う | 先に `readAllTextAuto` で読み、パスと本文から形式を決める<br>**状態: 済（6daea93c）** |
+| M14 | MCP の予約操作の宣言（mcp） | `_tool()` は出力スキーマに `queued` があるときだけ予約の説明を足す。`call_queued` を使う12ツールのうち `trigger_action`・`close_dialog` には付かない。足された説明にも古い文が残る（「Returns when queued」と、直後の「実行まで待つ」が矛盾） | `queued=True` を明示して宣言し、古い文を消す<br>**状態: 済（a0dbcecb）** |
+| M15 | 以前の版の引き継ぎ（widgets・services） | 「名前の無い以前の版は番号・パスで探す」が `PlayerSetupWidget::load` にある（`:175-186`）。CLAUDE.md の「引き継ぎはパネルの中に書かない」と合わない | 復元の規則を `EngineListSettings` の関数にする<br>**状態: 済（f7e0bc09）** |
+| M16 | 内蔵の詰み判定の上限（dialogs・analysis） | 31手を `tsumecollectiondialog.cpp:50,212` と `tsumepositionanalyzer.cpp:132` の文が直書きしている。正本 `kBuiltInMaxPlies` は無名名前空間にある | 定数を公開し、文は `%1` にする<br>**状態: 済（680bdb61）** |
 
 ---
 
@@ -249,16 +249,16 @@ F13 は、「前の知らせを閉じて次を出す」小さな部品（また�
 
 | # | 現在 | 問題 | 案 |
 |---|---|---|---|
-| P1 | `HumanTurnPolicy`（ui/policy） | T2（前回）で「棋譜を移って・変えてよいか」が入り、手番の判定だけではなくなった。`context.turnPolicy->canBrowseRecord()` と読みにくい | `OperationPolicy` など<br>**状態: 済（ea4beb46）。自動化 API の `turnPolicy` なども `operationPolicy` にした** |
-| P2 | `CsaGameSession`（ui/coordinators） | `GameSession` の通信対局版に見えるが、棋譜を持たない。ダイアログ・ステータスバー・盤の反転だけ | 役割に合う名前にする（`CsaGameUi` など）。CLAUDE.md の役割の表に `*Session` を足す<br>**状態: 済（e3cecf96）。`CsaGameUiController`（`ConsiderationUiController` に合わせた名前）にして controllers へ移した。`ui/coordinators` は空になったので消した** |
-| P3 | `CommentCoordinator`（ui/coordinators） | 複数部品の流れではなく、コメント欄1つの表示と操作 | `CommentController`<br>**状態: 済（f6f8ee63）** |
-| P4 | `PvClickController`（ui/controllers） | 棋譜解析の結果からも開く。「読み筋盤を開く」部品 | `PvBoardController`<br>**状態: 済（f6046a68）** |
-| P5 | `UsiCommLogModel`（models） | 中身はエンジン名・探索状況・予想手で、通信ログは行を素通しするだけ | `EngineStatusModel` など<br>**状態: 済（80f77792）** |
-| P6 | `AnalysisResultsPanel::rowDoubleClicked` | 「盤面」ボタンのクリック・Enter で出る。ダブルクリックとは関係がない。同じ操作に3つの名前がある | `boardRequested` に揃える<br>**状態: 済（80f77792）** |
-| P7 | `EngineListSettings`（services） | 一覧は `RegisteredEngines`・`EngineProfileStore` に移り、残るのは機能ごとの選択だけ | `EngineSelectionSettings`<br>**状態: 済（c8b47870）** |
-| P8 | `TsumeMateEngine`・`TsumeEvaluation`（engine） | 使うのは analysis の Tsume 系と `tsumecollectiondialog.cpp` だけ。KomoringHeights 専用のオプションと「再判定」の訳文を持つ | analysis へ移す<br>**状態: 済（dda3e1c3）** |
-| P9 | `SpecialMove`・`parseSpecialMove`・`GameOverResult`（`core/shogitypes.h:26-51`） | 基本型の見出しに USI の語が混ざる。使うのは engine と game だけ | `engine/usimessages.h` へ移す<br>**状態: 済（14324437）。既存の `usimessages.h` に移した** |
-| P10 | `ScreenshotService`（ui/controllers） | 利用者の操作ではなく、自動化 API も使う | controllers の外へ移す<br>**状態: 済（14324437）。`src/ui` に置いた** |
+| P1 | `HumanTurnPolicy`（ui/policy） | T2（前回）で「棋譜を移って・変えてよいか」が入り、手番の判定だけではなくなった。`context.turnPolicy->canBrowseRecord()` と読みにくい | `OperationPolicy` など<br>**状態: 済（67cc76e2）。自動化 API の `turnPolicy` なども `operationPolicy` にした** |
+| P2 | `CsaGameSession`（ui/coordinators） | `GameSession` の通信対局版に見えるが、棋譜を持たない。ダイアログ・ステータスバー・盤の反転だけ | 役割に合う名前にする（`CsaGameUi` など）。CLAUDE.md の役割の表に `*Session` を足す<br>**状態: 済（4d27da27）。`CsaGameUiController`（`ConsiderationUiController` に合わせた名前）にして controllers へ移した。`ui/coordinators` は空になったので消した** |
+| P3 | `CommentCoordinator`（ui/coordinators） | 複数部品の流れではなく、コメント欄1つの表示と操作 | `CommentController`<br>**状態: 済（37645130）** |
+| P4 | `PvClickController`（ui/controllers） | 棋譜解析の結果からも開く。「読み筋盤を開く」部品 | `PvBoardController`<br>**状態: 済（e4b80e93）** |
+| P5 | `UsiCommLogModel`（models） | 中身はエンジン名・探索状況・予想手で、通信ログは行を素通しするだけ | `EngineStatusModel` など<br>**状態: 済（33b39d05）** |
+| P6 | `AnalysisResultsPanel::rowDoubleClicked` | 「盤面」ボタンのクリック・Enter で出る。ダブルクリックとは関係がない。同じ操作に3つの名前がある | `boardRequested` に揃える<br>**状態: 済（33b39d05）** |
+| P7 | `EngineListSettings`（services） | 一覧は `RegisteredEngines`・`EngineProfileStore` に移り、残るのは機能ごとの選択だけ | `EngineSelectionSettings`<br>**状態: 済（ca5060ad）** |
+| P8 | `TsumeMateEngine`・`TsumeEvaluation`（engine） | 使うのは analysis の Tsume 系と `tsumecollectiondialog.cpp` だけ。KomoringHeights 専用のオプションと「再判定」の訳文を持つ | analysis へ移す<br>**状態: 済（9a589db8）** |
+| P9 | `SpecialMove`・`parseSpecialMove`・`GameOverResult`（`core/shogitypes.h:26-51`） | 基本型の見出しに USI の語が混ざる。使うのは engine と game だけ | `engine/usimessages.h` へ移す<br>**状態: 済（84f8236a）。既存の `usimessages.h` に移した** |
+| P10 | `ScreenshotService`（ui/controllers） | 利用者の操作ではなく、自動化 API も使う | controllers の外へ移す<br>**状態: 済（84f8236a）。`src/ui` に置いた** |
 
 翻訳の文脈はクラス名で決まるので、改名で訳が unfinished になったら、旧文脈の vanished 訳から埋め直す。
 
@@ -327,7 +327,7 @@ F13 は、「前の知らせを閉じて次を出す」小さな部品（また�
 
 `engineregistrationhandler.cpp` の `lcUi` 4か所も、joseki で直したのと同じ種類である。
 
-**状態（5章）: 済（8e943f7d）。次の2つは残した。**
+**状態（5章）: 済（a872df0c）。次の2つは残した。**
 
 - `StartKind` の4つの区別: 読むのはテストだけだが、テストが形式ごとの開始局面の書き方を確かめる口として使う（37か所）。前回「見送り」とした、テストが部品の状態を確かめる口と同じ扱いにした。
 - `Position::applyAs`: `KifuNodeReplay::m_mover` は消した。`applyAs` は手番を指定して局面を組み立てるテストだけが使う（同じ扱い）。

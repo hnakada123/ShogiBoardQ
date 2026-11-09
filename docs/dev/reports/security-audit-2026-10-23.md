@@ -2,7 +2,7 @@
 
 「ソースコードのセキュリティ監査」の依頼で、`src/`（約8.5万行）・`mcp/`・ビルドと CI（`.github/workflows/`・`scripts/`）を監査した。
 
-- 対象のコミットは 58113bb6。本文の行番号はこの時点のもの。
+- 対象のコミットは 25c34973。本文の行番号はこの時点のもの。
 - 攻撃面を5つに分けて読んだ。
   - 自動化 API
   - MCP サーバーと CLI の境界
@@ -89,7 +89,7 @@ Info は5章にまとめる。
 
 ### S1【High】MCP の制限モードで、ホームの任意の場所に中身を決められるファイルを書ける
 
-**状態: 済（582a74ce）**。許可ディレクトリより下の `.` で始まる名前を拒否し、拡張子を棋譜（読み込みは `.json` も）と盤面画像に限った。一覧は `shogiboardq-cli environment` の `kifu_read_suffixes`・`kifu_write_suffixes`・`image_write_suffixes`（`paths.py`、`KifuFormats::writableSuffixes()`、`BoardImageRenderer::fileSuffixes()`）。既定の許可ディレクトリ（ホーム）は変えていない。テスト `mcp/tests/test_paths.py`・`test_environment.py`。対局情報の改行は S9 で直す
+**状態: 済（c4bfde1b）**。許可ディレクトリより下の `.` で始まる名前を拒否し、拡張子を棋譜（読み込みは `.json` も）と盤面画像に限った。一覧は `shogiboardq-cli environment` の `kifu_read_suffixes`・`kifu_write_suffixes`・`image_write_suffixes`（`paths.py`、`KifuFormats::writableSuffixes()`、`BoardImageRenderer::fileSuffixes()`）。既定の許可ディレクトリ（ホーム）は変えていない。テスト `mcp/tests/test_paths.py`・`test_environment.py`。対局情報の改行は S9 で直す
 
 - **場所**
   - `mcp/shogiboardq_mcp/paths.py:22-31`: 許可ディレクトリの既定はホーム全体。
@@ -121,7 +121,7 @@ Info は5章にまとめる。
 
 ### S2【Medium】MCP の制限モードで、棋譜でないファイルの中身を読み出せる
 
-**状態: 済（582a74ce）**。S1 と同じ変更で、隠しファイルと棋譜以外の拡張子を読めなくした。パーサのエラー文に行を入れる点は、GUI で原因を示すのに使うので残した
+**状態: 済（c4bfde1b）**。S1 と同じ変更で、隠しファイルと棋譜以外の拡張子を読めなくした。パーサのエラー文に行を入れる点は、GUI で原因を示すのに使うので残した
 
 - **場所**
   - `mcp/shogiboardq_mcp/handlers_cli.py:44-51, 77-79`: `game_info`・`text`・エラー文をそのまま返す。
@@ -142,7 +142,7 @@ Info は5章にまとめる。
 
 ### S3【Medium】MCP の制限モードで、システムのクリップボードを読める
 
-**状態: 済（582a74ce）**。`get_clipboard` を `unrestricted=True` にした（`test_security.py`）
+**状態: 済（c4bfde1b）**。`get_clipboard` を `unrestricted=True` にした（`test_security.py`）
 
 - **場所**
   - `src/automation/automationcommands_widget.cpp:110-120`（`clipboard.get`）: `QApplication::clipboard()->text()` を、最大100万文字までそのまま返す。
@@ -152,7 +152,7 @@ Info は5章にまとめる。
 
 ### S4【Medium】CSA サーバーの受信行がリッチテキストとして描かれる
 
-**状態: 済（96e4096e）**。`NotificationPresenter` は `QMessageBox` を自分で作って `Qt::PlainText` にする。待機ダイアログの `csaWaitingDetail` と通信対局の終局のダイアログも PlainText（`tst_csagamesession` の `serverTextIsShownAsPlainText`）
+**状態: 済（24358fb3）**。`NotificationPresenter` は `QMessageBox` を自分で作って `Qt::PlainText` にする。待機ダイアログの `csaWaitingDetail` と通信対局の終局のダイアログも PlainText（`tst_csagamesession` の `serverTextIsShownAsPlainText`）
 
 - **場所**
   - 知らせ: `src/ui/presenters/notificationpresenter.cpp:44-53`
@@ -181,7 +181,7 @@ Info は5章にまとめる。
 
 ### S5【Medium】長い手順の棋譜でスタックを使い切ってクラッシュする
 
-**状態: 済（7271f6bd）**。`KifuBranchTree::collectLines()` を明示のスタックにした。JKF の書き出しは変化の入れ子を300段まで書く（`kMaxForkDepth`。Qt の JSON の読み込みの上限 1024 段に収まる）。テスト `longLineIsListedWithoutDeepRecursion`・`deeplyNestedVariationsAreCapped`。7万手・10万手の USI を変換できることを確認
+**状態: 済（141fe12a）**。`KifuBranchTree::collectLines()` を明示のスタックにした。JKF の書き出しは変化の入れ子を300段まで書く（`kMaxForkDepth`。Qt の JSON の読み込みの上限 1024 段に収まる）。テスト `longLineIsListedWithoutDeepRecursion`・`deeplyNestedVariationsAreCapped`。7万手・10万手の USI を変換できることを確認
 
 - **場所**: `src/kifu/kifubranchtree.cpp:195-241` の `collectLinesRecursive`。手数の深さだけ再帰する。
 - **呼び出し元**
@@ -198,7 +198,7 @@ Info は5章にまとめる。
 
 ### S6【Medium】棋譜の読み込みの計算量とメモリが爆発する
 
-**状態: 済（7271f6bd）**。`BranchLine` はノードの列を持たず終端 `leaf` から作る（`nodes()`・`nodesFrom()`・`length()`）。組み立ては変化ごとに経路を複製しない。`latestBranchPoint` は手数ごとの表（`lastVariationAtPly`）。`splitStatements`・`readNumberedMoves` は位置で進め、正規表現の UTF-16 の検査を1回にした。`UsiPosition` は手の列を共有し（`alongMoves`）、`fromMoves`・`parse` はその場で足す。定跡の読み込みは同じ局面の登録を読み終えてからまとめる。実測: 1.9MB の KIF 7.2GB・9.5秒 → 132MB・2.0秒、変化10万個の KIF 19秒 → 0.4秒、CSA の「,」100万個 27秒 → 0.07秒、1行3万手の KIF 15.5秒 → 0.37秒。修正前の CLI と全フィクスチャの変換結果が一致
+**状態: 済（141fe12a）**。`BranchLine` はノードの列を持たず終端 `leaf` から作る（`nodes()`・`nodesFrom()`・`length()`）。組み立ては変化ごとに経路を複製しない。`latestBranchPoint` は手数ごとの表（`lastVariationAtPly`）。`splitStatements`・`readNumberedMoves` は位置で進め、正規表現の UTF-16 の検査を1回にした。`UsiPosition` は手の列を共有し（`alongMoves`）、`fromMoves`・`parse` はその場で足す。定跡の読み込みは同じ局面の登録を読み終えてからまとめる。実測: 1.9MB の KIF 7.2GB・9.5秒 → 132MB・2.0秒、変化10万個の KIF 19秒 → 0.4秒、CSA の「,」100万個 27秒 → 0.07秒、1行3万手の KIF 15.5秒 → 0.37秒。修正前の CLI と全フィクスチャの変換結果が一致
 
 | 箇所 | 原因 | 入力と実測（Release 版） |
 |---|---|---|
@@ -218,7 +218,7 @@ Info は5章にまとめる。
 
 ### S7【Medium】リリース CI が版を固定しないスクリプトを書き込み権限で実行する
 
-**状態: 済（ed949d24）**。syft は v1.54.1 を SHA-256 で確かめて使う。ワークフローの既定の権限を `contents: read` にし、`contents: write` は publish-release だけ。`download-artifact`・`cache` を SHA で固定し、`inputs.tag` は環境変数で渡す。`ci.yml` にも読み取りだけの `permissions` を付けた
+**状態: 済（3a07e843）**。syft は v1.54.1 を SHA-256 で確かめて使う。ワークフローの既定の権限を `contents: read` にし、`contents: write` は publish-release だけ。`download-artifact`・`cache` を SHA で固定し、`inputs.tag` は環境変数で渡す。`ci.yml` にも読み取りだけの `permissions` を付けた
 
 - **場所**
   - `.github/workflows/release.yml:329-332`: `curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh`
@@ -231,7 +231,7 @@ Info は5章にまとめる。
 
 ### S8【Low】MCP の非制限モードでは任意の実行ファイルを起動できる
 
-**状態: 済（582a74ce）**。エンジン登録の「追加」ボタンに `automationSensitive` を付け、文書（README・開発文書・4言語のガイド）に書いた（`test_security.py` の `test_engine_executable_cannot_be_chosen`）
+**状態: 済（c4bfde1b）**。エンジン登録の「追加」ボタンに `automationSensitive` を付け、文書（README・開発文書・4言語のガイド）に書いた（`test_security.py` の `test_engine_executable_cannot_be_chosen`）
 
 - **場所**
   - `src/automation/automationactionpolicy.cpp:66`: `actionEngineSettings` が許可リストにある。
@@ -250,7 +250,7 @@ Info は5章にまとめる。
 
 ### S9【Low】対局情報の改行がそのまま書き出され、保存した棋譜に別の行が入る
 
-**状態: 済（7271f6bd）**。`CsaClient` は受信行の制御文字を空白にする。書き出しは `KifuExportCommon::singleLine`（対局情報のキーと値、CSA の N+/N-/$ 行、定跡のコメント）と `splitLines`（コメント・しおり。CR だけの改行も行に分ける）を使う。あわせて、KIF の読み込みが行の途中の「手合割：」も手合割の指定として読んでいた不具合を直した（行頭が「手合割：」「手合：」の行だけ。対局者名やコメントで開始局面が変わっていた）。テスト `lineBreaksInValuesDoNotAddLines`・`csaClient_controlCharactersInLinesBecomeSpaces`
+**状態: 済（141fe12a）**。`CsaClient` は受信行の制御文字を空白にする。書き出しは `KifuExportCommon::singleLine`（対局情報のキーと値、CSA の N+/N-/$ 行、定跡のコメント）と `splitLines`（コメント・しおり。CR だけの改行も行に分ける）を使う。あわせて、KIF の読み込みが行の途中の「手合割：」も手合割の指定として読んでいた不具合を直した（行頭が「手合割：」「手合：」の行だけ。対局者名やコメントで開始局面が変わっていた）。テスト `lineBreaksInValuesDoNotAddLines`・`csaClient_controlCharactersInLinesBecomeSpaces`
 
 - **場所**
   - 受信: `src/network/csaclient.cpp:369` は行末の `\r` を1つだけ除く。値の途中の `\r` は残り、`csaclient_parser.cpp:258-261` で対局者名になる。
@@ -266,7 +266,7 @@ Info は5章にまとめる。
 
 ### S10【Low】共有の `/tmp` の固定名を、所有者を確かめずに使う
 
-**状態: 済（582a74ce）**。自動化ソケットは `RuntimeLocation` が無ければ設定のフォルダに置く。ソケットのフォルダは、無ければ 0700 で作り、あれば自分の持ち物でほかの利用者が書けないことを確かめる（変えない）。スクリーンショットの既定は `AppPaths::cacheDirectory()/screenshots`（デバッグの F12 も）。MCP の既定の出力先は `tempfile.mkdtemp` で作る自分専用のフォルダ。ヘッドレスのスクリプトは `XDG_RUNTIME_DIR` の下を使い、`/tmp` に作るときは自分の持ち物でリンクでないことを確かめる
+**状態: 済（c4bfde1b）**。自動化ソケットは `RuntimeLocation` が無ければ設定のフォルダに置く。ソケットのフォルダは、無ければ 0700 で作り、あれば自分の持ち物でほかの利用者が書けないことを確かめる（変えない）。スクリーンショットの既定は `AppPaths::cacheDirectory()/screenshots`（デバッグの F12 も）。MCP の既定の出力先は `tempfile.mkdtemp` で作る自分専用のフォルダ。ヘッドレスのスクリプトは `XDG_RUNTIME_DIR` の下を使い、`/tmp` に作るときは自分の持ち物でリンクでないことを確かめる
 
 | 場所 | 内容 |
 |---|---|
@@ -288,7 +288,7 @@ Info は5章にまとめる。
 
 ### S11【Low】ソケットパスの前処理が破壊的
 
-**状態: 済（582a74ce）**。絶対パスに限り、ソケットでない既存のファイルは消さず、待ち受け中のソケットがあれば起動しない（2つ目のアプリが奪わない）。既存フォルダの chmod をやめた。終了時のエンドポイントファイルは自分の pid のものだけ消す。長さの上限を Qt の一時フォルダの分だけ下げた（Linux 99、macOS 95 バイト）。テスト `listenDoesNotTouchOtherFiles`
+**状態: 済（c4bfde1b）**。絶対パスに限り、ソケットでない既存のファイルは消さず、待ち受け中のソケットがあれば起動しない（2つ目のアプリが奪わない）。既存フォルダの chmod をやめた。終了時のエンドポイントファイルは自分の pid のものだけ消す。長さの上限を Qt の一時フォルダの分だけ下げた（Linux 99、macOS 95 バイト）。テスト `listenDoesNotTouchOtherFiles`
 
 - **場所**: `src/automation/automationserver.cpp:59-78, 92-94`、`src/app/main.cpp:83-109`。
 - **再現**: どれも利用者自身の指定の誤りで起きる。外部からの攻撃経路ではない。
@@ -304,7 +304,7 @@ Info は5章にまとめる。
 
 ### S12【Low】定跡ファイルのコメントがツールチップで HTML として描かれる
 
-**状態: 済（96e4096e）**。`JosekiTableModel` のツールチップを `<qt>` とエスケープで出す（テスト `tableModel_showsDerivedReplyInGray`）。その後、外から来た文字列のツールチップは style の `plainToolTip()` 1つで出すようにし、エスケープしていなかったエンジン名（エンジンを選ぶコンボ・エンジン情報欄・`ElideLabel`）もこれで出す（2026-11-01 監査 M12。テスト `tst_plain_tooltip`）
+**状態: 済（24358fb3）**。`JosekiTableModel` のツールチップを `<qt>` とエスケープで出す（テスト `tableModel_showsDerivedReplyInGray`）。その後、外から来た文字列のツールチップは style の `plainToolTip()` 1つで出すようにし、エスケープしていなかったエンジン名（エンジンを選ぶコンボ・エンジン情報欄・`ElideLabel`）もこれで出す（2026-11-01 監査 M12。テスト `tst_plain_tooltip`）
 
 - **場所**: `src/dialogs/josekitablemodel.cpp:87-95`。`Qt::ToolTipRole` が、`move.comment`・`move.nextMove`・`move.move` をエスケープせずに返す。
 - **入力の出どころ**
@@ -318,7 +318,7 @@ Info は5章にまとめる。
 
 ### S13【Low】符号付き整数のオーバーフロー（UB）
 
-**状態: 済（7271f6bd）**。`numberFromDigits` は int の最大値で止める。`Position` に `kMaxHandCount`（99）・`kMaxMoveNumber`（1000万）を設け、SFEN はこれを超えると読まない。持ち駒の足し算・手数の加算は頭打ち。BOD の手数・JKF の時間・USEN のオフセット・CSA の T の秒数（1000万秒まで）を桁あふれさせない。通信対局の時間は `TimeControl::toMs`（7日で頭打ち）と飽和する足し算。`*Position::fromSfen` の参照は結果を確かめてから。UBSan 版の CLI で監査の入力を読み直し、報告が出ないことを確認
+**状態: 済（141fe12a）**。`numberFromDigits` は int の最大値で止める。`Position` に `kMaxHandCount`（99）・`kMaxMoveNumber`（1000万）を設け、SFEN はこれを超えると読まない。持ち駒の足し算・手数の加算は頭打ち。BOD の手数・JKF の時間・USEN のオフセット・CSA の T の秒数（1000万秒まで）を桁あふれさせない。通信対局の時間は `TimeControl::toMs`（7日で頭打ち）と飽和する足し算。`*Position::fromSfen` の参照は結果を確かめてから。UBSan 版の CLI で監査の入力を読み直し、報告が出ないことを確認
 
 UBSan 版で実行して確かめた箇所は次のとおり。
 
@@ -348,7 +348,7 @@ UBSan 版で実行して確かめた箇所は次のとおり。
 
 ### S14【Low】入力の大きさに上限がなく、特殊ファイルも読む
 
-**状態: 済（7271f6bd）**。`BoundedFile::read`（`src/common/boundedfile.h`）で、棋譜は 64 MiB、局面集・詰将棋集は 256 MiB まで、通常のファイルだけを読む。定跡は大きなものも読めるよう大きさは制限せず、通常のファイルかだけ確かめる。自動化 API の `kifu.load` も通常のファイルに限る
+**状態: 済（141fe12a）**。`BoundedFile::read`（`src/common/boundedfile.h`）で、棋譜は 64 MiB、局面集・詰将棋集は 256 MiB まで、通常のファイルだけを読む。定跡は大きなものも読めるよう大きさは制限せず、通常のファイルかだけ確かめる。自動化 API の `kifu.load` も通常のファイルに限る
 
 - **場所**
   - `src/kifu/kifreader.cpp:140-150, 266` の `readAll()`
@@ -364,7 +364,7 @@ UBSan 版で実行して確かめた箇所は次のとおり。
 
 ### S15【Low】`kifu.save` がリンク先のないシンボリックリンクをたどる
 
-**状態: 済（7271f6bd・582a74ce）**。`OutputPath::check` はシンボリックリンク（リンク先が無いものも）を拒む。`kifu.save` は棋譜の拡張子の名前だけに保存する（`test_kifu_save_refuses_other_files`）
+**状態: 済（141fe12a・c4bfde1b）**。`OutputPath::check` はシンボリックリンク（リンク先が無いものも）を拒む。`kifu.save` は棋譜の拡張子の名前だけに保存する（`test_kifu_save_refuses_other_files`）
 
 - **場所**: `src/headless/outputpath.cpp:13-18`（`exists` がリンクをたどる）、`src/kifu/kifuioservice.cpp:106`（`QSaveFile` もたどる）。
 - **再現**: `sv/link.kif` → `sv/other/created.kif`（まだない）のリンクを置き、`overwrite` なしで `kifu.save` した。成功して、リンクの先にファイルができた。
@@ -373,7 +373,7 @@ UBSan 版で実行して確かめた箇所は次のとおり。
 
 ### S16【Low】実行ファイルの堅牢化フラグがない
 
-**状態: 済（ed949d24）**。`ENABLE_HARDENING`（既定 ON）で `-fstack-protector-strong`・`-D_FORTIFY_SOURCE=3`・`-fcf-protection=full`・PIE・`-z relro -z now -z noexecstack`、MSVC は `/guard:cf`・`/CETCOMPAT`。同梱の Hayanagi にも付くよう `add_subdirectory(Hayanagi)` の前で設定する。`readelf` でアプリと Hayanagi に BIND_NOW・PIE・IBT/SHSTK・`*_chk` があることを確認。Windows・macOS は未確認
+**状態: 済（3a07e843）**。`ENABLE_HARDENING`（既定 ON）で `-fstack-protector-strong`・`-D_FORTIFY_SOURCE=3`・`-fcf-protection=full`・PIE・`-z relro -z now -z noexecstack`、MSVC は `/guard:cf`・`/CETCOMPAT`。同梱の Hayanagi にも付くよう `add_subdirectory(Hayanagi)` の前で設定する。`readelf` でアプリと Hayanagi に BIND_NOW・PIE・IBT/SHSTK・`*_chk` があることを確認。Windows・macOS は未確認
 
 - **場所**: `CMakeLists.txt` に堅牢化のフラグがない。
 - **確認**: `readelf` で `build/ShogiBoardQ` と AppImage の中の実行ファイルを見た。
@@ -384,7 +384,7 @@ UBSan 版で実行して確かめた箇所は次のとおり。
 
 ### S17【Low】AppImage に古いライブラリを同梱している
 
-**状態: 済（ccf2a774）**。コンテナのイメージで、同梱する OpenSSL・libcurl と、libcurl が使う通信のライブラリを新しい版に替えた（OpenSSL 3.6.5・curl 8.23.0・nghttp2 1.70.0・nghttp3 1.18.0・ngtcp2 1.25.0・libssh2 1.11.1）。OpenSSL などは今の Arch のパッケージ（GLIBC_2.38 まで）を `scripts/linux-container/packages.sha256` の SHA-256 と署名で確かめて入れ、curl は今の Arch のパッケージが glibc 2.43 の関数を使うので、同じ版の Arch の PKGBUILD でイメージの中で作り直す（タグの署名は `curl-signing-key.asc` で確かめる）。OpenSSL をシステムのものに替えなかったのは、Qt 6.7 が既定でシステムのプロキシ設定を使って libproxy を読み、その libcurl が OpenSSL 3.5 以降の関数を使うため（Ubuntu 24.04 の OpenSSL 3.0 では起動できない）。配布物の glibc の要求は 2.38 のまま。あわせて次の2つを直した（どちらも前回のリリースからの問題）。
+**状態: 済（a2f252b2）**。コンテナのイメージで、同梱する OpenSSL・libcurl と、libcurl が使う通信のライブラリを新しい版に替えた（OpenSSL 3.6.5・curl 8.23.0・nghttp2 1.70.0・nghttp3 1.18.0・ngtcp2 1.25.0・libssh2 1.11.1）。OpenSSL などは今の Arch のパッケージ（GLIBC_2.38 まで）を `scripts/linux-container/packages.sha256` の SHA-256 と署名で確かめて入れ、curl は今の Arch のパッケージが glibc 2.43 の関数を使うので、同じ版の Arch の PKGBUILD でイメージの中で作り直す（タグの署名は `curl-signing-key.asc` で確かめる）。OpenSSL をシステムのものに替えなかったのは、Qt 6.7 が既定でシステムのプロキシ設定を使って libproxy を読み、その libcurl が OpenSSL 3.5 以降の関数を使うため（Ubuntu 24.04 の OpenSSL 3.0 では起動できない）。配布物の glibc の要求は 2.38 のまま。あわせて次の2つを直した（どちらも前回のリリースからの問題）。
 - Fedora では、同梱の上流版 OpenSSL が Fedora の設定ファイル（暗号ポリシー）を読めずに初期化に失敗し、通信対局の TLS が使えなかった。AppRun が `OPENSSL_CONF` で同梱の空の設定（`usr/share/ShogiBoardQ/openssl.cnf`）を読ませる。
 - 動作条件の記述を、実際に要る GCC 14 の libstdc++（`CXXABI_1.3.15`）に合わせ、「Fedora 39 以降」を「Fedora 40 以降」に直した（Fedora 39 の libstdc++ は GCC 13 で起動できない）。
 
@@ -399,7 +399,7 @@ UBSan 版で実行して確かめた箇所は次のとおり。
 
 ### S18【Low】ビルドのツールを検証なしで取得している
 
-**状態: 済（ed949d24）**。`build-linux.sh` に3つのツールの SHA-256 を書き、取得した物もキャッシュも実行前に照らし合わせる（値は前回のリリースで使い、上流の continuous の digest と一致した版）
+**状態: 済（3a07e843）**。`build-linux.sh` に3つのツールの SHA-256 を書き、取得した物もキャッシュも実行前に照らし合わせる（値は前回のリリースで使い、上流の continuous の digest と一致した版）
 
 - **場所**: `scripts/build-linux.sh:41-43, 226-238`。linuxdeploy・linuxdeploy-plugin-qt・appimagetool を、GitHub の `continuous` リリースから `curl` で取り、チェックサムを見ずに実行する。
 - **影響**: appimagetool のランタイムは、配布する AppImage に埋め込まれる。
@@ -407,7 +407,7 @@ UBSan 版で実行して確かめた箇所は次のとおり。
 
 ### S19【Low】MCP の引数が inputSchema で検査されない
 
-**状態: 済（582a74ce）**。`server.check_arguments` が jsonschema で検査する（`pyproject.toml` に `jsonschema>=4` を足した）。テスト `test_arguments_are_checked_against_the_input_schema`
+**状態: 済（c4bfde1b）**。`server.check_arguments` が jsonschema で検査する（`pyproject.toml` に `jsonschema>=4` を足した）。テスト `test_arguments_are_checked_against_the_input_schema`
 
 - **場所**: `mcp/shogiboardq_mcp/server.py:126-139`。mcp 2.3.0 の lowlevel Server は、ツールの引数を JSON Schema で検査しない。`docs/dev/mcp-server.md` §5 には「引数は inputSchema で検証され（SDK）」とある。
 - **再現**（stdio のセッション）
@@ -421,7 +421,7 @@ UBSan 版で実行して確かめた箇所は次のとおり。
 
 ### S20【Low】MCP の資源の上限
 
-**状態: 済（582a74ce）**。`run_cli` は同時に4つまで、標準出力は 64 MiB まで読み、取り消し・時間切れ・読み過ぎで CLI を終わらせる。`convert_kifu` は手の一覧を `max_moves`（既定 2000）で切り `moves_truncated` を返し、対局情報と警告は200件まで
+**状態: 済（c4bfde1b）**。`run_cli` は同時に4つまで、標準出力は 64 MiB まで読み、取り消し・時間切れ・読み過ぎで CLI を終わらせる。`convert_kifu` は手の一覧を `max_moves`（既定 2000）で切り `moves_truncated` を返し、対局情報と警告は200件まで
 
 - **同時実行**: `cli_backend.py:59-84` の `run_cli` は、ジョブの上限（4）に入らない。`verify_tsume` などを並列に呼ぶと、CLI とエンジンが数の制限なしに起動する。
 - **キャンセル**: `asyncio.wait_for(proc.communicate())` は、CancelledError で子プロセスを kill しない。
@@ -433,7 +433,7 @@ UBSan 版で実行して確かめた箇所は次のとおり。
 
 ### S21【Low】自動保存のファイル名の検査が足りない
 
-**状態: 済（7271f6bd）**。制御文字（NUL を含む）・文字の向きを変える制御文字を置き換え、名前の部分を40文字で切る（テスト `defaultSaveFileNameIsSafe`）
+**状態: 済（141fe12a）**。制御文字（NUL を含む）・文字の向きを変える制御文字を置き換え、名前の部分を40文字で切る（テスト `defaultSaveFileNameIsSafe`）
 
 - **場所**: `src/kifu/kifuioservice.cpp:17-27`（`sanitizeForFileName`）、`src/ui/coordinators/kifufilecontroller.cpp:254-280`。
 - **再現**
@@ -447,7 +447,7 @@ UBSan 版で実行して確かめた箇所は次のとおり。
 
 ## 3. Info
 
-**状態**: 次の3つは直した（エンジンへの送信と旧版のパスワードは 96e4096e、パイプ名は 582a74ce）。ほかは記録だけ。
+**状態**: 次の3つは直した（エンジンへの送信と旧版のパスワードは 24358fb3、パイプ名は c4bfde1b）。ほかは記録だけ。
 - エンジンへの送信: `EngineProcessManager::sendCommand` は改行を含むコマンドを送らない。
 - Windows のパイプ名: MCP サーバーは名前に `\\.\pipe\` を付けてつなぐ（`AppClient.pipe_address`。Windows では未確認）。
 - 旧版の平文パスワード: 起動時に `CsaGameSettings/password` を消す（`main.cpp`）。

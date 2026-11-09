@@ -1,8 +1,8 @@
 # コード監査：抜本的な書き直しが見合う箇所（2026-10-16）
 
-「本来はもっと綺麗に実装できるのにコードが汚く、抜本的に書き直した方が良い箇所はあるか」という依頼で、`src/` 全体（約8.5万行）と `mcp/` を監査した。直近の監査（5282965f・54ca37d7）で整理した後の状態が対象である。細かいスタイルや小さなバグではなく、データ構造や責務の切り方を変える書き直しが見合う箇所を探した。
+「本来はもっと綺麗に実装できるのにコードが汚く、抜本的に書き直した方が良い箇所はあるか」という依頼で、`src/` 全体（約8.5万行）と `mcp/` を監査した。直近の監査（ca0abe0f・ebe78485）で整理した後の状態が対象である。細かいスタイルや小さなバグではなく、データ構造や責務の切り方を変える書き直しが見合う箇所を探した。
 
-- 対象のコミットは 54ca37d7。本文の行番号はこの時点のもの。
+- 対象のコミットは ebe78485。本文の行番号はこの時点のもの。
 - 6つの範囲（core・kifu／game・engine・network・analysis／app・ui・navigation・board／widgets・views・models／dialogs／services・common・automation・cli・mcp）に分けてコードを読み、呼び出し元と重複箇所を grep で確かめた。不具合は `shogiboardq-cli` で再現できるものは再現した。
 - 監査ではソースを変更していない。
 
@@ -29,23 +29,23 @@
 
 | # | 不具合 | 原因 | 確認 |
 |---|---|---|---|
-| B1 | KIF・KI2 に「パス」の手があると棋譜全体が読めない（`Cannot restore move 2: Invalid USI move: pass`） | `kiflexer.cpp:255`・`ki2tosfenconverter.cpp:113` が文字列 `"pass"` を積み、`parsecommon.cpp` の `resolve()` が `UsiMove` として読めずに全体を失敗にする。パスのテストはない | CLI で再現。<br>**状態: 済（455ec224）**。パスの手の手前までを読み、警告を出す。読めない手・指せない手も全形式で同じく打ち切る（`truncationNotice()`、`docs/dev/kifu-io-features.md`） |
-| B2 | 同じ手順でも、読み込んだ形式で KIF の出力が変わる。KI2 から読むと「同銀(31)」、USI から読むと「同　銀(31)」。「５二金右(61)」と「５二金(61)」も同様 | KIF の書き出しだけが `RecordEntry::displayText` をそのまま書く（`kifexporter.cpp:88-91`）。`displayText` の作り方は入力形式ごとに違う（KIF は原文、KI2 は原文＋`(xy)`、ほかは `KifMoveText::format`） | CLI で再現。<br>**状態: 済（455ec224）**。KIF の書き出しも指し手と直前の手から表記を作る（成れたのに成らない手は「不成」。`KifMoveText::couldPromote`） |
-| B3 | CSA で局面に合わない手を読み飛ばすと、以降の手番がずれる。`+7776FU -3334FU +1112HI -8384FU +2726FU` を読むと、`+1112HI` を飛ばした後の `-8384FU` が3手目（先手番）になる。CSA に書き出すと `+8384FU`・`-2726FU`、終局は「△投了」。エラーも警告も返らない | `csatosfenconverter.cpp:290-294` は読めない手を飛ばして読み続け、手番を指し手の `+`/`-` から確かめない | CLI で再現（確認: 警告 `Move does not match the position` は返っていた。読み込みは成功し、手番がずれる）。<br>**状態: 済（455ec224）**。読めない手と手番と違う符号の手の手前で打ち切る（KIF と同じ） |
-| B4 | 英語・中国語の表示で手合割「左七枚落ち」「右七枚落ち」だけが日本語のまま出る | `kifupresentation.cpp:248-256` の手合割の訳語の表は `core/handicaps.h:22-37` の写しで、この2つが抜けている。`ShogiBoardQ_en.ts` にも訳がない | コードで確認。<br>**状態: 済（455ec224）**。写しをやめ、`handicaps.h` の名前を `QT_TRANSLATE_NOOP` で訳の対象にして表示はその表から引く（3章の「手合割の表示名」も兼ねる） |
-| B5 | 通信対局の終局でライブ記録が確定されない。終局後も `LiveGameSession` が有効のまま残り、次の3つが起きる。「新規」か次の対局で破棄されるまで続く。<br>・盤で変化の手を指せない（`HumanTurnPolicy::isHumanTurnNow` が false）<br>・分岐の編集メニューが無効（`BranchTreeEditController::canEdit()` が false）<br>・評価値グラフの縦線が棋譜の移動に付いてこない（`EvaluationGraphPresenter::showCurrentPly` が早く抜ける） | `LiveGameSession::commit()` を呼ぶのは `gamesession.cpp:279`（`GameSession::onGameEnded`、ローカル対局）だけ。通信対局の終局は `CsaGameSession::onGameEnded` → フック `recordGameEnd` → `GameSession::recordGameEndTime` で、終了時刻を書くだけで commit しない。`tst_csagamesession`・`tst_csagamecoordinator` は終局後のライブ記録の状態を確かめていない | コードの経路で確認（実行はしていない）。<br>**状態: 済（455ec224）**。通信対局の終局でも `GameSession::endCsaGameRecord()` がライブ記録を確定する（`tst_app_game_session::csaGameEndCommitsLiveRecord`） |
-| B6 | 時間のある対局の後に別の棋譜を読み込み、CSA で保存・コピーすると、前の対局の `$TIME` が書かれる。読み込んだ棋譜に開始日時がなければ、前の対局の `$START_TIME` も書かれる | `MatchTimeRecord` の持ち時間は `begin()` 以外で消えない。開始日時を消すのも `SessionResetCoordinator::prepareGameStart` の `clearStart()` だけ。棋譜の読み込み（`clearUiBeforeKifuLoad` ＝ `SessionResetCoordinator::clearBeforeKifuLoad`）は表示を消すだけ。CSA の書き出しは `ctx.timeControl` に持ち時間があると対局情報の持ち時間を捨て、`ctx` の値で `$TIME` を書く（`csaexporter.cpp:96-97, 122-134`） | コードの経路で確認（実行はしていない）。<br>**状態: 済（455ec224）**。棋譜を読み込むと `GameSession::forgetFinishedMatch()` が `MatchTimeRecord` を消す（`tst_app_kifu_load::loadedKifuForgetsPreviousMatch`） |
-| B7 | 棋譜を読み込んでも前の対局の対局者が残り、次の3か所に出る。<br>・「名前を付けて保存」の既定のファイル名（`kifuexportcontroller.cpp:105`）<br>・CSA の `N+`/`N-` の補い。読み込んだ棋譜に対局者名がないとき（`csaexporter.cpp:69-73`）<br>・読み筋ダイアログの対局者名（`pvclickcontroller.cpp:55`） | `AppState::players` を書くのは対局開始（`playerinfopresenter.cpp:173`、`gamesession.cpp:228`）だけで、消すのは「新規」（`gamesession.cpp:262`）だけ。読み込みでは消さない | コードの経路で確認（実行はしていない）。<br>**状態: 済（455ec224）**。B6 と同じく読み込みで消す |
-| B8 | エンジンの id name を、そのまま設定ファイルの最上位のグループ名に使っている。名前が `General`・`Engines`・`SizeRelated` などと同じなら他の設定と衝突し、エンジンを削除すると（`removeEngineNameGroup`）そのグループごと消える。`/` を含む名前は入れ子のグループになる | `engineregistrationhandler.cpp:347` の `settings.beginWriteArray(m_engineIdName)` と `:376` の `beginGroup(removeEngineName)` | コードで確認（実害は該当する名前のエンジンがあるときだけ）。<br>**状態: 済（455ec224）**。保存先を `EngineOptions/<エスケープした名前>`（`EngineSettingsConstants::engineOptionsGroup`）に移し、旧形式からは GUI と CLI の起動時に `EngineListSettings::migrateLegacyOptionGroups()` で移す（R8 で `EngineProfileStore` へ移した） |
+| B1 | KIF・KI2 に「パス」の手があると棋譜全体が読めない（`Cannot restore move 2: Invalid USI move: pass`） | `kiflexer.cpp:255`・`ki2tosfenconverter.cpp:113` が文字列 `"pass"` を積み、`parsecommon.cpp` の `resolve()` が `UsiMove` として読めずに全体を失敗にする。パスのテストはない | CLI で再現。<br>**状態: 済（7c999325）**。パスの手の手前までを読み、警告を出す。読めない手・指せない手も全形式で同じく打ち切る（`truncationNotice()`、`docs/dev/kifu-io-features.md`） |
+| B2 | 同じ手順でも、読み込んだ形式で KIF の出力が変わる。KI2 から読むと「同銀(31)」、USI から読むと「同　銀(31)」。「５二金右(61)」と「５二金(61)」も同様 | KIF の書き出しだけが `RecordEntry::displayText` をそのまま書く（`kifexporter.cpp:88-91`）。`displayText` の作り方は入力形式ごとに違う（KIF は原文、KI2 は原文＋`(xy)`、ほかは `KifMoveText::format`） | CLI で再現。<br>**状態: 済（7c999325）**。KIF の書き出しも指し手と直前の手から表記を作る（成れたのに成らない手は「不成」。`KifMoveText::couldPromote`） |
+| B3 | CSA で局面に合わない手を読み飛ばすと、以降の手番がずれる。`+7776FU -3334FU +1112HI -8384FU +2726FU` を読むと、`+1112HI` を飛ばした後の `-8384FU` が3手目（先手番）になる。CSA に書き出すと `+8384FU`・`-2726FU`、終局は「△投了」。エラーも警告も返らない | `csatosfenconverter.cpp:290-294` は読めない手を飛ばして読み続け、手番を指し手の `+`/`-` から確かめない | CLI で再現（確認: 警告 `Move does not match the position` は返っていた。読み込みは成功し、手番がずれる）。<br>**状態: 済（7c999325）**。読めない手と手番と違う符号の手の手前で打ち切る（KIF と同じ） |
+| B4 | 英語・中国語の表示で手合割「左七枚落ち」「右七枚落ち」だけが日本語のまま出る | `kifupresentation.cpp:248-256` の手合割の訳語の表は `core/handicaps.h:22-37` の写しで、この2つが抜けている。`ShogiBoardQ_en.ts` にも訳がない | コードで確認。<br>**状態: 済（7c999325）**。写しをやめ、`handicaps.h` の名前を `QT_TRANSLATE_NOOP` で訳の対象にして表示はその表から引く（3章の「手合割の表示名」も兼ねる） |
+| B5 | 通信対局の終局でライブ記録が確定されない。終局後も `LiveGameSession` が有効のまま残り、次の3つが起きる。「新規」か次の対局で破棄されるまで続く。<br>・盤で変化の手を指せない（`HumanTurnPolicy::isHumanTurnNow` が false）<br>・分岐の編集メニューが無効（`BranchTreeEditController::canEdit()` が false）<br>・評価値グラフの縦線が棋譜の移動に付いてこない（`EvaluationGraphPresenter::showCurrentPly` が早く抜ける） | `LiveGameSession::commit()` を呼ぶのは `gamesession.cpp:279`（`GameSession::onGameEnded`、ローカル対局）だけ。通信対局の終局は `CsaGameSession::onGameEnded` → フック `recordGameEnd` → `GameSession::recordGameEndTime` で、終了時刻を書くだけで commit しない。`tst_csagamesession`・`tst_csagamecoordinator` は終局後のライブ記録の状態を確かめていない | コードの経路で確認（実行はしていない）。<br>**状態: 済（7c999325）**。通信対局の終局でも `GameSession::endCsaGameRecord()` がライブ記録を確定する（`tst_app_game_session::csaGameEndCommitsLiveRecord`） |
+| B6 | 時間のある対局の後に別の棋譜を読み込み、CSA で保存・コピーすると、前の対局の `$TIME` が書かれる。読み込んだ棋譜に開始日時がなければ、前の対局の `$START_TIME` も書かれる | `MatchTimeRecord` の持ち時間は `begin()` 以外で消えない。開始日時を消すのも `SessionResetCoordinator::prepareGameStart` の `clearStart()` だけ。棋譜の読み込み（`clearUiBeforeKifuLoad` ＝ `SessionResetCoordinator::clearBeforeKifuLoad`）は表示を消すだけ。CSA の書き出しは `ctx.timeControl` に持ち時間があると対局情報の持ち時間を捨て、`ctx` の値で `$TIME` を書く（`csaexporter.cpp:96-97, 122-134`） | コードの経路で確認（実行はしていない）。<br>**状態: 済（7c999325）**。棋譜を読み込むと `GameSession::forgetFinishedMatch()` が `MatchTimeRecord` を消す（`tst_app_kifu_load::loadedKifuForgetsPreviousMatch`） |
+| B7 | 棋譜を読み込んでも前の対局の対局者が残り、次の3か所に出る。<br>・「名前を付けて保存」の既定のファイル名（`kifuexportcontroller.cpp:105`）<br>・CSA の `N+`/`N-` の補い。読み込んだ棋譜に対局者名がないとき（`csaexporter.cpp:69-73`）<br>・読み筋ダイアログの対局者名（`pvclickcontroller.cpp:55`） | `AppState::players` を書くのは対局開始（`playerinfopresenter.cpp:173`、`gamesession.cpp:228`）だけで、消すのは「新規」（`gamesession.cpp:262`）だけ。読み込みでは消さない | コードの経路で確認（実行はしていない）。<br>**状態: 済（7c999325）**。B6 と同じく読み込みで消す |
+| B8 | エンジンの id name を、そのまま設定ファイルの最上位のグループ名に使っている。名前が `General`・`Engines`・`SizeRelated` などと同じなら他の設定と衝突し、エンジンを削除すると（`removeEngineNameGroup`）そのグループごと消える。`/` を含む名前は入れ子のグループになる | `engineregistrationhandler.cpp:347` の `settings.beginWriteArray(m_engineIdName)` と `:376` の `beginGroup(removeEngineName)` | コードで確認（実害は該当する名前のエンジンがあるときだけ）。<br>**状態: 済（7c999325）**。保存先を `EngineOptions/<エスケープした名前>`（`EngineSettingsConstants::engineOptionsGroup`）に移し、旧形式からは GUI と CLI の起動時に `EngineListSettings::migrateLegacyOptionGroups()` で移す（R8 で `EngineProfileStore` へ移した） |
 
 ### 1.2 疑い（コードから追った推定で、実行では確かめていない）
 
 | # | 疑い | 根拠 |
 |---|---|---|
-| U1 | エンジン設定に保存した MultiPV が2以上だと、棋譜解析が最善でない行の評価値で確定し得る | `AnalysisJob::onBestMove` は `UsiBestMove`（multipv 1 の最終評価値を持つ）を引数ごと捨てている（`analysisjob.cpp:94`）。1局面の結果は、multipv で絞らない `progress(ply, info)` から組み立てている（`analysisresulthandler.cpp`）。<br>**確認: 起きる**（`tst_analysis_coordinator::commitPendingResult_usesBestLineWithMultiPv` で再現）。**状態: 済（455ec224）**。multipv 1 の行だけで確定する。結果の組み立ての書き直しは R5 |
-| U2 | 先読み中の読み筋で「同」が付かない、または2手前の升に誤って付く | 先読みを始めると `lastUsiMove` は予想手に変わる（`usimatchhandler.cpp:130`）。一方 `previousTo` は Strategy が前に入れた升のままで、整形は毎回 `previousTo` を使う（`thinkinginfoformatter.cpp:66`）。先読み中の行は思考の表に出る（`usimodelbinding.cpp:51`）。<br>**確認: 起きる**（`tst_usiprotocolhandler::ponderPvUsesPredictedMoveForSameSquare` で再現）。**状態: 済（455ec224）**。`setLastUsiMove` がその手の移動先を「同」の基準にする。写しの削除は R1 |
-| U3 | GUI の詰み探索には応答待ちの期限も stop もなく、応答しないエンジンを待ち続ける。CLI の `MateSearchRunner` は打ち切れる | `Usi::startMateSearch`（`usi.cpp:150-156`）は `go mate` を送るだけ。<br>**確認: 起きる**（`tst_analysisflow::unresponsiveMateSearchIsAbandoned` で再現）。**状態: 済（455ec224）**。CLI と同じ `UsiSearchRequest::mate()`（制限時間＋5秒で stop、その後3秒待つ）を使い、答えなければ打ち切って知らせる。打ち切りの共通化は R5 |
-| U4 | 加算・秒読みのある CSA 対局で、相手の投了時の消費時間を誤って計算する | 「持ち時間 − 時計の残り − それまでの累計」で求めている（`csagamecoordinator.cpp:325-338`）。この式は、`CsaGameProgress` が手番の始めに足す加算時間を無視している。また、秒読みに入った後の `ShogiClock::remainingMs` は「秒読みの残り」を意味する。<br>**確認: 起きる**（加算10秒の対局で 0 秒になる。`tst_csagamecoordinator::opponentResignWithoutTimeUsesElapsedTurnTime`）。**状態: 済（455ec224）**。自分の投了と同じく、相手の手番が始まってからの考慮時間を使う。時間の接口は R4 |
+| U1 | エンジン設定に保存した MultiPV が2以上だと、棋譜解析が最善でない行の評価値で確定し得る | `AnalysisJob::onBestMove` は `UsiBestMove`（multipv 1 の最終評価値を持つ）を引数ごと捨てている（`analysisjob.cpp:94`）。1局面の結果は、multipv で絞らない `progress(ply, info)` から組み立てている（`analysisresulthandler.cpp`）。<br>**確認: 起きる**（`tst_analysis_coordinator::commitPendingResult_usesBestLineWithMultiPv` で再現）。**状態: 済（7c999325）**。multipv 1 の行だけで確定する。結果の組み立ての書き直しは R5 |
+| U2 | 先読み中の読み筋で「同」が付かない、または2手前の升に誤って付く | 先読みを始めると `lastUsiMove` は予想手に変わる（`usimatchhandler.cpp:130`）。一方 `previousTo` は Strategy が前に入れた升のままで、整形は毎回 `previousTo` を使う（`thinkinginfoformatter.cpp:66`）。先読み中の行は思考の表に出る（`usimodelbinding.cpp:51`）。<br>**確認: 起きる**（`tst_usiprotocolhandler::ponderPvUsesPredictedMoveForSameSquare` で再現）。**状態: 済（7c999325）**。`setLastUsiMove` がその手の移動先を「同」の基準にする。写しの削除は R1 |
+| U3 | GUI の詰み探索には応答待ちの期限も stop もなく、応答しないエンジンを待ち続ける。CLI の `MateSearchRunner` は打ち切れる | `Usi::startMateSearch`（`usi.cpp:150-156`）は `go mate` を送るだけ。<br>**確認: 起きる**（`tst_analysisflow::unresponsiveMateSearchIsAbandoned` で再現）。**状態: 済（7c999325）**。CLI と同じ `UsiSearchRequest::mate()`（制限時間＋5秒で stop、その後3秒待つ）を使い、答えなければ打ち切って知らせる。打ち切りの共通化は R5 |
+| U4 | 加算・秒読みのある CSA 対局で、相手の投了時の消費時間を誤って計算する | 「持ち時間 − 時計の残り − それまでの累計」で求めている（`csagamecoordinator.cpp:325-338`）。この式は、`CsaGameProgress` が手番の始めに足す加算時間を無視している。また、秒読みに入った後の `ShogiClock::remainingMs` は「秒読みの残り」を意味する。<br>**確認: 起きる**（加算10秒の対局で 0 秒になる。`tst_csagamecoordinator::opponentResignWithoutTimeUsesElapsedTurnTime`）。**状態: 済（7c999325）**。自分の投了と同じく、相手の手番が始まってからの考慮時間を使う。時間の接口は R4 |
 
 ---
 
@@ -93,7 +93,7 @@
 - `UsiPosition`: 約15ファイル（engine 5、game 5、analysis 3、network 2、kifu の `RecordLine`）。
 - テスト: `tst_shogiboard`（636行）・`tst_sfenreplay`・変換器のテスト6本・`tst_fmvlegalcore`・`tst_fmvconverter`・`tst_usimatchhandler`・`tst_usiprotocolhandler`・`tst_gamestrategy`・`tst_matchcoordinator`。
 
-**状態: 済（6143b3b0）**。案から変えた点:
+**状態: 済（86449bdf）**。案から変えた点:
 - `UsiPosition` は engine ではなく core に置いた（`src/core/usiposition.h`）。kifu の `RecordLine::usiPosition(ply)` が作るので、層の規則（kifu は engine を include しない）に合わせた。直前の手（`lastMove`）は手順と別に持ち、局面だけを送る検討（`position sfen ...`）でも「同」の基準を持てる。
 - 「同」の基準の写し（`ShogiGameController::m_previousTo`・`InterruptedGameState::previousTo`・CSA の上書き）は、手順を持つ呼び出し側が指すたびに渡す形にした（`validateAndMove`・`applyMove`・`applyRecordedMove` の `previousTo`、`MatchCoordinator::lastMoveDestination()`）。
 - 使う箇所のなかった `UsiMatchMove::position`・`ponderPosition` は削除した。エンジンの指した手が局面に指せないときは、先読みせずに対局の側の反則の処理へ渡す（従来どおり）。
@@ -144,7 +144,7 @@
 - テスト: 変換器のテスト6本（約3,700行）が回帰を守る。`tst_gamerecordmodel`（1,224行）・`tst_jkfexporter`・`tst_kifu_comment_sync` は `KifDisplayItem` に依存しているので、書き換えが要る。
 - R1 の `Position` と同時に進めるのが効率的。
 
-**状態: 済（6143b3b0）**。案から変えた点:
+**状態: 済（86449bdf）**。案から変えた点:
 - KIF・KI2 は `KifTextParser`（`src/kifu/formats/kiftextparser.h`）が両方を読む。手数で始まる KIF の行と手番の印で始まる KI2 の行をどちらの形式でも読み、形式で違うのは KI2 の「まで…」の行・対局情報の終わりの見分け方・警告の見出しだけ。指し手の文法は `KifMoveGrammar`（`Ki2Lexer::parseMoveText` に移動元 "(xy)" を足したもの）。
 - 失敗の方針は `ParseOptions`（既定は手順を打ち切って続ける、`FailRecord` で全体を失敗）と `ParseReport` に置いた。パスは未対応の手として同じ方針で扱う。
 - `RecordEntry::mover` は残した（終局の行は指し手を持たないので、記録した側をこの欄で持つ）。
@@ -185,7 +185,7 @@
 - テスト: `tst_game_info_pane`・`tst_gamerecordmodel`・`tst_app_kifu_load`・`tst_kifusavecoordinator`・`tst_kifu_format_compliance`・`tst_jkfexporter`。
 - これを済ませると、R4 と R6 で必要な「作り直しで何を消すか」の多くがなくなる。
 
-**状態: 済（3953517c）**。案から変えた点:
+**状態: 済（5db2feb3）**。案から変えた点:
 - `KifuDocument`（`src/kifu/kifudocument.h`）は分岐ツリーを持たずに指す（ツリーは合成ルートが作り、表示中の手・ライブ対局と共有する）。読み込み・新規・対局の開始は文書の中身を置き換える操作で、対局者・持ち時間・上書き保存先を消す。B6・B7 の `GameSession::forgetFinishedMatch()` はこの置き換えに吸収した。
 - 未保存は「ツリーの revision・コメントとしおりの変更回数・対局情報が保存した時点と違う」か「ファイルにない内容を読み込んだ」で求める。指し手のない棋譜の対局情報だけの変更（対局の前に棋戦・場所を書いた）は数えない。
 - 対局情報の欄（`GameInfoPane`）は文書の対局情報を編集する画面になり、入力中のセルの確定は文書の Hooks（`flushPendingHeaderEdits`）だけが呼ぶ。対局者名の取り出しは `KifuExportMetadataBuilder::playerName` の1か所、下手・上手と呼ぶかは `KifuDocument::usesHandicapNames` の1か所。
@@ -230,7 +230,7 @@
 - 対局の流れは6〜7ファイル約700行、時間の接口は約8ファイル。
 - テスト: `tst_app_game_session`・`tst_csagamesession`・`tst_csagamecoordinator`・`tst_game_start_flow`・`tst_match_end`・`tst_usimatchhandler`。通信対局の終局後の状態を確かめるテストは新しく要る。
 
-**状態: 済（d8dbb2bd）**。案から変えた点:
+**状態: 済（f02591ae）**。案から変えた点:
 - 対局相手の窓口 `GameChannel`（`src/game/gamechannel.h`）の実装は、司令塔に直接持たせず、`LocalGameChannel`（`MatchCoordinator`）と `CsaGameChannel`（`src/network/csagamechannel.h`）の小さな包みにした。司令塔の `players()` などと名前がぶつからず、司令塔の公開の操作も増えない。窓口を選ぶのは `GameSession::activeChannel()` の1か所（動作状態で決まる）。
 - 入玉宣言は `NyugyokuDeclarationHandler::handleDeclaration(GameChannel*)` の1本にした。宣言できるのは手番の人間だけ（通信対局でエンジンが指しているときも、人間はエンジンの代わりに宣言しない）。成否をこちらで判定するかは窓口（`judgesDeclaration`）が答える。
 - 通信対局の棋譜は `GameSession` が司令塔の `gameStarted`・`recordEntryReady`・`gameEnded` を直接受けて作る（フック `prepareRecord`/`recordGameEnd` を廃止）。`CsaGameSession` は画面への反映だけにした。自動保存の指定は `MatchAutoSave`（`src/game/matchautosave.h`）で、ローカル対局は対局の開始条件、通信対局は `CsaGameCoordinator::StartOptions` に持たせ、終局の後始末（`finishMatchRecord`）で保存する。
@@ -245,7 +245,7 @@
   - 回している処理: 候補局面の一括生成（ワーカースレッド）、候補のエンジンでの確認、唯一解の検査、要らない駒を1枚ずつ除くトリミング。
   - 状態は34個のメンバ変数に散らばっている。`Phase`、検査後に戻るフェーズ `m_verificationOrigin`、bool 6個（`m_starting`、`m_stopRequestedDuringStart`、`m_waitingForPositions`、`m_verificationAwaiting`、`m_trimComplete`、`m_trimProvenInTarget`）。`m_phase` の読み書きは37か所ある。
   - 採択の正しさは状態からは保証されず、最後に `registerFoundPosition` が `m_trimComplete && sfen == m_verifiedSfen && pv == m_verifiedPv` を文字列で比べて確かめ直している。
-  - 修正の履歴が多い（155e0b7b、53375d25、6498f1fc、f8cba488、9c9bb25e）。`m_starting` のコメントは、今はない待機ループを前提にしている。
+  - 修正の履歴が多い（d3ba2820、cc3cbcc0、3af9da56、7657a5c8、0afb8923）。`m_starting` のコメントは、今はない待機ループを前提にしている。
 - **go mate の扱いを5クラスが手書きしている。**
   - 5クラス（`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`、`TsumeMateEngine`、`TsumeshogiGenerator`）が、それぞれ `UsiEngineSession` を持って同じ骨組み（終了済みフラグ、準備完了で探索、エラーで終了、応答待ちの期限切れ）を書いている。
   - `UsiCheckmate::Result` を変換する switch が5つあり、変換先の型が4種類（`MateSearchRunner::Status`、`TsumeshogiVerifier::Reply`、`TsumeEvaluation::Status`、`AnalysisSession` の文言）。stop の後の結果を「不明」扱いにするのは2か所だけ。
@@ -280,7 +280,7 @@
 - `AnalysisCoordinator`（276行）は削除する。
 - テスト: `tst_tsumeshogi_generator`（51件）、`tst_tsumeshogi_verification`（friend で内部を触っているので書き直し）、`tst_tsume_search`、`mock_mate_engine`、`tst_analysis_coordinator`（530行。AnalysisJob のテストへ移す）、`tst_analysisflow`（410行）、`mcp/tests`。
 
-**状態: 済（b625d5eb）**。案から変えた点:
+**状態: 済（22bed25a）**。案から変えた点:
 - `MateOracle`（`src/engine/mateoracle.h`）は go mate の問い合わせだけを受け持ち、打ち切りの方針は既存の `UsiSearchRequest::mate`（制限時間＋5秒で stop、その後3秒待つ）の1か所に残した。stop の後の答えを不明にするのは `MateAnswer::fromCheckmate` の1か所。KomoringHeights の「go mate infinite を期限まで待ち、stop は送らない」は `askWithin` にした。
 - GUI の詰み探索（`AnalysisSession`）は、思考情報の表示を出すために `Usi` のまま探索し、答えの変換だけ `MateAnswer::fromCheckmate` を使う。`EngineAnalysisRunner` は go mate ではないので `MateOracle` には載せず、初期化前の停止の扱いだけ他の実行器と揃えた。
 - 引き出し型の問い合わせ元は `MateQuerySource`（`nextQuery`・`submit(answer, elapsedMs)`・`isDone`）で、回すのは `MateQueryLoop`（`src/engine/matequeryloop.h`）。余詰検査の総予算と1回の上限（`kQueryMaxMs`）は `TsumeVerificationJob`（`src/analysis/tsumeverificationjob.h`）が持ち、総予算は答えにかかった時間の合計で数える（エンジンなしで試せる）。
@@ -328,7 +328,7 @@
 - 表示の持ち主の整理は8〜9ファイル約800行、探索状況の中継は5ファイル約900行。
 - テスト: `tst_candidate_arrows`・`tst_wiring_analysistab`・`tst_thinking_display_updates`・`tst_evaluationchart`・`tst_analysisflow`・`tst_preset_gamestart_cleanup`。
 
-**状態: 済（0dac64de・f0b1d80c）**。案から変えた点:
+**状態: 済（c965e163・ffdc5108）**。案から変えた点:
 - 評価値は手数ごとの値の列 `EvaluationSeries`（`src/models/evaluationseries.h`）にした（node ID ではなく手数。グラフの横軸と棋譜解析の結果が手数で引くため）。書き手は `EvaluationGraphPresenter` の1つで、対局のエンジンの値は `plotEngineScore`、棋譜解析の値は `plotAnalysisScore` で書く。先手から見た値への符号の処理は `EvaluationSeries::blackView` の1か所。グラフ（`EvaluationChartWidget`）は系列の変更の知らせを受けて描くだけで、点は100msまとめてから描く。
 - 探索状況は `EngineSearchStatus`（`src/engine/enginesearchstatus.h`）を info 1行につき1回送る（`ThinkingInfoFormatter::searchStatusUpdated`）。3桁区切りなどの書式は表示の側（`EngineInfoWidget`）で決める。通信ログの1行は `UsiCommLogModel::logLineAppended` で送る。
 - エンジンの表示の持ち主は既存の `EngineDisplayPresenter` に集めた。検討中かは `AnalysisSession::isConsidering()` だけを正本にし、検討タブの実行の状態（`ConsiderationTabManager::RunState`）はセッションの知らせから決める。2つ目のエンジン欄と評価値グラフの系列名は文書の対局者（`KifuDocument::playersChanged`）から決める。
@@ -374,7 +374,7 @@
 - 入力の判定は6〜7ファイル約600行、局面編集は5ファイル約500行で、`Mode` の廃止と同時に行う。ハイライトは views の2ファイルと呼び出し側5ファイル。
 - テスト: `tst_legal_move_highlights`・`tst_board_drag_repaint`・`tst_lifecycle_runtime`・`tst_positionedit_gamestart`・`tst_service_initialization`・`tests/gui`。
 
-**状態: 済（f6f3fe36）**。案から変えた点:
+**状態: 済（c62939a4）**。案から変えた点:
 - 行き先は型を動作状態ごとに分けず、インターフェイス `BoardInputRoute`（`acceptsInput`・`isEditing`・`submit`。`src/board/boardinputroute.h`）にした。主画面では `BoardMoveController` が動作状態で処理を振り分け、詰将棋を解くダイアログは自分が行き先になる。`submit` は駒台・駒箱を含む局面編集の移動も渡すので、盤の座標（移動元・移動先）のままにした。クリックは行き先が1回だけ `UsiMove` にし（成りの選択もここ）、局面編集以外は `playUsiMove` で処理する。定跡手と通信対局へ渡す手も `UsiMove` のまま。
 - 受け付けるかは `HumanTurnPolicy::isHumanTurnNow`（局面編集中は常に）だけで決め、`UiStatePolicyManager` の盤面クリックの項目は廃止した。動作状態が変わったら、つまんでいた駒を戻す。`HumanTurnPolicy` は層の規則（ui は app を include しない）に合わせて `src/ui/controllers` へ移した。
 - 局面編集は `PositionEditSession`（`src/board/positioneditsession.h`）。開始・終了は表示中の局面・編集した局面を `editingStarted`/`editingFinished` で渡し、受け手（`MainWindowActions::resetRecordForEditedPosition`）はその局面で棋譜を作り直す。ビューの描き方（`setPositionEditMode`）は、このクラスが動作状態に合わせて切り替える。
@@ -405,7 +405,7 @@
 
 **規模とテスト**: 5〜7ファイル約250行。テストは `tst_engineregistrationhandler`・`tst_enginepondersettings`・`tst_settings_roundtrip`。
 
-**状態: 済（9d05747b）**。案から変えた点:
+**状態: 済（5531c34a）**。案から変えた点:
 - `EngineProfileStore`（`src/services/engineprofilestore.h`）は値型の `EngineProfile` を作らず、エンジン名で読み書きする関数の名前空間にした（一覧の `loadEngines`/`saveEngines`、オプションの `loadOptions`/`saveOptions`、先読みの `loadPonder`/`savePonder`、削除の `removeEngine`）。エンジン一覧の検索・選択（`EngineListSettings`）は残し、読み書きは店に任せる。
 - エンジンを起動するときに送るオプションは値 `EngineProfileStore::LaunchOptions` にまとめ、`UsiEngineSession` が店から作って `UsiProtocolHandler::setLaunchOptions` に渡す。プロトコルの処理は設定ファイルを開かない（`tst_usiprotocolhandler::launchOptionsAreSentAfterUsiOk`）。
 - `USI_Ponder` の名前と判定（`kPonderOptionName`・`isPonderOption`）は店に置き、ほかはそれを使う。`EngineOption` は `src/services/engineoption.h` へ下ろした。
@@ -443,7 +443,7 @@
 
 **規模とテスト**: dialogs 約18ファイル（各15〜30行減）、widgets 約10ファイル、services 1。テストは `tst_dialog_appearance`（文字一致に依存している。131行目）と `tst_menu_window`。テストが objectName で参照しているので、objectName は残す。
 
-**状態: 済（47c5ea2b・a6fd2089）**。案から変えた点:
+**状態: 済（1f92a7b3・5d281865）**。案から変えた点:
 - `DialogFontScale::install(dialog, Setting<int>, Options)` の `Options` に、範囲・保存するウィンドウの大きさ・ダイアログが置いた A-/A+（.ui のボタンなど）・大きさを出すラベルを渡せるようにした。ボタンを渡さなければ、これまでどおり決定ボタンの列に作る。`AppSettings::dialogFontSize(id)` などの文字列 id の関数は、同じキーの `Setting<T>` の宣言（例: `AppSettings::promotionDialogFontSize`）に置き換えたので、保存値はそのまま読める。
 - 相対的な大きさ（太字の見出し・プレビューなど）は作るときに1度だけ付け、文字の大きさに合わせて変える寸法（表の行の高さなど）は `fontSize()` の `fontSizeChanged` につないだ。盤（`TsumePlayDialog`）は `dialogFontScaleExcluded` で対象外にする。
 - `FontSizeControl`（`src/widgets/fontsizecontrol.h`）はボタンに役割のプロパティ（`kRoleProperty`）を付け、テストは表示の文字ではなくこれで探す。ボタンの大きさはパネルでは並ぶボタンに合わせて呼び出し側が決める（`Sizing::Panel`）。
@@ -475,7 +475,7 @@
 
 **規模とテスト**: dialogs 7、widgets 1、ui 3、game 1。テストは `tests/gui/tst_tsume_search_dialog.cpp`（`engineList().at(engineNumber())` を使っている）と `tst_startgamedialog`。
 
-**状態: 済（77436034）**。案から変えた点:
+**状態: 済（6f913456）**。案から変えた点:
 - `EngineSelector`（`src/widgets/engineselector.h`）は QWidget ではなく、ダイアログが置いたコンボ・「設定」ボタン・案内を結ぶ QObject にした（.ui の部品と objectName をそのまま使える）。内蔵エンジンの項目（詰将棋問題一覧の Hayanagi）を選んだことは空の名前で保存し、`"@hayanagi"` の印は `TsumeshogiSettings::migrateCollectionEngineSelection()` で移す。通信対局も名前で保存し、以前の番号は読むだけにした（`NetworkSettings::csaEngineName`/`csaEngineNumber` は廃止）。
 - 対局開始ダイアログは R9-3 で `PlayerSetupWidget` に組み替えるときに使う（コンボの先頭の「人間」を内蔵の項目にする）。
 - 棋譜解析・詰み探索のダイアログは選んだエンジンを `engine()`（`std::optional<EngineEntry>`）で返す。テストは `tst_engineselector`。
@@ -499,7 +499,7 @@
 
 **規模とテスト**: dialogs 3ファイル（.ui 約600行減）、game 2、app 1。`tst_startgamedialog`・`tst_game_start_flow`・`tst_game_start_options`・`tst_wiring_contracts`・`tests/gui/tst_start_game_flow`・`scripts/docs/shoot_tables.py` が部品名を参照しているので、objectName は残す。
 
-**状態: 済（a90f603c）**。案から変えた点:
+**状態: 済（8093f535）**。案から変えた点:
 - `PlayerSetupWidget`・`TimeControlEditor`・`SettingsFormBinding`（設定と入力欄の対応の表）は `src/widgets` に置いた。対局者のコンボは以前と同じく「人間」とエンジンを1つのコンボに並べ、R9-2 の `EngineSelector` の内蔵の項目を「人間」に使う。保存したエンジンが削除されていれば人間に戻す（以前と同じ）。
 - `PlayerChoice` の時間は `TimeControlSide`（ミリ秒）にし、時間設定の検証（`TimeControlValidator`）も同じ型を受け取る。開始局面は `Handicaps::Handicap*`（nullptr は現在の局面）で渡し、手合割の名前で保存する。以前の版の番号は以前の並びとして読むだけにした。
 - `SettingsFormBinding` は詰将棋生成ダイアログにも使い、「既定値に戻す」は設定の宣言の既定値を使う（直書きの既定値を消した）。CSA の対局ダイアログは項目ごとの変換（パスワード・履歴）が多いので使わなかった。
@@ -522,7 +522,7 @@
 
 **規模とテスト**: widgets の6クラス（約2,800行）と `DockCreationService`。テストは `tst_usilogpanel`・`tst_csalogpanel`・`tst_wiring_analysistab` ほか4本。
 
-**状態: 済（5cd05642）**。案から変えた点:
+**状態: 済（d21d597a）**。案から変えた点:
 - クラス名（`ConsiderationTabManager`・`BranchTreeManager`）は変えていない。分岐ツリーは描く `QGraphicsView` を子に持つ（`view()`）。
 - 棋譜解析の結果のドックは、解析を始めたときに `KifuAnalysisController`（Deps の `resultsDock`）が出す。結果の表のモデルは `setModel` で1度だけ結ぶ。解析中は最後に確定した行を選んで見せ、その間の選択・盤面の表示の通知は無視する（選択モードは切り替えない）。
 
@@ -545,7 +545,7 @@
 
 **規模とテスト**: 約8ファイル（約1,200行）。テストは `tst_abstractlistmodel` ほか5本以上。
 
-**状態: 済（2764bf92）**。案から変えた点:
+**状態: 済（0a769871）**。案から変えた点:
 - 思考の表の行は `ThinkingInfoRow` を持つ `ShogiInfoRecord` の値（表示の文字列を覚えるため）、棋譜解析の結果の表の行は `KifuAnalysisRow`（`src/models/kifuanalysisrow.h`）の値にした。`AbstractListModel` と `tst_abstractlistmodel` は削除した。
 - 共通の表は `ThinkingTableView` を一般化せず、基底の `PvTableView`（`src/widgets/pvtableview.h`）を作り、`ThinkingTableView` と棋譜解析の結果の表がそれを使う。列幅の決め方と保存（思考の表は表の組ごと、解析の結果は内容に合わせて広げる）はそれぞれに残した。
 - 指し手の書体は FontRole と `KifuMoveDelegate` の2経路のまま、決め方を `MoveFont`（`src/common/movefont.h`）の1か所にした。
@@ -557,11 +557,11 @@
 - **編集ボタン。** 元に戻す・やり直す・切り取り・コピー・貼り付けと「更新」「未反映」の表示、破棄の確認ダイアログを、コメント欄（`commenteditorpanel.cpp:400-433`）と対局情報（`gameinfopane.cpp:393-404`）で二重に実装している。
   - 案: 標準ショートカット付きの QAction 群を共通の部品にする。
 
-**状態: 済（8876a775）**。案から変えた点:
+**状態: 済（514e99bf）**。案から変えた点:
 - 局面送りは `KifuNavigationController` が6つの QAction を持つ。ボタンは `QToolButton::setDefaultAction` にせず、今の QPushButton を `bindButtons()` で QAction に結び付けた（押すと実行し、有効・無効は QAction に従う）。`setDefaultAction` ではボタンの文字が QAction の文字になり、棋譜欄（縦に並ぶので ▲▼）と評価値グラフ（横軸が手数なので ◀▶）で記号を変えられないため。アクセサはテストが使うので残し、`arrowButtonsEnabledChanged` の中継と `EvaluationChartWidget::setNavigationEnabled` はなくした。
 - 編集ボタンは `EditActions`（`src/widgets/editactions.h`）にした。ツールチップには実際のショートカットを出す（以前は「Ctrl+Y」と固定の文字で、環境によっては違っていた）。対局情報の `QShortcut` 5つはこの QAction のショートカットに置き換えた。
 - 「更新」ボタン・「修正中」「未反映」の表示は共通にしなかった。破棄の確認ダイアログはコメント欄（別の手へ移る前の確認）にしかなく、二重の実装ではなかった。
-- 合わせて、詰将棋局面生成ダイアログの設定欄が開いた直後に6px足りずスクロールしていたのを直した（6319c5ae。R9-1 以降、内容の大きさが変わっても設定欄の古い希望サイズが使われていた）。
+- 合わせて、詰将棋局面生成ダイアログの設定欄が開いた直後に6px足りずスクロールしていたのを直した（d3188d8a。R9-1 以降、内容の大きさが変わっても設定欄の古い希望サイズが使われていた）。
 
 ### R10. 文字列の表を手で同期している
 
@@ -592,7 +592,7 @@
 
 **規模とテスト**: services 3〜4ファイル、dialogs 1。テストは `tst_piece_images` と `tst_dialog_appearance` の一部。
 
-**状態: 済（80aa1e03）**。案から変えた点:
+**状態: 済（c0579265）**。案から変えた点:
 - `PieceStyleCatalog`（`src/services/piecestylecatalog.h`）の表は `{id, Family, 表示名}`。画像のパスは表の分類（標準の駒だけ `:/pieces/`）から決め、絞り込みの項目と上限も `Family` から作る。表の整合（ID と表示名が重ならない・どの分類にも1つ以上ある・画像がある）は `tst_piece_images::catalogIsConsistent` で確かめる。
 - 盤などの見本は新しい ID を足さず、今の「変わらない名前」（翻訳前の名前。`BoardAppearanceSample::key`）で指すままにした。代わりに、おすすめの組み合わせを `BoardAppearanceCatalog::combinations()` に移し、すべての組み合わせが存在する駒のセットと見本を指し、当てはめるとその組み合わせとして選ばれることを `tst_board_image_renderer::combinationsReferToCatalog` で確かめる（足し忘れ・書き間違いはテストで分かる）。
 - 外観は `AppearanceState`（`src/services/appearancestate.h`）の値で読み、変えて `apply()` で戻す。テーマ・組み合わせ・部品の見本の選択状態は、この値から `BoardAppearanceCatalog::selectedIndex`・`combinationIndex` で求める（選択状態を合わせる関数は残したが、それぞれの比べ方は1つにした）。
@@ -617,7 +617,7 @@
 
 **規模とテスト**: 6ファイル、約1,050行を約450行に減らせる見込み。テストは `tst_dock_layout`・`tst_layout_boundary_widget`・`tst_settings_roundtrip`。
 
-**状態: 済（7d829071）**。案から変えた点:
+**状態: 済（5fa513aa）**。案から変えた点:
 - 表は `DockRegistry::DockSpec`（`src/ui/coordinators/dockregistry.h`）。`tabifyWith` の代わりに、同じ場所のドックは表で前にあるドックのタブに後ろから重ねる（表の並びがタブの並び）。中身の扱い（`LayoutBoundaryWidget` で包む・描き直しを広げない・最小の高さ）と、前面に出すか・リセット時の幅も表に持つ。起動時の配置とリセットは同じ `placeAll()` で作る。
 - `DockLayoutManager` は名前付きレイアウト・起動時のレイアウト・固定だけを受け持ち、ドックの一覧・リセット・保存は `DockRegistry` に任せる。`DockCreationService`・`DockUiCoordinator`・`DockWidgets`・`DockType` は削除した。
 - 保存は全12個のドックで `DockSettings::dockState`/`setDockState`（グループごとの floating・visible・geometry）。既にあった5つのドックのキーは変えていない。下段の7つも、閉じたまま・浮動のまま次回に戻るようになった。
@@ -652,7 +652,7 @@
 
 **規模**: C++ 約12ファイル、Python 5ファイル（`tooldefs.py` は854行）。Python のデコレータ化だけなら小さく始められる。
 
-**状態: 済（828b0407）**。案から変えた点:
+**状態: 済（4f440f43）**。案から変えた点:
 - 表は `ParamSpec`/`OperationSpec`（`src/automation/paramspec.h`）。CLI の表は `CliCommandSpecs`（`src/cli/clicommandspecs.h`）、自動化 API の表は `AutomationMethodSpecs`（`src/automation/automationmethodspecs.h`）。CLI のオプション名は引数名の `_` を `-` にしたもの。使い方の文も表から作る。
 - 自動化 API は `AutomationDispatcher` が呼ぶ前に表で検査し（知らない引数・型・範囲・選択肢・必須）、既定値を補う。表に登録したメソッドと実際のメソッドが一致することは `tst_param_specs` で確かめる。表の行の数など、開いている画面で範囲が決まる引数だけはメソッドで検査する（`AutomationParams::requireInt` が残る）。
 - MCP のスキーマは describe から組み立てず、`mcp/tests/test_param_specs.py` が describe の出力と比べる（そのまま渡すツールは引数名・必須・型・選択肢・既定値・範囲がすべて同じ。CLI に渡すツールは対応表で比べ、真偽の反転と秒→ミリ秒の換算も扱う）。この検査で見つかった食い違いはそろえた（analyze の秒数・generate-tsume の上限の既定値、max_moves と ply の上限、mate の sfen、行と列の上限など）。
@@ -677,7 +677,7 @@
 
 **規模とテスト**: C++ 約10ファイル、Python 3ファイル。pytest の期待値の更新が要る。
 
-**状態: 済（26121096）**。案から変えた点:
+**状態: 済（ed75eb1b）**。案から変えた点:
 - 分類は `ErrorKind`（`src/automation/errorkinds.h`）。語と JSON-RPC のコードの表を1つ持ち、`CliOutput::fail`/`failEvent` と `AutomationError` の両方が分類を受け取る。JSON-RPC のエラーには `error.data.slug` を付け、MCP サーバーはその語を返す（`data.slug` が無いときだけ表でコードから引く）。
 - 語は CLI・アプリ・MCP でそろえた。既存ファイルへの書き込みは `file_exists`、引数の誤りは `invalid_argument`、知らないメソッド・コマンドは `unknown_operation`、棋譜の中身が読めないのは `parse_error`（新しいコード -32006。kifu.load の解析失敗もこれ）、エンジンの失敗は `engine_error`（-32007）。MCP サーバーだけの失敗（`app_unavailable`・`cli_failed`・`timeout` など）は `mcp/tests/test_environment.py` に一覧を持ち、それ以外の語は共有の表にあることを検査する。
 - `shogiboardq-cli environment` はソケット・エンドポイントファイル・設定ファイル・メッセージの上限・エラーの分類を出す。MCP サーバーは関係する環境変数の組ごとに1回読む（`environment.py`）。そのため、既定のソケットを求めるには shogiboardq-cli が要る（見つからなければ `SHOGIBOARDQ_AUTOMATION_SOCKET` だけを使う）。
@@ -688,17 +688,17 @@
 
 | 候補 | 問題 | 書き直し案 |
 |---|---|---|
-| エンジンの起動失敗の知らせ方と枠の持ち主（engine・game・analysis） | **起動失敗**: 知らせ方が層ごとに入れ替わる。`UsiEngineSession` は起動中のエラーを戻り値に変え（`m_insideStart`）、`Usi::startEngine` は同期の `errorOccurred` に戻し、`EngineLifecycleManager`・`CsaEngineController` は戻り値を `(void)` で捨てる。そのため利用者がそれぞれ再入対策を持つ（`MatchCoordinator` の QueuedConnection、`AnalysisSession` の Starting/CancelStarting と `m_startupError`、Generator の `m_starting`/`m_stopRequestedDuringStart`、`KifuAnalysisController` の二重表示よけ）。<br>**枠の持ち主**: 4つの利用者が `createEngine(1, …)` で枠のエンジンを知らせずに破棄する。`AnalysisSession::stop()` は検討していないときも全部の枠を破棄し、`GameSession` は新規のときこれを「全エンジン停止」として使う（`gamesession.cpp:253`） | 起動の失敗は同期では決して知らせないと決め、`startAsync` を void にする。`EngineLifecycleManager::acquire(owner)` が move-only の `EngineLease` を返すようにし、取り上げは前の持ち主に知らせる<br>**状態: 済（255c03b5）**。`UsiEngineSession::startAsync`/`probeAsync`・`Usi::startEngine`・`MateOracle::start` を void にし、起動の失敗は必ず呼び出しから戻った後に `errorOccurred` で知らせる（知らせる前に quit・次の起動をすれば知らせない）。これで `AnalysisSession` の Starting/CancelStarting と `m_startupError`、`MatchCoordinator` の QueuedConnection、詰将棋生成・登録・判定エンジン・棋譜解析の同期の失敗の分岐を消した（生成の `m_starting` 系はそれまでの段階で既に無かった）。`EngineLifecycleManager::acquire(owner, slot, side, name)` が move-only の `EngineLease` を返し（`createEngine`・`destroyEngine` は廃止）、取り上げ・全部の破棄は `engineRevoked(owner)` で前の持ち主に知らせる。検討・詰み探索・棋譜解析・通信対局・対局の戦略がリースを持つ。`AnalysisSession::stop()` は自分のエンジンだけを手放し、「新規」で全部止めるのは `GameSession` が行う。行番号の訂正: `gamesession.cpp:253` は 54ca37d7 では 252 行 |
-| 分岐ツリー（kifu・widgets） | **変更通知**: `treeChanged` に中身がなく、`BranchTreeManager` は「nodeCount と revision が1増えた」から1手の追記だと推測している（`branchtreemanager.cpp:107-117`）。通知を抑える仕組みが3つ重なる（*Quiet 版のメソッド、beginBatchUpdate、revision）。<br>**所有権**: ノードは裸の new で作り、QHash が所有する。<br>**表示**: `BranchTreeManager` は QObject の eventFilter でビューを操り、素の `QGraphicsPathItem` に `setData` で役割を7つ持たせる。同じノードの見分け方が (行,手数) と nodeId の2通りある。開始局面のノードは `addNode` とほぼ同じ約40行で別に描く | 変更を型で知らせる（`nodeAppended(parentId, nodeId)`・`childrenReordered`・`subtreeRemoved`・`reset`）。children は `std::vector<std::unique_ptr<KifuBranchNode>>` にする。表示は `BranchTreeView : QGraphicsView` と `BranchNodeItem : QGraphicsItem` にし、外とのやり取りは nodeId だけにする<br>**状態: 済（2cfb1dad）**。`KifuBranchTree` の知らせを `nodeAppended(parentId, nodeId)`・`childrenReordered(parentId)`・`subtreeRemoved(parentId, nodeId)`・`reset()` にした。一括更新は知らせを遅らせて古い順に出し、作り直しを含むときは `reset` を1回だけ出す。*Quiet 版と `newestNode` は削除し、`revision()` は文書の未保存の判定と表示中の手の重複の知らせの抑止だけに使う。子は `std::vector<std::unique_ptr<KifuBranchNode>>`（形を変えるのは `KifuBranchTree` だけ。解放は再帰しない）。図は `BranchTreeView`（ツリーの知らせを自分で受け、手順の末尾の1手だけなら描き足す。キー・マウスはイベント関数の上書き）と `BranchNodeItem : QGraphicsPathItem`（開始局面も同じクラス）にした。外とのやり取りはノード ID だけ（`setCurrentNode`・`nodeActivated`・`nodeContextMenuAboutToShow`・`refreshNode`）。`QGraphicsItem::data` の役割は自動化 API が読む ID・行・手数の3つだけを残した。`selectBranchTreeNode` もノード ID を受け取る。コメントの印は `KifuDocument::commentChanged` で描き直すようにした（以前は作り直すまで変わらなかった） |
-| 盤の座標と対局者カード（views） | **座標計算**: マスの大きさを `m_squareSize` と `m_fieldSize` の2つで持ち、補い方が5か所に散らばる。`cachedFieldRect` は盤基準の座標を返すので、呼ぶ側の5か所以上でオフセットを足す。駒台は「盤の筋1・2のマスをずらす」という間接的な作り方で、駒の並びの表も2つある。段番号の文字の大きさの計算が2通りある。<br>**対局者カード**: `BoardChromeWidget` は先手・後手の部品を `std::array<…,2>` の並行配列6系統で持ち、10引数の `placeCard` で座標を足し上げる。外部の `setupNameAndClockFonts` が設定する書体は直後に上書きされ、効いていない | 変更しない値の型 `BoardGeometry` を一度だけ計算し、盤・各マス・駒台のセル・座標ラベル・カード・駒箱をすべてウィジェット座標で持つ。カードは `PlayerCard`（QFrame＋レイアウト）を1側1つにし、`card(Turn)` で触らせる<br>**状態: 済（7f78d0b1）**。`ShogiViewLayout` を削除し、変更しない値 `BoardGeometry`（`views/boardgeometry.h`）を `ShogiView` がマスの大きさ・反転・盤を変えたときだけ作り直す。盤・各マス（`square`・`squareAt`）・駒台（`stand`）とセル（`standCell(Piece)`）・筋と段の文字の帯・木肌・全体の大きさ・カードの位置（`playerCard`）をすべてウィジェット座標で持ち、呼ぶ側はオフセットを足さない。マスの大きさは `squareSize` 1つ（`fieldSize` はそこから決まる）、駒台の並びの表は1つ（後手と反転は180度回す）、段・筋の文字の大きさは `labelPixelSize()` の1通りにした。`ShogiView` のマス矩形のキャッシュと `setFieldSize`・`updateBoardSize`・`setStandGapCols` は削除。カードは `PlayerCard`（`views/playercard.h`）で、`BoardChromeWidget::card(Turn)` から触る。中の部品は QLayout ではなく `place()` で並べた（隠れている間も同じ位置にし、手番でない側にも札の場所を取るため）。`setupNameAndClockFonts` は以前の段階で既に無くなっていた |
-| 定跡（kifu・dialogs） | **データ**: `JosekiRepository` が同じキーの2つの map（`m_josekiData` と `m_sfenWithPlyMap`）を手で同期しているが、揃っていない（`removeMoveByUsi` は片方だけ消す、`Repository::addMove` は手数付きの SFEN を登録しない）。変更できる参照を外に公開している。マージ登録済みの印は `sfen + ":" + usi` の文字列の集合。<br>**定跡手の入力**: `JosekiMoveInputWidget` は筋・段のコンボから USI を文字列で組み立て、core の `UsiMove`・`ShogiNotation` と重複する変換を自前で持つ（455行の大半）。局面は必ず渡されているのに、合法手から選ばせずに後から合法かを確かめる | 値型 `JosekiBook`（正規化キーから `JosekiPosition{sfenWithPly, moves}` を引く map 1つ）にし、Repository クラスは廃止する。定跡手は局面の合法手から選ぶ方式にし、受け渡しは `setEntry(const JosekiMove&)`/`entry()` にする<br>**状態: 済（871066ad）**。値型 `JosekiBook`（`kifu/josekibook.h`。局面のキーから `JosekiPosition{sfen, moves}` を引く map 1つ。最後の定跡手を消すと局面も消える）にし、`JosekiRepository` を削除した。読み書きは `JosekiBookFile::load`/`save`。マージで登録した印は `JosekiMoveKey`（局面のキーと指し手の組）。定跡手の入力欄は、局面の合法手を棋譜の表記で並べた一覧から選ぶ方式にし（予想応手は着手後の局面の合法手と「なし」）、`JosekiMoveDialog` の受け渡しは `setEntry`/`entry` にした |
-| 書き出し側の重複（kifu/formats） | KIF と KI2 のヘッダー部分がほぼ同じ文。KI2 は本譜と変化で、手を1行に並べるループを二重に持つ。盤を再生して合わなければ `node->sfen()` から取り直す処理を、KI2 と JKF が別々に持つ（`ki2exporter.cpp:30-67`、`jkfexporter.cpp:92-141`）。USEN は符号化と復号が別ファイルで、駒打ちの符号表と base36 の文字表を別々に持つ。USI の position 文字列も2つの実装がある（`UsiExporter` と `RecordLine::positionCommand`） | 「Position 付きでノード列を歩く」共有の反復子を作る。`UsenCodec`（encode/decode）を1ファイルにまとめ、position 文字列は `RecordLine::positionCommand` に一本化する（R3 と同時に）<br>**状態: 済（32106804）**。反復子は `KifuNodeReplay`（`kifu/formats/kifunodereplay.h`。指す前の局面・手番・直前の移動先を読み、`advance()` で進め、合わない手はノードの局面から取り直す。変化は `branchFrom()` で写す）にし、KI2 と JKF が使う。KIF と KI2 の先頭は `KifExporter::appendHeaderLines`（KI2 は消費時間を書かない）、KI2 の本譜と変化の指し手の行は `appendKi2Moves` の1つのループにした。USEN は `UsenCodec`（`usencodec.h`。指し手・開始局面・手順の符号化と復号、駒打ちの符号表と base36 の文字表は1つ）。position 文字列は、R1 で手順を `UsiPosition` が持つようになったので `RecordLine::positionCommand` ではなく `UsiPosition::commandFor`（`command()` と `UsiExporter` が共有）に一本化した。src で "position sfen " を組み立てる箇所はここだけになった |
-| 読み筋盤（dialogs） | `PvBoardController::buildSfenHistory` が自前の盤で局面列を作り、手数を常に `" 1"` にする。手の表記は、呼び出し側が渡した表示用の文字列を正規表現 `([▲△][^▲△]+)` で分割して使う。手数の状態がダイアログとビューアに二重にある。開始局面のハイライトは3段の後戻りで決め、結果は bool と int を7個並べた構造体 | `SfenReplay::Result` の各手から、表記を `KifuPresentation::move`、ハイライトを `BoardCoordinates` で作る。手数はビューアの番号だけにする<br>**状態: 済（d639d761）**。`PvBoardController` を廃し、値 `PvLine`（`dialogs/pvline.h`）にした。`SfenReplay` に手ごとの結果の型はないので、開始局面から `Position` で指して各手数の局面（手数を数える）・表記・ハイライトを作る（指せない手の手前で打ち切る）。日本語の表記は「同」を付けるため `KifuPresentation::move` ではなく `KifMoveText`（エンジンの読み筋と同じ）、英語は `KifuPresentation::move`。ハイライトは `PvLine::Highlight{optional<QPoint> from, to}`。開始局面のハイライトは「至った手、なければ盤の差分」の2段にし、平手で読み筋の初手を出す3段目は廃止。直したときに不具合を見つけた: 至った手が駒打ちのとき、開始局面の手番側の駒台を移動元にしていた（打ったのは手番の相手。先にテストで再現してから直した） |
-| 局面集ファイル（dialogs・analysis） | 同じ「1行1局面」のファイルを、`SfenCollectionDialog::sfenFromLine` と `TsumeCollection::parse` が別々の規則で読む。`startpos` を受け付けるか、`position sfen … moves …` を指した後の局面にするか参考手順にするか、検証の方法が違う。「最近使ったファイル」の一覧も、局面集と定跡で同じ構造を2回書いている | `PositionCollectionFile::parseLine` を共有し、`RecentFileList`（データ）と `RecentFilesMenu`（メニューを作る補助）を作る<br>**状態: 済（23c05ea6）**。1行の規則は `PositionCollectionFile`（`analysis/positioncollectionfile.h`）に1つにした。position コマンドの指し手は指した後の局面、SFEN に添えた指し手は参考手順（詰将棋の解答）、局面は `SfenValidationService` で確かめ、指し手の形でない語・余計な語のある行は読めない行。詰将棋問題一覧は、これに加えて受方の玉があり王手がかかっていないことを確かめる。一覧は `RecentFileList`（common）、メニューは `RecentFilesMenu`（widgets）で、定跡ウィンドウと局面集ビューアが使う |
-| 詰将棋対局（dialogs） | `TsumePlayDialog` が対局と正解手順の再生を `m_reviewing` などのフラグで切り替え、全部品の有効・無効を三項演算で決める。挑戦と正答の記録をダイアログが付ける。成りの確認は `QMessageBox` を自前で組み立てた3択で、メイン盤の `PromotionFlow` と別 | `enum class Mode { Playing, Reviewing }` と、部品ごとの有効・無効の表を1か所に置く。記録は `TsumeGameSession` へ移す<br>**状態: 済（0d72db56）**。`Mode` と `controlStates()`（部品ごとの有効・無効の表）・`applyControlStates()` にした。挑戦は開始してから初めて攻め方の手番になったとき、正答は詰ませたときに `TsumeGameSession` が記録する（どちらも `start()` ごとに1回）。成りの確認は主画面と同じ `PromoteDialog`（`PromoteDialog::ask`。1関数だけの `PromotionFlow` は削除）。閉じたときは主画面と同じく不成になる |
-| KifuPresentation と common/（common） | `kifupresentation.cpp` が、`core/shoginotation.h` の駒名・全角の筋・漢数字の段、`core/handicaps.h` の手合割の表（B4 の原因）、`kifu/gameinfokeys.h` の見出しを写している。英語表記の移動元の判定は駒の利きを手書きしていて、KI2 の同じ判定（`ki2movenotation.cpp:149-160` は `EngineMoveValidator::pseudoLegalMoves` を使う）と2系統。`Options current` というグローバル状態がある。common には QWidget に依存するスタイル類、models 専用の `abstractlistmodel.h`、持将棋の計算、position コマンドの組み立てが同居している | KifuPresentation を kifu/ へ移し、表は core のものを使う。移動元の判定は KI2 と共有する。手合割の表示名は `handicaps.h` の表に `QT_TRANSLATE_NOOP` 付きで持たせる。スタイル類は UI 用の共通ディレクトリへ移す<br>**状態: 済（02710524）**。KifuPresentation を `src/kifu` へ移し、日本語の指し手は `KifMoveText`、段は `ShogiNotation`、英語表記の移動元の要否は `Ki2MoveNotation::annotate` の `sources`（KI2 の修飾語と同じ。合法手で決めるので、ピンされた駒は数えない）にした。手合割の表示名は既に `handicaps.h` の表に `QT_TRANSLATE_NOOP` 付きで持たせてあった（B4 の修正）。グローバルな表記の設定は表示言語の設定と一緒に services の `NotationStyle` へ移した（`ApplicationTranslations` が kifu を参照しないため。値そのものは起動時に1度決める設定として残した）。QWidget に依存するスタイル類は新しい層 `src/style`（kifu の上、models の下）へ、`tablemodelutils.h` は widgets、持将棋の計算は core、詰み探索の position の組み立ては analysis（文字列は `UsiPosition::commandFor`）へ移した。`abstractlistmodel.h` は既に models にあった |
-| 自動化 API の UI 操作（automation） | 12のメソッドがそれぞれ「受付時の検査 → 予約 → 実行時の再検査 → 失敗の握りつぶし」を手書きしている（`AutomationDeferredCall::schedule` が12回、`catch (const AutomationError&) { }` が12回）。マウスイベントの合成が4回書かれている。実行時の失敗は捨てられ、応答は常に `queued:true`。ウィジェットの型による分岐が、読み（18分岐）と書き（13分岐）で非対称 | `QueuedInteraction{QPointer target; check; perform}` と `queue()` を1つ作り、失敗の理由を記録して返す。マウス入力は `sendClick`/`sendDrag` に1本化し、ウィジェットの読み書きは型ごとのアダプタ表にする<br>**状態: 済（148c9da3）**。`AutomationInteractions::queue(QueuedInteraction{target, check, perform}, 応答)`（`automation/automationinteractions.h`）に13のメソッドを寄せた。応答に操作の番号 `interaction` を足し、`ui.interaction` で状態（pending・running・done・failed と分類つきの error・cancelled）を引ける。実行時に黙って何もしなかった分岐も失敗として記録する。MCP は `AppClient.call_queued` が実行を待ち、失敗をアプリの分類の語のエラーとして返す（開いたモーダルダイアログが閉じていなければ state "running"）。応答そのものを実行の後まで遅らせると、モーダルダイアログを開く操作で応答が返らなくなるので、番号で引く形にした。マウス入力は `AutomationInput::sendClick`/`sendDrag`、読み書きは `AutomationWidgetAdapters` の表（型・読み・書きの行） |
-| `Setting<T>` で表せない設定（services） | 列幅の配列の読み書きが `analysissettings.cpp:14-37` と `josekisettings.cpp:11-38` で同じコード（`:77-91` は別の形式）。範囲付きの整数は、読みと書きの両方に qBound を書く（4か所）。構造体と複数キーの対応は BoardColors だけが表を使い、`PieceSoundTone`・`BoardVisuals` は手書き。`TsumeshogiSettings` は既定値を2か所に書く。`csagamedialog.cpp:380-457` は接続履歴をダイアログ内のキーで直接読み書きする | `BoundedSetting<int>`・`ListSetting<int>`・`StructSetting<T>{{key,&T::member}…}` を setting.h に足して置き換える。CSA の接続履歴は networksettings.h へ移す<br>**状態: 済（41580259）**。setting.h に `BoundedSetting<T>`（読み書きの両方で範囲に収める）・`StructSetting<T>`（`SettingField<T>::of(key, &T::member)` の表。normalize を渡せる）・`ListSetting<T>`（配列の形式。キーは実行時に決めてよい）・`StructListSetting<T>` を足した。駒音の音量・音色、外観の駒の絞り込み、USI ログの送信先、詰将棋の対局・問題一覧の設定（既定値は構造体だけに書く）、思考の表・定跡ウィンドウの列幅を宣言1つにし、`josekisettings.cpp` は削除。`BoardVisuals` も `StructSetting` で読み、駒台の木目だけ「未保存なら盤の木目に合わせる」補いを残す。CSA の接続履歴は `NetworkSettings::csaServerHistory`（保存形式は同じ）。棋譜解析の結果の表の列幅（`:77-91`）は QVariantList の形式のまま残した |
+| エンジンの起動失敗の知らせ方と枠の持ち主（engine・game・analysis） | **起動失敗**: 知らせ方が層ごとに入れ替わる。`UsiEngineSession` は起動中のエラーを戻り値に変え（`m_insideStart`）、`Usi::startEngine` は同期の `errorOccurred` に戻し、`EngineLifecycleManager`・`CsaEngineController` は戻り値を `(void)` で捨てる。そのため利用者がそれぞれ再入対策を持つ（`MatchCoordinator` の QueuedConnection、`AnalysisSession` の Starting/CancelStarting と `m_startupError`、Generator の `m_starting`/`m_stopRequestedDuringStart`、`KifuAnalysisController` の二重表示よけ）。<br>**枠の持ち主**: 4つの利用者が `createEngine(1, …)` で枠のエンジンを知らせずに破棄する。`AnalysisSession::stop()` は検討していないときも全部の枠を破棄し、`GameSession` は新規のときこれを「全エンジン停止」として使う（`gamesession.cpp:253`） | 起動の失敗は同期では決して知らせないと決め、`startAsync` を void にする。`EngineLifecycleManager::acquire(owner)` が move-only の `EngineLease` を返すようにし、取り上げは前の持ち主に知らせる<br>**状態: 済（503f598f）**。`UsiEngineSession::startAsync`/`probeAsync`・`Usi::startEngine`・`MateOracle::start` を void にし、起動の失敗は必ず呼び出しから戻った後に `errorOccurred` で知らせる（知らせる前に quit・次の起動をすれば知らせない）。これで `AnalysisSession` の Starting/CancelStarting と `m_startupError`、`MatchCoordinator` の QueuedConnection、詰将棋生成・登録・判定エンジン・棋譜解析の同期の失敗の分岐を消した（生成の `m_starting` 系はそれまでの段階で既に無かった）。`EngineLifecycleManager::acquire(owner, slot, side, name)` が move-only の `EngineLease` を返し（`createEngine`・`destroyEngine` は廃止）、取り上げ・全部の破棄は `engineRevoked(owner)` で前の持ち主に知らせる。検討・詰み探索・棋譜解析・通信対局・対局の戦略がリースを持つ。`AnalysisSession::stop()` は自分のエンジンだけを手放し、「新規」で全部止めるのは `GameSession` が行う。行番号の訂正: `gamesession.cpp:253` は ebe78485 では 252 行 |
+| 分岐ツリー（kifu・widgets） | **変更通知**: `treeChanged` に中身がなく、`BranchTreeManager` は「nodeCount と revision が1増えた」から1手の追記だと推測している（`branchtreemanager.cpp:107-117`）。通知を抑える仕組みが3つ重なる（*Quiet 版のメソッド、beginBatchUpdate、revision）。<br>**所有権**: ノードは裸の new で作り、QHash が所有する。<br>**表示**: `BranchTreeManager` は QObject の eventFilter でビューを操り、素の `QGraphicsPathItem` に `setData` で役割を7つ持たせる。同じノードの見分け方が (行,手数) と nodeId の2通りある。開始局面のノードは `addNode` とほぼ同じ約40行で別に描く | 変更を型で知らせる（`nodeAppended(parentId, nodeId)`・`childrenReordered`・`subtreeRemoved`・`reset`）。children は `std::vector<std::unique_ptr<KifuBranchNode>>` にする。表示は `BranchTreeView : QGraphicsView` と `BranchNodeItem : QGraphicsItem` にし、外とのやり取りは nodeId だけにする<br>**状態: 済（17184f2f）**。`KifuBranchTree` の知らせを `nodeAppended(parentId, nodeId)`・`childrenReordered(parentId)`・`subtreeRemoved(parentId, nodeId)`・`reset()` にした。一括更新は知らせを遅らせて古い順に出し、作り直しを含むときは `reset` を1回だけ出す。*Quiet 版と `newestNode` は削除し、`revision()` は文書の未保存の判定と表示中の手の重複の知らせの抑止だけに使う。子は `std::vector<std::unique_ptr<KifuBranchNode>>`（形を変えるのは `KifuBranchTree` だけ。解放は再帰しない）。図は `BranchTreeView`（ツリーの知らせを自分で受け、手順の末尾の1手だけなら描き足す。キー・マウスはイベント関数の上書き）と `BranchNodeItem : QGraphicsPathItem`（開始局面も同じクラス）にした。外とのやり取りはノード ID だけ（`setCurrentNode`・`nodeActivated`・`nodeContextMenuAboutToShow`・`refreshNode`）。`QGraphicsItem::data` の役割は自動化 API が読む ID・行・手数の3つだけを残した。`selectBranchTreeNode` もノード ID を受け取る。コメントの印は `KifuDocument::commentChanged` で描き直すようにした（以前は作り直すまで変わらなかった） |
+| 盤の座標と対局者カード（views） | **座標計算**: マスの大きさを `m_squareSize` と `m_fieldSize` の2つで持ち、補い方が5か所に散らばる。`cachedFieldRect` は盤基準の座標を返すので、呼ぶ側の5か所以上でオフセットを足す。駒台は「盤の筋1・2のマスをずらす」という間接的な作り方で、駒の並びの表も2つある。段番号の文字の大きさの計算が2通りある。<br>**対局者カード**: `BoardChromeWidget` は先手・後手の部品を `std::array<…,2>` の並行配列6系統で持ち、10引数の `placeCard` で座標を足し上げる。外部の `setupNameAndClockFonts` が設定する書体は直後に上書きされ、効いていない | 変更しない値の型 `BoardGeometry` を一度だけ計算し、盤・各マス・駒台のセル・座標ラベル・カード・駒箱をすべてウィジェット座標で持つ。カードは `PlayerCard`（QFrame＋レイアウト）を1側1つにし、`card(Turn)` で触らせる<br>**状態: 済（66640c19）**。`ShogiViewLayout` を削除し、変更しない値 `BoardGeometry`（`views/boardgeometry.h`）を `ShogiView` がマスの大きさ・反転・盤を変えたときだけ作り直す。盤・各マス（`square`・`squareAt`）・駒台（`stand`）とセル（`standCell(Piece)`）・筋と段の文字の帯・木肌・全体の大きさ・カードの位置（`playerCard`）をすべてウィジェット座標で持ち、呼ぶ側はオフセットを足さない。マスの大きさは `squareSize` 1つ（`fieldSize` はそこから決まる）、駒台の並びの表は1つ（後手と反転は180度回す）、段・筋の文字の大きさは `labelPixelSize()` の1通りにした。`ShogiView` のマス矩形のキャッシュと `setFieldSize`・`updateBoardSize`・`setStandGapCols` は削除。カードは `PlayerCard`（`views/playercard.h`）で、`BoardChromeWidget::card(Turn)` から触る。中の部品は QLayout ではなく `place()` で並べた（隠れている間も同じ位置にし、手番でない側にも札の場所を取るため）。`setupNameAndClockFonts` は以前の段階で既に無くなっていた |
+| 定跡（kifu・dialogs） | **データ**: `JosekiRepository` が同じキーの2つの map（`m_josekiData` と `m_sfenWithPlyMap`）を手で同期しているが、揃っていない（`removeMoveByUsi` は片方だけ消す、`Repository::addMove` は手数付きの SFEN を登録しない）。変更できる参照を外に公開している。マージ登録済みの印は `sfen + ":" + usi` の文字列の集合。<br>**定跡手の入力**: `JosekiMoveInputWidget` は筋・段のコンボから USI を文字列で組み立て、core の `UsiMove`・`ShogiNotation` と重複する変換を自前で持つ（455行の大半）。局面は必ず渡されているのに、合法手から選ばせずに後から合法かを確かめる | 値型 `JosekiBook`（正規化キーから `JosekiPosition{sfenWithPly, moves}` を引く map 1つ）にし、Repository クラスは廃止する。定跡手は局面の合法手から選ぶ方式にし、受け渡しは `setEntry(const JosekiMove&)`/`entry()` にする<br>**状態: 済（96978822）**。値型 `JosekiBook`（`kifu/josekibook.h`。局面のキーから `JosekiPosition{sfen, moves}` を引く map 1つ。最後の定跡手を消すと局面も消える）にし、`JosekiRepository` を削除した。読み書きは `JosekiBookFile::load`/`save`。マージで登録した印は `JosekiMoveKey`（局面のキーと指し手の組）。定跡手の入力欄は、局面の合法手を棋譜の表記で並べた一覧から選ぶ方式にし（予想応手は着手後の局面の合法手と「なし」）、`JosekiMoveDialog` の受け渡しは `setEntry`/`entry` にした |
+| 書き出し側の重複（kifu/formats） | KIF と KI2 のヘッダー部分がほぼ同じ文。KI2 は本譜と変化で、手を1行に並べるループを二重に持つ。盤を再生して合わなければ `node->sfen()` から取り直す処理を、KI2 と JKF が別々に持つ（`ki2exporter.cpp:30-67`、`jkfexporter.cpp:92-141`）。USEN は符号化と復号が別ファイルで、駒打ちの符号表と base36 の文字表を別々に持つ。USI の position 文字列も2つの実装がある（`UsiExporter` と `RecordLine::positionCommand`） | 「Position 付きでノード列を歩く」共有の反復子を作る。`UsenCodec`（encode/decode）を1ファイルにまとめ、position 文字列は `RecordLine::positionCommand` に一本化する（R3 と同時に）<br>**状態: 済（25ec84e0）**。反復子は `KifuNodeReplay`（`kifu/formats/kifunodereplay.h`。指す前の局面・手番・直前の移動先を読み、`advance()` で進め、合わない手はノードの局面から取り直す。変化は `branchFrom()` で写す）にし、KI2 と JKF が使う。KIF と KI2 の先頭は `KifExporter::appendHeaderLines`（KI2 は消費時間を書かない）、KI2 の本譜と変化の指し手の行は `appendKi2Moves` の1つのループにした。USEN は `UsenCodec`（`usencodec.h`。指し手・開始局面・手順の符号化と復号、駒打ちの符号表と base36 の文字表は1つ）。position 文字列は、R1 で手順を `UsiPosition` が持つようになったので `RecordLine::positionCommand` ではなく `UsiPosition::commandFor`（`command()` と `UsiExporter` が共有）に一本化した。src で "position sfen " を組み立てる箇所はここだけになった |
+| 読み筋盤（dialogs） | `PvBoardController::buildSfenHistory` が自前の盤で局面列を作り、手数を常に `" 1"` にする。手の表記は、呼び出し側が渡した表示用の文字列を正規表現 `([▲△][^▲△]+)` で分割して使う。手数の状態がダイアログとビューアに二重にある。開始局面のハイライトは3段の後戻りで決め、結果は bool と int を7個並べた構造体 | `SfenReplay::Result` の各手から、表記を `KifuPresentation::move`、ハイライトを `BoardCoordinates` で作る。手数はビューアの番号だけにする<br>**状態: 済（f7b86188）**。`PvBoardController` を廃し、値 `PvLine`（`dialogs/pvline.h`）にした。`SfenReplay` に手ごとの結果の型はないので、開始局面から `Position` で指して各手数の局面（手数を数える）・表記・ハイライトを作る（指せない手の手前で打ち切る）。日本語の表記は「同」を付けるため `KifuPresentation::move` ではなく `KifMoveText`（エンジンの読み筋と同じ）、英語は `KifuPresentation::move`。ハイライトは `PvLine::Highlight{optional<QPoint> from, to}`。開始局面のハイライトは「至った手、なければ盤の差分」の2段にし、平手で読み筋の初手を出す3段目は廃止。直したときに不具合を見つけた: 至った手が駒打ちのとき、開始局面の手番側の駒台を移動元にしていた（打ったのは手番の相手。先にテストで再現してから直した） |
+| 局面集ファイル（dialogs・analysis） | 同じ「1行1局面」のファイルを、`SfenCollectionDialog::sfenFromLine` と `TsumeCollection::parse` が別々の規則で読む。`startpos` を受け付けるか、`position sfen … moves …` を指した後の局面にするか参考手順にするか、検証の方法が違う。「最近使ったファイル」の一覧も、局面集と定跡で同じ構造を2回書いている | `PositionCollectionFile::parseLine` を共有し、`RecentFileList`（データ）と `RecentFilesMenu`（メニューを作る補助）を作る<br>**状態: 済（eb31e151）**。1行の規則は `PositionCollectionFile`（`analysis/positioncollectionfile.h`）に1つにした。position コマンドの指し手は指した後の局面、SFEN に添えた指し手は参考手順（詰将棋の解答）、局面は `SfenValidationService` で確かめ、指し手の形でない語・余計な語のある行は読めない行。詰将棋問題一覧は、これに加えて受方の玉があり王手がかかっていないことを確かめる。一覧は `RecentFileList`（common）、メニューは `RecentFilesMenu`（widgets）で、定跡ウィンドウと局面集ビューアが使う |
+| 詰将棋対局（dialogs） | `TsumePlayDialog` が対局と正解手順の再生を `m_reviewing` などのフラグで切り替え、全部品の有効・無効を三項演算で決める。挑戦と正答の記録をダイアログが付ける。成りの確認は `QMessageBox` を自前で組み立てた3択で、メイン盤の `PromotionFlow` と別 | `enum class Mode { Playing, Reviewing }` と、部品ごとの有効・無効の表を1か所に置く。記録は `TsumeGameSession` へ移す<br>**状態: 済（99673ba4）**。`Mode` と `controlStates()`（部品ごとの有効・無効の表）・`applyControlStates()` にした。挑戦は開始してから初めて攻め方の手番になったとき、正答は詰ませたときに `TsumeGameSession` が記録する（どちらも `start()` ごとに1回）。成りの確認は主画面と同じ `PromoteDialog`（`PromoteDialog::ask`。1関数だけの `PromotionFlow` は削除）。閉じたときは主画面と同じく不成になる |
+| KifuPresentation と common/（common） | `kifupresentation.cpp` が、`core/shoginotation.h` の駒名・全角の筋・漢数字の段、`core/handicaps.h` の手合割の表（B4 の原因）、`kifu/gameinfokeys.h` の見出しを写している。英語表記の移動元の判定は駒の利きを手書きしていて、KI2 の同じ判定（`ki2movenotation.cpp:149-160` は `EngineMoveValidator::pseudoLegalMoves` を使う）と2系統。`Options current` というグローバル状態がある。common には QWidget に依存するスタイル類、models 専用の `abstractlistmodel.h`、持将棋の計算、position コマンドの組み立てが同居している | KifuPresentation を kifu/ へ移し、表は core のものを使う。移動元の判定は KI2 と共有する。手合割の表示名は `handicaps.h` の表に `QT_TRANSLATE_NOOP` 付きで持たせる。スタイル類は UI 用の共通ディレクトリへ移す<br>**状態: 済（cb964b98）**。KifuPresentation を `src/kifu` へ移し、日本語の指し手は `KifMoveText`、段は `ShogiNotation`、英語表記の移動元の要否は `Ki2MoveNotation::annotate` の `sources`（KI2 の修飾語と同じ。合法手で決めるので、ピンされた駒は数えない）にした。手合割の表示名は既に `handicaps.h` の表に `QT_TRANSLATE_NOOP` 付きで持たせてあった（B4 の修正）。グローバルな表記の設定は表示言語の設定と一緒に services の `NotationStyle` へ移した（`ApplicationTranslations` が kifu を参照しないため。値そのものは起動時に1度決める設定として残した）。QWidget に依存するスタイル類は新しい層 `src/style`（kifu の上、models の下）へ、`tablemodelutils.h` は widgets、持将棋の計算は core、詰み探索の position の組み立ては analysis（文字列は `UsiPosition::commandFor`）へ移した。`abstractlistmodel.h` は既に models にあった |
+| 自動化 API の UI 操作（automation） | 12のメソッドがそれぞれ「受付時の検査 → 予約 → 実行時の再検査 → 失敗の握りつぶし」を手書きしている（`AutomationDeferredCall::schedule` が12回、`catch (const AutomationError&) { }` が12回）。マウスイベントの合成が4回書かれている。実行時の失敗は捨てられ、応答は常に `queued:true`。ウィジェットの型による分岐が、読み（18分岐）と書き（13分岐）で非対称 | `QueuedInteraction{QPointer target; check; perform}` と `queue()` を1つ作り、失敗の理由を記録して返す。マウス入力は `sendClick`/`sendDrag` に1本化し、ウィジェットの読み書きは型ごとのアダプタ表にする<br>**状態: 済（60a7d46d）**。`AutomationInteractions::queue(QueuedInteraction{target, check, perform}, 応答)`（`automation/automationinteractions.h`）に13のメソッドを寄せた。応答に操作の番号 `interaction` を足し、`ui.interaction` で状態（pending・running・done・failed と分類つきの error・cancelled）を引ける。実行時に黙って何もしなかった分岐も失敗として記録する。MCP は `AppClient.call_queued` が実行を待ち、失敗をアプリの分類の語のエラーとして返す（開いたモーダルダイアログが閉じていなければ state "running"）。応答そのものを実行の後まで遅らせると、モーダルダイアログを開く操作で応答が返らなくなるので、番号で引く形にした。マウス入力は `AutomationInput::sendClick`/`sendDrag`、読み書きは `AutomationWidgetAdapters` の表（型・読み・書きの行） |
+| `Setting<T>` で表せない設定（services） | 列幅の配列の読み書きが `analysissettings.cpp:14-37` と `josekisettings.cpp:11-38` で同じコード（`:77-91` は別の形式）。範囲付きの整数は、読みと書きの両方に qBound を書く（4か所）。構造体と複数キーの対応は BoardColors だけが表を使い、`PieceSoundTone`・`BoardVisuals` は手書き。`TsumeshogiSettings` は既定値を2か所に書く。`csagamedialog.cpp:380-457` は接続履歴をダイアログ内のキーで直接読み書きする | `BoundedSetting<int>`・`ListSetting<int>`・`StructSetting<T>{{key,&T::member}…}` を setting.h に足して置き換える。CSA の接続履歴は networksettings.h へ移す<br>**状態: 済（51675a30）**。setting.h に `BoundedSetting<T>`（読み書きの両方で範囲に収める）・`StructSetting<T>`（`SettingField<T>::of(key, &T::member)` の表。normalize を渡せる）・`ListSetting<T>`（配列の形式。キーは実行時に決めてよい）・`StructListSetting<T>` を足した。駒音の音量・音色、外観の駒の絞り込み、USI ログの送信先、詰将棋の対局・問題一覧の設定（既定値は構造体だけに書く）、思考の表・定跡ウィンドウの列幅を宣言1つにし、`josekisettings.cpp` は削除。`BoardVisuals` も `StructSetting` で読み、駒台の木目だけ「未保存なら盤の木目に合わせる」補いを残す。CSA の接続履歴は `NetworkSettings::csaServerHistory`（保存形式は同じ）。棋譜解析の結果の表の列幅（`:77-91`）は QVariantList の形式のまま残した |
 
 ---
 
@@ -706,36 +706,36 @@
 
 監査の報告に基づく一覧。消す前に grep で確かめること。
 
-**状態**: 下の各項目の末尾に書く。「済（de96637a）」は4章をまとめて直したコミット、「既に削除」はそれまでの段階で消えていたもの、「3章へ」は3章の書き直しで扱うもの。
+**状態**: 下の各項目の末尾に書く。「済（2f298076）」は4章をまとめて直したコミット、「既に削除」はそれまでの段階で消えていたもの、「3章へ」は3章の書き直しで扱うもの。
 
 - **使われていない API**
-  - `StartGameDialog::engineList()` — **既に削除（R9-2、77436034）**
-  - `UsiToSfenConverter::readUsiFile` — **既に削除（R2、6143b3b0）**
-  - `KifuBranchTree::branchablePlysOnLine` — **済（de96637a）**
-  - `BranchTreeManager::removeMoveNumberLabel` — **済（de96637a）**
-  - `ShogiViewLayout::calculateRectangleForRankOrFileLabel`、中身が空の `fitBoardToWidget`、`standInnerEdgePx`、`labelBandPx`/`labelFontPt` の getter — **済（de96637a）**
-  - `ElideLabel` の自動スクロール・手動パン・下線（設定する関数の呼び出しが0件、約100行） — **済（de96637a）。省略表示だけを残して書き直した**
-  - `enginesettingsconstants.h:16` の `SettingsFileName` — **既に削除（R8、9d05747b）**
-  - `kifu/josekitypes.h` の `JosekiEntry` — **済（de96637a）**
+  - `StartGameDialog::engineList()` — **既に削除（R9-2、6f913456）**
+  - `UsiToSfenConverter::readUsiFile` — **既に削除（R2、86449bdf）**
+  - `KifuBranchTree::branchablePlysOnLine` — **済（2f298076）**
+  - `BranchTreeManager::removeMoveNumberLabel` — **済（2f298076）**
+  - `ShogiViewLayout::calculateRectangleForRankOrFileLabel`、中身が空の `fitBoardToWidget`、`standInnerEdgePx`、`labelBandPx`/`labelFontPt` の getter — **済（2f298076）**
+  - `ElideLabel` の自動スクロール・手動パン・下線（設定する関数の呼び出しが0件、約100行） — **済（2f298076）。省略表示だけを残して書き直した**
+  - `enginesettingsconstants.h:16` の `SettingsFileName` — **既に削除（R8、5531c34a）**
+  - `kifu/josekitypes.h` の `JosekiEntry` — **済（2f298076）**
 - **テストからしか呼ばれない API**
-  - `KifuBranchTree::findByPlyOnMainLine`・`findBySfen`・`addMove`/`addMoveQuiet`/`addTerminalMove` — **済（2cfb1dad）。`addMoveQuiet` は削除し、ほかは `tests/branchtree_test_util.h` の `TestTree` へ移した**
-  - `AnalysisCoordinator` の `SinglePosition`/`startAnalyzeSingle` — **既に削除（R5、b625d5eb。`AnalysisCoordinator` ごと `AnalysisJob` へ吸収）**
-  - `PvBoardController::goBack`/`goLast` — **済（d639d761）。`PvBoardController` ごと `PvLine` に置き換えた**
-  - `KifToSfenConverter::mapHandicapToSfen`・`JkfToSfenConverter::mapPresetToSfen` — **`mapPresetToSfen` は既に削除（R2、6143b3b0）。`mapHandicapToSfen` は R2 以後 src から使うので残す**
+  - `KifuBranchTree::findByPlyOnMainLine`・`findBySfen`・`addMove`/`addMoveQuiet`/`addTerminalMove` — **済（17184f2f）。`addMoveQuiet` は削除し、ほかは `tests/branchtree_test_util.h` の `TestTree` へ移した**
+  - `AnalysisCoordinator` の `SinglePosition`/`startAnalyzeSingle` — **既に削除（R5、22bed25a。`AnalysisCoordinator` ごと `AnalysisJob` へ吸収）**
+  - `PvBoardController::goBack`/`goLast` — **済（f7b86188）。`PvBoardController` ごと `PvLine` に置き換えた**
+  - `KifToSfenConverter::mapHandicapToSfen`・`JkfToSfenConverter::mapPresetToSfen` — **`mapPresetToSfen` は既に削除（R2、86449bdf）。`mapHandicapToSfen` は R2 以後 src から使うので残す**
 - **書くだけで読まれない値・到達しない分岐**
-  - `BranchTreeManager` の `BR_ROLE_PLY`・`BR_ROLE_STARTPLY`・`BR_ROLE_BUCKET`（`branchtreemanager_draw.cpp:137` で書くだけ） — **済（de96637a）**
-  - `ShogiClock::m_resumingTurn` — **済（de96637a）**
-  - `ShogiViewLayout` の `param1`/`param2` で引いている `tweak = 0` — **済（de96637a）**
-  - `matchsearchsnapshot.h` の、時計がないときの分岐（到達しない） — **既に削除（R4、d8dbb2bd でファイルごと削除）**
+  - `BranchTreeManager` の `BR_ROLE_PLY`・`BR_ROLE_STARTPLY`・`BR_ROLE_BUCKET`（`branchtreemanager_draw.cpp:137` で書くだけ） — **済（2f298076）**
+  - `ShogiClock::m_resumingTurn` — **済（2f298076）**
+  - `ShogiViewLayout` の `param1`/`param2` で引いている `tweak = 0` — **済（2f298076）**
+  - `matchsearchsnapshot.h` の、時計がないときの分岐（到達しない） — **既に削除（R4、f02591ae でファイルごと削除）**
 - **効いていない処理**
-  - `MainWindowAppearanceController::setupNameAndClockFonts`（`mainwindowappearancecontroller.cpp:146-170`）が設定する書体は、`BoardChromeWidget::relayoutCards`・`fitLabelFontToRect` がすぐ上書きする。 — **済（de96637a）。関数を消し、時計の太さ（DemiBold）は `BoardChromeWidget` で決める**
-  - 各ダイアログの A-/A+ のツールチップの tr 文字列（16個）は、`DialogUtils::updateFontButtons` が上書きするので表示されない（R9-1）。 — **済（de96637a。R9-1 で残っていた `tsumeshogisearchdialog.ui` の分）**
+  - `MainWindowAppearanceController::setupNameAndClockFonts`（`mainwindowappearancecontroller.cpp:146-170`）が設定する書体は、`BoardChromeWidget::relayoutCards`・`fitLabelFontToRect` がすぐ上書きする。 — **済（2f298076）。関数を消し、時計の太さ（DemiBold）は `BoardChromeWidget` で決める**
+  - 各ダイアログの A-/A+ のツールチップの tr 文字列（16個）は、`DialogUtils::updateFontButtons` が上書きするので表示されない（R9-1）。 — **済（2f298076。R9-1 で残っていた `tsumeshogisearchdialog.ui` の分）**
 - **文書と実装の食い違い**
-  - `AutomationActionPolicy` の許可リストに `actionLanguageChineseSimplified`/`actionLanguageChineseTraditional` がない（文書の「言語切替は許可」と食い違う）。 — **済（de96637a）**
-  - 同じヘッダーのコメント「言語切替・ドックレイアウト保存は含めない」が実態と逆になっている。 — **済（de96637a）**
+  - `AutomationActionPolicy` の許可リストに `actionLanguageChineseSimplified`/`actionLanguageChineseTraditional` がない（文書の「言語切替は許可」と食い違う）。 — **済（2f298076）**
+  - 同じヘッダーのコメント「言語切替・ドックレイアウト保存は含めない」が実態と逆になっている。 — **済（2f298076）**
 - **転送だけ・名残の層**
-  - `DockUiCoordinator`（39行。R10-2） — **既に削除（R10-2、7d829071）**
-  - `JishogiScoreDialogController`（1関数だけの QObject。関数にしてもよい） — **済（de96637a）。`JishogiScoreDialog::showFor(position, parent)` にした**
+  - `DockUiCoordinator`（39行。R10-2） — **既に削除（R10-2、5fa513aa）**
+  - `JishogiScoreDialogController`（1関数だけの QObject。関数にしてもよい） — **済（2f298076）。`JishogiScoreDialog::showFor(position, parent)` にした**
 
 ---
 
