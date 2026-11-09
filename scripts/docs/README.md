@@ -2,7 +2,7 @@
 
 公開ガイド（`docs/`）の4言語ページ（日本語・英語・簡体字・繁体字）と、そのスクリーンショットを作るための補助スクリプトです。
 作業手順は Claude Code の Skill [.claude/skills/guide-page/SKILL.md](../../.claude/skills/guide-page/SKILL.md)、
-依頼の例は [docs/dev/guide-update-prompts.md](../../docs/dev/guide-update-prompts.md) にあります。
+依頼の例は [docs/dev/prompts/guide-update-prompts.md](../../docs/dev/prompts/guide-update-prompts.md) にあります。
 
 ## ファイル
 

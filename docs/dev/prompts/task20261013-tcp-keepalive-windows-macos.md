@@ -133,7 +133,7 @@ ctest --test-dir build --output-on-failure -R "tst_csaprotocol|tst_settings_roun
 ```
 
 `tst_csaprotocol` には実ソケット（QTcpServer）を使うテストが含まれます。失敗した場合は、その OS 固有の原因かどうかを
-切り分けて報告してください（`docs/dev/prompts/task20261008-mcp-tests-linux.md` に macOS での既知の失敗例があります）。
+切り分けて報告してください。
 
 ## 報告の形式
 

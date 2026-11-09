@@ -342,7 +342,7 @@ MyDialog::MyDialog(QWidget* parent)
 
 - **MainWindow should stay lean**: Delegate logic to existing or new classes (coordinators, controllers, services). MainWindow should only handle MainWindow-specific responsibilities.
 - When adding new features, prefer creating new classes in appropriate directories (`app/`, `controllers/`, `services/`, etc.) rather than adding code to MainWindow.
-- **Deps/Hooks/Refs パターン**: `docs/dev/done/deps-hooks-refs-pattern.md` に従う。依存注入に3種の構造体パターン（Deps=外部依存注入、Hooks=上位層へのコールバック、Refs=親状態への参照）を使い分ける
+- **Deps/Hooks/Refs パターン**: `docs/dev/deps-hooks-refs-pattern.md` に従う。依存注入に3種の構造体パターン（Deps=外部依存注入、Hooks=上位層へのコールバック、Refs=親状態への参照）を使い分ける
 - **スレッド安全性**: `docs/dev/threading-guidelines.md` に従う。UIアクセスはメインスレッド限定、ワーカーには値オブジェクトのみ渡す
 - **層の依存**: 下の層は上の層を include しない。順に core・common → services → kifu → engine → game → analysis・network → style → models → widgets → views → board → dialogs → ui → app（views は盤の描画で、widgets の `ElideLabel`・`GlobalToolTip` を使う。widgets は views を使わない）。`headless` は core〜analysis だけを使い、`automation`・`cli` は MainWindow・ダイアログ・ウィジェットに依存しない（`cli` は盤面画像 `boardimagerenderer` だけが views を使う。規則は `tests/tst_layer_dependencies.cpp` が検査する）
 - **クラス名の役割**: `*Wiring` はシグナルの接続だけ、`*Presenter` は表示への反映、`*Controller` は利用者操作の処理、`*Coordinator` は複数の部品にまたがる流れ、`*Session` は開始から終わりまでの状態を持つ一続きの処理（対局・検討・棋譜解析・定跡ファイル）。役割が変わったら名前も変える

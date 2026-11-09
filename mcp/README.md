@@ -182,7 +182,7 @@ kifu_analysis_result(job_id="返されたID", offset=100, max_positions=100)
 名前付きレイアウトは `actionSaveDockLayout` の入力欄を selector で指定して保存し、
 `menuSavedLayouts` から復元・削除・起動時指定を操作します。
 定跡・コメント・しおり・駒音・配色・エンジン選択などの対応表は
-[実装と検証の記録](../docs/dev/mcp-coverage-implementation-2026-09-28.md) を参照してください。
+[実装と検証の記録](../docs/dev/reports/mcp-coverage-implementation-2026-09-28.md) を参照してください。
 
 ## クライアント設定例
 
@@ -425,4 +425,4 @@ python3 -m shogiboardq_mcp.specs ../build/shogiboardq-cli
 分類の表（または MCP サーバーだけの語の一覧）にあることを検査します。
 
 実際の shogi-server と ShogiHome を使うCSA対局テストの環境構築・実行方法は、
-[CSA検証記録](../docs/dev/csa-game-mcp-audit-2026-09-27.md) を参照してください。
+[CSA検証記録](../docs/dev/reports/csa-game-mcp-audit-2026-09-27.md) を参照してください。

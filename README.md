@@ -175,6 +175,7 @@ kbuildsycoca6 --noincremental
 
 ## 開発・運用ドキュメント
 
+- [開発者向け資料の目次](docs/dev/README.md)
 - [開発者ガイド](docs/dev/developer-guide.md)
 - [版番号とリリースの運用](docs/dev/versioning.md)
 - [Linux](docs/dev/linux-build-and-release.md)・[Windows](docs/dev/windows-build-and-release.md)・[macOS](docs/dev/macos-build-and-release.md) のビルドとリリース

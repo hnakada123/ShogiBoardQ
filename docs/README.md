@@ -17,7 +17,7 @@
   メイン画面は各言語の `screenshot-main.png`、OGP画像は `og-image.png`。
 - `images/icons/`: 製品紹介ページの機能アイコン。アプリのツールバーと同じ線画（`resources/images/actions/`）を使う。
 - `images/pieces/showcase/`: 製品紹介ページの駒見本（`resources/images/pieces/` の王将を96pxに書き出したもの）。
-- `dev/`: 開発者向け資料。
+- `dev/`: 開発者向け資料。目次と置き方は `dev/README.md`。
 - `sitemap.xml`: 公開ページのURL一覧。
 - `.nojekyll`: GitHub Pages に Jekyll を使わせず、ファイルをそのまま配信させる印。公開ページは手書きの HTML なので
   Jekyll の処理は要らない。これが無いと、`dev/` の Markdown にある `{{` などを Liquid のテンプレートとして読み、

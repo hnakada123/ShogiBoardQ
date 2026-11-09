@@ -161,7 +161,7 @@ CLI の `analyze-kifu` がエンジンを1回だけ起動し、各局面へ元�
 `cancel_job` で中断でき、完了済み局面と停止時に返った部分結果を取得できる。
 GUIの棋譜解析結果や評価値グラフへの書き込みは行わない。
 
-新たに接続した機能と実機テストは [MCP連携の補完記録](mcp-coverage-implementation-2026-09-28.md) を参照。
+新たに接続した機能と実機テストは [MCP連携の補完記録](reports/mcp-coverage-implementation-2026-09-28.md) を参照。
 
 ### リソース
 
@@ -445,7 +445,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 `mcp/tests/test_csa_game.py` は実際の shogi-server を使い、接続ダイアログ・盤面・終局・棋譜保存を stdio MCP 経由で検証する。
 `SHOGIBOARDQ_TEST_CSA_SERVER` にサーバースクリプトを指定する。実エンジン対局は `SHOGIBOARDQ_TEST_USI_ENGINE`、
 ShogiHome との相互接続は `SHOGIBOARDQ_TEST_SHOGIHOME_CDP` も指定する。
-環境構築・実行例・確認範囲は [CSA検証記録](csa-game-mcp-audit-2026-09-27.md) を参照。
+環境構築・実行例・確認範囲は [CSA検証記録](reports/csa-game-mcp-audit-2026-09-27.md) を参照。
 
 テストでは、`list_dialogs` で見つけたダイアログを `selector` で指す。メッセージボックス（`QMessageBox`）は
 オブジェクト名が無く、macOS の Qt はタイトルも無視する（空になる）ため、タイトルでは探せない。

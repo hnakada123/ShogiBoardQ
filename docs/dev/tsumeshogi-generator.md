@@ -413,7 +413,7 @@ SHOGIBOARDQ_TEST_KOMORING=/path/to/KomoringHeights-by-gcc \
 第3問は18問い合わせ・約0.1秒で合格。5秒設定では第2問は判定不能として棄却される。
 検査の分だけ生成速度や採択率は下がる。
 
-原因調査と元の再現データは [余詰調査報告](tsumeshogi-yodzume-investigation.md) を参照。
+原因調査と元の再現データは [余詰調査報告](reports/tsumeshogi-yodzume-investigation.md) を参照。
 
 ## 各1000題の初回生成で得た知見
 
