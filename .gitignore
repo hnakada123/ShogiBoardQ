@@ -8,6 +8,10 @@ CMakeLists.txt.user
 
 # Qt Creator user files
 *.user
+.qtcreator/
+
+# Claude Code の手元だけの設定（許可の一覧など）
+.claude/settings.local.json
 CMakeUserPresets.json
 
 debug.log

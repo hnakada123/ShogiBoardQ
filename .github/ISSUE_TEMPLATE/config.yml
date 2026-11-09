@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Security Advisories
-    url: https://github.com/hnakada123/ShogiBoardQ/security/advisories
-    about: 重大なセキュリティ報告はこちらを利用してください
+  - name: 脆弱性の非公開の報告
+    url: https://github.com/hnakada123/ShogiBoardQ/security/advisories/new
+    about: 脆弱性は公開の Issue に書かず、こちらから報告してください（SECURITY.md）

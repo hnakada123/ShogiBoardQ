@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        重大な脆弱性は公開Issueではなく Security Advisories での報告を推奨します。
+        脆弱性は公開の Issue に書かず、[非公開の報告](https://github.com/hnakada123/ShogiBoardQ/security/advisories/new)を使ってください（`SECURITY.md`）。この Issue は公開されるので、悪用できる手順を書かないでください。
 
   - type: textarea
     id: summary
