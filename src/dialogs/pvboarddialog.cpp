@@ -7,14 +7,15 @@
 #include "boardviewerwidget.h"
 #include "kifupresentation.h"
 #include "pvline.h"
+#include "pvmovestrip.h"
 #include "buttonstyles.h"
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "appsettings.h"
 #include "dialogfontscale.h"
+#include "fontsizehelper.h"
 
 #include <QHBoxLayout>
-#include <QLabel>
 #include <QPushButton>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -32,10 +33,9 @@ PvBoardDialog::PvBoardDialog(const PvText& pv, QWidget* parent)
 
     buildUi();
     // ウィンドウは開くたびに盤に合わせる（fitToBoard）ので、ウィンドウの大きさは保存しない
-    DialogFontScale::install(this, AppSettings::pvBoardDialogFontSize);
+    const DialogFontScale* fontScale = DialogFontScale::install(this, AppSettings::pvBoardDialogFontSize);
+    connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &PvBoardDialog::onFontSizeChanged);
 
-    m_pvLabel->setText(m_line->displayPv());
-    m_pvLabel->setToolTip(plainToolTip(m_line->displayPv(true)));
     // 読み筋の各手数の局面を盤に渡す（0 が開始局面）。表示する手数はビューアの番号だけで持つ
     m_viewer->setSfenList(m_line->positions());
 
@@ -78,16 +78,14 @@ void PvBoardDialog::buildUi()
     mainLayout->setContentsMargins(8, 8, 8, 8);
     mainLayout->setSpacing(8);
 
-    // 読み筋ラベル
-    m_pvLabel = new QLabel(this);
-    m_pvLabel->setTextFormat(Qt::PlainText);   // エンジンの出力を HTML として読まない
-    ApplicationFonts::useJapaneseFont(m_pvLabel,
+    // 読み筋の手の帯（先頭は開始局面）
+    QStringList labels{tr("開始局面")};
+    for (int ply = 1; ply <= m_line->moveCount(); ++ply) labels.append(m_line->moveText(ply));
+    m_moveStrip = new PvMoveStrip(labels, m_line->ending(), this);
+    ApplicationFonts::useJapaneseFont(m_moveStrip,
         KifuPresentation::options().notation == KifuPresentation::Notation::Japanese);
-    m_pvLabel->setWordWrap(true);
-    m_pvLabel->setStyleSheet(QStringLiteral(
-        "QLabel { background-color: #f5f5f5; border: 1px solid #ccc; padding: 8px; }"));
-    m_pvLabel->setMinimumHeight(60);
-    mainLayout->addWidget(m_pvLabel);
+    m_moveStrip->setToolTip(plainToolTip(m_line->displayPv(true)));
+    mainLayout->addWidget(m_moveStrip);
 
     // 盤・拡大縮小・回転・局面送り
     m_viewer = new BoardViewerWidget(BoardViewerWidget::ZoomToolbar | BoardViewerWidget::Navigation
@@ -95,6 +93,7 @@ void PvBoardDialog::buildUi()
                                      BoardViewerWidget::ButtonLabels::Symbols, nullptr, this);
     m_viewer->setNavigationToolTips(tr("最初の局面に戻る"), tr("1手戻る"), tr("1手進む"), tr("最後の局面まで進む"));
     connect(m_viewer, &BoardViewerWidget::currentIndexChanged, this, &PvBoardDialog::onPlyChanged);
+    connect(m_moveStrip, &PvMoveStrip::positionRequested, m_viewer, &BoardViewerWidget::setCurrentIndex);
     mainLayout->addWidget(m_viewer, 1);
 
     // 閉じるボタン
@@ -113,9 +112,16 @@ void PvBoardDialog::onPlyChanged(int)
     updatePlyDisplay();
 }
 
+void PvBoardDialog::onFontSizeChanged()
+{
+    // 部品の配置が新しい文字の大きさに合ってから、ウィンドウを盤に合わせる
+    QTimer::singleShot(0, m_viewer, &BoardViewerWidget::fitToBoard);
+}
+
 void PvBoardDialog::updatePlyDisplay()
 {
     const int ply = qMax(0, m_viewer->currentIndex());
+    m_moveStrip->setCurrent(ply);
 
     // 直前の手のハイライト（開始局面では、その局面に至った手）
     const PvLine::Highlight highlight = m_line->highlight(ply);

@@ -50,6 +50,27 @@ private slots:
         QCOMPARE(line.moveText(1), QStringLiteral("▲P-7f"));
     }
 
+    /// 手の後の語（注記・終局の宣言）は手数に入らず、読み筋全体の表記の末尾と同じ語
+    void endingIsNotCountedAsMove()
+    {
+        const PvLine noted(PvText::play(SfenUtils::hirateSfen(), QStringLiteral("7g7f (57.54%)")));
+        QCOMPARE(noted.moveCount(), 1);
+        QCOMPARE(noted.ending(), QStringLiteral("(57.54%)"));
+        QCOMPARE(noted.displayPv(), noted.moveText(1) + QStringLiteral(" (57.54%)"));
+
+        const PvLine resigned(PvText::play(SfenUtils::hirateSfen(), QStringLiteral("7g7f resign")));
+        QCOMPARE(resigned.moveCount(), 1);
+        QCOMPARE(resigned.ending(), QStringLiteral("△投了"));
+        QCOMPARE(resigned.displayPv(), resigned.moveText(1) + QStringLiteral("△投了"));
+
+        QVERIFY(lineOf(SfenUtils::hirateSfen(), {QStringLiteral("7g7f")}).ending().isEmpty());
+
+        // 局面と合う手が無ければ、エンジンが送った語のまま
+        const PvLine unplayable = lineOf(SfenUtils::hirateSfen(), {QStringLiteral("5e5d"), QStringLiteral("2g2f")});
+        QCOMPARE(unplayable.moveCount(), 0);
+        QCOMPARE(unplayable.ending(), QStringLiteral("5e5d 2g2f"));
+    }
+
     /// 読み筋の各手のハイライトは、その手の移動元（駒打ちは打った側の駒台）と移動先
     void moveHighlightUsesMoverStand()
     {

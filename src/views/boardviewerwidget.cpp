@@ -226,9 +226,14 @@ void BoardViewerWidget::fitToBoard()
     // 拡大・縮小の直後はスクロールバーが出ていることがあるため、ビューポートではなく
     // スクロール領域（枠なし）の大きさから盤以外の部分の寸法を求める。
     QWidget* top = window();
-    if (top->layout()) top->layout()->activate();
+    QLayout* topLayout = top->layout();
+    if (topLayout) topLayout->activate();
     const QSize controls = top->size() - m_scroll->size();
+    QSize target = m_view->size() + controls;
+    // 折り返す部品（読み筋の帯など）の高さはウィンドウの幅で変わるので、合わせた後の幅での高さにする
+    if (topLayout && topLayout->hasHeightForWidth())
+        target.rheight() += topLayout->totalHeightForWidth(target.width()) - topLayout->totalHeightForWidth(top->width());
     const QSize available = top->screen()->availableGeometry().size() - QSize(40, 80);
-    top->resize((m_view->size() + controls).boundedTo(available));
+    top->resize(target.boundedTo(available));
 }
 

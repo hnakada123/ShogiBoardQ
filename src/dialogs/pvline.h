@@ -39,6 +39,8 @@ public:
     QString moveText(int ply) const;
     /// 読み筋全体の表記（表記の設定に合わせる。fullOrigin なら移動元をすべて付ける）
     QString displayPv(bool fullOrigin = false) const;
+    /// 手の後に続く語（末尾の注記・終局の宣言。局面を伴わないので手数には入らない。無ければ空）
+    QString ending() const;
 
     /// 開始局面に至った手（USI。開始局面のハイライトに使う。分からなければ空で、ハイライトしない）
     void setArrival(const QString& lastMove);

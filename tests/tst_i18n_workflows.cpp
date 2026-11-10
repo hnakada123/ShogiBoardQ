@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QAbstractButton>
 #include <QTranslator>
 #include <QTableWidget>
 #include <QTemporaryDir>
@@ -405,15 +406,15 @@ private slots:
         const PvLine board(info->pv());
         QCOMPARE(board.displayPv(), pv);
         PvBoardDialog pvDialog(info->pv());
-        bool foundPv = false;
-        for (const auto* label : pvDialog.findChildren<QLabel*>()) {
-            if (label->text() == pv) {
-                foundPv = true;
-                QCOMPARE(label->font().family(), expectedFont.family());
-            }
-        }
-        QVERIFY(foundPv);
         QCOMPARE(board.moveCount(), 2);
+        // 読み筋の帯は1手ずつの部品で、手の表記は読み筋の表記と同じ、書体は棋譜の書体
+        for (int ply = 1; ply <= board.moveCount(); ++ply) {
+            const auto* move = pvDialog.findChild<QAbstractButton*>(QStringLiteral("pvMove%1").arg(ply));
+            QVERIFY(move);
+            QCOMPARE(move->text(), board.moveText(ply));
+            QVERIFY(pv.contains(move->text()));
+            QCOMPARE(move->font().family(), expectedFont.family());
+        }
         if (western) QCOMPARE(board.moveText(1), QStringLiteral("▲P-7f"));
 
         // Network game results must stay canonical even with a translated UI.

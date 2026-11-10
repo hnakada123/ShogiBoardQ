@@ -5042,8 +5042,8 @@
     <name>EngineSettingsOptionHandler</name>
     <message>
         <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="180"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="234"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="258"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="237"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="261"/>
         <source>%1（既定値 %2）</source>
         <translation>%1（既定値 %2）</translation>
     </message>
@@ -5064,12 +5064,12 @@
         <translation type="vanished">%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="209"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="212"/>
         <source>%1 以上の値を入力してください。（既定値: %2）</source>
         <translation>%1 以上の値を入力してください。（既定値: %2）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="210"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="213"/>
         <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
         <translation>%1 から %2 までの値を入力してください。（既定値: %3）</translation>
     </message>
@@ -9395,17 +9395,17 @@ OKを選択すると保存先が指定できます。</translation>
         <translation type="vanished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="197"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="206"/>
         <source>（定跡）</source>
         <translation>（定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="202"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="211"/>
         <source>%1（定跡）</source>
         <translation>%1（定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="203"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="212"/>
         <source>%1（定跡 %2%）</source>
         <translation>%1（定跡 %2%）</translation>
     </message>
@@ -9535,7 +9535,7 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>左五枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="222"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="231"/>
         <source>局面指定</source>
         <translation>局面指定</translation>
     </message>
@@ -9575,7 +9575,7 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>無制限</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="233"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="242"/>
         <source>%1+%2秒加算</source>
         <translation>%1+%2秒加算</translation>
     </message>
@@ -9850,52 +9850,52 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>LogPanel</name>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="141"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="142"/>
         <source>折り返し</source>
         <translation>折り返し</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="143"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="144"/>
         <source>長い行をウィンドウ幅で折り返す</source>
         <translation>長い行をウィンドウ幅で折り返す</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="148"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="149"/>
         <source>最新へ</source>
         <translation>最新へ</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="150"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="151"/>
         <source>最新のログへ移動（末尾では新着ログに自動追従）</source>
         <translation>最新のログへ移動（末尾では新着ログに自動追従）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="153"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="154"/>
         <source>全てコピー</source>
         <translation>全てコピー</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="155"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="156"/>
         <source>ログ全体をクリップボードへコピー</source>
         <translation>ログ全体をクリップボードへコピー</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="157"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="158"/>
         <source>消去</source>
         <translation>消去</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="159"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="160"/>
         <source>表示中のログを消去</source>
         <translation>表示中のログを消去</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="176"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="177"/>
         <source>送信</source>
         <translation>送信</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="200"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="201"/>
         <source> …（%1 文字を省略）</source>
         <translation> …（%1 文字を省略）</translation>
     </message>
@@ -11726,37 +11726,42 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">盤面を回転する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="80"/>
+        <source>開始局面</source>
+        <translation>開始局面</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="92"/>
         <source>最初の局面に戻る</source>
         <translation>最初の局面に戻る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="92"/>
         <source>1手戻る</source>
         <translation>1手戻る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="92"/>
         <source>1手進む</source>
         <translation>1手進む</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="92"/>
         <source>最後の局面まで進む</source>
         <translation>最後の局面まで進む</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="101"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="98"/>
         <source>閉じる</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="128"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="126"/>
         <source>手数: %1 / %2</source>
         <translation>手数: %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="130"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="128"/>
         <source> (開始局面)</source>
         <translation> (開始局面)</translation>
     </message>
