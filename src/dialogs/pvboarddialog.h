@@ -11,8 +11,8 @@
 #include "shogiview.h"
 
 class BoardViewerWidget;
-class QLabel;
 class PvLine;
+class PvMoveStrip;
 class PvText;
 
 /**
@@ -58,14 +58,14 @@ private slots:
 private:
     /// UIを構築
     void buildUi();
-    /// 手数ラベルと直前の手のハイライトを更新
+    /// 読み筋の帯の今の手・手数ラベル・直前の手のハイライトを更新
     void updatePlyDisplay();
 
 private:
     std::unique_ptr<PvLine> m_line;
 
     BoardViewerWidget* m_viewer = nullptr;  ///< 盤・拡大縮小・回転・局面送り
-    QLabel* m_pvLabel = nullptr;
+    PvMoveStrip* m_moveStrip = nullptr;     ///< 読み筋の手の帯（表示中の局面の手を示し、押すとその局面へ移る）
 };
 
 #endif // PVBOARDDIALOG_H

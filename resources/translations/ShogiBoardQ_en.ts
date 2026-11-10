@@ -5513,8 +5513,8 @@ Discard changes and move?</translation>
     <name>EngineSettingsOptionHandler</name>
     <message>
         <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="180"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="234"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="258"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="237"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="261"/>
         <source>%1（既定値 %2）</source>
         <translation>%1 (Default: %2)</translation>
     </message>
@@ -5535,12 +5535,12 @@ Discard changes and move?</translation>
         <translation type="vanished">%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="209"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="212"/>
         <source>%1 以上の値を入力してください。（既定値: %2）</source>
         <translation>Please enter a value of %1 or more. (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="210"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="213"/>
         <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
         <translation>Please enter a value between %1 and %2. (Default: %3)</translation>
     </message>
@@ -10218,17 +10218,17 @@ Positions: SFEN / BOD (board diagram)</translation>
         <translation type="vanished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="197"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="206"/>
         <source>（定跡）</source>
         <translation>(Book)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="202"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="211"/>
         <source>%1（定跡）</source>
         <translation>%1 (book)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="203"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="212"/>
         <source>%1（定跡 %2%）</source>
         <translation>%1 (book %2%)</translation>
     </message>
@@ -10358,7 +10358,7 @@ Positions: SFEN / BOD (board diagram)</translation>
         <translation>Left Five-Piece Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="222"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="231"/>
         <source>局面指定</source>
         <translation>Custom position</translation>
     </message>
@@ -10398,7 +10398,7 @@ Positions: SFEN / BOD (board diagram)</translation>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="233"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="242"/>
         <source>%1+%2秒加算</source>
         <translation>%1 + %2 s increment</translation>
     </message>
@@ -10679,52 +10679,52 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>LogPanel</name>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="141"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="142"/>
         <source>折り返し</source>
         <translation>Wrap lines</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="143"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="144"/>
         <source>長い行をウィンドウ幅で折り返す</source>
         <translation>Wrap long lines to the window width</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="148"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="149"/>
         <source>最新へ</source>
         <translation>Latest</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="150"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="151"/>
         <source>最新のログへ移動（末尾では新着ログに自動追従）</source>
         <translation>Go to the latest log (new entries are followed at the bottom)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="153"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="154"/>
         <source>全てコピー</source>
         <translation>Copy all</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="155"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="156"/>
         <source>ログ全体をクリップボードへコピー</source>
         <translation>Copy the entire log to the clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="157"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="158"/>
         <source>消去</source>
         <translation>Clear</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="159"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="160"/>
         <source>表示中のログを消去</source>
         <translation>Clear the displayed log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="176"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="177"/>
         <source>送信</source>
         <translation>Send</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="200"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="201"/>
         <source> …（%1 文字を省略）</source>
         <translation> … (%1 characters omitted)</translation>
     </message>
@@ -13302,37 +13302,42 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Flip the board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="80"/>
+        <source>開始局面</source>
+        <translation>Initial Position</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="92"/>
         <source>最初の局面に戻る</source>
         <translation>Go to First Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="92"/>
         <source>1手戻る</source>
         <translation>Go Back 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="92"/>
         <source>1手進む</source>
         <translation>Go Forward 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="92"/>
         <source>最後の局面まで進む</source>
         <translation>Go to Last Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="101"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="98"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="128"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="126"/>
         <source>手数: %1 / %2</source>
         <translation>Move: %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="130"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="128"/>
         <source> (開始局面)</source>
         <translation> (Initial Position)</translation>
     </message>

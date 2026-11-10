@@ -95,12 +95,26 @@ QString move(const QString& beforeSfen, const QString& usi, Options style, bool 
     return format(board, usi, style, includeSide);
 }
 
-QString pv(const PvText& line, bool fullOrigin)
+QString pvEnding(const PvText& line)
 {
     const QList<PvText::Step>& steps = line.steps();
     const TerminalType declaration = line.declaration();
+    if (declaration != TerminalType::None) {
+        // resign・win は指せた手の次の手番の終局の宣言
+        Turn side = Turn::Black;
+        if (!steps.isEmpty()) side = opponent(steps.constLast().mover);
+        else if (const std::optional<Position> base = Position::fromSfen(line.baseSfen())) side = base->sideToMove();
+        return QChar(side == Turn::Black ? u'▲' : u'△') + TerminalTypes::displayLabel(declaration);
+    }
     // 局面と合う手が無ければ、エンジンが送った語のまま出す
-    if (steps.isEmpty() && declaration == TerminalType::None) return line.rest().join(QLatin1Char(' '));
+    return steps.isEmpty() ? line.rest().join(QLatin1Char(' ')) : line.annotation();
+}
+
+QString pv(const PvText& line, bool fullOrigin)
+{
+    const QList<PvText::Step>& steps = line.steps();
+    QString ending = pvEnding(line);
+    if (steps.isEmpty()) return ending;
 
     const Options style = pvStyle(fullOrigin);
     const bool japanese = style.notation == Notation::Japanese;
@@ -124,15 +138,10 @@ QString pv(const PvText& line, bool fullOrigin)
         }
         text = moves.join(QLatin1Char(' '));
     }
-    const QString separator = japanese || text.isEmpty() ? QString() : QStringLiteral(" ");
-    if (declaration != TerminalType::None) {
-        // resign・win は指せた手の次の手番の終局の宣言
-        Turn side = Turn::Black;
-        if (!steps.isEmpty()) side = opponent(steps.constLast().mover);
-        else if (const std::optional<Position> base = Position::fromSfen(line.baseSfen())) side = base->sideToMove();
-        text += separator + QChar(side == Turn::Black ? u'▲' : u'△') + TerminalTypes::displayLabel(declaration);
-    } else if (const QString note = line.annotation(); !note.isEmpty()) {
-        text += QLatin1Char(' ') + note;
+    if (!ending.isEmpty()) {
+        // 日本語表記の終局の宣言だけは手に続けて書き、ほかは空白で区切る
+        if (!japanese || line.declaration() == TerminalType::None) text += QLatin1Char(' ');
+        text += ending;
     }
     return text;
 }

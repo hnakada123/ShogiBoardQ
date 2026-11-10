@@ -775,6 +775,8 @@ set(SRC_WIDGETS
     src/widgets/recordpane.h
     src/widgets/panelbutton.cpp
     src/widgets/panelbutton.h
+    src/widgets/pvmovestrip.cpp
+    src/widgets/pvmovestrip.h
     src/widgets/settingsformbinding.cpp
     src/widgets/settingsformbinding.h
     src/widgets/stepbuttons.cpp

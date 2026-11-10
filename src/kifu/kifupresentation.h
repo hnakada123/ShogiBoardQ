@@ -40,6 +40,9 @@ QString move(const Position& before, const UsiMove& move, Options style, bool in
 QString pv(const PvText& line, bool fullOrigin = false);
 /// 読み筋の ply 手目（1から）の表記（日本語表記は「同」も付ける）
 QString pvMove(const PvText& line, int ply);
+/// 読み筋の手の後に続く語（終局の宣言は手番の印と終局語、末尾の注記はそのまま。局面と合う手が1つも無ければ
+/// エンジンが送った語のまま。無ければ空）。局面を伴わないので、読み筋の手数には入らない
+QString pvEnding(const PvText& line);
 /// 1手の表記（手数・分岐の印は付けない）。日本語表記なら棋譜の表記 kifText、英語表記なら指す前の局面
 /// beforeSfen と指し手 usi から作る（usi が無ければ kifText のまま）
 QString moveLabel(const QString& kifText, const QString& beforeSfen, const QString& usi, bool fullOrigin = false);

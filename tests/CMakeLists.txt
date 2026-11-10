@@ -218,6 +218,8 @@ add_shogi_test(tst_usiposition
 # ============================================================
 add_shogi_test(tst_pvline tst_pvline.cpp)
 target_link_libraries(tst_pvline PRIVATE shogiboardq_static)
+add_shogi_test(tst_pvmovestrip tst_pvmovestrip.cpp)
+target_link_libraries(tst_pvmovestrip PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 4: ShogiClock

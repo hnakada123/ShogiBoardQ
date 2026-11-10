@@ -43,6 +43,11 @@ QString PvLine::displayPv(bool fullOrigin) const
     return KifuPresentation::pv(m_pv, fullOrigin);
 }
 
+QString PvLine::ending() const
+{
+    return KifuPresentation::pvEnding(m_pv);
+}
+
 void PvLine::setArrival(const QString& lastMove)
 {
     m_lastMove = lastMove;
