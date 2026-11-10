@@ -26,6 +26,7 @@ BoardArrowActions::BoardArrowActions(QAction* joseki, QObject* parent)
     , m_joseki(joseki ? joseki : createToggle(this))
 {
     m_joseki->setCheckable(true);
+    m_joseki->setIconVisibleInMenu(false);  // メニューではアイコンの代わりにチェックの印を出す
     m_match->setChecked(AnalysisSettings::matchArrowsVisible());
     m_ponder->setChecked(AnalysisSettings::ponderArrowsVisible());
     m_consideration->setChecked(AnalysisSettings::considerationArrowsVisible());

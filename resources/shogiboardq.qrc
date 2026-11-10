@@ -1007,6 +1007,17 @@
         <file>images/actions/actionUndoMove.svg</file>
         <file>images/actions/actionVersionInfo.svg</file>
         <file>images/actions/actionSaveEvalGraphImage.svg</file>
+        <file>images/actions/actionResetSettings.svg</file>
+        <file>images/actions/actionLanguageChineseSimplified.svg</file>
+        <file>images/actions/actionLanguageChineseTraditional.svg</file>
+        <file>images/actions/actionNotationAuto.svg</file>
+        <file>images/actions/actionNotationJapanese.svg</file>
+        <file>images/actions/actionNotationWestern.svg</file>
+        <file>images/actions/actionNotationOrigin.svg</file>
+        <file>images/actions/actionNotationHelp.svg</file>
+        <file>images/actions/actionLockDocks.svg</file>
+        <file>images/actions/actionLegalMoves.svg</file>
+        <file>images/actions/actionShowJosekiArrows.svg</file>
         <file>images/actions/editCopy.svg</file>
         <file>images/actions/editCut.svg</file>
         <file>images/actions/editUndo.svg</file>

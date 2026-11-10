@@ -647,6 +647,10 @@
    </property>
   </action>
   <action name="actionResetSettings">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionResetSettings.svg</normaloff>:/images/actions/actionResetSettings.svg</iconset>
+   </property>
    <property name="text">
     <string>設定を初期値に戻す…</string>
    </property>
@@ -656,29 +660,57 @@
   </action>
   <action name="actionLanguageChineseSimplified">
    <property name="checkable"><bool>true</bool></property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionLanguageChineseSimplified.svg</normaloff>:/images/actions/actionLanguageChineseSimplified.svg</iconset>
+   </property>
    <property name="text"><string>简体中文</string></property>
   </action>
   <action name="actionLanguageChineseTraditional">
    <property name="checkable"><bool>true</bool></property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionLanguageChineseTraditional.svg</normaloff>:/images/actions/actionLanguageChineseTraditional.svg</iconset>
+   </property>
    <property name="text"><string>繁體中文</string></property>
   </action>
   <action name="actionNotationAuto">
    <property name="checkable"><bool>true</bool></property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionNotationAuto.svg</normaloff>:/images/actions/actionNotationAuto.svg</iconset>
+   </property>
    <property name="text"><string>言語に合わせる</string></property>
   </action>
   <action name="actionNotationJapanese">
    <property name="checkable"><bool>true</bool></property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionNotationJapanese.svg</normaloff>:/images/actions/actionNotationJapanese.svg</iconset>
+   </property>
    <property name="text"><string>日本語表記（▲７六歩、段は一〜九）</string></property>
   </action>
   <action name="actionNotationWestern">
    <property name="checkable"><bool>true</bool></property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionNotationWestern.svg</normaloff>:/images/actions/actionNotationWestern.svg</iconset>
+   </property>
    <property name="text"><string>英語表記（▲P-7f、段はa〜i）</string></property>
   </action>
   <action name="actionNotationOrigin">
    <property name="checkable"><bool>true</bool></property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionNotationOrigin.svg</normaloff>:/images/actions/actionNotationOrigin.svg</iconset>
+   </property>
    <property name="text"><string>英語表記で移動元を常に表示</string></property>
   </action>
   <action name="actionNotationHelp">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionNotationHelp.svg</normaloff>:/images/actions/actionNotationHelp.svg</iconset>
+   </property>
    <property name="text"><string>棋譜表記の読み方…</string></property>
   </action>
   <action name="actionLanguageSystem">
@@ -763,6 +795,10 @@
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionLockDocks.svg</normaloff>:/images/actions/actionLockDocks.svg</iconset>
+   </property>
    <property name="text">
     <string>ドックを固定</string>
    </property>
@@ -834,11 +870,19 @@
   </action>
   <action name="actionLegalMoves">
    <property name="checkable"><bool>true</bool></property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionLegalMoves.svg</normaloff>:/images/actions/actionLegalMoves.svg</iconset>
+   </property>
    <property name="text"><string>指せるマスを表示</string></property>
    <property name="toolTip"><string>選択した駒を指せるマスに色を付けます</string></property>
   </action>
   <action name="actionShowJosekiArrows">
    <property name="checkable"><bool>true</bool></property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionShowJosekiArrows.svg</normaloff>:/images/actions/actionShowJosekiArrows.svg</iconset>
+   </property>
    <property name="text"><string>盤に定跡手を表示</string></property>
    <property name="toolTip"><string>定跡ウィンドウで開いている定跡の、表示中の局面の定跡手を盤に矢印で表示します（定跡ウィンドウで定跡ファイルを開くと表示します）</string></property>
   </action>

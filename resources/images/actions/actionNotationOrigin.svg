@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>英語表記で移動元を常に表示</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18.7 2.5l2.8 1.4 1 5.6h-7.6l1-5.6Z"/><path d="M2.5 17.5v-2h2M6.5 15.5h2v2M8.5 19.5v2h-2M4.5 21.5h-2v-2"/><path d="M9.6 14.4l3.2-3.2M9.4 11.2h3.4v3.4"/>
+  </g>
+</svg>

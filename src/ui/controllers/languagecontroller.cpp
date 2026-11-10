@@ -75,6 +75,7 @@ void LanguageController::setNotationActions(QAction* automatic, QAction* japanes
     japanese->setData(QStringLiteral("japanese"));
     western->setData(QStringLiteral("western"));
     for (auto* action : {automatic, japanese, western}) {
+        action->setIconVisibleInMenu(false);
         m_notationGroup->addAction(action);
         action->setChecked(action->data().toString() == AppSettings::moveNotation());
     }
