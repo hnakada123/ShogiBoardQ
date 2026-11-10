@@ -37,7 +37,7 @@
 - [game-time-control-spec.md](game-time-control-spec.md): 時間設定と時計表示の仕様
 - [matchcoordinator-split-design.md](matchcoordinator-split-design.md): `MatchCoordinator` の設計
 - [sennichite-detection.md](sennichite-detection.md): 千日手の検出
-- [p2p-blockchain-game-spec.md](p2p-blockchain-game-spec.md): P2P対局とブロックチェーンによる結果記録の実装仕様（設計案）
+- [p2p-game-spec.md](p2p-game-spec.md): P2P対局と、双方が署名した対局記録の実装仕様（設計案。ブロックチェーン・ウォレットは使わない）
 - [p2p-development-strategy.md](p2p-development-strategy.md): 別リポジトリでのP2P実験版開発、配布・権限の分離と段階的な検証方針
 
 ## 棋譜・解析
