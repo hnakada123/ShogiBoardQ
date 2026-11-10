@@ -39,6 +39,7 @@
 - [sennichite-detection.md](sennichite-detection.md): 千日手の検出
 - [p2p-game-spec.md](p2p-game-spec.md): P2P対局と、双方が署名した対局記録の実装仕様（設計案。ブロックチェーン・ウォレットは使わない）
 - [p2p-development-strategy.md](p2p-development-strategy.md): 別リポジトリでのP2P実験版開発、配布・権限の分離と段階的な検証方針
+- [p2p-wallet-user-burden.md](p2p-wallet-user-burden.md): P2P対局にウォレットを導入した場合の利用者の負担（署名、暗号資産の手数料など）。ブロックチェーンとウォレットをやめた判断の記録
 
 ## 棋譜・解析
 
