@@ -13,6 +13,7 @@
 #include "shogiviewhighlighting.h"
 #include "appsettings.h"
 #include "dialogfontscale.h"
+#include "fontsizehelper.h"
 
 #include <QHBoxLayout>
 #include <QPushButton>
@@ -32,7 +33,8 @@ PvBoardDialog::PvBoardDialog(const PvText& pv, QWidget* parent)
 
     buildUi();
     // ウィンドウは開くたびに盤に合わせる（fitToBoard）ので、ウィンドウの大きさは保存しない
-    DialogFontScale::install(this, AppSettings::pvBoardDialogFontSize);
+    const DialogFontScale* fontScale = DialogFontScale::install(this, AppSettings::pvBoardDialogFontSize);
+    connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &PvBoardDialog::onFontSizeChanged);
 
     // 読み筋の各手数の局面を盤に渡す（0 が開始局面）。表示する手数はビューアの番号だけで持つ
     m_viewer->setSfenList(m_line->positions());
@@ -108,6 +110,12 @@ void PvBoardDialog::buildUi()
 void PvBoardDialog::onPlyChanged(int)
 {
     updatePlyDisplay();
+}
+
+void PvBoardDialog::onFontSizeChanged()
+{
+    // 部品の配置が新しい文字の大きさに合ってから、ウィンドウを盤に合わせる
+    QTimer::singleShot(0, m_viewer, &BoardViewerWidget::fitToBoard);
 }
 
 void PvBoardDialog::updatePlyDisplay()

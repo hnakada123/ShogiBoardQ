@@ -54,6 +54,8 @@ public:
 private slots:
     /// 局面送りで表示する手数が変わった
     void onPlyChanged(int ply);
+    /// A-/A+ で文字の大きさが変わった（帯とボタンの高さが変わるので、ウィンドウを盤に合わせ直す）
+    void onFontSizeChanged();
 
 private:
     /// UIを構築

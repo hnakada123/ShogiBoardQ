@@ -10,6 +10,7 @@
 #include <QScrollBar>
 #include <QSignalSpy>
 
+#include "appsettings.h"
 #include "boardviewerwidget.h"
 #include "notationstyle.h"
 #include "pvboarddialog.h"
@@ -42,7 +43,11 @@ private:
     static PvText pvOf(const QString& usi) { return PvText::play(SfenUtils::hirateSfen(), usi); }
 
 private slots:
-    void init() { NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("japanese"), false); }
+    void init()
+    {
+        NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("japanese"), false);
+        AppSettings::pvBoardDialogFontSize.remove();   // A+/A- の大きさは保存されるので、テストごとに既定に戻す
+    }
 
     /// 局面ごとに語が1つあり、始めは開始局面の語が今の語
     void oneWordPerPositionStartingAtTheBeginning()
@@ -157,6 +162,40 @@ private slots:
         QVERIFY(scroll);
         QVERIFY(!scroll->verticalScrollBar()->isVisible());
         QVERIFY(!scroll->horizontalScrollBar()->isVisible());
+    }
+
+    /// A+/A- で帯やボタンの高さが変わっても、ウィンドウを盤に合わせ直す（スクロールバーを出さず、小さくすれば縮む）
+    void windowRefitsBoardAfterFontSizeChange()
+    {
+        // 大きな文字でもウィンドウが offscreen の画面（800×800）に収まる長さの読み筋
+        PvBoardDialog dialog(pvOf(QStringLiteral("7g7f 3c3d 2g2f 8c8d")));
+        dialog.setSquareSize(30);
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        QTest::qWait(50);
+        const int originalHeight = dialog.height();
+        auto* increase = dialog.findChild<QAbstractButton*>(QStringLiteral("fontIncrease"));
+        auto* decrease = dialog.findChild<QAbstractButton*>(QStringLiteral("fontDecrease"));
+        const auto* scroll = dialog.findChild<QScrollArea*>(QStringLiteral("boardScrollArea"));
+        QVERIFY(increase && decrease && scroll);
+
+        for (int i = 0; i < 3; ++i) {
+            QTest::mouseClick(increase, Qt::LeftButton);
+            QTest::qWait(20);
+        }
+        QTest::qWait(50);
+        const int enlargedHeight = dialog.height();
+        QVERIFY(enlargedHeight > originalHeight);
+        QVERIFY(!scroll->verticalScrollBar()->isVisible());
+        QVERIFY(!scroll->horizontalScrollBar()->isVisible());
+
+        for (int i = 0; i < 3; ++i) {
+            QTest::mouseClick(decrease, Qt::LeftButton);
+            QTest::qWait(20);
+        }
+        QTest::qWait(50);
+        QVERIFY(dialog.height() < enlargedHeight);
+        QVERIFY(!scroll->verticalScrollBar()->isVisible());
     }
 
     /// 注記・投了は語にしても局面を増やさない
