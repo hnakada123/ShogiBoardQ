@@ -120,7 +120,7 @@ P2P の追加にあわせて、次の検査を CI に加える。
 
 | 検査 | 内容 |
 |---|---|
-| 依存の点検 | Rust のツールチェーンと Cargo.lock を固定し、既知の脆弱性とライセンスを点検する（cargo-audit、cargo-deny）。追加する C・C++ のライブラリ（libsodium など）も版を固定する |
+| 依存の点検 | Rust のツールチェーンと Cargo.lock を固定し、既知の脆弱性とライセンスを点検する（cargo-audit、cargo-deny）。追加する C・C++ のライブラリ（libsodium、QtKeychain）も版を固定する |
 | 静的解析 | 既存の clang-tidy・cppcheck に加え、リポジトリのコード走査（code scanning）を有効にする。Rust は clippy を通し、自前のコードで安全でないコード（unsafe）を禁止する |
 | サニタイザ | 既存の `ENABLE_SANITIZERS`（アドレス・未定義動作）で P2P の単体試験を回す |
 | ファジング | 外部由来のデータを読む部分（決定的CBOR、IPC の JSON、証跡ファイル、鍵ファイル、招待文字列、募集）を、C++ は libFuzzer、Rust は cargo-fuzz で回す。通常 CI では短時間、長時間の実行は別のジョブにする |
