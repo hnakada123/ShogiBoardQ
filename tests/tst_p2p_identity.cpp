@@ -53,6 +53,36 @@ private slots:
         QVERIFY(m_dir.isValid());
     }
 
+    /// 鍵の保管庫の項目は保存先ごとに別にする。同じ PC で保存先を分けて動かす2つ目のアプリや試験が、
+    /// 普段の保存先の鍵を上書き・削除しない
+    void keychainItemIsSeparatePerStorageFolder()
+    {
+        const QString standard = QStringLiteral("/home/u/.local/share/ShogiBoardQ-P2P");
+        const QString base = QStringLiteral("player-key-v1");
+        // 標準の保存先（その下のフォルダ）は、これまでと同じ名前
+        QCOMPARE(P2pIdentityStore::keychainItemKey(standard + QStringLiteral("/p2p/identity"), standard), base);
+        QCOMPARE(P2pIdentityStore::keychainItemKey(standard + QStringLiteral("/p2p/../p2p/identity/"), standard), base);
+        QCOMPARE(P2pIdentityStore::keychainItemKey(standard, standard + QLatin1Char('/')), base);
+
+        // 別の保存先は、保存先から決まる別の名前
+        const QString second = P2pIdentityStore::keychainItemKey(
+            QStringLiteral("/home/u/sbq-second/data/ShogiBoardQ-P2P/p2p/identity"), standard);
+        QCOMPARE(second, QStringLiteral("player-key-v1@1da0a7c4d5329ec4"));
+        const QString third = P2pIdentityStore::keychainItemKey(
+            QStringLiteral("/home/u/sbq-third/data/ShogiBoardQ-P2P/p2p/identity"), standard);
+        QVERIFY(third.startsWith(base + QLatin1Char('@')));
+        QVERIFY(third != second);
+        // 同じ保存先は、書き方が違っても同じ名前
+        QCOMPARE(P2pIdentityStore::keychainItemKey(
+                     QStringLiteral("/home/u/sbq-second/data/./ShogiBoardQ-P2P/p2p/identity/"), standard),
+                 second);
+
+        // 名前の前の部分だけが同じ別のフォルダは、標準の保存先の下ではない
+        QVERIFY(P2pIdentityStore::keychainItemKey(standard + QStringLiteral("-2/p2p/identity"), standard) != base);
+        // 標準の場所が分からないときは、標準の名前を使わない
+        QVERIFY(P2pIdentityStore::keychainItemKey(standard + QStringLiteral("/p2p/identity"), QString()) != base);
+    }
+
     void passphraseFileRoundTrip()
     {
         const SecureBytes seed = seedOf('\x07');

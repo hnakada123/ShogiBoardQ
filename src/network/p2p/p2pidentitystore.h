@@ -22,8 +22,8 @@ namespace QKeychain { class Job; }
  * 保管の方法は次の3つ（実装仕様 5.2節）。どれを使っているかと公開鍵は、`identity/info` に書く
  * （秘密は書かない）。鍵は「P2P対局」を使う間だけ読み込み、使い終えたら lock() で消す。
  *
- * - Keychain: OS の鍵の保管庫（QtKeychain。項目は実験版専用の名前）。使えなければ失敗を返し、
- *   暗号化しない保存へ黙って切り替えない（setInsecureFallback は使わない）。
+ * - Keychain: OS の鍵の保管庫（QtKeychain。項目は実験版専用の名前で、保存先ごとに別の項目 keychainItemKey）。
+ *   使えなければ失敗を返し、暗号化しない保存へ黙って切り替えない（setInsecureFallback は使わない）。
  * - Passphrase: パスフレーズから Argon2id で導いた鍵と XChaCha20-Poly1305 で暗号化したファイル。
  *   鍵の導出は GUI スレッドの外で行う。
  * - Plain: 利用者が明示的に選んだときだけの、暗号化しないファイル。
@@ -64,6 +64,11 @@ public:
 
     /// このビルドで OS の鍵の保管庫を使えるか（QtKeychain を組み込んだか）
     static bool keychainSupported();
+    /// 鍵の保管庫の項目のキー。保存先（directory）ごとに別の項目にする。保存先を分けて同じ PC で動かす2つ目の
+    /// アプリ（SHOGIBOARDQ_DATA_HOME）や試験が、普段の保存先の鍵を上書き・削除しないためである。
+    /// 標準のデータの場所（standardDataDirectory）の下なら "player-key-v1"、それ以外は、その後ろに "@" と、
+    /// 保存先の絶対パスの SHA-256 の先頭16桁（16進）を付ける
+    static QString keychainItemKey(const QString& directory, const QString& standardDataDirectory);
 
     /// 保管している方法（まだ作っていなければ None）
     Method method() const;
@@ -114,6 +119,8 @@ private:
     QString infoPath() const;
     QString keyFilePath() const;
 
+    /// この保存先の鍵の保管庫の項目のキー
+    QString keychainItemKey() const;
     void storeInKeychain(const std::shared_ptr<P2p::SecureBytes>& seed);
     void readFromKeychain();
     void deleteFromKeychain();

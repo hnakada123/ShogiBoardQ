@@ -3,10 +3,12 @@
 
 #include "p2pidentitystore.h"
 
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFutureWatcher>
 #include <QSaveFile>
+#include <QStandardPaths>
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <sodium.h>
@@ -26,7 +28,8 @@ constexpr int kSaltSize = 16;   // crypto_pwhash_SALTBYTES
 constexpr int kNonceSize = 24;  // crypto_aead_xchacha20poly1305_ietf_NPUBBYTES
 constexpr int kBoxSize = kSeedSize + 16;
 constexpr qint64 kMaxKeyFileBytes = 1024;
-/// 鍵の保管庫の項目のキー（サービス名はアプリ名。実験版専用）
+/// 鍵の保管庫の項目のキー（サービス名はアプリ名。実験版専用）。標準の保存先の項目の名前で、ほかの保存先は
+/// この後ろに保存先から決まる語を付ける（P2pIdentityStore::keychainItemKey）
 const char* const kKeychainKey = "player-key-v1";
 
 /// 暗号化の追加の認証データ CBOR(["SBQ-IDENTITY", 1, 1, opsLimit, memLimitBytes, salt])
@@ -88,6 +91,24 @@ bool P2pIdentityStore::keychainSupported()
 #else
     return false;
 #endif
+}
+
+QString P2pIdentityStore::keychainItemKey(const QString& directory, const QString& standardDataDirectory)
+{
+    const QString base = QString::fromLatin1(kKeychainKey);
+    const QString own = QDir::cleanPath(QDir(directory).absolutePath());
+    if (!standardDataDirectory.isEmpty()) {
+        const QString standard = QDir::cleanPath(QDir(standardDataDirectory).absolutePath());
+        // 名前が前の部分だけ同じ別のフォルダ（…/ShogiBoardQ-P2P-2 など）を、下のフォルダと取り違えない
+        if (own == standard || own.startsWith(standard + QLatin1Char('/'))) return base;
+    }
+    const QByteArray digest = QCryptographicHash::hash(own.toUtf8(), QCryptographicHash::Sha256);
+    return base + QLatin1Char('@') + QString::fromLatin1(digest.left(8).toHex());
+}
+
+QString P2pIdentityStore::keychainItemKey() const
+{
+    return keychainItemKey(m_directory, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
 }
 
 QString P2pIdentityStore::infoPath() const
@@ -409,7 +430,7 @@ void P2pIdentityStore::storeInKeychain(const std::shared_ptr<P2p::SecureBytes>& 
     auto* job = new QKeychain::WritePasswordJob(QString::fromLatin1(AppIdentity::kApplicationName), this);
     job->setAutoDelete(true);
     job->setInsecureFallback(false);
-    job->setKey(QString::fromLatin1(kKeychainKey));
+    job->setKey(keychainItemKey());
     QByteArray raw(reinterpret_cast<const char*>(seed->data()), kSeedSize);
     job->setBinaryData(raw);
     wipe(raw);
@@ -432,7 +453,7 @@ void P2pIdentityStore::readFromKeychain()
     auto* job = new QKeychain::ReadPasswordJob(QString::fromLatin1(AppIdentity::kApplicationName), this);
     job->setAutoDelete(true);
     job->setInsecureFallback(false);
-    job->setKey(QString::fromLatin1(kKeychainKey));
+    job->setKey(keychainItemKey());
     connect(job, &QKeychain::Job::finished, this, &P2pIdentityStore::onKeychainReadFinished);
     job->start();
 }
@@ -468,7 +489,7 @@ void P2pIdentityStore::deleteFromKeychain()
     auto* job = new QKeychain::DeletePasswordJob(QString::fromLatin1(AppIdentity::kApplicationName), this);
     job->setAutoDelete(true);
     job->setInsecureFallback(false);
-    job->setKey(QString::fromLatin1(kKeychainKey));
+    job->setKey(keychainItemKey());
     job->start();
 }
 
