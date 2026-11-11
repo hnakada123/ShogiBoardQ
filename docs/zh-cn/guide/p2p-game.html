@@ -48,6 +48,7 @@
             <li><a href="../index.html">首页</a></li>
             <li><a href="index.html">使用指南</a></li>
             <li><a href="#prepare">准备</a></li>
+            <li><a href="#tabs">标签页</a></li>
             <li><a href="#invite">邀请</a></li>
             <li><a href="#playing">对局中</a></li>
             <li><a href="#records">记录与验证</a></li>
@@ -117,7 +118,7 @@
                     <tbody>
                         <tr><td><strong>让子与对局者</strong></td><td>仅限平手，人与人之间的对局。对局中不能使用研究、诘棋搜索、棋谱分析和定式显示。</td></tr>
                         <tr><td><strong>用时规则</strong></td><td>用时（分钟）和读秒（秒）。用时由双方自报，并与对方测得的时间对照。</td></tr>
-                        <tr><td><strong>先后手</strong></td><td>双方的希望一致时按希望决定；选择“不指定”时由双方的随机数决定。</td></tr>
+                        <tr><td><strong>先后手</strong></td><td>按邀请方的希望决定；选择“不指定”时由双方的随机数决定。</td></tr>
                         <tr><td><strong>终局</strong></td><td>认输、将死、超时负、千日手（和棋）、连续王手千日手（王手方判负）、达到512手（和棋）、协议和棋、协议中断。</td></tr>
                         <tr><td><strong>没有的规则</strong></td><td>没有悔棋和入玉宣言（入玉时可以经双方同意判为和棋）。</td></tr>
                     </tbody>
@@ -161,7 +162,7 @@
                 </ul>
                 <p class="guide-step-text">密钥文件保存在 <code>~/.local/share/ShogiBoardQ-P2P/p2p/identity</code>。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-identity.png"><img src="../../images/zh-cn/p2p-game/p2p-identity.png" alt="显示玩家密钥的三种保存方式和无法防止的情况列表的“准备P2P对局”对话框" width="533" height="479" loading="lazy"></a>
+                    <a href="../../images/zh-cn/p2p-game/p2p-identity.png"><img src="../../images/zh-cn/p2p-game/p2p-identity.png" alt="显示玩家密钥的三种保存方式和无法防止的情况列表的“准备P2P对局”对话框" width="533" height="498" loading="lazy"></a>
                     <p class="screenshot-caption">首次连接时打开的“准备P2P对局”</p>
                 </div>
             </div>
@@ -180,7 +181,208 @@
 </section>
 
 <!-- Section 3 -->
-<section id="invite" class="section section--alt">
+<section id="tabs" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">窗口的标签页</h2>
+        <p class="section-desc">P2P对局窗口的6个标签页及各项目的说明</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">6个标签页</span>
+                </div>
+                <p class="guide-step-text">P2P对局窗口分为6个标签页。确定对手之前使用左边的两个，对局开始后使用“对局中”，结束后使用“对局记录”和“对手管理”。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">标签页</th><th scope="col">用途</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>连接与条件</strong></td><td>连接网络，并设定给对手看的显示名，以及邀请时的用时规则和先后手。</td></tr>
+                        <tr><td><strong>通过邀请连接</strong></td><td>生成邀请字符串交给对手，或用收到的邀请字符串连接对手。</td></tr>
+                        <tr><td><strong>对局中</strong></td><td>查看对局状况，认输，或提议和棋、中断。</td></tr>
+                        <tr><td><strong>对局记录</strong></td><td>查看已结束对局的记录（凭证），并进行验证、导出和删除。</td></tr>
+                        <tr><td><strong>对手管理</strong></td><td>为对局过的对手命名，用确认码确认是否为同一个人，以及屏蔽。</td></tr>
+                        <tr><td><strong>设置</strong></td><td>协作节点的地址、不让对手看到 IP 地址的设置，以及重新生成玩家密钥。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">窗口下方的“A-”“A+”用于改变文字大小（下次打开时保持相同大小）。点击“关闭”关闭窗口后，连接和对局仍会继续。要再次打开，请选择“对局”→“P2P对局（实验版）…”；要断开连接，请点击“连接与条件”标签页的“断开”。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">“连接与条件”标签页</span>
+                </div>
+                <p class="guide-step-text">在上方的“连接”中连接网络，在下方的“显示名与条件”中设定给对手看的名称，以及自己邀请时的对局条件。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-connection.png"><img src="../../images/zh-cn/p2p-game/p2p-connection.png" alt="已连接状态的“连接与条件”标签页。显示网络、状态、玩家ID、邀请的路径，以及显示名、用时规则、读秒和先后手的输入栏" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“连接与条件”标签页：连接后</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">项目</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>网络</strong></td><td>要加入的网络。“本地验证用（同一电脑・同一局域网）”可与同一电脑和同一局域网的对手连接，“限定测试用”可与互联网上的对手连接（限定测试用需要协作节点）。连接期间无法更改。</td></tr>
+                        <tr><td><strong>连接／断开</strong></td><td>连接所选的网络。第一次连接时会打开生成玩家密钥的画面。连接后按钮变为“断开”，点击后会使有效的邀请失效并断开连接。确认条件期间和对局中无法点击。</td></tr>
+                        <tr><td><strong>状态</strong></td><td>显示“未连接”“正在连接…”“已连接（已连接的节点：N）”之一。N 是当前已连接的对象（协作节点和对局对手）的数量。无法启动负责通信的进程时，显示“无法使用P2P对局”。</td></tr>
+                        <tr><td><strong>您的玩家ID</strong></td><td>玩家密钥的公钥（64 位十六进制数），是对手用来识别您的值。点击“复制”可复制。生成密钥之前显示“（尚未生成）”。</td></tr>
+                        <tr><td><strong>邀请的路径</strong></td><td>连接期间，显示被邀请的对手会通过哪条路径连接过来（直接，或经协作节点中继）。尚无外部可到达的连接地址时，会显示相应提示。不会显示 IP 地址。</td></tr>
+                        <tr><td><strong>显示名</strong></td><td>给对手看的名称（1～32 个字符）。会显示在条件确认画面、对局信息和对手的“对局记录”标签页中，但不会保留在凭证里。</td></tr>
+                        <tr><td><strong>时间</strong></td><td>自己邀请时的“用时规则”（0～1440 分钟）和“读秒”（0～600 秒）。两者不能同时为 0。</td></tr>
+                        <tr><td><strong>先后手</strong></td><td>自己邀请时对先后手的希望。从“不指定（由双方的随机数决定）”“希望先手”“希望后手”中选择。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">用时规则和先后手使用邀请方的条件。被邀请方在条件确认画面确认后再开始。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">“通过邀请连接”标签页</span>
+                </div>
+                <p class="guide-step-text">上方的“邀请对手”供邀请方使用，下方的“通过邀请连接”供被邀请方使用。两者都只能在连接期间使用。步骤请参阅<a href="#invite">通过邀请对局</a>。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-invite.png" alt="“通过邀请连接”标签页，上方生成了自己的邀请字符串，下方检查了收到的邀请字符串" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“通过邀请连接”标签页：生成邀请字符串（上）・用收到的邀请字符串连接（下）</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">项目</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>生成邀请字符串</strong></td><td>生成邀请字符串并显示在下方的输入框中。输入框下方显示期限和对手可用的连接地址数量。邀请字符串 10 分钟后失效，并且只能使用一次。同时有效的最多 4 个。</td></tr>
+                        <tr><td><strong>复制</strong></td><td>复制生成的邀请字符串。请用只有对方能收到的方式交给对方。</td></tr>
+                        <tr><td><strong>通过邀请连接（输入框）</strong></td><td>粘贴收到的邀请字符串。</td></tr>
+                        <tr><td><strong>检查邀请字符串</strong></td><td>读取粘贴的邀请字符串，并在下方显示邀请方的 PeerId（开头部分）、期限和地址数量。</td></tr>
+                        <tr><td><strong>允许连接上方的私有地址（同一局域网的对手）</strong></td><td>仅在“限定测试用”中，邀请字符串含有私有地址（同一局域网内的地址）时显示。允许连接这些地址时请勾选。</td></tr>
+                        <tr><td><strong>连接</strong></td><td>连接已检查的邀请字符串的对手。连接成功后，双方都会打开条件确认画面。仅连接并不会开始对局。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">“对局中”标签页</span>
+                </div>
+                <p class="guide-step-text">对局开始后会自动切换到此标签页。走棋在主窗口的棋盘上进行，此标签页用于查看状况、认输和提出提议。没有对局时显示“没有进行中的对局。”</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-game.png"><img src="../../images/zh-cn/p2p-game/p2p-game.png" alt="显示对手、先后手、路径、轮到谁走、断线时间剩余，以及认输、提议和棋、提议中断、退出对局按钮的“对局中”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“对局中”标签页</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">显示</th><th scope="col">含义</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>对手</strong></td><td>对手的显示名。</td></tr>
+                        <tr><td><strong>您执先手／您执后手</strong></td><td>本局中自己的先后手。</td></tr>
+                        <tr><td><strong>路径</strong></td><td>“直接”表示与对手直接连接，“中继”表示经过协作节点的中继。</td></tr>
+                        <tr><td><strong>轮到您走棋／轮到对手走棋</strong></td><td>轮到谁走棋。对手的应用确认您的着手期间显示“正在等待着手确认…”，线路中断时显示“正在重新连接（剩余 N 秒）”，终局后核对结果期间显示“正在确定结果…”。</td></tr>
+                        <tr><td><strong>断线时间剩余</strong></td><td>本局中线路还可以中断多久（从 600 秒开始减少）。变为 0 时对局中断。</td></tr>
+                        <tr><td><strong>结果</strong></td><td>结果确定后，会显示“先手胜（认输）”之类的内容。</td></tr>
+                    </tbody>
+                </table>
+                <ul class="guide-step-text">
+                    <li><strong>认输</strong>：只能在轮到自己走棋时点击。确认后判负。</li>
+                    <li><strong>提议和棋・提议中断</strong>：询问对手是否接受。只有对手接受时才成立。</li>
+                    <li><strong>退出对局（结果未确定）</strong>：单方面离开对局。结果不会确定。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">“对局记录”标签页</span>
+                </div>
+                <p class="guide-step-text">已结束的对局每局一行排列。选中一行后点击下方的按钮。类别的含义和验证的内容请参阅<a href="#records">对局记录与验证</a>。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-records.png"><img src="../../images/zh-cn/p2p-game/p2p-records.png" alt="显示结束时间、对手、您、结束方式、记录类别、结果各列，以及验证、导出、删除按钮的“对局记录”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“对局记录”标签页：双方已确定的记录</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">列・按钮</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>结束时间</strong></td><td>对局结束的日期和时间。</td></tr>
+                        <tr><td><strong>对手（显示名）</strong></td><td>对手使用的显示名。如果在“对手管理”中命名过，还会显示本地备注名。</td></tr>
+                        <tr><td><strong>您</strong></td><td>自己的先后手（先手・后手）。</td></tr>
+                        <tr><td><strong>结束方式</strong></td><td>在自己的应用中结束的方式（双方已确定、无对手确定、中断（结果未确定）、通信中断（结果未确定）等）。</td></tr>
+                        <tr><td><strong>记录类别</strong></td><td>验证凭证的结果（双方已确定、由棋谱决定的结果、结果未确定）。凭证损坏时显示“验证失败”或“无法读取”。</td></tr>
+                        <tr><td><strong>结果</strong></td><td>“先手胜（认输）”之类的胜负和结束方式。</td></tr>
+                        <tr><td><strong>验证</strong></td><td>验证所选的记录，显示玩家密钥的确定是否正确、棋谱是否符合规则等。</td></tr>
+                        <tr><td><strong>导出凭证…</strong></td><td>把凭证文件（.sbqmatch）保存到任意位置。凭证中包含双方的玩家ID。</td></tr>
+                        <tr><td><strong>删除记录</strong></td><td>删除所选对局的凭证和记录（无法恢复）。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">“对手管理”标签页</span>
+                </div>
+                <p class="guide-step-text">对局过的对手按玩家ID每人一行排列。选中一行后点击下方的按钮。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-peers.png"><img src="../../images/zh-cn/p2p-game/p2p-peers.png" alt="显示玩家ID、本地备注名、最近的显示名、已确认、屏蔽、对局数、未确定各列，以及命名、确认码、取消已确认、屏蔽、删除记录按钮的“对手管理”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“对手管理”标签页：已命名并用确认码设为已确认的对手</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">列・按钮</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>玩家ID</strong></td><td>对手的玩家ID。请用这个值判断是否为同一个人。</td></tr>
+                        <tr><td><strong>本地备注名</strong></td><td>用“命名…”设定的名称。不会显示给对手，也不写入棋谱。</td></tr>
+                        <tr><td><strong>最近的显示名</strong></td><td>对手在最近一次对局中使用的显示名。</td></tr>
+                        <tr><td><strong>已确认</strong></td><td>用确认码核对并点击“设为已确认”的对手会显示“已确认”。</td></tr>
+                        <tr><td><strong>屏蔽</strong></td><td>已屏蔽的对手会显示“已屏蔽”。</td></tr>
+                        <tr><td><strong>对局数・未确定</strong></td><td>与该对手的对局数量，以及其中结果未确定的对局数量。</td></tr>
+                        <tr><td><strong>命名…</strong></td><td>设定本地备注名。会显示在条件确认画面和“对局记录”标签页中。</td></tr>
+                        <tr><td><strong>确认码…</strong></td><td>显示由双方玩家ID生成的 30 位数字。请通过电话或当面等其他途径与对手核对。</td></tr>
+                        <tr><td><strong>设为已确认／取消已确认</strong></td><td>把确认码一致的对手设为已确认。再次点击可取消。</td></tr>
+                        <tr><td><strong>屏蔽／解除屏蔽</strong></td><td>即使该对手通过邀请连接也会拒绝。再次点击可解除。</td></tr>
+                        <tr><td><strong>删除记录</strong></td><td>删除该对手的名称、已确认、屏蔽和对局数的记录。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">“设置”标签页</span>
+                </div>
+                <p class="guide-step-text">输入框和复选框在更改时保存。“连接候选”和“不使用直接连接”从下次连接时开始生效（已连接时，请断开后重新连接）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-settings.png"><img src="../../images/zh-cn/p2p-game/p2p-settings.png" alt="显示连接候选、不使用直接连接、不显示显示名的设置，以及密钥保存方式、权限限制、使用期限和无法防止的情况的“设置”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“设置”标签页</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">项目</th><th scope="col">说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>连接候选</strong></td><td>每行填入一个协作节点地址（/ip4/…/p2p/… 形式），最多 16 个。只使用“本地验证用”时可以留空。</td></tr>
+                        <tr><td><strong>不使用直接连接</strong></td><td>仅通过“连接候选”中协作节点的中继，不让对手看到 IP 地址。协作节点的运营者仍可看到。</td></tr>
+                        <tr><td><strong>不显示未对局过的对手的显示名</strong></td><td>在条件确认画面和“对局记录”标签页中，把首次对局对手的显示名显示为“名称已隐藏”。</td></tr>
+                        <tr><td><strong>玩家密钥保存</strong></td><td>当前玩家密钥的保存方式（操作系统的密钥库、用密码短语加密的文件、不加密的文件）。连接期间还会显示对负责通信的进程施加的权限限制。</td></tr>
+                        <tr><td><strong>重新生成玩家密钥…</strong></td><td>生成新的玩家密钥。玩家ID会改变，对手会把您看作另一个人。旧密钥将被删除。请断开连接后再点击。</td></tr>
+                        <tr><td><strong>此版本的使用期限</strong></td><td>过了这个日期后，不再加入“限定测试用”网络。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">最下方列出P2P对局无法防止的情况（<a href="#limits">无法防止的情况与对方可以看到的信息</a>）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="invite" class="section">
     <div class="section-inner">
         <h2 class="section-title">通过邀请对局</h2>
         <p class="section-desc">与熟人对局时，只把邀请字符串交给对方</p>
@@ -203,10 +405,6 @@
                 </div>
                 <p class="guide-step-text">被邀请的一方把收到的邀请字符串粘贴到“通过邀请连接”栏中，点击“检查邀请字符串”。会显示邀请方的 PeerId、期限和地址数量，确认后点击“连接”。仅仅连接并不会开始对局，要在接下来打开的条件确认画面中确认对手后才开始。</p>
                 <p class="guide-step-text">同一局域网的对手的邀请字符串中可能包含私有地址。要连接这些地址时，勾选“允许连接上方的私有地址（同一局域网的对手）”。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-invite.png" alt="“通过邀请连接”标签页，上方生成了自己的邀请字符串，下方检查了收到的邀请字符串" width="820" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">“通过邀请连接”标签页：生成邀请字符串（上）・用收到的邀请字符串连接（下）</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -218,12 +416,21 @@
                 <p class="guide-step-text">邀请方的电脑在 TCP 和 UDP 的 48210 端口等待连接（在同一电脑上运行第二个应用时，第二个会使用空闲端口）。无法连接时，请确认邀请方电脑的防火墙允许局域网内对该端口的连接。使用 firewalld 时，可用 <code>sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code> 在重启前临时放行。交换邀请方后也可能连接成功。</p>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">在同一台电脑上试用</span>
+                </div>
+                <p class="guide-step-text">在同一台电脑上多次启动本应用，并分别打开“P2P对局”，第二个会自动以“第2位玩家”的身份打开，第三个为“第3位玩家”（最多同时8个）。窗口标题和顶部的说明会显示是第几位玩家。只启动一个应用时，始终是第1位玩家。</p>
+                <p class="guide-step-text">玩家密钥（玩家ID）、显示名、对局记录和对手列表会按玩家分别保存。在两个应用中都把网络设为“本地验证用（同一电脑・同一局域网）”并连接，然后把其中一个生成的邀请字符串粘贴到另一个，无需协作节点即可对局。</p>
+            </div>
+
         </div>
     </div>
 </section>
 
-<!-- Section 4 -->
-<section id="confirm" class="section">
+<!-- Section 5 -->
+<section id="confirm" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">条件确认画面</h2>
         <p class="section-desc">开始对局前确认对手和条件</p>
@@ -266,8 +473,8 @@
     </div>
 </section>
 
-<!-- Section 5 -->
-<section id="playing" class="section section--alt">
+<!-- Section 6 -->
+<section id="playing" class="section">
     <div class="section-inner">
         <h2 class="section-title">对局中</h2>
         <p class="section-desc">在主窗口的棋盘上走棋，在“对局中”标签页中认输或提出提议</p>
@@ -298,10 +505,6 @@
                     <li><strong>提议和棋・提议中断</strong>：询问对手是否接受。只有对手接受时，才成为协议和棋或协议中断。被拒绝时对局继续。</li>
                     <li><strong>退出对局（结果未确定）</strong>：单方面离开对局。结果不会确定，对手会收到中断通知。</li>
                 </ul>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-game.png"><img src="../../images/zh-cn/p2p-game/p2p-game.png" alt="显示对手、先后手、路径、轮到谁走、断线时间剩余，以及认输、提议和棋、提议中断、退出对局按钮的“对局中”标签页" width="820" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">“对局中”标签页</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -326,8 +529,8 @@
     </div>
 </section>
 
-<!-- Section 6 -->
-<section id="records" class="section">
+<!-- Section 7 -->
+<section id="records" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">对局记录与验证</h2>
         <p class="section-desc">已结束对局的记录（凭证）保存在双方的电脑中，任何人都可以验证</p>
@@ -351,10 +554,6 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">凭证保存在 <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code>。对局中应用退出时，到那时为止的记录会在下次打开时作为“结果未确定”的记录保留。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-records.png"><img src="../../images/zh-cn/p2p-game/p2p-records.png" alt="显示结束时间、对手、您、结束方式、记录类别、结果各列，以及验证、导出、删除按钮的“对局记录”标签页" width="820" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">“对局记录”标签页：双方已确定的记录</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -416,8 +615,8 @@
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="peers" class="section section--alt">
+<!-- Section 8 -->
+<section id="peers" class="section">
     <div class="section-inner">
         <h2 class="section-title">对手管理与设置</h2>
         <p class="section-desc">为对局过的对手命名，并用确认码确认是否为同一个人</p>
@@ -437,10 +636,6 @@
                     <li><strong>删除记录</strong>：删除该对手的名称、已确认、屏蔽和对局数的记录。</li>
                 </ul>
                 <p class="guide-step-text">任何人都可以免费重新生成玩家密钥，因此屏蔽和过去的成绩可以通过重新生成来规避。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-peers.png"><img src="../../images/zh-cn/p2p-game/p2p-peers.png" alt="显示玩家ID、本地备注名、最近的显示名、已确认、屏蔽、对局数、未确定各列，以及命名、确认码、取消已确认、屏蔽、删除记录按钮的“对手管理”标签页" width="820" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">“对手管理”标签页：已命名并用确认码设为已确认的对手</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -455,18 +650,14 @@
                     <li><strong>重新生成玩家密钥…</strong>：玩家ID会改变，对手会把您看作另一个人。旧密钥将被删除。</li>
                 </ul>
                 <p class="guide-step-text">下方显示玩家密钥的保存方式、对通信进程施加的权限限制（Landlock、seccomp 等）以及此版本的使用期限。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-settings.png"><img src="../../images/zh-cn/p2p-game/p2p-settings.png" alt="显示连接候选、不使用直接连接、不显示显示名的设置，以及密钥保存方式、权限限制、使用期限和无法防止的情况的“设置”标签页" width="820" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">“设置”标签页</p>
-                </div>
             </div>
 
         </div>
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="limits" class="section">
+<!-- Section 9 -->
+<section id="limits" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">无法防止的情况与对方可以看到的信息</h2>
         <p class="section-desc">使用实验版P2P对局前请先了解</p>

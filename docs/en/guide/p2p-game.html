@@ -48,6 +48,7 @@
             <li><a href="../index.html">Home</a></li>
             <li><a href="index.html">User Guide</a></li>
             <li><a href="#prepare">Setup</a></li>
+            <li><a href="#tabs">Tabs</a></li>
             <li><a href="#invite">Invitations</a></li>
             <li><a href="#playing">Playing</a></li>
             <li><a href="#records">Records</a></li>
@@ -117,7 +118,7 @@
                     <tbody>
                         <tr><td><strong>Handicap and players</strong></td><td>Even games only, between humans. Consideration, mate search, game analysis, and the opening book display are unavailable during a game.</td></tr>
                         <tr><td><strong>Time control</strong></td><td>Main time (minutes) and byoyomi (seconds). Each player reports their own time, which is checked against the time the opponent measured.</td></tr>
-                        <tr><td><strong>Sides</strong></td><td>Assigned by the players' preferences when they match; with No preference, decided by random numbers from both players.</td></tr>
+                        <tr><td><strong>Sides</strong></td><td>Assigned as the inviter prefers; with No preference, decided by random numbers from both players.</td></tr>
                         <tr><td><strong>Game end</strong></td><td>Resignation, checkmate, time loss, repetition (draw), perpetual check (the checking side loses), 512 moves reached (draw), draw by agreement, and abort by agreement.</td></tr>
                         <tr><td><strong>Not available</strong></td><td>Takebacks and entering-king declarations (an entering-king game can end in a draw by agreement).</td></tr>
                     </tbody>
@@ -161,7 +162,7 @@
                 </ul>
                 <p class="guide-step-text">The key files are kept in <code>~/.local/share/ShogiBoardQ-P2P/p2p/identity</code>.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-identity.png"><img src="../../images/en/p2p-game/p2p-identity.png" alt="Prepare P2P Games dialog with three ways to store the player key and the list of what cannot be prevented" width="533" height="555" loading="lazy"></a>
+                    <a href="../../images/en/p2p-game/p2p-identity.png"><img src="../../images/en/p2p-game/p2p-identity.png" alt="Prepare P2P Games dialog with three ways to store the player key and the list of what cannot be prevented" width="533" height="574" loading="lazy"></a>
                     <p class="screenshot-caption">Prepare P2P Games, shown the first time you connect</p>
                 </div>
             </div>
@@ -180,7 +181,208 @@
 </section>
 
 <!-- Section 3 -->
-<section id="invite" class="section section--alt">
+<section id="tabs" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">The Tabs of the Window</h2>
+        <p class="section-desc">The six tabs of the P2P window and what each item means</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">The Six Tabs</span>
+                </div>
+                <p class="guide-step-text">The P2P window has six tabs. Use the two on the left until you have an opponent, the Game tab once the game starts, and Game Records and Opponents after it ends.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Tab</th><th scope="col">When you use it</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Connection and Conditions</strong></td><td>Connect to a network, and set the display name shown to opponents and the time control and side used when you invite.</td></tr>
+                        <tr><td><strong>Connect by Invitation</strong></td><td>Create an invitation to send to your opponent, or connect with an invitation you received.</td></tr>
+                        <tr><td><strong>Game</strong></td><td>See the state of the game, resign, or offer a draw or an abort.</td></tr>
+                        <tr><td><strong>Game Records</strong></td><td>See the records (evidence) of finished games, and verify, export, or delete them.</td></tr>
+                        <tr><td><strong>Opponents</strong></td><td>Name the opponents you have played, check them with a verification code, and block them.</td></tr>
+                        <tr><td><strong>Settings</strong></td><td>Addresses of cooperating nodes, the setting that hides your IP address from opponents, and recreating the player key.</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">A- and A+ at the bottom change the text size (it is remembered the next time you open the window). Clicking Close closes the window, but the connection and the game continue. To open it again, choose Game → P2P Game (Experimental)…; to disconnect, click Disconnect on the Connection and Conditions tab.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">The Connection and Conditions Tab</span>
+                </div>
+                <p class="guide-step-text">Connect to a network under Connect at the top, and under Display name and conditions set the name shown to opponents and the conditions of the games you invite people to.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-connection.png"><img src="../../images/en/p2p-game/p2p-connection.png" alt="The Connection and Conditions tab while connected, with the network, status, player ID, and invitation route, and the display name, time control, byoyomi, and side fields" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">The Connection and Conditions tab: after connecting</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Item</th><th scope="col">Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Network</strong></td><td>The network to join. Local test (same PC / same LAN) connects to opponents on the same PC and the same LAN; Limited test connects to opponents on the internet (it needs a cooperating node). It cannot be changed while connected.</td></tr>
+                        <tr><td><strong>Connect / Disconnect</strong></td><td>Connects to the selected network. The first time, the screen for creating a player key opens. Once connected, the button becomes Disconnect, which cancels your valid invitations and disconnects. It cannot be clicked while conditions are being confirmed or during a game.</td></tr>
+                        <tr><td><strong>Status</strong></td><td>Shows Disconnected, Connecting…, or Connected (peers: N). N is the number of peers you are connected to now (cooperating nodes and your opponent). If the communication process could not be started, it shows P2P games are not available.</td></tr>
+                        <tr><td><strong>Your player ID</strong></td><td>The public key of your player key (64 hexadecimal digits); it is how opponents tell you apart. Click Copy to copy it. Before a key is created it shows (not created yet).</td></tr>
+                        <tr><td><strong>Invitation route</strong></td><td>While connected, shows how an invited opponent will reach you (directly, or through the relay of a cooperating node). If nothing can reach you from outside yet, it says so. IP addresses are not shown.</td></tr>
+                        <tr><td><strong>Display name</strong></td><td>The name shown to opponents (1 to 32 characters). It appears on the confirmation screen, in the game information, and on the opponent's Game Records tab, but it is not kept in the evidence.</td></tr>
+                        <tr><td><strong>Time</strong></td><td>The Time control (0 to 1440 minutes) and Byoyomi (0 to 600 seconds) of the games you invite people to. They cannot both be 0.</td></tr>
+                        <tr><td><strong>Side</strong></td><td>The side you prefer in the games you invite people to: No preference (decided by random numbers from both), Prefer Black, or Prefer White.</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">The time control and the side come from the inviter's conditions. The invited player checks them on the confirmation screen before starting.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">The Connect by Invitation Tab</span>
+                </div>
+                <p class="guide-step-text">Invite an opponent at the top is for the inviter, and Connect by invitation at the bottom is for the invited player. Both work only while connected. For the steps, see <a href="#invite">Playing by Invitation</a>.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Connect by Invitation tab with your own invitation created at the top and a received invitation checked at the bottom" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connect by Invitation tab: create an invitation (top) and connect with one you received (bottom)</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Item</th><th scope="col">Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Create Invitation</strong></td><td>Creates an invitation and shows it in the box below. Under the box are the expiry time and the number of addresses the opponent can use. An invitation expires in 10 minutes and can be used once. Up to four can be valid at the same time.</td></tr>
+                        <tr><td><strong>Copy</strong></td><td>Copies the invitation. Send it in a way that reaches only your opponent.</td></tr>
+                        <tr><td><strong>Connect by invitation (box)</strong></td><td>Paste the invitation you received here.</td></tr>
+                        <tr><td><strong>Check Invitation</strong></td><td>Reads the pasted invitation and shows the inviter's PeerId (the beginning of it), the expiry time, and the number of addresses below.</td></tr>
+                        <tr><td><strong>Allow connecting to the private addresses above (opponent on the same LAN)</strong></td><td>Appears only on Limited test when the invitation contains private addresses (addresses inside the same LAN). Check it if you allow connecting to them.</td></tr>
+                        <tr><td><strong>Connect</strong></td><td>Connects to the inviter of the checked invitation. When the connection is made, the confirmation screen opens for both players. Connecting alone does not start a game.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">The Game Tab</span>
+                </div>
+                <p class="guide-step-text">The window switches to this tab when a game starts. You move on the board in the main window; this tab shows the state of the game and lets you resign or make an offer. When no game is being played it shows No game in progress.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-game.png"><img src="../../images/en/p2p-game/p2p-game.png" alt="Game tab showing the opponent, side, route, turn, and disconnection time left, with Resign, Offer Draw, Offer Abort, and Leave Game buttons" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Game tab</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Shown</th><th scope="col">Meaning</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Opponent</strong></td><td>The opponent's display name.</td></tr>
+                        <tr><td><strong>You play Black / You play White</strong></td><td>Your side in this game.</td></tr>
+                        <tr><td><strong>Route</strong></td><td>direct means you are connected directly to the opponent; relay means the connection goes through the relay of a cooperating node.</td></tr>
+                        <tr><td><strong>Your turn / Opponent's turn</strong></td><td>Whose turn it is. It shows Waiting for move confirmation… while the opponent's app checks your move, Reconnecting (N s left) when the connection is lost, and Confirming the result… while the result is being compared after the game ends.</td></tr>
+                        <tr><td><strong>Disconnection time left</strong></td><td>How much longer the connection may be lost in this game (it counts down from 600 seconds). At 0 the game is interrupted.</td></tr>
+                        <tr><td><strong>Result</strong></td><td>Once the result is confirmed, it is shown like Black wins (Resign).</td></tr>
+                    </tbody>
+                </table>
+                <ul class="guide-step-text">
+                    <li><strong>Resign</strong>: Available only on your turn. After a confirmation, you lose the game.</li>
+                    <li><strong>Offer Draw / Offer Abort</strong>: Asks the opponent whether they accept. It takes effect only if they accept.</li>
+                    <li><strong>Leave Game (result unconfirmed)</strong>: Leaves the game unilaterally. The result is not confirmed.</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">The Game Records Tab</span>
+                </div>
+                <p class="guide-step-text">Finished games are listed one per row. Select a row and click a button below. For the meaning of the statuses and what verification checks, see <a href="#records">Game Records and Verification</a>.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-records.png"><img src="../../images/en/p2p-game/p2p-records.png" alt="Game Records tab with Ended, Opponent, You, How it ended, Record status, and Result columns and Verify, Export Evidence, and Delete Record buttons" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Game Records tab: a record confirmed by both players</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Column or button</th><th scope="col">Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Ended</strong></td><td>When the game ended.</td></tr>
+                        <tr><td><strong>Opponent (display name)</strong></td><td>The display name the opponent used. If you named them on the Opponents tab, the local name is shown too.</td></tr>
+                        <tr><td><strong>You</strong></td><td>Your side (Black or White).</td></tr>
+                        <tr><td><strong>How it ended</strong></td><td>How the game ended in your app (Confirmed by both, Without opponent's confirmation, Interrupted (unconfirmed), Communication lost (unconfirmed), and so on).</td></tr>
+                        <tr><td><strong>Record status</strong></td><td>The result of verifying the evidence (Confirmed by both, Determined by the moves, or Unconfirmed). If the evidence is damaged it shows Verification failed or Unreadable.</td></tr>
+                        <tr><td><strong>Result</strong></td><td>The winner and how the game ended, like Black wins (Resign).</td></tr>
+                        <tr><td><strong>Verify</strong></td><td>Verifies the selected record and shows whether the confirmations by the player keys are correct, whether the moves follow the rules, and so on.</td></tr>
+                        <tr><td><strong>Export Evidence…</strong></td><td>Saves the evidence file (.sbqmatch) wherever you like. The evidence contains both players' IDs.</td></tr>
+                        <tr><td><strong>Delete Record</strong></td><td>Deletes the evidence and the record of the selected game (this cannot be undone).</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">The Opponents Tab</span>
+                </div>
+                <p class="guide-step-text">The opponents you have played are listed one per row by player ID. Select a row and click a button below.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-peers.png"><img src="../../images/en/p2p-game/p2p-peers.png" alt="Opponents tab with Player ID, Local name, Last display name, Verified, Block, Games, and Unconfirmed columns and the Name, Verification Code, Unmark Verified, Block, and Delete Record buttons" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Opponents tab: an opponent with a local name, verified with the verification code</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Column or button</th><th scope="col">Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Player ID</strong></td><td>The opponent's player ID. Use this value to tell whether it is the same person.</td></tr>
+                        <tr><td><strong>Local name</strong></td><td>The name you gave with Name…. It is not shown to the opponent or written into game records.</td></tr>
+                        <tr><td><strong>Last display name</strong></td><td>The display name the opponent used in the most recent game.</td></tr>
+                        <tr><td><strong>Verified</strong></td><td>Shows Verified for opponents you checked with a verification code and marked with Mark Verified.</td></tr>
+                        <tr><td><strong>Block</strong></td><td>Shows Blocked for opponents you have blocked.</td></tr>
+                        <tr><td><strong>Games / Unconfirmed</strong></td><td>The number of games with that opponent, and how many of them ended without a confirmed result.</td></tr>
+                        <tr><td><strong>Name…</strong></td><td>Gives the opponent a local name. It appears on the confirmation screen and on the Game Records tab.</td></tr>
+                        <tr><td><strong>Verification Code…</strong></td><td>Shows a 30-digit number made from both player IDs. Compare it with your opponent through another channel, such as a phone call or in person.</td></tr>
+                        <tr><td><strong>Mark Verified / Unmark Verified</strong></td><td>Marks an opponent whose verification code matched as verified. Click again to remove the mark.</td></tr>
+                        <tr><td><strong>Block / Unblock</strong></td><td>Refuses that opponent even if they connect with an invitation. Click again to unblock.</td></tr>
+                        <tr><td><strong>Delete Record</strong></td><td>Removes the opponent's name, verified mark, block, and game count.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">The Settings Tab</span>
+                </div>
+                <p class="guide-step-text">The box and the checkboxes are saved when you change them. Bootstrap nodes and Do not use direct connections take effect the next time you connect (if you are connected, disconnect and connect again).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-settings.png"><img src="../../images/en/p2p-game/p2p-settings.png" alt="Settings tab with Bootstrap nodes and the relay-only and hide-names options, followed by key storage, restrictions, expiry, and what cannot be prevented" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Settings tab</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Item</th><th scope="col">Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Bootstrap nodes</strong></td><td>Addresses of cooperating nodes (/ip4/…/p2p/…), one per line, up to 16. If you only use Local test, you can leave it empty.</td></tr>
+                        <tr><td><strong>Do not use direct connections</strong></td><td>Uses only the relay of the cooperating nodes in Bootstrap nodes, so opponents cannot see your IP address. The node operators can still see it.</td></tr>
+                        <tr><td><strong>Hide display names of opponents you have not played</strong></td><td>Shows Name hidden instead of the display names of new opponents on the confirmation screen and on the Game Records tab.</td></tr>
+                        <tr><td><strong>Player key storage</strong></td><td>How the current player key is stored (OS keychain, a passphrase-encrypted file, or an unencrypted file). While connected, the restrictions placed on the communication process are shown too.</td></tr>
+                        <tr><td><strong>Recreate Player Key…</strong></td><td>Creates a new player key. Your player ID changes, so opponents see you as someone else. The old key is deleted. Disconnect before clicking it.</td></tr>
+                        <tr><td><strong>This build expires</strong></td><td>After this date, the build does not join the Limited test network.</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">At the bottom is the list of what P2P games cannot prevent (<a href="#limits">What Cannot Be Prevented and What Others See</a>).</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="invite" class="section">
     <div class="section-inner">
         <h2 class="section-title">Playing by Invitation</h2>
         <p class="section-desc">To play someone you know, send an invitation only to that person</p>
@@ -203,10 +405,6 @@
                 </div>
                 <p class="guide-step-text">Paste the invitation into the Connect by invitation box and click Check Invitation. The inviter's PeerId, the expiry, and the number of addresses appear. Check them and click Connect. Connecting does not start the game yet; you start after checking your opponent on the confirmation screen that opens next.</p>
                 <p class="guide-step-text">An invitation from someone on the same LAN may contain private addresses. To connect to them, check Allow connecting to the private addresses above (opponent on the same LAN).</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Connect by Invitation tab with your own invitation created at the top and a received invitation checked at the bottom" width="898" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">Connect by Invitation tab: create an invitation (top) and connect with one you received (bottom)</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -218,12 +416,21 @@
                 <p class="guide-step-text">The inviter's PC waits for connections on TCP and UDP port 48210 (a second app on the same PC uses a free port instead). If the connection fails, check that the firewall on the inviter's PC allows connections to this port from the LAN. With firewalld, <code>sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code> allows it until the next reboot. Swapping who creates the invitation may also work.</p>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Try It on One PC</span>
+                </div>
+                <p class="guide-step-text">If you start this app several times on the same PC and open P2P Game in each, the second one opens automatically as Player 2, the third as Player 3, and so on (up to eight at a time). The window title and the note at the top show which player it is. When only one app is running, it is always Player 1.</p>
+                <p class="guide-step-text">The player key (player ID), display name, game records and opponent list are saved separately for each player. Set the network to Local test (same PC / same LAN) in both apps and connect, then paste the invitation created in one app into the other to play without a cooperating node.</p>
+            </div>
+
         </div>
     </div>
 </section>
 
-<!-- Section 4 -->
-<section id="confirm" class="section">
+<!-- Section 5 -->
+<section id="confirm" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">The Confirmation Screen</h2>
         <p class="section-desc">Check your opponent and the conditions before the game starts</p>
@@ -266,8 +473,8 @@
     </div>
 </section>
 
-<!-- Section 5 -->
-<section id="playing" class="section section--alt">
+<!-- Section 6 -->
+<section id="playing" class="section">
     <div class="section-inner">
         <h2 class="section-title">During the Game</h2>
         <p class="section-desc">Move on the main window's board, and resign or make offers on the Game tab</p>
@@ -298,10 +505,6 @@
                     <li><strong>Offer Draw / Offer Abort</strong>: Asks your opponent whether to accept. Only if they accept does the game end in a draw or abort by agreement. If they decline, the game continues.</li>
                     <li><strong>Leave Game (result unconfirmed)</strong>: Leaves the game unilaterally. The result is not confirmed, and your opponent is told the game was interrupted.</li>
                 </ul>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-game.png"><img src="../../images/en/p2p-game/p2p-game.png" alt="Game tab showing the opponent, side, route, turn, and disconnection time left, with Resign, Offer Draw, Offer Abort, and Leave Game buttons" width="898" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">Game tab</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -326,8 +529,8 @@
     </div>
 </section>
 
-<!-- Section 6 -->
-<section id="records" class="section">
+<!-- Section 7 -->
+<section id="records" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">Game Records and Verification</h2>
         <p class="section-desc">The record (evidence) of each finished game stays on both PCs, and anyone can verify it</p>
@@ -351,10 +554,6 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">Evidence is saved in <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code>. If the app exits during a game, the record up to that point appears as an unconfirmed record the next time you open the window.</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-records.png"><img src="../../images/en/p2p-game/p2p-records.png" alt="Game Records tab with Ended, Opponent, You, How it ended, Record status, and Result columns and Verify, Export Evidence, and Delete Record buttons" width="898" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">Game Records tab: a record confirmed by both players</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -416,8 +615,8 @@
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="peers" class="section section--alt">
+<!-- Section 8 -->
+<section id="peers" class="section">
     <div class="section-inner">
         <h2 class="section-title">Opponents and Settings</h2>
         <p class="section-desc">Name the opponents you have played and check with a verification code that they are the same person</p>
@@ -437,10 +636,6 @@
                     <li><strong>Delete Record</strong>: Removes the opponent's name, verified mark, block, and game count.</li>
                 </ul>
                 <p class="guide-step-text">Anyone can create a new player key for free, so a block or past results can be avoided by recreating the key.</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-peers.png"><img src="../../images/en/p2p-game/p2p-peers.png" alt="Opponents tab with Player ID, Local name, Last display name, Verified, Block, Games, and Unconfirmed columns and the Name, Verification Code, Unmark Verified, Block, and Delete Record buttons" width="898" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">Opponents tab: an opponent with a local name, verified with the verification code</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -455,18 +650,14 @@
                     <li><strong>Recreate Player Key…</strong>: Changes your player ID, so opponents see you as someone else. The old key is deleted.</li>
                 </ul>
                 <p class="guide-step-text">Below them are how the player key is stored, the restrictions placed on the communication process (Landlock, seccomp, and so on), and the expiry of this build.</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-settings.png"><img src="../../images/en/p2p-game/p2p-settings.png" alt="Settings tab with Bootstrap nodes and the relay-only and hide-names options, followed by key storage, restrictions, expiry, and what cannot be prevented" width="898" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">Settings tab</p>
-                </div>
             </div>
 
         </div>
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="limits" class="section">
+<!-- Section 9 -->
+<section id="limits" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">What Cannot Be Prevented and What Others See</h2>
         <p class="section-desc">Please read this before using the experimental P2P games</p>
