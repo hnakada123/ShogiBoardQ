@@ -9908,8 +9908,9 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>MainWindow</name>
     <message>
+        <location filename="../../src/app/mainwindow.ui" line="14"/>
         <source>将棋盤Q</source>
-        <translation type="vanished">将棋盤Q</translation>
+        <translation>将棋盤Q</translation>
     </message>
     <message>
         <source>ファイル(F)</source>
@@ -10450,9 +10451,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>新規</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="14"/>
         <source>将棋盤Q P2P実験版</source>
-        <translation>将棋盤Q P2P実験版</translation>
+        <translation type="vanished">将棋盤Q P2P実験版</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="28"/>
@@ -11371,9 +11371,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">ほかの ShogiBoardQ-P2P が P2P対局を使っています。そちらを閉じてから開いてください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="72"/>
         <source>このPCで同時に P2P対局を使える ShogiBoardQ-P2P は %1 個までです。ほかの ShogiBoardQ-P2P を閉じてから開いてください。</source>
-        <translation>このPCで同時に P2P対局を使える ShogiBoardQ-P2P は %1 個までです。ほかの ShogiBoardQ-P2P を閉じてから開いてください。</translation>
+        <translation type="vanished">このPCで同時に P2P対局を使える ShogiBoardQ-P2P は %1 個までです。ほかの ShogiBoardQ-P2P を閉じてから開いてください。</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="81"/>
@@ -11392,9 +11391,18 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>プレイヤー鍵を読み込めませんでした。「設定」でプレイヤー鍵を作り直せます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="153"/>
         <source>ほかの ShogiBoardQ-P2P が P2P対局を使っています。</source>
-        <translation>ほかの ShogiBoardQ-P2P が P2P対局を使っています。</translation>
+        <translation type="vanished">ほかの ShogiBoardQ-P2P が P2P対局を使っています。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="72"/>
+        <source>このPCで同時に P2P対局を使える ShogiBoardQ は %1 個までです。ほかの ShogiBoardQ を閉じてから開いてください。</source>
+        <translation>このPCで同時に P2P対局を使える ShogiBoardQ は %1 個までです。ほかの ShogiBoardQ を閉じてから開いてください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="153"/>
+        <source>ほかの ShogiBoardQ が P2P対局を使っています。</source>
+        <translation>ほかの ShogiBoardQ が P2P対局を使っています。</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="156"/>
@@ -11657,6 +11665,11 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>確定した結果が、棋譜から決まる結果と食い違っています。</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="174"/>
+        <source>ShogiBoardQ の証跡 (*.sbqmatch)</source>
+        <translation>ShogiBoardQ の証跡 (*.sbqmatch)</translation>
+    </message>
+    <message>
         <source>署名が一致: %1</source>
         <translation type="vanished">署名が一致: %1</translation>
     </message>
@@ -11717,9 +11730,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>書き出す</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="174"/>
         <source>ShogiBoardQ-P2P の証跡 (*.sbqmatch)</source>
-        <translation>ShogiBoardQ-P2P の証跡 (*.sbqmatch)</translation>
+        <translation type="vanished">ShogiBoardQ-P2P の証跡 (*.sbqmatch)</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2phistorypanel.cpp" line="178"/>
@@ -12318,6 +12330,11 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">募集を出す</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="68"/>
+        <source>このPCでは、ほかの ShogiBoardQ が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。同じPCのアプリどうしで、招待で対局できます。</source>
+        <translation>このPCでは、ほかの ShogiBoardQ が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。同じPCのアプリどうしで、招待で対局できます。</translation>
+    </message>
+    <message>
         <location filename="../../src/dialogs/p2pwindow.cpp" line="281"/>
         <source>直接接続を使わない</source>
         <translation>直接接続を使わない</translation>
@@ -12574,9 +12591,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>P2P対局（実験版）— %1人目</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="68"/>
         <source>このPCでは、ほかの ShogiBoardQ-P2P が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。同じPCのアプリどうしで、招待で対局できます。</source>
-        <translation>このPCでは、ほかの ShogiBoardQ-P2P が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。同じPCのアプリどうしで、招待で対局できます。</translation>
+        <translation type="vanished">このPCでは、ほかの ShogiBoardQ-P2P が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。同じPCのアプリどうしで、招待で対局できます。</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2pwindow.cpp" line="157"/>

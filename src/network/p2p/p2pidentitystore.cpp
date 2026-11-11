@@ -28,7 +28,7 @@ constexpr int kSaltSize = 16;   // crypto_pwhash_SALTBYTES
 constexpr int kNonceSize = 24;  // crypto_aead_xchacha20poly1305_ietf_NPUBBYTES
 constexpr int kBoxSize = kSeedSize + 16;
 constexpr qint64 kMaxKeyFileBytes = 1024;
-/// 鍵の保管庫の項目のキー（サービス名はアプリ名。実験版専用）。標準の保存先の項目の名前で、ほかの保存先は
+/// 鍵の保管庫の項目のキー（サービス名はアプリ名 AppIdentity::kApplicationName）。標準の保存先の項目の名前で、ほかの保存先は
 /// この後ろに保存先から決まる語を付ける（P2pIdentityStore::keychainItemKey）
 const char* const kKeychainKey = "player-key-v1";
 

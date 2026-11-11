@@ -59,7 +59,7 @@ private slots:
     /// 1人目の鍵を上書き・削除しない
     void keychainItemIsSeparatePerStorageFolder()
     {
-        const QString standard = QStringLiteral("/home/u/.local/share/ShogiBoardQ-P2P");
+        const QString standard = QStringLiteral("/home/u/.local/share/ShogiBoardQ");
         const QString base = QStringLiteral("player-key-v1");
         const auto identityOf = [](const QString& dataDirectory, int player) {
             return P2pRecordStore(P2pPlayerSlot::storageDirectory(dataDirectory, player)).identityDirectory();
@@ -74,16 +74,16 @@ private slots:
         // 同じ PC の2人目・3人目は、1人目とも互いとも別の項目
         const QString player2 = P2pIdentityStore::keychainItemKey(identityOf(standard, 2), standard);
         const QString player3 = P2pIdentityStore::keychainItemKey(identityOf(standard, 3), standard);
-        QCOMPARE(player2, QStringLiteral("player-key-v1@98a20280dd01373c"));
+        QCOMPARE(player2, QStringLiteral("player-key-v1@346eb5b0826c6407"));
         QVERIFY(player3.startsWith(base + QLatin1Char('@')));
         QVERIFY(player3 != player2);
 
         // 環境変数で分けた保存先は、保存先から決まる別の名前。同じ保存先は、書き方が違っても同じ名前
-        const QString other = QStringLiteral("/home/u/sbq-second/data/ShogiBoardQ-P2P");
+        const QString other = QStringLiteral("/home/u/sbq-second/data/ShogiBoardQ");
         const QString second = P2pIdentityStore::keychainItemKey(identityOf(other, 1), standard);
-        QCOMPARE(second, QStringLiteral("player-key-v1@1da0a7c4d5329ec4"));
+        QCOMPARE(second, QStringLiteral("player-key-v1@fd23df281a69749c"));
         QCOMPARE(P2pIdentityStore::keychainItemKey(
-                     QStringLiteral("/home/u/sbq-second/data/./ShogiBoardQ-P2P/p2p/identity/"), standard),
+                     QStringLiteral("/home/u/sbq-second/data/./ShogiBoardQ/p2p/identity/"), standard),
                  second);
         QVERIFY(P2pIdentityStore::keychainItemKey(identityOf(other, 2), standard) != second);
 

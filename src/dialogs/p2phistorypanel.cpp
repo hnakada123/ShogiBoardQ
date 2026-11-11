@@ -171,7 +171,7 @@ void P2pHistoryPanel::onExport()
     }
     const QString dir = NetworkSettings::p2pExportDirectory().isEmpty() ? QDir::homePath() : NetworkSettings::p2pExportDirectory();
     const QString target = QFileDialog::getSaveFileName(this, tr("証跡を書き出す"), QDir(dir).filePath(QFileInfo(source).fileName()),
-                                                        tr("ShogiBoardQ-P2P の証跡 (*.sbqmatch)"));
+                                                        tr("ShogiBoardQ の証跡 (*.sbqmatch)"));
     if (target.isEmpty()) return;
     NetworkSettings::p2pExportDirectory.set(QFileInfo(target).absolutePath());
     if (QFile::exists(target)) QFile::remove(target);

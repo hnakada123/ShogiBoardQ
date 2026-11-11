@@ -56,10 +56,10 @@ def csa_server(tmp_path):
 @pytest.fixture
 def csa_env(server_env, app_path, tmp_path):
     env = dict(server_env)
-    config = tmp_path / "config" / "ShogiBoardQ-P2P"
+    config = tmp_path / "config" / "ShogiBoardQ"
     config.mkdir(parents=True)
     engine = os.environ.get("SHOGIBOARDQ_TEST_USI_ENGINE", "")
-    (config / "ShogiBoardQ-P2P.ini").write_text(
+    (config / "ShogiBoardQ.ini").write_text(
         "[General]\nmainWindowSize=@Size(1400 1000)\n"
         f"[Engines]\nsize={int(bool(engine))}\n1\\name=TestUsi\n1\\path={engine}\n",
         encoding="utf-8")
@@ -265,7 +265,7 @@ async def test_waiting_log_and_mcp_enter(csa_env, csa_server):
 
 @pytest.mark.parametrize("language,font_size", [("ja_JP", 10), ("ja_JP", 18), ("en", 18)])
 async def test_connection_form_feedback(csa_env, tmp_path, language, font_size):
-    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini"
+    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
     config.write_text(config.read_text() + f"\n[%General]\nlanguage={language}\n"
                       + f"\n[FontSize]\ncsaGameDialog={font_size}\n")
     async with mcp_session(csa_env) as session:
@@ -467,7 +467,7 @@ for command in sys.stdin:
         break
 """)
     engine.chmod(0o700)
-    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini"
+    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
     config.write_text(f"[Engines]\nsize=1\n1\\name=SlowReady\n1\\path={engine}\n")
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
@@ -505,7 +505,7 @@ for command in sys.stdin:
         break
 """)
     engine.chmod(0o700)
-    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini"
+    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
     config.write_text(f"[Engines]\nsize=1\n1\\name=Fake\n1\\path={engine}\n")
 
 
@@ -1121,7 +1121,7 @@ async def test_cancel_before_agree_sends_reject_then_logout(csa_env, tmp_path):
                       "    elif command == 'isready':\n        time.sleep(6)\n        print('readyok', flush=True)\n"
                       "    elif command == 'quit':\n        break\n")
     engine.chmod(0o700)
-    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini"
+    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
     config.write_text(f"[Engines]\nsize=1\n1\\name=Slow\n1\\path={engine}\n")
     async with FakeServer() as server, mcp_session(csa_env) as session:
         ui = CsaUI(session)
@@ -1328,7 +1328,7 @@ for command in sys.stdin:
         break
 """)
     engine.chmod(0o700)
-    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini"
+    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
     config.write_text(f"[Engines]\nsize=1\n1\\name=Logger\n1\\path={engine}\n")
     async with FakeServer() as server, mcp_session(csa_env) as session:
         ui = CsaUI(session)

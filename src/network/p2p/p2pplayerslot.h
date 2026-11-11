@@ -2,13 +2,13 @@
 #define P2PPLAYERSLOT_H
 
 /// @file p2pplayerslot.h
-/// @brief この PC の何人目のプレイヤーか（同じ PC で動かす ShogiBoardQ-P2P ごとの保存先）
+/// @brief この PC の何人目のプレイヤーか（同じ PC で動かす ShogiBoardQ ごとの保存先）
 
 #include <QDir>
 #include <QString>
 
 /**
- * 同じ PC で ShogiBoardQ-P2P をいくつも動かすと、「P2P対局」を開いた順に、空いている最初の番号（1人目・2人目…）の
+ * 同じ PC で ShogiBoardQ をいくつも動かすと、「P2P対局」を開いた順に、空いている最初の番号（1人目・2人目…）の
  * プレイヤーになる（P2pLobbyService::acquire）。保存先（ロック・プレイヤー鍵・対局記録・既知の相手）はプレイヤーごとに
  * 分ける。同じ保存先を同時に使えるアプリは1つで、プレイヤー鍵も保存先ごとに1つなので、同じ PC の中で対局を試せる。
  * アプリを1つだけ動かしているときは、いつも1人目になる。

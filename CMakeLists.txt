@@ -1347,7 +1347,7 @@ add_custom_command(TARGET ShogiBoardQ POST_BUILD
 )
 
 set_target_properties(ShogiBoardQ PROPERTIES
-    MACOSX_BUNDLE_GUI_IDENTIFIER io.github.hnakada123.ShogiBoardQ-P2P
+    MACOSX_BUNDLE_GUI_IDENTIFIER io.github.hnakada123.ShogiBoardQ
     MACOSX_BUNDLE_BUNDLE_VERSION ${APP_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION}
     MACOSX_BUNDLE TRUE
@@ -1383,7 +1383,7 @@ if(ENABLE_P2P_PLAY)
 endif()
 
 # デスクトップエントリ
-install(FILES resources/platform/shogiboardq-p2p.desktop
+install(FILES resources/platform/shogiboardq.desktop
     DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
 )
 

@@ -117,7 +117,7 @@ std::variant<QJsonObject, Failure> verifyFile(const QString& path)
     QString error;
     const std::optional<P2p::Evidence> evidence = P2p::Evidence::decode(bytes, &error);
     if (!evidence) {
-        return Failure{ErrorKind::InvalidContent, QStringLiteral("Not a ShogiBoardQ-P2P evidence file: %1").arg(error),
+        return Failure{ErrorKind::InvalidContent, QStringLiteral("Not a ShogiBoardQ evidence file: %1").arg(error),
                        QString()};
     }
     return toJson(P2p::EvidenceVerifier::verify(*evidence));

@@ -63,13 +63,13 @@ bool P2pGameUiController::ensureLobby()
     P2pLobbyService::Deps deps;
     deps.activity = m_deps.activity;
     deps.game = m_deps.game;
-    // 同じ PC でほかの ShogiBoardQ-P2P が P2P対局を使っていれば、空いている次の番号のプレイヤー（2人目・3人目…）に
+    // 同じ PC でほかの ShogiBoardQ が P2P対局を使っていれば、空いている次の番号のプレイヤー（2人目・3人目…）に
     // なる。保存先（プレイヤー鍵・対局記録）はプレイヤーごとに別で、同じ PC の中で対局を試せる
     m_lobby = P2pLobbyService::acquire(deps, AppPaths::dataDirectory(), this);
     if (!m_lobby) {
         NotificationPresenter::warning(
             m_deps.parentWidget, tr("P2P対局"),
-            tr("このPCで同時に P2P対局を使える ShogiBoardQ-P2P は %1 個までです。ほかの ShogiBoardQ-P2P を閉じてから開いてください。")
+            tr("このPCで同時に P2P対局を使える ShogiBoardQ は %1 個までです。ほかの ShogiBoardQ を閉じてから開いてください。")
                 .arg(P2pPlayerSlot::kMaxPlayers));
         return false;
     }
@@ -150,7 +150,7 @@ void P2pGameUiController::beginNetwork()
     switch (m_lobby->begin(m_window->networkName(), m_window->bootstrap(), m_window->relayOnly())) {
     case P2pLobbyService::StartFailure::None: break;
     case P2pLobbyService::StartFailure::Locked:
-        message = tr("ほかの ShogiBoardQ-P2P が P2P対局を使っています。");
+        message = tr("ほかの ShogiBoardQ が P2P対局を使っています。");
         break;
     case P2pLobbyService::StartFailure::NetworkNotAllowed:
         message = tr("このビルドはそのネットワークに参加できません。");

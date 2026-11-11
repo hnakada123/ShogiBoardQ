@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>P2P対局 互換実装のための仕様書（プロトコル v1） - ShogiBoardQ-P2P</title>
-<meta name="description" content="ShogiBoardQ-P2P の P2P対局と相互に対局できるソフトウェアを作るための仕様書。通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。">
+<title>P2P対局 互換実装のための仕様書（プロトコル v1） - ShogiBoardQ</title>
+<meta name="description" content="ShogiBoardQ の P2P対局と相互に対局できるソフトウェアを作るための仕様書。通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。">
 <style>
 :root {
   --bg: #fbfaf7; --fg: #23261f; --muted: #5f655a; --line: #d9d6cc; --accent: #3f6b4f;
@@ -72,8 +72,8 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <main>
 <header class="doc">
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ-P2P（将棋盤Q P2P実験版）／プロトコルの版 1／文書の版 2026-11-11</p>
-<p class="lead">ShogiBoardQ-P2P の「P2P対局」と相互に対局できるソフトウェアを作るための仕様書である。通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
+<p>ShogiBoardQ（将棋盤Q。P2P対局を有効にしたビルド）／プロトコルの版 1／文書の版 2026-11-11</p>
+<p class="lead">ShogiBoardQ の「P2P対局」と相互に対局できるソフトウェアを作るための仕様書である。通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
 <details open>
@@ -214,11 +214,11 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <h2 id="sec-1">1. この文書について</h2>
 
 <h3 id="sec-1-1">1.1 目的と適用範囲</h3>
-<p>この文書は、ShogiBoardQ-P2P（将棋盤Q P2P実験版）の「P2P対局」と相互に対局できるソフトウェアを、別の実装として作るための仕様書である。ネットワークを流れるバイト列、手順、検査、時間の決まり、対局記録（証跡）のファイルの形を定める。この文書どおりに作った実装どうしは、招待文字列を渡して接続し、対局し、双方で確定した対局記録を残せる。</p>
+<p>この文書は、ShogiBoardQ（将棋盤Q。P2P対局を有効にしたビルド）の「P2P対局」と相互に対局できるソフトウェアを、別の実装として作るための仕様書である。ネットワークを流れるバイト列、手順、検査、時間の決まり、対局記録（証跡）のファイルの形を定める。この文書どおりに作った実装どうしは、招待文字列を渡して接続し、対局し、双方で確定した対局記録を残せる。</p>
 <p>対象は、プロトコルの版 1（フレームの <code>version</code> が 1、各値の版が 1）である。次のものは対象外で、実装ごとに自由に決めてよい。</p>
 <ul>
 <li>画面と操作、設定の保存、プレイヤー鍵の保管の方法（OS の鍵の保管庫・暗号化したファイルなど）</li>
-<li>通信を受け持つ部分と対局・画面の部分の分け方（ShogiBoardQ-P2P は別プロセスに分け、JSON の IPC でつなぐが、互換性には関係しない）</li>
+<li>通信を受け持つ部分と対局・画面の部分の分け方（ShogiBoardQ は別プロセスに分け、JSON の IPC でつなぐが、互換性には関係しない）</li>
 <li>権限の制限（サンドボックス）などの、実装の中の安全対策</li>
 </ul>
 
@@ -298,7 +298,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li><strong>公開鍵の検査</strong>：公開鍵が、libsodium の <code>crypto_core_ed25519_is_valid_point</code> に通る点である（正規の符号化で、曲線上にあり、素数位数の部分群に属し、小さな位数でない）。</li>
 <li><strong>署名の検査</strong>：libsodium の <code>crypto_sign_verify_detached</code> と同じ結果になる（正準でない署名を拒否する、という libsodium の既定の検査を含む）。</li>
 </ol>
-<p>1 の検査は、署名の検証のたびに行う（HELLO で受けた公開鍵にも、証跡の検証にも掛かる）。2 だけを行う実装は、素数位数の部分群に属さない公開鍵による署名を、ShogiBoardQ-P2P と違って受け付けてしまう。秘密鍵は 32 バイトの種（seed）から RFC 8032 のとおりに導く。</p>
+<p>1 の検査は、署名の検証のたびに行う（HELLO で受けた公開鍵にも、証跡の検証にも掛かる）。2 だけを行う実装は、素数位数の部分群に属さない公開鍵による署名を、ShogiBoardQ と違って受け付けてしまう。秘密鍵は 32 バイトの種（seed）から RFC 8032 のとおりに導く。</p>
 
 <h3 id="sec-2-5">2.5 文字列の制限</h3>
 <p>「ASCII の tstr」と書いた値は、0x20〜0x7E の文字だけでなければならない。長さの上限は各節に書く。上限を超える値・範囲外の文字を含む値は拒否する。</p>
@@ -316,14 +316,14 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <tr><td><code>sbq-limited-1</code></td><td>限定試験用。インターネット上の相手とつなぐ</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
 </tbody>
 </table></div>
-<p>実装は、参加できる networkName の一覧を持ち、ほかの名前を断らなければならない。ShogiBoardQ-P2P は、ビルドから 180 日を過ぎると <code>sbq-limited-1</code> に参加しない（実験版の使用期限。互換実装が同じ期限を持つ必要はない）。</p>
+<p>実装は、参加できる networkName の一覧を持ち、ほかの名前を断らなければならない。ShogiBoardQ は、ビルドから 180 日を過ぎると <code>sbq-limited-1</code> に参加しない（実験版の使用期限。互換実装が同じ期限を持つ必要はない）。</p>
 <p>libp2p の層には、ネットワークを分ける仕組み（private network の鍵など）を置いていない。ネットワークの違いは、招待文字列（<a href="#sec-5">5章</a>）と HELLO（<a href="#sec-8-2">8.2節</a>）の networkId で確かめる。</p>
 
 <h3 id="sec-3-2">3.2 PeerId</h3>
 <p>libp2p のノードの鍵は Ed25519 でなければならない。PeerId のバイナリ表現は、Ed25519 の公開鍵をそのまま入れた identity multihash の 38 バイトである。</p>
 <pre><code>peerId = 00 24 08 01 12 20 || 公開鍵（32 バイト）</code></pre>
 <p>この形でない PeerId（RSA の鍵・SHA-256 の multihash など）は、招待文字列でも HELLO でも断る。文字での表記は base58（<code>12D3KooW…</code>）である。</p>
-<p>PeerId はノードを起動するたびに作り直してよい（ShogiBoardQ-P2P は、接続するたびに新しい鍵を作る）。ただし、1局の間は同じ PeerId を使い続けなければならない。開始合意に PeerId のハッシュが入り、再接続は同じ PeerId からしか受け付けないためである（<a href="#sec-11">11章</a>）。</p>
+<p>PeerId はノードを起動するたびに作り直してよい（ShogiBoardQ は、接続するたびに新しい鍵を作る）。ただし、1局の間は同じ PeerId を使い続けなければならない。開始合意に PeerId のハッシュが入り、再接続は同じ PeerId からしか受け付けないためである（<a href="#sec-11">11章</a>）。</p>
 
 <h3 id="sec-3-3">3.3 プレイヤー鍵とプレイヤーID</h3>
 <p>利用者ごとに、長く使う Ed25519 の鍵を1つ持つ。これを<strong>プレイヤー鍵</strong>と呼び、その公開鍵（32 バイト）を<strong>プレイヤーID</strong>と呼ぶ。プレイヤー鍵は、開始合意（StartAgreement）と結果（FinalResult）への署名にだけ使う。PeerId の鍵とは別の鍵でなければならない。</p>
@@ -364,7 +364,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <h2 id="sec-4">4. 通信の層（libp2p）</h2>
 
 <h3 id="sec-4-1">4.1 使うプロトコル</h3>
-<p>通信には libp2p を使う。ShogiBoardQ-P2P は rust-libp2p 0.56 で作ってあり、互換実装は次のプロトコルで相互に接続できなければならない。</p>
+<p>通信には libp2p を使う。ShogiBoardQ は rust-libp2p 0.56 で作ってあり、互換実装は次のプロトコルで相互に接続できなければならない。</p>
 <div class="table-wrap"><table>
 <thead><tr><th>層</th><th>プロトコル</th><th>備考</th></tr></thead>
 <tbody>
@@ -391,7 +391,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <p>ポート番号は招待文字列の宛先に入るので、互換実装が別のポートで待ち受けても接続できる。48210 番は、ファイアウォールで許可するポートを利用者が決められるようにするための既定値である。</p>
 
 <h3 id="sec-4-3">4.3 Identify</h3>
-<p>Identify の <code>protocolVersion</code> は <code>/shogiboardq/1.0.0</code>、<code>agentVersion</code> は実装の名前と版（ShogiBoardQ-P2P は <code>shogiboardq-peer/&lt;版&gt;</code>）にする。相手のこれらの値で接続を断ってはならない（ネットワークの違いは networkId で確かめる）。</p>
+<p>Identify の <code>protocolVersion</code> は <code>/shogiboardq/1.0.0</code>、<code>agentVersion</code> は実装の名前と版（ShogiBoardQ は <code>shogiboardq-peer/&lt;版&gt;</code>）にする。相手のこれらの値で接続を断ってはならない（ネットワークの違いは networkId で確かめる）。</p>
 <p>Identify で配る自分のアドレス（listenAddrs）には、待受のアドレスをそのまま入れてはならない。入れてよいのは、相手が実際に届くと確かめた・決めたアドレスだけである（<code>sbq-local-1</code> では loopback と私設アドレス、<code>sbq-limited-1</code> では AutoNAT で確かめたインターネット上のアドレスと中継経由のアドレス）。待受のアドレスが変わったことを Identify の push で知らせない。</p>
 
 <h3 id="sec-4-4">4.4 協力ノードと中継</h3>
@@ -400,7 +400,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li>実装は、Identify の protocols に中継の hop がある協力ノードに、自分の到達性によらず中継の予約を取る（2件まで）。</li>
 <li>中継経由の自分のアドレスは <code>&lt;協力ノードのアドレス&gt;/p2p/&lt;協力ノードの PeerId&gt;/p2p-circuit</code> の形で、招待文字列に入れる。協力ノードは、予約の応答で自分のアドレスを返さなければならない（Circuit Relay v2 の標準の動き。返さない中継からは、このアドレスを作れない）。</li>
 <li>中継経由の宛先にも、先頭の IP アドレス（協力ノードのもの）に 4.5節の規則を掛ける。</li>
-<li>ShogiBoardQ-P2P の協力ノード（<code>shogiboardq-peer --service --relay</code>）は、中継1本あたり 30 分・8 MiB までで切る。切れたら、対局は再接続の手順（<a href="#sec-11">11章</a>）でつなぎ直す。</li>
+<li>ShogiBoardQ の協力ノード（<code>shogiboardq-peer --service --relay</code>）は、中継1本あたり 30 分・8 MiB までで切る。切れたら、対局は再接続の手順（<a href="#sec-11">11章</a>）でつなぎ直す。</li>
 </ul>
 
 <h3 id="sec-4-5">4.5 宛先の規則</h3>
@@ -439,7 +439,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <p>この設定の側が<strong>申込側</strong>になるときは、招待文字列の宛先のうち、自分が指定した協力ノードを中継とするものにしか接続しない。そのため、招待側は、<strong>申込側が指定しているのと同じ協力ノード</strong>に中継の予約を取り、その中継経由のアドレスを招待文字列に入れておく必要がある（双方が同じ協力ノードを指定する）。使える宛先がなければ、申込側は接続を始めない。</p>
 
 <h3 id="sec-4-7">4.7 上限</h3>
-<p>ShogiBoardQ-P2P は、次の上限を超えた接続を閉じる・受け付けない。互換実装は、この範囲で動かなければならない。</p>
+<p>ShogiBoardQ は、次の上限を超えた接続を閉じる・受け付けない。互換実装は、この範囲で動かなければならない。</p>
 <div class="table-wrap"><table>
 <thead><tr><th>項目</th><th>上限</th></tr></thead>
 <tbody>
@@ -509,7 +509,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <tbody>
 <tr><td>version</td><td>uint</td><td>1</td></tr>
 <tr><td>type</td><td>uint</td><td>1〜11（下の表）</td></tr>
-<tr><td>requestId</td><td>uint</td><td>送る側が付ける番号（0〜2<sup>64</sup>−1）。受ける側は、値を見ない。ShogiBoardQ-P2P は、交渉の最初のフレームを 1 として、送るたびに 1 ずつ増やす（再接続の後も続きから数える）。INVITE_TOKEN だけは 0 に決まっている</td></tr>
+<tr><td>requestId</td><td>uint</td><td>送る側が付ける番号（0〜2<sup>64</sup>−1）。受ける側は、値を見ない。ShogiBoardQ は、交渉の最初のフレームを 1 として、送るたびに 1 ずつ増やす（再接続の後も続きから数える）。INVITE_TOKEN だけは 0 に決まっている</td></tr>
 <tr><td>gameId</td><td>bstr(32)</td><td>対局ID（<a href="#sec-7-4">7.4節</a>）。対局ID が決まる前のフレームは zero32</td></tr>
 <tr><td>payload</td><td>配列</td><td>中身は種類ごとに決まる</td></tr>
 </tbody>
@@ -536,7 +536,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <pre><code>INVITE_TOKEN = [1, 11, 0, zero32, [token]]   ; token は bstr(32)</code></pre>
 <p><strong>申込側</strong>（招待文字列を受け取った側）は、次のようにする。</p>
 <ol>
-<li>招待文字列の peerId と宛先へ接続し、<code>/shogiboardq/game/1.0.0</code> のストリームを開く（ShogiBoardQ-P2P は 30 秒で諦める）。</li>
+<li>招待文字列の peerId と宛先へ接続し、<code>/shogiboardq/game/1.0.0</code> のストリームを開く（ShogiBoardQ は 30 秒で諦める）。</li>
 <li>開いたら<strong>直ちに</strong>、最初のフレームとして INVITE_TOKEN を送る（requestId は 0）。</li>
 <li>続けて HELLO を送る（<a href="#sec-8-2">8.2節</a>）。</li>
 </ol>
@@ -548,7 +548,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <p>INVITE_TOKEN の requestId は 0、gameId は zero32 でなければならない。INVITE_TOKEN を、ストリームの最初以外で送ってはならない（受けたら外枠の違反として閉じる）。対局中に受け付けるストリームについては <a href="#sec-11-1">11.1節</a>に書く。</p>
 
 <h3 id="sec-6-4">6.4 頻度と大きさの上限</h3>
-<p>ShogiBoardQ-P2P は、次を超えたストリームを閉じる。互換実装は、この範囲で送らなければならない。</p>
+<p>ShogiBoardQ は、次を超えたストリームを閉じる。互換実装は、この範囲で送らなければならない。</p>
 <div class="table-wrap"><table>
 <thead><tr><th>項目</th><th>上限</th></tr></thead>
 <tbody>
@@ -559,7 +559,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <tr><td>処理待ちの受信の量</td><td>256 KiB</td></tr>
 </tbody>
 </table></div>
-<p>頻度は、ストリームごとのトークンバケット（1 件受けるごとに 1 を引き、時間とともに上限まで戻る）で数える。再接続で開いたストリームでは START_SIGNATURE を交わさないので、上限は 5 件/秒のままになる（ShogiBoardQ-P2P の今の動き）。再接続の照合（<a href="#sec-11">11章</a>）と、その直後の送り直しは、この範囲に収めなければならない。</p>
+<p>頻度は、ストリームごとのトークンバケット（1 件受けるごとに 1 を引き、時間とともに上限まで戻る）で数える。再接続で開いたストリームでは START_SIGNATURE を交わさないので、上限は 5 件/秒のままになる（ShogiBoardQ の今の動き）。再接続の照合（<a href="#sec-11">11章</a>）と、その直後の送り直しは、この範囲に収めなければならない。</p>
 </section>
 <section id="values">
 <h2 id="sec-7">7. 署名とハッシュの対象になる値</h2>
@@ -729,7 +729,7 @@ payload = [StartAgreement, Rules, TimeControl, NetworkPolicy]</code></pre>
 <li>どちらも「指定なし」なら、乱数で決める。<code>coinHash = H(CBOR(["SBQ-COIN", 1, nonceA, nonceB]))</code> の最後のバイトの最下位ビットが 0 なら申込側が先手、1 なら申込側が後手。</li>
 </ol>
 <p>乱数は、片方が結果を見てから自分の値を選べないように、次の順で出す。申込側は、32 バイトの乱数 <code>nonceA</code> を作り、HELLO では <code>commitA = H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code> だけを見せる。招待側は、HELLO で <code>nonceB</code> をそのまま見せる。申込側は、START_AGREEMENT の中（自分の側の nonce の欄）で <code>nonceA</code> を明かす。希望で先後が決まるときも、この手順は同じように行う（nonce は対局ID を一意にする役目も持つ）。</p>
-<p class="note">ShogiBoardQ-P2P の画面では、先後の希望を出せるのは招待側だけである（申込側は常に 0 を送る）。互換実装が申込側で希望を送っても、上の規則どおりに扱われる。</p>
+<p class="note">ShogiBoardQ の画面では、先後の希望を出せるのは招待側だけである（申込側は常に 0 を送る）。互換実装が申込側で希望を送っても、上の規則どおりに扱われる。</p>
 
 <h3 id="sec-8-5">8.5 START_SIGNATURE</h3>
 <pre><code>Frame   = [1, 3, requestId, gameId, payload]
@@ -828,7 +828,7 @@ payload = [ply, stateHash, signature]    ; signature は、受けた側の一局
 <li><strong>自分の時間切れ</strong>：自分の手番で、未承認の手がなく、自分の時計で <code>E ≥ R + B</code> になったら、自分の負けを申告する（相手の勝ち・原因は時間切れの結果を提案する。<a href="#sec-10-2">10.2節</a>）。</li>
 <li><strong>相手の時間切れの主張</strong>：相手の手が届かないまま、<code>観測した時間（切れていた時間を除く） &gt; R + B + 10,000</code> になったら、時間切れによる自分の勝ちを提案してよい。同じ手数で1回だけ。</li>
 <li>回線が切れている間も、手番の側の時計は進む。</li>
-<li>時計は単調増加の時計で測る。スリープや時刻の変更で、測った時間の連続性を確かめられなくなった実装は、対局を中断する（ABORT、理由は CLOCK_DISCONTINUITY）。ShogiBoardQ-P2P は、単調増加の時計と OS の時刻の進みが 15 秒を超えて食い違ったら中断する。</li>
+<li>時計は単調増加の時計で測る。スリープや時刻の変更で、測った時間の連続性を確かめられなくなった実装は、対局を中断する（ABORT、理由は CLOCK_DISCONTINUITY）。ShogiBoardQ は、単調増加の時計と OS の時刻の進みが 15 秒を超えて食い違ったら中断する。</li>
 </ul>
 
 <h3 id="sec-9-5">9.5 制御メッセージ（CONTROL）</h3>
@@ -921,7 +921,7 @@ Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]    
 <tr><td>合意による引き分け・合意による中断（cause 6・8）</td><td>利用者に尋ねる。承諾なら同じ提案を送り返して一致、断るなら RESULT_DECLINE。答える前に自分が指したら、断ったことにする</td></tr>
 </tbody>
 </table></div>
-<p>合意による引き分け・中断の申し出は、利用者の操作としては、同じ手数でそれぞれ1回までとする。ただし、受ける側は、同じ手数で同じ提案が繰り返し届いても、違反として扱ってはならない（その都度、上の表のとおりに扱う）。ShogiBoardQ-P2P は、再接続の後に提案を送り直し（<a href="#sec-11-5">11.5節</a>）、1局の実時間の上限を超えた後は、断られるたびに合意による中断を提案し直す（10.5節）。</p>
+<p>合意による引き分け・中断の申し出は、利用者の操作としては、同じ手数でそれぞれ1回までとする。ただし、受ける側は、同じ手数で同じ提案が繰り返し届いても、違反として扱ってはならない（その都度、上の表のとおりに扱う）。ShogiBoardQ は、再接続の後に提案を送り直し（<a href="#sec-11-5">11.5節</a>）、1局の実時間の上限を超えた後は、断られるたびに合意による中断を提案し直す（10.5節）。</p>
 
 <h3 id="sec-10-3">10.3 棋譜から決まる終局</h3>
 <p>手が1つ進む（双方が承認した State が増える）たびに、双方が次の順で判定し、終局なら、その結果を RESULT_PROPOSE で提案する。双方が同じ判定をすれば、同じ提案を送り合って一致する。</p>
@@ -955,7 +955,7 @@ payload = [FinalResult, side, signature]    ; signature は、プレイヤー鍵
 <h3 id="sec-10-5">10.5 対局をやめる（ABORT）</h3>
 <p>利用者が一方的に対局を離れるときは、CONTROL ABORT（<code>[最新の State のハッシュ, reasonCode]</code>）を送り、自分の側の対局を「中断（結果未確定）」として終える。reasonCode は、利用者の操作なら CANCELLED（12）を使う。ABORT を受けた側も、対局を結果未確定として終える。<strong>ABORT は合意による中断（cause 8）ではなく、相手の負けでもない。</strong></p>
 <p>ABORT は、再接続の照合が済むまでの間と、State0 の承認がそろう前には送らない（送らずに、自分の側の対局を終える）。</p>
-<p>1局の実時間（両方の開始署名がそろった時点から数える）が 24 時間を超えたら、合意による中断を提案する。断られたら、提案し直す。さらに 120 秒たっても一致しなければ、ABORT（理由は GAME_TIME_LIMIT）で終える。ShogiBoardQ-P2P は、24 時間を超えた後は、未承認の手の送り直しと、時間切れの申告・主張を行わない。</p>
+<p>1局の実時間（両方の開始署名がそろった時点から数える）が 24 時間を超えたら、合意による中断を提案する。断られたら、提案し直す。さらに 120 秒たっても一致しなければ、ABORT（理由は GAME_TIME_LIMIT）で終える。ShogiBoardQ は、24 時間を超えた後は、未承認の手の送り直しと、時間切れの申告・主張を行わない。</p>
 </section>
 <section id="reconnect">
 <h2 id="sec-11">11. 再接続</h2>
@@ -977,7 +977,7 @@ payload = [FinalResult, side, signature]    ; signature は、プレイヤー鍵
 payload = ["SBQ-RECONNECT", 1, side, connectionRandom]     ; side は自分の側（1＝先手、2＝後手）</code></pre>
 <p>新しいストリームができたら、<strong>双方</strong>が、新しい 32 バイトの乱数を入れた再接続の HELLO を送る。相手の HELLO を受けたら、<code>side</code> が相手の側であることと、乱数が自分のものと違うことを確かめ、新しい connectionId を計算する（<a href="#sec-7-5">7.5節</a>。先手の乱数・後手の乱数の順）。制御メッセージの番号（sequence）は、双方とも 1 から始め直す。</p>
 <p>開始前の HELLO と再接続の HELLO は、フレームの gameId（zero32 か対局ID か）と payload のラベルで見分ける。</p>
-<p>再接続の HELLO が、再接続の間でないときに届いた・<code>side</code> が相手の側でない・乱数が自分のものと同じ、のどれかなら、ShogiBoardQ-P2P は黙って捨てる（照合は進まず、11.6節の上限で終わる）。</p>
+<p>再接続の HELLO が、再接続の間でないときに届いた・<code>side</code> が相手の側でない・乱数が自分のものと同じ、のどれかなら、ShogiBoardQ は黙って捨てる（照合は進まず、11.6節の上限で終わる）。</p>
 
 <h3 id="sec-11-3">11.3 RESUME</h3>
 <p>相手の再接続の HELLO を受けたら、CONTROL RESUME（<code>[latestPly, latestStateHash]</code>）を送る。<code>latestPly</code> は、双方が承認した自分の最新の State の手数、<code>latestStateHash</code> はそのハッシュである。この CONTROL は新しい connectionId に対する一局用鍵の署名を持つので、相手が開始のときと同じ相手であることを確かめ直せる。</p>
@@ -1006,7 +1006,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <h3 id="sec-11-5">11.5 照合の後</h3>
 <ul>
 <li>相手の承認のない自分の手が残っていれば、<strong>同じバイト列</strong>の STATE_PROPOSE を送り直す。相手の手番の観測（<a href="#sec-9-4">9.4節</a>）は、この送り直しの時点から測り直す。未承認だった手が SYNC で「承認済み」と分かったときは、測り直さない（最初に送った時点から測り、切れていた時間を差し引く）。</li>
-<li>結果を提案していたなら、RESULT_PROPOSE を送り直す。<strong>棋譜から決まる終局（<a href="#sec-10-3">10.3節</a>）に達しているなら、照合の後に必ず提案する。</strong>ShogiBoardQ-P2P は、最後の手を SYNC で知った側からは提案しないので、最新だった側が提案を送り直さないと、対局が終わらない。</li>
+<li>結果を提案していたなら、RESULT_PROPOSE を送り直す。<strong>棋譜から決まる終局（<a href="#sec-10-3">10.3節</a>）に達しているなら、照合の後に必ず提案する。</strong>ShogiBoardQ は、最後の手を SYNC で知った側からは提案しないので、最新だった側が提案を送り直さないと、対局が終わらない。</li>
 <li>切れていた時間（切れたと判断してから照合が終わるまで）を、その対局の切断時間の合計に足す。</li>
 </ul>
 
@@ -1047,7 +1047,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 </section>
 <section id="evidence">
 <h2 id="sec-13">13. 対局記録（証跡）</h2>
-<p>対局が終わったら（結果が確定しなかったときも）、それぞれが、対局の記録を1つのファイルに保存する。これを<strong>証跡</strong>と呼ぶ。証跡は、ネットワークも相手も使わずに、だれでも検証できる。拡張子は <code>.sbqmatch</code>、大きさは 8 MiB 以下である。互換実装が書いた証跡は、ShogiBoardQ-P2P の「対局記録」と <code>shogiboardq-cli verify-match</code> で検証できなければならず、逆も同じである。</p>
+<p>対局が終わったら（結果が確定しなかったときも）、それぞれが、対局の記録を1つのファイルに保存する。これを<strong>証跡</strong>と呼ぶ。証跡は、ネットワークも相手も使わずに、だれでも検証できる。拡張子は <code>.sbqmatch</code>、大きさは 8 MiB 以下である。互換実装が書いた証跡は、ShogiBoardQ の「対局記録」と <code>shogiboardq-cli verify-match</code> で検証できなければならず、逆も同じである。</p>
 
 <h3 id="sec-13-1">13.1 形</h3>
 <p>ファイルの中身は、次の値の決定的CBORのバイト列だけである（前後に何も付けない）。</p>
@@ -1151,7 +1151,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <h2 id="sec-15">15. 適合の確かめ方</h2>
 
 <h3 id="sec-15-1">15.1 試験の入力</h3>
-<p>ShogiBoardQ-P2P のリポジトリの <code>protocol/testvectors/</code> に、実装どうしで同じ結果になることを確かめるための入力がある。互換実装は、これらを自分の試験で読むことが望ましい。<code>#</code> で始まる行と空行は読み飛ばす。</p>
+<p>ShogiBoardQ のリポジトリの <code>protocol/testvectors/</code> に、実装どうしで同じ結果になることを確かめるための入力がある。互換実装は、これらを自分の試験で読むことが望ましい。<code>#</code> で始まる行と空行は読み飛ばす。</p>
 <div class="table-wrap"><table>
 <thead><tr><th>ファイル</th><th>行の形</th><th>確かめること</th></tr></thead>
 <tbody>
@@ -1166,19 +1166,19 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <p>互換実装を作るときは、下の層から順に確かめるとよい。</p>
 <ol>
 <li><strong>決定的CBORとハッシュ</strong>：15.1節の入力と、付録 A の値が一致する。</li>
-<li><strong>証跡の検証</strong>：ShogiBoardQ-P2P が保存した <code>.sbqmatch</code> を読み、<a href="#sec-13-2">13.2節</a>の検証がすべて通る（署名の検証と、指し手・局面・時間の計算が合っていることの確認になる）。</li>
-<li><strong>招待文字列</strong>：ShogiBoardQ-P2P が作った招待文字列を読めて、自分が作った招待文字列を ShogiBoardQ-P2P の「招待文字列を確かめる」で読める。</li>
-<li><strong>接続と交渉</strong>：ネットワークを <code>sbq-local-1</code> にして、同じ PC の ShogiBoardQ-P2P と、招待する側・される側の両方で条件確認画面まで進める。</li>
+<li><strong>証跡の検証</strong>：ShogiBoardQ が保存した <code>.sbqmatch</code> を読み、<a href="#sec-13-2">13.2節</a>の検証がすべて通る（署名の検証と、指し手・局面・時間の計算が合っていることの確認になる）。</li>
+<li><strong>招待文字列</strong>：ShogiBoardQ が作った招待文字列を読めて、自分が作った招待文字列を ShogiBoardQ の「招待文字列を確かめる」で読める。</li>
+<li><strong>接続と交渉</strong>：ネットワークを <code>sbq-local-1</code> にして、同じ PC の ShogiBoardQ と、招待する側・される側の両方で条件確認画面まで進める。</li>
 <li><strong>対局</strong>：先手・後手の両方で、投了・詰み・時間切れ・合意による引き分けまで指し、双方の証跡が「双方で確定」になる。自分の書いた証跡を <code>shogiboardq-cli verify-match --input-path &lt;ファイル&gt;</code> で検証し、<code>valid</code> が true、<code>category</code> が <code>mutually_signed</code> になる。</li>
 <li><strong>再接続</strong>：対局中にストリームを切り、つなぎ直して続けられる（自分が申込側のとき・招待側のとき、未承認の手があるとき・ないとき）。</li>
 <li><strong>断ること</strong>：不正な署名・合法でない手・時間の計算の合わない State・番号の飛んだ CONTROL などを送り、相手が勝ち負けを付けずに止めることを確かめる。自分の実装も、同じ入力を同じように断る。</li>
 </ol>
-<p>ShogiBoardQ-P2P は、同じ PC でいくつも起動すると、開いた順に別のプレイヤーになる（2つ目は「2人目」）。互換実装との試験は、同じ PC の中で行える。</p>
+<p>ShogiBoardQ は、同じ PC でいくつも起動すると、開いた順に別のプレイヤーになる（2つ目は「2人目」）。互換実装との試験は、同じ PC の中で行える。</p>
 </section>
 
 <section id="appendix">
 <h2 id="sec-A">付録 A. 試験用の値</h2>
-<p>ここに挙げる値は、ShogiBoardQ-P2P の実装が出した値で、この文書の記述だけから計算した値と一致することを確かめてある。<code>aa…</code> は、その1バイトを 32 個並べた bstr(32) を表す。16進は 64 桁ごとに改行してある（改行はバイト列に含まれない）。</p>
+<p>ここに挙げる値は、ShogiBoardQ の実装が出した値で、この文書の記述だけから計算した値と一致することを確かめてある。<code>aa…</code> は、その1バイトを 32 個並べた bstr(32) を表す。16進は 64 桁ごとに改行してある（改行はバイト列に含まれない）。</p>
 
 <h3 id="sec-A-1">A.1 条件のハッシュ</h3>
 <p class="vec-title">CBOR(Rules)</p>
@@ -1265,8 +1265,8 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 </section>
 
 <footer class="doc">
-<p>この文書は、ShogiBoardQ-P2P の実装（2026-11-11 時点の main）と、リポジトリの <code>protocol/</code>（バイト列の形と試験の入力）をもとに、互換実装のために1つにまとめたものである。プロトコルは実験版で、今後、版を上げて変えることがある。この文書と実装の動きが食い違うときは、リポジトリへ知らせてほしい。</p>
-<p>ShogiBoardQ-P2P: <a href="https://github.com/hnakada123/ShogiBoardQ-P2P">https://github.com/hnakada123/ShogiBoardQ-P2P</a></p>
+<p>この文書は、ShogiBoardQ の P2P対局の実装（実験版リポジトリ ShogiBoardQ-P2P の 2026-11-11 時点の main。同じ日に通常版へ取り込んだ）と、リポジトリの <code>protocol/</code>（バイト列の形と試験の入力）をもとに、互換実装のために1つにまとめたものである。プロトコルは実験版で、今後、版を上げて変えることがある。この文書と実装の動きが食い違うときは、リポジトリへ知らせてほしい。</p>
+<p>ShogiBoardQ: <a href="https://github.com/hnakada123/ShogiBoardQ">https://github.com/hnakada123/ShogiBoardQ</a></p>
 </footer>
 </main>
 </body>

@@ -65,7 +65,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     if (m_player > 1) {
         // 同じ PC でほかのアプリが先に開いているとき。どのタブでも見えるよう、タブの上に出す
         QLabel* notice = plainLabel(
-            this, tr("このPCでは、ほかの ShogiBoardQ-P2P が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。"
+            this, tr("このPCでは、ほかの ShogiBoardQ が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。"
                      "プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。"
                      "同じPCのアプリどうしで、招待で対局できます。")
                       .arg(m_player));

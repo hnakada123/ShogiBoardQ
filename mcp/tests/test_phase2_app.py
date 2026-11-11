@@ -26,7 +26,7 @@ def app_env(server_env, app_path, tmp_path_factory):
     env["SHOGIBOARDQ_QUIT_APP_ON_EXIT"] = "1"
     yield env
     # Safety net: the server quits the app it launched; kill it if that failed.
-    endpoint = Path(env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "automation-endpoint.json"
+    endpoint = Path(env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "automation-endpoint.json"
     if endpoint.exists():
         try:
             pid = int(json.loads(endpoint.read_text(encoding="utf-8")).get("pid", 0))
@@ -219,9 +219,9 @@ async def test_position_edit_piece_box_clicks(app_env):
 async def test_tsume_board_clicks(app_env, tmp_path):
     """Exercise real dialog mouse input, promotion, flipped hand drops and modal guards through MCP."""
     env = dict(app_env)
-    config = tmp_path / "config" / "ShogiBoardQ-P2P"
+    config = tmp_path / "config" / "ShogiBoardQ"
     config.mkdir(parents=True)
-    (config / "ShogiBoardQ-P2P.ini").write_text(
+    (config / "ShogiBoardQ.ini").write_text(
         "[TsumeCollection]\n"
         f"file={FIXTURES / 'tsume_positions_with_moves.sfen'}\nengine=@hayanagi\n"
         "[TsumePlay]\nsize=@Size(950 1180)\nsquareSize=65\n", encoding="utf-8")

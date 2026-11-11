@@ -22,7 +22,8 @@ namespace QKeychain { class Job; }
  * 保管の方法は次の3つ（実装仕様 5.2節）。どれを使っているかと公開鍵は、`identity/info` に書く
  * （秘密は書かない）。鍵は「P2P対局」を使う間だけ読み込み、使い終えたら lock() で消す。
  *
- * - Keychain: OS の鍵の保管庫（QtKeychain。項目は実験版専用の名前で、保存先ごとに別の項目 keychainItemKey）。
+ * - Keychain: OS の鍵の保管庫（QtKeychain。サービス名はアプリ名 AppIdentity::kApplicationName で、保存先ごとに
+ *   別の項目 keychainItemKey）。
  *   使えなければ失敗を返し、暗号化しない保存へ黙って切り替えない（setInsecureFallback は使わない）。
  * - Passphrase: パスフレーズから Argon2id で導いた鍵と XChaCha20-Poly1305 で暗号化したファイル。
  *   鍵の導出は GUI スレッドの外で行う。

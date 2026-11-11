@@ -230,7 +230,7 @@ async def test_floating_dock_edits_survive_hide(kifu_env, tmp_path):
 
 
 async def test_game_end_preserves_active_metadata(kifu_env, tmp_path):
-    config = Path(kifu_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini"
+    config = Path(kifu_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
     with config.open("a", encoding="utf-8") as ini:
         ini.write(f"[GameSettings]\nkifuSaveDir={tmp_path}\n")
     async with mcp_session(kifu_env) as session:

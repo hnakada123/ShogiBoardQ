@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P2P Games (Experimental) - ShogiBoardQ</title>
-    <meta name="description" content="How to play P2P games in the ShogiBoardQ P2P experimental build: preparing a player key, playing by invitation, the confirmation screen, in-game controls, verifying game records (evidence), managing opponents, and what cannot be prevented.">
+    <meta name="description" content="How to play P2P games (experimental) in ShogiBoardQ: preparing a player key, playing by invitation, the confirmation screen, in-game controls, verifying game records (evidence), managing opponents, and what cannot be prevented.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-game.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -78,7 +78,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">What Are P2P Games?</h2>
-        <p class="section-desc">An experimental way to play that is available only in the ShogiBoardQ P2P experimental build</p>
+        <p class="section-desc">An experimental way to play that is available only in ShogiBoardQ built with P2P games enabled</p>
 
         <div class="screenshot-gallery">
 
@@ -96,7 +96,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">What the Experimental Build Offers</span>
                 </div>
-                <p class="guide-step-text">P2P games are part of a separate app, ShogiBoardQ P2P Experimental (ShogiBoardQ-P2P). Its settings and records are kept apart from the regular ShogiBoardQ. To build it from source, pass <code>-DENABLE_P2P_PLAY=ON</code> to CMake (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a> for the build steps).</p>
+                <p class="guide-step-text">P2P games are an experimental feature and are not included in the distributed ShogiBoardQ. To use them, pass <code>-DENABLE_P2P_PLAY=ON</code> to CMake when you build from source (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a> for the build steps).</p>
                 <ul class="guide-step-text">
                     <li><strong>Operating system</strong>: Linux only for now. P2P games are not available where the OS cannot restrict the communication process (shogiboardq-peer).</li>
                     <li><strong>Networks</strong>: Local test (same PC / same LAN) and Limited test.</li>
@@ -160,7 +160,7 @@
                     <li><strong>File encrypted with a passphrase</strong>: Stores the key in a file encrypted with a key derived from your passphrase. You are asked for the passphrase the first time you connect after starting the app.</li>
                     <li><strong>Unencrypted file</strong>: Anyone who can read or copy the files on this PC can play while impersonating you.</li>
                 </ul>
-                <p class="guide-step-text">The key files are kept in <code>~/.local/share/ShogiBoardQ-P2P/p2p/identity</code>.</p>
+                <p class="guide-step-text">The key files are kept in <code>~/.local/share/ShogiBoardQ/p2p/identity</code>.</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/en/p2p-game/p2p-identity.png"><img src="../../images/en/p2p-game/p2p-identity.png" alt="Prepare P2P Games dialog with three ways to store the player key and the list of what cannot be prevented" width="533" height="574" loading="lazy"></a>
                     <p class="screenshot-caption">Prepare P2P Games, shown the first time you connect</p>
@@ -553,7 +553,7 @@
                         <tr><td><strong>Unconfirmed</strong></td><td>Neither of the above, for example when the opponent's confirmation did not arrive after a resignation or time loss, or when the game was interrupted.</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">Evidence is saved in <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code>. If the app exits during a game, the record up to that point appears as an unconfirmed record the next time you open the window.</p>
+                <p class="guide-step-text">Evidence is saved in <code>~/.local/share/ShogiBoardQ/p2p/evidence</code>. If the app exits during a game, the record up to that point appears as an unconfirmed record the next time you open the window.</p>
             </div>
 
             <div class="guide-step">

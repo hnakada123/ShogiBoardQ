@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P2P对局（实验版） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ P2P实验版的P2P对局使用方法：准备玩家密钥、通过邀请字符串对局、对局条件确认画面、对局中的操作、验证对局记录（凭证）、管理对手，以及无法防止的情况与对方可以看到的信息。">
+    <meta name="description" content="ShogiBoardQ 的P2P对局（实验版）使用方法：准备玩家密钥、通过邀请字符串对局、对局条件确认画面、对局中的操作、验证对局记录（凭证）、管理对手，以及无法防止的情况与对方可以看到的信息。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-game.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -78,7 +78,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">什么是P2P对局</h2>
-        <p class="section-desc">仅将棋盘Q P2P实验版提供的实验中的对局功能</p>
+        <p class="section-desc">仅启用P2P对局构建的将棋盘Q提供的实验中的对局功能</p>
 
         <div class="screenshot-gallery">
 
@@ -96,7 +96,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">实验版可以使用的内容</span>
                 </div>
-                <p class="guide-step-text">P2P对局包含在与普通 ShogiBoardQ 不同的应用“将棋盘Q P2P实验版”（ShogiBoardQ-P2P）中，设置文件和记录与普通版分开，不会混在一起。从源代码构建时，在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，构建步骤见<a href="linux-build-and-release.html">Linux 构建与发布步骤</a>）。</p>
+                <p class="guide-step-text">P2P对局是实验中的功能，不包含在发布的 ShogiBoardQ 中。要使用时，从源代码构建时在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，构建步骤见<a href="linux-build-and-release.html">Linux 构建与发布步骤</a>）。</p>
                 <ul class="guide-step-text">
                     <li><strong>支持的操作系统</strong>：目前仅支持 Linux。在无法用操作系统功能限制通信进程（shogiboardq-peer）权限的环境中无法使用。</li>
                     <li><strong>网络</strong>：有“本地验证用（同一电脑・同一局域网）”和“限定测试用”两种。</li>
@@ -160,7 +160,7 @@
                     <li><strong>用密码短语加密的文件</strong>：保存在用由密码短语生成的密钥加密的文件中。启动应用后第一次连接时会询问密码短语。</li>
                     <li><strong>不加密的文件</strong>：能读取或带走此电脑文件的人可以冒充您进行对局。</li>
                 </ul>
-                <p class="guide-step-text">密钥文件保存在 <code>~/.local/share/ShogiBoardQ-P2P/p2p/identity</code>。</p>
+                <p class="guide-step-text">密钥文件保存在 <code>~/.local/share/ShogiBoardQ/p2p/identity</code>。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-cn/p2p-game/p2p-identity.png"><img src="../../images/zh-cn/p2p-game/p2p-identity.png" alt="显示玩家密钥的三种保存方式和无法防止的情况列表的“准备P2P对局”对话框" width="533" height="498" loading="lazy"></a>
                     <p class="screenshot-caption">首次连接时打开的“准备P2P对局”</p>
@@ -553,7 +553,7 @@
                         <tr><td><strong>结果未确定</strong></td><td>两者都不是。例如认输或超时负之后没有收到对手的确定，或对局被中断时。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">凭证保存在 <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code>。对局中应用退出时，到那时为止的记录会在下次打开时作为“结果未确定”的记录保留。</p>
+                <p class="guide-step-text">凭证保存在 <code>~/.local/share/ShogiBoardQ/p2p/evidence</code>。对局中应用退出时，到那时为止的记录会在下次打开时作为“结果未确定”的记录保留。</p>
             </div>
 
             <div class="guide-step">

@@ -15,9 +15,9 @@ pytestmark = pytest.mark.anyio
 @pytest.fixture
 def dock_env(server_env, app_path, tmp_path):
     env = dict(server_env)
-    config = tmp_path / "config" / "ShogiBoardQ-P2P"
+    config = tmp_path / "config" / "ShogiBoardQ"
     config.mkdir(parents=True)
-    (config / "ShogiBoardQ-P2P.ini").write_text(
+    (config / "ShogiBoardQ.ini").write_text(
         "[General]\nmainWindowSize=@Size(1400 1000)\n", encoding="utf-8")
     env.update(SHOGIBOARDQ_EXECUTABLE=str(app_path), SHOGIBOARDQ_QUIT_APP_ON_EXIT="1",
                XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_CONFIG_HOME=str(config.parent),

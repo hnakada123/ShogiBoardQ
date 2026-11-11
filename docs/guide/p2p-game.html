@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P2P対局（実験版） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ P2P実験版のP2P対局の使い方。プレイヤー鍵の準備、招待文字列での対局、条件確認画面、対局中の操作、対局記録（証跡）の検証、相手の管理、防げないことと相手に見える情報を解説します。">
+    <meta name="description" content="ShogiBoardQ のP2P対局（実験版）の使い方。プレイヤー鍵の準備、招待文字列での対局、条件確認画面、対局中の操作、対局記録（証跡）の検証、相手の管理、防げないことと相手に見える情報を解説します。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -78,7 +78,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">P2P対局とは</h2>
-        <p class="section-desc">将棋盤Q P2P実験版だけにある、試験中の対局の機能です</p>
+        <p class="section-desc">P2P対局を有効にしてビルドした将棋盤Qだけにある、試験中の対局の機能です</p>
 
         <div class="screenshot-gallery">
 
@@ -96,7 +96,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">実験版で使えるもの</span>
                 </div>
-                <p class="guide-step-text">P2P対局は、通常の ShogiBoardQ とは別のアプリ「将棋盤Q P2P実験版」（ShogiBoardQ-P2P）に入っています。設定ファイルや記録は通常版と分かれていて混ざりません。ソースからビルドするときに CMake で <code>-DENABLE_P2P_PLAY=ON</code> を付けます（libsodium と Rust が必要です。ビルドの手順は<a href="linux-build-and-release.html">Linux ビルド・リリース手順</a>）。</p>
+                <p class="guide-step-text">P2P対局は試験中の機能で、配布している ShogiBoardQ には入っていません。使うには、ソースからビルドするときに CMake で <code>-DENABLE_P2P_PLAY=ON</code> を付けます（libsodium と Rust が必要です。ビルドの手順は<a href="linux-build-and-release.html">Linux ビルド・リリース手順</a>）。</p>
                 <ul class="guide-step-text">
                     <li><strong>対応OS</strong>：今は Linux だけです。通信を受け持つプロセス（shogiboardq-peer）の権限を OS の機能で制限できない環境では使えません。</li>
                     <li><strong>ネットワーク</strong>：「ローカル検証用（同じPC・同じLAN）」と「限定試験用」の2つです。</li>
@@ -160,7 +160,7 @@
                     <li><strong>パスフレーズで暗号化したファイル</strong>：パスフレーズから作った鍵で暗号化したファイルに保存します。アプリを起動して最初に接続するときに、パスフレーズを尋ねます。</li>
                     <li><strong>暗号化しないファイル</strong>：このPCのファイルを読める人や持ち出した人が、あなたになりすまして対局できます。</li>
                 </ul>
-                <p class="guide-step-text">鍵のファイルは <code>~/.local/share/ShogiBoardQ-P2P/p2p/identity</code> に置きます。</p>
+                <p class="guide-step-text">鍵のファイルは <code>~/.local/share/ShogiBoardQ/p2p/identity</code> に置きます。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../images/p2p-game/p2p-identity.png"><img src="../images/p2p-game/p2p-identity.png" alt="プレイヤー鍵の保管の方法を選ぶ3つの選択肢と、防げないことの一覧が並ぶ「P2P対局の準備」ダイアログ" width="533" height="574" loading="lazy"></a>
                     <p class="screenshot-caption">初めて接続するときに開く「P2P対局の準備」</p>
@@ -553,7 +553,7 @@
                         <tr><td><strong>結果未確定</strong></td><td>どちらでもありません。投了や時間切れの後に相手の確定が届かなかったときや、中断したときです。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">証跡は <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code> に保存されます。対局中にアプリが終了しても、それまでの記録は次に開いたときに「結果未確定」の記録として残ります。</p>
+                <p class="guide-step-text">証跡は <code>~/.local/share/ShogiBoardQ/p2p/evidence</code> に保存されます。対局中にアプリが終了しても、それまでの記録は次に開いたときに「結果未確定」の記録として残ります。</p>
             </div>
 
             <div class="guide-step">

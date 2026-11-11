@@ -5,7 +5,6 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 
-#include "appidentity.h"
 #include "apppaths.h"
 #include "settingscommon.h"
 
@@ -19,7 +18,7 @@ private:
 private slots:
     void initTestCase()
     {
-        QCoreApplication::setApplicationName(QString::fromLatin1(AppIdentity::kApplicationName));
+        QCoreApplication::setApplicationName(QStringLiteral("ShogiBoardQ"));
         QVERIFY(m_root.isValid());
     }
 
@@ -40,16 +39,16 @@ private slots:
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_root.filePath(QStringLiteral("config")).toUtf8());
         qputenv("SHOGIBOARDQ_DATA_HOME", m_root.filePath(QStringLiteral("data")).toUtf8());
         qputenv("SHOGIBOARDQ_CACHE_HOME", m_root.filePath(QStringLiteral("cache")).toUtf8());
-        QCOMPARE(AppPaths::configDirectory(), m_root.filePath(QStringLiteral("config/ShogiBoardQ-P2P")));
-        QCOMPARE(AppPaths::dataDirectory(), m_root.filePath(QStringLiteral("data/ShogiBoardQ-P2P")));
-        QCOMPARE(AppPaths::cacheDirectory(), m_root.filePath(QStringLiteral("cache/ShogiBoardQ-P2P")));
+        QCOMPARE(AppPaths::configDirectory(), m_root.filePath(QStringLiteral("config/ShogiBoardQ")));
+        QCOMPARE(AppPaths::dataDirectory(), m_root.filePath(QStringLiteral("data/ShogiBoardQ")));
+        QCOMPARE(AppPaths::cacheDirectory(), m_root.filePath(QStringLiteral("cache/ShogiBoardQ")));
 
         // 設定ファイル（最初の呼び出しで場所が決まる）もそこに作られる
-        QCOMPARE(SettingsCommon::settingsFilePath(), m_root.filePath(QStringLiteral("config/ShogiBoardQ-P2P/ShogiBoardQ-P2P.ini")));
+        QCOMPARE(SettingsCommon::settingsFilePath(), m_root.filePath(QStringLiteral("config/ShogiBoardQ/ShogiBoardQ.ini")));
         QSettings& settings = SettingsCommon::openSettings();
         settings.setValue(QStringLiteral("Test/value"), 1);
         settings.sync();
-        QVERIFY(QFile::exists(m_root.filePath(QStringLiteral("config/ShogiBoardQ-P2P/ShogiBoardQ-P2P.ini"))));
+        QVERIFY(QFile::exists(m_root.filePath(QStringLiteral("config/ShogiBoardQ/ShogiBoardQ.ini"))));
     }
 };
 

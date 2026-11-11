@@ -15,10 +15,10 @@ pytestmark = pytest.mark.anyio
 @pytest.fixture
 def coverage_env(server_env, app_path, tmp_path):
     env = dict(server_env)
-    config = tmp_path / "config" / "ShogiBoardQ-P2P"
+    config = tmp_path / "config" / "ShogiBoardQ"
     config.mkdir(parents=True)
-    original = Path(env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini"
-    (config / "ShogiBoardQ-P2P.ini").write_text(
+    original = Path(env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
+    (config / "ShogiBoardQ.ini").write_text(
         original.read_text(encoding="utf-8") + "\n[%General]\nlanguage=ja_JP\n", encoding="utf-8")
     env.update(XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_CONFIG_HOME=str(config.parent),
                SHOGIBOARDQ_EXECUTABLE=str(app_path),

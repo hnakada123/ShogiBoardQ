@@ -10737,8 +10737,9 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>MainWindow</name>
     <message>
+        <location filename="../../src/app/mainwindow.ui" line="14"/>
         <source>将棋盤Q</source>
-        <translation type="vanished">ShogiBoardQ</translation>
+        <translation>ShogiBoardQ</translation>
     </message>
     <message>
         <source>ファイル(F)</source>
@@ -10981,9 +10982,8 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Sumi (Ink)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="14"/>
         <source>将棋盤Q P2P実験版</source>
-        <translation>ShogiBoardQ P2P Experimental</translation>
+        <translation type="vanished">ShogiBoardQ P2P Experimental</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="28"/>
@@ -12884,9 +12884,8 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Another ShogiBoardQ-P2P is using P2P games. Close it and try again.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="72"/>
         <source>このPCで同時に P2P対局を使える ShogiBoardQ-P2P は %1 個までです。ほかの ShogiBoardQ-P2P を閉じてから開いてください。</source>
-        <translation>Up to %1 ShogiBoardQ-P2P apps can use P2P Game on this PC at the same time. Close another ShogiBoardQ-P2P and try again.</translation>
+        <translation type="vanished">Up to %1 ShogiBoardQ-P2P apps can use P2P Game on this PC at the same time. Close another ShogiBoardQ-P2P and try again.</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="81"/>
@@ -12905,9 +12904,18 @@ Are you sure you want to declare?</translation>
         <translation>Could not load the player key. You can recreate it in &quot;Settings&quot;.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="153"/>
         <source>ほかの ShogiBoardQ-P2P が P2P対局を使っています。</source>
-        <translation>Another ShogiBoardQ-P2P is using P2P games.</translation>
+        <translation type="vanished">Another ShogiBoardQ-P2P is using P2P games.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="72"/>
+        <source>このPCで同時に P2P対局を使える ShogiBoardQ は %1 個までです。ほかの ShogiBoardQ を閉じてから開いてください。</source>
+        <translation>Up to %1 ShogiBoardQ apps can use P2P Game on this PC at the same time. Close another ShogiBoardQ and try again.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="153"/>
+        <source>ほかの ShogiBoardQ が P2P対局を使っています。</source>
+        <translation>Another ShogiBoardQ is using P2P games.</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="156"/>
@@ -13170,6 +13178,11 @@ Are you sure you want to declare?</translation>
         <translation>The confirmed result conflicts with the result determined by the moves.</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="174"/>
+        <source>ShogiBoardQ の証跡 (*.sbqmatch)</source>
+        <translation>ShogiBoardQ evidence (*.sbqmatch)</translation>
+    </message>
+    <message>
         <source>署名が一致: %1</source>
         <translation type="vanished">Signatures match: %1</translation>
     </message>
@@ -13230,9 +13243,8 @@ Are you sure you want to declare?</translation>
         <translation>Export</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="174"/>
         <source>ShogiBoardQ-P2P の証跡 (*.sbqmatch)</source>
-        <translation>ShogiBoardQ-P2P evidence (*.sbqmatch)</translation>
+        <translation type="vanished">ShogiBoardQ-P2P evidence (*.sbqmatch)</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2phistorypanel.cpp" line="178"/>
@@ -13831,6 +13843,11 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Publish Offer</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="68"/>
+        <source>このPCでは、ほかの ShogiBoardQ が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。同じPCのアプリどうしで、招待で対局できます。</source>
+        <translation>Another ShogiBoardQ on this PC already has P2P Game open, so this app opened as &quot;Player %1&quot;. The player key (player ID), display name, game records and opponent list are saved separately for Player %1. Apps on the same PC can play each other by invitation.</translation>
+    </message>
+    <message>
         <location filename="../../src/dialogs/p2pwindow.cpp" line="281"/>
         <source>直接接続を使わない</source>
         <translation>Do not use direct connections</translation>
@@ -14087,9 +14104,8 @@ Are you sure you want to declare?</translation>
         <translation>P2P Game (Experimental) — Player %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="68"/>
         <source>このPCでは、ほかの ShogiBoardQ-P2P が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。同じPCのアプリどうしで、招待で対局できます。</source>
-        <translation>Another ShogiBoardQ-P2P on this PC already has P2P Game open, so this app opened as &quot;Player %1&quot;. The player key (player ID), display name, game records and opponent list are saved separately for Player %1. Apps on the same PC can play each other by invitation.</translation>
+        <translation type="vanished">Another ShogiBoardQ-P2P on this PC already has P2P Game open, so this app opened as &quot;Player %1&quot;. The player key (player ID), display name, game records and opponent list are saved separately for Player %1. Apps on the same PC can play each other by invitation.</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2pwindow.cpp" line="157"/>

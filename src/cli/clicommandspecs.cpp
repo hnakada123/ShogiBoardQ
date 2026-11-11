@@ -230,7 +230,7 @@ const QList<OperationSpec>& CliCommandSpecs::all()
               .withDefault(15).value(QStringLiteral("seconds")).alias(QStringLiteral("timeout-ms"), 0.001),
           allowFinalAlternatives(QStringLiteral("Accept alternatives on the final mating move (otherwise they are a cook)."))}},
         {QStringLiteral("verify-match"),
-         QStringLiteral("Verify a ShogiBoardQ-P2P match evidence file (.sbqmatch) offline: signatures, legality, clock "
+         QStringLiteral("Verify a ShogiBoardQ match evidence file (.sbqmatch) offline: signatures, legality, clock "
                         "arithmetic and whether the result is mutually signed or determined by the record"),
          {path(QStringLiteral("input_path"), QStringLiteral("Evidence file (absolute path).")).require()}},
     };

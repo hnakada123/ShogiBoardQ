@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=ShogiBoardQ-P2P
-GenericName=Shogi GUI (P2P experimental)
-GenericName[ja]=将棋ソフト（P2P対局の実験版）
+Name=ShogiBoardQ
+GenericName=Shogi GUI
+GenericName[ja]=将棋ソフト
 Comment=Play shogi and analyze game records with USI engines
 Comment[ja]=USIエンジンを使った将棋の対局・棋譜解析
 Exec=ShogiBoardQ
