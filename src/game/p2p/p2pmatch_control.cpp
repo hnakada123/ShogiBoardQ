@@ -156,7 +156,8 @@ void Match::answerOffer(bool accept)
     if (!m_pendingOffer) return;
     const FinalResult offered = *m_pendingOffer;
     const QByteArray hash = m_pendingOfferHash;
-    if (accept && resultIsCurrent(offered) && !m_pending) {
+    // 回線が切れている間は承諾を送れないので、一致させない（つなぎ直した後に相手が申し出を送り直し、もう一度尋ねる）
+    if (accept && m_phase == Phase::Playing && resultIsCurrent(offered) && !m_pending) {
         m_myProposal = offered;
         m_myProposalHash = hash;
         m_pendingOffer.reset();
