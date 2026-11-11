@@ -209,6 +209,15 @@
                 </div>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">同じLANの別のPCと対局する</span>
+                </div>
+                <p class="guide-step-text">ネットワークを「ローカル検証用（同じPC・同じLAN）」にすると、同じ LAN の別の PC と、協力ノードなしで、招待文字列だけでつながります。つながるのは同じ PC と同じ LAN の中だけで、インターネット上の相手とはつながりません。</p>
+                <p class="guide-step-text">招待した側の PC は、TCP と UDP の 48210 番ポートで接続を待ちます（同じ PC で2つ目のアプリを動かすと、2つ目は空いているポートを使います）。つながらないときは、招待した側の PC のファイアウォールで、このポートへの LAN 内からの接続が許可されているか確かめてください。firewalld なら <code>sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code> で、再起動まで許可できます。招待する側を入れ替えると、つながることもあります。</p>
+            </div>
+
         </div>
     </div>
 </section>

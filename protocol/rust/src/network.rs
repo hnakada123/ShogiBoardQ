@@ -6,7 +6,7 @@ use crate::hash::h;
 /// ネットワークの使い方
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Profile {
-    /// ローカル検証用（loopback と私設アドレス。待受は 127.0.0.1）
+    /// ローカル検証用（同じ PC・同じ LAN。loopback と私設アドレス。待受は IPv4 の全インターフェース）
     Local,
     /// 限定試験用（インターネット上のアドレスと中継）
     Internet,

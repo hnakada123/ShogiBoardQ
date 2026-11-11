@@ -79,6 +79,8 @@ impl Node {
                 candidates.extend(self.listen_addrs.iter().filter(|a| addr::is_circuit(a)).cloned());
             }
         }
+        // 同じ LAN の相手が使うアドレスを先に入れる（入れられるのは MAX_ADDRS 件まで）
+        candidates.sort_by_key(AddrPolicy::invite_rank);
         let mut out: Vec<Vec<u8>> = Vec::new();
         for a in candidates {
             let a = addr::without_peer_id(&a);

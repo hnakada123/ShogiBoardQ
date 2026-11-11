@@ -127,7 +127,7 @@ pub fn run(args: &[String]) -> i32 {
             relay_only: false,
             service: true,
             relay_server: args.relay,
-            listen: args.listen,
+            listen: args.listen.into_iter().map(|addr| vec![addr]).collect(),
         };
         let mut node = match Node::create(&out, config) {
             Ok(n) => n,

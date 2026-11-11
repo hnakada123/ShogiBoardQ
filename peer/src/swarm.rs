@@ -43,8 +43,6 @@ pub struct SwarmOptions {
     pub relay_only: bool,
     /// AutoNAT を使う（internet で、直接接続を使うとき）
     pub autonat: bool,
-    /// Identify で待受のアドレスを配らない（internet と、直接接続を使わないとき）
-    pub hide_listen_addrs: bool,
 }
 
 fn io_err<E: std::fmt::Display>(e: E) -> String {
@@ -80,7 +78,9 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
 
     let identify_config = identify::Config::new(IDENTIFY_PROTOCOL.to_owned(), keypair.public())
         .with_agent_version(format!("shogiboardq-peer/{}", env!("CARGO_PKG_VERSION")))
-        .with_hide_listen_addrs(options.hide_listen_addrs)
+        // 待受のアドレスをそのままは配らない。配るのは、自分のアドレスとして確かめた・決めたものだけ
+        // （local は loopback と私設アドレス、internet は AutoNAT で確かめたアドレス、どちらも中継経由のアドレス）
+        .with_hide_listen_addrs(true)
         .with_push_listen_addr_updates(false);
 
     let relay_server = if options.relay_server {

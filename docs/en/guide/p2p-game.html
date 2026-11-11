@@ -209,6 +209,15 @@
                 </div>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Play Another PC on the Same LAN</span>
+                </div>
+                <p class="guide-step-text">With the network set to Local test (same PC / same LAN), you can connect to another PC on the same LAN with just an invitation, without a cooperating node. It only connects within the same PC and the same LAN, not to opponents on the internet.</p>
+                <p class="guide-step-text">The inviter's PC waits for connections on TCP and UDP port 48210 (a second app on the same PC uses a free port instead). If the connection fails, check that the firewall on the inviter's PC allows connections to this port from the LAN. With firewalld, <code>sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code> allows it until the next reboot. Swapping who creates the invitation may also work.</p>
+            </div>
+
         </div>
     </div>
 </section>
