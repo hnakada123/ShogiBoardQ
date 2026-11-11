@@ -88,7 +88,7 @@ struct CsaGameProgress {
     UsiGoTimeInput engineTiming(bool pondering, qint64 elapsedThisTurnMs, int marginMs) const;
 
     /**
-     * @brief 着手の棋譜行の消費時間
+     * @brief 着手の棋譜行の消費時間（秒の単位。RecordTime::wholeSeconds で、累計はサーバーの単位のまま足した値から求める）
      * @param blackMove 先手の手か
      * @param consumedMs 消費時間（recordMoveTime の後に呼ぶ）
      */

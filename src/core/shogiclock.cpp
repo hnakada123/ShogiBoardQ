@@ -226,8 +226,8 @@ void ShogiClock::commitMove(Turn player)
     SideState& s = side(player);
     // 累積へ加算した現在手の時間を、時計表示で二重に数えない。
     if (m_currentPlayer == player) m_currentConsiderationCommitted = true;
+    s.lastMoveStartTotalMs = s.totalConsiderationMs;
     s.totalConsiderationMs += s.considerationMs;
-    updateShownConsideration(player);
 
     // 終局後は秒読み/加算は行わず、表示更新のみ
     if (m_gameOver) {
@@ -354,15 +354,6 @@ void ShogiClock::resetDisplayCache()
 {
     m_prevShownSec[0] = remainingDisplaySec(Turn::Black);
     m_prevShownSec[1] = remainingDisplaySec(Turn::White);
-}
-
-void ShogiClock::updateShownConsideration(Turn player)
-{
-    // 総考慮ms → 秒（切り捨て）の差分から直近手の考慮秒数を求める
-    SideState& s = side(player);
-    const int totalSec = static_cast<int>(qMax<qint64>(0, s.totalConsiderationMs) / 1000);
-    s.lastMoveShownSec = qMax(0, totalSec - s.prevShownTotalSec);
-    s.prevShownTotalSec = totalSec;
 }
 
 QString ShogiClock::timeString(Turn player) const

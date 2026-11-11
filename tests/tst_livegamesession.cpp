@@ -429,6 +429,24 @@ private slots:
         QCOMPARE(m2->childAt(0)->comment(), QStringLiteral("対局メモ"));
     }
 
+    /// 続けた棋譜の累計にミリ秒の端数があっても（T に小数のある CSA など）、対局の手は秒の単位で書く
+    void continuedTimeDropsMillisecondsOfRecordTotals()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* m1 = TestTree::addMove(tree, tree.root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"),
+                                     QStringLiteral("00:05.250/00:00:05.250"));
+        auto* m2 = TestTree::addMove(tree, m1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"),
+                                     QStringLiteral("00:03/00:00:03"));
+
+        KifuNavigationState nav(&tree);
+        LiveGameSession session(&tree, &nav);
+        session.startFromNode(m2);
+        // 先手：棋譜の累計 5.250 秒 + 今回 2 秒 → 累計は 7 秒、1手は 2 秒
+        QCOMPARE(session.continuedTime(RecordTime::fromMilliseconds(2000, 2000)).toText(),
+                 QStringLiteral("00:02/00:00:07"));
+    }
+
     /// 棋譜を作り直して対局を始めた局面が消えたら、記録をやめる（中断して再開を待つ対局も）
     void treeRebuildEndsTheSession()
     {

@@ -97,6 +97,17 @@ private slots:
         QCOMPARE(clock.remainingMs(Turn::White), 0LL);
     }
 
+    /// 対局の手の時間は棋譜に秒の単位で書く（P2P対局の署名した消費時間はミリ秒なので、そのまま書くと
+    /// 「00:45.319/00:00:45.319」になって棋譜欄の幅が変わる）。1手の秒数は前後の累計の秒の差
+    void wholeSecondsRecordTime()
+    {
+        QCOMPARE(RecordTime::wholeSeconds(0, 45319).toText(), QStringLiteral("00:45/00:00:45"));
+        // 端数が繰り上がった手は1秒、端数だけの手は0秒にして、1手の秒数の和を累計に合わせる
+        QCOMPARE(RecordTime::wholeSeconds(45319, 46900).toText(), QStringLiteral("00:01/00:00:46"));
+        QCOMPARE(RecordTime::wholeSeconds(46900, 46999).toText(), QStringLiteral("00:00/00:00:46"));
+        QCOMPARE(RecordTime::wholeSeconds(59500, 3600500).toText(), QStringLiteral("59:01/01:00:00"));
+    }
+
     void unlimitedTimeUpdatesWhileThinking()
     {
         ShogiClock clock;

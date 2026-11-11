@@ -129,6 +129,7 @@ struct Harness {
     bool reconnect = false;   ///< 終局の後にサーバーが切ったら接続し直す
     std::function<void()> afterLogin;   ///< ログインの成功を返してから対局条件を送るまでの間に呼ぶ
     QList<QByteArray> positionLines;    ///< BEGIN Position の中身（空なら平手）
+    bool millisecondUnit = false;       ///< 時間の単位をミリ秒（Time_Unit:1msec）にする。持時間と加算は同じ長さ
 
     Harness()
     {
@@ -172,9 +173,9 @@ struct Harness {
         server.send("Your_Turn:" + yourTurn);
         server.send(positionMoves.size() % 2 == 0 ? "To_Move:+" : "To_Move:-");
         server.send("BEGIN Time");
-        server.send("Time_Unit:1sec");
-        server.send("Total_Time:600");
-        server.send("Increment:10");
+        server.send(millisecondUnit ? "Time_Unit:1msec" : "Time_Unit:1sec");
+        server.send(millisecondUnit ? "Total_Time:600000" : "Total_Time:600");
+        server.send(millisecondUnit ? "Increment:10000" : "Increment:10");
         server.send("END Time");
         server.send("BEGIN Position");
         if (positionLines.isEmpty()) {
@@ -679,6 +680,35 @@ private slots:
         QCOMPARE(theirs.sfen, h.line().lastSfen());
         QCOMPARE(h.moveCount(), 2);
         QCOMPARE(theirs.move.move.toString(), QStringLiteral("3c3d"));
+    }
+
+    /// 時間の単位がミリ秒のサーバーでも、棋譜の消費時間はローカル対局と同じく秒の単位で書く（ミリ秒の端数で
+    /// 棋譜欄の幅が変わらない）。1手の秒数は前後の累計の秒の差で、時計の計算はサーバーのミリ秒のまま
+    void millisecondServerTimesAreRecordedInSeconds()
+    {
+        Harness h;
+        h.millisecondUnit = true;
+        QVERIFY(h.start("+", {"+7776FU,T45319", "-3334FU,T1200"}));
+        QCOMPARE(h.sink.records.size(), 2);
+        QCOMPARE(h.sink.records.at(0).time.toText(), QStringLiteral("00:45/00:00:45"));
+        QCOMPARE(h.sink.records.at(1).time.toText(), QStringLiteral("00:01/00:00:01"));
+
+        h.playHumanMove(QStringLiteral("2g2f"));
+        QVERIFY(h.server.waitForLine(QStringLiteral("+2726FU")));
+        h.server.send("+2726FU,T1581");
+        QTRY_COMPARE(h.sink.records.size(), 3);
+        // 累計 45.319 秒 → 46.900 秒: 1手は 1 秒、累計は 46 秒
+        QCOMPARE(h.sink.records.at(2).time.toText(), QStringLiteral("00:01/00:00:46"));
+        QCOMPARE(h.coordinator.blackTotalTimeMs(), 46900);
+
+        h.server.send("%TORYO,T2850");
+        h.server.send("#RESIGN");
+        h.server.send("#WIN");
+        QTRY_COMPARE(h.sink.records.size(), 4);
+        const RecordEntry ending = h.sink.records.at(3);
+        QCOMPARE(ending.terminal, TerminalType::Resign);
+        // 後手の累計 1.200 秒 → 4.050 秒
+        QCOMPARE(ending.time.toText(), QStringLiteral("00:03/00:00:04"));
     }
 
     /// 対局が始まると、サーバーの開始局面・対局者名・持ち時間で新しい棋譜を作らせ、再開局面（Game_Summary の

@@ -102,8 +102,10 @@ RecordTime LiveGameSession::continuedTime(const RecordTime& time) const
     const KifuBranchNode* parent = liveNode();
     const KifuBranchNode* sameSide = parent ? parent->parent() : nullptr;
     const qint64 previous = sameSide && sameSide->time().valid ? sameSide->time().totalMs : 0;
-    return RecordTime::fromMilliseconds(time.elapsedMs, previous > std::numeric_limits<qint64>::max() - time.elapsedMs
-        ? std::numeric_limits<qint64>::max() : previous + time.elapsedMs);
+    const qint64 total = previous > std::numeric_limits<qint64>::max() - time.elapsedMs
+        ? std::numeric_limits<qint64>::max() : previous + time.elapsedMs;
+    // 続けた棋譜の累計にミリ秒の端数があっても（T に小数のある CSA など）、対局の手は秒の単位で書く
+    return RecordTime::wholeSeconds(previous, total);
 }
 
 void LiveGameSession::setFirstMoveNote(const QString& note)

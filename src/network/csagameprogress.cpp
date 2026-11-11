@@ -99,11 +99,11 @@ std::optional<RecordLine> CsaGameProgress::startLine(QString* problem) const
             *problem = text;
             return std::nullopt;
         }
-        // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
+        // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する（秒の単位。RecordTime::wholeSeconds）
         const qint64 consumedMs = summary.positionMoveConsumedMs(i);
         qint64& total = text.startsWith(QLatin1Char('+')) ? blackConsumedMs : whiteConsumedMs;
         total += consumedMs;
-        played->time = RecordTime::fromMilliseconds(consumedMs, total);
+        played->time = RecordTime::wholeSeconds(total - consumedMs, total);
         line.entries.append(*played);
         previousTo = move->to;
     }
@@ -132,7 +132,9 @@ UsiGoTimeInput CsaGameProgress::engineTiming(bool pondering, qint64 elapsedThisT
 
 RecordTime CsaGameProgress::moveTime(bool blackMove, int consumedMs) const
 {
-    return RecordTime::fromMilliseconds(consumedMs, totalMs(blackMove));
+    // 時間の単位がミリ秒のサーバー（Time_Unit:1msec）でも、棋譜にはローカル対局と同じく秒の単位で書く
+    const qint64 total = totalMs(blackMove);
+    return RecordTime::wholeSeconds(total - consumedMs, total);
 }
 
 MatchGameEndInfo CsaGameProgress::endInfo(CsaClient::GameResult result, CsaClient::GameEndCause cause) const
@@ -164,7 +166,7 @@ RecordEntry CsaGameProgress::endRecord(CsaClient::GameResult result, CsaClient::
     // 終局行は手番側の行にそろえ（手番でない側の反則負けは手番側の反則勝ち）、消費時間はその側の累計に足す
     const Turn sideToMove = blackToMove ? Turn::Black : Turn::White;
     const RecordEntry::Ending ending = MatchEnding::endingOf(endInfo(result, cause), sideToMove);
-    const RecordTime time =
-        RecordTime::fromMilliseconds(consumedMs, qint64(totalMs(ending.side == Turn::Black)) + consumedMs);
+    const qint64 before = totalMs(ending.side == Turn::Black);
+    const RecordTime time = RecordTime::wholeSeconds(before, before + consumedMs);
     return RecordEntry::ending(ending.terminal, ending.side, time);
 }

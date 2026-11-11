@@ -84,7 +84,9 @@ private slots:
             QVERIFY(kif.contains(QStringLiteral("投了")));
             QVERIFY(csa.contains("+7776FU"));
             QVERIFY(csa.contains("%TORYO"));
-            QVERIFY(csa.contains("T1.250"));
+            // 対局の棋譜は秒の単位で書く（1.250 秒の手は T1。RecordTime::wholeSeconds）
+            QVERIFY(csa.split(QLatin1Char('\n')).contains(QStringLiteral("T1")));
+            QVERIFY(!csa.contains(QStringLiteral("T1.250")));
             QVERIFY(jkf.contains("TORYO"));
             document->markSaved(QString());
             parts.actions->startNewRecord();

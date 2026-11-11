@@ -434,7 +434,8 @@ void P2pGameCoordinator::applyCommittedMove(const P2p::MatchEvent& event)
             total += static_cast<qint64>(s.state.spentMs);
         }
     }
-    entry->time = RecordTime::fromMilliseconds(static_cast<qint64>(event.spentMs), total);
+    // 署名した消費時間はミリ秒だが（証跡にそのまま残る）、棋譜にはローカル対局と同じく秒の単位で書く
+    entry->time = RecordTime::wholeSeconds(total - static_cast<qint64>(event.spentMs), total);
     if (m_sink) m_sink->appendRecord(*entry);
     syncClock();
     // 盤・棋譜・時計を更新し終えた後に知らせる（駒音）

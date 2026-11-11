@@ -34,8 +34,7 @@ public:
         qint64 considerationMs = 0;       ///< 指している（または直前に指した）手の考慮時間
         qint64 totalConsiderationMs = 0;  ///< 確定した手の考慮時間の合計
         bool byoyomiApplied = false;      ///< 秒読みに入っているか
-        int lastMoveShownSec = 0;         ///< 棋譜欄に出す直近の手の考慮秒数
-        int prevShownTotalSec = 0;        ///< 直近の手の秒数を求めるための、前回の総考慮秒数
+        qint64 lastMoveStartTotalMs = 0;  ///< 直近に確定した手の前の考慮時間の合計（棋譜に書く1手の秒数を求める）
     };
 
     /// 着手を確定した時点の両側の状態（「待った」で戻す単位）
@@ -115,12 +114,10 @@ public:
 
     /// 時計表示（HH:MM:SS）。制限ありは残り時間を切り上げ、無制限は累積消費時間を切り捨て。
     QString timeString(Turn player) const;
-    /// 棋譜に書く直前の手の考慮時間と累計（累計は実測msを秒に切り捨て）
+    /// 棋譜に書く直前の手の考慮時間と累計（秒の単位。RecordTime::wholeSeconds。計測自体はミリ秒で保持する）
     RecordTime recordTime(Turn player) const
     {
-        // 棋譜の秒数は従来どおり累計秒の差分。計測自体はミリ秒で保持する。
-        return RecordTime::fromMilliseconds(qint64(side(player).lastMoveShownSec) * 1000,
-                                            side(player).totalConsiderationMs / 1000 * 1000);
+        return RecordTime::wholeSeconds(side(player).lastMoveStartTotalMs, side(player).totalConsiderationMs);
     }
 
     // --- 状態取得 ---
@@ -161,7 +158,6 @@ private:
     void enterByoyomiIfExhausted(Turn player);
     void checkInvariants() const;
     int remainingDisplaySec(Turn player) const;
-    void updateShownConsideration(Turn player);
     void resetDisplayCache();
     /// 手番側の経過時間を残り時間へ反映し、時間切れなら true
     bool chargeElapsed(Turn player, qint64 elapsed);

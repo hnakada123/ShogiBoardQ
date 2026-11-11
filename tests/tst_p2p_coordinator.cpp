@@ -175,12 +175,22 @@ private slots:
         // 手番でない側の手は受け付けない。送った手は相手の承認を受けてから盤に指す
         QCOMPARE(white.coordinator.playMove(UsiMove::fromString(u"3c3d")), GameChannel::MoveResult::Rejected);
         QVERIFY(black.coordinator.isHumanToMove());
+        // 1秒を超えて考えてから指す。署名する消費時間はミリ秒の端数を持つ
+        QTest::qWait(1200);
         QCOMPARE(black.coordinator.playMove(UsiMove::fromString(u"7g7f")), GameChannel::MoveResult::Sent);
         QVERIFY(!black.coordinator.isHumanToMove());
         settle();
         QCOMPARE(black.board.board()->position().toSfen(), white.board.board()->position().toSfen());
         QCOMPARE(black.sink.entries.size(), 1);
         QCOMPARE(white.sink.entries.size(), 1);
+        // 棋譜にはローカル対局と同じく秒の単位で書く（「00:01/00:00:01」。ミリ秒の端数で棋譜欄の幅が変わらない）
+        for (const Side* s : {&black, &white}) {
+            const RecordTime& time = s->sink.entries.first().time;
+            QVERIFY2(time.elapsedMs >= 1000 && time.elapsedMs % 1000 == 0, qPrintable(time.toText()));
+            QCOMPARE(time.totalMs, time.elapsedMs);
+            QVERIFY2(!time.toText().contains(QLatin1Char('.')), qPrintable(time.toText()));
+        }
+        QVERIFY(black.coordinator.match()->confirmedStates().back().state.spentMs >= 1200u);
         QVERIFY(white.coordinator.isHumanToMove());
         QCOMPARE(white.coordinator.playMove(UsiMove::fromString(u"3c3d")), GameChannel::MoveResult::Sent);
         settle();

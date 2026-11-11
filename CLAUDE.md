@@ -78,6 +78,7 @@ cmake --build build --target translations
   - `jishogicalculator.cpp/.h` - 持将棋の点数計算・判定 `JishogiCalculator`（駒の点数 `kMajorPiecePoints`・`kMinorPiecePoints`、敵陣に要る駒の数 `kRequiredPiecesInCamp`（`hasEnoughPiecesInCamp`）、点数の閾値 `winningPoints`・`requiredPoints` はここだけ。持将棋の点数のダイアログと入玉宣言の判定の説明 `NyugyokuJudgement` の数もここから入れる。敵陣は `PieceRules::inPromotionZone`）
   - `matchplayers.h` - 対局者（先手・後手を人間とエンジンのどちらが指すかと名前。1人分は `seat(Turn)`）
   - `shogiclock.cpp/.h` - Game clock
+  - `recordtime.h` - 棋譜の1手の消費時間と累計 `RecordTime`（ミリ秒で持ち、端数があれば表記もミリ秒まで）。対局の手を棋譜に書くときは `RecordTime::wholeSeconds` で秒の単位にする（累計を秒に切り捨て、1手の秒数は前後の累計の秒の差。ローカル対局の時計・P2P対局・CSA通信対局・棋譜の途中から続けた対局で共通。端数で棋譜欄の幅が変わらない）
   - `shoginotation.h` - 筋・段・駒の表記（漢字・全角・CSA）
 
 - **game/**: ゲーム進行・対局管理（GUI に依存しない）
