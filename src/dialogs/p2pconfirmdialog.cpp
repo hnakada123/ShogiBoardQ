@@ -114,9 +114,9 @@ void P2pConfirmDialog::refresh()
 
     QStringList identity;
     if (!verified) {
-        identity << tr("相手の署名はまだ確かめていません。このIDは相手の申告です。");
+        identity << tr("相手がこのIDの持ち主かは、まだ確かめていません。このIDは相手の申告です。");
     } else {
-        identity << tr("相手の開始署名を確かめました。このIDの鍵の持ち主です。");
+        identity << tr("相手がこのIDの鍵の持ち主であることを確かめました。");
     }
     if (known) {
         if (!known->localName.isEmpty()) {

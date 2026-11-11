@@ -10,14 +10,14 @@
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
     <meta property="og:title" content="P2P対局（実験版） - ShogiBoardQ">
-    <meta property="og:description" content="対局サーバーを使わずに相手と直接つないで指し、開始と結果に双方が署名した対局記録を手元に残します。">
+    <meta property="og:description" content="対局サーバーを使わずに相手と直接つないで指し、開始と結果を双方で確定した対局記録を手元に残します。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/p2p-game/p2p-confirm.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="P2P対局（実験版） - ShogiBoardQ">
-    <meta name="twitter:description" content="対局サーバーを使わずに相手と直接つないで指し、開始と結果に双方が署名した対局記録を手元に残します。">
+    <meta name="twitter:description" content="対局サーバーを使わずに相手と直接つないで指し、開始と結果を双方で確定した対局記録を手元に残します。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/p2p-game/p2p-confirm.png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
@@ -63,11 +63,11 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>P2P対局（実験版）</h1>
-        <p class="hero-subtitle">対局サーバーを使わずに相手と直接つないで指し、開始と結果に双方が署名した対局記録を手元に残します</p>
+        <p class="hero-subtitle">対局サーバーを使わずに相手と直接つないで指し、開始と結果を双方で確定した対局記録を手元に残します</p>
         <div class="hero-badges">
             <span class="badge">サーバー不要</span>
             <span class="badge">招待・公開募集</span>
-            <span class="badge">署名付きの対局記録</span>
+            <span class="badge">双方で確定する記録</span>
             <span class="badge">実験版・Linux</span>
         </div>
         <p class="screenshot-note">試験中の機能です。画面や決まりは今後変わることがあります。</p>
@@ -88,7 +88,7 @@
                     <span class="guide-step-title">相手のパソコンと直接つないで指す</span>
                 </div>
                 <p class="guide-step-text">P2P対局では、<a href="csa-game.html">CSA通信対局</a>のような対局サーバーを使わず、自分と相手のアプリが直接つながって指します（直接つなげないときは中継を使います）。相手には招待文字列を渡すか、公開の募集一覧から相手を探します。</p>
-                <p class="guide-step-text">対局の開始と結果には、このアプリが作るプレイヤー鍵で双方が署名します。プレイヤー鍵の公開鍵が、あなたの「プレイヤーID」です。実名や外部サービスのアカウントは使いません。対局が終わると、双方の署名が付いた対局記録（証跡）が双方の手元に保存され、だれでも検証できます。</p>
+                <p class="guide-step-text">対局の開始と結果は、このアプリが作るプレイヤー鍵で、双方のアプリが自動的に確定します（操作は要りません）。プレイヤー鍵の公開鍵が、あなたの「プレイヤーID」です。実名や外部サービスのアカウントは使いません。対局が終わると、双方で確定した対局記録（証跡）が双方の手元に保存され、だれでも検証できます。</p>
             </div>
 
             <div class="guide-step">
@@ -266,8 +266,8 @@
                         <tr><th scope="col">表示</th><th scope="col">意味</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>相手の署名はまだ確かめていません。このIDは相手の申告です。</strong></td><td>開始の手続きの途中です。プレイヤーIDは、まだ相手が名乗っただけの値です。</td></tr>
-                        <tr><td><strong>相手の開始署名を確かめました。このIDの鍵の持ち主です。</strong></td><td>相手がこのIDの鍵で開始に署名しました。</td></tr>
+                        <tr><td><strong>相手がこのIDの持ち主かは、まだ確かめていません。このIDは相手の申告です。</strong></td><td>開始の手続きの途中です。プレイヤーIDは、まだ相手が名乗っただけの値です。</td></tr>
+                        <tr><td><strong>相手がこのIDの鍵の持ち主であることを確かめました。</strong></td><td>相手のアプリが、このIDの鍵で開始を確定しました。</td></tr>
                         <tr><td><strong>確認済みの相手です（確認コードで照合済み）。</strong></td><td>「相手の管理」で確認済みにした相手です。手元で付けた名前も出ます。</td></tr>
                         <tr><td><strong>初めての相手です。／この相手との対局: N局</strong></td><td>これまでの対局の数と、そのうち結果が確定しなかった対局の数です。</td></tr>
                         <tr><td><strong>「…」と名付けた相手と同じ表示名ですが、プレイヤーIDが違います。</strong></td><td>赤字で出ます。名前を付けた相手とは別人の可能性があります。</td></tr>
@@ -282,8 +282,8 @@
                 </div>
                 <p class="guide-step-text">「対局の条件と記録」には、先後とその決め方、持ち時間、ルール、対局記録に残るものが出ます。よければ「開始」を押します。双方が「開始」を押すと対局が始まります。「取りやめる」を押すか、60秒以内に双方がそろわなければ取り消されます（残りの秒数が下に出ます）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-confirm.png"><img src="../images/p2p-game/p2p-confirm.png" alt="相手の表示名とプレイヤーID、署名をまだ確かめていないこと、先後・持ち時間・ルール・記録に残るものが並ぶ条件確認画面" width="600" height="660" loading="lazy"></a>
-                    <p class="screenshot-caption">条件確認画面（相手の署名を確かめる前）</p>
+                    <a href="../images/p2p-game/p2p-confirm.png"><img src="../images/p2p-game/p2p-confirm.png" alt="相手の表示名とプレイヤーID、相手がIDの持ち主かをまだ確かめていないこと、先後・持ち時間・ルール・記録に残るものが並ぶ条件確認画面" width="600" height="660" loading="lazy"></a>
+                    <p class="screenshot-caption">条件確認画面（相手を確かめる前）</p>
                 </div>
             </div>
 
@@ -332,6 +332,14 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">終局と結果の確定</span>
+                </div>
+                <p class="guide-step-text">投了・詰み・時間切れなどで終局すると、双方のアプリが結果（勝ち負け・終わり方・手数）を照らし合わせ、一致すればプレイヤー鍵で自動的に確定します。操作は要りません（その間、「対局中」タブに「結果を確定しています…」と出ます）。双方の確定がそろうと「双方で確定」の記録になります。相手の確定が30秒たっても届かなければ「相手の確定なし」として保存します。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">回線が切れたとき</span>
                 </div>
                 <p class="guide-step-text">回線が切れると、アプリが自動でつなぎ直します（「再接続中（残り N 秒）」と出ます）。切れている間も手番の側の時計は進み、手番の側は1手だけ指せます（つながったときに送ります）。</p>
@@ -362,15 +370,15 @@
                         <tr><th scope="col">記録の区分</th><th scope="col">意味</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>双方の署名あり</strong></td><td>両方のプレイヤー鍵が同じ結果に署名しています。双方が同じ結果に同意したことを示せるのは、この区分だけです。</td></tr>
-                        <tr><td><strong>棋譜から決まる結果</strong></td><td>結果への署名はそろっていませんが、双方が署名した最後の局面までの棋譜で、詰み・千日手・連続王手の千日手・512手到達が決まっています。</td></tr>
-                        <tr><td><strong>結果未確定</strong></td><td>どちらでもありません。投了や時間切れの後に相手の署名が届かなかったときや、中断したときです。</td></tr>
+                        <tr><td><strong>双方で確定</strong></td><td>両方のプレイヤー鍵で同じ結果を確定しています。双方が同じ結果に同意したことを示せるのは、この区分だけです。</td></tr>
+                        <tr><td><strong>棋譜から決まる結果</strong></td><td>結果の確定はそろっていませんが、双方のアプリが確かめた最後の局面までの棋譜で、詰み・千日手・連続王手の千日手・512手到達が決まっています。</td></tr>
+                        <tr><td><strong>結果未確定</strong></td><td>どちらでもありません。投了や時間切れの後に相手の確定が届かなかったときや、中断したときです。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">証跡は <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code> に保存されます。対局中にアプリが終了しても、それまでの記録は次に開いたときに「結果未確定」の記録として残ります。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../images/p2p-game/p2p-records.png"><img src="../images/p2p-game/p2p-records.png" alt="終わった日時・相手・あなた・終わり方・記録の区分・結果の列と、検証・書き出し・削除のボタンが並ぶ「対局記録」タブ" width="820" height="770" loading="lazy"></a>
-                    <p class="screenshot-caption">「対局記録」タブ：双方の署名がそろった記録</p>
+                    <p class="screenshot-caption">「対局記録」タブ：双方で確定した記録</p>
                 </div>
             </div>
 
@@ -379,7 +387,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">検証・書き出し・削除</span>
                 </div>
-                <p class="guide-step-text">「検証する」を押すと、署名の一致・棋譜がルールに適合するか・自己申告時間の計算の一致・結果が棋譜から決まるかと、記録の区分が出ます。「証跡を書き出す…」で証跡ファイル（.sbqmatch）を好きな場所に保存できます。「記録を削除」は手元の証跡を消します（戻せません）。</p>
+                <p class="guide-step-text">「検証する」を押すと、プレイヤー鍵による確定が正しいか・棋譜がルールに適合するか・自己申告時間の計算の一致・結果が棋譜から決まるかと、記録の区分が出ます。「証跡を書き出す…」で証跡ファイル（.sbqmatch）を好きな場所に保存できます。「記録を削除」は手元の証跡を消します（戻せません）。</p>
                 <p class="guide-step-text">記録は、実際の思考時間・人間が指したこと・対局の日時を証明しません。</p>
             </div>
 
@@ -426,7 +434,7 @@
   "valid": true,
   "white_player_id": "8a3569db…"
 }</code></pre></div>
-                <p class="guide-step-text"><code>valid</code> が true なら署名と記録の形が正しく、<code>category</code> が記録の区分（<code>mutually_signed</code>・<code>determined_by_record</code>・<code>unconfirmed</code>）です。<code>not_verifiable</code> には、この記録からは確かめられないこと（実際の思考時間・人間が指したこと・対局の日時）が並びます。</p>
+                <p class="guide-step-text"><code>valid</code> が true ならプレイヤー鍵による確定と記録の形が正しく、<code>category</code> が記録の区分です（<code>mutually_signed</code> が「双方で確定」、<code>determined_by_record</code> が「棋譜から決まる結果」、<code>unconfirmed</code> が「結果未確定」）。<code>not_verifiable</code> には、この記録からは確かめられないこと（実際の思考時間・人間が指したこと・対局の日時）が並びます。</p>
             </div>
 
         </div>
@@ -497,9 +505,9 @@
                 </div>
                 <ul class="guide-step-text">
                     <li><strong>表示名</strong>：表示名は自己申告です。相手を確かめる根拠はプレイヤーIDと確認コードです。</li>
-                    <li><strong>結果への署名</strong>：負けた側が結果への署名を拒めば、双方の署名がそろった記録は残りません。</li>
+                    <li><strong>結果の確定</strong>：負けた側のアプリが結果を確定しなければ（途中でアプリを終了する・回線を切る、作り変えたアプリを使うなど）、双方で確定した記録は残りません。</li>
                     <li><strong>消費時間</strong>：消費時間は自己申告です。1手あたり10秒までの水増しと、切断を使った時間稼ぎ（1局で合計10分まで）は見分けられません。</li>
-                    <li><strong>エンジン・示し合わせ</strong>：エンジンが指した対局や、示し合わせた対局は見分けられません。双方が示し合わせて架空の結果に署名することもできます。</li>
+                    <li><strong>エンジン・示し合わせ</strong>：エンジンが指した対局や、示し合わせた対局は見分けられません。双方が示し合わせて架空の結果を確定することもできます。</li>
                     <li><strong>プレイヤー鍵</strong>：同じ利用者の権限で動く悪意のあるプログラムからは、プレイヤー鍵を守れません。</li>
                 </ul>
                 <p class="guide-step-text">記録した勝ち数を、公式のレーティングや棋力の根拠にしないでください。</p>
@@ -517,7 +525,7 @@
                     <tbody>
                         <tr><td><strong>対局相手</strong></td><td>IPアドレス（直接つながったとき）・プレイヤーID・表示名・条件</td></tr>
                         <tr><td><strong>募集を見た人（不特定）</strong></td><td>募集を出した人の IP アドレス・表示名・条件。申し込みを装えばプレイヤーIDも分かります</td></tr>
-                        <tr><td><strong>対局記録（証跡）を受け取った人</strong></td><td>双方のプレイヤーID・条件・全手順と自己申告の消費時間・結果と双方の署名。表示名・IPアドレス・手元で付けた名前は残りません</td></tr>
+                        <tr><td><strong>対局記録（証跡）を受け取った人</strong></td><td>双方のプレイヤーID・条件・全手順と自己申告の消費時間・双方で確定した結果。表示名・IPアドレス・手元で付けた名前は残りません</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">アプリが対局記録を公開したり、どこかへ送ったりすることはありません。</p>

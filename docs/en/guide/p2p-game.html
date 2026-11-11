@@ -10,14 +10,14 @@
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-game.html">
     <meta property="og:title" content="P2P Games (Experimental) - ShogiBoardQ">
-    <meta property="og:description" content="Connect directly to your opponent without a game server, and keep a game record signed by both players at the start and the end.">
+    <meta property="og:description" content="Connect directly to your opponent without a game server, and keep a game record whose start and result both players confirmed.">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/p2p-game/p2p-confirm.png">
     <meta property="og:locale" content="en_US">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="P2P Games (Experimental) - ShogiBoardQ">
-    <meta name="twitter:description" content="Connect directly to your opponent without a game server, and keep a game record signed by both players at the start and the end.">
+    <meta name="twitter:description" content="Connect directly to your opponent without a game server, and keep a game record whose start and result both players confirmed.">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/p2p-game/p2p-confirm.png">
     <link rel="stylesheet" href="../../css/style.css">
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
@@ -63,11 +63,11 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>P2P Games (Experimental)</h1>
-        <p class="hero-subtitle">Connect directly to your opponent without a game server, and keep a game record that both players signed at the start and the end</p>
+        <p class="hero-subtitle">Connect directly to your opponent without a game server, and keep a game record whose start and result both players confirmed</p>
         <div class="hero-badges">
             <span class="badge">No Server</span>
             <span class="badge">Invitations &amp; Offers</span>
-            <span class="badge">Signed Game Records</span>
+            <span class="badge">Records Confirmed by Both</span>
             <span class="badge">Experimental, Linux</span>
         </div>
         <p class="screenshot-note">This is an experimental feature; screens and rules may change. Screenshots were captured on Linux with the English interface.</p>
@@ -88,7 +88,7 @@
                     <span class="guide-step-title">Play over a Direct Connection</span>
                 </div>
                 <p class="guide-step-text">In a P2P game, your app and your opponent's app connect directly instead of going through a game server as in <a href="csa-game.html">CSA network play</a> (relays are used when a direct connection is not possible). You either send an invitation to your opponent or find one in the public list of offers.</p>
-                <p class="guide-step-text">Both players sign the start and the result of each game with a player key that this app creates. The public key of the player key is your player ID. No real name or external account is used. When the game ends, a game record (evidence) signed by both players is saved on both PCs, and anyone can verify it.</p>
+                <p class="guide-step-text">The start and the result of each game are confirmed automatically by both players' apps with a player key that this app creates (no action is needed). The public key of the player key is your player ID. No real name or external account is used. When the game ends, a game record (evidence) confirmed by both players is saved on both PCs, and anyone can verify it.</p>
             </div>
 
             <div class="guide-step">
@@ -266,8 +266,8 @@
                         <tr><th scope="col">Message</th><th scope="col">Meaning</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>The opponent's signature has not been verified yet. This ID is only what the opponent claims.</strong></td><td>The start procedure is still in progress. The player ID is only what the opponent has claimed.</td></tr>
-                        <tr><td><strong>The opponent's start signature has been verified. The opponent holds the key of this ID.</strong></td><td>The opponent signed the start with the key of this ID.</td></tr>
+                        <tr><td><strong>It has not been verified yet that the opponent holds this ID. This ID is only what the opponent claims.</strong></td><td>The start procedure is still in progress. The player ID is only what the opponent has claimed.</td></tr>
+                        <tr><td><strong>Verified that the opponent holds the key of this ID.</strong></td><td>The opponent's app confirmed the start with the key of this ID.</td></tr>
                         <tr><td><strong>Verified opponent (checked with the verification code).</strong></td><td>You marked this opponent as verified on the Opponents tab. Your local name for them is also shown.</td></tr>
                         <tr><td><strong>First game with this opponent. / Games with this opponent: N</strong></td><td>How many games you have played with them, and how many of those had no confirmed result.</td></tr>
                         <tr><td><strong>Same display name as the opponent you named "…", but a different player ID.</strong></td><td>Shown in red. This may be someone other than the opponent you named.</td></tr>
@@ -282,8 +282,8 @@
                 </div>
                 <p class="guide-step-text">Game conditions and record shows the sides and how they were decided, the time control, the rules, and what the game record keeps. If everything is fine, click Start. The game begins when both players have clicked Start. Clicking Cancel, or not starting within 60 seconds, cancels it (the seconds left are shown at the bottom).</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-confirm.png"><img src="../../images/en/p2p-game/p2p-confirm.png" alt="Confirmation screen showing the opponent&#x27;s display name and player ID, that the signature is not verified yet, and the sides, time control, rules, and record" width="600" height="660" loading="lazy"></a>
-                    <p class="screenshot-caption">Confirmation screen (before the opponent's signature is verified)</p>
+                    <a href="../../images/en/p2p-game/p2p-confirm.png"><img src="../../images/en/p2p-game/p2p-confirm.png" alt="Confirmation screen showing the opponent&#x27;s display name and player ID, that the opponent&#x27;s ID is not verified yet, and the sides, time control, rules, and record" width="600" height="660" loading="lazy"></a>
+                    <p class="screenshot-caption">Confirmation screen (before the opponent is verified)</p>
                 </div>
             </div>
 
@@ -332,6 +332,14 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Game End and Confirming the Result</span>
+                </div>
+                <p class="guide-step-text">When the game ends by resignation, checkmate, time loss, and so on, both apps compare the result (winner, how it ended, and the move number) and, if they match, confirm it automatically with the player keys. No action is needed (Confirming the result… is shown on the Game tab meanwhile). When both confirmations are in, the record becomes Confirmed by both. If the opponent's confirmation does not arrive within 30 seconds, it is saved as Without opponent's confirmation.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">When the Connection Drops</span>
                 </div>
                 <p class="guide-step-text">If the connection drops, the app reconnects automatically (Reconnecting (N s left) is shown). The clock of the side to move keeps running, and the side to move can still make one move, which is sent when the connection returns.</p>
@@ -362,15 +370,15 @@
                         <tr><th scope="col">Record status</th><th scope="col">Meaning</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Signed by both</strong></td><td>Both player keys signed the same result. This is the only status that shows that both players agreed on the result.</td></tr>
-                        <tr><td><strong>Determined by the moves</strong></td><td>The result was not signed by both, but the moves up to the last position signed by both players determine checkmate, repetition, perpetual check, or 512 moves reached.</td></tr>
-                        <tr><td><strong>Unconfirmed</strong></td><td>Neither of the above, for example when the opponent's signature did not arrive after a resignation or time loss, or when the game was interrupted.</td></tr>
+                        <tr><td><strong>Confirmed by both</strong></td><td>Both player keys confirmed the same result. This is the only status that shows that both players agreed on the result.</td></tr>
+                        <tr><td><strong>Determined by the moves</strong></td><td>The result was not confirmed by both, but the moves up to the last position both apps checked determine checkmate, repetition, perpetual check, or 512 moves reached.</td></tr>
+                        <tr><td><strong>Unconfirmed</strong></td><td>Neither of the above, for example when the opponent's confirmation did not arrive after a resignation or time loss, or when the game was interrupted.</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">Evidence is saved in <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code>. If the app exits during a game, the record up to that point appears as an unconfirmed record the next time you open the window.</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/en/p2p-game/p2p-records.png"><img src="../../images/en/p2p-game/p2p-records.png" alt="Game Records tab with Ended, Opponent, You, How it ended, Record status, and Result columns and Verify, Export Evidence, and Delete Record buttons" width="898" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">Game Records tab: a record signed by both players</p>
+                    <p class="screenshot-caption">Game Records tab: a record confirmed by both players</p>
                 </div>
             </div>
 
@@ -379,7 +387,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">Verify, Export, or Delete</span>
                 </div>
-                <p class="guide-step-text">Click Verify to see whether the signatures match, whether the moves follow the rules, whether the self-reported time arithmetic matches, whether the result is determined by the moves, and the record status. Export Evidence… saves the evidence file (.sbqmatch) wherever you like. Delete Record removes the evidence from your PC (this cannot be undone).</p>
+                <p class="guide-step-text">Click Verify to see whether the confirmations with player keys are valid, whether the moves follow the rules, whether the self-reported time arithmetic matches, whether the result is determined by the moves, and the record status. Export Evidence… saves the evidence file (.sbqmatch) wherever you like. Delete Record removes the evidence from your PC (this cannot be undone).</p>
                 <p class="guide-step-text">A record does not prove the actual thinking time, that humans played, or when the game was played.</p>
             </div>
 
@@ -426,7 +434,7 @@
   "valid": true,
   "white_player_id": "8a3569db…"
 }</code></pre></div>
-                <p class="guide-step-text"><code>valid</code> is true when the signatures and the record structure are correct, and <code>category</code> is the record status (<code>mutually_signed</code>, <code>determined_by_record</code>, or <code>unconfirmed</code>). <code>not_verifiable</code> lists what this record cannot show (actual thinking time, human play, and the date played).</p>
+                <p class="guide-step-text"><code>valid</code> is true when the confirmations with player keys and the record structure are correct, and <code>category</code> is the record status (<code>mutually_signed</code> is Confirmed by both, <code>determined_by_record</code> is Determined by the moves, and <code>unconfirmed</code> is Unconfirmed). <code>not_verifiable</code> lists what this record cannot show (actual thinking time, human play, and the date played).</p>
             </div>
 
         </div>
@@ -497,9 +505,9 @@
                 </div>
                 <ul class="guide-step-text">
                     <li><strong>Display names</strong>: Display names are self-declared. Identify opponents by player ID and verification code.</li>
-                    <li><strong>Signing the result</strong>: If the losing player refuses to sign the result, no record signed by both players remains.</li>
+                    <li><strong>Confirming the result</strong>: If the losing player's app does not confirm the result (for example, by quitting the app or cutting the connection midway, or by using a modified app), no record confirmed by both players remains.</li>
                     <li><strong>Time used</strong>: Time used is self-reported. Padding of up to 10 seconds per move and stalling by disconnecting (up to 10 minutes in total per game) cannot be detected.</li>
-                    <li><strong>Engines and arranged games</strong>: Games played by engines and arranged games cannot be detected. Both players can also agree to sign a made-up result.</li>
+                    <li><strong>Engines and arranged games</strong>: Games played by engines and arranged games cannot be detected. Both players can also agree to confirm a made-up result.</li>
                     <li><strong>Player key</strong>: Malicious programs running as the same user can steal the player key.</li>
                 </ul>
                 <p class="guide-step-text">Do not use recorded wins as the basis for an official rating or playing strength.</p>
@@ -517,7 +525,7 @@
                     <tbody>
                         <tr><td><strong>Your opponent</strong></td><td>Your IP address (with a direct connection), player ID, display name, and conditions</td></tr>
                         <tr><td><strong>Anyone viewing offers</strong></td><td>The IP address, display name, and conditions of whoever published the offer. Pretending to apply also reveals the player ID</td></tr>
-                        <tr><td><strong>Anyone who receives the game record (evidence)</strong></td><td>Both player IDs, the conditions, all moves with self-reported time, and the result with both signatures. Display names, IP addresses, and local names are not kept</td></tr>
+                        <tr><td><strong>Anyone who receives the game record (evidence)</strong></td><td>Both player IDs, the conditions, all moves with self-reported time, and the result confirmed by both. Display names, IP addresses, and local names are not kept</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">The app never publishes your game records or sends them anywhere.</p>

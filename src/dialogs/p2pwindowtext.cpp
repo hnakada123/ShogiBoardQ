@@ -48,7 +48,7 @@ QString P2pWindowText::rulesText()
 
 QString P2pWindowText::recordContentsText()
 {
-    return tr("対局記録（証跡）には、双方のプレイヤーID・条件・全手順と自己申告の消費時間・結果と双方の署名が残り、"
+    return tr("対局記録（証跡）には、双方のプレイヤーID・条件・全手順と自己申告の消費時間・双方がプレイヤー鍵で確定した結果が残り、"
               "双方の手元に保存されます。表示名・IPアドレス・手元で付けた名前は残りません。アプリから公開・送信はしません。");
 }
 
@@ -87,7 +87,7 @@ QString P2pWindowText::errorText(P2p::ErrorCode code)
     case P2p::ErrorCode::Busy: return tr("相手は今、ほかの相手と交渉中か対局中です。");
     case P2p::ErrorCode::Expired: return tr("期限を過ぎました。");
     case P2p::ErrorCode::ConditionMismatch: return tr("条件・先後の希望・表示名が合いませんでした。");
-    case P2p::ErrorCode::InvalidSignature: return tr("署名を確かめられませんでした。相手が名乗ったIDの持ち主であることを示せませんでした。");
+    case P2p::ErrorCode::InvalidSignature: return tr("相手が名乗ったIDの持ち主であることを確かめられませんでした。");
     case P2p::ErrorCode::InvalidMove: return tr("合法でない手を受け取りました。");
     case P2p::ErrorCode::StateConflict: return tr("双方の局面が食い違いました。");
     case P2p::ErrorCode::ClockMismatch: return tr("相手の申告した消費時間が、こちらで測った時間と許容差を超えて食い違いました。");
@@ -104,8 +104,8 @@ QString P2pWindowText::errorText(P2p::ErrorCode code)
 QString P2pWindowText::endingText(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error)
 {
     switch (ending) {
-    case P2p::MatchEnding::MutuallySigned: return tr("結果が一致し、双方の署名がそろいました。");
-    case P2p::MatchEnding::SignatureMissing: return tr("結果は一致しましたが、相手の署名が届きませんでした（相手の署名なしの記録）。");
+    case P2p::MatchEnding::MutuallySigned: return tr("結果が一致し、双方で確定しました。");
+    case P2p::MatchEnding::SignatureMissing: return tr("結果は一致しましたが、相手の確定が届きませんでした（相手の確定なしの記録）。");
     case P2p::MatchEnding::Aborted:
         return tr("対局は中断されました（結果未確定）。") + (error ? errorText(*error) : QString());
     case P2p::MatchEnding::Error:
@@ -118,8 +118,8 @@ QString P2pWindowText::endingText(P2p::MatchEnding ending, std::optional<P2p::Er
 
 QString P2pWindowText::localEndingText(const QString& localEnding)
 {
-    if (localEnding == QLatin1String("mutually_signed")) return tr("双方の署名あり");
-    if (localEnding == QLatin1String("signature_missing")) return tr("相手の署名なし");
+    if (localEnding == QLatin1String("mutually_signed")) return tr("双方で確定");
+    if (localEnding == QLatin1String("signature_missing")) return tr("相手の確定なし");
     if (localEnding == QLatin1String("aborted")) return tr("中断（結果未確定）");
     if (localEnding == QLatin1String("error")) return tr("エラー（結果未確定）");
     if (localEnding == QLatin1String("disconnected")) return tr("通信中断（結果未確定）");
@@ -130,7 +130,7 @@ QString P2pWindowText::localEndingText(const QString& localEnding)
 QString P2pWindowText::categoryText(P2p::EvidenceReport::Category category)
 {
     switch (category) {
-    case P2p::EvidenceReport::Category::MutuallySigned: return tr("双方の署名あり");
+    case P2p::EvidenceReport::Category::MutuallySigned: return tr("双方で確定");
     case P2p::EvidenceReport::Category::DeterminedByRecord: return tr("棋譜から決まる結果");
     case P2p::EvidenceReport::Category::Unconfirmed: return tr("結果未確定");
     }

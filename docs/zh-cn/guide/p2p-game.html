@@ -10,14 +10,14 @@
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-game.html">
     <meta property="og:title" content="P2P对局（实验版） - ShogiBoardQ">
-    <meta property="og:description" content="不经过对局服务器，与对手直接连接下棋，并在本地保存双方在开始与结束时签名的对局记录。">
+    <meta property="og:description" content="不经过对局服务器，与对手直接连接下棋，并在本地保存双方确定了开始与结果的对局记录。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/p2p-game/p2p-confirm.png">
     <meta property="og:locale" content="zh_CN">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="P2P对局（实验版） - ShogiBoardQ">
-    <meta name="twitter:description" content="不经过对局服务器，与对手直接连接下棋，并在本地保存双方在开始与结束时签名的对局记录。">
+    <meta name="twitter:description" content="不经过对局服务器，与对手直接连接下棋，并在本地保存双方确定了开始与结果的对局记录。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/p2p-game/p2p-confirm.png">
     <link rel="stylesheet" href="../../css/style.css">
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
@@ -63,11 +63,11 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>P2P对局（实验版）</h1>
-        <p class="hero-subtitle">不经过对局服务器，与对手直接连接下棋，并保存双方在开始与结果上签名的对局记录</p>
+        <p class="hero-subtitle">不经过对局服务器，与对手直接连接下棋，并保存双方确定了开始与结果的对局记录</p>
         <div class="hero-badges">
             <span class="badge">无需服务器</span>
             <span class="badge">邀请与公开招募</span>
-            <span class="badge">带签名的对局记录</span>
+            <span class="badge">双方确定的对局记录</span>
             <span class="badge">实验版・Linux</span>
         </div>
         <p class="screenshot-note">这是实验中的功能，画面和规则今后可能会改变。截图在 Linux 上以简体中文界面拍摄。</p>
@@ -88,7 +88,7 @@
                     <span class="guide-step-title">与对手的电脑直接连接下棋</span>
                 </div>
                 <p class="guide-step-text">P2P对局不像<a href="csa-game.html">CSA网络对局</a>那样经过对局服务器，而是由自己和对手的应用直接连接下棋（无法直接连接时使用中继）。可以把邀请字符串交给对手，也可以从公开的招募列表中寻找对手。</p>
-                <p class="guide-step-text">对局的开始和结果由双方用本应用生成的玩家密钥签名。玩家密钥的公钥就是您的“玩家ID”。不使用真实姓名或外部服务的账号。对局结束后，带有双方签名的对局记录（凭证）会保存在双方的电脑中，任何人都可以验证。</p>
+                <p class="guide-step-text">对局的开始和结果由双方的应用用本应用生成的玩家密钥自动确定（无需操作）。玩家密钥的公钥就是您的“玩家ID”。不使用真实姓名或外部服务的账号。对局结束后，双方已确定的对局记录（凭证）会保存在双方的电脑中，任何人都可以验证。</p>
             </div>
 
             <div class="guide-step">
@@ -266,8 +266,8 @@
                         <tr><th scope="col">显示</th><th scope="col">含义</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>尚未验证对手的签名。此ID只是对手的自称。</strong></td><td>开始手续尚在进行中，玩家ID只是对手报上的值。</td></tr>
-                        <tr><td><strong>已验证对手的开始签名。对手持有此ID的密钥。</strong></td><td>对手已用此ID的密钥对开始签名。</td></tr>
+                        <tr><td><strong>尚未验证对手是否为此ID的持有者。此ID只是对手的自称。</strong></td><td>开始手续尚在进行中，玩家ID只是对手报上的值。</td></tr>
+                        <tr><td><strong>已验证对手持有此ID的密钥。</strong></td><td>对手的应用已用此ID的密钥确定了开始。</td></tr>
                         <tr><td><strong>已确认的对手（已用确认码核对）。</strong></td><td>在“对手管理”中设为已确认的对手。也会显示您设定的本地备注名。</td></tr>
                         <tr><td><strong>首次对局的对手。／与此对手的对局：N局</strong></td><td>以往的对局数，以及其中结果未确定的对局数。</td></tr>
                         <tr><td><strong>与您命名为「…」的对手显示名相同，但玩家ID不同。</strong></td><td>以红字显示。可能是与您命名的对手不同的人。</td></tr>
@@ -282,8 +282,8 @@
                 </div>
                 <p class="guide-step-text">“对局条件与记录”中会显示先后手及其决定方式、用时规则、规则以及对局记录中保存的内容。没有问题就点击“开始”。双方都点击“开始”后对局开始。点击“取消”，或 60 秒内双方没有都开始，就会取消（剩余秒数显示在下方）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-confirm.png"><img src="../../images/zh-cn/p2p-game/p2p-confirm.png" alt="显示对手的显示名和玩家ID、尚未验证签名、先后手、用时规则、规则和记录内容的条件确认画面" width="600" height="660" loading="lazy"></a>
-                    <p class="screenshot-caption">条件确认画面（验证对手签名之前）</p>
+                    <a href="../../images/zh-cn/p2p-game/p2p-confirm.png"><img src="../../images/zh-cn/p2p-game/p2p-confirm.png" alt="显示对手的显示名和玩家ID、尚未验证对手是否为ID的持有者、先后手、用时规则、规则和记录内容的条件确认画面" width="600" height="660" loading="lazy"></a>
+                    <p class="screenshot-caption">条件确认画面（验证对手之前）</p>
                 </div>
             </div>
 
@@ -332,6 +332,14 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">终局与确定结果</span>
+                </div>
+                <p class="guide-step-text">因认输、将死、超时负等终局后，双方的应用会对照结果（胜负、结束方式和手数），一致时自动用玩家密钥确定。无需操作（期间“对局中”标签页显示“正在确定结果…”）。双方都确定后，记录成为“双方已确定”。若 30 秒内没有收到对手的确定，则保存为“无对手确定”。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">线路断开时</span>
                 </div>
                 <p class="guide-step-text">线路断开时，应用会自动重新连接（显示“正在重新连接（剩余 N 秒）”）。断线期间轮到走棋一方的时钟继续计时，轮到走棋的一方仍可走一步棋（恢复连接后发送）。</p>
@@ -362,15 +370,15 @@
                         <tr><th scope="col">记录类别</th><th scope="col">含义</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>双方已签名</strong></td><td>双方的玩家密钥都对同一结果签了名。只有这个类别能表明双方同意了同一结果。</td></tr>
-                        <tr><td><strong>由棋谱决定的结果</strong></td><td>结果的签名不齐全，但到双方都签名的最后局面为止的棋谱已决定了将死、千日手、连续王手千日手或达到512手。</td></tr>
-                        <tr><td><strong>结果未确定</strong></td><td>两者都不是。例如认输或超时负之后没有收到对手的签名，或对局被中断时。</td></tr>
+                        <tr><td><strong>双方已确定</strong></td><td>双方的玩家密钥都确定了同一结果。只有这个类别能表明双方同意了同一结果。</td></tr>
+                        <tr><td><strong>由棋谱决定的结果</strong></td><td>结果的确定不齐全，但到双方的应用都已验证的最后局面为止的棋谱已决定了将死、千日手、连续王手千日手或达到512手。</td></tr>
+                        <tr><td><strong>结果未确定</strong></td><td>两者都不是。例如认输或超时负之后没有收到对手的确定，或对局被中断时。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">凭证保存在 <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code>。对局中应用退出时，到那时为止的记录会在下次打开时作为“结果未确定”的记录保留。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-cn/p2p-game/p2p-records.png"><img src="../../images/zh-cn/p2p-game/p2p-records.png" alt="显示结束时间、对手、您、结束方式、记录类别、结果各列，以及验证、导出、删除按钮的“对局记录”标签页" width="820" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">“对局记录”标签页：双方已签名的记录</p>
+                    <p class="screenshot-caption">“对局记录”标签页：双方已确定的记录</p>
                 </div>
             </div>
 
@@ -379,7 +387,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">验证、导出与删除</span>
                 </div>
-                <p class="guide-step-text">点击“验证”，会显示签名是否一致、棋谱是否符合规则、自报用时的计算是否一致、结果是否由棋谱决定，以及记录类别。用“导出凭证…”可以把凭证文件（.sbqmatch）保存到任意位置。“删除记录”会删除本地的凭证（无法恢复）。</p>
+                <p class="guide-step-text">点击“验证”，会显示玩家密钥的确定是否正确、棋谱是否符合规则、自报用时的计算是否一致、结果是否由棋谱决定，以及记录类别。用“导出凭证…”可以把凭证文件（.sbqmatch）保存到任意位置。“删除记录”会删除本地的凭证（无法恢复）。</p>
                 <p class="guide-step-text">记录不能证明实际思考时间、是否由人类下棋以及对局日期。</p>
             </div>
 
@@ -426,7 +434,7 @@
   "valid": true,
   "white_player_id": "8a3569db…"
 }</code></pre></div>
-                <p class="guide-step-text"><code>valid</code> 为 true 表示签名和记录的结构正确，<code>category</code> 是记录类别（<code>mutually_signed</code>、<code>determined_by_record</code>、<code>unconfirmed</code>）。<code>not_verifiable</code> 列出从此记录无法确认的内容（实际思考时间、是否由人类下棋、对局日期）。</p>
+                <p class="guide-step-text"><code>valid</code> 为 true 表示玩家密钥的确定和记录的结构正确，<code>category</code> 是记录类别（<code>mutually_signed</code> 为“双方已确定”，<code>determined_by_record</code> 为“由棋谱决定的结果”，<code>unconfirmed</code> 为“结果未确定”）。<code>not_verifiable</code> 列出从此记录无法确认的内容（实际思考时间、是否由人类下棋、对局日期）。</p>
             </div>
 
         </div>
@@ -497,9 +505,9 @@
                 </div>
                 <ul class="guide-step-text">
                     <li><strong>显示名</strong>：显示名为自称。确认对手的依据是玩家ID和确认码。</li>
-                    <li><strong>对结果签名</strong>：若输方拒绝对结果签名，就不会留下双方签名的记录。</li>
+                    <li><strong>确定结果</strong>：若输方的应用不确定结果（例如中途退出应用、断开连接或使用改造过的应用），就不会留下双方确定的记录。</li>
                     <li><strong>用时</strong>：用时为自报。无法识别每步最多 10 秒的虚报，以及利用断线拖延时间（每局合计最多 10 分钟）。</li>
-                    <li><strong>引擎与串通</strong>：无法识别由引擎下的对局或串通的对局。双方也可以串通对虚构的结果签名。</li>
+                    <li><strong>引擎与串通</strong>：无法识别由引擎下的对局或串通的对局。双方也可以串通确定虚构的结果。</li>
                     <li><strong>玩家密钥</strong>：无法防止以同一用户权限运行的恶意程序窃取玩家密钥。</li>
                 </ul>
                 <p class="guide-step-text">请不要把记录的胜局数作为正式等级分或棋力的依据。</p>
@@ -517,7 +525,7 @@
                     <tbody>
                         <tr><td><strong>对局对手</strong></td><td>IP 地址（直接连接时）、玩家ID、显示名、条件</td></tr>
                         <tr><td><strong>查看招募的人（不特定）</strong></td><td>发布招募者的 IP 地址、显示名和条件。假装申请还能得知玩家ID</td></tr>
-                        <tr><td><strong>收到对局记录（凭证）的人</strong></td><td>双方的玩家ID、条件、全部着手与自报用时、结果及双方签名。不保存显示名、IP 地址和本地备注名</td></tr>
+                        <tr><td><strong>收到对局记录（凭证）的人</strong></td><td>双方的玩家ID、条件、全部着手与自报用时、双方确定的结果。不保存显示名、IP 地址和本地备注名</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">本应用不会公开对局记录，也不会把它发送到任何地方。</p>

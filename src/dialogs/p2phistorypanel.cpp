@@ -43,7 +43,7 @@ P2pHistoryPanel::P2pHistoryPanel(P2pRecordStore* store, P2pKnownPeers* knownPeer
     , m_knownPeers(knownPeers)
 {
     auto* layout = new QVBoxLayout(this);
-    auto* note = new QLabel(tr("「記録の区分」は証跡を検証した結果です。双方の署名がそろった記録だけが、双方が同じ結果に同意したことを示します。"
+    auto* note = new QLabel(tr("「記録の区分」は証跡を検証した結果です。双方で確定した記録だけが、双方が同じ結果に同意したことを示します。"
                                "記録は思考時間の正しさ・人間が指したこと・対局の日時を証明しません。"),
                             this);
     note->setWordWrap(true);
@@ -145,14 +145,14 @@ void P2pHistoryPanel::onVerify()
     lines << tr("対局ID: %1").arg(QString::fromLatin1(report->gameId.toHex()));
     lines << tr("先手のプレイヤーID: %1").arg(P2pWindowText::playerIdText(report->blackPlayerKey));
     lines << tr("後手のプレイヤーID: %1").arg(P2pWindowText::playerIdText(report->whitePlayerKey));
-    lines << tr("署名が一致: %1").arg(yesNo(report->signaturesValid && report->blackStartSigned && report->whiteStartSigned));
+    lines << tr("プレイヤー鍵による確定が正しい: %1").arg(yesNo(report->signaturesValid && report->blackStartSigned && report->whiteStartSigned));
     lines << tr("棋譜がルールに適合: %1").arg(yesNo(report->recordLegal));
     lines << tr("自己申告時間の計算が一致: %1").arg(yesNo(report->clockArithmeticValid));
     lines << tr("結果が棋譜から決まる: %1").arg(report->terminal ? P2pWindowText::outcomeText(report->terminal->outcome, report->terminal->cause)
                                                                  : tr("いいえ"));
     lines << tr("記録の区分: %1").arg(P2pWindowText::categoryText(report->category));
     if (report->result) lines << tr("結果の識別子: %1").arg(QString::fromLatin1(report->resultDigest.toHex()));
-    if (report->resultConflictsWithRecord) lines << tr("署名された結果が、棋譜から決まる結果と食い違っています。");
+    if (report->resultConflictsWithRecord) lines << tr("確定した結果が、棋譜から決まる結果と食い違っています。");
     if (!report->error.isEmpty()) lines << tr("問題: %1").arg(report->error);
     lines << tr("実際の思考時間・人間が指したこと・対局の日時は、この記録からは確かめられません。");
     DialogUtils::information(this, tr("検証"), lines.join(QLatin1Char('\n')));
