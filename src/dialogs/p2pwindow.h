@@ -94,6 +94,8 @@ private:
 
     QPointer<P2pLobbyService> m_lobby;
     QPointer<P2pGameCoordinator> m_game;
+    /// この PC の何人目のプレイヤーか（1〜。2人目からは題名と上の案内に出し、表示名も別に覚える）
+    int m_player = 1;
     QTabWidget* m_tabs = nullptr;
     QWidget* m_gameTab = nullptr;
 

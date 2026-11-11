@@ -11,6 +11,7 @@
 #include "p2pbuildinfo.h"
 #include "p2pidentitystore.h"
 #include "p2pknownpeers.h"
+#include "p2pplayerslot.h"
 #include "p2precordstore.h"
 #include "peeripc.h"
 
@@ -41,6 +42,19 @@ P2pLobbyService::P2pLobbyService(const Deps& deps, const QString& dataRoot, QObj
 }
 
 P2pLobbyService::~P2pLobbyService() = default;
+
+P2pLobbyService* P2pLobbyService::acquire(const Deps& deps, const QString& dataDirectory, QObject* parent)
+{
+    for (int player = 1; player <= P2pPlayerSlot::kMaxPlayers; ++player) {
+        auto lobby = std::make_unique<P2pLobbyService>(deps, P2pPlayerSlot::storageDirectory(dataDirectory, player));
+        lobby->m_playerNumber = player;
+        // ほかのアプリが使っている番号は飛ばす
+        if (lobby->prepare() != StartFailure::None) continue;
+        lobby->setParent(parent);
+        return lobby.release();
+    }
+    return nullptr;
+}
 
 qint64 P2pLobbyService::buildExpiresAt()
 {

@@ -70,6 +70,12 @@ public:
     P2pLobbyService(const Deps& deps, const QString& dataRoot, QObject* parent = nullptr);
     ~P2pLobbyService() override;
 
+    /// この PC で空いている最初の番号のプレイヤーとして使い始める（prepare 済みの部品を返す）。dataDirectory の下の
+    /// 保存先を1人目から順に試し、ほかのアプリが使っている番号は飛ばす（P2pPlayerSlot）。どれも使えなければ nullptr
+    static P2pLobbyService* acquire(const Deps& deps, const QString& dataDirectory, QObject* parent = nullptr);
+    /// この PC の何人目のプレイヤーか（1〜。acquire で決まる。保存先を直接渡して作ったときは 1）
+    int playerNumber() const { return m_playerNumber; }
+
     P2pRecordStore* records() const { return m_store.get(); }
     P2pKnownPeers* knownPeers() const { return m_knownPeers.get(); }
     P2pIdentityStore* identity() const { return m_identity; }
@@ -155,6 +161,7 @@ private:
     PeerProcess* m_peer = nullptr;            ///< 子オブジェクト（使う間だけ）
     ActivityLease m_lease;
     bool m_automationDisabled = false;
+    int m_playerNumber = 1;
 
     Status m_status = Status::Off;
     PeerProcess::Failure m_peerFailure = PeerProcess::Failure::None;

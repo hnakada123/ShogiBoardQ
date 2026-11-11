@@ -98,9 +98,11 @@ QString P2pIdentityStore::keychainItemKey(const QString& directory, const QStrin
     const QString base = QString::fromLatin1(kKeychainKey);
     const QString own = QDir::cleanPath(QDir(directory).absolutePath());
     if (!standardDataDirectory.isEmpty()) {
-        const QString standard = QDir::cleanPath(QDir(standardDataDirectory).absolutePath());
-        // 名前が前の部分だけ同じ別のフォルダ（…/ShogiBoardQ-P2P-2 など）を、下のフォルダと取り違えない
-        if (own == standard || own.startsWith(standard + QLatin1Char('/'))) return base;
+        // これまでの名前を使うのは、標準の場所の1人目の鍵だけ（P2pPlayerSlot::storageDirectory の p2p と、
+        // P2pRecordStore::identityDirectory の identity。2人目からの p2p-2/identity などは別の項目にする）
+        const QString standard =
+            QDir::cleanPath(QDir(standardDataDirectory).absoluteFilePath(QStringLiteral("p2p/identity")));
+        if (own == standard) return base;
     }
     const QByteArray digest = QCryptographicHash::hash(own.toUtf8(), QCryptographicHash::Sha256);
     return base + QLatin1Char('@') + QString::fromLatin1(digest.left(8).toHex());

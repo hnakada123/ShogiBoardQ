@@ -15,6 +15,7 @@
 #include "p2pidentitydialog.h"
 #include "p2pidentitystore.h"
 #include "p2plobbyservice.h"
+#include "p2pplayerslot.h"
 #include "p2precordstore.h"
 #include "p2pwindow.h"
 #include "p2pwindowtext.h"
@@ -62,17 +63,18 @@ bool P2pGameUiController::ensureLobby()
     P2pLobbyService::Deps deps;
     deps.activity = m_deps.activity;
     deps.game = m_deps.game;
-    m_lobby = new P2pLobbyService(deps, QDir(AppPaths::dataDirectory()).filePath(QStringLiteral("p2p")), this);
-    connect(m_lobby, &P2pLobbyService::peerFailed, this, &P2pGameUiController::onPeerFailed);
-    connect(m_lobby->identity(), &P2pIdentityStore::finished, this, &P2pGameUiController::onIdentityFinished);
-    // p2p/ を使えるアプリは同時に1つ
-    if (m_lobby->prepare() == P2pLobbyService::StartFailure::Locked) {
-        NotificationPresenter::warning(m_deps.parentWidget, tr("P2P対局"),
-                                       tr("ほかの ShogiBoardQ-P2P が P2P対局を使っています。そちらを閉じてから開いてください。"));
-        m_lobby->deleteLater();
-        m_lobby = nullptr;
+    // 同じ PC でほかの ShogiBoardQ-P2P が P2P対局を使っていれば、空いている次の番号のプレイヤー（2人目・3人目…）に
+    // なる。保存先（プレイヤー鍵・対局記録）はプレイヤーごとに別で、同じ PC の中で対局を試せる
+    m_lobby = P2pLobbyService::acquire(deps, AppPaths::dataDirectory(), this);
+    if (!m_lobby) {
+        NotificationPresenter::warning(
+            m_deps.parentWidget, tr("P2P対局"),
+            tr("このPCで同時に P2P対局を使える ShogiBoardQ-P2P は %1 個までです。ほかの ShogiBoardQ-P2P を閉じてから開いてください。")
+                .arg(P2pPlayerSlot::kMaxPlayers));
         return false;
     }
+    connect(m_lobby, &P2pLobbyService::peerFailed, this, &P2pGameUiController::onPeerFailed);
+    connect(m_lobby->identity(), &P2pIdentityStore::finished, this, &P2pGameUiController::onIdentityFinished);
     // p2p/ 全体の大きさが上限を超えていたら、古い記録を消すかを尋ねる（黙って消さない）
     if (m_lobby->records()->totalBytes() > P2pRecordStore::kMaxTotalBytes) {
         NotificationPresenter::warning(m_deps.parentWidget, tr("P2P対局"),

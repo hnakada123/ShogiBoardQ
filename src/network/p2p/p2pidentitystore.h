@@ -64,10 +64,10 @@ public:
 
     /// このビルドで OS の鍵の保管庫を使えるか（QtKeychain を組み込んだか）
     static bool keychainSupported();
-    /// 鍵の保管庫の項目のキー。保存先（directory）ごとに別の項目にする。保存先を分けて同じ PC で動かす2つ目の
-    /// アプリ（SHOGIBOARDQ_DATA_HOME）や試験が、普段の保存先の鍵を上書き・削除しないためである。
-    /// 標準のデータの場所（standardDataDirectory）の下なら "player-key-v1"、それ以外は、その後ろに "@" と、
-    /// 保存先の絶対パスの SHA-256 の先頭16桁（16進）を付ける
+    /// 鍵の保管庫の項目のキー。保存先（directory）ごとに別の項目にする。同じ PC の2人目からのプレイヤー
+    /// （P2pPlayerSlot）・環境変数で分けた保存先（SHOGIBOARDQ_DATA_HOME）・試験が、1人目の鍵を上書き・削除しない
+    /// ためである。標準のデータの場所（standardDataDirectory）の1人目の鍵の場所（p2p/identity）なら
+    /// "player-key-v1"、それ以外は、その後ろに "@" と、保存先の絶対パスの SHA-256 の先頭16桁（16進）を付ける
     static QString keychainItemKey(const QString& directory, const QString& standardDataDirectory);
 
     /// 保管している方法（まだ作っていなければ None）
