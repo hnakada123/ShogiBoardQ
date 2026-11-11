@@ -5,6 +5,7 @@
 
 #include <QtTest>
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
 #include <QHeaderView>
@@ -180,6 +181,11 @@ private slots:
         auto* network = window.findChild<QComboBox*>(QStringLiteral("p2pNetwork"));
         QVERIFY(network);
         QCOMPARE(network->count(), 2);
+        // チェックの文字は折り返せないので、短くする（長い説明は折り返すラベルに分ける。長いと、訳した画面で
+        // ウィンドウの最小の幅が広がる）
+        for (QCheckBox* box : window.findChildren<QCheckBox*>()) {
+            QVERIFY2(box->text().size() <= 30, qPrintable(box->text()));
+        }
         // 公開募集は持たない（対局の相手は招待で決める）。自分のアドレスも画面に出さない
         QVERIFY(!window.findChild<QTableWidget*>(QStringLiteral("p2pOffers")));
         for (QLabel* label : window.findChildren<QLabel*>()) {

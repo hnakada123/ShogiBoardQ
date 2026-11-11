@@ -278,10 +278,12 @@ QWidget* P2pWindow::createSettingsTab()
     m_bootstrap->setPlaceholderText(tr("協力ノードのアドレス（/ip4/…/p2p/… の形）を1行に1つ"));
     m_bootstrap->setMaximumHeight(100);
     form->addRow(tr("接続候補"), m_bootstrap);
-    m_relayOnly = new QCheckBox(tr("直接接続を使わない（接続候補の協力ノードの中継だけを使い、相手からIPアドレスを隠す。"
-                                   "協力ノードの運営者には見えます）"),
-                                tab);
+    m_relayOnly = new QCheckBox(tr("直接接続を使わない"), tab);
     form->addRow(QString(), m_relayOnly);
+    // 説明は折り返すラベルに分ける（チェックの文字は折り返せないので、長いとウィンドウの最小の幅が広がる。
+    // 英語では 1200 を超えていた）
+    form->addRow(QString(), plainLabel(tab, tr("接続候補の協力ノードの中継だけを使い、相手からIPアドレスを隠します。"
+                                               "協力ノードの運営者には見えます。")));
     m_hideUnknown = new QCheckBox(tr("対局したことのない相手の表示名を出さない"), tab);
     form->addRow(QString(), m_hideUnknown);
     layout->addLayout(form);
