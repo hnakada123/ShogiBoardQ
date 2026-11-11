@@ -77,6 +77,7 @@ void GameSession::beginRecord(const MatchRecordStart& start)
     preparation.rootSfen = start.startSfen;
     m_deps.reset->prepareGameStart(preparation);
     beginMatchRecord(start.players, start.timeControl, /*continuesRecord=*/false);
+    for (const auto& [key, value] : std::as_const(start.extraInfo)) m_deps.document->setMatchInfo(key, value);
     m_autoSave = start.autoSave;
 }
 

@@ -52,6 +52,8 @@ class KifuAnalysisSession;
 class ConsecutiveGameSeries;
 class CsaGameCoordinator;
 class CsaGameUiController;
+class P2pGameCoordinator;
+class P2pGameUiController;
 class EngineSlots;
 class GameSession;
 class OperationPolicy;
@@ -161,6 +163,8 @@ struct MainWindowComponents {
     CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局の司令塔
     GameSession* gameSession = nullptr;                 ///< 対局の利用者の操作と棋譜の受け手
     CsaGameUiController* csaUi = nullptr;               ///< 通信対局の開始と画面への反映
+    P2pGameCoordinator* p2pGame = nullptr;              ///< P2P対局の司令塔（P2P対局を含むビルドだけ）
+    P2pGameUiController* p2pUi = nullptr;               ///< P2P対局の画面（P2P対局を含むビルドだけ）
     std::unique_ptr<GameChannels> gameChannels;
     std::unique_ptr<OperationPolicy> operationPolicy;
     std::unique_ptr<SessionResetCoordinator> sessionReset;

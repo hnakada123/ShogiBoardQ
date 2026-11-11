@@ -1,0 +1,363 @@
+/// @file p2precordstore.cpp
+/// @brief P2P対局の保存先の実装
+
+#include "p2precordstore.h"
+
+#include <QDateTime>
+#include <QDir>
+#include <QDirIterator>
+#include <QFileInfo>
+#include <QSaveFile>
+
+#include <algorithm>
+
+#ifdef Q_OS_WIN
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
+#include "logcategories.h"
+
+namespace {
+
+using P2p::CborValue;
+
+constexpr QFileDevice::Permissions kOwnerFile = QFileDevice::ReadOwner | QFileDevice::WriteOwner;
+constexpr QFileDevice::Permissions kOwnerDir = QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner;
+constexpr int kChecksumBytes = 4;
+/// 履歴の情報のファイルの上限
+constexpr qint64 kMaxInfoBytes = 4096;
+constexpr int kMaxKnownPeerAddresses = 64;
+
+QByteArray checksumOf(const QByteArray& payload)
+{
+    return P2p::Cbor::sha256(payload).left(kChecksumBytes);
+}
+
+QByteArray bigEndian32(quint32 value)
+{
+    QByteArray out(4, '\0');
+    for (int i = 0; i < 4; ++i) out[i] = static_cast<char>((value >> (24 - 8 * i)) & 0xFFu);
+    return out;
+}
+
+quint32 readBigEndian32(const QByteArray& bytes, qsizetype offset)
+{
+    quint32 value = 0;
+    for (int i = 0; i < 4; ++i) value = (value << 8) | static_cast<quint8>(bytes.at(offset + i));
+    return value;
+}
+
+bool syncToDisk(QFile& file)
+{
+    if (!file.flush()) return false;
+#ifdef Q_OS_WIN
+    return _commit(file.handle()) == 0;
+#else
+    return ::fsync(file.handle()) == 0;
+#endif
+}
+
+QByteArray infoBytes(const P2pHistoryInfo& info)
+{
+    return P2p::Cbor::encode(CborValue::array({CborValue::text("SBQ-HISTORY"), CborValue::uint(1),
+                                               CborValue::uint(info.mySide), CborValue::text(info.opponentDisplayName),
+                                               CborValue::text(info.localEnding), CborValue::uint(info.endedAt),
+                                               CborValue::text(info.kifuPath)}));
+}
+
+std::optional<P2pHistoryInfo> parseInfo(const QByteArray& bytes)
+{
+    const std::optional<CborValue> value = P2p::Cbor::decode(bytes);
+    if (!value) return std::nullopt;
+    P2p::CborReader r(*value, "SBQ-HISTORY", 7);
+    P2pHistoryInfo info;
+    info.mySide = static_cast<quint8>(r.uint(2, 2));
+    info.opponentDisplayName = r.utf8(3, 96);
+    info.localEnding = QString::fromLatin1(r.ascii(4, 64));
+    info.endedAt = r.uint(5, 0xFFFFFFFFFFULL);
+    info.kifuPath = r.utf8(6, 4096);
+    if (!r.ok()) return std::nullopt;
+    return info;
+}
+
+bool writeAtomically(const QString& path, const QByteArray& bytes)
+{
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly)) return false;
+    file.setPermissions(kOwnerFile);
+    if (file.write(bytes) != bytes.size()) {
+        file.cancelWriting();
+        return false;
+    }
+    return file.commit();
+}
+
+} // namespace
+
+// ---------------------------------------------------------------- P2pJournal
+
+bool P2pJournal::open(const QString& path)
+{
+    m_file.setFileName(path);
+    if (!m_file.open(QIODevice::WriteOnly | QIODevice::Append)) return false;
+    m_file.setPermissions(kOwnerFile);
+    return true;
+}
+
+bool P2pJournal::append(const CborValue& record)
+{
+    if (!m_file.isOpen()) return false;
+    const QByteArray payload = P2p::Cbor::encode(record);
+    if (m_file.size() + payload.size() + 8 > kMaxBytes) return false;
+    QByteArray bytes = bigEndian32(static_cast<quint32>(payload.size()));
+    bytes.append(checksumOf(payload));
+    bytes.append(payload);
+    if (m_file.write(bytes) != bytes.size()) return false;
+    return syncToDisk(m_file);
+}
+
+std::vector<CborValue> P2pJournal::readAll(const QString& path)
+{
+    std::vector<CborValue> records;
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) return records;
+    const QByteArray data = file.read(kMaxBytes + 1);
+    qsizetype pos = 0;
+    while (data.size() - pos >= 8) {
+        const quint32 length = readBigEndian32(data, pos);
+        if (length == 0 || static_cast<qint64>(length) > kMaxBytes || data.size() - pos - 8 < static_cast<qsizetype>(length)) break;
+        const QByteArray checksum = data.mid(pos + 4, kChecksumBytes);
+        const QByteArray payload = data.mid(pos + 8, static_cast<qsizetype>(length));
+        if (checksumOf(payload) != checksum) break;
+        std::optional<CborValue> value = P2p::Cbor::decode(payload);
+        if (!value) break;
+        records.push_back(std::move(*value));
+        pos += 8 + static_cast<qsizetype>(length);
+    }
+    return records;
+}
+
+// ---------------------------------------------------------------- P2pRecordStore
+
+P2pRecordStore::P2pRecordStore(const QString& root)
+    : m_root(root)
+{
+}
+
+P2pRecordStore::~P2pRecordStore()
+{
+    unlock();
+}
+
+QString P2pRecordStore::identityDirectory() const
+{
+    return QDir(m_root).filePath(QStringLiteral("identity"));
+}
+
+QString P2pRecordStore::journalDirectory() const
+{
+    return QDir(m_root).filePath(QStringLiteral("journal"));
+}
+
+QString P2pRecordStore::evidenceDirectory() const
+{
+    return QDir(m_root).filePath(QStringLiteral("evidence"));
+}
+
+bool P2pRecordStore::ensureDirectory(const QString& path) const
+{
+    if (!QDir().mkpath(path)) return false;
+    QFile::setPermissions(m_root, kOwnerDir);
+    QFile::setPermissions(path, kOwnerDir);
+    return true;
+}
+
+bool P2pRecordStore::lock()
+{
+    if (isLocked()) return true;
+    if (!ensureDirectory(m_root)) return false;
+    m_lock = std::make_unique<QLockFile>(QDir(m_root).filePath(QStringLiteral("p2p.lock")));
+    // 前のアプリが異常終了して残したロックは、そのプロセスがもう無ければ取り直す
+    m_lock->setStaleLockTime(0);
+    if (!m_lock->tryLock(0)) {
+        m_lock.reset();
+        return false;
+    }
+    return true;
+}
+
+void P2pRecordStore::unlock()
+{
+    if (m_lock) m_lock->unlock();
+    m_lock.reset();
+}
+
+std::unique_ptr<P2pJournal> P2pRecordStore::createJournal(const QByteArray& gameId)
+{
+    if (!ensureDirectory(journalDirectory())) return nullptr;
+    auto journal = std::make_unique<P2pJournal>();
+    const QString path = QDir(journalDirectory()).filePath(QString::fromLatin1(gameId.toHex()) + QStringLiteral(".journal"));
+    if (!journal->open(path)) return nullptr;
+    return journal;
+}
+
+QString P2pRecordStore::saveEvidence(const P2p::Evidence& evidence, const P2pHistoryInfo& info, bool keepJournal)
+{
+    if (!ensureDirectory(evidenceDirectory())) return QString();
+    const QString base = QString::fromLatin1(evidence.gameId().toHex());
+    const QString path = QDir(evidenceDirectory()).filePath(base + QStringLiteral(".") + QLatin1String(P2p::Evidence::kSuffix));
+    if (!writeAtomically(path, evidence.encode())) return QString();
+    if (!writeAtomically(QDir(evidenceDirectory()).filePath(base + QStringLiteral(".info")), infoBytes(info))) {
+        return QString();
+    }
+    if (!keepJournal) QFile::remove(QDir(journalDirectory()).filePath(base + QStringLiteral(".journal")));
+    return path;
+}
+
+std::optional<P2p::Evidence> P2pRecordStore::evidenceFromJournal(const std::vector<CborValue>& records,
+                                                                 P2pHistoryInfo* info, bool* hasConflict)
+{
+    P2p::Evidence e;
+    bool started = false;
+    if (hasConflict) *hasConflict = false;
+    for (const CborValue& record : records) {
+        if (!record.isArray() || record.items().empty() || !record.items()[0].isText()) continue;
+        const QByteArray kind = record.items()[0].data();
+        const std::vector<CborValue>& items = record.items();
+        if (kind == "J-START" && items.size() == 5) {
+            const std::optional<P2p::StartAgreement> agreement = P2p::StartAgreement::fromCbor(items[1]);
+            const std::optional<P2p::TimeControlTerms> terms = P2p::TimeControlTerms::fromCbor(items[2]);
+            if (!agreement || !terms) return std::nullopt;
+            e.agreement = *agreement;
+            e.timeControl = *terms;
+            if (info) {
+                info->mySide = items[3].isUInt() && items[3].toUInt() == 2 ? 2 : 1;
+                info->opponentDisplayName = items[4].isText() ? items[4].toText() : QString();
+            }
+            started = true;
+        } else if (!started) {
+            continue;
+        } else if (kind == "J-STARTSIG" && items.size() == 3 && items[1].isUInt() && items[2].isBytes()) {
+            (items[1].toUInt() == 1 ? e.blackStartSignature : e.whiteStartSignature) = items[2].data();
+        } else if (kind == "J-STATE" && items.size() == 4 && items[2].isBytes() && items[3].isBytes()) {
+            const std::optional<P2p::GameState> state = P2p::GameState::fromCbor(items[1]);
+            if (!state) continue;
+            P2p::SignedState s{*state, items[2].data(), items[3].data()};
+            // 同じ手数の記録は新しいもの（署名が足されたもの）で置き換える
+            if (state->ply < e.states.size()) {
+                e.states[state->ply] = s;
+                e.states.resize(state->ply + 1);
+            } else if (state->ply == e.states.size()) {
+                e.states.push_back(s);
+            }
+        } else if (kind == "J-RESULT" && items.size() == 3) {
+            e.result = P2p::FinalResult::fromCbor(items[2]);
+        } else if (kind == "J-RESULTSIG" && items.size() == 3 && items[1].isUInt() && items[2].isBytes()) {
+            (items[1].toUInt() == 1 ? e.blackResultSignature : e.whiteResultSignature) = items[2].data();
+        } else if (kind == "J-CONFLICT") {
+            if (hasConflict) *hasConflict = true;
+        } else if (kind == "J-END" && items.size() == 2 && items[1].isText() && info) {
+            info->localEnding = items[1].toText();
+        }
+    }
+    if (!started) return std::nullopt;
+    if (!e.result) {
+        e.blackResultSignature.clear();
+        e.whiteResultSignature.clear();
+    }
+    return e;
+}
+
+int P2pRecordStore::recoverJournals()
+{
+    int recovered = 0;
+    const QDir dir(journalDirectory());
+    const QStringList files = dir.entryList({QStringLiteral("*.journal")}, QDir::Files);
+    for (const QString& name : files) {
+        const QString path = dir.filePath(name);
+        P2pHistoryInfo info;
+        bool hasConflict = false;
+        const std::optional<P2p::Evidence> evidence = evidenceFromJournal(P2pJournal::readAll(path), &info, &hasConflict);
+        if (!evidence) continue;
+        if (info.localEnding.isEmpty()) info.localEnding = QStringLiteral("interrupted");
+        info.endedAt = static_cast<quint64>(QFileInfo(path).lastModified().toSecsSinceEpoch());
+        if (!saveEvidence(*evidence, info, hasConflict).isEmpty()) ++recovered;
+    }
+    if (recovered > 0) qCInfo(lcGame) << "P2P: recovered" << recovered << "journal(s) as unconfirmed records";
+    return recovered;
+}
+
+QList<P2pRecordStore::Entry> P2pRecordStore::history() const
+{
+    QList<Entry> entries;
+    const QDir dir(evidenceDirectory());
+    const QFileInfoList files =
+        dir.entryInfoList({QStringLiteral("*.") + QLatin1String(P2p::Evidence::kSuffix)}, QDir::Files, QDir::Time);
+    for (const QFileInfo& file : files) {
+        Entry entry;
+        entry.gameId = QByteArray::fromHex(file.completeBaseName().toLatin1());
+        if (entry.gameId.size() != P2p::kHashSize) continue;
+        entry.evidencePath = file.absoluteFilePath();
+        entry.bytes = file.size();
+        QFile infoFile(dir.filePath(file.completeBaseName() + QStringLiteral(".info")));
+        if (infoFile.open(QIODevice::ReadOnly)) {
+            if (const std::optional<P2pHistoryInfo> info = parseInfo(infoFile.read(kMaxInfoBytes))) entry.info = *info;
+        }
+        entry.hasJournal = QFile::exists(QDir(journalDirectory()).filePath(file.completeBaseName() + QStringLiteral(".journal")));
+        entries.append(entry);
+    }
+    return entries;
+}
+
+bool P2pRecordStore::removeRecord(const QByteArray& gameId)
+{
+    const QString base = QString::fromLatin1(gameId.toHex());
+    bool ok = true;
+    for (const QString& path : {QDir(evidenceDirectory()).filePath(base + QStringLiteral(".") + QLatin1String(P2p::Evidence::kSuffix)),
+                                QDir(evidenceDirectory()).filePath(base + QStringLiteral(".info")),
+                                QDir(journalDirectory()).filePath(base + QStringLiteral(".journal"))}) {
+        if (QFile::exists(path) && !QFile::remove(path)) ok = false;
+    }
+    return ok;
+}
+
+qint64 P2pRecordStore::totalBytes() const
+{
+    qint64 total = 0;
+    QDirIterator it(m_root, QDir::Files | QDir::Hidden, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        it.next();
+        total += it.fileInfo().size();
+    }
+    return total;
+}
+
+QStringList P2pRecordStore::knownPeerAddresses() const
+{
+    QFile file(QDir(m_root).filePath(QStringLiteral("peers.cache")));
+    if (!file.open(QIODevice::ReadOnly)) return {};
+    const std::optional<CborValue> value = P2p::Cbor::decode(file.read(64 * 1024));
+    if (!value || !value->isArray()) return {};
+    QStringList addresses;
+    for (const CborValue& item : value->items()) {
+        if (item.isText() && item.data().size() <= 256 && addresses.size() < kMaxKnownPeerAddresses) {
+            addresses << item.toText();
+        }
+    }
+    return addresses;
+}
+
+void P2pRecordStore::saveKnownPeerAddresses(const QStringList& addresses)
+{
+    if (!ensureDirectory(m_root)) return;
+    std::vector<CborValue> items;
+    for (const QString& address : addresses) {
+        const QByteArray ascii = address.toLatin1();
+        if (address.size() <= 256 && P2p::Cbor::isValidUtf8(ascii) && static_cast<int>(items.size()) < kMaxKnownPeerAddresses) {
+            items.push_back(CborValue::text(ascii));
+        }
+    }
+    writeAtomically(QDir(m_root).filePath(QStringLiteral("peers.cache")), P2p::Cbor::encode(CborValue::array(std::move(items))));
+}

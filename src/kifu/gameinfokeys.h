@@ -37,6 +37,8 @@ inline const QString kTitle = QStringLiteral(QT_TRANSLATE_NOOP("KifuPresentation
 inline const QString kMaxMoves = QStringLiteral("最大手数");
 inline const QString kJishogi = QStringLiteral("持将棋");
 inline const QString kJishogiPoints = QStringLiteral("持将棋点数");
+/// P2P対局の対局ID（gameId の16進。証跡ファイルと対応させる）
+inline const QString kP2pGameId = QStringLiteral(QT_TRANSLATE_NOOP("KifuPresentation", "対局ID"));
 
 // CSA 形式の棋譜から読んだ項目（$TIME・$TIME+・$TIME- の「秒+秒読み+加算」と V 行）
 inline const QString kCsaTime = QStringLiteral("持ち時間(秒/加算)");
@@ -47,7 +49,8 @@ inline const QString kCsaVersion = QStringLiteral("バージョン");
 /// 画面で訳す見出し（KifuPresentation::infoKey が引く）
 inline const QString* const kTranslated[] = {&kGameDate, &kStartDateTime, &kEndDateTime, &kBlackPlayer,
                                              &kWhitePlayer, &kShitatePlayer, &kUwatePlayer, &kHandicap,
-                                             &kTimeControl, &kEvent, &kSite, &kNote, &kOpening, &kTitle};
+                                             &kTimeControl, &kEvent, &kSite, &kNote, &kOpening, &kTitle,
+                                             &kP2pGameId};
 
 } // namespace GameInfoKeys
 

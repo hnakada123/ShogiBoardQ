@@ -35,3 +35,6 @@ __pycache__/
 /data/tsumeshogi/tsume_9ply_1000_20260926.txt
 /data/tsumeshogi/tsume_11ply_1000_20260926.txt
 /data/tsumeshogi/tsume_13ply_1000_20260926.txt
+
+# Rust（Cargo のワークスペース: peer/・protocol/rust）
+/target/

@@ -147,8 +147,8 @@ async def test_render_board_image_follows_app_language(server_env, tmp_path):
     images = {}
     for language in ("ja_JP", "en", "en"):
         config = tmp_path / f"config-{language}"
-        (config / "ShogiBoardQ").mkdir(parents=True, exist_ok=True)
-        (config / "ShogiBoardQ" / "ShogiBoardQ.ini").write_text(f"[%General]\nlanguage={language}\n", encoding="utf-8")
+        (config / "ShogiBoardQ-P2P").mkdir(parents=True, exist_ok=True)
+        (config / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini").write_text(f"[%General]\nlanguage={language}\n", encoding="utf-8")
         env = dict(server_env, XDG_CONFIG_HOME=str(config), SHOGIBOARDQ_CONFIG_HOME=str(config))
         out = tmp_path / f"board-{language}-{len(images)}.png"
         async with mcp_session(env) as session:

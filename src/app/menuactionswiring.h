@@ -8,6 +8,7 @@ namespace Ui { class MainWindow; }
 class AnalysisSession;
 class BoardInteractionController;
 class CsaGameUiController;
+class P2pGameUiController;
 class DialogLauncher;
 class DockLayoutManager;
 class DockRegistry;
@@ -46,6 +47,7 @@ struct Deps {
     KifuClipboardController* clipboard = nullptr;      ///< コピー
     GameSession* session = nullptr;                    ///< 対局の開始・投了・中断・待った・即指し
     CsaGameUiController* csaUi = nullptr;              ///< 通信対局の接続ダイアログ
+    P2pGameUiController* p2pUi = nullptr;              ///< P2P対局のウィンドウ（P2P対局を含むビルドだけ。無ければ項目を隠す）
     MenuWindowController* menuWindow = nullptr;        ///< メニューウィンドウの表示の切り替え
     AnalysisSession* analysis = nullptr;               ///< 詰み探索の中止
     PositionEditSession* positionEdit = nullptr;   ///< 局面編集の終了

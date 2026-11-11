@@ -30,6 +30,11 @@ ninja -C build
 # Python MCP server tests (also registered in ctest as tst_mcp_python)
 python3 -m pytest -q mcp/tests
 
+# P2P対局（実験版。libsodium と Rust が要る。QtKeychain は任意）。通信プロセス shogiboardq-peer も cargo でビルドして同梱する
+cmake -B build -S . -G Ninja -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON
+cargo test --locked --workspace && cargo clippy --locked --workspace --all-targets -- -D warnings
+./build/shogiboardq-cli verify-match --input-path /path/to/game.sbqmatch
+
 # With static analysis
 cmake -B build -S . -DENABLE_CLANG_TIDY=ON
 cmake -B build -S . -DENABLE_CPPCHECK=ON
@@ -143,6 +148,14 @@ cmake --build build --target translations
   - `csagameseries.cpp/.h`・`csaverdictwait.cpp/.h` - 1つの接続（再接続を含む）で続ける対局の数と終局後の再接続の待ち `CsaGameSeries`、解釈できない指し手行の後のサーバーの裁定の待ち `CsaVerdictWait`（仕様 3.4）。対局条件の受け入れの判断とログの文は `CsaGameSummary::unsupportedReason`・`conditionLines`。LOGIN のパスワードを伏せるのは `CsaClient` だけ
   - `csagamechannel.cpp/.h` - 通信対局の窓口 `CsaGameChannel`（`GameChannel` の実装。操作はサーバーへ送り、入玉宣言の成否はサーバーが判定する）
   - `gamechannels.cpp/.h` - ローカル対局と通信対局の窓口の組 `GameChannels`（`active()` が今の動作状態の窓口を返す。`game` と `network` の両方を使うのでここに置く。合成ルートが司令塔の直後に作り、`GameSession`・`BoardMoveController`・`OperationPolicy` に渡す。人間が指せるか `isHumanToMove()`・対局が進行中か `isInProgress()` は窓口だけが決める）
+
+- **P2P対局（実験版。`ENABLE_P2P_PLAY`、既定 OFF）**: 仕様は `docs/dev/p2p-game-spec.md`、開発方針は `docs/dev/p2p-development-strategy.md`、バイト列と JSON の形（決定的CBOR・フレーム・招待文字列・募集・IPC・表示名の表・共通の試験入力）は `protocol/` に1つだけ置く。アプリ名・設定ファイル・自動化 API のソケットの名前は `src/services/appidentity.h` の1か所（通常版と混ざらない `ShogiBoardQ-P2P`）
+  - `src/game/p2p/` - ソケットも GUI も使わない部分（headless の CLI からも使う）: 決定的CBOR `P2p::Cbor`（`p2pcbor`）、条件・状態・開始合意・結果の値（`p2pprotocol`）、Ed25519 と保護付きメモリ（`p2psignature`。libsodium）、表示名の判定（`p2pdisplayname`。表は CMake が `protocol/displayname-v1.txt` から生成。`QString::fromUtf8` は先頭の BOM を消すので、判定は受け取ったバイト列で行う）、フレームの外枠と payload（`p2pframes`）、着手の検査と時計の算術と棋譜から決まる終局（`p2pgamerules`）、証跡と検証（`p2pevidence`・`p2pevidenceverifier`）、開始までの交渉 `P2p::Negotiation` と開始後の対局 `P2p::Match`（どちらも送るフレームと知らせを返す純粋な状態機械。時刻は関数で受け、`tick()` で期限を確かめる）、ジャーナルの件の形（`p2precordkinds`）
+  - `src/network/p2p/` - 通信プロセスの起動と IPC `PeerProcess`（`peeripc` が受けたメッセージの形をすべて確かめる）、プレイヤー鍵の保管 `P2pIdentityStore`、保存先 `P2pRecordStore`（ロック・ジャーナル・証跡・履歴）、既知の相手 `P2pKnownPeers`、司令塔 `P2pGameCoordinator`（交渉と対局を盤・時計・棋譜・動作状態・証跡へつなぐ。送り先は `P2pTransport`）、通信プロセスの窓口 `P2pLobbyService`（募集・招待・接続の振り分け）、対局の窓口 `P2pGameChannel`（`GameChannels::setP2pChannel`）
+  - 画面: `src/dialogs/p2pwindow`（タブ: 対戦相手を探す・招待・対局中・記録 `p2phistorypanel`・相手 `p2ppeerspanel`・設定）、条件確認 `p2pconfirmdialog`、プレイヤー鍵 `p2pidentitydialog`、共通の文 `p2pwindowtext`。`src/ui/controllers/p2pgameuicontroller` が通信プロセス・鍵・ウィンドウを「P2P対局」を開いたときに作る（自動化 API を有効にして起動したときは作らない）
+  - 動作状態 `DuringP2pConnection`（通信プロセスを動かしている間のうち対局していない間）・`DuringP2pGame`（対局中）。対局中は検討・詰み探索・棋譜解析・定跡手の表示を止める（アプリが手の助言をしない）
+  - `peer/`（Rust、`shogiboardq-peer`）と `protocol/rust`（`sbq-protocol`）: リポジトリ直下の Cargo ワークスペース。自前のコードは unsafe と panic を起こしうる書き方を禁止（`Cargo.toml` の lints）。Linux だけ権限の制限（Landlock・seccomp-bpf など）を掛けて動く
+  - 試験: `tst_p2p_protocol`（形式と記録）・`tst_p2p_match`（状態機械）・`tst_p2p_coordinator`（司令塔の結合）・`tst_p2p_endtoend`（本物の通信プロセス2つ）。`cargo test`
 
 - **style/**: ウィジェットの書体と見た目（QWidget に依存する。analysis・network の上、models の下の層。`engine`〜`network`・`models` を参照しない）
   - `applicationfonts` - 表示言語に応じた書体 `ApplicationFonts`

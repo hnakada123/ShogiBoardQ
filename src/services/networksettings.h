@@ -114,6 +114,38 @@ inline const StructListSetting<CsaServerHistoryEntry> csaServerHistory{
      SettingField<CsaServerHistoryEntry>::of("id", &CsaServerHistoryEntry::id)}};
 inline constexpr int kCsaServerHistoryLimit = 10;
 
+// --- P2P対局（実験版。実装仕様 11章）。プレイヤー鍵・パスフレーズ・招待文字列は保存しない ---
+
+/// 参加するネットワーク（このビルドが参加できる名前のどれか。既定はローカル検証用）
+inline const Setting<QString> p2pNetworkName{"P2p/networkName", QStringLiteral("sbq-local-1")};
+/// 名乗る表示名（相手に見える。既定は空で、初めて使うときに入れてもらう）
+inline const Setting<QString> p2pDisplayName{"P2p/displayName", QString()};
+/// 募集・招待の持ち時間（秒。既定 10分＋30秒）
+inline const BoundedSetting<int> p2pMainTimeSeconds{"P2p/mainTimeSeconds", 600, 0, 86400};
+inline const BoundedSetting<int> p2pByoyomiSeconds{"P2p/byoyomiSeconds", 30, 0, 600};
+/// 先後の希望（0=指定なし、1=先手、2=後手）
+inline const BoundedSetting<int> p2pSidePreference{"P2p/sidePreference", 0, 0, 2};
+/// 利用者が指定した協力ノード（/p2p/<PeerId> で終わる multiaddr。16件まで）
+inline const ListSetting<QString> p2pBootstrap{QStringLiteral("P2p/bootstrap"), "address"};
+/// 直接接続を使わない（中継経由のアドレスだけを広告する。既定は無効）
+inline const Setting<bool> p2pRelayOnly{"P2p/relayOnly", false};
+/// 対局したことのない相手の表示名を出さない（既定は無効）
+inline const Setting<bool> p2pHideUnknownNames{"P2p/hideUnknownNames", false};
+/// 証跡の書き出し先（最後に使ったフォルダ）
+inline const Setting<QString> p2pExportDirectory{"P2p/exportDirectory", QString()};
+/// P2P対局のウィンドウの大きさと文字の大きさ
+inline const Setting<QSize> p2pWindowSize{"SizeRelated/p2pWindowSize", QSize(820, 680)};
+inline const Setting<int> p2pWindowFontSize{"FontSize/p2pWindow", 10};
+/// 募集一覧・履歴・相手の表の列幅（0 は自動）
+inline const ListSetting<int> p2pOfferColumnWidths{QStringLiteral("P2p/offerColumnWidths"), "width"};
+inline const ListSetting<int> p2pHistoryColumnWidths{QStringLiteral("P2p/historyColumnWidths"), "width"};
+inline const ListSetting<int> p2pPeerColumnWidths{QStringLiteral("P2p/peerColumnWidths"), "width"};
+/// 条件確認画面の大きさと文字の大きさ
+inline const Setting<QSize> p2pConfirmDialogSize{"SizeRelated/p2pConfirmDialogSize", QSize(600, 660)};
+inline const Setting<int> p2pConfirmDialogFontSize{"FontSize/p2pConfirmDialog", 10};
+/// プレイヤー鍵のダイアログの文字の大きさ
+inline const Setting<int> p2pIdentityDialogFontSize{"FontSize/p2pIdentityDialog", 10};
+
 } // namespace NetworkSettings
 
 #endif // NETWORKSETTINGS_H

@@ -30,6 +30,8 @@ int analyzeKifu(const QJsonObject& params);
 int mate(const QJsonObject& params);
 int generateTsume(const QJsonObject& params);
 int verifyTsume(const QJsonObject& params);
+/// P2P対局の証跡ファイルを検証する（P2P対局を含むビルドだけ）
+int verifyMatch(const QJsonObject& params);
 
 } // namespace CliCommands
 

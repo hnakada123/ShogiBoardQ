@@ -1,0 +1,8 @@
+// CMake が構成のたびに作るファイル。直接編集しない。
+#ifndef P2PBUILDINFO_H
+#define P2PBUILDINFO_H
+
+/// このビルドを構成した時刻（UNIX秒。SOURCE_DATE_EPOCH があればその値）。実験版の使用期限の起点
+inline constexpr long long kP2pBuildEpochSeconds = @SBQ_P2P_BUILD_EPOCH@LL;
+
+#endif // P2PBUILDINFO_H

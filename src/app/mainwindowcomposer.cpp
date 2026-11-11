@@ -1,6 +1,9 @@
 /// @file mainwindowcomposer.cpp
 /// @brief 合成ルートの起動・終了手順と終了確認
 
+#ifdef SBQ_ENABLE_P2P
+#include "p2pgameuicontroller.h"
+#endif
 #include "mainwindowcomposer.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -71,6 +74,11 @@ void MainWindowComposer::shutdown()
     // 設定保存（ウィンドウ・ドックの配置。盤のマスの大きさは変わるたびに MainWindowAppearanceController が保存する）
     AppSettings::mainWindowSize.set(m_window.size());
     if (m_c.dockRegistry) m_c.dockRegistry->saveStates();
+
+#ifdef SBQ_ENABLE_P2P
+    // 募集を取り下げ、対局中なら中断を知らせ、証跡を保存して通信プロセスを止める
+    if (m_c.p2pUi) m_c.p2pUi->shutdown();
+#endif
 
     // エンジンが起動していれば quit を送って止める（対局・検討のどちらのエンジンも）
     if (m_c.engines) {

@@ -1,0 +1,139 @@
+# 決定的CBOR（protocol/README.md 1章）として読めるか。valid は読めて、符号化し直すと同じバイト列になる
+# unsigned 0
+valid 00
+# unsigned 23
+valid 17
+# unsigned 24
+valid 1818
+# unsigned 255
+valid 18ff
+# unsigned 256
+valid 190100
+# unsigned 65535
+valid 19ffff
+# unsigned 65536
+valid 1a00010000
+# unsigned 2^32-1
+valid 1affffffff
+# unsigned 2^32
+valid 1b0000000100000000
+# unsigned 2^64-1
+valid 1bffffffffffffffff
+# empty byte string
+valid 40
+# byte string
+valid 4401020304
+# byte string of 24
+valid 5818000102030405060708090a0b0c0d0e0f1011121314151617
+# empty text
+valid 60
+# text a
+valid 6161
+# text shogi kanji
+valid 66e5b086e6a38b
+# text of 24
+valid 7818787878787878787878787878787878787878787878787878
+# empty array
+valid 80
+# array
+valid 83010203
+# nested
+valid 830182020382048241ff6173
+# array of 24
+valid 9818000000000000000000000000000000000000000000000000
+# depth 16
+valid 81818181818181818181818181818100
+# label array
+valid 836b5342512d4e4554574f524b016b7362712d6c6f63616c2d31
+# 23 in 1 byte
+invalid 1817
+# 255 in 2 bytes
+invalid 1900ff
+# 65535 in 4 bytes
+invalid 1a0000ffff
+# 2^32-1 in 8 bytes
+invalid 1b00000000ffffffff
+# bstr len 1 in 1 byte
+invalid 580141
+# text len 0 in 1 byte
+invalid 7800
+# array len 1 in 1 byte
+invalid 980100
+# negative -1
+invalid 20
+# negative -257
+invalid 390100
+# empty map
+invalid a0
+# map
+invalid a10102
+# tag 0
+invalid c000
+# tag bignum
+invalid c24101
+# false
+invalid f4
+# true
+invalid f5
+# null
+invalid f6
+# undefined
+invalid f7
+# simple 255
+invalid f8ff
+# half float
+invalid f93c00
+# single float
+invalid fa3f800000
+# double float
+invalid fb3ff0000000000000
+# indefinite bstr
+invalid 5f4100ff
+# indefinite text
+invalid 7f6161ff
+# indefinite array
+invalid 9fff
+# indefinite map
+invalid bfff
+# break
+invalid ff
+# reserved 28
+invalid 1c
+# reserved 29
+invalid 1d
+# reserved 30
+invalid 1e
+# reserved info in array
+invalid 9c
+# depth 17
+invalid 8181818181818181818181818181818100
+# trailing byte
+invalid 0000
+# two values
+invalid 8001
+# truncated array
+invalid 8201
+# truncated bstr
+invalid 4201
+# truncated head
+invalid 18
+# truncated 8-byte head
+invalid 1b0000
+# invalid utf-8
+invalid 62c328
+# overlong utf-8
+invalid 62c080
+# surrogate
+invalid 63eda080
+# above U+10FFFF
+invalid 64f4908080
+# huge array length
+invalid 9bffffffffffffffff
+# huge bstr length
+invalid 5bffffffffffffffff
+# bstr 65536 truncated
+invalid 5a00010000
+# map inside array
+invalid 8101a0
+# negative inside array
+invalid 820120

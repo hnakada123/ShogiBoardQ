@@ -1,6 +1,9 @@
 /// @file mainwindowcomposer_automation.cpp
 /// @brief 自動化 API（--automation）のサーバー生成
 
+#ifdef SBQ_ENABLE_P2P
+#include "p2pgameuicontroller.h"
+#endif
 #include "mainwindowcomposer.h"
 #include "mainwindow.h"
 
@@ -23,6 +26,10 @@
 void MainWindowComposer::startAutomationServer(const QString& socketPath)
 {
     if (m_c.automationServer) return;
+#ifdef SBQ_ENABLE_P2P
+    // 自動化 API を有効にしたときは P2P対局の部品を作らない（ローカルのソケットから募集・対局・署名を始めさせない）
+    if (m_c.p2pUi) m_c.p2pUi->disableForAutomation();
+#endif
 
     auto* server = new AutomationServer(&m_window);
 

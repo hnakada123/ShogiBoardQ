@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>将棋盤Q</string>
+   <string>将棋盤Q P2P実験版</string>
   </property>
   <widget class="QWidget" name="centralwidget"/>
   <widget class="QMenuBar" name="menubar">
@@ -108,6 +108,7 @@
     </property>
     <addaction name="actionStartGame"/>
     <addaction name="actionCSA"/>
+    <addaction name="actionP2pGame"/>
     <addaction name="separator"/>
     <addaction name="actionResign"/>
     <addaction name="actionUndoMove"/>
@@ -614,6 +615,15 @@
    </property>
    <property name="text">
     <string>通信対局（CSA）…</string>
+   </property>
+  </action>
+  <action name="actionP2pGame">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionCSA.svg</normaloff>:/images/actions/actionCSA.svg</iconset>
+   </property>
+   <property name="text">
+    <string>P2P対局（実験版）…</string>
    </property>
   </action>
   <action name="actionCancelAnalyzeKifu">

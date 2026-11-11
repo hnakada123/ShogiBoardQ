@@ -288,3 +288,15 @@ P2P のネットワークには、中央から機能を止める仕組みがな�
 | 6. ローカルの対局・対局記録 | 未着手 | — |
 
 3.3節のとおり、P2P の仕様は今後この実験版リポジトリで更新する。実装仕様のファイル名は第3版で `p2p-game-spec.md` に変えた。通常版にある文書（`p2p-blockchain-game-spec.md` と本書）は、この改訂を取り込まず、案内リンクへ切り替える。
+
+### 11.2 2026-11-11 時点の状態
+
+作業ツリーの変更として行ったことと、手元（Linux・Arch Linux、カーネル 7.2、Landlock ABI 9）で確かめたことを記録する。GitHub 側の設定は今回も確認していない。コミットと公開はしていない。
+
+| 作業 | 行ったこと・確かめたこと | 残り |
+|---|---|---|
+| 3. 識別子・保存先・CI権限 | アプリ名を `ShogiBoardQ-P2P`（設定ファイル `ShogiBoardQ-P2P.ini`、設定・データ・キャッシュのフォルダも同じ名前）、desktop 名 `shogiboardq-p2p`、bundle ID `io.github.hnakada123.ShogiBoardQ-P2P`、自動化 API のソケット `shogiboardq-p2p/automation.sock`（Windows のパイプ名の接頭辞も）にした（`src/services/appidentity.h` の1か所）。`release.yml` と `maintenance-reminder.yml` は `.github/workflows/` から `packaging/disabled-workflows/` へ移し、動かないようにした。`ci.yml` に P2P のジョブ（Rust の試験と clippy、`ENABLE_P2P_PLAY=ON` のビルドと P2P の試験）を足した | 実行ファイル名（`ShogiBoardQ`・`shogiboardq-cli`）と翻訳ファイルの名前は通常版と同じなので、同じ場所への `cmake --install` は通常版を上書きする。配布（D5）でインストール先と名前を分ける。`SECURITY.md` の報告先、GitHub の Actions の有効範囲・Secrets・ブランチ保護の確認 |
+| 5. サンドボックスの試作 | Linux で、通信プロセスが標準入力を読む前に no_new_privs・Landlock（ファイルの操作をすべて拒否、ABI 6 以上で抽象 Unix ソケットとシグナルも）・seccomp-bpf（プログラムの起動・プロセスの複製・他プロセスへの干渉・AF_INET/AF_INET6/AF_NETLINK 以外のソケットなど）・親の終了での終了・コアダンプなしを掛ける。掛けられなければ終了コード 3 で終わり、P2P対局を使えない状態として知らせる。`--sandbox-self-test` で禁止した操作の拒否を確かめた | loopback と私設アドレスへの TCP 接続は OS の側では止められなかった（Landlock の TCP の制限はポート単位）。利用者への説明に入れた。Windows・macOS は未実装で、P2P対局を使えない。ファイアウォールの許可の表示、鍵の保管庫の同期の設定は未確認 |
+| 6. ローカルの対局・対局記録 | 実装仕様の P1〜P3 をローカル（`sbq-local-1`）で動かした（実装仕様の「実装の状況」）。本物の通信プロセス2つでの招待対局・回線の切断と復旧・協力ノード経由の公開募集を自動試験にした | 実回線（`sbq-limited-1`）での試験（D4）、ファジング（cargo-fuzz・libFuzzer）、cargo-audit・cargo-deny、サニタイザでの P2P の試験の常時実行 |
+
+開発段階では D1 の一部と D2 の Linux の試作、D3 のローカルの機能試験までにあたる。D4（限定ネットワーク試験）へ進む条件（隔離環境、既知の参加者への説明、使用期限を入れたビルドの配布）は満たしていない。

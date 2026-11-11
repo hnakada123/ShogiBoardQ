@@ -4,6 +4,8 @@
 /// @file matchrecordsink.h
 /// @brief 対局の棋譜の受け手（司令塔が確定した行を書き込む先）
 
+#include <QList>
+#include <QPair>
 #include <QString>
 
 #include "matchautosave.h"
@@ -17,6 +19,8 @@ struct MatchRecordStart {
     MatchPlayers players;       ///< 対局者
     TimeControl timeControl;    ///< 持ち時間
     MatchAutoSave autoSave;     ///< 終局した棋譜の自動保存
+    /// 対局情報に足す項目（見出しと値。P2P対局の対局ID）
+    QList<QPair<QString, QString>> extraInfo;
 };
 
 /**

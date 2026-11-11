@@ -36,7 +36,7 @@ HAYANAGI_EXE="${BUILD_DIR}/Hayanagi/hayanagi"
 # Hayanagi の定跡（ビルド時に hayanagi の横の book/ にコピーされる）
 HAYANAGI_BOOK="${BUILD_DIR}/Hayanagi/book/hayanagi_book.db"
 ICON_PATH="resources/icons/linux/shogiboardq.png"
-DESKTOP_PATH="resources/platform/shogiboardq.desktop"
+DESKTOP_PATH="resources/platform/shogiboardq-p2p.desktop"
 
 LINUXDEPLOY_URL="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
 LINUXDEPLOY_QT_URL="https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"

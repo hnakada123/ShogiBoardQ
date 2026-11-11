@@ -1047,6 +1047,7 @@ set(SRC_CLI
     src/cli/clicommands.h
     src/cli/clicommands_basic.cpp
     src/cli/clicommands_engine.cpp
+    src/cli/clicommands_p2p.cpp
     src/cli/clicommands_tsume.cpp
     src/cli/clioutput.cpp
     src/cli/clioutput.h
@@ -1054,6 +1055,85 @@ set(SRC_CLI
     src/cli/clistopwatcher.h
     src/cli/main.cpp
 )
+
+# ==== P2P対局（実験版。docs/dev/p2p-game-spec.md） ====
+# 既定は OFF。OFF では libsodium・QtKeychain・Rust を要求せず、P2P の部品も通信プロセスも作らない。
+option(ENABLE_P2P_PLAY "Build the experimental P2P play (requires libsodium and a Rust toolchain)" OFF)
+set(SRC_P2P)
+if(ENABLE_P2P_PLAY)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium>=1.0.18)
+    # OS の鍵の保管庫。無ければプレイヤー鍵はパスフレーズで暗号化したファイルにだけ置ける
+    find_package(Qt6Keychain CONFIG QUIET)
+    find_program(CARGO_EXECUTABLE cargo REQUIRED)
+
+    # 表示名の文字の表は protocol/ の1つだけを、通信プロセス（Rust）と同じ内容で取り込む
+    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/protocol/displayname-v1.txt SBQ_DISPLAYNAME_TABLE)
+    configure_file(cmake/p2pdisplaynametable.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/p2pdisplaynametable.h @ONLY)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS protocol/displayname-v1.txt)
+    # 使用期限の起点（実装仕様 3.1節。構成した時刻。SOURCE_DATE_EPOCH があればそれを使う）
+    string(TIMESTAMP SBQ_P2P_BUILD_EPOCH "%s" UTC)
+    configure_file(cmake/p2pbuildinfo.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/p2pbuildinfo.h @ONLY)
+
+    set(SRC_P2P
+        src/game/p2p/p2pcbor.cpp
+        src/game/p2p/p2pcbor.h
+        src/game/p2p/p2pdisplayname.cpp
+        src/game/p2p/p2pdisplayname.h
+        src/game/p2p/p2pevidence.cpp
+        src/game/p2p/p2pevidence.h
+        src/game/p2p/p2pevidenceverifier.cpp
+        src/game/p2p/p2pevidenceverifier.h
+        src/game/p2p/p2pframes.cpp
+        src/game/p2p/p2pframes.h
+        src/game/p2p/p2pgamerules.cpp
+        src/game/p2p/p2pgamerules.h
+        src/game/p2p/p2pmatch.cpp
+        src/game/p2p/p2pmatch.h
+        src/game/p2p/p2pmatch_control.cpp
+        src/game/p2p/p2pnegotiation.cpp
+        src/game/p2p/p2pnegotiation.h
+        src/game/p2p/p2pprotocol.cpp
+        src/game/p2p/p2pprotocol.h
+        src/game/p2p/p2precordkinds.cpp
+        src/game/p2p/p2precordkinds.h
+        src/game/p2p/p2psignature.cpp
+        src/game/p2p/p2psignature.h
+        src/headless/matchverificationservice.cpp
+        src/headless/matchverificationservice.h
+        src/network/p2p/p2pgamechannel.cpp
+        src/network/p2p/p2pgamechannel.h
+        src/network/p2p/p2pgamecoordinator.cpp
+        src/network/p2p/p2pgamecoordinator.h
+        src/network/p2p/p2pidentitystore.cpp
+        src/network/p2p/p2pidentitystore.h
+        src/network/p2p/p2pknownpeers.cpp
+        src/network/p2p/p2pknownpeers.h
+        src/network/p2p/p2plobbyservice.cpp
+        src/network/p2p/p2plobbyservice.h
+        src/network/p2p/p2precordstore.cpp
+        src/network/p2p/p2precordstore.h
+        src/network/p2p/p2ptransport.h
+        src/dialogs/p2pconfirmdialog.cpp
+        src/dialogs/p2pconfirmdialog.h
+        src/dialogs/p2phistorypanel.cpp
+        src/dialogs/p2phistorypanel.h
+        src/dialogs/p2pidentitydialog.cpp
+        src/dialogs/p2pidentitydialog.h
+        src/dialogs/p2ppeerspanel.cpp
+        src/dialogs/p2ppeerspanel.h
+        src/dialogs/p2pwindow.cpp
+        src/dialogs/p2pwindow.h
+        src/dialogs/p2pwindowtext.cpp
+        src/dialogs/p2pwindowtext.h
+        src/ui/controllers/p2pgameuicontroller.cpp
+        src/ui/controllers/p2pgameuicontroller.h
+        src/network/p2p/peeripc.cpp
+        src/network/p2p/peeripc.h
+        src/network/p2p/peerprocess.cpp
+        src/network/p2p/peerprocess.h
+    )
+endif()
 
 # ==== Application Icon ====
 # Windows用リソースファイル
@@ -1099,6 +1179,12 @@ set(SBQ_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common
     ${CMAKE_CURRENT_SOURCE_DIR}/src/style
 )
+if(ENABLE_P2P_PLAY)
+    list(APPEND SBQ_INCLUDE_DIRS
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/game/p2p
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/network/p2p
+        ${CMAKE_CURRENT_BINARY_DIR}/generated)
+endif()
 
 set(SBQ_LINK_LIBS
     hayanagi_tsume
@@ -1121,6 +1207,14 @@ set(SBQ_COMPILE_DEFINITIONS
     $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
     APP_VERSION="${APP_VERSION}"
 )
+if(ENABLE_P2P_PLAY)
+    list(APPEND SBQ_LINK_LIBS PkgConfig::SODIUM)
+    list(APPEND SBQ_COMPILE_DEFINITIONS SBQ_ENABLE_P2P=1)
+    if(Qt6Keychain_FOUND)
+        list(APPEND SBQ_LINK_LIBS Qt6Keychain::Qt6Keychain)
+        list(APPEND SBQ_COMPILE_DEFINITIONS SBQ_HAVE_QTKEYCHAIN=1)
+    endif()
+endif()
 
 qt_add_library(shogiboardq_objects OBJECT
     ${SRC_APP}
@@ -1140,6 +1234,7 @@ qt_add_library(shogiboardq_objects OBJECT
     ${SRC_COMMON}
     ${SRC_HEADLESS}
     ${SRC_AUTOMATION}
+    ${SRC_P2P}
     ${UI_FILES}
 )
 target_include_directories(shogiboardq_objects PUBLIC ${SBQ_INCLUDE_DIRS})
@@ -1169,6 +1264,27 @@ qt_add_executable(shogiboardq-cli
     resources/shogiboardq.qrc
 )
 target_link_libraries(shogiboardq-cli PRIVATE shogiboardq_static)
+
+# ==== P2P対局の通信プロセス（Rust。ENABLE_P2P_PLAY のときだけ） ====
+# Cargo.lock で版を固定した依存だけを使い（--locked）、実行ファイルはアプリと同じフォルダに置く（実装仕様 10.4節）。
+if(ENABLE_P2P_PLAY)
+    set(SBQ_CARGO_TARGET_DIR ${CMAKE_BINARY_DIR}/cargo)
+    if(WIN32)
+        set(SBQ_PEER_NAME shogiboardq-peer.exe)
+    else()
+        set(SBQ_PEER_NAME shogiboardq-peer)
+    endif()
+    add_custom_target(shogiboardq_peer ALL
+        COMMAND ${CARGO_EXECUTABLE} build --release --locked -p shogiboardq-peer --target-dir ${SBQ_CARGO_TARGET_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${SBQ_CARGO_TARGET_DIR}/release/${SBQ_PEER_NAME} $<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Building the P2P communication process (shogiboardq-peer) with cargo"
+        USES_TERMINAL
+        VERBATIM
+    )
+    add_dependencies(ShogiBoardQ shogiboardq_peer)
+endif()
 
 # .qm 生成（.ts → .qm コンパイルのみ、高速）
 # qt_add_translation は lrelease のみ実行し、lupdate（ソーススキャン）をスキップする
@@ -1230,7 +1346,7 @@ add_custom_command(TARGET ShogiBoardQ POST_BUILD
 )
 
 set_target_properties(ShogiBoardQ PROPERTIES
-    MACOSX_BUNDLE_GUI_IDENTIFIER io.github.hnakada123.ShogiBoardQ
+    MACOSX_BUNDLE_GUI_IDENTIFIER io.github.hnakada123.ShogiBoardQ-P2P
     MACOSX_BUNDLE_BUNDLE_VERSION ${APP_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION}
     MACOSX_BUNDLE TRUE
@@ -1260,9 +1376,13 @@ install(TARGETS ShogiBoardQ
 install(TARGETS shogiboardq-cli
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+# P2P対局の通信プロセス（アプリと同じフォルダから起動する）
+if(ENABLE_P2P_PLAY)
+    install(PROGRAMS $<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
 
 # デスクトップエントリ
-install(FILES resources/platform/shogiboardq.desktop
+install(FILES resources/platform/shogiboardq-p2p.desktop
     DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
 )
 

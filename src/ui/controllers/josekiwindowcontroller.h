@@ -130,6 +130,7 @@ private:
     const JosekiBookSession* m_book = nullptr;
     BranchTreeEditController* m_branchEdit = nullptr;
     const KifuNavigationState* m_navState = nullptr;
+    const AppActivityState* m_activity = nullptr;   ///< P2P対局中は定跡手を出さない
     const OperationPolicy* m_operationPolicy = nullptr;  ///< 人間が今指せるか
     BoardMoveController* m_boardMoves = nullptr;
 

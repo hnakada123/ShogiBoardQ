@@ -1,0 +1,15 @@
+[package]
+name = "sbq-protocol"
+description = "ShogiBoardQ P2P: deterministic CBOR, frames, invites, offers, display names"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+sha2 = "0.10"
+base64 = "0.22"

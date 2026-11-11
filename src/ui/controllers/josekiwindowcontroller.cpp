@@ -30,6 +30,7 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     , m_book(deps.book)
     , m_branchEdit(deps.branchEdit)
     , m_navState(deps.navState)
+    , m_activity(deps.activity)
     , m_operationPolicy(deps.operationPolicy)
     , m_boardMoves(deps.boardMoves)
     , m_displayAction(new QAction(tr("定跡を表示"), this))
@@ -95,6 +96,12 @@ void JosekiWindowController::updateJosekiWindow()
     }
     if (m_dockWidget && !m_dockShown) return;
 
+    // P2P対局の間は、アプリが手の助言をしない（定跡手を出さない。実装仕様 10.3節）
+    if (m_activity && m_activity->is(AppActivityState::Activity::DuringP2pGame)) {
+        m_josekiWindow->setCurrentSfen(QString());
+        m_josekiWindow->setBookDeviation(-1, QString());
+        return;
+    }
     // 表示中の手の局面を定跡ウィンドウに設定する。人間が着手可能かどうかは、定跡ウィンドウが
     // 表示を作り直すたびに setHumanCanPlayProvider の判定で問い合わせる
     m_josekiWindow->setCurrentSfen(m_navState->currentSfen());

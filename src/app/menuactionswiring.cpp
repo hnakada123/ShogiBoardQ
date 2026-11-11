@@ -1,6 +1,9 @@
 /// @file menuactionswiring.cpp
 /// @brief メニュー・ツールバーの項目を、処理する部品へつなぐ
 
+#ifdef SBQ_ENABLE_P2P
+#include "p2pgameuicontroller.h"
+#endif
 #include "menuactionswiring.h"
 #include "ui_mainwindow.h"
 
@@ -86,6 +89,9 @@ void wireGameMenu(const Deps& d)
     DialogLauncher* dialogs = d.dialogs;
     QObject::connect(ui->actionStartGame, &QAction::triggered, session, &GameSession::startGameFromDialog);
     QObject::connect(ui->actionCSA, &QAction::triggered, d.csaUi, &CsaGameUiController::openGameDialog);
+#ifdef SBQ_ENABLE_P2P
+    if (d.p2pUi) QObject::connect(ui->actionP2pGame, &QAction::triggered, d.p2pUi, &P2pGameUiController::openWindow);
+#endif
     QObject::connect(ui->actionResign, &QAction::triggered, session, &GameSession::resign);
     QObject::connect(ui->actionUndoMove, &QAction::triggered, session, &GameSession::undoTwoMoves);
     QObject::connect(ui->actionMakeImmediateMove, &QAction::triggered, session, &GameSession::makeEngineMoveNow);
