@@ -38,6 +38,7 @@
 - [matchcoordinator-split-design.md](matchcoordinator-split-design.md): `MatchCoordinator` の設計
 - [sennichite-detection.md](sennichite-detection.md): 千日手の検出
 - [p2p-game-spec.md](p2p-game-spec.md): P2P対局と、双方が署名した対局記録の実装仕様（設計案。ブロックチェーン・ウォレットは使わない）
+- [p2p-interop-spec.html](p2p-interop-spec.html): P2P対局と相互に対局できるソフトウェアを別に作るための仕様書（通信の層・招待文字列・フレーム・交渉・対局・再接続・証跡の検証と、試験用の値）
 - [p2p-development-strategy.md](p2p-development-strategy.md): 別リポジトリでのP2P実験版開発、配布・権限の分離と段階的な検証方針
 - [p2p-wallet-user-burden.md](p2p-wallet-user-burden.md): P2P対局にウォレットを導入した場合の利用者の負担（署名、暗号資産の手数料など）。ブロックチェーンとウォレットをやめた判断の記録
 
