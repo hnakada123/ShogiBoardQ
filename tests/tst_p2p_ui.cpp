@@ -18,6 +18,7 @@
 #include "appactivitystate.h"
 #include "gameboard.h"
 #include "mainwindowappearancecontroller.h"
+#include "networksettings.h"
 #include "p2pconfirmdialog.h"
 #include "p2pgamecoordinator.h"
 #include "p2pgameuicontroller.h"
@@ -191,6 +192,57 @@ private slots:
         // 自動化 API を有効にしたときは使い始めない
         lobby.disableForAutomation();
         QCOMPARE(lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::AutomationEnabled);
+    }
+
+    /// 招待文字列を確かめた結果は、初めて開いたときの大きさのウィンドウでも欠けない（収まらなければウィンドウを広げる）。
+    /// 折り返すラベルの高さは幅で決まり、ウィンドウの最小の高さには入らないので、Qt は自動では広げない
+    void inviteCheckResultIsNotClipped()
+    {
+        AppActivityState activity;
+        GameBoard board;
+        ShogiClock clock;
+        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
+        P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, m_dir.filePath(QStringLiteral("clip")));
+        QCOMPARE(lobby.prepare(), P2pLobbyService::StartFailure::None);
+        P2pWindow window(&lobby, &game);
+        window.resize(NetworkSettings::p2pWindowSize.defaultValue());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* tabs = window.findChild<QTabWidget*>();
+        QVERIFY(tabs);
+        tabs->setCurrentIndex(1);
+        QCoreApplication::processEvents();
+
+        const auto clippedLabel = [tabs]() {
+            const QList<QLabel*> labels = tabs->currentWidget()->findChildren<QLabel*>();
+            for (QLabel* label : labels) {
+                if (!label->isVisible() || label->text().isEmpty()) continue;
+                const int needed = label->wordWrap() ? label->heightForWidth(label->width()) : label->sizeHint().height();
+                if (label->height() < needed) return label->text();
+            }
+            return QString();
+        };
+        QVERIFY2(clippedLabel().isEmpty(), qPrintable(clippedLabel()));
+
+        // 同じ LAN の相手の招待（確かめた結果は3行）
+        P2pLobbyService::InviteInfo info;
+        info.peerId = QStringLiteral("12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN");
+        info.expiresAt = 1794387939;
+        info.addressCount = 6;
+        info.usableAddressCount = 6;
+        emit lobby.inviteInspected(info);
+        QCoreApplication::processEvents();
+        auto* result = window.findChild<QLabel*>(QStringLiteral("p2pInviteInfo"));
+        QVERIFY(result);
+        QCOMPARE(result->text().count(QLatin1Char('\n')), 2);
+        QVERIFY2(clippedLabel().isEmpty(), qPrintable(clippedLabel()));
+
+        // 私設アドレスへの接続の許可を尋ねるとき（行とチェックが増える）
+        info.privateAddresses = {QStringLiteral("192.168.1.20"), QStringLiteral("10.0.0.5")};
+        info.usableAddressCount = 0;
+        emit lobby.inviteInspected(info);
+        QCoreApplication::processEvents();
+        QVERIFY2(clippedLabel().isEmpty(), qPrintable(clippedLabel()));
     }
 
     void identityDialogOffersStorageChoices()

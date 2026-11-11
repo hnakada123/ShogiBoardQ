@@ -17,6 +17,7 @@
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QScreen>
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QTabWidget>
@@ -511,6 +512,17 @@ void P2pWindow::onInviteCreated(const QString& invite, quint64 expiresAt, int ad
     m_inviteOutInfo->setText(addressCount > 0 ? tr("期限: %1（到達候補 %2 件）").arg(dateText(expiresAt)).arg(addressCount)
                                               : tr("この招待文字列には接続先が入っていないので、相手は接続できません。"
                                                    "「接続と条件」の「招待の経路」を確かめてください。"));
+    growToFit();
+}
+
+void P2pWindow::growToFit()
+{
+    QLayout* box = layout();
+    if (!box) return;
+    box->activate();
+    int needed = box->totalHeightForWidth(width());
+    if (const QScreen* display = screen()) needed = qMin(needed, display->availableGeometry().height());
+    if (needed > height()) resize(width(), needed);
 }
 
 void P2pWindow::onCopyInvite()
@@ -541,6 +553,7 @@ void P2pWindow::onInviteInspected(const P2pLobbyService::InviteInfo& info)
     m_allowPrivate->setChecked(false);
     m_allowPrivate->setVisible(!info.privateAddresses.isEmpty());
     m_connectInvite->setEnabled(info.usableAddressCount > 0 || !info.privateAddresses.isEmpty());
+    growToFit();
 }
 
 void P2pWindow::onConnectInvite()
