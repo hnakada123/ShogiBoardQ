@@ -115,7 +115,8 @@ public:
     }
 
     /// 両方の開始署名がそろったら対局へ移る
-    void startMatches()
+    /// run が false なら、対局を作るだけで begin しない（開始の手続きの途中を試す）
+    void startMatches(bool run = true)
     {
         for (Side* s : {&applicant, &host}) {
             Negotiation& n = *s->negotiation;
@@ -138,12 +139,13 @@ public:
                     return true;
                 });
         }
+        if (!run) return;
         applicant.match->begin();
         host.match->begin();
         pump();
     }
 
-    void negotiateAndStart()
+    void negotiateAndStart(bool run = true)
     {
         applicant.negotiation->begin();
         pump();
@@ -152,7 +154,7 @@ public:
         host.negotiation->confirm();
         applicant.negotiation->confirm();
         pump();
-        startMatches();
+        startMatches(run);
     }
 
     Side& black() { return applicant.match->iAmBlack() ? applicant : host; }
@@ -453,6 +455,46 @@ private slots:
         const EvidenceReport report = EvidenceVerifier::verify(pair.black().match->evidence().encode());
         QVERIFY2(report.isValid(), qPrintable(report.error));
         QCOMPARE(report.category, EvidenceReport::Category::Unconfirmed);
+    }
+
+    /// 開始局面（State0）の承認がそろう前に対局が終わっても、最新の状態を読んで落ちない。
+    /// 相手が何も送らないまま開始の期限が過ぎたとき・最初に壊れた提案が届いたときに、司令塔は終局の行を書くために
+    /// 最新の状態を読む（以前は、空の列の末尾を読んでいた）
+    void endingBeforeState0IsHandled()
+    {
+        {
+            // 相手が State0 を送らないまま、開始の期限（30秒）が過ぎる
+            Pair pair;
+            pair.negotiateAndStart(false);
+            Side& white = pair.white();
+            white.match->begin();
+            pair.clock.ms += 31'000;
+            white.match->tick();
+            QCOMPARE(white.match->phase(), Match::Phase::Finished);
+            QCOMPARE(white.match->ending(), MatchEnding::Error);
+            QVERIFY(white.match->confirmedStates().empty());
+            QCOMPARE(white.match->lastState().ply, 0u);
+            QVERIFY(!white.match->isMyTurn());
+            // 結果も状態もない記録として読める
+            const EvidenceReport report = EvidenceVerifier::verify(white.match->evidence().encode());
+            QCOMPARE(report.category, EvidenceReport::Category::Unconfirmed);
+        }
+        {
+            // 最初の対局フレームが、形の合わない STATE_PROPOSE
+            Pair pair;
+            pair.negotiateAndStart(false);
+            Side& white = pair.white();
+            white.match->begin();
+            Frame bad;
+            bad.type = FrameType::StatePropose;
+            bad.requestId = 99;
+            bad.gameId = white.match->gameId();
+            bad.payload = CborValue::array({});
+            white.match->receive(bad);
+            QCOMPARE(white.match->phase(), Match::Phase::Finished);
+            QCOMPARE(white.match->ending(), MatchEnding::Error);
+            QCOMPARE(white.match->endingError(), std::optional<ErrorCode>(ErrorCode::InvalidMove));
+        }
     }
 
     void duplicateProposalIsNotAppliedTwice()

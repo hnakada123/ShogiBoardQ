@@ -156,6 +156,12 @@ void Match::begin()
     send(FrameType::StatePropose, payload.toCbor());
 }
 
+const GameState& Match::lastState() const
+{
+    static const GameState kNoState;
+    return m_confirmed.empty() ? kNoState : m_confirmed.back().state;
+}
+
 bool Match::isMyTurn() const
 {
     if (m_confirmed.empty()) return false;
