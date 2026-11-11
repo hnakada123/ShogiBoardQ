@@ -95,6 +95,8 @@ P2pConfirmDialog::P2pConfirmDialog(P2pGameCoordinator* game, P2pKnownPeers* know
     connect(m_timer, &QTimer::timeout, this, &P2pConfirmDialog::onTick);
     m_timer->start(500);
     refresh();
+    // 最初の時計の知らせ（0.5秒後）を待たずに、開いた時点から残りを出す
+    showRemaining();
 }
 
 void P2pConfirmDialog::refresh()
@@ -166,6 +168,12 @@ void P2pConfirmDialog::onTick()
         QDialog::reject();
         return;
     }
+    showRemaining();
+}
+
+void P2pConfirmDialog::showRemaining()
+{
+    if (!m_game || m_game->phase() != P2pGameCoordinator::Phase::Negotiating) return;
     const qint64 seconds = m_game->reservationRemainingMs() / 1000;
     m_remaining->setText(tr("あと %1 秒で取り消されます。").arg(seconds));
 }

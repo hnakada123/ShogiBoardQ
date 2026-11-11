@@ -40,6 +40,8 @@ private slots:
     void onTick();
 
 private:
+    /// 取り消されるまでの残りを出す
+    void showRemaining();
     QPointer<P2pGameCoordinator> m_game;
     P2pKnownPeers* m_knownPeers = nullptr;   ///< 非所有
     bool m_hideUnknownNames = false;

@@ -7,6 +7,7 @@
 
 #include "apppaths.h"
 #include "dialogutils.h"
+#include "mainwindowappearancecontroller.h"
 #include "networksettings.h"
 #include "notificationpresenter.h"
 #include "p2pconfirmdialog.h"
@@ -17,6 +18,7 @@
 #include "p2precordstore.h"
 #include "p2pwindow.h"
 #include "p2pwindowtext.h"
+#include "shogiview.h"
 
 #include <QDir>
 
@@ -232,6 +234,11 @@ void P2pGameUiController::onNegotiationEnded(bool started, std::optional<P2p::Er
 
 void P2pGameUiController::onGameStarted()
 {
+    // 後手のときは自分側から見る（通信対局と同じく、通常の対局と同じ経路で反転する）
+    const P2p::Match* match = m_deps.game ? m_deps.game->match() : nullptr;
+    if (match && m_deps.appearance && m_deps.shogiView && m_deps.shogiView->flipMode() != !match->iAmBlack()) {
+        m_deps.appearance->flipBoard();
+    }
     if (m_window) m_window->showGameTab();
 }
 

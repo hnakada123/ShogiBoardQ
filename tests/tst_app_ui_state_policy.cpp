@@ -761,6 +761,19 @@ private slots:
         QVERIFY(!ui.actionP2pGame->isVisible());
 #endif
     }
+
+    /// 「P2P対局」の項目は、「通信対局（CSA）」と見分けられるよう別の絵のアイコンにする
+    void p2pMenuItemHasOwnIcon()
+    {
+        QMainWindow window;
+        Ui::MainWindow ui;
+        ui.setupUi(&window);
+        const QImage p2p = ui.actionP2pGame->icon().pixmap(QSize(24, 24)).toImage();
+        const QImage csa = ui.actionCSA->icon().pixmap(QSize(24, 24)).toImage();
+        QVERIFY(!p2p.isNull());
+        QVERIFY(!csa.isNull());
+        QVERIFY(p2p != csa);
+    }
 };
 
 QTEST_MAIN(TestAppUiStatePolicy)

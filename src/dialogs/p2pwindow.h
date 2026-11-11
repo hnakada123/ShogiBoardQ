@@ -55,7 +55,10 @@ signals:
     void recreateIdentityRequested();
 
 public slots:
+    /// 接続・募集・対局の状態を出し直す（通信プロセスの知らせのたびに呼ばれるので、記録の表は作り直さない）
     void refresh();
+    /// 対局記録と相手の表を作り直す（記録は証跡を読んで検証するので、対局が終わったとき・タブを開いたときだけ）
+    void reloadRecords();
 
 private slots:
     void onConnectClicked();
@@ -78,6 +81,7 @@ private slots:
     void onLeaveGame();
     void saveSettings();
     void updateGameStatus();
+    void onTabChanged(int index);
 
 private:
     QWidget* createPlayTab();

@@ -63,6 +63,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     setModal(false);
     auto* layout = new QVBoxLayout(this);
     m_tabs = new QTabWidget(this);
+    m_tabs->setObjectName(QStringLiteral("p2pTabs"));
     m_tabs->addTab(createPlayTab(), tr("対戦相手を探す"));
     m_tabs->addTab(createInviteTab(), tr("招待で接続"));
     m_gameTab = createGameTab();
@@ -79,6 +80,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     layout->addWidget(buttons);
 
     loadSettings();
+    connect(m_tabs, &QTabWidget::currentChanged, this, &P2pWindow::onTabChanged);
     if (m_lobby) {
         connect(m_lobby, &P2pLobbyService::statusChanged, this, &P2pWindow::refresh);
         connect(m_lobby, &P2pLobbyService::networkStatusChanged, this, &P2pWindow::refresh);
@@ -92,7 +94,10 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
         connect(m_game, &P2pGameCoordinator::statusChanged, this, &P2pWindow::updateGameStatus);
         connect(m_game, &P2pGameCoordinator::gameStarted, this, &P2pWindow::updateGameStatus);
         connect(m_game, &P2pGameCoordinator::gameFinished, this, &P2pWindow::refresh);
+        connect(m_game, &P2pGameCoordinator::gameFinished, this, &P2pWindow::reloadRecords);
         connect(m_game, &P2pGameCoordinator::negotiationEnded, this, &P2pWindow::refresh);
+        // 対局が始まると相手の対局数が増える
+        connect(m_game, &P2pGameCoordinator::gameStarted, this, &P2pWindow::reloadRecords);
     }
     auto* timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &P2pWindow::updateGameStatus);
@@ -102,6 +107,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     options.size = &NetworkSettings::p2pWindowSize;
     DialogFontScale::install(this, NetworkSettings::p2pWindowFontSize, options);
     refresh();
+    reloadRecords();
 }
 
 // ---------------------------------------------------------------- タブ
@@ -114,10 +120,12 @@ QWidget* P2pWindow::createPlayTab()
     auto* networkBox = new QGroupBox(tr("接続"), tab);
     auto* networkForm = new QFormLayout(networkBox);
     m_network = new QComboBox(networkBox);
+    m_network->setObjectName(QStringLiteral("p2pNetwork"));
     m_network->addItem(tr("ローカル検証用（同じPC・同じLAN）"), QStringLiteral("sbq-local-1"));
     m_network->addItem(tr("限定試験用"), QStringLiteral("sbq-limited-1"));
     auto* connectRow = new QHBoxLayout;
     m_connect = new QPushButton(networkBox);
+    m_connect->setObjectName(QStringLiteral("p2pConnect"));
     connect(m_connect, &QPushButton::clicked, this, &P2pWindow::onConnectClicked);
     connectRow->addWidget(m_network, 1);
     connectRow->addWidget(m_connect);
@@ -140,6 +148,7 @@ QWidget* P2pWindow::createPlayTab()
     auto* conditionBox = new QGroupBox(tr("名乗る名前と条件"), tab);
     auto* conditionForm = new QFormLayout(conditionBox);
     m_displayName = new QLineEdit(conditionBox);
+    m_displayName->setObjectName(QStringLiteral("p2pDisplayName"));
     m_displayName->setPlaceholderText(tr("32文字まで（英数字・かな・漢字など）"));
     conditionForm->addRow(tr("表示名"), m_displayName);
     auto* timeRow = new QHBoxLayout;
@@ -167,13 +176,16 @@ QWidget* P2pWindow::createPlayTab()
     offersLayout->addWidget(plainLabel(offersBox, tr("表示名は自己申告です。募集を出すと、あなたのIPアドレスが不特定の相手に見えます。"
                                                      "募集一覧は全員を表すものではありません。")));
     m_offers = new QTableWidget(0, 4, offersBox);
+    m_offers->setObjectName(QStringLiteral("p2pOffers"));
     m_offers->setHorizontalHeaderLabels({tr("表示名（自己申告）"), tr("先後"), tr("持ち時間"), tr("期限")});
     m_offers->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_offers->setSelectionMode(QAbstractItemView::SingleSelection);
     m_offers->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    // 列は中身と見出しが切れない幅に合わせ、最後の列は残りの幅まで伸ばす（resizeColumnsToContents は最後の列の伸びを外す）
+    m_offers->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     m_offers->horizontalHeader()->setStretchLastSection(true);
     m_offers->setMinimumHeight(140);
-    m_offers->setColumnWidth(0, 200);
+    m_offers->verticalHeader()->setVisible(false);
     offersLayout->addWidget(m_offers);
     auto* offerButtons = new QHBoxLayout;
     m_refreshOffers = new QPushButton(tr("一覧を更新"), offersBox);
@@ -205,6 +217,7 @@ QWidget* P2pWindow::createInviteTab()
     connect(m_createInvite, &QPushButton::clicked, this, &P2pWindow::onCreateInvite);
     createLayout->addWidget(m_createInvite);
     m_inviteOut = new QPlainTextEdit(createBox);
+    m_inviteOut->setObjectName(QStringLiteral("p2pInviteOut"));
     m_inviteOut->setReadOnly(true);
     m_inviteOut->setMaximumHeight(90);
     createLayout->addWidget(m_inviteOut);
@@ -222,12 +235,14 @@ QWidget* P2pWindow::createInviteTab()
     joinLayout->addWidget(plainLabel(joinBox, tr("受け取った招待文字列を貼り付けてください。接続しただけでは対局は始まりません。"
                                                  "条件確認画面で相手のプレイヤーIDを確かめてから開始します。")));
     m_inviteIn = new QPlainTextEdit(joinBox);
+    m_inviteIn->setObjectName(QStringLiteral("p2pInviteIn"));
     m_inviteIn->setMaximumHeight(90);
     joinLayout->addWidget(m_inviteIn);
     m_inspectInvite = new QPushButton(tr("招待文字列を確かめる"), joinBox);
     connect(m_inspectInvite, &QPushButton::clicked, this, &P2pWindow::onInspectInvite);
     joinLayout->addWidget(m_inspectInvite);
     m_inviteInInfo = plainLabel(joinBox);
+    m_inviteInInfo->setObjectName(QStringLiteral("p2pInviteInfo"));
     m_inviteInInfo->setTextInteractionFlags(Qt::TextSelectableByMouse);
     joinLayout->addWidget(m_inviteInInfo);
     m_allowPrivate = new QCheckBox(tr("上の私設アドレス（同じLANの相手）へ接続してよい"), joinBox);
@@ -247,6 +262,7 @@ QWidget* P2pWindow::createGameTab()
     auto* tab = new QWidget(this);
     auto* layout = new QVBoxLayout(tab);
     m_gameStatus = plainLabel(tab);
+    m_gameStatus->setObjectName(QStringLiteral("p2pGameStatus"));
     m_gameStatus->setTextInteractionFlags(Qt::TextSelectableByMouse);
     layout->addWidget(m_gameStatus);
     auto* buttons = new QHBoxLayout;
@@ -272,6 +288,7 @@ QWidget* P2pWindow::createSettingsTab()
     auto* layout = new QVBoxLayout(tab);
     auto* form = new QFormLayout;
     m_bootstrap = new QPlainTextEdit(tab);
+    m_bootstrap->setObjectName(QStringLiteral("p2pBootstrap"));
     m_bootstrap->setPlaceholderText(tr("協力ノードのアドレス（/ip4/…/p2p/… の形）を1行に1つ"));
     m_bootstrap->setMaximumHeight(100);
     form->addRow(tr("接続候補"), m_bootstrap);
@@ -436,9 +453,20 @@ void P2pWindow::refresh()
     m_identityInfo->setText(identityLines.join(QLatin1Char('\n')));
     m_buildInfo->setText(tr("このビルドの使用期限: %1（期限後は限定試験用のネットワークに参加しません）")
                              .arg(dateText(static_cast<quint64>(P2pLobbyService::buildExpiresAt()))));
+    updateGameStatus();
+}
+
+void P2pWindow::reloadRecords()
+{
     if (m_history) m_history->reload();
     if (m_peers) m_peers->reload();
-    updateGameStatus();
+}
+
+void P2pWindow::onTabChanged(int index)
+{
+    QWidget* page = m_tabs->widget(index);
+    if (page == m_history && m_history) m_history->reload();
+    if (page == m_peers && m_peers) m_peers->reload();
 }
 
 void P2pWindow::updateGameStatus()
@@ -533,7 +561,9 @@ void P2pWindow::onOffersChanged()
         m_offers->setItem(row, 0, name);
         m_offers->setItem(row, 1, new QTableWidgetItem(P2pWindowText::sideText(offer.side)));
         m_offers->setItem(row, 2, new QTableWidgetItem(P2pWindowText::timeControlText(offer.terms)));
-        m_offers->setItem(row, 3, new QTableWidgetItem(dateText(offer.expiresAt)));
+        // 募集は2分で切れるので、期限は時刻だけで足りる
+        m_offers->setItem(row, 3, new QTableWidgetItem(QDateTime::fromSecsSinceEpoch(static_cast<qint64>(offer.expiresAt))
+                                                           .toString(QStringLiteral("HH:mm:ss"))));
     }
 }
 

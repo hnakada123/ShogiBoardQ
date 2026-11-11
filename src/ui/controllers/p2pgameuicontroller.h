@@ -16,11 +16,13 @@
 #include "peerprocess.h"
 
 class AppActivityState;
+class MainWindowAppearanceController;
 class P2pConfirmDialog;
 class P2pGameCoordinator;
 class P2pLobbyService;
 class P2pWindow;
 class QWidget;
+class ShogiView;
 
 /**
  * @brief P2P対局の利用者の操作と画面への反映
@@ -37,6 +39,8 @@ public:
         P2pGameCoordinator* game = nullptr;
         AppActivityState* activity = nullptr;
         QWidget* parentWidget = nullptr;
+        ShogiView* shogiView = nullptr;                        ///< 盤の向き
+        MainWindowAppearanceController* appearance = nullptr;  ///< 後手のとき盤を反転する（通信対局と同じ）
     };
 
     explicit P2pGameUiController(const Deps& deps, QObject* parent = nullptr);

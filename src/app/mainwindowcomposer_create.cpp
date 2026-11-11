@@ -478,6 +478,8 @@ void MainWindowComposer::createSessions()
     p2pDeps.game = m_c.p2pGame;
     p2pDeps.activity = &m_activity;
     p2pDeps.parentWidget = &m_window;
+    p2pDeps.shogiView = m_c.shogiView;
+    p2pDeps.appearance = m_c.appearance;
     m_c.p2pUi = new P2pGameUiController(p2pDeps, &m_window);
 #endif
 }

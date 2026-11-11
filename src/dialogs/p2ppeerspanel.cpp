@@ -42,7 +42,10 @@ P2pPeersPanel::P2pPeersPanel(P2pKnownPeers* knownPeers, P2pIdentityStore* identi
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    // 列は中身と見出しが切れない幅に合わせ、最後の列は残りの幅まで伸ばす（resizeColumnsToContents は最後の列の伸びを外す）
+    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     m_table->horizontalHeader()->setStretchLastSection(true);
+    m_table->verticalHeader()->setVisible(false);
     connect(m_table, &QTableWidget::itemSelectionChanged, this, &P2pPeersPanel::onSelectionChanged);
     layout->addWidget(m_table, 1);
     auto* buttons = new QHBoxLayout;

@@ -53,7 +53,10 @@ P2pHistoryPanel::P2pHistoryPanel(P2pRecordStore* store, P2pKnownPeers* knownPeer
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    // 列は中身と見出しが切れない幅に合わせ、最後の列は残りの幅まで伸ばす（resizeColumnsToContents は最後の列の伸びを外す）
+    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     m_table->horizontalHeader()->setStretchLastSection(true);
+    m_table->verticalHeader()->setVisible(false);
     connect(m_table, &QTableWidget::itemSelectionChanged, this, &P2pHistoryPanel::onSelectionChanged);
     layout->addWidget(m_table, 1);
     auto* buttons = new QHBoxLayout;
@@ -73,6 +76,7 @@ P2pHistoryPanel::P2pHistoryPanel(P2pRecordStore* store, P2pKnownPeers* knownPeer
 
 void P2pHistoryPanel::reload()
 {
+    const QByteArray selected = selectedGameId();
     m_table->setRowCount(0);
     if (!m_store) return;
     const QList<P2pRecordStore::Entry> entries = m_store->history();
@@ -106,6 +110,7 @@ void P2pHistoryPanel::reload()
         } else {
             m_table->setItem(row, Category, new QTableWidgetItem(tr("読めません")));
         }
+        if (!selected.isEmpty() && entry.gameId == selected) m_table->selectRow(row);
     }
     onSelectionChanged();
 }

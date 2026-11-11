@@ -692,7 +692,8 @@ target_link_libraries(tst_app_kifu_load PRIVATE shogiboardq_static)
 # ============================================================
 # Unit 25: App UI State Policy (UiStatePolicyManager 状態遷移テスト)
 # ============================================================
-add_shogi_test(tst_app_ui_state_policy tst_app_ui_state_policy.cpp)
+# メニューの項目のアイコンを読むので、リソースも入れる
+add_shogi_test(tst_app_ui_state_policy tst_app_ui_state_policy.cpp ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
 target_link_libraries(tst_app_ui_state_policy PRIVATE shogiboardq_static)
 set_target_properties(tst_app_ui_state_policy PROPERTIES
     AUTOUIC ON
