@@ -16,9 +16,9 @@ MOVES = ["7g7f", "3c3d", "2g2f", "8c8d", "2f2e", "8d8e", "6i7h"]
 @pytest.fixture
 def kifu_env(server_env, app_path, tmp_path):
     env = dict(server_env)
-    config = tmp_path / "config" / "ShogiBoardQ"
+    config = tmp_path / "config" / "ShogiBoardQ-P2P"
     config.mkdir(parents=True)
-    (config / "ShogiBoardQ.ini").write_text(
+    (config / "ShogiBoardQ-P2P.ini").write_text(
         "[General]\nmainWindowSize=@Size(1400 1000)\n", encoding="utf-8")
     env.update(SHOGIBOARDQ_EXECUTABLE=str(app_path), SHOGIBOARDQ_QUIT_APP_ON_EXIT="1",
                XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_CONFIG_HOME=str(config.parent),
@@ -429,7 +429,7 @@ async def test_save_filter_warning_and_explicit_extension(kifu_env, tmp_path):
 
 
 async def test_game_end_auto_save(kifu_env, tmp_path):
-    config = Path(kifu_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
+    config = Path(kifu_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini"
     with config.open("a", encoding="utf-8") as ini:
         ini.write(f"[GameSettings]\nkifuSaveDir={tmp_path}\n")
     async with mcp_session(kifu_env) as session:

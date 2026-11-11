@@ -1,0 +1,141 @@
+# 表示名の判定（protocol/displayname-v1.txt と実装仕様 3.2節）。値は UTF-8 の16進
+# ascii
+accept 61
+# ascii word
+accept 5461726f
+# kanji
+accept e5b086e6a38be5a4aae9838e
+# hiragana
+accept e38197e38287e38186e3818e
+# katakana
+accept e382b7e383a7e382a6e382ae
+# fullwidth latin
+accept efbd93efbd88efbd8fefbd87efbd89
+# fullwidth A
+accept efbca1
+# inner space
+accept 412042
+# kanji marks
+accept e38085e38086e38087
+# hiragana iteration
+accept e3829de3829e
+# katakana iteration
+accept e383bde383be
+# prolonged sound
+accept e383a9e383bce383a1e383b3
+# punctuation
+accept e38081e38082e38083
+# precomposed voiced
+accept e3818ce381b1e383b4
+# spacing voiced marks
+accept e3829be3829c
+# katakana middle dot
+accept e382a2e383bbe382a4
+# 32 ascii
+accept 6161616161616161616161616161616161616161616161616161616161616161
+# 32 kanji 96 bytes
+accept e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086
+# ascii symbols
+accept 7e21402324255e262a28295f2b7b7d7c3a223c3e3f602d3d5b5d5c3b272c2e2f
+# digits
+accept 30313233343536373839
+# small kana
+accept e38181e38296e382a1e383b6
+# last kanji
+accept e9bfbf
+# first kanji
+accept e4b880
+# fullwidth tilde
+accept efbd9e
+# fullwidth exclamation
+accept efbc81
+# leading space
+reject 2061
+# trailing space
+reject 6120
+# only spaces
+reject 2020
+# 33 ascii
+reject 616161616161616161616161616161616161616161616161616161616161616161
+# 33 kanji
+reject e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086
+# 97 bytes with emoji
+reject e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086e5b086f09f9880
+# combining voiced mark
+reject e3818be38299
+# lone combining voiced mark
+reject e38299
+# combining semi-voiced mark
+reject e381afe3829a
+# zero width space
+reject 61e2808b62
+# zero width joiner
+reject 61e2808d62
+# right-to-left override
+reject e280ae616263
+# left-to-right isolate
+reject 61e281a662
+# byte order mark
+reject efbbbf61
+# soft hyphen
+reject 61c2ad62
+# emoji
+reject f09f9880
+# emoji in name
+reject 61f09f9880
+# compatibility ideograph
+reject efa480
+# corner brackets
+reject e3808ce5908de4babae3808d
+# white corner brackets
+reject e3808e61e3808f
+# newline
+reject 610a62
+# tab
+reject 610962
+# carriage return
+reject 610d62
+# nul
+reject 610062
+# delete
+reject 617f
+# c1 control
+reject 61c28562
+# ideographic space
+reject 61e3808062
+# latin-1 letter
+reject c3a9
+# decomposed e acute
+reject 65cc81
+# halfwidth katakana
+reject efbdb6
+# private use
+reject ee8080
+# tag character
+reject f3a08081
+# unassigned
+reject cdb8
+# roman numeral
+reject e285a0
+# hiragana gap U+3040
+reject e38180
+# hiragana gap U+3097
+reject e38297
+# digraph yori
+reject e3829f
+# katakana digraph koto
+reject e383bf
+# fullwidth white parenthesis
+reject efbd9f
+# cjk extension a
+reject e39080
+# hangul
+reject ed959c
+# cyrillic
+reject d094
+# line separator
+reject 61e280a862
+# fullwidth space
+reject e38080
+# wave dash
+reject e3809c

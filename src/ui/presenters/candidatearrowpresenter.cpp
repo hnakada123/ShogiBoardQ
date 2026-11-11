@@ -87,6 +87,8 @@ bool CandidateArrowPresenter::arrowsOn(QAction* (BoardArrowActions::*toggle)() c
 void CandidateArrowPresenter::appendJosekiArrows(QList<ShogiViewHighlighting::Arrow>& arrows, const QString& sfen) const
 {
     if (!m_sources.josekiBook || !arrowsOn(&BoardArrowActions::joseki, false)) return;
+    // P2P対局の間は、アプリが手の助言をしない（実装仕様 10.3節）
+    if (m_sources.activity && m_sources.activity->is(AppActivityState::Activity::DuringP2pGame)) return;
     if (m_sources.josekiDisplay && !m_sources.josekiDisplay->isChecked()) return;
     // 対局中は人間の手番だけ（エンジンの手番に定跡手を見せても使えない）
     const OperationPolicy* turn = m_sources.operationPolicy;

@@ -42,12 +42,15 @@ using StateSet = unsigned;
 constexpr StateSet in(S state) { return 1u << static_cast<unsigned>(state); }
 constexpr StateSet kAllStates = in(S::Idle) | in(S::DuringGame) | in(S::DuringAnalysis) | in(S::DuringCsaGame)
                               | in(S::DuringTsumeSearch) | in(S::DuringConsideration) | in(S::DuringPositionEdit)
-                              | in(S::DuringCsaConnection);
+                              | in(S::DuringCsaConnection) | in(S::DuringP2pConnection) | in(S::DuringP2pGame);
 /// 盤と棋譜を見るだけの状態（局面を変える操作はしないが、棋譜の閲覧・保存はできる）。通信対局の局と局の間も
 /// 見る・保存だけ（棋譜は次の対局で置き換わり、エンジンは次の対局で使う。OperationPolicy::canEditRecord は変えない）
+/// P2P対局の招待・交渉の間（DuringP2pConnection）も、前の対局の棋譜を見る・保存するだけ
 constexpr StateSet kBrowsing = in(S::Idle) | in(S::DuringTsumeSearch) | in(S::DuringConsideration)
-                             | in(S::DuringCsaConnection);
+                             | in(S::DuringCsaConnection) | in(S::DuringP2pConnection);
 constexpr StateSet kPlaying = in(S::DuringGame) | in(S::DuringCsaGame);
+/// P2P対局（人間対人間。即指し・入玉宣言・待ったはない。実装仕様 10.3節）
+constexpr StateSet kP2p = in(S::DuringP2pConnection) | in(S::DuringP2pGame);
 
 enum class Off { Disable, Hide };
 
@@ -85,10 +88,12 @@ constexpr Rule kRules[] = {
     // --- 対局メニュー ---
     {E::GameStart,              in(S::Idle),  Off::Disable},
     {E::GameCsa,                in(S::Idle),  Off::Disable},
-    {E::GameResign,             kPlaying,     Off::Disable},  // ローカル対局は人間が参加するときだけ（effectivePolicy）
+    {E::GameP2p,                in(S::Idle) | kP2p, Off::Disable},  // 動かしている間はウィンドウを出すだけ
+    {E::GameResign,             kPlaying | in(S::DuringP2pGame), Off::Disable},  // ローカル対局は人間が参加するときだけ（effectivePolicy）
     {E::GameUndo,               in(S::DuringGame), Off::Disable},  // 同上
     {E::GameMakeImmediate,      kPlaying,     Off::Disable},
-    {E::GameBreakOff,           kPlaying | in(S::DuringCsaConnection), Off::Disable},  // 局と局の間はログアウト
+    // 局と局の間はログアウト。P2P対局では合意中断の申し出
+    {E::GameBreakOff,           kPlaying | in(S::DuringCsaConnection) | in(S::DuringP2pGame), Off::Disable},
     {E::GameResume,             in(S::Idle),  Off::Disable},  // 中断した対局があるときだけ（effectivePolicy）
     {E::GameAnalyzeKifu,        in(S::Idle),  Off::Disable},
     {E::GameCancelAnalysis,     in(S::DuringAnalysis), Off::Disable},
@@ -105,7 +110,8 @@ constexpr Rule kRules[] = {
     {E::WidgetNavigation,       kBrowsing,    Off::Disable},
     // 局面編集中は盤が編集中の局面なので検討しない（編集を終えてから始める）
     // 通信対局の局と局の間は、次の対局でエンジンを使うので検討しない
-    {E::WidgetConsiderationStart, kAllStates & ~kPlaying & ~in(S::DuringPositionEdit) & ~in(S::DuringCsaConnection),
+    // P2P対局の間は、アプリが手の助言をしない（実装仕様 10.3節。招待・交渉の間も、いつ対局が始まるか分からないので止める）
+    {E::WidgetConsiderationStart, kAllStates & ~kPlaying & ~in(S::DuringPositionEdit) & ~in(S::DuringCsaConnection) & ~kP2p,
      Off::Disable},
 };
 
@@ -155,6 +161,7 @@ constexpr ActionBinding kActions[] = {
     {E::EditChangeTurn,          &Ui::MainWindow::actionChangeTurn},
     {E::GameStart,               &Ui::MainWindow::actionStartGame},
     {E::GameCsa,                 &Ui::MainWindow::actionCSA},
+    {E::GameP2p,                 &Ui::MainWindow::actionP2pGame},
     {E::GameResign,              &Ui::MainWindow::actionResign},
     {E::GameUndo,                &Ui::MainWindow::actionUndoMove},
     {E::GameMakeImmediate,       &Ui::MainWindow::actionMakeImmediateMove},
@@ -195,6 +202,10 @@ UiStatePolicyManager::Policy UiStatePolicyManager::tablePolicy(Activity state, U
 
 UiStatePolicyManager::Policy UiStatePolicyManager::effectivePolicy(UiElement element) const
 {
+#ifndef SBQ_ENABLE_P2P
+    // P2P対局を含まないビルドでは項目を出さない
+    if (element == UiElement::GameP2p) return Policy::Hidden;
+#endif
     if (element == UiElement::GameResume && !(m_deps.canResumeGame && m_deps.canResumeGame()))
         return Policy::Disabled;
     // 待った・投了・入玉宣言はローカル対局では人間が参加する場合だけ。エンジン同士では行わない

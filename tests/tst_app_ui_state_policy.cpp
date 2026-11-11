@@ -150,7 +150,8 @@ private slots:
     {
         Policy p;
         for (const auto state : {S::DuringGame, S::DuringAnalysis, S::DuringCsaGame, S::DuringTsumeSearch,
-                                S::DuringConsideration, S::DuringPositionEdit, S::Idle}) {
+                                S::DuringConsideration, S::DuringPositionEdit, S::DuringP2pConnection, S::DuringP2pGame,
+                                S::Idle}) {
             p.set(state);
             QCOMPARE(p.mgr.currentState(), state);
         }
@@ -697,6 +698,81 @@ private slots:
         p.set(S::DuringPositionEdit);
         QVERIFY(!mgr.isEnabled(E::EditStartPosition));
         QVERIFY(mgr.isEnabled(E::EditEndPosition));
+    }
+
+    // ================================================================
+    // P2P対局（実装仕様 10.3節）
+    // ================================================================
+
+    /// P2P対局中は投了と合意中断の申し出だけ。即指し・待った・入玉宣言・検討・詰み探索・棋譜解析・棋譜の移動はできない
+    void p2pGameAllowsOnlyHumanActions()
+    {
+        Policy p;
+        verifyEnabled(p, S::DuringP2pGame, E::GameResign, "GameResign");
+        verifyEnabled(p, S::DuringP2pGame, E::GameBreakOff, "GameBreakOff");
+#ifdef SBQ_ENABLE_P2P
+        verifyEnabled(p, S::DuringP2pGame, E::GameP2p, "GameP2p");
+#endif
+        verifyDisabled(p, S::DuringP2pGame, E::GameMakeImmediate, "GameMakeImmediate");
+        verifyDisabled(p, S::DuringP2pGame, E::GameUndo, "GameUndo");
+        verifyDisabled(p, S::DuringP2pGame, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
+        verifyDisabled(p, S::DuringP2pGame, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyDisabled(p, S::DuringP2pGame, E::GameTsumeSearch, "GameTsumeSearch");
+        verifyDisabled(p, S::DuringP2pGame, E::GameAnalyzeKifu, "GameAnalyzeKifu");
+        verifyDisabled(p, S::DuringP2pGame, E::WidgetNavigation, "WidgetNavigation");
+        verifyDisabled(p, S::DuringP2pGame, E::GameStart, "GameStart");
+        verifyDisabled(p, S::DuringP2pGame, E::FileOpen, "FileOpen");
+    }
+
+    /// 募集・交渉の間は前の棋譜を見る・保存するだけ。対局の開始・検討は始められない
+    void p2pConnectionIsBrowsingOnly()
+    {
+        Policy p;
+        verifyEnabled(p, S::DuringP2pConnection, E::WidgetNavigation, "WidgetNavigation");
+        verifyEnabled(p, S::DuringP2pConnection, E::FileSaveAs, "FileSaveAs");
+#ifdef SBQ_ENABLE_P2P
+        verifyEnabled(p, S::DuringP2pConnection, E::GameP2p, "GameP2p");
+#endif
+        verifyDisabled(p, S::DuringP2pConnection, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyDisabled(p, S::DuringP2pConnection, E::GameStart, "GameStart");
+        verifyDisabled(p, S::DuringP2pConnection, E::GameCsa, "GameCsa");
+        verifyDisabled(p, S::DuringP2pConnection, E::GameResign, "GameResign");
+        verifyDisabled(p, S::DuringP2pConnection, E::FileNew, "FileNew");
+        verifyDisabled(p, S::DuringP2pConnection, E::SettingsReset, "SettingsReset");
+        // ほかの動作の間は P2P対局を開かない
+        verifyDisabled(p, S::DuringGame, E::GameP2p, "GameP2p");
+        verifyDisabled(p, S::DuringCsaGame, E::GameP2p, "GameP2p");
+    }
+
+    /// P2P対局を含まないビルドでは「P2P対局」の項目を出さない
+    void p2pMenuItemFollowsBuild()
+    {
+        QMainWindow window;
+        Ui::MainWindow ui;
+        ui.setupUi(&window);
+        UiStatePolicyManager::Deps deps;
+        deps.ui = &ui;
+        Policy p(deps);
+        p.set(S::Idle);
+#ifdef SBQ_ENABLE_P2P
+        QVERIFY(ui.actionP2pGame->isVisible());
+        QVERIFY(ui.actionP2pGame->isEnabled());
+#else
+        QVERIFY(!ui.actionP2pGame->isVisible());
+#endif
+    }
+
+    /// 「P2P対局」の項目は、「通信対局（CSA）」と見分けられるよう別の絵のアイコンにする
+    void p2pMenuItemHasOwnIcon()
+    {
+        QMainWindow window;
+        Ui::MainWindow ui;
+        ui.setupUi(&window);
+        const QImage p2p = ui.actionP2pGame->icon().pixmap(QSize(24, 24)).toImage();
+        const QImage csa = ui.actionCSA->icon().pixmap(QSize(24, 24)).toImage();
+        QVERIFY(!p2p.isNull());
+        QVERIFY(!csa.isNull());
+        QVERIFY(p2p != csa);
     }
 };
 

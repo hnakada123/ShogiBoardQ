@@ -52,9 +52,12 @@ class AppActivityState : public QObject
     Q_OBJECT
 public:
     /// 動作状態。DuringCsaConnection は通信対局のサーバーに接続している間のうち、対局していない間
-    /// （ログインして最初の対局を待つ間・連続対局の局と局の間。対局の間は DuringCsaGame）
+    /// （ログインして最初の対局を待つ間・連続対局の局と局の間。対局の間は DuringCsaGame）。
+    /// DuringP2pConnection は P2P対局の通信プロセスを動かしている間のうち対局していない間（募集・招待・交渉）、
+    /// DuringP2pGame は P2P対局の対局中（開始署名がそろってから、終局の記録まで）
     enum class Activity { Idle, DuringGame, DuringAnalysis, DuringCsaGame,
-                          DuringTsumeSearch, DuringConsideration, DuringPositionEdit, DuringCsaConnection };
+                          DuringTsumeSearch, DuringConsideration, DuringPositionEdit, DuringCsaConnection,
+                          DuringP2pConnection, DuringP2pGame };
     Q_ENUM(Activity)
 
     Activity activity() const { return m_activity; }

@@ -75,6 +75,8 @@ public:
      * （棋戦・場所・備考など利用者が入力した項目は残す）。続ける対局は対局者名だけを書き換える。
      */
     void beginMatch(const MatchPlayers& players, const TimeControl& timeControl, bool continuesRecord);
+    /// 対局を始めた司令塔が決める対局情報の項目を書く（P2P対局の対局ID。未保存に数えない）
+    void setMatchInfo(const QString& key, const QString& value) { setHeaderValue(key, value); }
     /// 終局した（終了日時を今にして対局情報に書く。棋譜の途中から続けた対局は対局情報を書き換えない）
     void recordMatchEnd();
     /// 対局情報の終了日時を消す（中断した対局を再開した）

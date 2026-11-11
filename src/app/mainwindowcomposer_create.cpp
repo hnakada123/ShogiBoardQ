@@ -1,6 +1,11 @@
 /// @file mainwindowcomposer_create.cpp
 /// @brief 部品の生成。依存する部品が先にできている順に、起動時に1回だけ作る
 
+#ifdef SBQ_ENABLE_P2P
+#include "p2pgamechannel.h"
+#include "p2pgamecoordinator.h"
+#include "p2pgameuicontroller.h"
+#endif
 #include "mainwindowcomposer.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -230,6 +235,15 @@ void MainWindowComposer::createMatchAndAnalysis()
     cd.activity = &m_activity;
     m_c.csaGame = new CsaGameCoordinator(cd, &m_window);
     m_c.gameChannels = std::make_unique<GameChannels>(&m_activity, m_c.match, m_c.csaGame);
+#ifdef SBQ_ENABLE_P2P
+    // P2P対局の司令塔（通信プロセス・プレイヤー鍵は、利用者が「P2P対局」を開いたときに P2pGameUiController が作る）
+    P2pGameCoordinator::Deps p2pGameDeps;
+    p2pGameDeps.gameBoard = m_c.gameBoard;
+    p2pGameDeps.clock = m_c.clock;
+    p2pGameDeps.activity = &m_activity;
+    m_c.p2pGame = new P2pGameCoordinator(p2pGameDeps, &m_window);
+    m_c.gameChannels->setP2pChannel(std::make_unique<P2pGameChannel>(m_c.p2pGame));
+#endif
 
     // 盤の手の行き先と、棋譜を移って・変えてよいか（棋譜を移る・変える入口はすべてこれを通す）
     OperationPolicy::Deps hd;
@@ -447,6 +461,9 @@ void MainWindowComposer::createSessions()
     // 司令塔（ローカル対局・通信対局）は棋譜の受け手（GameSession）より先に作るので、ここで渡す
     m_c.match->setRecordSink(m_c.gameSession);
     m_c.csaGame->setRecordSink(m_c.gameSession);
+#ifdef SBQ_ENABLE_P2P
+    m_c.p2pGame->setRecordSink(m_c.gameSession);
+#endif
 
     CsaGameUiController::Deps cd;
     cd.coordinator = m_c.csaGame;
@@ -456,6 +473,15 @@ void MainWindowComposer::createSessions()
     cd.parentWidget = &m_window;
     cd.kifuFiles = m_c.kifuFileController;
     m_c.csaUi = new CsaGameUiController(cd, &m_window);
+#ifdef SBQ_ENABLE_P2P
+    P2pGameUiController::Deps p2pDeps;
+    p2pDeps.game = m_c.p2pGame;
+    p2pDeps.activity = &m_activity;
+    p2pDeps.parentWidget = &m_window;
+    p2pDeps.shogiView = m_c.shogiView;
+    p2pDeps.appearance = m_c.appearance;
+    m_c.p2pUi = new P2pGameUiController(p2pDeps, &m_window);
+#endif
 }
 
 // ---------------------------------------------------------------------------

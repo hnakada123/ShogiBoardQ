@@ -18,9 +18,9 @@ def consideration_env(server_env, app_path, tmp_path):
     if not engine:
         pytest.skip("SHOGIBOARDQ_TEST_USI_ENGINE is required")
     env = dict(server_env)
-    config = tmp_path / "config" / "ShogiBoardQ"
+    config = tmp_path / "config" / "ShogiBoardQ-P2P"
     config.mkdir(parents=True)
-    (config / "ShogiBoardQ.ini").write_text(
+    (config / "ShogiBoardQ-P2P.ini").write_text(
         "[Engines]\nsize=2\n1\\name=TestUsi\n1\\path=" + engine
         + "\n2\\name=SecondUsi\n2\\path=" + engine
         + "\n[Consideration]\nengineIndex=1\nunlimitedTime=true\nbyoyomiSec=7\nmultiPV=3\n"
@@ -246,7 +246,7 @@ async def test_keeps_loaded_player_names(consideration_env):
 async def test_start_stop_button_keeps_width(consideration_env):
     # In English the two labels differ a lot ("Start Consideration" / "Stop"). A width change
     # moves the toolbar's wrap point, and the tables below jump on every start and stop.
-    config = Path(consideration_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
+    config = Path(consideration_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini"
     config.write_text(config.read_text(encoding="utf-8") + "[%General]\nlanguage=en\n", encoding="utf-8")
     async with mcp_session(consideration_env) as session:
         ui = UI(session)
@@ -345,7 +345,7 @@ async def test_white_drop_arrows(consideration_env):
 
 @pytest.mark.parametrize("missing_executable", [False, True])
 async def test_unavailable_engine_recovers(consideration_env, missing_executable):
-    config = Path(consideration_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
+    config = Path(consideration_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ-P2P" / "ShogiBoardQ-P2P.ini"
     if missing_executable:
         engine = os.environ["SHOGIBOARDQ_TEST_USI_ENGINE"]
         config.write_text(config.read_text().replace(engine, str(config.parent / "missing-engine")))

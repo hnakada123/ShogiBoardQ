@@ -3,6 +3,7 @@
 
 #include "automationendpoint.h"
 
+#include "appidentity.h"
 #include "settingscommon.h"
 
 #include <QDir>
@@ -19,8 +20,8 @@ QString AutomationEndpoint::defaultSocketPath()
     // アプリを探す側はエンドポイントファイルの名前を使う。同じプロセスの中では同じ名前を返す
     static const QString name = [] {
         const QString user = qEnvironmentVariable("USERNAME", QStringLiteral("user"));
-        return QStringLiteral("shogiboardq-automation-%1-%2")
-            .arg(user, QString::number(QRandomGenerator::system()->generate64(), 16));
+        return QStringLiteral("%1-automation-%2-%3")
+            .arg(QString::fromLatin1(AppIdentity::kRuntimeName), user, QString::number(QRandomGenerator::system()->generate64(), 16));
     }();
     return name;
 #else
@@ -28,7 +29,8 @@ QString AutomationEndpoint::defaultSocketPath()
     // 共有の一時ディレクトリの固定名は使わない（別の利用者に先に作られると待ち受けを奪われる。セキュリティ監査 S10）
     const QString runtime = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
     if (runtime.isEmpty()) return QFileInfo(endpointFilePath()).dir().filePath(QStringLiteral("automation.sock"));
-    return runtime + QStringLiteral("/shogiboardq/automation.sock");
+    return runtime + QLatin1Char('/') + QString::fromLatin1(AppIdentity::kRuntimeName)
+        + QStringLiteral("/automation.sock");
 #endif
 }
 

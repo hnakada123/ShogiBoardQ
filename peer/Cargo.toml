@@ -1,0 +1,33 @@
+[package]
+name = "shogiboardq-peer"
+description = "ShogiBoardQ P2P communication process (invites, NAT traversal, relay, frame transport)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+sbq-protocol = { path = "../protocol/rust" }
+# 0.56 系に固定する（Cargo.lock で依存の版も固定）。
+# 既定の機能を切り、使う通信方式とプロトコルだけを有効にする（公開募集をやめたので、DHT と GossipSub は入れない）
+libp2p = { version = "=0.56.0", default-features = false, features = [
+    "tokio", "tcp", "quic", "noise", "yamux", "identify", "ping", "relay", "dcutr",
+    "autonat", "macros", "ed25519",
+] }
+libp2p-stream = "=0.4.0-alpha"
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "io-std", "io-util", "sync", "time"] }
+futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+rand = "0.8"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+landlock = "0.4"
+seccompiler = "0.5"
+nix = { version = "0.29", default-features = false, features = ["process", "resource", "signal", "socket"] }
+libc = "0.2"

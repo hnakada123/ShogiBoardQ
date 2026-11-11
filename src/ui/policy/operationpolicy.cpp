@@ -19,7 +19,8 @@ OperationPolicy::BoardInput OperationPolicy::boardInput() const
         // 終局後も同じ扱いで、指し継いだ手は分岐ツリーに変化として加わる。
         return canEditRecord() ? BoardInput::Variation : BoardInput::None;
     case AppActivityState::Activity::DuringGame:
-    case AppActivityState::Activity::DuringCsaGame: {
+    case AppActivityState::Activity::DuringCsaGame:
+    case AppActivityState::Activity::DuringP2pGame: {
         const GameChannel* channel = m_deps.channels ? m_deps.channels->active() : nullptr;
         return channel && channel->isHumanToMove() ? BoardInput::Game : BoardInput::None;
     }
@@ -47,8 +48,10 @@ bool OperationPolicy::canEditRecord() const
 {
     // 対局の棋譜を書いている間は、ツリーに手を足している最中なので変えない。通信対局の局と局の間は見るだけ
     // （棋譜は次の対局で置き換わる）
+    // P2P対局の募集・交渉の間も見るだけ（相手が来れば棋譜は置き換わる）
     return canBrowseRecord() && !(m_deps.liveSession && m_deps.liveSession->isActive())
-        && !m_deps.activity->is(AppActivityState::Activity::DuringCsaConnection);
+        && !m_deps.activity->is(AppActivityState::Activity::DuringCsaConnection)
+        && !m_deps.activity->is(AppActivityState::Activity::DuringP2pConnection);
 }
 
 bool OperationPolicy::isHumanTurnNow() const

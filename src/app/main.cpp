@@ -2,6 +2,7 @@
 /// @brief アプリケーションエントリーポイントの実装
 
 #include "mainwindow.h"
+#include "appidentity.h"
 #include "appsettings.h"
 #include "applicationfonts.h"
 #include "applicationlogging.h"
@@ -66,7 +67,7 @@ int main(int argc, char *argv[])
     const ApplicationLogging logging;
 
     QApplication a(argc, argv);
-    a.setApplicationName("ShogiBoardQ");
+    a.setApplicationName(QString::fromLatin1(AppIdentity::kApplicationName));
     a.setApplicationVersion(QStringLiteral(APP_VERSION));
     // 以前の版の設定ファイルにあるエンジンごとの設定を、今の保存先へ移す
     EngineProfileStore::migrateLegacyOptionGroups();
@@ -77,7 +78,7 @@ int main(int argc, char *argv[])
 
     // コマンドライン引数。自動化 API（MCP サーバーやテストからの操作用）は既定で無効
     QCommandLineParser parser;
-    parser.setApplicationDescription(QStringLiteral("ShogiBoardQ"));
+    parser.setApplicationDescription(QString::fromLatin1(AppIdentity::kApplicationName));
     parser.addHelpOption();
     parser.addVersionOption();
     const QCommandLineOption automationOption(
@@ -92,7 +93,7 @@ int main(int argc, char *argv[])
     parser.process(a);
 #ifdef Q_OS_LINUX
     // Waylandでもデスクトップエントリのアイコンと関連付ける。
-    a.setDesktopFileName(QStringLiteral("shogiboardq"));
+    a.setDesktopFileName(QString::fromLatin1(AppIdentity::kDesktopFileName));
 #endif
 
     // アプリケーションアイコンを設定

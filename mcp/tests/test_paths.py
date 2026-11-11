@@ -155,16 +155,16 @@ def test_socket_and_endpoint_locations(monkeypatch, tmp_path, cli_path):
     monkeypatch.delenv("SHOGIBOARDQ_AUTOMATION_SOCKET")
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     if not os.name == "nt":
-        assert paths.default_socket_path() == str(tmp_path / "shogiboardq" / "automation.sock")
+        assert paths.default_socket_path() == str(tmp_path / "shogiboardq-p2p" / "automation.sock")
     monkeypatch.delenv("SHOGIBOARDQ_CONFIG_HOME", raising=False)
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     if sys.platform.startswith("linux"):
-        assert paths.endpoint_file() == tmp_path / "xdg" / "ShogiBoardQ" / "automation-endpoint.json"
+        assert paths.endpoint_file() == tmp_path / "xdg" / "ShogiBoardQ-P2P" / "automation-endpoint.json"
     # SHOGIBOARDQ_CONFIG_HOME relocates the settings on every platform, as in the application.
     monkeypatch.setenv("SHOGIBOARDQ_CONFIG_HOME", str(tmp_path))
-    assert paths.endpoint_file() == tmp_path / "ShogiBoardQ" / "automation-endpoint.json"
+    assert paths.endpoint_file() == tmp_path / "ShogiBoardQ-P2P" / "automation-endpoint.json"
     assert paths.read_endpoint() is None
-    (tmp_path / "ShogiBoardQ").mkdir(exist_ok=True)
+    (tmp_path / "ShogiBoardQ-P2P").mkdir(exist_ok=True)
     paths.endpoint_file().write_text('{"socket": "/x/y.sock", "pid": 1}', encoding="utf-8")
     assert paths.read_endpoint() == {"socket": "/x/y.sock", "pid": 1}
 

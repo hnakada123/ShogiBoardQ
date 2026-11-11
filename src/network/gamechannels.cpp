@@ -19,5 +19,6 @@ GameChannel* GameChannels::active() const
         || m_activity->is(AppActivityState::Activity::DuringCsaConnection))
         return m_csa.get();
     if (m_activity->is(AppActivityState::Activity::DuringGame)) return m_local.get();
+    if (m_activity->is(AppActivityState::Activity::DuringP2pGame)) return m_p2p.get();
     return nullptr;
 }

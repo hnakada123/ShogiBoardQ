@@ -67,6 +67,7 @@ public:
         // --- 対局メニュー ---
         GameStart,
         GameCsa,
+        GameP2p,               ///< P2P対局（ウィンドウを開く）
         GameResign,
         GameUndo,
         GameMakeImmediate,

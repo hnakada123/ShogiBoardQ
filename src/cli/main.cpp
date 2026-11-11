@@ -4,6 +4,7 @@
 /// GUI を起動せずに棋譜変換・SFEN 検証・エンジン解析・詰将棋生成などを実行する。
 /// MCP サーバー（mcp/shogiboardq_mcp）から呼ばれることを想定し、標準出力は JSON 専用とする。
 
+#include "appidentity.h"
 #include "clicommands.h"
 #include "clicommandspecs.h"
 #include "clioutput.h"
@@ -41,6 +42,7 @@ const Command kCommands[] = {
     {"mate", &CliCommands::mate, Output::Events},
     {"generate-tsume", &CliCommands::generateTsume, Output::Events},
     {"verify-tsume", &CliCommands::verifyTsume, Output::Json},
+    {"verify-match", &CliCommands::verifyMatch, Output::Json},
 };
 } // namespace
 
@@ -79,7 +81,7 @@ int main(int argc, char* argv[])
     }
     QApplication app(argc, argv);
     // 設定ファイル（登録エンジン・盤面配色・駒画像）の場所を GUI と揃える
-    app.setApplicationName(QStringLiteral("ShogiBoardQ"));
+    app.setApplicationName(QString::fromLatin1(AppIdentity::kApplicationName));
     app.setApplicationVersion(QStringLiteral(APP_VERSION));
     // 以前の版の設定ファイルにあるエンジンごとの設定を、今の保存先へ移す（GUI と同じ）
     EngineProfileStore::migrateLegacyOptionGroups();

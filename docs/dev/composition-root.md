@@ -60,8 +60,11 @@
 
 ## 例外
 
-- 司令塔（`MatchCoordinator`・`CsaGameCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけは
-  `createSessions()` で `setRecordSink()` によって渡す。
+- 司令塔（`MatchCoordinator`・`CsaGameCoordinator`、P2P対局を含むビルドでは `P2pGameCoordinator` も）は棋譜の受け手の
+  `GameSession` より先に作るので、受け手だけは `createSessions()` で `setRecordSink()` によって渡す。
+- P2P対局（`ENABLE_P2P_PLAY`）の通信プロセス・プレイヤー鍵・保存先を持つ `P2pLobbyService` と、そのウィンドウは、
+  利用者が「P2P対局」を開いたときに `P2pGameUiController` が作る（使わない利用者の PC で通信プロセスを動かさない）。
+  `--automation` で起動したときは `startAutomationServer()` が `P2pGameUiController::disableForAutomation()` を呼び、作らない。
 - 複数の部品が足す口（`KifuNavigationController::addLeaveGuard()`×2・`KifuDocument::addPendingEditor()`×2）と、
   ドックの表 `DockRegistry` が作ったドックを受け取る部品（`MenuWindowController::attachDock()`・
   `JosekiWindowController::attachDock()`）、メニューの項目を作る部品（`DockLayoutManager::setSavedLayoutsMenu()`）は、

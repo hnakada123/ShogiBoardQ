@@ -129,7 +129,13 @@ GameInfoPane::GameInfoPane(QWidget* parent)
     applyFontSize();
 }
 
-GameInfoPane::~GameInfoPane() = default;
+GameInfoPane::~GameInfoPane()
+{
+    // アプリ全体の知らせは先に切る。QWidget の後始末（ウィンドウを閉じる・焦点を外す）の途中で focusChanged が
+    // 出ると、GameInfoPane の部分が壊れた後の自分の関数が呼ばれる（QObject が接続を切るのはその後）
+    disconnect(qApp, &QApplication::focusChanged, this, &GameInfoPane::observeEditor);
+    disconnect(QApplication::clipboard(), &QClipboard::dataChanged, this, &GameInfoPane::updateEditingIndicator);
+}
 
 // ============================================================
 // 対局情報の設定と取得

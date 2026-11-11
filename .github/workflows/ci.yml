@@ -228,6 +228,41 @@ jobs:
             build/CMakeFiles/CMakeOutput.log
             build/CMakeFiles/CMakeError.log
 
+  # P2P対局（実験版。ENABLE_P2P_PLAY）: 通信プロセス（Rust）の試験と clippy、C++ との共通の試験入力、
+  # 本物の通信プロセスを使うローカルの対局試験。公開ネットワークには接続しない（開発方針 5.1節）
+  p2p:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          submodules: recursive
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125  # v4.4.1
+        with:
+          version: '6.7.*'
+          modules: 'qtcharts qtmultimedia'
+
+      - name: Install libsodium
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev
+
+      - name: Rust tests and clippy (Cargo.lock の版だけを使う)
+        run: |
+          cargo test --locked --workspace
+          cargo clippy --locked --workspace --all-targets -- -D warnings
+
+      - name: Configure (Debug, P2P)
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DENABLE_WERROR=ON -DENABLE_P2P_PLAY=ON
+
+      - name: Build
+        run: cmake --build build --parallel 2
+
+      - name: Test (P2P)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: cd build && ctest --output-on-failure -R "tst_p2p|tst_app_paths|tst_app_ui_state_policy|tst_layer_dependencies|tst_structural_kpi"
+
   static-analysis:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest

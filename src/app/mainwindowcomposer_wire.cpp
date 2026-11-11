@@ -229,6 +229,7 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.clipboard = m_c.kifuClipboard;
     md.session = m_c.gameSession;
     md.csaUi = m_c.csaUi;
+    md.p2pUi = m_c.p2pUi;
     md.menuWindow = m_c.menuWindowController;
     md.analysis = analysis;
     md.positionEdit = m_c.positionEdit;

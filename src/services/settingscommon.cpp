@@ -4,11 +4,12 @@
 #include "settingscommon.h"
 #include <QSettings>
 #include <QDir>
+#include "appidentity.h"
 #include "apppaths.h"
 
 namespace SettingsCommon {
 
-static const char* kIniName = "ShogiBoardQ.ini";
+static const char* kIniName = AppIdentity::kSettingsFileName;
 
 QString settingsFilePath()
 {

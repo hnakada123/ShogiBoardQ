@@ -753,6 +753,11 @@ html:lang(en) .nav-links a {
     .guide-step-text {
         font-size: 0.9rem;
     }
+
+    /* 箇条書きの点は本文の左にはみ出して置くので、狭い画面では画面の端に付かないよう字下げする */
+    ul.guide-step-text {
+        padding-left: 1.1rem;
+    }
 }
 
 /* --- Sub-page Hero --- */

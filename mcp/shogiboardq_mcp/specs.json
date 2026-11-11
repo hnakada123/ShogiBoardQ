@@ -373,6 +373,20 @@
    ],
    "type": "object"
   },
+  "verify-match": {
+   "additionalProperties": false,
+   "properties": {
+    "input_path": {
+     "description": "Evidence file (absolute path).",
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "input_path"
+   ],
+   "type": "object"
+  },
   "verify-tsume": {
    "additionalProperties": false,
    "properties": {

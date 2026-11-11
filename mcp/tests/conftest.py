@@ -59,7 +59,7 @@ def app_path() -> Path:
 def test_config(tmp_path_factory) -> Path:
     """A scratch config home (XDG_CONFIG_HOME and SHOGIBOARDQ_CONFIG_HOME) registering the test engines."""
     root = tmp_path_factory.mktemp("config")
-    cfg = root / "ShogiBoardQ"
+    cfg = root / "ShogiBoardQ-P2P"
     cfg.mkdir()
     engines = []
     usi = _executable("SHOGIBOARDQ_TEST_USI_ENGINE")
@@ -76,7 +76,7 @@ def test_config(tmp_path_factory) -> Path:
     for i, (name, path) in enumerate(engines, start=1):
         lines += [f"{i}\\name={name}", f"{i}\\path={path}", f"{i}\\author=test"]
     lines += ["", "[General]", "mainWindowSize=@Size(1280 800)", ""]
-    (cfg / "ShogiBoardQ.ini").write_text("\n".join(lines), encoding="utf-8")
+    (cfg / "ShogiBoardQ-P2P.ini").write_text("\n".join(lines), encoding="utf-8")
     return root
 
 

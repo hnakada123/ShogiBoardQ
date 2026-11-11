@@ -6,7 +6,7 @@
 ///
 /// 既定は Qt の標準の場所（QStandardPaths）。次の環境変数を指定すると、その下の
 /// アプリ名のフォルダを使う（XDG の *_HOME と同じ意味。どの OS でも効く）。
-///   SHOGIBOARDQ_CONFIG_HOME … 設定（ShogiBoardQ.ini・自動化のエンドポイント情報）
+///   SHOGIBOARDQ_CONFIG_HOME … 設定（ShogiBoardQ-P2P.ini・自動化のエンドポイント情報）
 ///   SHOGIBOARDQ_DATA_HOME   … データ（詰将棋の進捗など）
 ///   SHOGIBOARDQ_CACHE_HOME  … キャッシュ（駒音・詰将棋のキャッシュ）
 /// macOS・Windows の Qt は XDG_CONFIG_HOME などを見ないため、テストや撮影で普段の設定を
@@ -16,6 +16,8 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QString>
+
+#include "appidentity.h"
 
 namespace AppPaths {
 
@@ -27,7 +29,7 @@ inline QString location(const char* variable, QStandardPaths::StandardLocation s
         return QStandardPaths::writableLocation(standard);
     }
     const QString name = QCoreApplication::applicationName().isEmpty()
-        ? QStringLiteral("ShogiBoardQ") : QCoreApplication::applicationName();
+        ? QString::fromLatin1(AppIdentity::kApplicationName) : QCoreApplication::applicationName();
     return QDir(base).filePath(name);
 }
 } // namespace detail

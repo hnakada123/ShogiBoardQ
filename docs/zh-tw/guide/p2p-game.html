@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P對局（實驗版） - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ P2P實驗版的P2P對局使用方法：準備玩家金鑰、透過邀請字串對局、對局條件確認畫面、對局中的操作、驗證對局記錄（憑證）、管理對手，以及無法防止的情況與對方可以看到的資訊。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-game.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-game.html">
+    <meta property="og:title" content="P2P對局（實驗版） - ShogiBoardQ">
+    <meta property="og:description" content="不經過對局伺服器，與對手直接連線下棋，並在本機保存雙方確定了開始與結果的對局記錄。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/p2p-game/p2p-confirm.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="P2P對局（實驗版） - ShogiBoardQ">
+    <meta name="twitter:description" content="不經過對局伺服器，與對手直接連線下棋，並在本機保存雙方確定了開始與結果的對局記錄。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/p2p-game/p2p-confirm.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-game.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-game.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-game.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/p2p-game.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/p2p-game.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/p2p-game.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="p2p-game.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="index.html">使用指南</a></li>
+            <li><a href="#prepare">準備</a></li>
+            <li><a href="#invite">邀請</a></li>
+            <li><a href="#playing">對局中</a></li>
+            <li><a href="#records">記錄與驗證</a></li>
+            <li><a href="#limits">注意事項</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>P2P對局（實驗版）</h1>
+        <p class="hero-subtitle">不經過對局伺服器，與對手直接連線下棋，並保存雙方確定了開始與結果的對局記錄</p>
+        <div class="hero-badges">
+            <span class="badge">與熟人透過邀請對局</span>
+            <span class="badge">雙方確定的對局記錄</span>
+            <span class="badge">可隱藏IP的設定</span>
+            <span class="badge">實驗版・Linux</span>
+        </div>
+        <p class="screenshot-note">這是實驗中的功能，畫面和規則今後可能會改變。截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="about" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">什麼是P2P對局</h2>
+        <p class="section-desc">僅將棋盤Q P2P實驗版提供的實驗中的對局功能</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">與對手的電腦直接連線下棋</span>
+                </div>
+                <p class="guide-step-text">P2P對局不像<a href="csa-game.html">CSA網路對局</a>那樣經過對局伺服器，而是由自己和對手的應用程式直接連線下棋（無法直接連線時使用中繼）。對局的對手透過交給對方邀請字串來決定。這是與熟人下棋的功能，沒有尋找不特定對手的公開招募。</p>
+                <p class="guide-step-text">對局的開始和結果由雙方的應用程式用本應用程式產生的玩家金鑰自動確定（無需操作）。玩家金鑰的公開金鑰就是您的「玩家ID」。不使用真實姓名或外部服務的帳號。對局結束後，雙方已確定的對局記錄（憑證）會保存在雙方的電腦中，任何人都可以驗證。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">實驗版可以使用的內容</span>
+                </div>
+                <p class="guide-step-text">P2P對局包含在與一般 ShogiBoardQ 不同的應用程式「將棋盤Q P2P實驗版」（ShogiBoardQ-P2P）中，設定檔和記錄與一般版分開，不會混在一起。從原始碼建置時，在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，建置步驟見<a href="linux-build-and-release.html">Linux 建置與發布步驟</a>）。</p>
+                <ul class="guide-step-text">
+                    <li><strong>支援的作業系統</strong>：目前僅支援 Linux。在無法用作業系統功能限制通訊程序（shogiboardq-peer）權限的環境中無法使用。</li>
+                    <li><strong>網路</strong>：有「本機驗證用（同一電腦・同一區域網路）」和「限定測試用」兩種。</li>
+                    <li><strong>協作節點</strong>：透過網際網路對局（限定測試用）時，需要一個作為最初連線對象的協作節點。它是負責確認可達性和中繼的伺服器，把它的位址填入「設定」的「連線候選」。同一電腦・同一區域網路的對局不需要。</li>
+                    <li><strong>使用期限</strong>：自建置之日起超過 180 天後，不再加入限定測試網路。本機驗證網路以及查看、驗證已儲存的記錄在期限後仍可使用。</li>
+                    <li><strong>自動化 API</strong>：加上 <code>--automation</code> 啟動時，無法使用P2P對局。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">對局規則</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">項目</th><th scope="col">規則</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>讓子與對局者</strong></td><td>僅限平手，人與人之間的對局。對局中不能使用研究、詰棋搜尋、棋譜分析和定式顯示。</td></tr>
+                        <tr><td><strong>用時規則</strong></td><td>用時（分鐘）和讀秒（秒）。用時由雙方自報，並與對方測得的時間對照。</td></tr>
+                        <tr><td><strong>先後手</strong></td><td>雙方的希望一致時依希望決定；選擇「不指定」時由雙方的亂數決定。</td></tr>
+                        <tr><td><strong>終局</strong></td><td>認輸、將死、超時負、千日手（和棋）、連續王手千日手（王手方判負）、達到512手（和棋）、協議和棋、協議中斷。</td></tr>
+                        <tr><td><strong>沒有的規則</strong></td><td>沒有悔棋和入玉宣言（入玉時可以經雙方同意判為和棋）。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="prepare" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">準備</h2>
+        <p class="section-desc">開啟P2P對局視窗，產生玩家金鑰並連線網路</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">開啟「對局」→「P2P對局（實驗版）…」</span>
+                </div>
+                <p class="guide-step-text">從選單列的「對局」中選擇「P2P對局（實驗版）…」，會開啟P2P對局視窗。視窗開啟時也可以操作棋盤和棋譜。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-menu.png"><img src="../../images/zh-tw/p2p-game/p2p-menu.png" alt="開啟「對局」選單並選取「P2P對局（實驗版）…」" width="177" height="408" loading="lazy"></a>
+                    <p class="screenshot-caption">「對局」選單：以「P2P對局（實驗版）…」開啟視窗</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">首次連線時產生玩家金鑰</span>
+                </div>
+                <p class="guide-step-text">在「連線與條件」分頁中選擇「網路」，然後按一下「連線」。第一次連線時會開啟「準備P2P對局」。閱讀下方列出的無法防止的情況後，選擇金鑰的保存方式，按一下「產生玩家金鑰」。</p>
+                <ul class="guide-step-text">
+                    <li><strong>作業系統的金鑰庫（建議）</strong>：保存在作業系統的金鑰庫（KWallet、GNOME 鑰匙圈等）中。未使用 QtKeychain 建置時無法選擇。</li>
+                    <li><strong>用密碼短語加密的檔案</strong>：保存在用由密碼短語產生的金鑰加密的檔案中。啟動應用程式後第一次連線時會詢問密碼短語。</li>
+                    <li><strong>不加密的檔案</strong>：能讀取或帶走此電腦檔案的人可以冒充您進行對局。</li>
+                </ul>
+                <p class="guide-step-text">金鑰檔案保存在 <code>~/.local/share/ShogiBoardQ-P2P/p2p/identity</code>。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-identity.png"><img src="../../images/zh-tw/p2p-game/p2p-identity.png" alt="顯示玩家金鑰的三種保存方式和無法防止的情況列表的「準備P2P對局」對話方塊" width="533" height="479" loading="lazy"></a>
+                    <p class="screenshot-caption">首次連線時開啟的「準備P2P對局」</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">決定顯示名稱與條件</span>
+                </div>
+                <p class="guide-step-text">連線後，「狀態」會變為「已連線（已連線的節點：N）」，並顯示「您的玩家ID」。在「顯示名稱」中填入給對手看的名稱。顯示名稱為 1〜32 個字元，前後不能有空格，可以使用英文數字、符號、假名、漢字和全形英文數字。</p>
+                <p class="guide-step-text">「用時規則」「讀秒」「先後手」會成為邀請時的對局條件。「邀請的路徑」中會顯示被邀請的對手透過哪條路徑連線（直接連線，或經過協作節點的中繼）。自己和對手的 IP 位址不會顯示在畫面上。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="invite" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">透過邀請對局</h2>
+        <p class="section-desc">與熟人對局時，只把邀請字串交給對方</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">產生並交給對方邀請字串</span>
+                </div>
+                <p class="guide-step-text">在「透過邀請連線」分頁中按一下「產生邀請字串」，即可產生邀請字串。按一下「複製」後，用私訊等只有對方能收到的方式交給對方。邀請字串中包含連線到您的位址（除非設定了「不使用直接連線」，否則也包含您的 IP 位址），請不要貼到公開的地方。</p>
+                <p class="guide-step-text">邀請字串 10 分鐘後失效，並且只能使用一次。同時有效的最多 4 個。用時規則和先後手使用「連線與條件」分頁中的條件。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">用收到的邀請字串連線</span>
+                </div>
+                <p class="guide-step-text">被邀請的一方把收到的邀請字串貼到「透過邀請連線」欄中，按一下「檢查邀請字串」。會顯示邀請方的 PeerId、期限和位址數量，確認後按一下「連線」。僅僅連線並不會開始對局，要在接下來開啟的條件確認畫面中確認對手後才開始。</p>
+                <p class="guide-step-text">同一區域網路的對手的邀請字串中可能包含私人位址。要連線這些位址時，勾選「允許連線上方的私人位址（同一區域網路的對手）」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-invite.png"><img src="../../images/zh-tw/p2p-game/p2p-invite.png" alt="「透過邀請連線」分頁，上方產生了自己的邀請字串，下方檢查了收到的邀請字串" width="820" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">「透過邀請連線」分頁：產生邀請字串（上）・用收到的邀請字串連線（下）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="confirm" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">條件確認畫面</h2>
+        <p class="section-desc">開始對局前確認對手和條件</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">確認對手</span>
+                </div>
+                <p class="guide-step-text">用邀請字串連線後，雙方都會開啟「確認P2P對局條件」。「對手」中會完整顯示對手的顯示名稱（自稱）和玩家ID。判斷是否為同一個人時，請看玩家ID，而不是顯示名稱。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">顯示</th><th scope="col">含義</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>尚未驗證對手是否為此ID的持有者。此ID只是對手的自稱。</strong></td><td>開始手續尚在進行中，玩家ID只是對手報上的值。</td></tr>
+                        <tr><td><strong>已驗證對手持有此ID的金鑰。</strong></td><td>對手的應用程式已用此ID的金鑰確定了開始。</td></tr>
+                        <tr><td><strong>已確認的對手（已用確認碼核對）。</strong></td><td>在「對手管理」中設為已確認的對手。也會顯示您設定的本機備註名稱。</td></tr>
+                        <tr><td><strong>首次對局的對手。／與此對手的對局：N局</strong></td><td>以往的對局數，以及其中結果未確定的對局數。</td></tr>
+                        <tr><td><strong>與您命名為「…」的對手顯示名稱相同，但玩家ID不同。</strong></td><td>以紅字顯示。可能是與您命名的對手不同的人。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">確認條件後開始</span>
+                </div>
+                <p class="guide-step-text">「對局條件與記錄」中會顯示先後手及其決定方式、用時規則、規則以及對局記錄中保存的內容。沒有問題就按一下「開始」。雙方都按下「開始」後對局開始。按一下「取消」，或 60 秒內雙方沒有都開始，就會取消（剩餘秒數顯示在下方）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-confirm.png"><img src="../../images/zh-tw/p2p-game/p2p-confirm.png" alt="顯示對手的顯示名稱和玩家ID、尚未驗證對手是否為ID的持有者、先後手、用時規則、規則和記錄內容的條件確認畫面" width="600" height="660" loading="lazy"></a>
+                    <p class="screenshot-caption">條件確認畫面（驗證對手之前）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="playing" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">對局中</h2>
+        <p class="section-desc">在主視窗的棋盤上走棋，在「對局中」分頁中認輸或提出提議</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">在棋盤上走棋</span>
+                </div>
+                <p class="guide-step-text">對局開始後，使用主視窗的棋盤、棋譜和對局時鐘。「對局資訊」中會填入雙方的顯示名稱和對局ID。執後手時，棋盤會自動翻轉，從自己一方觀看。</p>
+                <p class="guide-step-text">您走的棋要等對手的應用程式收到並確認後才會落在棋盤上（期間顯示「正在等待著手確認…」）。不能悔棋。</p>
+                <div class="screenshot-item">
+                    <a href="../../images/zh-tw/p2p-game/p2p-main.png"><img src="../../images/zh-tw/p2p-game/p2p-main.png" alt="P2P對局中的主視窗，顯示棋盤、棋譜，以及填入對局者的對局資訊" width="1376" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">對局中的主視窗（到第14手）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">認輸、提議與退出對局</span>
+                </div>
+                <p class="guide-step-text">「對局中」分頁中會顯示對手、先後手、路徑（直接或中繼）、輪到誰走以及斷線時間剩餘。</p>
+                <ul class="guide-step-text">
+                    <li><strong>認輸</strong>：輪到自己走棋時可以按下。</li>
+                    <li><strong>提議和棋・提議中斷</strong>：詢問對手是否接受。只有對手接受時，才成為協議和棋或協議中斷。被拒絕時對局繼續。</li>
+                    <li><strong>退出對局（結果未確定）</strong>：單方面離開對局。結果不會確定，對手會收到中斷通知。</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-game.png"><img src="../../images/zh-tw/p2p-game/p2p-game.png" alt="顯示對手、先後手、路徑、輪到誰走、斷線時間剩餘，以及認輸、提議和棋、提議中斷、退出對局按鈕的「對局中」分頁" width="820" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">「對局中」分頁</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">終局與確定結果</span>
+                </div>
+                <p class="guide-step-text">因認輸、將死、超時負等終局後，雙方的應用程式會對照結果（勝負、結束方式和手數），一致時自動用玩家金鑰確定。無需操作（期間「對局中」分頁顯示「正在確定結果…」）。雙方都確定後，記錄成為「雙方已確定」。若 30 秒內沒有收到對手的確定，則儲存為「無對手確定」。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">線路中斷時</span>
+                </div>
+                <p class="guide-step-text">線路中斷時，應用程式會自動重新連線（顯示「正在重新連線（剩餘 N 秒）」）。斷線期間輪到走棋一方的時鐘繼續計時，輪到走棋的一方仍可走一步棋（恢復連線後傳送）。</p>
+                <p class="guide-step-text">120 秒內無法恢復連線時，對局以「通訊中斷（結果未確定）」結束。一局的斷線時間總計超過 10 分鐘時也會中斷。由於無法區分自己線路的故障和對手的故意斷線，斷線不會被視為對手輸棋。</p>
+                <p class="guide-step-text">應用程式或通訊程序結束、電腦進入睡眠時，無法回到同一局對局（結果未確定）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="records" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">對局記錄與驗證</h2>
+        <p class="section-desc">已結束對局的記錄（憑證）保存在雙方的電腦中，任何人都可以驗證</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">「對局記錄」分頁</span>
+                </div>
+                <p class="guide-step-text">已結束的對局會列在「對局記錄」分頁中。「結束方式」是在自己的應用程式中結束的方式，「記錄類別」是驗證憑證的結果。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">記錄類別</th><th scope="col">含義</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>雙方已確定</strong></td><td>雙方的玩家金鑰都確定了同一結果。只有這個類別能表明雙方同意了同一結果。</td></tr>
+                        <tr><td><strong>由棋譜決定的結果</strong></td><td>結果的確定不齊全，但到雙方的應用程式都已驗證的最後局面為止的棋譜已決定了將死、千日手、連續王手千日手或達到512手。</td></tr>
+                        <tr><td><strong>結果未確定</strong></td><td>兩者都不是。例如認輸或超時負之後沒有收到對手的確定，或對局被中斷時。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">憑證保存在 <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code>。對局中應用程式結束時，到那時為止的記錄會在下次開啟時作為「結果未確定」的記錄保留。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-records.png"><img src="../../images/zh-tw/p2p-game/p2p-records.png" alt="顯示結束時間、對手、您、結束方式、記錄類別、結果各欄，以及驗證、匯出、刪除按鈕的「對局記錄」分頁" width="820" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">「對局記錄」分頁：雙方已確定的記錄</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">驗證、匯出與刪除</span>
+                </div>
+                <p class="guide-step-text">按一下「驗證」，會顯示玩家金鑰的確定是否正確、棋譜是否符合規則、自報用時的計算是否一致、結果是否由棋譜決定，以及記錄類別。用「匯出憑證…」可以把憑證檔案（.sbqmatch）儲存到任意位置。「刪除記錄」會刪除本機的憑證（無法復原）。</p>
+                <p class="guide-step-text">記錄不能證明實際思考時間、是否由人類下棋以及對局日期。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">在命令列中驗證</span>
+                </div>
+                <p class="guide-step-text">也可以不啟動 GUI，用 <code>shogiboardq-cli</code> 的 <code>verify-match</code> 驗證憑證檔案。結果以 JSON 輸出（下面的範例經過整理以便閱讀，並省略了較長的 ID）。</p>
+                <div class="build-steps"><pre><code>$ shogiboardq-cli verify-match --input-path ~/game.sbqmatch
+{
+  "black_player_id": "4b8788e2…",
+  "byoyomi_ms": 30000,
+  "category": "mutually_signed",
+  "checks": {
+    "clock_arithmetic": true,
+    "conditions_match": true,
+    "record_legal": true,
+    "result_conflicts_with_record": false,
+    "result_refers_to_record": true,
+    "signatures": true,
+    "start_signatures": true
+  },
+  "game_id": "c62a566e…",
+  "last_confirmed_ply": 15,
+  "main_time_ms": 600000,
+  "network": "sbq-local-1",
+  "network_id": "83cc9dfd…",
+  "not_verifiable": [
+    "actual_thinking_time",
+    "human_play",
+    "date_played"
+  ],
+  "ok": true,
+  "result": {
+    "black_signed": true,
+    "cause": "resign",
+    "outcome": "black_wins",
+    "ply": 15,
+    "result_digest": "a6cec2cd…",
+    "white_signed": true
+  },
+  "states": 16,
+  "valid": true,
+  "white_player_id": "8a3569db…"
+}</code></pre></div>
+                <p class="guide-step-text"><code>valid</code> 為 true 表示玩家金鑰的確定和記錄的結構正確，<code>category</code> 是記錄類別（<code>mutually_signed</code> 為「雙方已確定」，<code>determined_by_record</code> 為「由棋譜決定的結果」，<code>unconfirmed</code> 為「結果未確定」）。<code>not_verifiable</code> 列出從此記錄無法確認的內容（實際思考時間、是否由人類下棋、對局日期）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 7 -->
+<section id="peers" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">對手管理與設定</h2>
+        <p class="section-desc">為對局過的對手命名，並用確認碼確認是否為同一個人</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">「對手管理」分頁</span>
+                </div>
+                <p class="guide-step-text">對局過的對手依玩家ID列在「對手管理」分頁中。任何人都可以使用相同的顯示名稱，因此請用玩家ID判斷是否為同一個人。</p>
+                <ul class="guide-step-text">
+                    <li><strong>命名…</strong>：為對手設定的本機備註名稱。不會顯示給對手，也不寫入棋譜，會顯示在條件確認畫面和對局記錄中。</li>
+                    <li><strong>確認碼…</strong>：由雙方玩家ID產生的 30 位數字。雙方看到的數字相同，請透過電話或當面等其他途徑核對，一致後按一下「設為已確認」。</li>
+                    <li><strong>封鎖</strong>：即使該對手透過邀請連線也會拒絕。對方會被告知您正在與他人協商或對局。</li>
+                    <li><strong>刪除記錄</strong>：刪除該對手的名稱、已確認、封鎖和對局數的記錄。</li>
+                </ul>
+                <p class="guide-step-text">任何人都可以免費重新產生玩家金鑰，因此封鎖和過去的成績可以透過重新產生來規避。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-peers.png"><img src="../../images/zh-tw/p2p-game/p2p-peers.png" alt="顯示玩家ID、本機備註名稱、最近的顯示名稱、已確認、封鎖、對局數、未確定各欄，以及命名、確認碼、取消已確認、封鎖、刪除記錄按鈕的「對手管理」分頁" width="820" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">「對手管理」分頁：已命名並用確認碼設為已確認的對手</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">「設定」分頁</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>連線候選</strong>：每行填入一個協作節點位址（/ip4/…/p2p/… 形式）。</li>
+                    <li><strong>不使用直接連線</strong>：僅透過「連線候選」中協作節點的中繼，不讓對手看到 IP 位址。協作節點的營運者仍可看到。對手也需要填入相同的協作節點。</li>
+                    <li><strong>不顯示未對局過的對手的顯示名稱</strong>：在條件確認畫面和對局記錄中，把首次對局對手的顯示名稱顯示為「名稱已隱藏」。</li>
+                    <li><strong>重新產生玩家金鑰…</strong>：玩家ID會改變，對手會把您視為另一個人。舊金鑰將被刪除。</li>
+                </ul>
+                <p class="guide-step-text">下方顯示玩家金鑰的保存方式、對通訊程序施加的權限限制（Landlock、seccomp 等）以及此版本的使用期限。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-settings.png"><img src="../../images/zh-tw/p2p-game/p2p-settings.png" alt="顯示連線候選、不使用直接連線、不顯示顯示名稱的設定，以及金鑰保存方式、權限限制、使用期限和無法防止的情況的「設定」分頁" width="820" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">「設定」分頁</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 8 -->
+<section id="limits" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">無法防止的情況與對方可以看到的資訊</h2>
+        <p class="section-desc">使用實驗版P2P對局前請先了解</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">無法防止的情況</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>顯示名稱</strong>：顯示名稱為自稱。確認對手的依據是玩家ID和確認碼。</li>
+                    <li><strong>確定結果</strong>：若輸方的應用程式不確定結果（例如中途結束應用程式、中斷連線或使用改造過的應用程式），就不會留下雙方確定的記錄。</li>
+                    <li><strong>用時</strong>：用時為自報。無法識別每步最多 10 秒的虛報，以及利用斷線拖延時間（每局合計最多 10 分鐘）。</li>
+                    <li><strong>引擎與串通</strong>：無法識別由引擎下的對局或串通的對局。雙方也可以串通確定虛構的結果。</li>
+                    <li><strong>玩家金鑰</strong>：無法防止以同一使用者權限執行的惡意程式竊取玩家金鑰。</li>
+                </ul>
+                <p class="guide-step-text">請不要把記錄的勝局數作為正式等級分或棋力的依據。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">對手和網路可以看到的資訊</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">誰</th><th scope="col">可以看到的內容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>對局對手</strong></td><td>玩家ID、顯示名稱、條件。直接連線時，對手查看通訊還能得知 IP 位址（畫面上不顯示）。設定「不使用直接連線」後無法得知</td></tr>
+                        <tr><td><strong>看到邀請字串的人</strong></td><td>連線到邀請方的位址（使用直接連線的設定時包含 IP 位址）</td></tr>
+                        <tr><td><strong>協作節點的營運者</strong></td><td>IP 位址，以及哪些 IP 位址之間建立了連線。看不到著手、玩家ID 和顯示名稱</td></tr>
+                        <tr><td><strong>收到對局記錄（憑證）的人</strong></td><td>雙方的玩家ID、條件、全部著手與自報用時、雙方確定的結果。不保存顯示名稱、IP 位址和本機備註名稱</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">本應用程式不會公開對局記錄，也不會把它傳送到任何地方。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← 返回使用指南</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

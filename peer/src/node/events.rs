@@ -1,0 +1,193 @@
+//! Swarm のイベントの処理（接続・到達性・中継の予約）
+
+use std::net::IpAddr;
+
+use libp2p::core::ConnectedPoint;
+use libp2p::multiaddr::Protocol;
+use libp2p::swarm::{DialError, SwarmEvent};
+use libp2p::{autonat, identify, ping, relay, Multiaddr, PeerId};
+use sbq_protocol::network::Profile;
+use serde_json::json;
+
+use super::{ConnState, Node};
+use crate::addr;
+use crate::swarm::{supports_relay_hop, BehaviourEvent};
+
+/// 同じアドレス帯から受け付ける接続の上限
+const MAX_INBOUND_PER_PREFIX: usize = 8;
+/// 中継の予約の数
+const MAX_RELAY_RESERVATIONS: usize = 2;
+
+/// 接続元のアドレス帯（IPv4 は /24、IPv6 は /48）
+fn prefix_of(addr: &Multiaddr) -> Option<Vec<u8>> {
+    match addr::first_ip(addr)? {
+        IpAddr::V4(v4) => v4.octets().get(..3).map(<[u8]>::to_vec),
+        IpAddr::V6(v6) => v6.octets().get(..6).map(<[u8]>::to_vec),
+    }
+}
+
+impl Node {
+    pub fn on_swarm_event(&mut self, event: SwarmEvent<BehaviourEvent>) {
+        match event {
+            SwarmEvent::NewListenAddr { address, .. } => {
+                if !self.listen_addrs.contains(&address) && self.listen_addrs.len() < 16 {
+                    self.listen_addrs.push(address.clone());
+                }
+                // ローカル検証では待受のアドレスをそのまま自分のアドレスにする（Identify に載せ、再接続の宛先にする）
+                if self.spec.profile == Profile::Local && !addr::is_circuit(&address) && !self.relay_only {
+                    self.swarm.add_external_address(address);
+                }
+                self.status_dirty = true;
+            }
+            SwarmEvent::ExpiredListenAddr { address, .. } => {
+                self.listen_addrs.retain(|a| a != &address);
+                self.status_dirty = true;
+            }
+            SwarmEvent::ConnectionEstablished {
+                peer_id,
+                connection_id,
+                endpoint,
+                ..
+            } => {
+                // 中継経由かは、つないだ宛先（自分から）か、届いた待受のアドレス（相手から）で決まる。
+                // 中継経由で届いた接続の相手のアドレスは /p2p/<相手> だけで、中継の印が入らない
+                let relayed = endpoint.is_relayed();
+                if let ConnectedPoint::Listener { send_back_addr, .. } = &endpoint {
+                    if !relayed && !self.admit_inbound(connection_id, send_back_addr) {
+                        self.swarm.close_connection(connection_id);
+                        return;
+                    }
+                }
+                self.peer_conns
+                    .entry(peer_id)
+                    .or_default()
+                    .insert(connection_id, relayed);
+                self.update_routes(&peer_id);
+                self.status_dirty = true;
+            }
+            SwarmEvent::ConnectionClosed {
+                peer_id, connection_id, ..
+            } => {
+                self.inbound_prefixes.remove(&connection_id);
+                if let Some(conns) = self.peer_conns.get_mut(&peer_id) {
+                    conns.remove(&connection_id);
+                    if conns.is_empty() {
+                        self.peer_conns.remove(&peer_id);
+                    }
+                }
+                self.update_routes(&peer_id);
+                self.status_dirty = true;
+            }
+            SwarmEvent::OutgoingConnectionError {
+                error: DialError::Transport(errors),
+                ..
+            } => {
+                for (address, _) in errors {
+                    self.policy.record_failure(&address);
+                }
+            }
+            SwarmEvent::ExternalAddrConfirmed { address } => {
+                // 「直接接続を使わない」のときは、中継経由のアドレスだけを自分のアドレスにする（advertisable が見る）
+                if !self.policy.advertisable(&address) {
+                    self.swarm.remove_external_address(&address);
+                }
+                self.status_dirty = true;
+            }
+            SwarmEvent::Behaviour(event) => self.on_behaviour_event(event),
+            _ => {}
+        }
+    }
+
+    /// 同じアドレス帯から受け付けた接続が多すぎるか（多すぎなければ数に入れる）
+    fn admit_inbound(&mut self, connection: libp2p::swarm::ConnectionId, addr: &Multiaddr) -> bool {
+        let Some(prefix) = prefix_of(addr) else { return true };
+        let count = self.inbound_prefixes.values().filter(|p| **p == prefix).count();
+        if count >= MAX_INBOUND_PER_PREFIX {
+            return false;
+        }
+        self.inbound_prefixes.insert(connection, prefix);
+        true
+    }
+
+    /// 対局ストリームの経路（直接・中継）が変わったら知らせる
+    fn update_routes(&mut self, peer: &PeerId) {
+        let route = self.route_of(peer);
+        let mut changed = Vec::new();
+        for (id, conn) in self.conns.iter_mut() {
+            if &conn.peer != peer {
+                continue;
+            }
+            if let ConnState::Open { route: current, .. } = &mut conn.state {
+                if *current != route && self.peer_conns.contains_key(peer) {
+                    *current = route;
+                    changed.push(*id);
+                }
+            }
+        }
+        for id in changed {
+            self.out.notify(
+                "connectionRoute",
+                json!({ "connection": id.to_string(), "route": route }),
+            );
+        }
+    }
+
+    fn on_behaviour_event(&mut self, event: BehaviourEvent) {
+        match event {
+            BehaviourEvent::Identify(identify::Event::Received { peer_id, info, .. }) => {
+                self.on_identify(peer_id, info)
+            }
+            BehaviourEvent::Ping(ping::Event {
+                connection,
+                result: Err(_),
+                ..
+            }) => {
+                // 応答がない接続は閉じる（対局ストリームは閉じた知らせで再接続へ移る）
+                self.swarm.close_connection(connection);
+            }
+            BehaviourEvent::RelayClient(relay::client::Event::ReservationReqAccepted { relay_peer_id, .. }) => {
+                self.relay_reservations.insert(relay_peer_id);
+                self.status_dirty = true;
+            }
+            BehaviourEvent::Autonat(autonat::Event::StatusChanged { new, .. }) => {
+                self.reachability = match new {
+                    autonat::NatStatus::Public(_) => "public",
+                    autonat::NatStatus::Private => "private",
+                    autonat::NatStatus::Unknown => "unknown",
+                };
+                self.status_dirty = true;
+            }
+            _ => {}
+        }
+    }
+
+    fn on_identify(&mut self, peer: PeerId, info: identify::Info) {
+        let node_addr = self.bootstrap.get(&peer).cloned();
+        let is_node = node_addr.is_some();
+        if is_node {
+            // 利用者が指定した協力ノードが名乗った別の宛先（別の経路・ポート）も、そのノードの宛先として覚える
+            for a in &info.listen_addrs {
+                self.policy.allow_node(peer, a);
+            }
+        }
+        let addrs = self.policy.filter_addrs(info.listen_addrs.iter().cloned());
+        self.remember_addrs(peer, &addrs);
+        // 中継の予約は、自分の到達性によらず取る。「直接接続を使わない」相手は、中継経由のアドレスでしか
+        // つなげないので、外から直接届く側も中継経由のアドレスを招待に入れる
+        let reserved = self.relay_requested.len();
+        if !self.service
+            && is_node
+            && supports_relay_hop(&info)
+            && reserved < MAX_RELAY_RESERVATIONS
+            && !self.relay_requested.contains(&peer)
+        {
+            // 中継のアドレスは、利用者が指定した宛先から作る（同じ協力ノードを指定した相手が、そのまま使える）
+            if let Some(base) = node_addr {
+                let circuit = base.with(Protocol::P2p(peer)).with(Protocol::P2pCircuit);
+                if self.swarm.listen_on(circuit).is_ok() {
+                    self.relay_requested.insert(peer);
+                }
+            }
+        }
+    }
+}

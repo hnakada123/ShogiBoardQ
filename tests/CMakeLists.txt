@@ -692,7 +692,8 @@ target_link_libraries(tst_app_kifu_load PRIVATE shogiboardq_static)
 # ============================================================
 # Unit 25: App UI State Policy (UiStatePolicyManager 状態遷移テスト)
 # ============================================================
-add_shogi_test(tst_app_ui_state_policy tst_app_ui_state_policy.cpp)
+# メニューの項目のアイコンを読むので、リソースも入れる
+add_shogi_test(tst_app_ui_state_policy tst_app_ui_state_policy.cpp ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
 target_link_libraries(tst_app_ui_state_policy PRIVATE shogiboardq_static)
 set_target_properties(tst_app_ui_state_policy PROPERTIES
     AUTOUIC ON
@@ -1315,3 +1316,49 @@ add_dependencies(tst_analysisflow mock_usi_match)
 add_dependencies(tst_candidate_arrows mock_usi_match)
 add_dependencies(tst_match_end mock_usi_match)
 add_dependencies(tst_gamestrategy mock_usi_match)
+
+# ============================================================
+# P2P対局（ENABLE_P2P_PLAY のときだけ。docs/dev/p2p-game-spec.md 13.1節）
+# ============================================================
+if(ENABLE_P2P_PLAY)
+    # 形式と記録: 決定的CBOR・署名・表示名・規則・証跡。protocol/testvectors は Rust と共通
+    add_shogi_test(tst_p2p_protocol tst_p2p_protocol.cpp)
+    target_link_libraries(tst_p2p_protocol PRIVATE shogiboardq_static)
+    target_compile_definitions(tst_p2p_protocol PRIVATE SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+endif()
+if(ENABLE_P2P_PLAY)
+    # 開始までの交渉と対局の状態機械（2人分を直接つなぐ。順序・重複・欠落・再接続・時計）
+    add_shogi_test(tst_p2p_match tst_p2p_match.cpp)
+    target_link_libraries(tst_p2p_match PRIVATE shogiboardq_static)
+    target_compile_definitions(tst_p2p_match PRIVATE SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+endif()
+if(ENABLE_P2P_PLAY)
+    # 司令塔の結合（2つの司令塔をつなぎ、盤・時計・棋譜・動作状態・証跡・ジャーナルの復旧まで）
+    add_shogi_test(tst_p2p_coordinator tst_p2p_coordinator.cpp)
+    target_link_libraries(tst_p2p_coordinator PRIVATE shogiboardq_static)
+endif()
+if(ENABLE_P2P_PLAY)
+    # 端から端まで（本物の通信プロセス2つを sbq-local-1 で起動し、招待から終局と証跡の保存まで）
+    add_shogi_test(tst_p2p_endtoend tst_p2p_endtoend.cpp)
+    target_link_libraries(tst_p2p_endtoend PRIVATE shogiboardq_static)
+    target_compile_definitions(tst_p2p_endtoend PRIVATE
+        PEER_EXECUTABLE="$<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME}")
+    add_dependencies(tst_p2p_endtoend shogiboardq_peer)
+    # 通信プロセスはアプリと同じフォルダから起動するので、試験の実行ファイルの隣にも置く（リリースビルドは差し替えを読まない）
+    add_custom_command(TARGET tst_p2p_endtoend POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME} $<TARGET_FILE_DIR:tst_p2p_endtoend>/${SBQ_PEER_NAME}
+        VERBATIM)
+    set_tests_properties(tst_p2p_endtoend PROPERTIES TIMEOUT 180
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;SHOGIBOARDQ_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/tst_p2p_endtoend")
+endif()
+if(ENABLE_P2P_PLAY)
+    # 画面（ウィンドウ・条件確認画面・プレイヤー鍵のダイアログ）
+    add_shogi_test(tst_p2p_ui tst_p2p_ui.cpp)
+    target_link_libraries(tst_p2p_ui PRIVATE shogiboardq_static)
+endif()
+if(ENABLE_P2P_PLAY)
+    # プレイヤー鍵の保管（暗号化したファイル・誤ったパスフレーズ・書き換えたパラメータ・範囲外・権限・作り直し）
+    add_shogi_test(tst_p2p_identity tst_p2p_identity.cpp)
+    target_link_libraries(tst_p2p_identity PRIVATE shogiboardq_static)
+endif()

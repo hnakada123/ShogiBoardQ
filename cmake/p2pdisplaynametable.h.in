@@ -1,0 +1,8 @@
+// CMake が protocol/displayname-v1.txt から作るファイル。直接編集しない。
+#ifndef P2PDISPLAYNAMETABLE_H
+#define P2PDISPLAYNAMETABLE_H
+
+/// 表示名に使える文字の表 v1（protocol/displayname-v1.txt の内容そのもの）
+inline constexpr char kDisplayNameTableV1[] = R"SBQTABLE(@SBQ_DISPLAYNAME_TABLE@)SBQTABLE";
+
+#endif // P2PDISPLAYNAMETABLE_H

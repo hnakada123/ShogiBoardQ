@@ -24,13 +24,17 @@ class GameChannels
 public:
     GameChannels(const AppActivityState* activity, MatchCoordinator* match, CsaGameCoordinator* csaGame);
 
-    /// 対局相手の窓口（対局していなければ nullptr）。通信対局はサーバーに接続している間（局と局の間も）
+    /// 対局相手の窓口（対局していなければ nullptr）。通信対局はサーバーに接続している間（局と局の間も）、
+    /// P2P対局は対局中だけ
     GameChannel* active() const;
+    /// P2P対局の窓口を足す（P2P対局を含むビルドで、P2P対局の司令塔を作った後）
+    void setP2pChannel(std::unique_ptr<GameChannel> channel) { m_p2p = std::move(channel); }
 
 private:
     const AppActivityState* m_activity = nullptr;
     std::unique_ptr<LocalGameChannel> m_local;
     std::unique_ptr<CsaGameChannel> m_csa;
+    std::unique_ptr<GameChannel> m_p2p;
 };
 
 #endif // GAMECHANNELS_H
