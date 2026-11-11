@@ -35,6 +35,52 @@ const FIRST_FRAME_TIMEOUT: Duration = Duration::from_secs(10);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 /// 宛先を覚えるピアの上限
 const MAX_ADDR_BOOK_PEERS: usize = 64;
+/// ローカルのネットワーク（同じ PC・同じ LAN）の待受のポート（TCP と UDP）。起動のたびに変わると、
+/// 招待する側の PC のファイアウォールで許可するポートを決められない。使用中なら空いているポートで待ち受ける
+pub const LAN_PORT: u16 = 48210;
+
+/// 決まったポートの TCP の待受を、ほかのプロセスが使っていないか（ポートを決めていないアドレスと TCP 以外は true）。
+/// libp2p の TCP の待受は、同じポートを複数のプロセスで共有できる設定（SO_REUSEPORT）で開くので、使用中でも開けて
+/// しまい、届いた接続が2つのプロセスに振り分けられる。先に、共有しない待受を試して確かめる
+fn tcp_port_available(addr: &Multiaddr) -> bool {
+    let mut ip: Option<std::net::IpAddr> = None;
+    for protocol in addr.iter() {
+        match protocol {
+            libp2p::multiaddr::Protocol::Ip4(v4) => ip = Some(v4.into()),
+            libp2p::multiaddr::Protocol::Ip6(v6) => ip = Some(v6.into()),
+            libp2p::multiaddr::Protocol::Tcp(port) if port != 0 => {
+                return ip.is_some_and(|ip| std::net::TcpListener::bind((ip, port)).is_ok());
+            }
+            _ => {}
+        }
+    }
+    true
+}
+
+/// 待受のアドレスの候補。外側の1件ごとに、内側を先頭から試して最初に開けたものを使う
+pub fn listen_candidates(profile: Profile) -> Vec<Vec<Multiaddr>> {
+    let groups: Vec<Vec<String>> = match profile {
+        // 同じ PC・同じ LAN: LAN 側でも待ち受ける（受け付ける接続元は loopback と私設アドレスだけ。AddrPolicy）。
+        // IPv6 では待ち受けない（家庭の LAN の IPv6 はインターネットから届くアドレスのことが多い）
+        Profile::Local => vec![
+            vec![format!("/ip4/0.0.0.0/tcp/{LAN_PORT}"), "/ip4/0.0.0.0/tcp/0".to_owned()],
+            vec![
+                format!("/ip4/0.0.0.0/udp/{LAN_PORT}/quic-v1"),
+                "/ip4/0.0.0.0/udp/0/quic-v1".to_owned(),
+            ],
+        ],
+        Profile::Internet => vec![
+            vec!["/ip4/0.0.0.0/tcp/0".to_owned()],
+            vec!["/ip4/0.0.0.0/udp/0/quic-v1".to_owned()],
+            vec!["/ip6/::/tcp/0".to_owned()],
+            vec!["/ip6/::/udp/0/quic-v1".to_owned()],
+        ],
+    };
+    groups
+        .into_iter()
+        .map(|group| group.iter().filter_map(|a| a.parse().ok()).collect())
+        .collect()
+}
 
 /// UNIX 秒
 pub fn unix_now() -> u64 {
@@ -109,7 +155,8 @@ pub struct NodeConfig {
     pub relay_only: bool,
     pub service: bool,
     pub relay_server: bool,
-    pub listen: Vec<Multiaddr>,
+    /// 待受のアドレスの候補（1件ごとに、先頭から試して最初に開けたものを使う）
+    pub listen: Vec<Vec<Multiaddr>>,
 }
 
 /// 作った招待
@@ -242,22 +289,13 @@ impl Node {
         if p.bootstrap.len() > 16 {
             return Err(("invalid_request", "too many addresses".into()));
         }
-        let listen: &[&str] = match spec.profile {
-            Profile::Local => &["/ip4/127.0.0.1/tcp/0", "/ip4/127.0.0.1/udp/0/quic-v1"],
-            Profile::Internet => &[
-                "/ip4/0.0.0.0/tcp/0",
-                "/ip4/0.0.0.0/udp/0/quic-v1",
-                "/ip6/::/tcp/0",
-                "/ip6/::/udp/0/quic-v1",
-            ],
-        };
         let config = NodeConfig {
             spec,
             keypair: Keypair::generate_ed25519(),
             relay_only: p.relay_only,
             service: false,
             relay_server: false,
-            listen: listen.iter().filter_map(|a| a.parse().ok()).collect(),
+            listen: listen_candidates(spec.profile),
         };
         let mut node = Node::create(out, config).map_err(|e| ("internal", e))?;
         node.connect_nodes(&p.bootstrap);
@@ -288,14 +326,17 @@ impl Node {
             relay_server: config.relay_server,
             relay_only: config.relay_only,
             // 「直接接続を使わない」のときは、到達性の確認（AutoNAT）をしない。確認の依頼には自分の
-            // アドレスの候補が入り、中継経由でつながった相手にも届きうる。待受のアドレスも Identify で配らない
+            // アドレスの候補が入り、中継経由でつながった相手にも届きうる
             autonat: internet && !config.relay_only,
-            hide_listen_addrs: internet || config.relay_only,
         })?;
 
         let mut listening = 0usize;
-        for addr in config.listen {
-            if swarm.listen_on(addr).is_ok() {
+        for candidates in config.listen {
+            // 候補の先頭（決まったポート）が使用中なら、次の候補（空いているポート）で待ち受ける
+            if candidates
+                .into_iter()
+                .any(|addr| tcp_port_available(&addr) && swarm.listen_on(addr).is_ok())
+            {
                 listening = listening.saturating_add(1);
             }
         }
@@ -713,5 +754,52 @@ async fn accept_task(
                 });
             }
         });
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    /// ローカルのネットワークは、TCP と UDP のそれぞれで、決まったポートを先に試し、使用中なら空いているポートを使う。
+    /// IPv6 では待ち受けない
+    #[test]
+    fn local_listens_on_the_fixed_port_first() {
+        let groups = listen_candidates(Profile::Local);
+        let text: Vec<Vec<String>> = groups
+            .iter()
+            .map(|g| g.iter().map(ToString::to_string).collect())
+            .collect();
+        assert_eq!(
+            text,
+            vec![
+                vec!["/ip4/0.0.0.0/tcp/48210".to_owned(), "/ip4/0.0.0.0/tcp/0".to_owned()],
+                vec![
+                    "/ip4/0.0.0.0/udp/48210/quic-v1".to_owned(),
+                    "/ip4/0.0.0.0/udp/0/quic-v1".to_owned()
+                ],
+            ]
+        );
+        // インターネットの profile は、空いているポートで IPv4 と IPv6 の両方
+        let internet = listen_candidates(Profile::Internet);
+        assert_eq!(internet.len(), 4);
+        assert!(internet.iter().all(|g| g.len() == 1));
+    }
+
+    /// ほかのプロセスが待ち受けている TCP のポートは、使えないと判定する（同じポートを共有しない）
+    #[test]
+    fn busy_tcp_port_is_not_shared() {
+        let holder = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = holder.local_addr().unwrap().port();
+        let busy: Multiaddr = format!("/ip4/127.0.0.1/tcp/{port}").parse().unwrap();
+        assert!(!tcp_port_available(&busy));
+        drop(holder);
+        assert!(tcp_port_available(&busy));
+        // ポートを決めていないアドレスと、TCP でないアドレスは確かめない
+        assert!(tcp_port_available(&"/ip4/0.0.0.0/tcp/0".parse().unwrap()));
+        assert!(tcp_port_available(
+            &format!("/ip4/127.0.0.1/udp/{port}/quic-v1").parse().unwrap()
+        ));
     }
 }

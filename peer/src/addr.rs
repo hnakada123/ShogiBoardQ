@@ -248,6 +248,28 @@ impl AddrPolicy {
         }
     }
 
+    /// 届いた接続の接続元を受け付けるか。ローカル（同じPC・同じLAN）では、loopback と私設アドレスからだけ受け付ける。
+    /// 待受は LAN 側にも開くので、インターネット上のアドレスから届いた接続は、暗号の手続きを始める前に閉じる。
+    /// 中継経由の接続は接続元の IP を持たないので、ここでは断らない
+    pub fn accepts_source(&self, addr: &Multiaddr) -> bool {
+        match (self.profile, first_ip(addr)) {
+            (Profile::Local, Some(ip)) => matches!(classify(ip), IpClass::Loopback | IpClass::Private),
+            _ => true,
+        }
+    }
+
+    /// 招待に入れる順番（小さいほど先）。同じ LAN の相手が使う私設アドレスを先にし、同じ PC でしか使えない
+    /// loopback を最後にする（招待に入るのは8件までなので、LAN のアドレスが切り捨てられないように）
+    pub fn invite_rank(addr: &Multiaddr) -> u8 {
+        if is_circuit(addr) {
+            return 1;
+        }
+        match first_ip(addr).map(classify) {
+            Some(IpClass::Loopback) => 2,
+            _ => 0,
+        }
+    }
+
     /// 自分のアドレスとして広告してよいか（「直接接続を使わない」のときは中継経由のアドレスだけ）
     pub fn advertisable(&self, addr: &Multiaddr) -> bool {
         if is_circuit(addr) {
@@ -334,7 +356,18 @@ impl Transport for FilteredTransport {
     }
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<TransportEvent<Self::ListenerUpgrade, Self::Error>> {
-        Pin::new(&mut self.get_mut().inner).poll(cx)
+        let this = self.get_mut();
+        loop {
+            match Pin::new(&mut this.inner).poll(cx) {
+                // 受け付けない接続元から届いた接続は、暗号の手続きを始めずに捨てる（捨てると接続が閉じる）
+                Poll::Ready(TransportEvent::Incoming { ref send_back_addr, .. })
+                    if !this.policy.accepts_source(send_back_addr) =>
+                {
+                    continue
+                }
+                other => return other,
+            }
+        }
     }
 }
 
@@ -444,6 +477,34 @@ mod tests {
         let direct = AddrPolicy::new(Profile::Internet, false);
         assert!(direct.usable(&ma("/ip4/1.1.1.1/udp/4001/quic-v1")));
         assert!(direct.advertisable(&ma("/ip4/9.9.9.9/udp/4001/quic-v1")));
+    }
+
+    /// ローカル（同じPC・同じLAN）は LAN 側でも待ち受けるので、インターネット上のアドレスからの接続を受け付けない
+    #[test]
+    fn local_accepts_only_local_sources() {
+        let p = AddrPolicy::new(Profile::Local, false);
+        assert!(p.accepts_source(&ma("/ip4/127.0.0.1/tcp/50000")));
+        assert!(p.accepts_source(&ma("/ip4/192.168.1.20/tcp/50000")));
+        assert!(p.accepts_source(&ma("/ip4/10.1.2.3/udp/50000/quic-v1")));
+        assert!(!p.accepts_source(&ma("/ip4/8.8.8.8/tcp/50000")));
+        assert!(!p.accepts_source(&ma("/ip6/2400:4050::1/tcp/50000")));
+        assert!(!p.accepts_source(&ma("/ip4/169.254.1.1/tcp/50000")));
+        // 中継経由で届いた接続（接続元の IP が無い）は、ここでは断らない
+        assert!(p.accepts_source(&ma("/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN")));
+        // インターネットの profile は接続元で絞らない（私設アドレスの相手も、招待で許可すればつながる）
+        let internet = AddrPolicy::new(Profile::Internet, false);
+        assert!(internet.accepts_source(&ma("/ip4/8.8.8.8/tcp/50000")));
+        assert!(internet.accepts_source(&ma("/ip4/192.168.1.20/tcp/50000")));
+        // 招待には LAN のアドレスを先に、loopback を最後に入れる
+        assert!(
+            AddrPolicy::invite_rank(&ma("/ip4/192.168.1.20/tcp/1"))
+                < AddrPolicy::invite_rank(&ma("/ip4/127.0.0.1/tcp/1"))
+        );
+        assert!(
+            AddrPolicy::invite_rank(&ma(
+                "/ip4/192.168.1.20/tcp/1/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN/p2p-circuit"
+            )) < AddrPolicy::invite_rank(&ma("/ip4/127.0.0.1/tcp/1"))
+        );
     }
 
     #[test]

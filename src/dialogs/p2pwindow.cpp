@@ -33,6 +33,7 @@
 #include "p2pidentitystore.h"
 #include "p2ppeerspanel.h"
 #include "p2pwindowtext.h"
+#include "peeripc.h"
 
 namespace {
 
@@ -567,12 +568,19 @@ void P2pWindow::onRequestFailed(const QString& method, const QString& code)
 
 void P2pWindow::onConnectFailed(const QString& reason)
 {
-    QString text = tr("相手に接続できませんでした。");
-    if (reason == QLatin1String("timeout")) {
-        text = tr("相手に接続できませんでした（時間切れ）。");
-    } else if (reason == QLatin1String("no_relay_route")) {
+    QString text;
+    if (reason == QLatin1String("no_relay_route")) {
         text = tr("この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。「直接接続を使わない」設定では、"
                   "相手と同じ協力ノードを「設定」の「接続候補」に入れる必要があります。");
+    } else {
+        text = reason == QLatin1String("timeout") ? tr("相手に接続できませんでした（時間切れ）。") : tr("相手に接続できませんでした。");
+        if (m_lobby && m_lobby->isLocalProfile()) {
+            // 同じ LAN の別の PC: 招待した側の PC が、外から届く接続を止めていることが多い
+            text += QLatin1Char('\n')
+                    + tr("同じLANの別のPCとつなぐときは、招待した側のPCのファイアウォールで、TCP と UDP の %1 番ポートへの接続が"
+                         "許可されているか確かめてください。招待する側を入れ替えると、つながることがあります。")
+                          .arg(PeerIpc::kLanPort);
+        }
     }
     m_inviteInInfo->clear();
     DialogUtils::warning(this, tr("接続"), text);

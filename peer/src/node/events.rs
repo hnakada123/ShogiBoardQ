@@ -33,8 +33,12 @@ impl Node {
                 if !self.listen_addrs.contains(&address) && self.listen_addrs.len() < 16 {
                     self.listen_addrs.push(address.clone());
                 }
-                // ローカル検証では待受のアドレスをそのまま自分のアドレスにする（Identify に載せ、再接続の宛先にする）
-                if self.spec.profile == Profile::Local && !addr::is_circuit(&address) && !self.relay_only {
+                // ローカル（同じPC・同じLAN）では、待受のアドレスのうち loopback と私設アドレスを、そのまま自分の
+                // アドレスにする（Identify に載せ、再接続の宛先にする）。「直接接続を使わない」のときは載せない
+                if self.spec.profile == Profile::Local
+                    && !addr::is_circuit(&address)
+                    && self.policy.advertisable(&address)
+                {
                     self.swarm.add_external_address(address);
                 }
                 self.status_dirty = true;

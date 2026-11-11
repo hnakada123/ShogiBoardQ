@@ -609,3 +609,88 @@ fn relay_only_refuses_direct_only_invites() {
     let own = b.ok("createInvite", json!({}));
     assert_eq!(own["addressCount"], 0);
 }
+
+/// 招待の到達候補の先頭の IPv4 アドレス
+fn invite_ipv4(bytes: &[u8]) -> std::net::Ipv4Addr {
+    let addr = libp2p::Multiaddr::try_from(bytes.to_vec()).unwrap();
+    match addr.iter().next() {
+        Some(libp2p::multiaddr::Protocol::Ip4(ip)) => ip,
+        other => panic!("unexpected address {addr} ({other:?})"),
+    }
+}
+
+/// 外向きの通信に使う IPv4 アドレス（経路が無ければ None。UDP の connect は何も送らない）
+fn default_route_ipv4() -> Option<std::net::Ipv4Addr> {
+    let socket = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("192.0.2.1:9").ok()?;
+    match socket.local_addr().ok()?.ip() {
+        std::net::IpAddr::V4(ip) => Some(ip),
+        std::net::IpAddr::V6(_) => None,
+    }
+}
+
+/// 同じ LAN の PC どうし: ローカルのネットワークでは LAN 側でも待ち受け、招待には私設アドレスを先に入れる。
+/// LAN のアドレスだけにした招待でもつながる（同じ PC の中で、loopback でないアドレスを通して確かめる）
+#[test]
+fn local_network_listens_on_the_lan() {
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    a.start(vec![]);
+    b.start(vec![]);
+    // 待受のアドレス（インターフェースごと）が出そろうのを待つ
+    std::thread::sleep(Duration::from_secs(1));
+    let text = a.ok("createInvite", json!({}))["invite"].as_str().unwrap().to_owned();
+    let invite = Invite::decode(&text).unwrap();
+    assert!(!invite.addrs.is_empty());
+
+    // 招待に入るのは loopback と私設アドレスだけ。同じ LAN の相手が使う私設アドレスが先
+    let mut seen_loopback = false;
+    for bytes in &invite.addrs {
+        let ip = invite_ipv4(bytes);
+        assert!(
+            ip.is_loopback() || ip.is_private(),
+            "{ip} must not be in a local invite"
+        );
+        if ip.is_loopback() {
+            seen_loopback = true;
+        } else {
+            assert!(!seen_loopback, "LAN addresses must come before loopback");
+        }
+    }
+
+    let lan: Vec<Vec<u8>> = invite
+        .addrs
+        .iter()
+        .filter(|bytes| !invite_ipv4(bytes).is_loopback())
+        .cloned()
+        .collect();
+    // この PC に LAN のアドレスがあるなら、招待に必ず入っている（待受が 127.0.0.1 だけなら入らない）
+    let host_lan = default_route_ipv4().filter(std::net::Ipv4Addr::is_private);
+    if let Some(ip) = host_lan {
+        assert!(
+            lan.iter().any(|bytes| invite_ipv4(bytes) == ip),
+            "the host has the LAN address {ip}, but the invite does not contain it"
+        );
+    }
+    if lan.is_empty() {
+        eprintln!("this host has no private (LAN) address; the LAN connection is not exercised");
+        return;
+    }
+    // LAN のアドレスだけにした招待でつなぐ（相手は 127.0.0.1 を使えない別の PC、という場合に当たる）
+    let lan_only = Invite { addrs: lan, ..invite }.encode().unwrap();
+    let inspected = b.ok("inspectInvite", json!({ "invite": lan_only }));
+    assert!(inspected["usableAddressCount"].as_u64().unwrap() >= 1);
+    // ローカルのネットワークを選んだ利用者には、私設アドレスへつなぐ許可を改めて求めない
+    assert_eq!(inspected["privateAddresses"], json!([]));
+    let conn_b = b.ok("connectInvite", json!({ "invite": lan_only, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let opened_b = b
+        .wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B opened over the LAN address");
+    assert_eq!(opened_b["route"], "direct");
+    let opened_a = a.wait("connectionOpened", |_| true, TIMEOUT).expect("A opened");
+    assert_eq!(opened_a["peerId"], b.peer_id.as_str());
+    assert_eq!(opened_a["origin"], "invite");
+}
