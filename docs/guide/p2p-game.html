@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P2P対局（実験版） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ P2P実験版のP2P対局の使い方。プレイヤー鍵の準備、招待文字列と公開募集での対局、条件確認画面、対局中の操作、対局記録（証跡）の検証、相手の管理、防げないことと相手に見える情報を解説します。">
+    <meta name="description" content="ShogiBoardQ P2P実験版のP2P対局の使い方。プレイヤー鍵の準備、招待文字列での対局、条件確認画面、対局中の操作、対局記録（証跡）の検証、相手の管理、防げないことと相手に見える情報を解説します。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -49,7 +49,6 @@
             <li><a href="index.html">利用ガイド</a></li>
             <li><a href="#prepare">準備</a></li>
             <li><a href="#invite">招待</a></li>
-            <li><a href="#offers">募集</a></li>
             <li><a href="#playing">対局中</a></li>
             <li><a href="#records">記録と検証</a></li>
             <li><a href="#limits">注意</a></li>
@@ -65,9 +64,9 @@
         <h1>P2P対局（実験版）</h1>
         <p class="hero-subtitle">対局サーバーを使わずに相手と直接つないで指し、開始と結果を双方で確定した対局記録を手元に残します</p>
         <div class="hero-badges">
-            <span class="badge">サーバー不要</span>
-            <span class="badge">招待・公開募集</span>
+            <span class="badge">知り合いと招待で対局</span>
             <span class="badge">双方で確定する記録</span>
+            <span class="badge">IPを見せない設定</span>
             <span class="badge">実験版・Linux</span>
         </div>
         <p class="screenshot-note">試験中の機能です。画面や決まりは今後変わることがあります。</p>
@@ -87,7 +86,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">相手のパソコンと直接つないで指す</span>
                 </div>
-                <p class="guide-step-text">P2P対局では、<a href="csa-game.html">CSA通信対局</a>のような対局サーバーを使わず、自分と相手のアプリが直接つながって指します（直接つなげないときは中継を使います）。相手には招待文字列を渡すか、公開の募集一覧から相手を探します。</p>
+                <p class="guide-step-text">P2P対局では、<a href="csa-game.html">CSA通信対局</a>のような対局サーバーを使わず、自分と相手のアプリが直接つながって指します（直接つなげないときは中継を使います）。対局の相手は、招待文字列を渡して決めます。知り合いどうしで指すための機能で、不特定の相手を探す公開の募集はありません。</p>
                 <p class="guide-step-text">対局の開始と結果は、このアプリが作るプレイヤー鍵で、双方のアプリが自動的に確定します（操作は要りません）。プレイヤー鍵の公開鍵が、あなたの「プレイヤーID」です。実名や外部サービスのアカウントは使いません。対局が終わると、双方で確定した対局記録（証跡）が双方の手元に保存され、だれでも検証できます。</p>
             </div>
 
@@ -99,7 +98,8 @@
                 <p class="guide-step-text">P2P対局は、通常の ShogiBoardQ とは別のアプリ「将棋盤Q P2P実験版」（ShogiBoardQ-P2P）に入っています。設定ファイルや記録は通常版と分かれていて混ざりません。ソースからビルドするときに CMake で <code>-DENABLE_P2P_PLAY=ON</code> を付けます（libsodium と Rust が必要です。ビルドの手順は<a href="linux-build-and-release.html">Linux ビルド・リリース手順</a>）。</p>
                 <ul class="guide-step-text">
                     <li><strong>対応OS</strong>：今は Linux だけです。通信を受け持つプロセス（shogiboardq-peer）の権限を OS の機能で制限できない環境では使えません。</li>
-                    <li><strong>ネットワーク</strong>：「ローカル検証用（同じPC・同じLAN）」と「限定試験用」の2つです。限定試験用は、協力ノードのアドレスを「設定」の「接続候補」に入れて参加します。</li>
+                    <li><strong>ネットワーク</strong>：「ローカル検証用（同じPC・同じLAN）」と「限定試験用」の2つです。</li>
+                    <li><strong>協力ノード</strong>：インターネット越しの対局（限定試験用）には、最初につなぐ相手になる協力ノードが1つ要ります。到達できるかの確認と中継を受け持つサーバーで、アドレスを「設定」の「接続候補」に入れます。同じPC・同じLANの対局には要りません。</li>
                     <li><strong>使用期限</strong>：ビルドした日から180日を過ぎると、限定試験用のネットワークに参加しません。ローカル検証用と、保存した記録の確認・検証は期限後も使えます。</li>
                     <li><strong>自動化 API</strong>：<code>--automation</code> を付けて起動したときは、P2P対局は使えません。</li>
                 </ul>
@@ -153,7 +153,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">初めて接続するときにプレイヤー鍵を作る</span>
                 </div>
-                <p class="guide-step-text">「対戦相手を探す」タブで「ネットワーク」を選び、「接続」を押します。初めてのときは「P2P対局の準備」が開きます。下に並ぶ「防げないこと」を読んでから、鍵の保管の方法を選び、「プレイヤー鍵を作る」を押します。</p>
+                <p class="guide-step-text">「接続と条件」タブで「ネットワーク」を選び、「接続」を押します。初めてのときは「P2P対局の準備」が開きます。下に並ぶ「防げないこと」を読んでから、鍵の保管の方法を選び、「プレイヤー鍵を作る」を押します。</p>
                 <ul class="guide-step-text">
                     <li><strong>OSの鍵の保管庫（推奨）</strong>：OS の鍵の保管庫（KWallet・GNOME キーリングなど）に保存します。QtKeychain なしでビルドしたときは選べません。</li>
                     <li><strong>パスフレーズで暗号化したファイル</strong>：パスフレーズから作った鍵で暗号化したファイルに保存します。アプリを起動して最初に接続するときに、パスフレーズを尋ねます。</li>
@@ -172,7 +172,7 @@
                     <span class="guide-step-title">表示名と条件を決める</span>
                 </div>
                 <p class="guide-step-text">接続すると「状態」が「接続中（つながっているピア: N）」になり、「あなたのプレイヤーID」が出ます。「表示名」には相手に見せる名前を入れます。表示名は1〜32文字で、前後に空白を置けません。英数字・記号・かな・漢字・全角英数が使えます。</p>
-                <p class="guide-step-text">「持ち時間」「秒読み」「先後」は、招待文字列と募集の条件になります。ローカル検証用で同じPCの別のアプリと試すときは、「接続先」に出るアドレスを相手の「設定」の「接続候補」に入れます。</p>
+                <p class="guide-step-text">「持ち時間」「秒読み」「先後」は、招待したときの対局の条件になります。「招待の経路」には、招待した相手がどの経路でつなげるか（直接か、協力ノードの中継か）が出ます。自分や相手の IP アドレスは、画面には出ません。</p>
             </div>
 
         </div>
@@ -192,8 +192,8 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">招待文字列を作って渡す</span>
                 </div>
-                <p class="guide-step-text">「招待で接続」タブの「招待文字列を作る」を押すと、招待文字列ができます。「コピー」でコピーして、メッセージなど相手だけに届く方法で渡します。招待文字列にはあなたの接続先（IPアドレス）が入るので、公開の場所に貼らないでください。</p>
-                <p class="guide-step-text">招待文字列は10分で使えなくなり、1回だけ使えます。持ち時間と先後は「対戦相手を探す」タブの条件を使います。</p>
+                <p class="guide-step-text">「招待で接続」タブの「招待文字列を作る」を押すと、招待文字列ができます。「コピー」でコピーして、メッセージなど相手だけに届く方法で渡します。招待文字列にはあなたへの接続先が入るので（「直接接続を使わない」設定でなければ、あなたの IP アドレスも入ります）、公開の場所に貼らないでください。</p>
+                <p class="guide-step-text">招待文字列は10分で使えなくなり、1回だけ使えます。同時に有効にできるのは4つまでです。持ち時間と先後は「接続と条件」タブの条件を使います。</p>
             </div>
 
             <div class="guide-step">
@@ -214,41 +214,7 @@
 </section>
 
 <!-- Section 4 -->
-<section id="offers" class="section">
-    <div class="section-inner">
-        <h2 class="section-title">募集から相手を探す</h2>
-        <p class="section-desc">同じネットワークの募集一覧から相手を探すか、自分で募集を出します</p>
-
-        <div class="screenshot-gallery">
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">募集一覧から申し込む</span>
-                </div>
-                <p class="guide-step-text">接続すると「募集一覧」に、同じネットワークで募集を出している人が並びます。「一覧を更新」で読み直します。表示名・先後・持ち時間・期限を見て募集を選び、「申し込む」を押します。先後の希望が合わない募集には申し込めません。</p>
-                <p class="guide-step-text">表示名は自己申告です。募集一覧には見つかった募集だけが並び、全員が出るわけではありません。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-find.png"><img src="../images/p2p-game/p2p-find.png" alt="接続中の「対戦相手を探す」タブ。表示名と条件の欄の下の募集一覧に、佐藤さんと山田さんの募集が並んでいる" width="820" height="770" loading="lazy"></a>
-                    <p class="screenshot-caption">「対戦相手を探す」タブ：接続して、募集一覧に募集が並んだところ</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">自分で募集を出す</span>
-                </div>
-                <p class="guide-step-text">「募集を出す」を押すと、「名乗る名前と条件」の表示名・持ち時間・先後で募集を出します。募集の期限は2分で、出している間は30秒ごとに更新されます。やめるときは「募集を取り下げる」を押します。だれかが申し込むと、条件確認画面が開きます。</p>
-                <p class="guide-step-text">募集を出すと、あなたの IP アドレスが不特定の相手に見えます。見せたくないときは招待で対局するか、「設定」の「直接接続を使わない」を使ってください（中継の運営者には見えます）。</p>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- Section 5 -->
-<section id="confirm" class="section section--alt">
+<section id="confirm" class="section">
     <div class="section-inner">
         <h2 class="section-title">条件確認画面</h2>
         <p class="section-desc">対局を始める前に、相手と条件を確かめます</p>
@@ -260,7 +226,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">相手を確かめる</span>
                 </div>
-                <p class="guide-step-text">招待で接続したときや、募集に申し込んだとき・申し込まれたときは、双方に「P2P対局の条件の確認」が開きます。「相手」には、相手の表示名（自己申告）とプレイヤーIDが省略せずに出ます。相手が同じ人かどうかは、表示名ではなくプレイヤーIDで確かめます。</p>
+                <p class="guide-step-text">招待文字列で接続すると、双方に「P2P対局の条件の確認」が開きます。「相手」には、相手の表示名（自己申告）とプレイヤーIDが省略せずに出ます。相手が同じ人かどうかは、表示名ではなくプレイヤーIDで確かめます。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">表示</th><th scope="col">意味</th></tr>
@@ -291,8 +257,8 @@
     </div>
 </section>
 
-<!-- Section 6 -->
-<section id="playing" class="section">
+<!-- Section 5 -->
+<section id="playing" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">対局中</h2>
         <p class="section-desc">メインウィンドウの盤で指し、「対局中」タブで投了や申し出をします</p>
@@ -351,8 +317,8 @@
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="records" class="section section--alt">
+<!-- Section 6 -->
+<section id="records" class="section">
     <div class="section-inner">
         <h2 class="section-title">対局記録と検証</h2>
         <p class="section-desc">終わった対局の記録（証跡）は双方の手元に残り、だれでも検証できます</p>
@@ -441,8 +407,8 @@
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="peers" class="section">
+<!-- Section 7 -->
+<section id="peers" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">相手の管理と設定</h2>
         <p class="section-desc">対局した相手に名前を付け、確認コードで同じ人かを確かめます</p>
@@ -458,7 +424,7 @@
                 <ul class="guide-step-text">
                     <li><strong>名前を付ける…</strong>：相手に手元で付ける名前です。相手と棋譜には出ず、条件確認画面と対局記録に出ます。</li>
                     <li><strong>確認コード…</strong>：双方のプレイヤーIDから作る30桁の数字です。双方に同じ数字が出るので、電話や対面など別の経路で見比べ、一致したら「確認済みにする」を押します。</li>
-                    <li><strong>ブロック</strong>：その相手からの申し込みと接続を断ります。相手には、ほかの相手と交渉中か対局中だと伝わります。</li>
+                    <li><strong>ブロック</strong>：その相手が招待でつないできても断ります。相手には、ほかの相手と交渉中か対局中だと伝わります。</li>
                     <li><strong>記録を削除</strong>：その相手の名前・確認済み・ブロック・対局数の記録を消します。</li>
                 </ul>
                 <p class="guide-step-text">プレイヤー鍵はだれでも無料で作り直せるので、ブロックや過去の成績は作り直しで避けられます。</p>
@@ -475,8 +441,8 @@
                 </div>
                 <ul class="guide-step-text">
                     <li><strong>接続候補</strong>：協力ノードのアドレス（/ip4/…/p2p/… の形）を1行に1つ入れます。</li>
-                    <li><strong>直接接続を使わない</strong>：中継だけを使い、相手から IP アドレスを隠します。中継の運営者には見えます。</li>
-                    <li><strong>対局したことのない相手の表示名を出さない</strong>：募集一覧・条件確認画面・対局記録で、初めての相手の表示名を「名前は非表示」にします。</li>
+                    <li><strong>直接接続を使わない</strong>：「接続候補」に入れた協力ノードの中継だけを通り、相手に IP アドレスを見せません。協力ノードの運営者には見えます。相手も同じ協力ノードを入れている必要があります。</li>
+                    <li><strong>対局したことのない相手の表示名を出さない</strong>：条件確認画面と対局記録で、初めての相手の表示名を「名前は非表示」にします。</li>
                     <li><strong>プレイヤー鍵を作り直す…</strong>：プレイヤーIDが変わり、相手からは別人に見えます。古い鍵は消します。</li>
                 </ul>
                 <p class="guide-step-text">下には、プレイヤー鍵の保管の方法、通信プロセスに掛けた権限の制限（Landlock・seccomp など）、このビルドの使用期限が出ます。</p>
@@ -490,8 +456,8 @@
     </div>
 </section>
 
-<!-- Section 9 -->
-<section id="limits" class="section section--alt">
+<!-- Section 8 -->
+<section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">防げないことと相手に見える情報</h2>
         <p class="section-desc">実験版のP2P対局を使う前に知っておいてほしいことです</p>
@@ -523,8 +489,9 @@
                         <tr><th scope="col">見る人</th><th scope="col">見えるもの</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>対局相手</strong></td><td>IPアドレス（直接つながったとき）・プレイヤーID・表示名・条件</td></tr>
-                        <tr><td><strong>募集を見た人（不特定）</strong></td><td>募集を出した人の IP アドレス・表示名・条件。申し込みを装えばプレイヤーIDも分かります</td></tr>
+                        <tr><td><strong>対局相手</strong></td><td>プレイヤーID・表示名・条件。直接つなぐと、通信を調べれば IP アドレスも分かります（画面には出ません）。「直接接続を使わない」設定なら分かりません</td></tr>
+                        <tr><td><strong>招待文字列を見た人</strong></td><td>招待した側への接続先（直接つなぐ設定では IP アドレスが入ります）</td></tr>
+                        <tr><td><strong>協力ノードの運営者</strong></td><td>IP アドレスと、どの IP どうしがつないだか。指し手・プレイヤーID・表示名は見えません</td></tr>
                         <tr><td><strong>対局記録（証跡）を受け取った人</strong></td><td>双方のプレイヤーID・条件・全手順と自己申告の消費時間・双方で確定した結果。表示名・IPアドレス・手元で付けた名前は残りません</td></tr>
                     </tbody>
                 </table>

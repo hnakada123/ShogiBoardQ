@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P2P Games (Experimental) - ShogiBoardQ</title>
-    <meta name="description" content="How to play P2P games in the ShogiBoardQ P2P experimental build: preparing a player key, playing by invitation or public offers, the confirmation screen, in-game controls, verifying game records (evidence), managing opponents, and what cannot be prevented.">
+    <meta name="description" content="How to play P2P games in the ShogiBoardQ P2P experimental build: preparing a player key, playing by invitation, the confirmation screen, in-game controls, verifying game records (evidence), managing opponents, and what cannot be prevented.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-game.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -49,7 +49,6 @@
             <li><a href="index.html">User Guide</a></li>
             <li><a href="#prepare">Setup</a></li>
             <li><a href="#invite">Invitations</a></li>
-            <li><a href="#offers">Offers</a></li>
             <li><a href="#playing">Playing</a></li>
             <li><a href="#records">Records</a></li>
             <li><a href="#limits">Limits</a></li>
@@ -65,9 +64,9 @@
         <h1>P2P Games (Experimental)</h1>
         <p class="hero-subtitle">Connect directly to your opponent without a game server, and keep a game record whose start and result both players confirmed</p>
         <div class="hero-badges">
-            <span class="badge">No Server</span>
-            <span class="badge">Invitations &amp; Offers</span>
+            <span class="badge">Play Friends by Invitation</span>
             <span class="badge">Records Confirmed by Both</span>
+            <span class="badge">Option to Hide Your IP</span>
             <span class="badge">Experimental, Linux</span>
         </div>
         <p class="screenshot-note">This is an experimental feature; screens and rules may change. Screenshots were captured on Linux with the English interface.</p>
@@ -87,7 +86,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">Play over a Direct Connection</span>
                 </div>
-                <p class="guide-step-text">In a P2P game, your app and your opponent's app connect directly instead of going through a game server as in <a href="csa-game.html">CSA network play</a> (relays are used when a direct connection is not possible). You either send an invitation to your opponent or find one in the public list of offers.</p>
+                <p class="guide-step-text">In a P2P game, your app and your opponent's app connect directly instead of going through a game server as in <a href="csa-game.html">CSA network play</a> (relays are used when a direct connection is not possible). You choose your opponent by sending an invitation. It is meant for playing people you know; there is no public list for finding strangers.</p>
                 <p class="guide-step-text">The start and the result of each game are confirmed automatically by both players' apps with a player key that this app creates (no action is needed). The public key of the player key is your player ID. No real name or external account is used. When the game ends, a game record (evidence) confirmed by both players is saved on both PCs, and anyone can verify it.</p>
             </div>
 
@@ -99,7 +98,8 @@
                 <p class="guide-step-text">P2P games are part of a separate app, ShogiBoardQ P2P Experimental (ShogiBoardQ-P2P). Its settings and records are kept apart from the regular ShogiBoardQ. To build it from source, pass <code>-DENABLE_P2P_PLAY=ON</code> to CMake (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a> for the build steps).</p>
                 <ul class="guide-step-text">
                     <li><strong>Operating system</strong>: Linux only for now. P2P games are not available where the OS cannot restrict the communication process (shogiboardq-peer).</li>
-                    <li><strong>Networks</strong>: Local test (same PC / same LAN) and Limited test. To join the limited test, enter the addresses of cooperating nodes in Bootstrap nodes in Settings.</li>
+                    <li><strong>Networks</strong>: Local test (same PC / same LAN) and Limited test.</li>
+                    <li><strong>Cooperating node</strong>: Games over the internet (Limited test) need one cooperating node as the first peer to connect to. It is a server that checks reachability and relays traffic; enter its address in Bootstrap nodes in Settings. Games on the same PC or LAN do not need one.</li>
                     <li><strong>Expiry</strong>: 180 days after the build date, the build no longer joins the limited test network. The local test network and reviewing or verifying saved records keep working.</li>
                     <li><strong>Automation API</strong>: P2P games are not available when the app is started with <code>--automation</code>.</li>
                 </ul>
@@ -153,7 +153,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">Create a Player Key the First Time You Connect</span>
                 </div>
-                <p class="guide-step-text">On the Find Opponents tab, choose a Network and click Connect. The first time, Prepare P2P Games opens. Read the list of what cannot be prevented, choose how to store the key, and click Create Player Key.</p>
+                <p class="guide-step-text">On the Connection and Conditions tab, choose a Network and click Connect. The first time, Prepare P2P Games opens. Read the list of what cannot be prevented, choose how to store the key, and click Create Player Key.</p>
                 <ul class="guide-step-text">
                     <li><strong>OS keychain (recommended)</strong>: Stores the key in the OS keychain (KWallet, GNOME Keyring, and so on). Not available in builds without QtKeychain.</li>
                     <li><strong>File encrypted with a passphrase</strong>: Stores the key in a file encrypted with a key derived from your passphrase. You are asked for the passphrase the first time you connect after starting the app.</li>
@@ -172,7 +172,7 @@
                     <span class="guide-step-title">Choose a Display Name and Conditions</span>
                 </div>
                 <p class="guide-step-text">Once connected, Status shows Connected (peers: N) and Your player ID appears. Enter the name your opponents will see in Display name. It must be 1 to 32 characters with no leading or trailing spaces, using letters, digits, symbols, kana, kanji, and full-width alphanumerics.</p>
-                <p class="guide-step-text">Time control, Byoyomi, and Side become the conditions of your invitations and offers. To try the local test with another app on the same PC, enter the addresses shown under Addresses into Bootstrap nodes in the other app's Settings.</p>
+                <p class="guide-step-text">Time control, Byoyomi, and Side become the conditions of the games you invite people to. Invitation route shows how an invited opponent can reach you (directly, or through the relay of a cooperating node). Your IP address and your opponent's are never shown on screen.</p>
             </div>
 
         </div>
@@ -192,8 +192,8 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">Create and Send an Invitation</span>
                 </div>
-                <p class="guide-step-text">On the Connect by Invitation tab, click Create Invitation. Click Copy and send the invitation by a channel that reaches only your opponent, such as a private message. The invitation contains your addresses (IP addresses), so do not post it in public.</p>
-                <p class="guide-step-text">An invitation expires after 10 minutes and can be used only once. It uses the time control and side on the Find Opponents tab.</p>
+                <p class="guide-step-text">On the Connect by Invitation tab, click Create Invitation. Click Copy and send the invitation by a channel that reaches only your opponent, such as a private message. The invitation contains the addresses for reaching you (including your IP address unless Do not use direct connections is set), so do not post it in public.</p>
+                <p class="guide-step-text">An invitation expires after 10 minutes and can be used only once. Up to four can be valid at the same time. It uses the time control and side on the Connection and Conditions tab.</p>
             </div>
 
             <div class="guide-step">
@@ -214,41 +214,7 @@
 </section>
 
 <!-- Section 4 -->
-<section id="offers" class="section">
-    <div class="section-inner">
-        <h2 class="section-title">Finding an Opponent from Offers</h2>
-        <p class="section-desc">Pick an opponent from the offers on the same network, or publish your own offer</p>
-
-        <div class="screenshot-gallery">
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">Apply to an Offer</span>
-                </div>
-                <p class="guide-step-text">Once connected, Offers lists the players who are offering a game on the same network. Click Refresh to reload it. Check the display name, side, time control, and expiry, select an offer, and click Apply. You cannot apply to an offer whose side preference conflicts with yours.</p>
-                <p class="guide-step-text">Display names are self-declared. The list shows only the offers that were found, not everyone.</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-find.png"><img src="../../images/en/p2p-game/p2p-find.png" alt="Find Opponents tab while connected, with offers from Sato and Yamada listed under Offers" width="898" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">Find Opponents tab: connected, with offers in the list</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">Publish Your Own Offer</span>
-                </div>
-                <p class="guide-step-text">Click Publish Offer to offer a game with the display name, time control, and side under Display name and conditions. An offer expires after 2 minutes and is renewed every 30 seconds while it is published. Click Withdraw Offer to stop. When someone applies, the confirmation screen opens.</p>
-                <p class="guide-step-text">Publishing an offer exposes your IP address to anyone. If you do not want that, play by invitation or use Do not use direct connections in Settings (relay operators can still see it).</p>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- Section 5 -->
-<section id="confirm" class="section section--alt">
+<section id="confirm" class="section">
     <div class="section-inner">
         <h2 class="section-title">The Confirmation Screen</h2>
         <p class="section-desc">Check your opponent and the conditions before the game starts</p>
@@ -260,7 +226,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">Check Your Opponent</span>
                 </div>
-                <p class="guide-step-text">When you connect by invitation, or apply to an offer or receive an application, Confirm P2P Game Conditions opens for both players. Opponent shows the opponent's display name (self-declared) and the full player ID. Use the player ID, not the display name, to tell whether it is the same person.</p>
+                <p class="guide-step-text">When someone connects with an invitation, Confirm P2P Game Conditions opens for both players. Opponent shows the opponent's display name (self-declared) and the full player ID. Use the player ID, not the display name, to tell whether it is the same person.</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">Message</th><th scope="col">Meaning</th></tr>
@@ -291,8 +257,8 @@
     </div>
 </section>
 
-<!-- Section 6 -->
-<section id="playing" class="section">
+<!-- Section 5 -->
+<section id="playing" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">During the Game</h2>
         <p class="section-desc">Move on the main window's board, and resign or make offers on the Game tab</p>
@@ -351,8 +317,8 @@
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="records" class="section section--alt">
+<!-- Section 6 -->
+<section id="records" class="section">
     <div class="section-inner">
         <h2 class="section-title">Game Records and Verification</h2>
         <p class="section-desc">The record (evidence) of each finished game stays on both PCs, and anyone can verify it</p>
@@ -441,8 +407,8 @@
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="peers" class="section">
+<!-- Section 7 -->
+<section id="peers" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">Opponents and Settings</h2>
         <p class="section-desc">Name the opponents you have played and check with a verification code that they are the same person</p>
@@ -458,7 +424,7 @@
                 <ul class="guide-step-text">
                     <li><strong>Name…</strong>: A local name for the opponent. It is not shown to the opponent or written into game records; it appears on the confirmation screen and in Game Records.</li>
                     <li><strong>Verification Code…</strong>: A 30-digit number made from both player IDs. Both players see the same number, so compare it through another channel such as a phone call or in person, and click Mark Verified if it matches.</li>
-                    <li><strong>Block</strong>: Refuses applications and connections from that opponent. They are told you are busy negotiating or playing with someone else.</li>
+                    <li><strong>Block</strong>: Refuses that opponent even if they connect with an invitation. They are told you are busy negotiating or playing with someone else.</li>
                     <li><strong>Delete Record</strong>: Removes the opponent's name, verified mark, block, and game count.</li>
                 </ul>
                 <p class="guide-step-text">Anyone can create a new player key for free, so a block or past results can be avoided by recreating the key.</p>
@@ -475,8 +441,8 @@
                 </div>
                 <ul class="guide-step-text">
                     <li><strong>Bootstrap nodes</strong>: Addresses of cooperating nodes (/ip4/…/p2p/…), one per line.</li>
-                    <li><strong>Do not use direct connections</strong>: Uses relays only and hides your IP address from opponents. Relay operators can still see it.</li>
-                    <li><strong>Hide display names of opponents you have not played</strong>: Shows Name hidden instead of the display names of new opponents in Offers, on the confirmation screen, and in Game Records.</li>
+                    <li><strong>Do not use direct connections</strong>: Uses only the relay of the cooperating nodes in Bootstrap nodes, so opponents cannot see your IP address. The node operators can still see it. Your opponent must use the same cooperating node.</li>
+                    <li><strong>Hide display names of opponents you have not played</strong>: Shows Name hidden instead of the display names of new opponents on the confirmation screen and in Game Records.</li>
                     <li><strong>Recreate Player Key…</strong>: Changes your player ID, so opponents see you as someone else. The old key is deleted.</li>
                 </ul>
                 <p class="guide-step-text">Below them are how the player key is stored, the restrictions placed on the communication process (Landlock, seccomp, and so on), and the expiry of this build.</p>
@@ -490,8 +456,8 @@
     </div>
 </section>
 
-<!-- Section 9 -->
-<section id="limits" class="section section--alt">
+<!-- Section 8 -->
+<section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">What Cannot Be Prevented and What Others See</h2>
         <p class="section-desc">Please read this before using the experimental P2P games</p>
@@ -523,8 +489,9 @@
                         <tr><th scope="col">Who</th><th scope="col">What they can see</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Your opponent</strong></td><td>Your IP address (with a direct connection), player ID, display name, and conditions</td></tr>
-                        <tr><td><strong>Anyone viewing offers</strong></td><td>The IP address, display name, and conditions of whoever published the offer. Pretending to apply also reveals the player ID</td></tr>
+                        <tr><td><strong>Your opponent</strong></td><td>Your player ID, display name, and conditions. With a direct connection, they can also find your IP address by inspecting the traffic (it is not shown on screen). With Do not use direct connections, they cannot</td></tr>
+                        <tr><td><strong>Anyone who sees the invitation</strong></td><td>The addresses for reaching the inviter (including the IP address when direct connections are used)</td></tr>
+                        <tr><td><strong>The operator of the cooperating node</strong></td><td>IP addresses and which IP addresses connected to each other. Not the moves, player IDs, or display names</td></tr>
                         <tr><td><strong>Anyone who receives the game record (evidence)</strong></td><td>Both player IDs, the conditions, all moves with self-reported time, and the result confirmed by both. Display names, IP addresses, and local names are not kept</td></tr>
                     </tbody>
                 </table>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P2P对局（实验版） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ P2P实验版的P2P对局使用方法：准备玩家密钥、通过邀请字符串和公开招募对局、对局条件确认画面、对局中的操作、验证对局记录（凭证）、管理对手，以及无法防止的情况与对方可以看到的信息。">
+    <meta name="description" content="ShogiBoardQ P2P实验版的P2P对局使用方法：准备玩家密钥、通过邀请字符串对局、对局条件确认画面、对局中的操作、验证对局记录（凭证）、管理对手，以及无法防止的情况与对方可以看到的信息。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-game.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -49,7 +49,6 @@
             <li><a href="index.html">使用指南</a></li>
             <li><a href="#prepare">准备</a></li>
             <li><a href="#invite">邀请</a></li>
-            <li><a href="#offers">招募</a></li>
             <li><a href="#playing">对局中</a></li>
             <li><a href="#records">记录与验证</a></li>
             <li><a href="#limits">注意事项</a></li>
@@ -65,9 +64,9 @@
         <h1>P2P对局（实验版）</h1>
         <p class="hero-subtitle">不经过对局服务器，与对手直接连接下棋，并保存双方确定了开始与结果的对局记录</p>
         <div class="hero-badges">
-            <span class="badge">无需服务器</span>
-            <span class="badge">邀请与公开招募</span>
+            <span class="badge">与熟人通过邀请对局</span>
             <span class="badge">双方确定的对局记录</span>
+            <span class="badge">可隐藏IP的设置</span>
             <span class="badge">实验版・Linux</span>
         </div>
         <p class="screenshot-note">这是实验中的功能，画面和规则今后可能会改变。截图在 Linux 上以简体中文界面拍摄。</p>
@@ -87,7 +86,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">与对手的电脑直接连接下棋</span>
                 </div>
-                <p class="guide-step-text">P2P对局不像<a href="csa-game.html">CSA网络对局</a>那样经过对局服务器，而是由自己和对手的应用直接连接下棋（无法直接连接时使用中继）。可以把邀请字符串交给对手，也可以从公开的招募列表中寻找对手。</p>
+                <p class="guide-step-text">P2P对局不像<a href="csa-game.html">CSA网络对局</a>那样经过对局服务器，而是由自己和对手的应用直接连接下棋（无法直接连接时使用中继）。对局的对手通过交给对方邀请字符串来决定。这是与熟人下棋的功能，没有寻找不特定对手的公开招募。</p>
                 <p class="guide-step-text">对局的开始和结果由双方的应用用本应用生成的玩家密钥自动确定（无需操作）。玩家密钥的公钥就是您的“玩家ID”。不使用真实姓名或外部服务的账号。对局结束后，双方已确定的对局记录（凭证）会保存在双方的电脑中，任何人都可以验证。</p>
             </div>
 
@@ -99,7 +98,8 @@
                 <p class="guide-step-text">P2P对局包含在与普通 ShogiBoardQ 不同的应用“将棋盘Q P2P实验版”（ShogiBoardQ-P2P）中，设置文件和记录与普通版分开，不会混在一起。从源代码构建时，在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，构建步骤见<a href="linux-build-and-release.html">Linux 构建与发布步骤</a>）。</p>
                 <ul class="guide-step-text">
                     <li><strong>支持的操作系统</strong>：目前仅支持 Linux。在无法用操作系统功能限制通信进程（shogiboardq-peer）权限的环境中无法使用。</li>
-                    <li><strong>网络</strong>：有“本地验证用（同一电脑・同一局域网）”和“限定测试用”两种。加入限定测试时，在“设置”的“连接候选”中填入协作节点的地址。</li>
+                    <li><strong>网络</strong>：有“本地验证用（同一电脑・同一局域网）”和“限定测试用”两种。</li>
+                    <li><strong>协作节点</strong>：通过互联网对局（限定测试用）时，需要一个作为最初连接对象的协作节点。它是负责确认可达性和中继的服务器，把它的地址填入“设置”的“连接候选”。同一电脑・同一局域网的对局不需要。</li>
                     <li><strong>使用期限</strong>：自构建之日起超过 180 天后，不再加入限定测试网络。本地验证网络以及查看、验证已保存的记录在期限后仍可使用。</li>
                     <li><strong>自动化 API</strong>：加上 <code>--automation</code> 启动时，无法使用P2P对局。</li>
                 </ul>
@@ -153,7 +153,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">首次连接时生成玩家密钥</span>
                 </div>
-                <p class="guide-step-text">在“寻找对手”标签页中选择“网络”，然后点击“连接”。第一次连接时会打开“准备P2P对局”。阅读下方列出的无法防止的情况后，选择密钥的保存方式，点击“生成玩家密钥”。</p>
+                <p class="guide-step-text">在“连接与条件”标签页中选择“网络”，然后点击“连接”。第一次连接时会打开“准备P2P对局”。阅读下方列出的无法防止的情况后，选择密钥的保存方式，点击“生成玩家密钥”。</p>
                 <ul class="guide-step-text">
                     <li><strong>操作系统的密钥库（推荐）</strong>：保存在操作系统的密钥库（KWallet、GNOME 密钥环等）中。未使用 QtKeychain 构建时无法选择。</li>
                     <li><strong>用密码短语加密的文件</strong>：保存在用由密码短语生成的密钥加密的文件中。启动应用后第一次连接时会询问密码短语。</li>
@@ -172,7 +172,7 @@
                     <span class="guide-step-title">决定显示名与条件</span>
                 </div>
                 <p class="guide-step-text">连接后，“状态”会变为“已连接（已连接的节点：N）”，并显示“您的玩家ID”。在“显示名”中填入给对手看的名称。显示名为 1〜32 个字符，前后不能有空格，可以使用英文数字、符号、假名、汉字和全角英文数字。</p>
-                <p class="guide-step-text">“用时规则”“读秒”“先后手”会成为邀请字符串和招募的条件。在本地验证网络中与同一电脑上的另一个应用测试时，把“连接地址”中显示的地址填入对方“设置”的“连接候选”。</p>
+                <p class="guide-step-text">“用时规则”“读秒”“先后手”会成为邀请时的对局条件。“邀请的路径”中会显示被邀请的对手通过哪条路径连接（直接连接，或经过协作节点的中继）。自己和对手的 IP 地址不会显示在画面上。</p>
             </div>
 
         </div>
@@ -192,8 +192,8 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">生成并交给对方邀请字符串</span>
                 </div>
-                <p class="guide-step-text">在“通过邀请连接”标签页中点击“生成邀请字符串”，即可生成邀请字符串。点击“复制”后，用私信等只有对方能收到的方式交给对方。邀请字符串中包含您的连接地址（IP地址），请不要贴到公开的地方。</p>
-                <p class="guide-step-text">邀请字符串 10 分钟后失效，并且只能使用一次。用时规则和先后手使用“寻找对手”标签页中的条件。</p>
+                <p class="guide-step-text">在“通过邀请连接”标签页中点击“生成邀请字符串”，即可生成邀请字符串。点击“复制”后，用私信等只有对方能收到的方式交给对方。邀请字符串中包含连接到您的地址（除非设置了“不使用直接连接”，否则也包含您的 IP 地址），请不要贴到公开的地方。</p>
+                <p class="guide-step-text">邀请字符串 10 分钟后失效，并且只能使用一次。同时有效的最多 4 个。用时规则和先后手使用“连接与条件”标签页中的条件。</p>
             </div>
 
             <div class="guide-step">
@@ -214,41 +214,7 @@
 </section>
 
 <!-- Section 4 -->
-<section id="offers" class="section">
-    <div class="section-inner">
-        <h2 class="section-title">从招募中寻找对手</h2>
-        <p class="section-desc">从同一网络的招募列表中寻找对手，或自己发布招募</p>
-
-        <div class="screenshot-gallery">
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">从招募列表申请</span>
-                </div>
-                <p class="guide-step-text">连接后，“招募列表”中会列出在同一网络中发布招募的人。点击“刷新列表”重新读取。查看显示名、先后手、用时规则和期限，选择招募后点击“申请”。先后手希望不一致的招募无法申请。</p>
-                <p class="guide-step-text">显示名是自称的。招募列表中只列出找到的招募，并不会显示所有人。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-find.png"><img src="../../images/zh-cn/p2p-game/p2p-find.png" alt="已连接的“寻找对手”标签页，招募列表中列出佐藤和山田的招募" width="820" height="732" loading="lazy"></a>
-                    <p class="screenshot-caption">“寻找对手”标签页：连接后招募列表中列出了招募</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">自己发布招募</span>
-                </div>
-                <p class="guide-step-text">点击“发布招募”，会以“显示名与条件”中的显示名、用时规则和先后手发布招募。招募的期限为 2 分钟，发布期间每 30 秒更新一次。要停止时点击“撤回招募”。有人申请时，会打开条件确认画面。</p>
-                <p class="guide-step-text">发布招募后，不特定的对方可以看到您的 IP 地址。不想被看到时，请通过邀请对局，或使用“设置”中的“不使用直接连接”（中继运营者仍可看到）。</p>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- Section 5 -->
-<section id="confirm" class="section section--alt">
+<section id="confirm" class="section">
     <div class="section-inner">
         <h2 class="section-title">条件确认画面</h2>
         <p class="section-desc">开始对局前确认对手和条件</p>
@@ -260,7 +226,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">确认对手</span>
                 </div>
-                <p class="guide-step-text">通过邀请连接，或者申请招募、收到申请时，双方都会打开“确认P2P对局条件”。“对手”中会完整显示对手的显示名（自称）和玩家ID。判断是否为同一个人时，请看玩家ID，而不是显示名。</p>
+                <p class="guide-step-text">用邀请字符串连接后，双方都会打开“确认P2P对局条件”。“对手”中会完整显示对手的显示名（自称）和玩家ID。判断是否为同一个人时，请看玩家ID，而不是显示名。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">显示</th><th scope="col">含义</th></tr>
@@ -291,8 +257,8 @@
     </div>
 </section>
 
-<!-- Section 6 -->
-<section id="playing" class="section">
+<!-- Section 5 -->
+<section id="playing" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">对局中</h2>
         <p class="section-desc">在主窗口的棋盘上走棋，在“对局中”标签页中认输或提出提议</p>
@@ -351,8 +317,8 @@
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="records" class="section section--alt">
+<!-- Section 6 -->
+<section id="records" class="section">
     <div class="section-inner">
         <h2 class="section-title">对局记录与验证</h2>
         <p class="section-desc">已结束对局的记录（凭证）保存在双方的电脑中，任何人都可以验证</p>
@@ -441,8 +407,8 @@
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="peers" class="section">
+<!-- Section 7 -->
+<section id="peers" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">对手管理与设置</h2>
         <p class="section-desc">为对局过的对手命名，并用确认码确认是否为同一个人</p>
@@ -458,7 +424,7 @@
                 <ul class="guide-step-text">
                     <li><strong>命名…</strong>：为对手设定的本地备注名。不会显示给对手，也不写入棋谱，会显示在条件确认画面和对局记录中。</li>
                     <li><strong>确认码…</strong>：由双方玩家ID生成的 30 位数字。双方看到的数字相同，请通过电话或当面等其他途径核对，一致后点击“设为已确认”。</li>
-                    <li><strong>屏蔽</strong>：拒绝该对手的申请和连接。对方会被告知您正在与他人协商或对局。</li>
+                    <li><strong>屏蔽</strong>：即使该对手通过邀请连接也会拒绝。对方会被告知您正在与他人协商或对局。</li>
                     <li><strong>删除记录</strong>：删除该对手的名称、已确认、屏蔽和对局数的记录。</li>
                 </ul>
                 <p class="guide-step-text">任何人都可以免费重新生成玩家密钥，因此屏蔽和过去的成绩可以通过重新生成来规避。</p>
@@ -475,8 +441,8 @@
                 </div>
                 <ul class="guide-step-text">
                     <li><strong>连接候选</strong>：每行填入一个协作节点地址（/ip4/…/p2p/… 形式）。</li>
-                    <li><strong>不使用直接连接</strong>：仅使用中继，对对手隐藏 IP 地址。中继运营者仍可看到。</li>
-                    <li><strong>不显示未对局过的对手的显示名</strong>：在招募列表、条件确认画面和对局记录中，把首次对局对手的显示名显示为“名称已隐藏”。</li>
+                    <li><strong>不使用直接连接</strong>：仅通过“连接候选”中协作节点的中继，不让对手看到 IP 地址。协作节点的运营者仍可看到。对手也需要填入相同的协作节点。</li>
+                    <li><strong>不显示未对局过的对手的显示名</strong>：在条件确认画面和对局记录中，把首次对局对手的显示名显示为“名称已隐藏”。</li>
                     <li><strong>重新生成玩家密钥…</strong>：玩家ID会改变，对手会把您看作另一个人。旧密钥将被删除。</li>
                 </ul>
                 <p class="guide-step-text">下方显示玩家密钥的保存方式、对通信进程施加的权限限制（Landlock、seccomp 等）以及此版本的使用期限。</p>
@@ -490,8 +456,8 @@
     </div>
 </section>
 
-<!-- Section 9 -->
-<section id="limits" class="section section--alt">
+<!-- Section 8 -->
+<section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">无法防止的情况与对方可以看到的信息</h2>
         <p class="section-desc">使用实验版P2P对局前请先了解</p>
@@ -523,8 +489,9 @@
                         <tr><th scope="col">谁</th><th scope="col">可以看到的内容</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>对局对手</strong></td><td>IP 地址（直接连接时）、玩家ID、显示名、条件</td></tr>
-                        <tr><td><strong>查看招募的人（不特定）</strong></td><td>发布招募者的 IP 地址、显示名和条件。假装申请还能得知玩家ID</td></tr>
+                        <tr><td><strong>对局对手</strong></td><td>玩家ID、显示名、条件。直接连接时，对手查看通信还能得知 IP 地址（画面上不显示）。设置“不使用直接连接”后无法得知</td></tr>
+                        <tr><td><strong>看到邀请字符串的人</strong></td><td>连接到邀请方的地址（使用直接连接的设置时包含 IP 地址）</td></tr>
+                        <tr><td><strong>协作节点的运营者</strong></td><td>IP 地址，以及哪些 IP 地址之间建立了连接。看不到着手、玩家ID 和显示名</td></tr>
                         <tr><td><strong>收到对局记录（凭证）的人</strong></td><td>双方的玩家ID、条件、全部着手与自报用时、双方确定的结果。不保存显示名、IP 地址和本地备注名</td></tr>
                     </tbody>
                 </table>
