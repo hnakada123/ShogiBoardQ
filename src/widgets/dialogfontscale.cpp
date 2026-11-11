@@ -69,6 +69,9 @@ public:
         const auto last = itemAt(1)->sizeHint();
         return {first.width() + spacing() + last.width(), qMax(first.height(), last.height())};
     }
+    /// 縦には伸びない。QLayout の既定（縦横とも伸びる）のままだと、ダイアログを推奨より高くしたときの余りを
+    /// この段が取り、本文の欄が伸びずに、ボタンの上下に空白ができる
+    Qt::Orientations expandingDirections() const override { return Qt::Horizontal; }
     bool hasHeightForWidth() const override { return true; }
     int heightForWidth(int width) const override
     {

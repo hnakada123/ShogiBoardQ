@@ -48,6 +48,7 @@
             <li><a href="../index.html">ホーム</a></li>
             <li><a href="index.html">利用ガイド</a></li>
             <li><a href="#prepare">準備</a></li>
+            <li><a href="#tabs">タブ</a></li>
             <li><a href="#invite">招待</a></li>
             <li><a href="#playing">対局中</a></li>
             <li><a href="#records">記録と検証</a></li>
@@ -117,7 +118,7 @@
                     <tbody>
                         <tr><td><strong>手合・対局者</strong></td><td>平手だけです。人間どうしの対局で、対局中は検討・詰み探索・棋譜解析・定跡の表示を使えません。</td></tr>
                         <tr><td><strong>持ち時間</strong></td><td>持ち時間（分）と秒読み（秒）。消費時間は双方が自己申告し、相手が測った時間と照らし合わせます。</td></tr>
-                        <tr><td><strong>先後</strong></td><td>双方の希望が合えば希望どおり、「指定なし」なら双方の乱数で決めます。</td></tr>
+                        <tr><td><strong>先後</strong></td><td>招待した側の希望どおりにします。「指定なし」なら双方の乱数で決めます。</td></tr>
                         <tr><td><strong>終局</strong></td><td>投了・詰み・時間切れ・千日手（引き分け）・連続王手の千日手（王手をかけた側の負け）・512手到達（引き分け）・合意による引き分け・合意による中断。</td></tr>
                         <tr><td><strong>ないもの</strong></td><td>待ったと入玉宣言はありません（入玉は双方の合意で引き分けにできます）。</td></tr>
                     </tbody>
@@ -161,7 +162,7 @@
                 </ul>
                 <p class="guide-step-text">鍵のファイルは <code>~/.local/share/ShogiBoardQ-P2P/p2p/identity</code> に置きます。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-identity.png"><img src="../images/p2p-game/p2p-identity.png" alt="プレイヤー鍵の保管の方法を選ぶ3つの選択肢と、防げないことの一覧が並ぶ「P2P対局の準備」ダイアログ" width="533" height="536" loading="lazy"></a>
+                    <a href="../images/p2p-game/p2p-identity.png"><img src="../images/p2p-game/p2p-identity.png" alt="プレイヤー鍵の保管の方法を選ぶ3つの選択肢と、防げないことの一覧が並ぶ「P2P対局の準備」ダイアログ" width="533" height="574" loading="lazy"></a>
                     <p class="screenshot-caption">初めて接続するときに開く「P2P対局の準備」</p>
                 </div>
             </div>
@@ -180,7 +181,208 @@
 </section>
 
 <!-- Section 3 -->
-<section id="invite" class="section section--alt">
+<section id="tabs" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">ウィンドウのタブ</h2>
+        <p class="section-desc">P2P対局のウィンドウの6つのタブと、それぞれの項目です</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">6つのタブ</span>
+                </div>
+                <p class="guide-step-text">P2P対局のウィンドウは、6つのタブに分かれています。相手を決めるまでは左の2つ、対局が始まったら「対局中」、終わった後は「対局記録」と「相手の管理」を使います。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">タブ</th><th scope="col">使うとき</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>接続と条件</strong></td><td>ネットワークに接続し、相手に見せる表示名と、招待するときの持ち時間・先後を決めます。</td></tr>
+                        <tr><td><strong>招待で接続</strong></td><td>招待文字列を作って相手に渡すか、受け取った招待文字列で相手に接続します。</td></tr>
+                        <tr><td><strong>対局中</strong></td><td>対局の状況を見て、投了や、引き分け・中断の申し出をします。</td></tr>
+                        <tr><td><strong>対局記録</strong></td><td>終わった対局の記録（証跡）を見て、検証・書き出し・削除をします。</td></tr>
+                        <tr><td><strong>相手の管理</strong></td><td>対局した相手に名前を付け、確認コードで同じ人かを確かめ、ブロックします。</td></tr>
+                        <tr><td><strong>設定</strong></td><td>協力ノードのアドレス、相手に IP アドレスを見せない設定、プレイヤー鍵の作り直しです。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">ウィンドウの下の「A-」「A+」は文字の大きさを変えます（次に開いたときも同じ大きさです）。「閉じる」でウィンドウを閉じても、接続と対局は続きます。もう一度開くには「対局」→「P2P対局（実験版）…」を選び、接続を切るには「接続と条件」タブの「切断」を押します。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">「接続と条件」タブ</span>
+                </div>
+                <p class="guide-step-text">上の「接続」でネットワークにつなぎ、下の「名乗る名前と条件」で、相手に見せる名前と、自分が招待するときの対局の条件を決めます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-connection.png"><img src="../images/p2p-game/p2p-connection.png" alt="接続中の「接続と条件」タブ。ネットワーク・状態・プレイヤーID・招待の経路と、表示名・持ち時間・秒読み・先後の欄が並ぶ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「接続と条件」タブ：接続したところ</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">項目</th><th scope="col">説明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>ネットワーク</strong></td><td>参加するネットワークです。「ローカル検証用（同じPC・同じLAN）」は同じ PC と同じ LAN の相手と、「限定試験用」はインターネット上の相手とつながります（限定試験用には協力ノードが要ります）。接続している間は変えられません。</td></tr>
+                        <tr><td><strong>接続／切断</strong></td><td>選んだネットワークに接続します。初めてのときは、プレイヤー鍵を作る画面が開きます。接続すると「切断」に変わり、押すと有効な招待を無効にして接続を切ります。条件の確認中と対局中は押せません。</td></tr>
+                        <tr><td><strong>状態</strong></td><td>「未接続」「接続しています…」「接続中（つながっているピア: N）」のどれかが出ます。N は、今つながっている相手（協力ノードや対局の相手）の数です。通信を受け持つプロセスを動かせなかったときは「P2P対局を使えません」と出ます。</td></tr>
+                        <tr><td><strong>あなたのプレイヤーID</strong></td><td>プレイヤー鍵の公開鍵（64桁の16進数）で、相手があなたを見分ける値です。「コピー」でコピーできます。鍵を作る前は「（まだ作っていません）」と出ます。</td></tr>
+                        <tr><td><strong>招待の経路</strong></td><td>接続している間、招待した相手がどの経路でつないでくるか（直接か、協力ノードの中継か）が出ます。外から届く接続先がまだ無いときは、その案内が出ます。IP アドレスは出ません。</td></tr>
+                        <tr><td><strong>表示名</strong></td><td>相手に見せる名前です（1〜32文字）。条件確認画面・対局情報・相手の「対局記録」タブに出ますが、証跡には残りません。</td></tr>
+                        <tr><td><strong>時間</strong></td><td>自分が招待するときの「持ち時間」（0〜1440分）と「秒読み」（0〜600秒）です。両方を 0 にはできません。</td></tr>
+                        <tr><td><strong>先後</strong></td><td>自分が招待するときの先後の希望です。「指定なし（双方の乱数で決める）」「先手希望」「後手希望」から選びます。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">持ち時間と先後は、招待した側の条件を使います。招待を受けた側は、条件確認画面で確かめてから始めます。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">「招待で接続」タブ</span>
+                </div>
+                <p class="guide-step-text">上の「相手を招待する」は招待する側、下の「招待で接続する」は招待を受けた側が使います。どちらも、接続している間だけ使えます。手順は<a href="#invite">招待で対局する</a>をご覧ください。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-invite.png"><img src="../images/p2p-game/p2p-invite.png" alt="「招待で接続」タブ。上で自分の招待文字列を作り、下で受け取った招待文字列を確かめたところ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「招待で接続」タブ：招待文字列を作る（上）・受け取った招待文字列で接続する（下）</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">項目</th><th scope="col">説明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>招待文字列を作る</strong></td><td>招待文字列を作って、下の欄に出します。欄の下には、期限と、相手が使える接続先（到達候補）の数が出ます。10分で使えなくなり、1回だけ使えます。同時に有効にできるのは4つまでです。</td></tr>
+                        <tr><td><strong>コピー</strong></td><td>作った招待文字列をコピーします。相手だけに届く方法で渡してください。</td></tr>
+                        <tr><td><strong>招待で接続する（欄）</strong></td><td>受け取った招待文字列を貼り付けます。</td></tr>
+                        <tr><td><strong>招待文字列を確かめる</strong></td><td>貼り付けた招待文字列を読み、招待した相手の PeerId（先頭の部分）・期限・到達候補の数を下に出します。</td></tr>
+                        <tr><td><strong>上の私設アドレス（同じLANの相手）へ接続してよい</strong></td><td>「限定試験用」で、招待文字列に私設アドレス（同じ LAN の中のアドレス）が入っているときだけ出ます。そのアドレスへ接続してよければチェックを付けます。</td></tr>
+                        <tr><td><strong>接続する</strong></td><td>確かめた招待文字列の相手に接続します。つながると、双方に条件確認画面が開きます。接続しただけでは対局は始まりません。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">「対局中」タブ</span>
+                </div>
+                <p class="guide-step-text">対局が始まると、このタブに自動で切り替わります。指すのはメインウィンドウの盤で、このタブでは状況を見て、投了や申し出をします。対局していないときは「対局していません。」と出ます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-game.png"><img src="../images/p2p-game/p2p-game.png" alt="相手・先後・経路・手番・切断時間の残りと、投了・引き分けの申し出・中断の申し出・対局をやめるボタンが並ぶ「対局中」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「対局中」タブ</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">表示</th><th scope="col">意味</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>相手</strong></td><td>相手の表示名です。</td></tr>
+                        <tr><td><strong>あなたは先手／あなたは後手</strong></td><td>この対局での自分の先後です。</td></tr>
+                        <tr><td><strong>経路</strong></td><td>「直接」は相手と直接つながっています。「中継」は協力ノードの中継を通っています。</td></tr>
+                        <tr><td><strong>あなたの手番です／相手の手番です</strong></td><td>手番です。指した手を相手のアプリが確かめている間は「着手の確認を待っています…」、回線が切れたときは「再接続中（残り N 秒）」、終局して結果を照らし合わせている間は「結果を確定しています…」と出ます。</td></tr>
+                        <tr><td><strong>切断時間の残り</strong></td><td>1局で回線が切れていてよい時間の残りです（600秒から減ります）。0 になると対局は中断になります。</td></tr>
+                        <tr><td><strong>結果</strong></td><td>結果が確定すると、「先手の勝ち（投了）」のように出ます。</td></tr>
+                    </tbody>
+                </table>
+                <ul class="guide-step-text">
+                    <li><strong>投了</strong>：自分の手番のときだけ押せます。確認の後、負けになります。</li>
+                    <li><strong>引き分けを申し出る・中断を申し出る</strong>：相手に承諾するかを尋ねます。相手が承諾したときだけ成立します。</li>
+                    <li><strong>対局をやめる（結果未確定）</strong>：一方的に対局を離れます。結果は確定しません。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">「対局記録」タブ</span>
+                </div>
+                <p class="guide-step-text">終わった対局が、1局1行で並びます。行を選んで下のボタンを押します。区分の意味と検証の内容は<a href="#records">対局記録と検証</a>をご覧ください。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-records.png"><img src="../images/p2p-game/p2p-records.png" alt="終わった日時・相手・あなた・終わり方・記録の区分・結果の列と、検証・書き出し・削除のボタンが並ぶ「対局記録」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「対局記録」タブ：双方で確定した記録</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">列・ボタン</th><th scope="col">説明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>終わった日時</strong></td><td>対局が終わった日時です。</td></tr>
+                        <tr><td><strong>相手（表示名）</strong></td><td>相手が名乗った表示名です。「相手の管理」で名前を付けていれば、手元の名前も出ます。</td></tr>
+                        <tr><td><strong>あなた</strong></td><td>自分の先後（先手・後手）です。</td></tr>
+                        <tr><td><strong>終わり方</strong></td><td>自分のアプリでの終わり方です（双方で確定・相手の確定なし・中断（結果未確定）・通信中断（結果未確定）など）。</td></tr>
+                        <tr><td><strong>記録の区分</strong></td><td>証跡を検証した結果です（双方で確定・棋譜から決まる結果・結果未確定）。証跡が壊れているときは「検証に失敗」「読めません」と出ます。</td></tr>
+                        <tr><td><strong>結果</strong></td><td>「先手の勝ち（投了）」のような勝ち負けと終わり方です。</td></tr>
+                        <tr><td><strong>検証する</strong></td><td>選んだ記録を検証し、プレイヤー鍵による確定が正しいか、棋譜がルールに適合するかなどを出します。</td></tr>
+                        <tr><td><strong>証跡を書き出す…</strong></td><td>証跡ファイル（.sbqmatch）を好きな場所に保存します。証跡には双方のプレイヤーID が入ります。</td></tr>
+                        <tr><td><strong>記録を削除</strong></td><td>選んだ対局の証跡と記録を消します（戻せません）。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">「相手の管理」タブ</span>
+                </div>
+                <p class="guide-step-text">対局した相手が、プレイヤーID ごとに1行で並びます。行を選んで下のボタンを押します。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-peers.png"><img src="../images/p2p-game/p2p-peers.png" alt="プレイヤーID・手元の名前・最後の表示名・確認済み・ブロック・対局数・未確定の列と、名前を付ける・確認コード・確認済みを外す・ブロック・記録を削除のボタンが並ぶ「相手の管理」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「相手の管理」タブ：名前を付け、確認コードで確認済みにした相手</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">列・ボタン</th><th scope="col">説明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>プレイヤーID</strong></td><td>相手のプレイヤーID です。同じ人かどうかは、この値で確かめます。</td></tr>
+                        <tr><td><strong>手元の名前</strong></td><td>「名前を付ける…」で付けた名前です。相手と棋譜には出ません。</td></tr>
+                        <tr><td><strong>最後の表示名</strong></td><td>相手がいちばん最近の対局で名乗った表示名です。</td></tr>
+                        <tr><td><strong>確認済み</strong></td><td>確認コードで確かめて「確認済みにする」を押した相手に「確認済み」と出ます。</td></tr>
+                        <tr><td><strong>ブロック</strong></td><td>ブロックしている相手に「ブロック中」と出ます。</td></tr>
+                        <tr><td><strong>対局数・未確定</strong></td><td>その相手との対局の数と、そのうち結果が確定しなかった対局の数です。</td></tr>
+                        <tr><td><strong>名前を付ける…</strong></td><td>手元の名前を付けます。条件確認画面と「対局記録」タブに出ます。</td></tr>
+                        <tr><td><strong>確認コード…</strong></td><td>双方のプレイヤーID から作る30桁の数字を出します。電話や対面など別の経路で相手と見比べます。</td></tr>
+                        <tr><td><strong>確認済みにする／確認済みを外す</strong></td><td>確認コードが一致した相手を確認済みにします。もう一度押すと外します。</td></tr>
+                        <tr><td><strong>ブロック／ブロックを解除</strong></td><td>その相手が招待でつないできても断ります。もう一度押すと解除します。</td></tr>
+                        <tr><td><strong>記録を削除</strong></td><td>その相手の名前・確認済み・ブロック・対局数の記録を消します。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">「設定」タブ</span>
+                </div>
+                <p class="guide-step-text">欄とチェックは、変えたときに保存します。「接続候補」と「直接接続を使わない」は、次に接続したときから使います（接続中なら、切断してから接続し直します）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-settings.png"><img src="../images/p2p-game/p2p-settings.png" alt="接続候補・直接接続を使わない・表示名を出さないの設定と、プレイヤー鍵の保管・権限の制限・使用期限・防げないことが並ぶ「設定」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「設定」タブ</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">項目</th><th scope="col">説明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>接続候補</strong></td><td>協力ノードのアドレス（/ip4/…/p2p/… の形）を1行に1つ入れます。16件まで入れられます。「ローカル検証用」だけを使うなら、空のままでかまいません。</td></tr>
+                        <tr><td><strong>直接接続を使わない</strong></td><td>「接続候補」に入れた協力ノードの中継だけを通り、相手に IP アドレスを見せません。協力ノードの運営者には見えます。</td></tr>
+                        <tr><td><strong>対局したことのない相手の表示名を出さない</strong></td><td>条件確認画面と「対局記録」タブで、初めての相手の表示名を「名前は非表示」にします。</td></tr>
+                        <tr><td><strong>プレイヤー鍵の保管</strong></td><td>今のプレイヤー鍵の保管の方法（OSの鍵の保管庫・パスフレーズで暗号化したファイル・暗号化しないファイル）です。接続している間は、通信を受け持つプロセスに掛けた権限の制限も出ます。</td></tr>
+                        <tr><td><strong>プレイヤー鍵を作り直す…</strong></td><td>新しいプレイヤー鍵を作ります。プレイヤーID が変わり、相手からは別人に見えます。古い鍵は消します。切断してから押します。</td></tr>
+                        <tr><td><strong>このビルドの使用期限</strong></td><td>この日を過ぎると、「限定試験用」のネットワークに参加しません。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">いちばん下には、P2P対局で防げないことの一覧が出ます（<a href="#limits">防げないことと相手に見える情報</a>）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="invite" class="section">
     <div class="section-inner">
         <h2 class="section-title">招待で対局する</h2>
         <p class="section-desc">知り合いと対局するときは、招待文字列を相手だけに渡します</p>
@@ -203,10 +405,6 @@
                 </div>
                 <p class="guide-step-text">招待された側は、受け取った招待文字列を「招待で接続する」の欄に貼り付けて「招待文字列を確かめる」を押します。招待した相手の PeerId・期限・到達候補の数が出るので、確かめてから「接続する」を押します。接続しただけでは対局は始まりません。次に開く条件確認画面で相手を確かめてから始めます。</p>
                 <p class="guide-step-text">同じLANの相手の招待文字列には、私設アドレスが入ることがあります。そのアドレスへ接続するときは、「上の私設アドレス（同じLANの相手）へ接続してよい」にチェックを付けます。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-invite.png"><img src="../images/p2p-game/p2p-invite.png" alt="「招待で接続」タブ。上で自分の招待文字列を作り、下で受け取った招待文字列を確かめたところ" width="820" height="770" loading="lazy"></a>
-                    <p class="screenshot-caption">「招待で接続」タブ：招待文字列を作る（上）・受け取った招待文字列で接続する（下）</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -218,12 +416,21 @@
                 <p class="guide-step-text">招待した側の PC は、TCP と UDP の 48210 番ポートで接続を待ちます（同じ PC で2つ目のアプリを動かすと、2つ目は空いているポートを使います）。つながらないときは、招待した側の PC のファイアウォールで、このポートへの LAN 内からの接続が許可されているか確かめてください。firewalld なら <code>sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code> で、再起動まで許可できます。招待する側を入れ替えると、つながることもあります。</p>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">同じPCで試す</span>
+                </div>
+                <p class="guide-step-text">このアプリを同じ PC でいくつか起動して、それぞれで「P2P対局」を開くと、2つ目は自動で「2人目」、3つ目は「3人目」として開きます（同時に8つまで）。何人目かは、ウィンドウの題名と上の案内に出ます。アプリを1つだけ起動しているときは、いつも1人目です。</p>
+                <p class="guide-step-text">プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、何人目かごとに別に保存します。両方のネットワークを「ローカル検証用（同じPC・同じLAN）」にして接続し、片方で作った招待文字列をもう片方に貼り付ければ、協力ノードなしで対局できます。</p>
+            </div>
+
         </div>
     </div>
 </section>
 
-<!-- Section 4 -->
-<section id="confirm" class="section">
+<!-- Section 5 -->
+<section id="confirm" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">条件確認画面</h2>
         <p class="section-desc">対局を始める前に、相手と条件を確かめます</p>
@@ -266,8 +473,8 @@
     </div>
 </section>
 
-<!-- Section 5 -->
-<section id="playing" class="section section--alt">
+<!-- Section 6 -->
+<section id="playing" class="section">
     <div class="section-inner">
         <h2 class="section-title">対局中</h2>
         <p class="section-desc">メインウィンドウの盤で指し、「対局中」タブで投了や申し出をします</p>
@@ -298,10 +505,6 @@
                     <li><strong>引き分けを申し出る・中断を申し出る</strong>：相手に承諾するかを尋ねます。相手が承諾したときだけ、合意による引き分け・中断になります。断られたら対局を続けます。</li>
                     <li><strong>対局をやめる（結果未確定）</strong>：一方的に対局を離れます。結果は確定せず、相手には中断が伝わります。</li>
                 </ul>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-game.png"><img src="../images/p2p-game/p2p-game.png" alt="相手・先後・経路・手番・切断時間の残りと、投了・引き分けの申し出・中断の申し出・対局をやめるボタンが並ぶ「対局中」タブ" width="820" height="770" loading="lazy"></a>
-                    <p class="screenshot-caption">「対局中」タブ</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -326,8 +529,8 @@
     </div>
 </section>
 
-<!-- Section 6 -->
-<section id="records" class="section">
+<!-- Section 7 -->
+<section id="records" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">対局記録と検証</h2>
         <p class="section-desc">終わった対局の記録（証跡）は双方の手元に残り、だれでも検証できます</p>
@@ -351,10 +554,6 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">証跡は <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code> に保存されます。対局中にアプリが終了しても、それまでの記録は次に開いたときに「結果未確定」の記録として残ります。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-records.png"><img src="../images/p2p-game/p2p-records.png" alt="終わった日時・相手・あなた・終わり方・記録の区分・結果の列と、検証・書き出し・削除のボタンが並ぶ「対局記録」タブ" width="820" height="770" loading="lazy"></a>
-                    <p class="screenshot-caption">「対局記録」タブ：双方で確定した記録</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -416,8 +615,8 @@
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="peers" class="section section--alt">
+<!-- Section 8 -->
+<section id="peers" class="section">
     <div class="section-inner">
         <h2 class="section-title">相手の管理と設定</h2>
         <p class="section-desc">対局した相手に名前を付け、確認コードで同じ人かを確かめます</p>
@@ -437,10 +636,6 @@
                     <li><strong>記録を削除</strong>：その相手の名前・確認済み・ブロック・対局数の記録を消します。</li>
                 </ul>
                 <p class="guide-step-text">プレイヤー鍵はだれでも無料で作り直せるので、ブロックや過去の成績は作り直しで避けられます。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-peers.png"><img src="../images/p2p-game/p2p-peers.png" alt="プレイヤーID・手元の名前・最後の表示名・確認済み・ブロック・対局数・未確定の列と、名前を付ける・確認コード・確認済みを外す・ブロック・記録を削除のボタンが並ぶ「相手の管理」タブ" width="820" height="770" loading="lazy"></a>
-                    <p class="screenshot-caption">「相手の管理」タブ：名前を付け、確認コードで確認済みにした相手</p>
-                </div>
             </div>
 
             <div class="guide-step">
@@ -455,18 +650,14 @@
                     <li><strong>プレイヤー鍵を作り直す…</strong>：プレイヤーIDが変わり、相手からは別人に見えます。古い鍵は消します。</li>
                 </ul>
                 <p class="guide-step-text">下には、プレイヤー鍵の保管の方法、通信プロセスに掛けた権限の制限（Landlock・seccomp など）、このビルドの使用期限が出ます。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-settings.png"><img src="../images/p2p-game/p2p-settings.png" alt="接続候補・直接接続を使わない・表示名を出さないの設定と、プレイヤー鍵の保管・権限の制限・使用期限・防げないことが並ぶ「設定」タブ" width="820" height="770" loading="lazy"></a>
-                    <p class="screenshot-caption">「設定」タブ</p>
-                </div>
             </div>
 
         </div>
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="limits" class="section">
+<!-- Section 9 -->
+<section id="limits" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">防げないことと相手に見える情報</h2>
         <p class="section-desc">実験版のP2P対局を使う前に知っておいてほしいことです</p>

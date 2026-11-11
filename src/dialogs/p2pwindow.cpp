@@ -57,10 +57,21 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     : QDialog(parent)
     , m_lobby(lobby)
     , m_game(game)
+    , m_player(lobby ? lobby->playerNumber() : 1)
 {
-    setWindowTitle(tr("P2P対局（実験版）"));
+    setWindowTitle(m_player > 1 ? tr("P2P対局（実験版）— %1人目").arg(m_player) : tr("P2P対局（実験版）"));
     setModal(false);
     auto* layout = new QVBoxLayout(this);
+    if (m_player > 1) {
+        // 同じ PC でほかのアプリが先に開いているとき。どのタブでも見えるよう、タブの上に出す
+        QLabel* notice = plainLabel(
+            this, tr("このPCでは、ほかの ShogiBoardQ-P2P が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。"
+                     "プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。"
+                     "同じPCのアプリどうしで、招待で対局できます。")
+                      .arg(m_player));
+        notice->setObjectName(QStringLiteral("p2pPlayerNotice"));
+        layout->addWidget(notice);
+    }
     m_tabs = new QTabWidget(this);
     m_tabs->setObjectName(QStringLiteral("p2pTabs"));
     m_tabs->addTab(createConnectionTab(), tr("接続と条件"));
@@ -106,6 +117,8 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     DialogFontScale::install(this, NetworkSettings::p2pWindowFontSize, options);
     refresh();
     reloadRecords();
+    // 戻した大きさに、いちばん高いタブの中身が収まらなければ広げる（2人目からは上に案内が入る）
+    growToFit();
 }
 
 // ---------------------------------------------------------------- タブ
@@ -265,10 +278,12 @@ QWidget* P2pWindow::createSettingsTab()
     m_bootstrap->setPlaceholderText(tr("協力ノードのアドレス（/ip4/…/p2p/… の形）を1行に1つ"));
     m_bootstrap->setMaximumHeight(100);
     form->addRow(tr("接続候補"), m_bootstrap);
-    m_relayOnly = new QCheckBox(tr("直接接続を使わない（接続候補の協力ノードの中継だけを使い、相手からIPアドレスを隠す。"
-                                   "協力ノードの運営者には見えます）"),
-                                tab);
+    m_relayOnly = new QCheckBox(tr("直接接続を使わない"), tab);
     form->addRow(QString(), m_relayOnly);
+    // 説明は折り返すラベルに分ける（チェックの文字は折り返せないので、長いとウィンドウの最小の幅が広がる。
+    // 英語では 1200 を超えていた）
+    form->addRow(QString(), plainLabel(tab, tr("接続候補の協力ノードの中継だけを使い、相手からIPアドレスを隠します。"
+                                               "協力ノードの運営者には見えます。")));
     m_hideUnknown = new QCheckBox(tr("対局したことのない相手の表示名を出さない"), tab);
     form->addRow(QString(), m_hideUnknown);
     layout->addLayout(form);
@@ -296,7 +311,7 @@ void P2pWindow::loadSettings()
     const QSignalBlocker blockBootstrap(m_bootstrap);
     const QSignalBlocker blockRelay(m_relayOnly);
     const QSignalBlocker blockHide(m_hideUnknown);
-    m_displayName->setText(NetworkSettings::p2pDisplayName());
+    m_displayName->setText(NetworkSettings::p2pDisplayName(m_player)());
     m_mainMinutes->setValue(NetworkSettings::p2pMainTimeSeconds() / 60);
     m_byoyomi->setValue(NetworkSettings::p2pByoyomiSeconds());
     m_side->setCurrentIndex(m_side->findData(NetworkSettings::p2pSidePreference()));
@@ -309,7 +324,7 @@ void P2pWindow::loadSettings()
 
 void P2pWindow::saveSettings()
 {
-    if (P2p::DisplayName::isValid(displayName())) NetworkSettings::p2pDisplayName.set(displayName());
+    if (P2p::DisplayName::isValid(displayName())) NetworkSettings::p2pDisplayName(m_player).set(displayName());
     NetworkSettings::p2pMainTimeSeconds.set(m_mainMinutes->value() * 60);
     NetworkSettings::p2pByoyomiSeconds.set(m_byoyomi->value());
     NetworkSettings::p2pSidePreference.set(m_side->currentData().toInt());

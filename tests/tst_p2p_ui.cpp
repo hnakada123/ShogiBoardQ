@@ -5,10 +5,12 @@
 
 #include <QtTest>
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
 #include <QHeaderView>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMainWindow>
 #include <QPushButton>
 #include <QTabWidget>
@@ -26,6 +28,7 @@
 #include "p2pidentitystore.h"
 #include "p2pknownpeers.h"
 #include "p2plobbyservice.h"
+#include "p2pplayerslot.h"
 #include "p2precordstore.h"
 #include "p2ptransport.h"
 #include "p2pwindow.h"
@@ -178,6 +181,11 @@ private slots:
         auto* network = window.findChild<QComboBox*>(QStringLiteral("p2pNetwork"));
         QVERIFY(network);
         QCOMPARE(network->count(), 2);
+        // チェックの文字は折り返せないので、短くする（長い説明は折り返すラベルに分ける。長いと、訳した画面で
+        // ウィンドウの最小の幅が広がる）
+        for (QCheckBox* box : window.findChildren<QCheckBox*>()) {
+            QVERIFY2(box->text().size() <= 30, qPrintable(box->text()));
+        }
         // 公開募集は持たない（対局の相手は招待で決める）。自分のアドレスも画面に出さない
         QVERIFY(!window.findChild<QTableWidget*>(QStringLiteral("p2pOffers")));
         for (QLabel* label : window.findChildren<QLabel*>()) {
@@ -192,6 +200,89 @@ private slots:
         // 自動化 API を有効にしたときは使い始めない
         lobby.disableForAutomation();
         QCOMPARE(lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::AutomationEnabled);
+    }
+
+    /// 同じ PC でいくつものアプリが「P2P対局」を開くと、開いた順に、空いている最初の番号のプレイヤーになる
+    /// （1人目・2人目・3人目…）。保存先はプレイヤーごとに別で、閉じたアプリの番号は次に開いたアプリが使う
+    void appsOnOnePcBecomeSeparatePlayers()
+    {
+        AppActivityState activity;
+        GameBoard board;
+        ShogiClock clock;
+        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
+        const P2pLobbyService::Deps deps{&activity, &game};
+        const QString data = m_dir.filePath(QStringLiteral("players"));
+
+        std::unique_ptr<P2pLobbyService> first(P2pLobbyService::acquire(deps, data));
+        std::unique_ptr<P2pLobbyService> second(P2pLobbyService::acquire(deps, data));
+        std::unique_ptr<P2pLobbyService> third(P2pLobbyService::acquire(deps, data));
+        QVERIFY(first && second && third);
+        QCOMPARE(first->playerNumber(), 1);
+        QCOMPARE(second->playerNumber(), 2);
+        QCOMPARE(third->playerNumber(), 3);
+        // 1人目の保存先はこれまでと同じ p2p。2人目からは別のフォルダで、鍵の場所も別
+        QCOMPARE(first->records()->identityDirectory(), data + QStringLiteral("/p2p/identity"));
+        QCOMPARE(second->records()->identityDirectory(), data + QStringLiteral("/p2p-2/identity"));
+        QCOMPARE(third->records()->identityDirectory(), data + QStringLiteral("/p2p-3/identity"));
+        QVERIFY(first->records()->isLocked() && second->records()->isLocked() && third->records()->isLocked());
+
+        // 2人目のアプリを閉じると、次に開いたアプリが2人目になる（3人目は動いたまま）
+        second.reset();
+        std::unique_ptr<P2pLobbyService> again(P2pLobbyService::acquire(deps, data));
+        QVERIFY(again);
+        QCOMPARE(again->playerNumber(), 2);
+
+        // 同時に使えるのは kMaxPlayers 個まで
+        std::vector<std::unique_ptr<P2pLobbyService>> rest;
+        for (int player = 4; player <= P2pPlayerSlot::kMaxPlayers; ++player) {
+            rest.emplace_back(P2pLobbyService::acquire(deps, data));
+            QVERIFY(rest.back());
+            QCOMPARE(rest.back()->playerNumber(), player);
+        }
+        QVERIFY(!P2pLobbyService::acquire(deps, data));
+    }
+
+    /// 1人目のウィンドウはこれまでどおり。2人目からは、題名と上の案内で何人目かが分かり、表示名も別に覚える
+    void windowShowsWhichPlayerItIs()
+    {
+        AppActivityState activity;
+        GameBoard board;
+        ShogiClock clock;
+        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
+        const P2pLobbyService::Deps deps{&activity, &game};
+        const QString data = m_dir.filePath(QStringLiteral("titles"));
+        std::unique_ptr<P2pLobbyService> first(P2pLobbyService::acquire(deps, data));
+        std::unique_ptr<P2pLobbyService> second(P2pLobbyService::acquire(deps, data));
+        QVERIFY(first && second);
+        NetworkSettings::p2pDisplayName(1).remove();
+        NetworkSettings::p2pDisplayName(2).remove();
+        {
+            P2pWindow one(first.get(), &game);
+            P2pWindow two(second.get(), &game);
+            QCOMPARE(one.windowTitle(), QStringLiteral("P2P対局（実験版）"));
+            QVERIFY(!one.findChild<QLabel*>(QStringLiteral("p2pPlayerNotice")));
+            QCOMPARE(two.windowTitle(), QStringLiteral("P2P対局（実験版）— 2人目"));
+            auto* notice = two.findChild<QLabel*>(QStringLiteral("p2pPlayerNotice"));
+            QVERIFY(notice);
+            QVERIFY2(notice->text().contains(QStringLiteral("「2人目」")), qPrintable(notice->text()));
+            two.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&two));
+            QVERIFY(notice->isVisible());
+            QVERIFY2(notice->height() >= notice->heightForWidth(notice->width()), "案内が欠けている");
+
+            // 表示名はプレイヤーごとに覚える（接続・招待のときに保存する）
+            auto* nameOne = one.findChild<QLineEdit*>(QStringLiteral("p2pDisplayName"));
+            auto* nameTwo = two.findChild<QLineEdit*>(QStringLiteral("p2pDisplayName"));
+            QVERIFY(nameOne && nameTwo);
+            nameOne->setText(QStringLiteral("一人目"));
+            QVERIFY(QMetaObject::invokeMethod(&one, "saveSettings"));
+            nameTwo->setText(QStringLiteral("二人目"));
+            QVERIFY(QMetaObject::invokeMethod(&two, "saveSettings"));
+        }
+        QCOMPARE(NetworkSettings::p2pDisplayName(1)(), QStringLiteral("一人目"));
+        QCOMPARE(NetworkSettings::p2pDisplayName(2)(), QStringLiteral("二人目"));
+        P2pWindow reopened(second.get(), &game);
+        QCOMPARE(reopened.findChild<QLineEdit*>(QStringLiteral("p2pDisplayName"))->text(), QStringLiteral("二人目"));
     }
 
     /// 招待文字列を確かめた結果は、初めて開いたときの大きさのウィンドウでも欠けない（収まらなければウィンドウを広げる）。

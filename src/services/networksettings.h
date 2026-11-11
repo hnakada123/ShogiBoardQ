@@ -118,8 +118,15 @@ inline constexpr int kCsaServerHistoryLimit = 10;
 
 /// 参加するネットワーク（このビルドが参加できる名前のどれか。既定はローカル検証用）
 inline const Setting<QString> p2pNetworkName{"P2p/networkName", QStringLiteral("sbq-local-1")};
-/// 名乗る表示名（相手に見える。既定は空で、初めて使うときに入れてもらう）
-inline const Setting<QString> p2pDisplayName{"P2p/displayName", QString()};
+/// 名乗る表示名（相手に見える。既定は空で、初めて使うときに入れてもらう）。この PC の何人目のプレイヤーか（1〜）ごとに
+/// 覚える（同じ PC でいくつものアプリを動かして対局するとき、同じ名前にならないように。1人目は P2p/displayName、
+/// 2人目からは P2p/displayName2・P2p/displayName3…）
+inline Setting<QString> p2pDisplayName(int player)
+{
+    QByteArray key("P2p/displayName");
+    if (player > 1) key += QByteArray::number(player);
+    return {std::move(key), QString()};
+}
 /// 招待の持ち時間（秒。既定 10分＋30秒）
 inline const BoundedSetting<int> p2pMainTimeSeconds{"P2p/mainTimeSeconds", 600, 0, 86400};
 inline const BoundedSetting<int> p2pByoyomiSeconds{"P2p/byoyomiSeconds", 30, 0, 600};

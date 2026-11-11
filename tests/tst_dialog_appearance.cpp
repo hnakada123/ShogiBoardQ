@@ -19,6 +19,7 @@
 #include <QTemporaryDir>
 #include <QTextBrowser>
 #include <QTranslator>
+#include <QVBoxLayout>
 #include <QTimer>
 #include <QHeaderView>
 #include <QTableWidget>
@@ -71,6 +72,7 @@ namespace {
 // テストで作る入力ダイアログの文字の大きさとウィンドウの大きさの保存先
 const Setting<int> kInputFontSize{"DialogAppearance/input/fontSize", 0};
 const Setting<int> kInputTestFontSize{"DialogAppearance/inputDialogTest/fontSize", 0};
+const Setting<int> kFooterTestFontSize{"DialogAppearance/footerTest/fontSize", 0};
 const Setting<QSize> kInputTestSize{"DialogAppearance/inputDialogTest/size", QSize()};
 } // namespace
 
@@ -433,6 +435,41 @@ private slots:
         }
         dialog.resize(1600, 800);
         QTRY_VERIFY(qAbs(box->geometry().center().y() - scale->geometry().center().y()) <= 2);
+        dialog.reject();
+    }
+
+    /// ダイアログを推奨より高くしたときの余りは本文の欄が使い、文字サイズ操作と決定ボタンの段は伸びない
+    /// （段が余りを取ると、本文が伸びずに、ボタンの上下に空白ができる）
+    void footerLeavesExtraHeightToContent()
+    {
+        QDialog dialog;
+        auto* layout = new QVBoxLayout(&dialog);
+        // 折り返すラベル（高さが幅で決まる部品）があると、縦の配置は部品ごとの「幅に対する高さ」を使う
+        auto* note = new QLabel(QStringLiteral("説明の文。").repeated(30), &dialog);
+        note->setWordWrap(true);
+        layout->addWidget(note);
+        auto* content = new QListWidget(&dialog);
+        layout->addWidget(content);
+        auto* box = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
+        layout->addWidget(box);
+        DialogFontScale::install(&dialog, kFooterTestFontSize);
+        dialog.resize(600, 400);
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        auto* scale = dialog.findChild<QWidget*>(QStringLiteral("dialogFontScale"));
+        QVERIFY(scale);
+        QTest::qWait(50);
+        const int contentBefore = content->height();
+        const int gapBefore = dialog.height() - box->geometry().bottom();
+
+        dialog.resize(600, 800);
+        QTRY_COMPARE(dialog.height(), 800);
+        QTest::qWait(50);
+        // 増えた高さは本文の欄に入り、決定ボタンは下の端から同じ距離のまま
+        QVERIFY2(content->height() >= contentBefore + 380,
+                 qPrintable(QStringLiteral("%1 -> %2").arg(contentBefore).arg(content->height())));
+        QCOMPARE(dialog.height() - box->geometry().bottom(), gapBefore);
+        QVERIFY(qAbs(box->geometry().center().y() - scale->geometry().center().y()) <= 2);
         dialog.reject();
     }
 
