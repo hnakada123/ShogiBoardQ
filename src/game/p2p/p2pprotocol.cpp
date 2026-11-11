@@ -367,17 +367,6 @@ QByteArray networkId(const QByteArray& networkName)
     return Cbor::hash(CborValue::array({t("SBQ-NETWORK"), u(1), t(networkName)}));
 }
 
-QByteArray lobbyKey(const QByteArray& networkIdValue, const QByteArray& rulesHash)
-{
-    return Cbor::hash(CborValue::array({t("SBQ-LOBBY"), u(1), b(networkIdValue), b(rulesHash)}));
-}
-
-QString lobbyTopic(const QByteArray& networkIdValue, const QByteArray& rulesHash)
-{
-    return QStringLiteral("/shogiboardq/lobby/1/%1/%2")
-        .arg(QString::fromLatin1(networkIdValue.toHex()), QString::fromLatin1(rulesHash.toHex()));
-}
-
 QByteArray coinCommit(const QByteArray& nonceA)
 {
     return Cbor::hash(CborValue::array({t("SBQ-COMMIT"), u(1), b(nonceA)}));

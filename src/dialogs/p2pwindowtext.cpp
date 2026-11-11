@@ -30,16 +30,6 @@ QString P2pWindowText::timeControlText(const P2p::TimeControlTerms& terms)
     return tr("%1＋秒読み%2秒").arg(main).arg(byoyomiSeconds);
 }
 
-QString P2pWindowText::sideText(P2p::SidePreference side)
-{
-    switch (side) {
-    case P2p::SidePreference::Black: return tr("先手希望");
-    case P2p::SidePreference::White: return tr("後手希望");
-    case P2p::SidePreference::None: break;
-    }
-    return tr("指定なし");
-}
-
 QString P2pWindowText::rulesText()
 {
     return tr("ルール: 平手。人間どうしの対局で、検討・定跡の表示は使えません。入玉宣言はありません（双方の合意で引き分けにできます）。"

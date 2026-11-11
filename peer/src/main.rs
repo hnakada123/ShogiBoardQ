@@ -1,15 +1,12 @@
 //! ShogiBoardQ の P2P対局の通信プロセス `shogiboardq-peer`
 //!
-//! 発見・募集・NAT越え・フレームの送受信だけを受け持ち、署名・鍵・ファイルを持たない
+//! 招待の接続・NAT越え・中継・フレームの送受信だけを受け持ち、署名・鍵・ファイルを持たない
 //! （実装仕様 2.1節・10.4節）。対局・UI側とは標準入出力の IPC（protocol/ipc.md）でやり取りする。
 
 mod addr;
 mod game;
-#[cfg(test)]
-mod gossip_tests;
 mod ipc;
 mod node;
-mod offers;
 mod sandbox;
 mod service;
 mod swarm;

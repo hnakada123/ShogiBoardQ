@@ -12,7 +12,6 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
-#include <QHeaderView>
 #include <QJsonArray>
 #include <QLabel>
 #include <QLineEdit>
@@ -21,7 +20,6 @@
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QTabWidget>
-#include <QTableWidget>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -35,7 +33,6 @@
 #include "p2pidentitystore.h"
 #include "p2ppeerspanel.h"
 #include "p2pwindowtext.h"
-#include "plaintooltip.h"
 
 namespace {
 
@@ -64,7 +61,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     auto* layout = new QVBoxLayout(this);
     m_tabs = new QTabWidget(this);
     m_tabs->setObjectName(QStringLiteral("p2pTabs"));
-    m_tabs->addTab(createPlayTab(), tr("対戦相手を探す"));
+    m_tabs->addTab(createConnectionTab(), tr("接続と条件"));
     m_tabs->addTab(createInviteTab(), tr("招待で接続"));
     m_gameTab = createGameTab();
     m_tabs->addTab(m_gameTab, tr("対局中"));
@@ -84,7 +81,6 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     if (m_lobby) {
         connect(m_lobby, &P2pLobbyService::statusChanged, this, &P2pWindow::refresh);
         connect(m_lobby, &P2pLobbyService::networkStatusChanged, this, &P2pWindow::refresh);
-        connect(m_lobby, &P2pLobbyService::offersChanged, this, &P2pWindow::onOffersChanged);
         connect(m_lobby, &P2pLobbyService::inviteCreated, this, &P2pWindow::onInviteCreated);
         connect(m_lobby, &P2pLobbyService::inviteInspected, this, &P2pWindow::onInviteInspected);
         connect(m_lobby, &P2pLobbyService::requestFailed, this, &P2pWindow::onRequestFailed);
@@ -112,7 +108,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
 
 // ---------------------------------------------------------------- タブ
 
-QWidget* P2pWindow::createPlayTab()
+QWidget* P2pWindow::createConnectionTab()
 {
     auto* tab = new QWidget(this);
     auto* layout = new QVBoxLayout(tab);
@@ -140,9 +136,10 @@ QWidget* P2pWindow::createPlayTab()
     idRow->addWidget(m_playerId, 1);
     idRow->addWidget(copyId);
     networkForm->addRow(tr("あなたのプレイヤーID"), idRow);
-    m_networkInfo = plainLabel(networkBox);
-    m_networkInfo->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    networkForm->addRow(tr("接続先"), m_networkInfo);
+    // 自分や相手のアドレス（IP）は画面に出さない。招待がどの経路で届くかだけを文で示す
+    m_routeInfo = plainLabel(networkBox);
+    m_routeInfo->setObjectName(QStringLiteral("p2pRouteInfo"));
+    networkForm->addRow(tr("招待の経路"), m_routeInfo);
     layout->addWidget(networkBox);
 
     auto* conditionBox = new QGroupBox(tr("名乗る名前と条件"), tab);
@@ -170,36 +167,9 @@ QWidget* P2pWindow::createPlayTab()
     m_side->addItem(tr("後手希望"), 2);
     conditionForm->addRow(tr("先後"), m_side);
     layout->addWidget(conditionBox);
-
-    auto* offersBox = new QGroupBox(tr("募集一覧"), tab);
-    auto* offersLayout = new QVBoxLayout(offersBox);
-    offersLayout->addWidget(plainLabel(offersBox, tr("表示名は自己申告です。募集を出すと、あなたのIPアドレスが不特定の相手に見えます。"
-                                                     "募集一覧は全員を表すものではありません。")));
-    m_offers = new QTableWidget(0, 4, offersBox);
-    m_offers->setObjectName(QStringLiteral("p2pOffers"));
-    m_offers->setHorizontalHeaderLabels({tr("表示名（自己申告）"), tr("先後"), tr("持ち時間"), tr("期限")});
-    m_offers->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_offers->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_offers->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    // 列は中身と見出しが切れない幅に合わせ、最後の列は残りの幅まで伸ばす（resizeColumnsToContents は最後の列の伸びを外す）
-    m_offers->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    m_offers->horizontalHeader()->setStretchLastSection(true);
-    m_offers->setMinimumHeight(140);
-    m_offers->verticalHeader()->setVisible(false);
-    offersLayout->addWidget(m_offers);
-    auto* offerButtons = new QHBoxLayout;
-    m_refreshOffers = new QPushButton(tr("一覧を更新"), offersBox);
-    m_apply = new QPushButton(tr("申し込む"), offersBox);
-    m_publish = new QPushButton(offersBox);
-    connect(m_refreshOffers, &QPushButton::clicked, this, &P2pWindow::onRefreshOffers);
-    connect(m_apply, &QPushButton::clicked, this, &P2pWindow::onApplyClicked);
-    connect(m_publish, &QPushButton::clicked, this, &P2pWindow::onPublishClicked);
-    offerButtons->addWidget(m_refreshOffers);
-    offerButtons->addStretch();
-    offerButtons->addWidget(m_publish);
-    offerButtons->addWidget(m_apply);
-    offersLayout->addLayout(offerButtons);
-    layout->addWidget(offersBox, 1);
+    layout->addWidget(plainLabel(tab, tr("対局の相手は招待で決めます。「招待で接続」タブで招待文字列を作って相手に渡すか、"
+                                         "受け取った招待文字列で接続してください。")));
+    layout->addStretch();
     return tab;
 }
 
@@ -210,9 +180,10 @@ QWidget* P2pWindow::createInviteTab()
 
     auto* createBox = new QGroupBox(tr("相手を招待する"), tab);
     auto* createLayout = new QVBoxLayout(createBox);
-    createLayout->addWidget(plainLabel(createBox, tr("招待文字列には、あなたの接続先（IPアドレス）が入ります。相手だけに届く経路で渡し、"
-                                                     "公開の場所に貼らないでください。招待文字列は10分で使えなくなり、1回だけ使えます。"
-                                                     "持ち時間と先後は「対戦相手を探す」の条件を使います。")));
+    createLayout->addWidget(plainLabel(createBox, tr("招待文字列には、あなたへの接続先が入ります（「直接接続を使わない」設定でなければ、"
+                                                     "あなたのIPアドレスも入ります）。相手だけに届く経路で渡し、公開の場所に貼らないでください。"
+                                                     "招待文字列は10分で使えなくなり、1回だけ使えます。"
+                                                     "持ち時間と先後は「接続と条件」の条件を使います。")));
     m_createInvite = new QPushButton(tr("招待文字列を作る"), createBox);
     connect(m_createInvite, &QPushButton::clicked, this, &P2pWindow::onCreateInvite);
     createLayout->addWidget(m_createInvite);
@@ -292,7 +263,9 @@ QWidget* P2pWindow::createSettingsTab()
     m_bootstrap->setPlaceholderText(tr("協力ノードのアドレス（/ip4/…/p2p/… の形）を1行に1つ"));
     m_bootstrap->setMaximumHeight(100);
     form->addRow(tr("接続候補"), m_bootstrap);
-    m_relayOnly = new QCheckBox(tr("直接接続を使わない（中継だけを使い、相手からIPアドレスを隠す。中継の運営者には見えます）"), tab);
+    m_relayOnly = new QCheckBox(tr("直接接続を使わない（接続候補の協力ノードの中継だけを使い、相手からIPアドレスを隠す。"
+                                   "協力ノードの運営者には見えます）"),
+                                tab);
     form->addRow(QString(), m_relayOnly);
     m_hideUnknown = new QCheckBox(tr("対局したことのない相手の表示名を出さない"), tab);
     form->addRow(QString(), m_hideUnknown);
@@ -404,7 +377,6 @@ void P2pWindow::refresh()
     case P2pLobbyService::Status::Starting: statusText = tr("接続しています…"); break;
     case P2pLobbyService::Status::Online:
         statusText = tr("接続中（つながっているピア: %1）").arg(m_lobby->connectedPeers());
-        if (m_lobby->clockSkewSuspected()) statusText += tr("。PCの時計がずれている可能性があります。時計を確かめてください。");
         break;
     case P2pLobbyService::Status::Failed: statusText = tr("P2P対局を使えません"); break;
     }
@@ -416,19 +388,8 @@ void P2pWindow::refresh()
     P2pIdentityStore* identity = m_lobby->identity();
     const QByteArray key = identity ? identity->publicKey() : QByteArray();
     m_playerId->setText(key.isEmpty() ? tr("（まだ作っていません）") : P2pWindowText::playerIdText(key));
-    QStringList info;
-    if (m_lobby->isLocalProfile() && online) {
-        info << tr("同じPCで試す相手は、設定の「接続候補」に次のアドレスを入れてください:");
-        info << m_lobby->listenAddresses();
-    } else if (online) {
-        info << tr("到達性: %1").arg(m_lobby->reachability());
-    }
-    m_networkInfo->setText(info.join(QLatin1Char('\n')));
+    m_routeInfo->setText(online ? routeText() : QString());
 
-    m_publish->setText(m_lobby->hasOffer() ? tr("募集を取り下げる") : tr("募集を出す"));
-    m_publish->setEnabled(online && !busy);
-    m_apply->setEnabled(online && !busy);
-    m_refreshOffers->setEnabled(online);
     m_createInvite->setEnabled(online && !busy);
     m_inspectInvite->setEnabled(online && !busy);
     if (!online || busy) m_connectInvite->setEnabled(false);
@@ -454,6 +415,24 @@ void P2pWindow::refresh()
     m_buildInfo->setText(tr("このビルドの使用期限: %1（期限後は限定試験用のネットワークに参加しません）")
                              .arg(dateText(static_cast<quint64>(P2pLobbyService::buildExpiresAt()))));
     updateGameStatus();
+}
+
+QString P2pWindow::routeText() const
+{
+    // 招待した相手が、どの経路でここへつなげるか（自分や相手のアドレスは出さない）
+    const bool relay = m_lobby->relayReservations() > 0;
+    if (m_lobby->relayOnly()) {
+        return relay ? tr("協力ノードの中継だけを通ります（直接接続を使わない設定）。")
+                     : tr("中継を使えません。「直接接続を使わない」には、中継のできる協力ノードを「設定」の「接続候補」に入れてください。");
+    }
+    if (m_lobby->isLocalProfile()) {
+        return relay ? tr("同じPC・同じLANの相手と直接つなぎます（協力ノードの中継も使えます）。")
+                     : tr("同じPC・同じLANの相手と直接つなぎます。");
+    }
+    const bool direct = m_lobby->reachability() == QLatin1String("public");
+    if (direct) return relay ? tr("直接つなぎます（協力ノードの中継も使えます）。") : tr("直接つなぎます。");
+    if (relay) return tr("協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。");
+    return tr("外から届く接続先がまだありません。協力ノードを「設定」の「接続候補」に入れてください。");
 }
 
 void P2pWindow::reloadRecords()
@@ -517,56 +496,6 @@ void P2pWindow::onConnectClicked()
     }
 }
 
-void P2pWindow::onPublishClicked()
-{
-    if (!m_lobby) return;
-    if (m_lobby->hasOffer()) {
-        m_lobby->withdrawOffer();
-        return;
-    }
-    if (!checkDisplayName() || !terms().isValid()) return;
-    saveSettings();
-    m_lobby->publishOffer(displayName(), terms(), sidePreference());
-}
-
-void P2pWindow::onApplyClicked()
-{
-    if (!m_lobby || !checkDisplayName()) return;
-    const int row = m_offers->currentRow();
-    if (row < 0) return;
-    const QByteArray offerId = m_offers->item(row, 0)->data(Qt::UserRole).toByteArray();
-    saveSettings();
-    if (!m_lobby->applyToOffer(offerId, displayName(), sidePreference())) {
-        DialogUtils::warning(this, tr("申し込む"), tr("この募集には申し込めません。先後の希望が合わないか、募集が無くなりました。"));
-    }
-}
-
-void P2pWindow::onRefreshOffers()
-{
-    if (m_lobby) m_lobby->refreshOffers();
-}
-
-void P2pWindow::onOffersChanged()
-{
-    if (!m_lobby) return;
-    m_offers->setRowCount(0);
-    const QList<P2pLobbyService::Offer> offers = m_lobby->offers();
-    for (const P2pLobbyService::Offer& offer : offers) {
-        const int row = m_offers->rowCount();
-        m_offers->insertRow(row);
-        // 募集にはプレイヤーID が無いので、既知の相手かは分からない。名前を出さない設定ではすべて伏せる
-        auto* name = new QTableWidgetItem(hideUnknownNames() ? tr("名前は非表示") : offer.displayName);
-        name->setData(Qt::UserRole, offer.offerId);
-        name->setToolTip(plainToolTip(QStringList{offer.displayName, offer.peerId}));
-        m_offers->setItem(row, 0, name);
-        m_offers->setItem(row, 1, new QTableWidgetItem(P2pWindowText::sideText(offer.side)));
-        m_offers->setItem(row, 2, new QTableWidgetItem(P2pWindowText::timeControlText(offer.terms)));
-        // 募集は2分で切れるので、期限は時刻だけで足りる
-        m_offers->setItem(row, 3, new QTableWidgetItem(QDateTime::fromSecsSinceEpoch(static_cast<qint64>(offer.expiresAt))
-                                                           .toString(QStringLiteral("HH:mm:ss"))));
-    }
-}
-
 void P2pWindow::onCreateInvite()
 {
     if (!m_lobby || !checkDisplayName() || !terms().isValid()) return;
@@ -577,7 +506,10 @@ void P2pWindow::onCreateInvite()
 void P2pWindow::onInviteCreated(const QString& invite, quint64 expiresAt, int addressCount)
 {
     m_inviteOut->setPlainText(invite);
-    m_inviteOutInfo->setText(tr("期限: %1（到達候補 %2 件）").arg(dateText(expiresAt)).arg(addressCount));
+    // 接続先の入っていない招待文字列では、相手はつなげない
+    m_inviteOutInfo->setText(addressCount > 0 ? tr("期限: %1（到達候補 %2 件）").arg(dateText(expiresAt)).arg(addressCount)
+                                              : tr("この招待文字列には接続先が入っていないので、相手は接続できません。"
+                                                   "「接続と条件」の「招待の経路」を確かめてください。"));
 }
 
 void P2pWindow::onCopyInvite()
@@ -630,18 +562,20 @@ void P2pWindow::onRequestFailed(const QString& method, const QString& code)
         else if (code == QLatin1String("invite_own")) text = tr("自分が作った招待文字列です。");
         else text = tr("招待文字列を読めません。");
         m_inviteInInfo->setText(text);
-        return;
-    }
-    if (method == QLatin1String("publishOffer")) {
-        DialogUtils::warning(this, tr("募集を出す"), tr("募集を出せませんでした（%1）。").arg(code));
     }
 }
 
 void P2pWindow::onConnectFailed(const QString& reason)
 {
-    DialogUtils::warning(this, tr("接続"),
-                         reason == QLatin1String("timeout") ? tr("相手に接続できませんでした（時間切れ）。")
-                                                            : tr("相手に接続できませんでした。"));
+    QString text = tr("相手に接続できませんでした。");
+    if (reason == QLatin1String("timeout")) {
+        text = tr("相手に接続できませんでした（時間切れ）。");
+    } else if (reason == QLatin1String("no_relay_route")) {
+        text = tr("この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。「直接接続を使わない」設定では、"
+                  "相手と同じ協力ノードを「設定」の「接続候補」に入れる必要があります。");
+    }
+    m_inviteInInfo->clear();
+    DialogUtils::warning(this, tr("接続"), text);
 }
 
 void P2pWindow::onCopyPlayerId()

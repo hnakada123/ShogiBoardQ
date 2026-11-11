@@ -193,8 +193,9 @@ private slots:
         QVERIFY(host.activity.is(AppActivityState::Activity::Idle));
     }
 
-    /// 公開募集: 協力ノード（--service）経由で募集が相手の一覧に載り、申し込んで対局し、合意の引き分けで終える
-    void offerGameThroughServiceNode()
+    /// 「直接接続を使わない」: 協力ノード（--service --relay）の中継だけを通って、招待から対局し、合意の引き分けで終える。
+    /// 招待された側は相手の直接のアドレスへつながない（通信プロセスの試験 relay_only_* が宛先の規則を確かめる）
+    void relayOnlyGameThroughServiceNode()
     {
         // 協力ノードを固定のポートで起動し、標準エラーの最初の行から PeerId を読む
         QTcpServer probe;
@@ -207,7 +208,7 @@ private slots:
         service.start(QStringLiteral(PEER_EXECUTABLE),
                       {QStringLiteral("--service"), QStringLiteral("--network"), QStringLiteral("sbq-local-1"),
                        QStringLiteral("--identity"), m_dir.filePath(QStringLiteral("service.key")), QStringLiteral("--listen"),
-                       listen, QStringLiteral("--dht-server"), QStringLiteral("--relay")});
+                       listen, QStringLiteral("--relay")});
         service.setReadChannel(QProcess::StandardError);
         QVERIFY(service.waitForStarted(5000));
         QTRY_VERIFY_WITH_TIMEOUT((service.waitForReadyRead(100), service.canReadLine()), 10000);
@@ -215,28 +216,29 @@ private slots:
         QVERIFY2(line.contains(QStringLiteral("service started")), qPrintable(line));
         const QString bootstrap = listen + QStringLiteral("/p2p/") + line.section(QLatin1Char(' '), -1);
 
-        App host(m_dir.filePath(QStringLiteral("offer-host")));
-        App guest(m_dir.filePath(QStringLiteral("offer-guest")));
+        App host(m_dir.filePath(QStringLiteral("relay-host")));
+        App guest(m_dir.filePath(QStringLiteral("relay-guest")));
         QVERIFY(createIdentity(host));
         QVERIFY(createIdentity(guest));
+        // 招待する側は直接接続も使う設定、招待される側は「直接接続を使わない」
         QCOMPARE(host.lobby.begin(QStringLiteral("sbq-local-1"), {bootstrap}, false), P2pLobbyService::StartFailure::None);
-        QCOMPARE(guest.lobby.begin(QStringLiteral("sbq-local-1"), {bootstrap}, false), P2pLobbyService::StartFailure::None);
+        QCOMPARE(guest.lobby.begin(QStringLiteral("sbq-local-1"), {bootstrap}, true), P2pLobbyService::StartFailure::None);
         QTRY_COMPARE_WITH_TIMEOUT(host.lobby.status(), P2pLobbyService::Status::Online, 15000);
         QTRY_COMPARE_WITH_TIMEOUT(guest.lobby.status(), P2pLobbyService::Status::Online, 15000);
+        QVERIFY(guest.lobby.relayOnly());
+        // 中継の予約は、直接つなげる側も取る（直接接続を使わない相手が、中継経由でつなげるように）
+        QTRY_VERIFY_WITH_TIMEOUT(host.lobby.relayReservations() >= 1 && guest.lobby.relayReservations() >= 1, 20000);
 
-        host.lobby.publishOffer(QStringLiteral("募集する人"), TimeControlTerms{300'000, 30'000}, SidePreference::None);
-        QTRY_VERIFY_WITH_TIMEOUT(host.lobby.hasOffer(), 10000);
-        // 一覧は GossipSub か一覧取得で届く
-        for (int i = 0; i < 60 && guest.lobby.offers().isEmpty(); ++i) {
-            guest.lobby.refreshOffers();
-            QTest::qWait(500);
-        }
-        QCOMPARE(guest.lobby.offers().size(), 1);
-        const P2pLobbyService::Offer offer = guest.lobby.offers().first();
-        QCOMPARE(offer.displayName, QStringLiteral("募集する人"));
-        QCOMPARE(offer.terms, (TimeControlTerms{300'000, 30'000}));
+        QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
+        host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{300'000, 30'000}, SidePreference::None);
+        QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 10000);
+        const int hostAddresses = created.first().at(2).toInt();
+        QVERIFY(hostAddresses >= 2);   // 直接のアドレスと、中継経由のアドレス
+        QSignalSpy inspected(&guest.lobby, &P2pLobbyService::inviteInspected);
+        guest.lobby.inspectInvite(created.first().at(0).toString());
+        QTRY_COMPARE_WITH_TIMEOUT(inspected.count(), 1, 10000);
+        guest.lobby.connectInvite(created.first().at(0).toString(), false, QStringLiteral("招待された側"));
 
-        QVERIFY(guest.lobby.applyToOffer(offer.offerId, QStringLiteral("申し込む人"), SidePreference::None));
         QTRY_VERIFY_WITH_TIMEOUT(host.game.negotiation()
                                      && host.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
@@ -245,8 +247,9 @@ private slots:
         host.game.confirmStart();
         guest.game.confirmStart();
         QTRY_VERIFY_WITH_TIMEOUT(host.game.isInProgress() && guest.game.isInProgress(), 20000);
-        // 申込側の開始署名を確かめた時点で、募集を取り下げる
-        QTRY_VERIFY_WITH_TIMEOUT(!host.lobby.hasOffer(), 5000);
+        // どちらから見ても、経路は中継
+        QVERIFY(host.game.viaRelay());
+        QVERIFY(guest.game.viaRelay());
 
         App& black = host.game.match()->iAmBlack() ? host : guest;
         App& white = host.game.match()->iAmBlack() ? guest : host;
@@ -261,6 +264,9 @@ private slots:
                                      && white.game.match()->ending() == MatchEnding::MutuallySigned, 30000);
         QCOMPARE(black.game.match()->agreedResult()->cause, Cause::AgreedDraw);
         QCOMPARE(black.sink.entries.last().terminal, TerminalType::Draw);
+        // 対局が終わっても、直接の経路には切り替わっていない
+        QVERIFY(host.game.viaRelay());
+        QVERIFY(guest.game.viaRelay());
 
         host.lobby.end();
         guest.lobby.end();

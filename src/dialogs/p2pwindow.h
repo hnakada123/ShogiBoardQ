@@ -2,7 +2,7 @@
 #define P2PWINDOW_H
 
 /// @file p2pwindow.h
-/// @brief P2P対局のウィンドウ（対戦相手を探す・招待・対局中・記録・相手・設定。実装仕様 11章）
+/// @brief P2P対局のウィンドウ（接続と条件・招待・対局中・記録・相手・設定。実装仕様 11章）
 
 #include <QDialog>
 #include <QPointer>
@@ -20,12 +20,12 @@ class QPlainTextEdit;
 class QPushButton;
 class QSpinBox;
 class QTabWidget;
-class QTableWidget;
 
 /**
  * @brief P2P対局のウィンドウ（モードレス）
  *
- * 通常の画面では DHT や鍵の用語を主な操作に使わず、「対戦相手を探す」「招待で接続」のような行動の分かる語にする。
+ * 通常の画面では鍵の用語を主な操作に使わず、「招待で接続」のような行動の分かる語にする。対局の相手は招待で決める
+ * （不特定の相手との公開募集は持たない）。自分や相手のアドレス（IP）は出さない。
  * 相手や通信プロセスから来た文字列（表示名・PeerId）は PlainText で出す。接続と切断はプレイヤー鍵の準備が要るので、
  * 意図のシグナルで知らせる（受けるのは P2pGameUiController）。
  */
@@ -55,17 +55,13 @@ signals:
     void recreateIdentityRequested();
 
 public slots:
-    /// 接続・募集・対局の状態を出し直す（通信プロセスの知らせのたびに呼ばれるので、記録の表は作り直さない）
+    /// 接続・招待・対局の状態を出し直す（通信プロセスの知らせのたびに呼ばれるので、記録の表は作り直さない）
     void refresh();
     /// 対局記録と相手の表を作り直す（記録は証跡を読んで検証するので、対局が終わったとき・タブを開いたときだけ）
     void reloadRecords();
 
 private slots:
     void onConnectClicked();
-    void onPublishClicked();
-    void onApplyClicked();
-    void onRefreshOffers();
-    void onOffersChanged();
     void onCreateInvite();
     void onInviteCreated(const QString& invite, quint64 expiresAt, int addressCount);
     void onCopyInvite();
@@ -84,7 +80,9 @@ private slots:
     void onTabChanged(int index);
 
 private:
-    QWidget* createPlayTab();
+    QWidget* createConnectionTab();
+    /// 招待がどの経路で届くか（接続中の表示）
+    QString routeText() const;
     QWidget* createInviteTab();
     QWidget* createGameTab();
     QWidget* createSettingsTab();
@@ -96,20 +94,16 @@ private:
     QTabWidget* m_tabs = nullptr;
     QWidget* m_gameTab = nullptr;
 
-    // 対戦相手を探す
+    // 接続と条件
     QLabel* m_status = nullptr;
     QComboBox* m_network = nullptr;
     QPushButton* m_connect = nullptr;
     QLabel* m_playerId = nullptr;
-    QLabel* m_networkInfo = nullptr;
+    QLabel* m_routeInfo = nullptr;
     QLineEdit* m_displayName = nullptr;
     QSpinBox* m_mainMinutes = nullptr;
     QSpinBox* m_byoyomi = nullptr;
     QComboBox* m_side = nullptr;
-    QTableWidget* m_offers = nullptr;
-    QPushButton* m_publish = nullptr;
-    QPushButton* m_apply = nullptr;
-    QPushButton* m_refreshOffers = nullptr;
 
     // 招待
     QPushButton* m_createInvite = nullptr;

@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
 
-use sbq_protocol::{cbor, displayname, frame, hash, network};
+use sbq_protocol::{cbor, frame, hash, network};
 
 fn read_vectors(name: &str) -> Vec<(String, String)> {
     let path = format!("{}/../testvectors/{}", env!("CARGO_MANIFEST_DIR"), name);
@@ -51,21 +51,6 @@ fn frame_vectors() {
 }
 
 #[test]
-fn display_name_vectors() {
-    let vectors = read_vectors("displayname.txt");
-    assert!(vectors.len() > 50);
-    for (kind, hex) in vectors {
-        let bytes = hash::from_hex(&hex).expect("hex");
-        let accepted = displayname::is_valid_bytes(&bytes);
-        match kind.as_str() {
-            "accept" => assert!(accepted, "{hex} should be accepted"),
-            "reject" => assert!(!accepted, "{hex} should be rejected"),
-            other => panic!("unknown kind {other}"),
-        }
-    }
-}
-
-#[test]
 fn network_vectors() {
     let path = format!("{}/../testvectors/network.txt", env!("CARGO_MANIFEST_DIR"));
     let text = std::fs::read_to_string(path).unwrap();
@@ -76,15 +61,12 @@ fn network_vectors() {
         .filter(|l| !l.is_empty() && !l.starts_with('#'))
     {
         let fields: Vec<&str> = line.split(' ').collect();
-        assert_eq!(fields.len(), 5, "{line}");
+        // 3つ目の rulesHash は対局・UI側（C++）だけが確かめる
+        assert_eq!(fields.len(), 3, "{line}");
         let name = fields[0];
         assert!(network::find(name).is_some(), "{name} is not in the allowed list");
         let nid = network::network_id(name);
         assert_eq!(hash::hex(&nid), fields[1]);
-        let rules = network::rules_hash_v1();
-        assert_eq!(hash::hex(&rules), fields[2]);
-        assert_eq!(hash::hex(&network::lobby_key(&nid, &rules)), fields[3]);
-        assert_eq!(network::topic(&nid, &rules), fields[4]);
         count += 1;
     }
     assert_eq!(count, network::NETWORKS.len());

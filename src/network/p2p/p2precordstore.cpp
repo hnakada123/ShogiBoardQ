@@ -28,7 +28,6 @@ constexpr QFileDevice::Permissions kOwnerDir = QFileDevice::ReadOwner | QFileDev
 constexpr int kChecksumBytes = 4;
 /// 履歴の情報のファイルの上限
 constexpr qint64 kMaxInfoBytes = 4096;
-constexpr int kMaxKnownPeerAddresses = 64;
 
 QByteArray checksumOf(const QByteArray& payload)
 {
@@ -185,6 +184,8 @@ bool P2pRecordStore::lock()
         m_lock.reset();
         return false;
     }
+    // 以前の版が残した既知ピアのキャッシュ（ほかの参加者の IP アドレスが入る）は、もう使わないので消す
+    QFile::remove(QDir(m_root).filePath(QStringLiteral("peers.cache")));
     return true;
 }
 
@@ -332,32 +333,4 @@ qint64 P2pRecordStore::totalBytes() const
         total += it.fileInfo().size();
     }
     return total;
-}
-
-QStringList P2pRecordStore::knownPeerAddresses() const
-{
-    QFile file(QDir(m_root).filePath(QStringLiteral("peers.cache")));
-    if (!file.open(QIODevice::ReadOnly)) return {};
-    const std::optional<CborValue> value = P2p::Cbor::decode(file.read(64 * 1024));
-    if (!value || !value->isArray()) return {};
-    QStringList addresses;
-    for (const CborValue& item : value->items()) {
-        if (item.isText() && item.data().size() <= 256 && addresses.size() < kMaxKnownPeerAddresses) {
-            addresses << item.toText();
-        }
-    }
-    return addresses;
-}
-
-void P2pRecordStore::saveKnownPeerAddresses(const QStringList& addresses)
-{
-    if (!ensureDirectory(m_root)) return;
-    std::vector<CborValue> items;
-    for (const QString& address : addresses) {
-        const QByteArray ascii = address.toLatin1();
-        if (address.size() <= 256 && P2p::Cbor::isValidUtf8(ascii) && static_cast<int>(items.size()) < kMaxKnownPeerAddresses) {
-            items.push_back(CborValue::text(ascii));
-        }
-    }
-    writeAtomically(QDir(m_root).filePath(QStringLiteral("peers.cache")), P2p::Cbor::encode(CborValue::array(std::move(items))));
 }

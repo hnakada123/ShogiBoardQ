@@ -221,10 +221,6 @@ std::optional<NetworkInfo> findNetwork(const QString& name);
 
 /// networkId = H(CBOR(["SBQ-NETWORK", 1, networkName]))
 QByteArray networkId(const QByteArray& networkName);
-/// lobbyKey = H(CBOR(["SBQ-LOBBY", 1, networkId, rulesHash]))
-QByteArray lobbyKey(const QByteArray& networkId, const QByteArray& rulesHash);
-/// GossipSub の topic
-QString lobbyTopic(const QByteArray& networkId, const QByteArray& rulesHash);
 
 /// 先後の決定の commit = H(CBOR(["SBQ-COMMIT", 1, nonceA]))
 QByteArray coinCommit(const QByteArray& nonceA);

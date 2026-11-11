@@ -99,7 +99,7 @@ impl Peer {
         let id = self.next_id.to_string();
         self.next_id += 1;
         let msg = json!({
-            "protocolVersion": 1,
+            "protocolVersion": 2,
             "processGeneration": self.generation,
             "requestId": id,
             "method": method,
@@ -113,7 +113,7 @@ impl Peer {
                 .rx
                 .recv_timeout(remaining)
                 .unwrap_or_else(|_| panic!("no response to {method}"));
-            assert_eq!(v["protocolVersion"], 1);
+            assert_eq!(v["protocolVersion"], 2);
             assert_eq!(v["processGeneration"], self.generation.as_str());
             if v.get("requestId").and_then(Value::as_str) == Some(id.as_str()) {
                 return v;
@@ -154,21 +154,30 @@ impl Peer {
     }
 
     fn start(&mut self, bootstrap: Vec<String>) {
+        self.start_with(bootstrap, false);
+    }
+
+    /// relay_only: 「直接接続を使わない」
+    fn start_with(&mut self, bootstrap: Vec<String>, relay_only: bool) {
         let hello = self.ok("hello", json!({ "uiVersion": "test" }));
-        assert_eq!(hello["ipcVersion"], 1);
+        assert_eq!(hello["ipcVersion"], 2);
         assert_eq!(hello["sandbox"]["applied"], true, "{hello}");
-        let rules = hex(&network::rules_hash_v1());
+        let wait_node = !bootstrap.is_empty();
         let start = self.ok(
             "start",
-            json!({ "networkName": "sbq-local-1", "rulesHash": rules, "bootstrap": bootstrap, "knownPeers": [], "relayOnly": false }),
+            json!({ "networkName": "sbq-local-1", "bootstrap": bootstrap, "relayOnly": relay_only }),
         );
         assert_eq!(start["profile"], "local");
         assert_eq!(start["networkId"], hex(&network::network_id("sbq-local-1")));
         let bytes = B64.decode(start["peerIdBytes"].as_str().unwrap()).unwrap();
         assert!(sbq_protocol::peerid::is_ed25519(&bytes));
         self.peer_id = start["peerId"].as_str().unwrap().to_owned();
-        self.wait_status(|p| p["listenAddrs"].as_array().is_some_and(|a| !a.is_empty()))
-            .expect("listening");
+        // 待受を始めた（協力ノードを指定したときは、つながった）
+        self.wait_status(|p| p["state"] == "online").expect("online");
+        if wait_node {
+            self.wait_status(|p| p["connectedPeers"].as_u64().unwrap_or(0) >= 1)
+                .expect("connected to the node");
+        }
     }
 
     /// networkStatus は変わったときにだけ届くので、最後に見た値から確かめる
@@ -375,14 +384,14 @@ fn ipc_violations_end_the_process() {
     let mut p = Peer::spawn();
     p.ok("hello", json!({ "uiVersion": "test" }));
     p.send_raw(
-        &json!({ "protocolVersion": 1, "processGeneration": "7", "requestId": "2", "method": "evil", "params": {} }),
+        &json!({ "protocolVersion": 2, "processGeneration": "7", "requestId": "2", "method": "evil", "params": {} }),
     );
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 世代の違う要求
     let mut p = Peer::spawn();
     p.ok("hello", json!({ "uiVersion": "test" }));
-    p.send_raw(&json!({ "protocolVersion": 1, "processGeneration": "8", "requestId": "2", "method": "listOffers", "params": {} }));
+    p.send_raw(&json!({ "protocolVersion": 2, "processGeneration": "8", "requestId": "2", "method": "createInvite", "params": {} }));
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 上限を超える長さ
@@ -394,7 +403,7 @@ fn ipc_violations_end_the_process() {
 
     // 最初の要求が hello でない
     let mut p = Peer::spawn();
-    p.send_raw(&json!({ "protocolVersion": 1, "processGeneration": "7", "requestId": "1", "method": "listOffers", "params": {} }));
+    p.send_raw(&json!({ "protocolVersion": 2, "processGeneration": "7", "requestId": "1", "method": "createInvite", "params": {} }));
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 知らない引数はエラーの応答（終了しない）、start の前の要求は invalid_state
@@ -406,12 +415,12 @@ fn ipc_violations_end_the_process() {
     );
     let r = p.call(
         "start",
-        json!({ "networkName": "sbq-local-1", "rulesHash": "00", "bootstrap": [], "knownPeers": [], "relayOnly": false, "x": 1 }),
+        json!({ "networkName": "sbq-local-1", "bootstrap": [], "relayOnly": false, "x": 1 }),
     );
     assert_eq!(r["error"]["code"], "invalid_request");
     let r = p.call(
         "start",
-        json!({ "networkName": "public-1", "rulesHash": hex(&[0u8; 32]), "bootstrap": [], "knownPeers": [], "relayOnly": false }),
+        json!({ "networkName": "public-1", "bootstrap": [], "relayOnly": false }),
     );
     assert_eq!(r["error"]["code"], "network_not_allowed");
 
@@ -471,7 +480,7 @@ fn spawn_service() -> Service {
     let mut child = Command::new(BIN)
         .args(["--service", "--network", "sbq-local-1", "--identity"])
         .arg(&identity)
-        .args(["--listen", &listen, "--dht-server", "--relay"])
+        .args(["--listen", &listen, "--relay"])
         .env_clear()
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -500,83 +509,103 @@ fn spawn_service() -> Service {
     }
 }
 
+/// 招待の到達候補を、中継経由かどうかに分けて数える
+fn invite_routes(text: &str) -> (usize, usize) {
+    let invite = Invite::decode(text).unwrap();
+    let mut direct = 0;
+    let mut relayed = 0;
+    for bytes in &invite.addrs {
+        let addr = libp2p::Multiaddr::try_from(bytes.clone()).unwrap();
+        if addr.to_string().contains("/p2p-circuit") {
+            relayed += 1;
+        } else {
+            direct += 1;
+        }
+    }
+    (direct, relayed)
+}
+
+/// 「直接接続を使わない」: 相手の直接のアドレスへはつながず、指定した協力ノードの中継だけを通る。
+/// 自分の招待には中継経由のアドレスだけを入れる
 #[test]
-fn offers_through_service_node() {
+fn relay_only_uses_only_the_node_relay() {
     let service = spawn_service();
     let mut a = Peer::spawn();
     let mut b = Peer::spawn();
     a.start(vec![service.addr.clone()]);
-    b.start(vec![service.addr.clone()]);
-    a.wait_status(|p| p["connectedPeers"].as_u64().unwrap_or(0) >= 1)
-        .expect("A connected");
-    b.wait_status(|p| p["connectedPeers"].as_u64().unwrap_or(0) >= 1)
-        .expect("B connected");
+    b.start_with(vec![service.addr.clone()], true);
+    // 中継の予約は、直接つなげる側も取る（直接接続を使わない相手がつなげるように）
+    a.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("A reserved the relay");
+    b.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("B reserved the relay");
 
-    // 規則に合わない募集は出せない
-    let bad = a.call(
-        "publishOffer",
-        json!({ "displayName": " x", "mainMs": "600000", "byoyomiMs": "30000", "sidePreference": "none" }),
-    );
-    assert_eq!(bad["error"]["code"], "invalid_request");
+    // A の招待には直接と中継経由の両方が入る。B が使えるのは中継経由だけ
+    let invite = a.ok("createInvite", json!({}))["invite"].as_str().unwrap().to_owned();
+    let (direct, relayed) = invite_routes(&invite);
+    assert!(direct >= 1 && relayed >= 1, "direct={direct} relayed={relayed}");
+    let inspected = b.ok("inspectInvite", json!({ "invite": invite }));
+    assert_eq!(inspected["addressCount"].as_u64().unwrap(), (direct + relayed) as u64);
+    assert_eq!(inspected["usableAddressCount"].as_u64().unwrap(), relayed as u64);
 
-    let offer = a.ok(
-        "publishOffer",
-        json!({ "displayName": "将棋太郎", "mainMs": "600000", "byoyomiMs": "30000", "sidePreference": "black" }),
-    );
-    let offer_id = offer["offerId"].as_str().unwrap().to_owned();
-
-    let mut found = None;
-    let deadline = Instant::now() + Duration::from_secs(40);
-    while found.is_none() && Instant::now() < deadline {
-        found = b.wait(
-            "offersChanged",
-            |p| {
-                p["added"]
-                    .as_array()
-                    .is_some_and(|a| a.iter().any(|o| o["offerId"] == offer_id.as_str()))
-            },
-            Duration::from_secs(3),
-        );
-        if found.is_none() {
-            b.ok("listOffers", json!({}));
-        }
-    }
-    let changed = found.expect("B did not see A's offer");
-    let item = changed["added"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|o| o["offerId"] == offer_id.as_str())
-        .unwrap()
-        .clone();
-    assert_eq!(item["displayName"], "将棋太郎");
-    assert_eq!(item["sidePreference"], "black");
-    assert_eq!(item["peerId"], a.peer_id.as_str());
-    assert_eq!(item["mainMs"], "600000");
-
-    // 募集へ申し込む（最初のフレームが届いてから募集側へ知らせる）
-    let conn_b = b.ok("connectOffer", json!({ "offerId": offer_id }))["connection"]
+    // つなぐと、どちらから見ても経路は中継（直接の接続は作られない）
+    let conn_b = b.ok("connectInvite", json!({ "invite": invite, "allowPrivate": false }))["connection"]
         .as_str()
         .unwrap()
         .to_owned();
-    b.wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+    let opened_b = b
+        .wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
         .expect("B opened");
-    b.ok("sendFrame", json!({ "connection": conn_b, "frame": hello_frame(1) }));
-    let opened = a
-        .wait("connectionOpened", |p| p["origin"] == "offer", TIMEOUT)
-        .expect("A got the applicant");
-    assert_eq!(opened["peerId"], b.peer_id.as_str());
+    assert_eq!(opened_b["route"], "relay");
+    let opened_a = a.wait("connectionOpened", |_| true, TIMEOUT).expect("A opened");
+    assert_eq!(opened_a["route"], "relay");
+    assert_eq!(opened_a["peerId"], b.peer_id.as_str());
+    let conn_a = opened_a["connection"].as_str().unwrap().to_owned();
+    let f1 = hello_frame(1);
+    b.ok("sendFrame", json!({ "connection": conn_b, "frame": f1 }));
+    let got = a
+        .wait("frameReceived", |p| p["connection"] == conn_a.as_str(), TIMEOUT)
+        .expect("A frame");
+    assert_eq!(got["frame"], f1.as_str());
+    // しばらく待っても、直接の経路に切り替わらない
+    assert!(a
+        .wait("connectionRoute", |p| p["route"] == "direct", Duration::from_secs(5))
+        .is_none());
+    assert!(b
+        .wait("connectionRoute", |p| p["route"] == "direct", Duration::from_secs(1))
+        .is_none());
 
-    // 取り下げると相手の一覧から消える
-    a.ok("withdrawOffer", json!({}));
-    b.wait(
-        "offersChanged",
-        |p| {
-            p["removed"]
-                .as_array()
-                .is_some_and(|r| r.iter().any(|o| o == offer_id.as_str()))
-        },
-        Duration::from_secs(30),
-    )
-    .expect("withdrawal not seen");
+    // B の招待には中継経由のアドレスだけが入る（自分の直接のアドレスを出さない）
+    let invite_b = b.ok("createInvite", json!({}))["invite"].as_str().unwrap().to_owned();
+    let (direct, relayed) = invite_routes(&invite_b);
+    assert_eq!(direct, 0);
+    assert!(relayed >= 1);
+}
+
+/// 「直接接続を使わない」側は、中継を通る宛先の無い招待にはつながない（相手の直接のアドレスへ自分の IP を見せない）
+#[test]
+fn relay_only_refuses_direct_only_invites() {
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    a.start(vec![]);
+    b.start_with(vec![], true);
+    let invite = a.ok("createInvite", json!({}))["invite"].as_str().unwrap().to_owned();
+    let (direct, relayed) = invite_routes(&invite);
+    assert!(direct >= 1);
+    assert_eq!(relayed, 0);
+    let inspected = b.ok("inspectInvite", json!({ "invite": invite }));
+    assert_eq!(inspected["usableAddressCount"], 0);
+    let conn = b.ok("connectInvite", json!({ "invite": invite, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let closed = b
+        .wait("connectionClosed", |p| p["connection"] == conn.as_str(), TIMEOUT)
+        .expect("B closed");
+    assert_eq!(closed["reason"], "no_relay_route");
+    // A には何も届かない
+    assert!(a.wait("connectionOpened", |_| true, Duration::from_secs(2)).is_none());
+    // 自分の招待には到達候補が入らない（中継が無い）
+    let own = b.ok("createInvite", json!({}));
+    assert_eq!(own["addressCount"], 0);
 }

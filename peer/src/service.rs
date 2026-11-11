@@ -1,7 +1,8 @@
 //! 協力ノード（--service。protocol/ipc.md 7章）
 //!
-//! ブートストラップ・DHT の server・中継を設定で有効にする。募集の転送と一覧取得には常に応え、
-//! 対局ストリームは受け付けない。識別鍵のファイルを読んだ（なければ作った）後に権限の制限を掛ける。
+//! 利用者のアプリが最初に接続する相手になり、到達性の確認（AutoNAT）に応え、設定すれば中継（--relay）を受け持つ。
+//! 対局ストリームは受け付けず、指し手も対局者の ID も読まない。接続元の IP はログに書かない。
+//! 識別鍵のファイルを読んだ（なければ作った）後に権限の制限を掛ける。
 
 use std::io::Write;
 use std::path::Path;
@@ -21,7 +22,6 @@ struct ServiceArgs {
     listen: Vec<Multiaddr>,
     bootstrap: Vec<String>,
     relay: bool,
-    dht_server: bool,
 }
 
 fn parse_args(args: &[String]) -> Result<ServiceArgs, String> {
@@ -30,7 +30,6 @@ fn parse_args(args: &[String]) -> Result<ServiceArgs, String> {
     let mut listen = Vec::new();
     let mut bootstrap = Vec::new();
     let mut relay = false;
-    let mut dht_server = false;
     let mut it = args.iter();
     while let Some(arg) = it.next() {
         match arg.as_str() {
@@ -42,7 +41,6 @@ fn parse_args(args: &[String]) -> Result<ServiceArgs, String> {
             }
             "--bootstrap" => bootstrap.push(it.next().ok_or("--bootstrap needs a value")?.clone()),
             "--relay" => relay = true,
-            "--dht-server" => dht_server = true,
             other => return Err(format!("unknown option {other}")),
         }
     }
@@ -52,7 +50,6 @@ fn parse_args(args: &[String]) -> Result<ServiceArgs, String> {
         listen,
         bootstrap,
         relay,
-        dht_server,
     })
 }
 
@@ -126,12 +123,10 @@ pub fn run(args: &[String]) -> i32 {
         let out = Out::new(out_tx);
         let config = NodeConfig {
             spec,
-            rules_hash: network::rules_hash_v1(),
             keypair,
             relay_only: false,
             service: true,
             relay_server: args.relay,
-            dht_server: args.dht_server,
             listen: args.listen,
         };
         let mut node = match Node::create(&out, config) {
@@ -141,7 +136,7 @@ pub fn run(args: &[String]) -> i32 {
                 return 1;
             }
         };
-        node.connect_initial_peers(&args.bootstrap, &[]);
+        node.connect_nodes(&args.bootstrap);
         eprintln!("shogiboardq-peer: service started as {}", node.local_peer);
         let (_keep, requests) = mpsc::unbounded_channel();
         node.run_loop(requests).await;

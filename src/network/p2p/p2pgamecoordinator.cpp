@@ -96,11 +96,7 @@ bool P2pGameCoordinator::startNegotiation(const NegotiationRequest& request)
     config.opponentPeerId = request.opponentPeerIdBytes;
     config.myDisplayName = request.myDisplayName;
     config.mySide = request.mySide;
-    config.offerId = request.offerId.isEmpty() ? P2p::zeroHash() : request.offerId;
     config.hostTerms = request.hostTerms;
-    config.expectedTerms = request.expectedTerms;
-    config.expectedDisplayName = request.expectedDisplayName;
-    config.expectedHostSide = request.expectedHostSide;
     config.nowSeconds = []() { return static_cast<quint64>(QDateTime::currentSecsSinceEpoch()); };
     P2pKnownPeers* known = m_knownPeers;
     // ブロックは申込みで名乗ったプレイヤーID で判定してよい（名乗った側が断られるだけ。実装仕様 3.3節）
@@ -128,7 +124,6 @@ void P2pGameCoordinator::flushNegotiation()
     if (!m_negotiation) return;
     sendFrames(m_negotiation->takeOutgoing());
     if (m_negotiation->opponent()) m_opponentDisplayName = m_negotiation->opponent()->displayName;
-    if (m_negotiation->applicantSigned() && m_role == P2p::kRoleHost) emit applicantVerified(m_opponentPeerId);
     switch (m_negotiation->stage()) {
     case P2p::Negotiation::Stage::Started:
         endNegotiation(true);
@@ -170,10 +165,6 @@ void P2pGameCoordinator::endNegotiation(bool started)
     }
     const std::optional<P2p::ErrorCode> code = m_negotiation ? m_negotiation->failure() : std::nullopt;
     const bool byPeer = m_negotiation && m_negotiation->failedByPeer();
-    const QByteArray verified = m_negotiation && m_negotiation->opponentVerified() ? m_negotiation->opponent()->playerKey
-                                                                                  : QByteArray();
-    // 開始に至らなかった相手からの再申込みを拒否する（Noise で確かめた PeerId。開始署名で確かめた ID だけを添える）
-    emit negotiationAbandoned(m_opponentPeerId, verified);
     if (m_transport && m_connection != 0) m_transport->closeConnection(m_connection);
     m_connection = 0;
     m_phase = Phase::Idle;

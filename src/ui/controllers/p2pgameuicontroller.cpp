@@ -291,7 +291,7 @@ void P2pGameUiController::onPeerFailed(PeerProcess::Failure failure, const QStri
         text = tr("通信プロセスとのやり取りに異常があったので、通信プロセスを止めました。");
         break;
     case PeerProcess::Failure::Crashed:
-        text = tr("通信プロセスが異常終了しました。募集・交渉は取り消し、対局中なら中断（結果未確定）になります。");
+        text = tr("通信プロセスが異常終了しました。招待・交渉は取り消し、対局中なら中断（結果未確定）になります。");
         break;
     case PeerProcess::Failure::None:
         return;

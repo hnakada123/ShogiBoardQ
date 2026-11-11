@@ -15,7 +15,7 @@ use tokio::sync::mpsc;
 /// 1メッセージの上限（バイト）
 pub const MAX_MESSAGE_BYTES: usize = 128 * 1024;
 /// IPC の版
-pub const IPC_VERSION: u64 = 1;
+pub const IPC_VERSION: u64 = 2;
 
 /// 読み取りの失敗
 #[derive(Debug, PartialEq, Eq)]
@@ -95,14 +95,10 @@ pub struct Request {
 pub enum Method {
     Hello,
     Start,
-    PublishOffer,
-    WithdrawOffer,
-    ListOffers,
     CreateInvite,
     CancelInvites,
     InspectInvite,
     ConnectInvite,
-    ConnectOffer,
     SetGamePeer,
     ConnectPeer,
     SendFrame,
@@ -115,14 +111,10 @@ impl Method {
         Some(match name {
             "hello" => Method::Hello,
             "start" => Method::Start,
-            "publishOffer" => Method::PublishOffer,
-            "withdrawOffer" => Method::WithdrawOffer,
-            "listOffers" => Method::ListOffers,
             "createInvite" => Method::CreateInvite,
             "cancelInvites" => Method::CancelInvites,
             "inspectInvite" => Method::InspectInvite,
             "connectInvite" => Method::ConnectInvite,
-            "connectOffer" => Method::ConnectOffer,
             "setGamePeer" => Method::SetGamePeer,
             "connectPeer" => Method::ConnectPeer,
             "sendFrame" => Method::SendFrame,
@@ -182,19 +174,8 @@ pub struct HelloParams {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StartParams {
     pub network_name: String,
-    pub rules_hash: String,
     pub bootstrap: Vec<String>,
-    pub known_peers: Vec<String>,
     pub relay_only: bool,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct PublishOfferParams {
-    pub display_name: String,
-    pub main_ms: String,
-    pub byoyomi_ms: String,
-    pub side_preference: String,
 }
 
 #[derive(Deserialize)]
@@ -208,12 +189,6 @@ pub struct InviteParams {
 pub struct ConnectInviteParams {
     pub invite: String,
     pub allow_private: bool,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct OfferIdParams {
-    pub offer_id: String,
 }
 
 #[derive(Deserialize)]
@@ -345,7 +320,7 @@ mod tests {
     #[test]
     fn parses_valid_request() {
         let r = parse_request(
-            &req(r#"{"protocolVersion":1,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x"}}"#),
+            &req(r#"{"protocolVersion":2,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x"}}"#),
             None,
         )
         .unwrap();
@@ -357,20 +332,20 @@ mod tests {
     #[test]
     fn rejects_envelope_violations() {
         for bad in [
-            r#"{"protocolVersion":2,"processGeneration":"3","requestId":"1","method":"hello","params":{}}"#,
-            r#"{"protocolVersion":1,"processGeneration":"3","requestId":"1","method":"evil","params":{}}"#,
-            r#"{"protocolVersion":1,"processGeneration":"3","requestId":"1","method":"hello","params":{},"extra":1}"#,
-            r#"{"protocolVersion":1,"processGeneration":"03","requestId":"1","method":"hello","params":{}}"#,
-            r#"{"protocolVersion":1,"processGeneration":"3","requestId":"x","method":"hello","params":{}}"#,
-            r#"{"protocolVersion":1,"processGeneration":"3","requestId":"1","method":"hello","params":[]}"#,
-            r#"{"protocolVersion":1,"processGeneration":3,"requestId":"1","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":1,"processGeneration":"3","requestId":"1","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":2,"processGeneration":"3","requestId":"1","method":"evil","params":{}}"#,
+            r#"{"protocolVersion":2,"processGeneration":"3","requestId":"1","method":"hello","params":{},"extra":1}"#,
+            r#"{"protocolVersion":2,"processGeneration":"03","requestId":"1","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":2,"processGeneration":"3","requestId":"x","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":2,"processGeneration":"3","requestId":"1","method":"hello","params":[]}"#,
+            r#"{"protocolVersion":2,"processGeneration":3,"requestId":"1","method":"hello","params":{}}"#,
             r#"[]"#,
             r#"not json"#,
         ] {
             assert!(parse_request(&req(bad), None).is_err(), "{bad}");
         }
         assert!(parse_request(
-            &req(r#"{"protocolVersion":1,"processGeneration":"4","requestId":"1","method":"hello","params":{}}"#),
+            &req(r#"{"protocolVersion":2,"processGeneration":"4","requestId":"1","method":"hello","params":{}}"#),
             Some("3")
         )
         .is_err());
@@ -379,13 +354,13 @@ mod tests {
     #[test]
     fn rejects_unknown_params() {
         let r = parse_request(
-            &req(r#"{"protocolVersion":1,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x","x":1}}"#),
+            &req(r#"{"protocolVersion":2,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x","x":1}}"#),
             None,
         )
         .unwrap();
         assert!(params::<HelloParams>(&r).is_err());
         let r = parse_request(
-            &req(r#"{"protocolVersion":1,"processGeneration":"3","requestId":"1","method":"withdrawOffer","params":{"a":1}}"#),
+            &req(r#"{"protocolVersion":2,"processGeneration":"3","requestId":"1","method":"cancelInvites","params":{"a":1}}"#),
             None,
         )
         .unwrap();

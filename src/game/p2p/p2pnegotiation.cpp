@@ -68,7 +68,8 @@ HelloPayload Negotiation::myHello() const
     hello.sessionKey = m_sessionKey.publicKey();
     hello.displayName = m_config.myDisplayName;
     hello.sidePreference = m_config.mySide;
-    hello.offerId = m_config.offerId;
+    // offerId は予約の項目（公開募集をやめたので、常にゼロ32バイト）
+    hello.offerId = zeroHash();
     if (m_config.role == kRoleApplicant) {
         hello.coin = coinCommit(m_myNonce);
     } else {
@@ -138,7 +139,7 @@ void Negotiation::handleHelloAsHost(const HelloPayload& hello)
     }
     // ブロックした相手には、ブロックしたことを知らせずに BUSY（名乗った ID で判定してよい。実装仕様 3.3節）
     if (m_config.isBlocked && m_config.isBlocked(hello.playerKey)) return fail(ErrorCode::Busy, true);
-    if (hello.offerId != m_config.offerId) return fail(ErrorCode::Expired, true);
+    if (hello.offerId != zeroHash()) return fail(ErrorCode::Expired, true);
     if (!sidesCompatible(hello.sidePreference, m_config.mySide)) return fail(ErrorCode::ConditionMismatch, true);
     if (!Crypto::isValidPublicKey(hello.playerKey) || !Crypto::isValidPublicKey(hello.sessionKey)
         || hello.playerKey == m_playerKey->publicKey() || hello.sessionKey == m_sessionKey.publicKey()
@@ -164,14 +165,8 @@ std::optional<bool> Negotiation::decideApplicantBlack(const QByteArray& nonceA, 
 
 void Negotiation::handleHelloAsApplicant(const HelloPayload& hello)
 {
-    if (hello.role != kRoleHost || hello.peerId != m_config.opponentPeerId || hello.offerId != m_config.offerId
+    if (hello.role != kRoleHost || hello.peerId != m_config.opponentPeerId || hello.offerId != zeroHash()
         || !hello.timeControl) {
-        return fail(ErrorCode::ConditionMismatch, true);
-    }
-    // 公開募集では、見た募集と同じ条件・表示名・先後の希望であること
-    if ((m_config.expectedTerms && *m_config.expectedTerms != *hello.timeControl)
-        || (m_config.expectedDisplayName && *m_config.expectedDisplayName != hello.displayName)
-        || (m_config.expectedHostSide && *m_config.expectedHostSide != hello.sidePreference)) {
         return fail(ErrorCode::ConditionMismatch, true);
     }
     if (!Crypto::isValidPublicKey(hello.playerKey) || !Crypto::isValidPublicKey(hello.sessionKey)

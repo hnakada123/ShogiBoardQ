@@ -1,7 +1,7 @@
-//! ネットワークとロビーの識別子（protocol/README.md 1.1節）
+//! ネットワークの識別子（protocol/README.md 1.1節）
 
-use crate::cbor::{encode, Value};
-use crate::hash::{h, hex};
+use crate::cbor::Value;
+use crate::hash::h;
 
 /// ネットワークの使い方
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -64,47 +64,4 @@ pub fn network_id(name: &str) -> [u8; 32] {
         Value::Uint(1),
         Value::text(name),
     ]))
-}
-
-/// lobbyKey = H(CBOR(["SBQ-LOBBY", 1, networkId, rulesHash]))
-pub fn lobby_key(network_id: &[u8; 32], rules_hash: &[u8; 32]) -> [u8; 32] {
-    h(&Value::Array(vec![
-        Value::text("SBQ-LOBBY"),
-        Value::Uint(1),
-        Value::bytes(network_id),
-        Value::bytes(rules_hash),
-    ]))
-}
-
-/// GossipSub の topic
-pub fn topic(network_id: &[u8; 32], rules_hash: &[u8; 32]) -> String {
-    format!("/shogiboardq/lobby/1/{}/{}", hex(network_id), hex(rules_hash))
-}
-
-/// v1 の開始局面（平手）
-pub const INITIAL_SFEN_V1: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
-
-/// v1 の Rules の値
-pub fn rules_v1() -> Value {
-    Value::Array(vec![
-        Value::text("SBQ-RULES"),
-        Value::Uint(1),
-        Value::text(INITIAL_SFEN_V1),
-        Value::Uint(512),
-        Value::text("fourfold-draw"),
-        Value::text("perpetual-check-loss"),
-        Value::text("no-declaration"),
-        Value::text("human"),
-        Value::text("human"),
-    ])
-}
-
-/// v1 の Rules の決定的CBOR
-pub fn rules_v1_bytes() -> Vec<u8> {
-    encode(&rules_v1())
-}
-
-/// v1 の rulesHash
-pub fn rules_hash_v1() -> [u8; 32] {
-    h(&rules_v1())
 }

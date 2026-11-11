@@ -16,7 +16,7 @@
 
 namespace P2p {
 
-/// 交渉の条件（どちらの側か・自分の名乗り・募集の条件）
+/// 交渉の条件（どちらの側か・自分の名乗り・招待した側の条件）
 struct NegotiationConfig {
     quint8 role = kRoleApplicant;
     QByteArray networkId;
@@ -24,16 +24,11 @@ struct NegotiationConfig {
     QByteArray opponentPeerId;   ///< 通信プロセスが知らせた接続の相手（バイナリ）
     QString myDisplayName;
     SidePreference mySide = SidePreference::None;
-    QByteArray offerId;          ///< 募集の offerId（招待ではゼロ32バイト）
-    /// 募集側の持ち時間
+    /// 招待した側の持ち時間（申込側は、招待した側の HELLO で初めて条件を知る）
     TimeControlTerms hostTerms;
-    /// 申込側が募集一覧で見た条件（公開募集だけ。招待では空）
-    std::optional<TimeControlTerms> expectedTerms;
-    std::optional<QString> expectedDisplayName;
-    std::optional<SidePreference> expectedHostSide;
     /// 今の時刻（UNIX秒）
     std::function<quint64()> nowSeconds;
-    /// 募集側: 申込みで名乗ったプレイヤーID がブロックした相手か
+    /// 招待した側: 申込みで名乗ったプレイヤーID がブロックした相手か
     std::function<bool(const QByteArray& playerKey)> isBlocked;
 };
 
@@ -89,7 +84,6 @@ public:
     /// 相手の開始署名を確かめたか（ここから相手のプレイヤーID を確かめた身元として扱う）
     bool opponentVerified() const { return !m_opponentStartSignature.isEmpty(); }
     /// 申込側の開始署名を確かめた（募集側はここで募集を取り下げる）
-    bool applicantSigned() const { return m_config.role == kRoleHost && opponentVerified(); }
 
     const std::optional<StartAgreement>& agreement() const { return m_agreement; }
     TimeControlTerms terms() const { return m_terms; }

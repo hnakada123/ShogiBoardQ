@@ -2,9 +2,8 @@
 #define P2PLOBBYSERVICE_H
 
 /// @file p2plobbyservice.h
-/// @brief P2P対局の通信プロセスの窓口（起動・停止・募集・招待・接続の振り分け。実装仕様 3章・10.3節）
+/// @brief P2P対局の通信プロセスの窓口（起動・停止・招待・接続の振り分け。実装仕様 3章・10.3節）
 
-#include <QDateTime>
 #include <QHash>
 #include <QJsonObject>
 #include <QList>
@@ -28,10 +27,10 @@ class P2pRecordStore;
 /**
  * @brief 「P2P対局」を使う間の部品の持ち主
  *
- * 通信プロセス・保存先（ロック）・プレイヤー鍵・既知の相手を持ち、募集と招待を扱い、開いた接続を司令塔へ振り分ける。
+ * 通信プロセス・保存先（ロック）・プレイヤー鍵・既知の相手を持ち、招待を扱い、開いた接続を司令塔へ振り分ける。
  * 通信プロセスは「P2P対局」を始めてから終えるまでだけ動かす。使う間は動作状態を「P2P接続中」にする
- * （対局の間は司令塔が「P2P対局中」にする）。通信プロセスから届いた募集は形・上限・表示名の規則を確かめ直し、
- * 認証済みの情報として扱わない。
+ * （対局の間は司令塔が「P2P対局中」にする）。対局の相手は招待文字列で決める（不特定の相手との公開募集は持たない）。
+ * 自分や相手のアドレス（IP）は通信プロセスだけが扱い、ここには届かない。
  */
 class P2pLobbyService : public QObject, public P2pTransport
 {
@@ -56,16 +55,6 @@ public:
     };
     Q_ENUM(StartFailure)
 
-    /// 募集1件（通信プロセスが確かめ、ここで形・規則を確かめ直したもの。認証済みではない）
-    struct Offer {
-        QByteArray offerId;
-        QString peerId;
-        QString displayName;
-        P2p::TimeControlTerms terms;
-        P2p::SidePreference side = P2p::SidePreference::None;
-        quint64 expiresAt = 0;
-    };
-
     /// 招待文字列を読んだ結果（通信プロセスの解釈。対局・UI側は文字列を読まない）
     struct InviteInfo {
         QString peerId;
@@ -77,8 +66,6 @@ public:
 
     /// 実験版のビルドの使用期限（日。実装仕様 3.1節）
     static constexpr qint64 kBuildLifetimeDays = 180;
-    /// 再申込みの拒否の時間（実装仕様 3.3節）
-    static constexpr qint64 kReapplyBlockSeconds = 600;
 
     P2pLobbyService(const Deps& deps, const QString& dataRoot, QObject* parent = nullptr);
     ~P2pLobbyService() override;
@@ -100,7 +87,7 @@ public:
     StartFailure prepare();
     /// 通信プロセスを起動してネットワークに参加する（プレイヤー鍵は読み込み済みであること）
     StartFailure begin(const QString& networkName, const QStringList& bootstrap, bool relayOnly);
-    /// 募集を取り下げ、対局中なら中断を知らせて、通信プロセスを止める
+    /// 招待を無効にし、対局中なら中断を知らせて、通信プロセスを止める
     void end();
 
     Status status() const { return m_status; }
@@ -108,19 +95,12 @@ public:
     QString networkName() const { return m_networkName; }
     bool isLocalProfile() const { return m_localProfile; }
     QString peerIdText() const { return m_peerIdText; }
-    QStringList listenAddresses() const { return m_listenAddrs; }
     int connectedPeers() const { return m_connectedPeers; }
     QString reachability() const { return m_reachability; }
-    bool clockSkewSuspected() const { return m_clockSkew; }
+    /// 協力ノードに取れた中継の予約の数（0 なら、中継経由では相手から届かない）
+    int relayReservations() const { return m_relayReservations; }
+    bool relayOnly() const { return m_relayOnly; }
     QJsonObject sandbox() const { return m_peer ? m_peer->sandbox() : QJsonObject(); }
-
-    // --- 募集 ---
-    void publishOffer(const QString& displayName, const P2p::TimeControlTerms& terms, P2p::SidePreference side);
-    bool hasOffer() const { return !m_offerId.isEmpty(); }
-    QList<Offer> offers() const { return m_offers.values(); }
-    void refreshOffers();
-    /// 募集に申し込む
-    bool applyToOffer(const QByteArray& offerId, const QString& myDisplayName, P2p::SidePreference mySide);
 
     // --- 招待 ---
     void createInvite(const QString& displayName, const P2p::TimeControlTerms& terms, P2p::SidePreference side);
@@ -135,18 +115,16 @@ public:
     void closeConnection(quint64 connection) override;
     void setGamePeer(const QString& peerId) override;
     void reconnectGamePeer(const QString& peerId) override;
-    void withdrawOffer() override;
 
 signals:
     void statusChanged();
     void networkStatusChanged();
-    void offersChanged();
     /// 作った招待文字列（記録しない。利用者に渡してもらう）
     void inviteCreated(const QString& invite, quint64 expiresAt, int addressCount);
     void inviteInspected(const P2pLobbyService::InviteInfo& info);
     /// 要求が失敗した（method と通信プロセスのエラーの code）
     void requestFailed(const QString& method, const QString& code);
-    /// 申込み・招待の接続が開けなかった
+    /// 招待の接続が開けなかった
     void connectFailed(const QString& reason);
     /// 通信プロセスが使えなくなった
     void peerFailed(PeerProcess::Failure failure, const QString& detail);
@@ -160,23 +138,14 @@ private slots:
     void onPeerStopped();
     void onActivityRevoked(QObject* owner);
     void onGameReleased();
-    void onNegotiationAbandoned(const QString& peerId, const QByteArray& verifiedPlayerKey);
-    void onApplicantVerified(const QString& peerId);
 
 private:
     /// 動作状態を「P2P接続中」にする（対局中は司令塔が持つ）
     void holdConnectionActivity();
     void handleConnectionOpened(const QJsonObject& params);
-    void handleOffersChanged(const QJsonObject& params);
     void handleNetworkStatus(const QJsonObject& params);
     void rejectConnection(quint64 connection, P2p::ErrorCode code);
-    bool isReapplyBlocked(const QString& peerId) const;
     quint64 connectionOf(const QJsonObject& params) const;
-
-    /// 申込み・招待で開こうとしている接続（開いたら司令塔へ渡す）
-    struct PendingConnection {
-        P2pGameCoordinator::NegotiationRequest request;
-    };
 
     Deps m_deps;
     QString m_dataRoot;
@@ -196,28 +165,18 @@ private:
     QString m_peerIdText;
     QByteArray m_peerIdBytes;
     QByteArray m_networkId;
-    QStringList m_listenAddrs;
     int m_connectedPeers = 0;
     QString m_reachability;
-    bool m_clockSkew = false;
+    int m_relayReservations = 0;
 
-    // 募集
-    QByteArray m_offerId;
-    QString m_offerDisplayName;
-    P2p::TimeControlTerms m_offerTerms;
-    P2p::SidePreference m_offerSide = P2p::SidePreference::None;
-    QHash<QByteArray, Offer> m_offers;
     // 招待（招待した側の条件。文字列は持たない）
     QString m_inviteDisplayName;
     P2p::TimeControlTerms m_inviteTerms;
     P2p::SidePreference m_inviteSide = P2p::SidePreference::None;
     bool m_inviteActive = false;
-    // 申込み・招待の接続を開く要求（要求番号 → 交渉の条件）と、開いている接続
+    // 招待で接続を開く要求（要求番号 → 交渉の条件）と、開こうとしている接続
     QHash<quint64, P2pGameCoordinator::NegotiationRequest> m_connectRequests;
     QHash<quint64, P2pGameCoordinator::NegotiationRequest> m_pendingConnections;
-    /// 再申込みを拒否する相手（PeerId → 期限の UNIX秒）と、拒否の回数
-    QHash<QString, qint64> m_reapplyBlockedUntil;
-    QHash<QString, int> m_reapplyCount;
 };
 
 #endif // P2PLOBBYSERVICE_H

@@ -52,11 +52,7 @@ public:
         quint8 role = P2p::kRoleApplicant;
         QString myDisplayName;
         P2p::SidePreference mySide = P2p::SidePreference::None;
-        QByteArray offerId;              ///< 招待ではゼロ32バイト
-        P2p::TimeControlTerms hostTerms;
-        std::optional<P2p::TimeControlTerms> expectedTerms;
-        std::optional<QString> expectedDisplayName;
-        std::optional<P2p::SidePreference> expectedHostSide;
+        P2p::TimeControlTerms hostTerms;   ///< 招待した側の持ち時間
         bool viaRelay = false;
     };
 
@@ -124,8 +120,6 @@ signals:
     void negotiationChanged();
     /// 交渉が終わった（started なら対局が始まった。そうでなければ code が理由）
     void negotiationEnded(bool started, std::optional<P2p::ErrorCode> code, bool byPeer);
-    /// 申込側の開始署名を確かめた（募集側は募集を取り下げる）
-    void applicantVerified(const QString& peerId);
     /// 対局が始まった（棋譜を作り、P2P対局中にした後）
     void gameStarted();
     /// 対局の状態（手番・確認待ち・再接続・経路）が変わった
@@ -137,8 +131,6 @@ signals:
     void resultAgreed(const P2p::FinalResult& result);
     /// 対局が終わった（証跡を保存した後）
     void gameFinished(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
-    /// 交渉に失敗した相手（再申込みの拒否の対象。開始署名で確かめたプレイヤーID があれば添える）
-    void negotiationAbandoned(const QString& peerId, const QByteArray& verifiedPlayerKey);
 
 private slots:
     void onTick();

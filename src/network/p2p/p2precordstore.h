@@ -101,10 +101,6 @@ public:
     static std::optional<P2p::Evidence> evidenceFromJournal(const std::vector<P2p::CborValue>& records,
                                                             P2pHistoryInfo* info, bool* hasConflict);
 
-    /// 既知ピアのキャッシュ（通信プロセスに起動時に渡す multiaddr。64件まで）
-    QStringList knownPeerAddresses() const;
-    void saveKnownPeerAddresses(const QStringList& addresses);
-
 private:
     QString journalDirectory() const;
     QString evidenceDirectory() const;

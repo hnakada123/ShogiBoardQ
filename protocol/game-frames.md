@@ -55,13 +55,13 @@ FinalResult    = ["SBQ-RESULT", 1, gameId, finalStateHash, transcriptHash, ply, 
 | 9 | RESULT_SIGNATURE | gameId | `[FinalResult, side, signature]` |
 | 10 | REJECT | ゼロか gameId | `[errorCode]` |
 
-- `role`: 1=申込側、2=募集側（招待した側）。`side`: 1=先手、2=後手。
+- `role`: 1=申込側（招待を受けた側）、2=募集側（招待した側）。`side`: 1=先手、2=後手。
 - `peerId`: 自分の PeerId のバイナリ（通信プロセスが知らせた接続の相手と一致することを相手が確かめる）。
 - `connectionRandom`: bstr(32)。`connectionId = H(CBOR(["SBQ-CONN", 1, gameId, blackRandom, whiteRandom]))`。
   開始前の HELLO の乱数は、開始合意の後の最初の接続の connectionId に使う。再接続では再接続の HELLO で交換し直す。
 - `playerKey`・`sessionKey`: bstr(32) の公開鍵。`displayName`: `displayname-v1.txt` の規則の tstr。
 - `sidePreference`: 0=指定なし、1=先手希望、2=後手希望。
-- `offerId`: 申込側は申し込んだ募集の offerId（招待ではゼロ32バイト）。募集側は受けた値を返す。
+- `offerId`: 予約の項目。常にゼロ32バイトを入れ、ゼロ以外は断る（第4版までは公開募集への申込みで使った。実装仕様の「第5版の変更点」）。
 - `coin`: 申込側は `commitA = H(CBOR(["SBQ-COMMIT", 1, nonceA]))`、募集側は `nonceB`。どちらも bstr(32)。
 - `conditions`: 申込側は空の配列、募集側は `[Rules, TimeControl, NetworkPolicy]`。
 - STATE_ACCEPT の ply・stateHash は承認する State のもの。
@@ -92,8 +92,8 @@ FinalResult    = ["SBQ-RESULT", 1, gameId, finalStateHash, transcriptHash, ply, 
 開始前（申込側を A、募集側を B とする）:
 
 1. A → B: HELLO（role 1、commitA）。
-2. B: ブロック・再申込みの拒否・先後の希望・表示名を確かめ、断るなら REJECT。受けるなら B → A: HELLO（role 2、nonceB、条件）。
-3. A: B の HELLO の条件・表示名・先後の希望が募集と同じかを確かめる（招待では条件を初めて知る）。先後を決め、
+2. B: ブロック・先後の希望・表示名を確かめ、断るなら REJECT。受けるなら B → A: HELLO（role 2、nonceB、条件）。
+3. A: B の HELLO で条件を初めて知る。先後を決め、
    StartAgreement を作って A → B: START_AGREEMENT（nonceA は StartAgreement の A の側の nonce に入る）。
 4. B: StartAgreement が双方の HELLO と一致すること、commitA の開示、先後の決定、期限を確かめる。
 5. 双方の利用者が条件確認画面で開始を押す。A は押したときに START_SIGNATURE を送る。B は押していて、かつ

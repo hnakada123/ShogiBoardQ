@@ -61,7 +61,6 @@ public:
     void closeConnection(quint64) override {}
     void setGamePeer(const QString&) override {}
     void reconnectGamePeer(const QString&) override {}
-    void withdrawOffer() override {}
 };
 
 /// 対局する1人（盤・時計・司令塔と、主画面の盤とその向きを変える部品・P2P対局の画面）
@@ -107,7 +106,6 @@ P2pGameCoordinator::NegotiationRequest request(quint8 role, const QByteArray& op
     r.opponentPeerIdBytes = opponentPeerId;
     r.role = role;
     r.myDisplayName = name;
-    r.offerId = zeroHash();
     r.hostTerms = TimeControlTerms{600'000, 30'000};
     return r;
 }
@@ -168,10 +166,10 @@ private slots:
         auto* tabs = window.findChild<QTabWidget*>();
         QVERIFY(tabs);
         QCOMPARE(tabs->count(), 6);
-        // 接続していなければ募集・招待はできない
+        // 接続していなければ招待はできない
         for (QPushButton* button : window.findChildren<QPushButton*>()) {
-            if (button->text() == QStringLiteral("募集を出す") || button->text() == QStringLiteral("申し込む")
-                || button->text() == QStringLiteral("招待文字列を作る")) {
+            if (button->text() == QStringLiteral("招待文字列を作る") || button->text() == QStringLiteral("招待文字列を確かめる")
+                || button->text() == QStringLiteral("接続する")) {
                 QVERIFY2(!button->isEnabled(), qPrintable(button->text()));
             }
         }
@@ -179,10 +177,12 @@ private slots:
         auto* network = window.findChild<QComboBox*>(QStringLiteral("p2pNetwork"));
         QVERIFY(network);
         QCOMPARE(network->count(), 2);
-        // 募集の一覧に行番号は出さない（相手の順番には意味がない）
-        auto* offers = window.findChild<QTableWidget*>(QStringLiteral("p2pOffers"));
-        QVERIFY(offers);
-        QVERIFY(offers->verticalHeader()->isHidden());
+        // 公開募集は持たない（対局の相手は招待で決める）。自分のアドレスも画面に出さない
+        QVERIFY(!window.findChild<QTableWidget*>(QStringLiteral("p2pOffers")));
+        for (QLabel* label : window.findChildren<QLabel*>()) {
+            QVERIFY2(!label->text().contains(QStringLiteral("/ip4/")) && !label->text().contains(QStringLiteral("/ip6/")),
+                     qPrintable(label->text()));
+        }
         saveShot(&window, QStringLiteral("p2p-window-play"));
         for (int i = 1; i < tabs->count(); ++i) {
             tabs->setCurrentIndex(i);
@@ -232,7 +232,6 @@ private slots:
         h.opponentPeerIdBytes = toHost.peerId;
         h.role = kRoleHost;
         h.myDisplayName = QStringLiteral("募集する人");
-        h.offerId = zeroHash();
         h.hostTerms = TimeControlTerms{600'000, 30'000};
         P2pGameCoordinator::NegotiationRequest a = h;
         a.opponentPeerId = QStringLiteral("h");
@@ -309,8 +308,7 @@ private slots:
         QTableWidget* history = nullptr;
         QTableWidget* peers = nullptr;
         for (QTableWidget* table : tables) {
-            if (table->columnCount() == 6) history = table;
-            else if (table != window.findChild<QTableWidget*>(QStringLiteral("p2pOffers"))) peers = table;
+            (table->columnCount() == 6 ? history : peers) = table;
         }
         QVERIFY(history && peers);
         QCOMPARE(history->rowCount(), 0);

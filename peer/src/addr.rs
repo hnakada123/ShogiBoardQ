@@ -18,6 +18,8 @@ pub const MAX_ADDRS_PER_PEER: usize = 8;
 /// 失敗した宛先を再試行しない時間
 pub const FAILED_ADDR_BACKOFF: Duration = Duration::from_secs(60);
 const MAX_FAILED_ENTRIES: usize = 1024;
+/// 覚える協力ノードの宛先の上限（指定は16件まで。Identify で知った同じノードの別の宛先を含む）
+const MAX_NODE_ADDRS: usize = 64;
 
 /// IP アドレスの区分
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -119,6 +121,19 @@ pub fn without_peer_id(addr: &Multiaddr) -> Multiaddr {
     out
 }
 
+/// 中継経由のアドレスの、中継のピア（/p2p/<中継>/p2p-circuit の <中継>。中継経由でなければ None）
+pub fn relay_of(addr: &Multiaddr) -> Option<PeerId> {
+    let mut last_peer = None;
+    for p in addr.iter() {
+        match p {
+            Protocol::P2p(peer) => last_peer = Some(peer),
+            Protocol::P2pCircuit => return last_peer,
+            _ => {}
+        }
+    }
+    None
+}
+
 /// 末尾の /p2p/<PeerId>
 pub fn peer_id_of(addr: &Multiaddr) -> Option<PeerId> {
     match addr.iter().last()? {
@@ -130,6 +145,12 @@ pub fn peer_id_of(addr: &Multiaddr) -> Option<PeerId> {
 /// 宛先の規則
 pub struct AddrPolicy {
     profile: Profile,
+    /// 直接接続を使わない（直接つなぐ相手は協力ノードだけ。ほかの相手へは協力ノードの中継経由でだけつなぐ）
+    relay_only: bool,
+    /// 利用者が指定した協力ノードの宛先（relay_only のとき、直接つないでよい宛先）
+    node_addrs: Mutex<HashSet<Multiaddr>>,
+    /// 利用者が指定した協力ノード（relay_only のとき、中継として使ってよいピア）
+    node_peers: Mutex<HashSet<PeerId>>,
     /// 利用者が許可した私設アドレス（internet の招待の allowPrivate）
     allowed_private: Mutex<HashSet<IpAddr>>,
     /// 失敗した宛先と時刻
@@ -144,9 +165,12 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 impl AddrPolicy {
-    pub fn new(profile: Profile) -> AddrPolicy {
+    pub fn new(profile: Profile, relay_only: bool) -> AddrPolicy {
         AddrPolicy {
             profile,
+            relay_only,
+            node_addrs: Mutex::new(HashSet::new()),
+            node_peers: Mutex::new(HashSet::new()),
             allowed_private: Mutex::new(HashSet::new()),
             failed: Mutex::new(HashMap::new()),
         }
@@ -164,8 +188,36 @@ impl AddrPolicy {
         }
     }
 
-    /// 発見などで得た宛先を、この profile で使えるか（失敗の待ちは見ない）
-    pub fn usable(&self, addr: &Multiaddr) -> bool {
+    /// 利用者が指定した協力ノードとその宛先を覚える（relay_only のとき、直接つないでよい唯一の相手になる）。
+    /// profile で使えない宛先は覚えない
+    pub fn allow_node(&self, peer: PeerId, addr: &Multiaddr) {
+        let base = without_peer_id(addr);
+        if is_circuit(&base) || !self.profile_allows(&base) {
+            return;
+        }
+        let mut addrs = lock(&self.node_addrs);
+        if addrs.len() < MAX_NODE_ADDRS {
+            addrs.insert(base);
+            lock(&self.node_peers).insert(peer);
+        }
+    }
+
+    /// 「直接接続を使わない」のとき、最初につなぐ相手が協力ノードか。
+    /// 相手の直接のアドレスにも、利用者が指定していない中継にも、自分の IP を見せない
+    fn first_hop_allowed(&self, addr: &Multiaddr) -> bool {
+        if !self.relay_only {
+            return true;
+        }
+        match relay_of(addr) {
+            // 中継経由: 中継が協力ノードであること（中継そのものへの接続は、直接の宛先として下の規則に掛かる）
+            Some(relay) => lock(&self.node_peers).contains(&relay),
+            // 直接: 協力ノードの宛先であること
+            None => lock(&self.node_addrs).contains(&without_peer_id(addr)),
+        }
+    }
+
+    /// この profile の宛先として形と IP の区分が合うか
+    fn profile_allows(&self, addr: &Multiaddr) -> bool {
         if has_dns(addr) {
             return false;
         }
@@ -175,6 +227,11 @@ impl AddrPolicy {
             Some(Protocol::P2p(_)) => is_circuit(addr),
             _ => false,
         }
+    }
+
+    /// 招待などで得た宛先を、この profile と設定で使えるか（失敗の待ちは見ない）
+    pub fn usable(&self, addr: &Multiaddr) -> bool {
+        self.profile_allows(addr) && self.first_hop_allowed(addr)
     }
 
     /// 私設アドレスか（internet の招待で利用者に見せるもの）
@@ -191,10 +248,13 @@ impl AddrPolicy {
         }
     }
 
-    /// 自分のアドレスとして広告してよいか
+    /// 自分のアドレスとして広告してよいか（「直接接続を使わない」のときは中継経由のアドレスだけ）
     pub fn advertisable(&self, addr: &Multiaddr) -> bool {
         if is_circuit(addr) {
             return !has_dns(addr);
+        }
+        if self.relay_only {
+            return false;
         }
         matches!(
             (self.profile, first_ip(addr).map(classify)),
@@ -289,7 +349,7 @@ mod tests {
 
     #[test]
     fn internet_rules() {
-        let p = AddrPolicy::new(Profile::Internet);
+        let p = AddrPolicy::new(Profile::Internet, false);
         assert!(p.usable(&ma("/ip4/8.8.8.8/tcp/4001")));
         assert!(p.usable(&ma("/ip6/2400:4050::1/udp/4001/quic-v1")));
         for bad in [
@@ -326,16 +386,69 @@ mod tests {
 
     #[test]
     fn local_rules() {
-        let p = AddrPolicy::new(Profile::Local);
+        let p = AddrPolicy::new(Profile::Local, false);
         assert!(p.usable(&ma("/ip4/127.0.0.1/tcp/4001")));
         assert!(p.usable(&ma("/ip4/192.168.1.1/tcp/4001")));
         assert!(!p.usable(&ma("/ip4/8.8.8.8/tcp/4001")));
         assert!(!p.usable(&ma("/ip4/169.254.1.1/tcp/4001")));
     }
 
+    /// 「直接接続を使わない」: 直接つなぐのは利用者が指定した協力ノードだけ。相手の直接のアドレスにも、
+    /// 指定していない中継にもつながない（自分の IP を見せない）。自分の直接のアドレスは広告しない
+    #[test]
+    fn relay_only_rules() {
+        let p = AddrPolicy::new(Profile::Internet, true);
+        let node = ma("/ip4/8.8.8.8/udp/4001/quic-v1");
+        let node_peer: PeerId = "12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN".parse().unwrap();
+        let other_peer: PeerId = "12D3KooWRBhwfeP2Y4TCx1SM6s9rUoHhR5STiGwxBhgFRcw3UERE".parse().unwrap();
+        let dest = "12D3KooWQYhTNQdmr3ArTeUHRYzFg94BKyTkoWBDWez9kSCVe2Xo";
+        // 協力ノードを指定する前は、どこへもつながない
+        assert!(!p.usable(&node));
+        assert!(!p.allows_dial(&node));
+        p.allow_node(node_peer, &node);
+        // 協力ノードの宛先へは直接つなぐ（末尾の /p2p/ は見ない）
+        assert!(p.usable(&node));
+        assert!(p.allows_dial(&ma(&format!("/ip4/8.8.8.8/udp/4001/quic-v1/p2p/{node_peer}"))));
+        // 相手の直接のアドレスへはつながない（協力ノードと同じ IP の別のポートも）
+        assert!(!p.usable(&ma("/ip4/1.1.1.1/udp/4001/quic-v1")));
+        assert!(!p.allows_dial(&ma("/ip4/1.1.1.1/tcp/4001")));
+        assert!(!p.allows_dial(&ma("/ip6/2400:4050::1/udp/4001/quic-v1")));
+        assert!(!p.allows_dial(&ma("/ip4/8.8.8.8/udp/4002/quic-v1")));
+        // 協力ノードの中継を経由するアドレスは使える
+        let via_node = ma(&format!(
+            "/ip4/8.8.8.8/udp/4001/quic-v1/p2p/{node_peer}/p2p-circuit/p2p/{dest}"
+        ));
+        assert!(p.usable(&via_node));
+        assert!(p.allows_dial(&via_node));
+        assert!(p.usable(&ma(&format!("/p2p/{node_peer}/p2p-circuit/p2p/{dest}"))));
+        // 指定していない中継を経由するアドレスは使わない（その中継に自分の IP が見える）
+        let via_other = ma(&format!(
+            "/ip4/1.1.1.1/udp/4001/quic-v1/p2p/{other_peer}/p2p-circuit/p2p/{dest}"
+        ));
+        assert!(!p.usable(&via_other));
+        assert!(!p.allows_dial(&via_other));
+        assert!(!p.usable(&ma(&format!("/p2p/{other_peer}/p2p-circuit/p2p/{dest}"))));
+        assert_eq!(
+            p.filter_addrs([via_other, ma("/ip4/1.1.1.1/tcp/4001"), via_node.clone()])
+                .len(),
+            1
+        );
+        // profile で使えない宛先は、協力ノードとして覚えない
+        p.allow_node(other_peer, &ma("/ip4/192.168.1.9/tcp/4001"));
+        assert!(!p.usable(&ma("/ip4/192.168.1.9/tcp/4001")));
+        assert!(!p.usable(&ma(&format!("/p2p/{other_peer}/p2p-circuit/p2p/{dest}"))));
+        // 自分のアドレスとして出すのは中継経由のアドレスだけ
+        assert!(p.advertisable(&via_node));
+        assert!(!p.advertisable(&ma("/ip4/9.9.9.9/udp/4001/quic-v1")));
+        // 設定が無効なら、どちらも使える
+        let direct = AddrPolicy::new(Profile::Internet, false);
+        assert!(direct.usable(&ma("/ip4/1.1.1.1/udp/4001/quic-v1")));
+        assert!(direct.advertisable(&ma("/ip4/9.9.9.9/udp/4001/quic-v1")));
+    }
+
     #[test]
     fn backoff() {
-        let p = AddrPolicy::new(Profile::Local);
+        let p = AddrPolicy::new(Profile::Local, false);
         let a = ma("/ip4/127.0.0.1/tcp/4001");
         assert!(p.allows_dial(&a));
         p.record_failure(&a);

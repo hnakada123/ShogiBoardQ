@@ -60,10 +60,8 @@ public:
     void closeConnection(quint64) override {}
     void setGamePeer(const QString& id) override { gamePeer = id; }
     void reconnectGamePeer(const QString&) override {}
-    void withdrawOffer() override { withdrawn = true; }
 
     QString gamePeer;
-    bool withdrawn = false;
 };
 
 class Side
@@ -110,7 +108,6 @@ P2pGameCoordinator::NegotiationRequest request(quint8 role, const QByteArray& op
     r.opponentPeerIdBytes = opponentPeerId;
     r.role = role;
     r.myDisplayName = name;
-    r.offerId = zeroHash();
     r.hostTerms = TimeControlTerms{60'000, 10'000};
     return r;
 }
@@ -227,7 +224,7 @@ private slots:
         applicant.transport.other = &host;
         host.transport.other = &applicant;
         QSignalSpy applicantEnded(&applicant.coordinator, &P2pGameCoordinator::negotiationEnded);
-        QSignalSpy hostAbandoned(&host.coordinator, &P2pGameCoordinator::negotiationAbandoned);
+        QSignalSpy hostEnded(&host.coordinator, &P2pGameCoordinator::negotiationEnded);
         QVERIFY(host.coordinator.startNegotiation(request(kRoleHost, applicantId, QStringLiteral("募集"))));
         QVERIFY(applicant.coordinator.startNegotiation(request(kRoleApplicant, hostId, QStringLiteral("申込"))));
         settle();
@@ -235,7 +232,15 @@ private slots:
         settle();
         QCOMPARE(applicantEnded.count(), 1);
         QCOMPARE(applicantEnded.first().at(0).toBool(), false);
-        QCOMPARE(hostAbandoned.count(), 1);
+        QCOMPARE(hostEnded.count(), 1);
+        QCOMPARE(hostEnded.first().at(0).toBool(), false);
+        // 取りやめた後は、同じ相手とすぐに交渉をやり直せる（招待は1回ごとなので、再申込みの拒否は持たない）
+        QVERIFY(host.coordinator.startNegotiation(request(kRoleHost, applicantId, QStringLiteral("募集"))));
+        QVERIFY(applicant.coordinator.startNegotiation(request(kRoleApplicant, hostId, QStringLiteral("申込"))));
+        settle();
+        QCOMPARE(host.coordinator.negotiation()->stage(), Negotiation::Stage::Confirming);
+        host.coordinator.cancelNegotiation();
+        settle();
         QVERIFY(!applicant.coordinator.isBusy());
         QVERIFY(!host.coordinator.isBusy());
         QVERIFY(applicant.activity.is(AppActivityState::Activity::Idle));

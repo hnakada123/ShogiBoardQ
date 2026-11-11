@@ -63,7 +63,7 @@
 | `network_not_allowed` | このビルドが参加できない networkName |
 | `build_expired` | 使用期限を過ぎたビルドで、期限のあるネットワークに参加しようとした |
 | `invite_invalid`・`invite_expired`・`invite_wrong_network`・`invite_own` | 招待文字列が読めない・期限切れ・別のネットワーク・自分の招待 |
-| `unknown_offer`・`unknown_connection` | 知らない募集・接続 |
+| `unknown_connection` | 知らない接続 |
 | `invalid_frame` | 送るフレームの外枠が正しくない（`README.md` 2章） |
 | `rate_limited`・`limit` | 頻度・件数の上限 |
 | `internal` | そのほかの失敗 |
@@ -72,16 +72,12 @@
 
 | method | params | result |
 |---|---|---|
-| `hello` | `{"uiVersion": 文字列}` | `{"peerVersion": 文字列, "ipcVersion": 1, "sandbox": Sandbox}` |
-| `start` | `{"networkName", "rulesHash", "bootstrap": [文字列], "knownPeers": [文字列], "relayOnly": 真偽}` | `{"peerId", "peerIdBytes", "networkId", "profile"}` |
-| `publishOffer` | `{"displayName", "mainMs", "byoyomiMs", "sidePreference"}` | `{"offerId"}` |
-| `withdrawOffer` | `{}` | `{}` |
-| `listOffers` | `{}` | `{}` |
+| `hello` | `{"uiVersion": 文字列}` | `{"peerVersion": 文字列, "ipcVersion": 2, "sandbox": Sandbox}` |
+| `start` | `{"networkName", "bootstrap": [文字列], "relayOnly": 真偽}` | `{"peerId", "peerIdBytes", "networkId", "profile"}` |
 | `createInvite` | `{}` | `{"invite", "expiresAt", "addressCount"}` |
 | `cancelInvites` | `{}` | `{}` |
 | `inspectInvite` | `{"invite"}` | `{"peerId", "expiresAt", "addressCount", "usableAddressCount", "privateAddresses": [文字列]}` |
 | `connectInvite` | `{"invite", "allowPrivate": 真偽}` | `{"connection"}` |
-| `connectOffer` | `{"offerId"}` | `{"connection"}` |
 | `setGamePeer` | `{"peerId"}`（空文字で解除） | `{}` |
 | `connectPeer` | `{"peerId"}` | `{"connection"}` |
 | `sendFrame` | `{"connection", "frame"}` | `{}` |
@@ -92,59 +88,51 @@
   `mechanisms` には掛けたものを入れる（`no_new_privs`・`landlock_fs`・`seccomp`・`parent_death_signal`・`no_core_dump`、
   掛けられた場合だけ `landlock_scope`）。`applied` は必須のもの（`landlock_scope` 以外のすべて）を掛けたとき true。
   通信プロセスは掛けられなければ終了しているので、`applied: false` を返すことはない。対局・UI側は値を確かめ直す。
-- `start` は `hello` の後に1回だけ。`networkName` は `README.md` 1.1節の一覧にあるもの。`rulesHash` は16進。
-  `bootstrap` は協力ノード（`/p2p/<PeerId>` で終わる multiaddr。16件まで）、`knownPeers` は前回保存した既知ピア
-  （64件まで）。どちらも今の profile で使えない宛先（5章）は捨てる。`relayOnly` は「直接接続を使わない」
-  （中継経由のアドレスだけを広告し、DCUtR を行わない）。結果の `peerId` は文字列表記（base58btc）、
+- `start` は `hello` の後に1回だけ。`networkName` は `README.md` 1.1節の一覧にあるもの。
+  `bootstrap` は利用者が指定した協力ノード（`/p2p/<PeerId>` で終わる multiaddr。16件まで）。今の profile で使えない
+  宛先（5章）は捨てる。通信プロセスが自分から接続を始める相手は、この協力ノードと、招待・対局の相手だけである。
+  `relayOnly` は「直接接続を使わない」（5.1節）。結果の `peerId` は文字列表記（base58btc）、
   `peerIdBytes` はバイナリの base64、`networkId` は16進、`profile` は `local` か `internet`。
-- `publishOffer` の `mainMs`・`byoyomiMs` は 10進の文字列、`sidePreference` は `none`・`black`・`white`。
-  募集は1件だけで、出し直すと前の募集を取り下げる。通信プロセスが 30 秒ごとに更新し（寿命 120 秒）、`withdrawOffer`
-  まで続ける。表示名・時間は `README.md` 4章の規則で確かめる。
-- `listOffers` は、つながっているピアのうち4件までに一覧取得を送る。3件に満たなければ、DHT でロビーキーの provider を
-  探し、見つかったピアへ接続する（自動で接続する数は8件まで）。結果は `offersChanged` で届く。
 - `createInvite` は 10 分有効の招待を作る（同時に4件まで。超えたら古いものから無効にする）。`expiresAt` は UNIX秒の
   文字列、`addressCount` は文字列に入れた到達候補の数。招待文字列は対局・UI側でも記録しない。
 - `inspectInvite` は招待文字列を読んだ結果を返し、接続はしない。`privateAddresses` は今の profile が `internet` のときの、
   私設アドレスの到達候補（利用者に見せて許可を求める）。
-- `connectInvite`・`connectOffer`・`connectPeer` は接続を始めて、すぐに番号 `connection`（10進の文字列）を返す。
-  ストリームが開けたら `connectionOpened`、開けなければ `connectionClosed`（`reason` は `unreachable` か `timeout`。
-  全体で 30 秒）が届く。`connectPeer` は `setGamePeer` の相手にだけ使える（再接続）。
+- `connectInvite`・`connectPeer` は接続を始めて、すぐに番号 `connection`（10進の文字列）を返す。
+  ストリームが開けたら `connectionOpened`、開けなければ `connectionClosed`（`reason` は `unreachable`・`timeout`、
+  `relayOnly` で招待に使える中継経由の宛先が無いときは `no_relay_route`。全体で 30 秒）が届く。
+  `connectPeer` は `setGamePeer` の相手にだけ使える（再接続。つなぐのに使った宛先を覚えておいて使う）。
 - 受け付けた側（inbound）の `connectionOpened` は、相手の最初のフレームが届いてから出す（最初のフレームを 10 秒待つ）。
-  `origin` が `offer`・`game` なら、続けてそのフレームを `frameReceived` で渡す（`invite` の最初のフレームは
+  `origin` が `game` なら、続けてそのフレームを `frameReceived` で渡す（`invite` の最初のフレームは
   INVITE_TOKEN なので渡さない）。したがって接続を開いた側（outbound）は、`connectionOpened` を受けたら先にフレームを
   送る（申込みの HELLO、再接続の CONTROL など）。
+- 対局ストリームを受け付けるのは、有効な招待の INVITE_TOKEN を最初に送ってきた相手と、`setGamePeer` の相手だけ。
+  ほかのストリームは閉じる。
 - `setGamePeer` を設定している間は、その PeerId からの対局ストリームだけを受け付け（招待のトークンは要らない。
   `origin` は `game`）、ほかのピアからの対局ストリームは閉じる。
 - `sendFrame` の `frame` はフレーム全体（長さの前置きを含めない）の base64。通信プロセスは外枠を確かめてから送る。
   接続ごとの送信の列は 64 件までで、あふれたら `rate_limited` を返す。
   INVITE_TOKEN（type 11）は送れない。
 - `closeConnection` で閉じた接続には `connectionClosed` を出さない（相手には閉じたことが届く）。
-- `shutdown` は応答を返した後、募集を取り下げて終わる。
+- `shutdown` は応答を返した後、招待を無効にして終わる。
 
 ## 4. 通知（通信プロセス → 対局・UI側）
 
 | notification | params |
 |---|---|
-| `networkStatus` | `{"state": "connecting"\|"online"\|"offline", "listenAddrs": [文字列], "connectedPeers": 整数, "reachability": "unknown"\|"public"\|"private", "relayReservations": 整数, "clockSkewSuspected": 真偽}` |
-| `offersChanged` | `{"added": [Offer], "removed": [offerId]}`（`added` は50件まで） |
-| `connectionOpened` | `{"connection", "peerId", "peerIdBytes", "route": "direct"\|"relay", "direction": "inbound"\|"outbound", "origin": "invite"\|"offer"\|"game"}` |
+| `networkStatus` | `{"state": "connecting"\|"online"\|"offline", "connectedPeers": 整数, "reachability": "unknown"\|"public"\|"private", "relayReservations": 整数}` |
+| `connectionOpened` | `{"connection", "peerId", "peerIdBytes", "route": "direct"\|"relay", "direction": "inbound"\|"outbound", "origin": "invite"\|"game"}` |
 | `connectionRoute` | `{"connection", "route"}`（中継から直接接続に移ったときなど） |
 | `frameReceived` | `{"connection", "frame"}` |
 | `connectionClosed` | `{"connection", "reason"}` |
-| `knownPeers` | `{"peers": [文字列]}`（64件まで。変わったときに、60秒に1回まで） |
 
-- `Offer` は `{"offerId", "sequence", "peerId", "displayName", "rulesHash", "mainMs", "byoyomiMs", "sidePreference", "createdAt", "expiresAt"}`。
-  検査に通った Open の募集だけを入れ、自分の募集は入れない。同じ募集の更新（sequence が増えた）は `added` だけに入れる
-  （受け手は offerId で置き換える）。期限切れ・取り下げ・発信者の別の募集で置き換わったものは `removed` に入れる。
-  1件の通知に同じ offerId が `added` と `removed` の両方に入ることはない。
-- `listenAddrs` は自分を指す `/p2p/<PeerId>` 付きの multiaddr（`local` では loopback、`internet` では広告するアドレス。
-  中継の予約が通れば `/p2p-circuit` のアドレスも入る）。16件まで。
+- 自分や相手のアドレス（IP）は、通知に入れない（対局・UI側は IP を受け取らない。例外は `inspectInvite` の
+  `privateAddresses` だけ）。
 - `state` は、接続しているピアがある（または協力ノードを指定せずに待受を始めた）とき `online`、協力ノードへ接続中のとき
   `connecting`、それ以外は `offline`。値が変わったときにだけ、1秒に1回まで出す。
-- `clockSkewSuspected` は、10分の間に2つ以上の発信者の募集が、自分の時計より 30 秒を超えて先の時刻だったとき true。
+- `reachability` は AutoNAT の結果（`relayOnly` では確かめないので `unknown` のまま）。`route` は、その相手との接続が
+  すべて中継経由なら `relay`、1つでも直接の接続があれば `direct`。
 - `frameReceived` は外枠を確かめたフレームだけを運ぶ。INVITE_TOKEN は運ばない。
-- `connectionClosed` の `reason` は `closed`・`reset`・`timeout`・`unreachable`・`invalid_frame`・`rate_limited`・`limit`・`shutdown`。
-- `origin` が `offer` の接続は、自分が募集を出している間に届いた対局ストリーム。
+- `connectionClosed` の `reason` は `closed`・`reset`・`timeout`・`unreachable`・`no_relay_route`・`invalid_frame`・`rate_limited`・`limit`・`shutdown`。
 
 ## 5. 宛先の規則
 
@@ -153,7 +141,7 @@
 | `local` | `/ip4/127.0.0.1/tcp/0` と `/ip4/127.0.0.1/udp/0/quic-v1` | loopback・私設アドレス・中継 |
 | `internet` | `/ip4/0.0.0.0` と `/ip6/::` の TCP・QUIC（`relayOnly` なら待受を広告しない） | インターネット上のアドレスと中継 |
 
-`internet` では、発見（募集・DHT・Identify・一覧取得・既知ピア）で得た宛先から次を除く:
+`internet` では、招待・Identify で得た宛先から次を除く:
 loopback（127.0.0.0/8、::1）、私設（10/8、172.16/12、192.168/16）、link-local（169.254/16、fe80::/10）、
 共有アドレス空間（100.64.0.0/10）、ULA（fc00::/7）、マルチキャスト（224.0.0.0/4、ff00::/8）、
 未指定（0.0.0.0/8、::）、IPv4 射影（::ffff:0:0/96）、そのほか予約済み（240.0.0.0/4、255.255.255.255、
@@ -165,11 +153,25 @@ loopback（127.0.0.0/8、::1）、私設（10/8、172.16/12、192.168/16）、li
 - 自分が広告するアドレスからも私設アドレスを除く。Identify で配るのは対応するプロトコルとアプリの版
   （`shogiboardq-peer/<版>`）だけにする。
 - mDNS は使わない。
-- `local` では、待受のアドレスをそのまま自分のアドレスとして DHT の provider 情報と Identify に載せる（loopback だけ）。
+- `local` では、待受のアドレスをそのまま自分のアドレスとして招待と Identify に載せる（loopback だけ）。
   `internet` では、AutoNAT で確かめたインターネット上のアドレスと中継のアドレスだけを載せる。
-- 自分の到達性が public でない（または `relayOnly`）とき、中継の hop に対応する協力ノードに予約を取る（2件まで）。
+- 中継の hop に対応する協力ノードには、自分の到達性によらず予約を取る（2件まで）。中継経由のアドレスは、利用者が
+  指定した協力ノードの宛先から作り、招待に入れる（`relayOnly` の相手は、中継経由のアドレスでしかつなげない）。
 - ping（10秒ごと、30秒で失敗）に応えない接続は閉じる。
-- Kademlia が保存するのはロビーキーの provider 情報だけ（キーごとに256件、自分が出すキーは4件まで）。値のレコードは保存しない。
+- 公開募集のための発見（Kademlia）と配信（GossipSub）は持たない。協力ノードと招待・対局の相手のほかへ、
+  自分から接続を始めない。
+
+### 5.1 直接接続を使わない（`relayOnly`）
+
+対局の相手に自分の IP を見せない設定。自分の IP が見えるのは、利用者が指定した協力ノードだけになる。
+
+- 直接つなぐ宛先は、`bootstrap` で指定した協力ノードの宛先（と、そのノードが Identify で名乗った別の宛先）だけ。
+  ほかの宛先への直接の接続は、Transport の層で断る（どの経路で始まった接続にも掛かる）。
+- 中継経由の宛先は、中継が指定した協力ノードのときだけ使う（指定していない中継には自分の IP が見えるので使わない）。
+  招待に使える宛先が残らなければ、`no_relay_route` で閉じる。
+- 自分のアドレスとして出すのは中継経由のアドレスだけ（招待・Identify）。待受のアドレスは Identify で配らない。
+- AutoNAT（到達性の確認）と DCUtR（直接接続への切り替え）を行わない。どちらも、自分のアドレスの候補を
+  相手に渡すため。
 
 上限（実装仕様4章）: 接続は合計32（確立前は受け・掛けそれぞれ8、1ピアあたり4）、同じアドレス帯（IPv4 は /24、IPv6 は /48）
 から受け付ける接続は8。対局ストリームは合わせて8（`setGamePeer` の間は、その相手からのものだけを受け付ける）。
@@ -207,13 +209,13 @@ Linux 以外では、制限の実装がないので終了コード 3 で終わ�
 
 ```text
 shogiboardq-peer --service --network <networkName> --identity <鍵ファイル> --listen <multiaddr> [--listen ...]
-                 [--bootstrap <multiaddr> ...] [--relay] [--dht-server]
+                 [--bootstrap <multiaddr> ...] [--relay]
 ```
 
 - 識別鍵のファイル（Ed25519 の秘密鍵の protobuf 形式）がなければ作り、所有者だけが読み書きできる権限で保存する。
   読んだ後に Landlock でファイルの操作を拒否する。
-- `--relay` で Circuit Relay v2 の中継、`--dht-server` で Kademlia の server 役を有効にする。募集の転送（GossipSub）と
-  一覧取得には常に応える。対局ストリームは受け付けない。
+- 利用者のアプリが最初に接続する相手になり、到達性の確認（AutoNAT）に応える。`--relay` で Circuit Relay v2 の中継を
+  有効にする。対局ストリームは受け付けない（指し手もプレイヤーID も読まない。中継する通信は当事者間で暗号化されている）。
 - 中継の上限: 予約 128、1ピアあたりの回路 4、1回路 30 分・8 MiB。
 - ログは標準エラーに、起動・停止・接続数だけを書く（接続元の IP は書かない）。
 - 権限の制限は6章と同じだが、親の終了では終わらない（`mechanisms` に `parent_death_signal` が入らない）。

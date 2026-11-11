@@ -61,7 +61,6 @@ public:
         c.opponentPeerId = role == kRoleApplicant ? host.peerId : applicant.peerId;
         c.myDisplayName = role == kRoleApplicant ? QStringLiteral("申込") : QStringLiteral("募集");
         c.mySide = side;
-        c.offerId = zeroHash();
         c.hostTerms = TimeControlTerms{60'000, 10'000};
         c.nowSeconds = [this]() { return clock.seconds(); };
         return c;
@@ -219,7 +218,7 @@ private slots:
         pair.pump();
         QCOMPARE(pair.host.negotiation->stage(), Negotiation::Stage::Started);
         QCOMPARE(pair.applicant.negotiation->stage(), Negotiation::Stage::Started);
-        QVERIFY(pair.host.negotiation->applicantSigned());
+        QVERIFY(pair.host.negotiation->opponentVerified());
     }
 
     void incompatibleSidesAreRejected()

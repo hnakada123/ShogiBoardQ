@@ -11,7 +11,6 @@
 #include <initializer_list>
 #include <utility>
 
-#include "p2pdisplayname.h"
 #include "p2pprotocol.h"
 
 namespace PeerIpc {
@@ -81,14 +80,6 @@ Check base64(int maxLength)
 Check u64()
 {
     return [](const QJsonValue& v) { return parseU64(v).has_value(); };
-}
-
-Check u64Max(quint64 maximum)
-{
-    return [maximum](const QJsonValue& v) {
-        const std::optional<quint64> n = parseU64(v);
-        return n && *n <= maximum;
-    };
 }
 
 Check integer(int minimum, int maximum)
@@ -213,20 +204,6 @@ std::optional<Incoming> parse(const QByteArray& json, QString* error)
     return in;
 }
 
-bool checkOffer(const QJsonObject& offer)
-{
-    return exactFields(offer, {{"offerId", hex32()},
-                               {"sequence", u64()},
-                               {"peerId", peerIdText()},
-                               {"displayName", [](const QJsonValue& v) { return v.isString() && P2p::DisplayName::isValid(v.toString()); }},
-                               {"rulesHash", hex32()},
-                               {"mainMs", u64Max(P2p::kMaxMainMs)},
-                               {"byoyomiMs", u64Max(P2p::kMaxByoyomiMs)},
-                               {"sidePreference", oneOf({"none", "black", "white"})},
-                               {"createdAt", u64()},
-                               {"expiresAt", u64()}});
-}
-
 bool checkResult(const QString& method, const QJsonObject& result)
 {
     if (method == QLatin1String("hello")) {
@@ -245,7 +222,6 @@ bool checkResult(const QString& method, const QJsonObject& result)
                                     {"networkId", hex32()},
                                     {"profile", oneOf({"local", "internet"})}});
     }
-    if (method == QLatin1String("publishOffer")) return exactFields(result, {{"offerId", hex32()}});
     if (method == QLatin1String("createInvite")) {
         return exactFields(result, {{"invite", str(1024)}, {"expiresAt", u64()}, {"addressCount", integer(0, 8)}});
     }
@@ -256,12 +232,10 @@ bool checkResult(const QString& method, const QJsonObject& result)
                                     {"usableAddressCount", integer(0, 8)},
                                     {"privateAddresses", stringArray(8, 256)}});
     }
-    if (method == QLatin1String("connectInvite") || method == QLatin1String("connectOffer")
-        || method == QLatin1String("connectPeer")) {
+    if (method == QLatin1String("connectInvite") || method == QLatin1String("connectPeer")) {
         return exactFields(result, {{"connection", u64()}});
     }
-    if (method == QLatin1String("withdrawOffer") || method == QLatin1String("listOffers")
-        || method == QLatin1String("cancelInvites") || method == QLatin1String("setGamePeer")
+    if (method == QLatin1String("cancelInvites") || method == QLatin1String("setGamePeer")
         || method == QLatin1String("sendFrame") || method == QLatin1String("closeConnection")
         || method == QLatin1String("shutdown")) {
         return result.isEmpty();
@@ -273,30 +247,9 @@ bool checkNotification(const QString& name, const QJsonObject& params)
 {
     if (name == QLatin1String("networkStatus")) {
         return exactFields(params, {{"state", oneOf({"connecting", "online", "offline"})},
-                                    {"listenAddrs", stringArray(16, 256)},
                                     {"connectedPeers", integer(0, 100000)},
                                     {"reachability", oneOf({"unknown", "public", "private"})},
-                                    {"relayReservations", integer(0, 1000)},
-                                    {"clockSkewSuspected", boolean()}});
-    }
-    if (name == QLatin1String("offersChanged")) {
-        return exactFields(params, {{"added", [](const QJsonValue& v) {
-                                         if (!v.isArray() || v.toArray().size() > 50) return false;
-                                         const QJsonArray array = v.toArray();
-                                         for (const QJsonValue& item : array) {
-                                             if (!item.isObject() || !checkOffer(item.toObject())) return false;
-                                         }
-                                         return true;
-                                     }},
-                                    {"removed", [](const QJsonValue& v) {
-                                         if (!v.isArray() || v.toArray().size() > 1000) return false;
-                                         const QJsonArray array = v.toArray();
-                                         const Check id = hex32();
-                                         for (const QJsonValue& item : array) {
-                                             if (!id(item)) return false;
-                                         }
-                                         return true;
-                                     }}});
+                                    {"relayReservations", integer(0, 1000)}});
     }
     if (name == QLatin1String("connectionOpened")) {
         return exactFields(params, {{"connection", u64()},
@@ -304,7 +257,7 @@ bool checkNotification(const QString& name, const QJsonObject& params)
                                     {"peerIdBytes", base64(128)},
                                     {"route", oneOf({"direct", "relay"})},
                                     {"direction", oneOf({"inbound", "outbound"})},
-                                    {"origin", oneOf({"invite", "offer", "game"})}});
+                                    {"origin", oneOf({"invite", "game"})}});
     }
     if (name == QLatin1String("connectionRoute")) {
         return exactFields(params, {{"connection", u64()}, {"route", oneOf({"direct", "relay"})}});
@@ -314,10 +267,9 @@ bool checkNotification(const QString& name, const QJsonObject& params)
     }
     if (name == QLatin1String("connectionClosed")) {
         return exactFields(params, {{"connection", u64()},
-                                    {"reason", oneOf({"closed", "reset", "timeout", "unreachable", "invalid_frame",
-                                                      "rate_limited", "limit", "shutdown"})}});
+                                    {"reason", oneOf({"closed", "reset", "timeout", "unreachable", "no_relay_route",
+                                                      "invalid_frame", "rate_limited", "limit", "shutdown"})}});
     }
-    if (name == QLatin1String("knownPeers")) return exactFields(params, {{"peers", stringArray(64, 256)}});
     return false;
 }
 

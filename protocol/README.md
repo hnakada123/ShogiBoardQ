@@ -6,10 +6,10 @@
 
 | ファイル | 内容 | 使う側 |
 |---|---|---|
-| `README.md`（本書） | 決定的CBOR・ハッシュ・フレームの外枠・招待文字列・募集・一覧取得 | 両方 |
+| `README.md`（本書） | 決定的CBOR・ハッシュ・フレームの外枠・招待文字列 | 両方 |
 | `ipc.md` | 対局・UI側と通信プロセスの間の IPC（4バイト長＋JSON） | 両方 |
 | `game-frames.md` | 対局フレームの payload（HELLO など）。通信プロセスは読まない | C++ |
-| `displayname-v1.txt` | 表示名に使える文字の表 v1 | 両方 |
+| `displayname-v1.txt` | 表示名に使える文字の表 v1 | C++ |
 | `testvectors/` | 両方の実装で同じ結果になることを確かめる入力の一覧 | 両方の試験 |
 | `rust/` | Rust の crate `sbq-protocol`（上の取り決めの Rust 実装。`peer/` が使う） | Rust |
 
@@ -32,12 +32,10 @@
 ハッシュ関数 `H` は SHA-256 で、`H(CBOR(x))` は x の決定的CBORのバイト列の SHA-256 である。
 16進表記は小文字。
 
-### 1.1 ネットワークとロビー
+### 1.1 ネットワーク
 
 ```text
 networkId = H(CBOR(["SBQ-NETWORK", 1, networkName]))     ; networkName は text（ASCII、1〜32バイト）
-lobbyKey  = H(CBOR(["SBQ-LOBBY", 1, networkId, rulesHash])) ; networkId・rulesHash は byte string（32）
-topic     = "/shogiboardq/lobby/1/" + hex(networkId) + "/" + hex(rulesHash)
 ```
 
 このビルドが参加できる networkName は次の2つだけである（実装仕様 3.1節）。両方の実装がこの一覧を持ち、
@@ -49,6 +47,10 @@ topic     = "/shogiboardq/lobby/1/" + hex(networkId) + "/" + hex(rulesHash)
 | `sbq-limited-1` | `internet`（限定試験用） | ビルドから180日 | インターネット上のアドレスと中継だけ（`ipc.md` 5章） |
 
 `rulesHash` は v1 では1つの値（平手・512手・人間対人間の `Rules`。`game-frames.md`）だけを使う。
+対局・UI側だけが扱い、通信プロセスは使わない。
+
+公開募集（GossipSub・Kademlia・一覧取得）は第5版でやめた（実装仕様の「第5版の変更点」）。対局の相手は
+招待文字列（3章）で決める。
 
 ## 2. 対局フレームの外枠
 
@@ -115,61 +117,14 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 - 到達候補のうち、今の profile で使えない宛先（`ipc.md` 5章）は捨てる。私設アドレスは、`local` 以外の
   profile では利用者が確認画面で許可したとき（`connectInvite` の `allowPrivate`）だけ使う。
 
-## 4. 募集
-
-公開募集は GossipSub の topic（1.1節）へ流し、一覧取得（5章）でも配る。どちらも同じ `SignedOffer` を運ぶ。
-
-```text
-OfferBody   = ["SBQ-OFFER", 1, networkId, offerId, sequence, peerId, displayName, rulesHash,
-               [mainMs, byoyomiMs], sidePreference, createdAt, expiresAt, availability]
-SignedOffer = [body, signature]   ; body は OfferBody の決定的CBORを入れた bstr。signature は bstr(64)
-```
-
-| 項目 | 型 | 規則 |
-|---|---|---|
-| offerId | bstr(32) | CSPRNG。通信プロセスが作る |
-| sequence | uint | 同じ offerId の更新ごとに増える |
-| peerId | bstr | 発信ピアの PeerId（バイナリ）。Ed25519 の identity multihash に限る |
-| displayName | tstr | `displayname-v1.txt` の規則 |
-| rulesHash | bstr(32) | topic の rulesHash と一致 |
-| mainMs | uint | 0〜86,400,000 |
-| byoyomiMs | uint | 0〜600,000。mainMs と両方0は拒否 |
-| sidePreference | uint | 0=指定なし、1=先手希望、2=後手希望 |
-| createdAt・expiresAt | uint | UNIX秒。`createdAt < expiresAt <= createdAt + 120` |
-| availability | uint | 1=Open、2=Withdrawn |
-
-- signature は、peerId から取り出した Ed25519 公開鍵（libp2p 識別鍵）による body のバイト列への署名。
-- SignedOffer 全体は 1024 バイト以下。
-- 受けた側は、型・範囲・署名・発信者（GossipSub のメッセージの source）と peerId の一致・期限・
-  時刻のずれ（createdAt が自分の時計より 30 秒を超えて先なら拒否）・sequence（同じ offerId で前より大きいこと）・
-  更新の頻度（同じ発信者で10秒に1回まで。保持している募集の取り下げ（Withdrawn）は頻度によらず受け付ける）を確かめ、
-  すべて通ったものだけを保持し、転送する。形・署名・発信者の一致が誤っているものは GossipSub で Reject（送ってきた
-  ピアを減点）、期限切れ・古い sequence・頻度・上限・時刻のずれは Ignore（減点しない）として扱う。
-- 同じ発信者の Open の募集は1件だけ保持する（新しい offerId が来たら古いものを捨てる）。
-- 再受信で有効期限を延ばさない。見た (offerId, sequence) は10分間、上限付きで覚える。
-- 保持は1,000件まで。上限に達したら新しい発信者の募集は期限切れで空くまで受け付けない。
-
-## 5. 一覧取得 `/shogiboardq/lobby/1.0.0`
-
-途中から参加したピアが、ほかのピアが保持している募集を取り寄せる。1回の要求に1回の応答を返す
-（libp2p の request-response。どちらも 4 バイトの長さ＋決定的CBOR、64 KiB まで）。
-
-```text
-ListRequest  = ["SBQ-LIST", 1, networkId, rulesHash, cursor]          ; cursor は uint（最初は 0）
-ListResponse = ["SBQ-LIST-RESP", 1, [SignedOffer, ...], nextCursor]   ; 50件まで。続きがなければ nextCursor は 0
-```
-
-- 応答の各募集は、受けた側が4章と同じ規則で検査する。応答した相手を募集の発信者とはみなさない。
-- 同じ相手からの要求は 10 秒に 1 回まで。超えた要求には空の一覧を返す。
-
-## 6. 試験の入力（testvectors/）
+## 4. 試験の入力（testvectors/）
 
 | ファイル | 行の形 |
 |---|---|
 | `cbor.txt` | `valid <hex>` または `invalid <hex>`（決定的CBORとして読めるか） |
 | `frames.txt` | `valid <hex>` または `invalid <hex>`（2章の外枠として正しいか） |
-| `displayname.txt` | `accept <hex(UTF-8)>` または `reject <hex(UTF-8)>` |
-| `network.txt` | `<networkName> <hex(networkId)> <hex(rulesHash)> <hex(lobbyKey)> <topic>` |
+| `displayname.txt` | `accept <hex(UTF-8)>` または `reject <hex(UTF-8)>`（C++ だけが読む） |
+| `network.txt` | `<networkName> <hex(networkId)> <hex(rulesHash)>`（rulesHash は C++ だけが確かめる） |
 
 `#` で始まる行と空行は読み飛ばす。C++（`tests/tst_p2p_protocol.cpp`）と Rust（`protocol/rust` の試験）が
 同じファイルを読み、同じ結果になることを確かめる（開発方針 5.1節の「実装どうしの一致」）。

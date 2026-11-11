@@ -28,7 +28,6 @@ public:
     /// 一覧に出す短いプレイヤーID（先頭12文字。同一性の判断には使わせない）
     static QString shortPlayerId(const QByteArray& playerKey);
     static QString timeControlText(const P2p::TimeControlTerms& terms);
-    static QString sideText(P2p::SidePreference side);
     static QString rulesText();
     static QString recordContentsText();
     static QString outcomeText(P2p::Outcome outcome, P2p::Cause cause);

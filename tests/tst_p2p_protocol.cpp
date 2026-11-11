@@ -128,12 +128,10 @@ private slots:
         QVERIFY2(lines.size() >= 2, "protocol/testvectors/network.txt is missing");
         for (const QByteArray& line : lines) {
             const QList<QByteArray> parts = line.split(' ');
-            QCOMPARE(parts.size(), 5);
+            QCOMPARE(parts.size(), 3);
             const QByteArray id = networkId(parts.at(0));
             QCOMPARE(id.toHex(), parts.at(1));
             QCOMPARE(Rules::v1Hash().toHex(), parts.at(2));
-            QCOMPARE(lobbyKey(id, Rules::v1Hash()).toHex(), parts.at(3));
-            QCOMPARE(lobbyTopic(id, Rules::v1Hash()).toLatin1(), parts.at(4));
             QVERIFY(findNetwork(QString::fromLatin1(parts.at(0))));
         }
     }

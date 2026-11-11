@@ -45,7 +45,7 @@ constexpr StateSet kAllStates = in(S::Idle) | in(S::DuringGame) | in(S::DuringAn
                               | in(S::DuringCsaConnection) | in(S::DuringP2pConnection) | in(S::DuringP2pGame);
 /// 盤と棋譜を見るだけの状態（局面を変える操作はしないが、棋譜の閲覧・保存はできる）。通信対局の局と局の間も
 /// 見る・保存だけ（棋譜は次の対局で置き換わり、エンジンは次の対局で使う。OperationPolicy::canEditRecord は変えない）
-/// P2P対局の募集・交渉の間（DuringP2pConnection）も、前の対局の棋譜を見る・保存するだけ
+/// P2P対局の招待・交渉の間（DuringP2pConnection）も、前の対局の棋譜を見る・保存するだけ
 constexpr StateSet kBrowsing = in(S::Idle) | in(S::DuringTsumeSearch) | in(S::DuringConsideration)
                              | in(S::DuringCsaConnection) | in(S::DuringP2pConnection);
 constexpr StateSet kPlaying = in(S::DuringGame) | in(S::DuringCsaGame);
@@ -110,7 +110,7 @@ constexpr Rule kRules[] = {
     {E::WidgetNavigation,       kBrowsing,    Off::Disable},
     // 局面編集中は盤が編集中の局面なので検討しない（編集を終えてから始める）
     // 通信対局の局と局の間は、次の対局でエンジンを使うので検討しない
-    // P2P対局の間は、アプリが手の助言をしない（実装仕様 10.3節。募集・交渉の間も、いつ対局が始まるか分からないので止める）
+    // P2P対局の間は、アプリが手の助言をしない（実装仕様 10.3節。招待・交渉の間も、いつ対局が始まるか分からないので止める）
     {E::WidgetConsiderationStart, kAllStates & ~kPlaying & ~in(S::DuringPositionEdit) & ~in(S::DuringCsaConnection) & ~kP2p,
      Off::Disable},
 };

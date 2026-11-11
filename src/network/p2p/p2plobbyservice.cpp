@@ -3,6 +3,7 @@
 
 #include "p2plobbyservice.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QJsonArray>
 
@@ -14,23 +15,6 @@
 #include "peeripc.h"
 
 namespace {
-
-QString sideName(P2p::SidePreference side)
-{
-    switch (side) {
-    case P2p::SidePreference::Black: return QStringLiteral("black");
-    case P2p::SidePreference::White: return QStringLiteral("white");
-    case P2p::SidePreference::None: break;
-    }
-    return QStringLiteral("none");
-}
-
-P2p::SidePreference sideOf(const QString& name)
-{
-    if (name == QLatin1String("black")) return P2p::SidePreference::Black;
-    if (name == QLatin1String("white")) return P2p::SidePreference::White;
-    return P2p::SidePreference::None;
-}
 
 quint64 u64(const QJsonValue& value)
 {
@@ -53,8 +37,6 @@ P2pLobbyService::P2pLobbyService(const Deps& deps, const QString& dataRoot, QObj
     if (m_deps.game) {
         connect(m_deps.game, &P2pGameCoordinator::resultAgreed, this, &P2pLobbyService::onGameReleased);
         connect(m_deps.game, &P2pGameCoordinator::gameFinished, this, &P2pLobbyService::onGameReleased);
-        connect(m_deps.game, &P2pGameCoordinator::negotiationAbandoned, this, &P2pLobbyService::onNegotiationAbandoned);
-        connect(m_deps.game, &P2pGameCoordinator::applicantVerified, this, &P2pLobbyService::onApplicantVerified);
     }
 }
 
@@ -103,8 +85,8 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
     m_localProfile = network->local;
     m_status = Status::Starting;
     m_peerFailure = PeerProcess::Failure::None;
-    m_offers.clear();
-    m_offerId.clear();
+    m_connectedPeers = 0;
+    m_relayReservations = 0;
     holdConnectionActivity();
 
     m_peer = new PeerProcess(this);
@@ -125,11 +107,7 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
 void P2pLobbyService::end()
 {
     if (m_deps.game) m_deps.game->leaveGame();
-    if (m_peer && m_peer->isReady()) {
-        if (hasOffer()) m_peer->request(QStringLiteral("withdrawOffer"));
-        m_peer->request(QStringLiteral("cancelInvites"));
-    }
-    m_offerId.clear();
+    if (m_peer && m_peer->isReady()) m_peer->request(QStringLiteral("cancelInvites"));
     m_inviteActive = false;
     if (m_peer) m_peer->stop();
     m_status = Status::Off;
@@ -168,9 +146,7 @@ void P2pLobbyService::onPeerReady()
 {
     QJsonObject params;
     params[QStringLiteral("networkName")] = m_networkName;
-    params[QStringLiteral("rulesHash")] = QString::fromLatin1(P2p::Rules::v1Hash().toHex());
     params[QStringLiteral("bootstrap")] = QJsonArray::fromStringList(m_bootstrap);
-    params[QStringLiteral("knownPeers")] = QJsonArray::fromStringList(m_store->knownPeerAddresses());
     params[QStringLiteral("relayOnly")] = m_relayOnly;
     m_peer->request(QStringLiteral("start"), params);
 }
@@ -187,12 +163,6 @@ void P2pLobbyService::onPeerReplied(quint64 requestId, const QString& method, co
             return;
         }
         m_status = Status::Online;
-        emit statusChanged();
-        refreshOffers();
-        return;
-    }
-    if (method == QLatin1String("publishOffer")) {
-        m_offerId = QByteArray::fromHex(result.value(QStringLiteral("offerId")).toString().toLatin1());
         emit statusChanged();
         return;
     }
@@ -215,7 +185,7 @@ void P2pLobbyService::onPeerReplied(quint64 requestId, const QString& method, co
         emit inviteInspected(info);
         return;
     }
-    if (method == QLatin1String("connectInvite") || method == QLatin1String("connectOffer")) {
+    if (method == QLatin1String("connectInvite")) {
         // 接続の番号を受け取った。開いたら交渉を始める
         const auto it = m_connectRequests.find(requestId);
         if (it == m_connectRequests.end()) return;
@@ -238,16 +208,14 @@ void P2pLobbyService::onPeerFailed(PeerProcess::Failure failure, const QString& 
 {
     m_peerFailure = failure;
     m_status = Status::Failed;
-    // 通信プロセスの異常終了: 募集・交渉は取消。対局中なら中断（結果未確定）
+    // 通信プロセスの異常終了: 招待・交渉は取消。対局中なら中断（結果未確定）
     if (m_deps.game) {
         m_deps.game->leaveGame();
     }
-    m_offerId.clear();
-    m_offers.clear();
+    m_inviteActive = false;
     m_pendingConnections.clear();
     m_connectRequests.clear();
     emit peerFailed(failure, detail);
-    emit offersChanged();
     emit statusChanged();
 }
 
@@ -266,8 +234,6 @@ void P2pLobbyService::onPeerNotified(const QString& name, const QJsonObject& par
 {
     if (name == QLatin1String("networkStatus")) {
         handleNetworkStatus(params);
-    } else if (name == QLatin1String("offersChanged")) {
-        handleOffersChanged(params);
     } else if (name == QLatin1String("connectionOpened")) {
         handleConnectionOpened(params);
     } else if (name == QLatin1String("frameReceived")) {
@@ -285,11 +251,6 @@ void P2pLobbyService::onPeerNotified(const QString& name, const QJsonObject& par
             m_deps.game->onRouteChanged(connectionOf(params),
                                         params.value(QStringLiteral("route")).toString() == QLatin1String("relay"));
         }
-    } else if (name == QLatin1String("knownPeers")) {
-        QStringList peers;
-        const QJsonArray array2 = params.value(QStringLiteral("peers")).toArray();
-        for (const auto& peer : array2) peers << peer.toString();
-        m_store->saveKnownPeerAddresses(peers);
     }
 }
 
@@ -300,39 +261,10 @@ quint64 P2pLobbyService::connectionOf(const QJsonObject& params) const
 
 void P2pLobbyService::handleNetworkStatus(const QJsonObject& params)
 {
-    m_listenAddrs.clear();
-    const QJsonArray array3 = params.value(QStringLiteral("listenAddrs")).toArray();
-    for (const auto& address : array3) m_listenAddrs << address.toString();
     m_connectedPeers = params.value(QStringLiteral("connectedPeers")).toInt();
     m_reachability = params.value(QStringLiteral("reachability")).toString();
-    m_clockSkew = params.value(QStringLiteral("clockSkewSuspected")).toBool();
+    m_relayReservations = params.value(QStringLiteral("relayReservations")).toInt();
     emit networkStatusChanged();
-}
-
-void P2pLobbyService::handleOffersChanged(const QJsonObject& params)
-{
-    const QJsonArray array4 = params.value(QStringLiteral("removed")).toArray();
-    for (const auto& id : array4) {
-        m_offers.remove(QByteArray::fromHex(id.toString().toLatin1()));
-    }
-    const QJsonArray array5 = params.value(QStringLiteral("added")).toArray();
-    for (const auto& item : array5) {
-        const QJsonObject o = item.toObject();
-        // 通信プロセスが確かめた募集も、形・上限・表示名の規則を確かめ直す（PeerIpc::checkOffer で検査済み）
-        Offer offer;
-        offer.offerId = QByteArray::fromHex(o.value(QStringLiteral("offerId")).toString().toLatin1());
-        offer.peerId = o.value(QStringLiteral("peerId")).toString();
-        offer.displayName = o.value(QStringLiteral("displayName")).toString();
-        offer.terms.mainMs = u64(o.value(QStringLiteral("mainMs")));
-        offer.terms.byoyomiMs = u64(o.value(QStringLiteral("byoyomiMs")));
-        offer.side = sideOf(o.value(QStringLiteral("sidePreference")).toString());
-        offer.expiresAt = u64(o.value(QStringLiteral("expiresAt")));
-        if (!offer.terms.isValid() || o.value(QStringLiteral("rulesHash")).toString() != QString::fromLatin1(P2p::Rules::v1Hash().toHex())) {
-            continue;
-        }
-        m_offers.insert(offer.offerId, offer);
-    }
-    emit offersChanged();
 }
 
 // ---------------------------------------------------------------- 接続の振り分け
@@ -358,7 +290,7 @@ void P2pLobbyService::handleConnectionOpened(const QJsonObject& params)
     }
 
     if (outbound) {
-        // 自分が申し込んだ・招待で接続した
+        // 自分が招待で接続した
         const auto it = m_pendingConnections.find(connection);
         if (it == m_pendingConnections.end()) {
             closeConnection(connection);
@@ -373,8 +305,8 @@ void P2pLobbyService::handleConnectionOpened(const QJsonObject& params)
         return;
     }
 
-    // 相手からの申込み（募集・招待）。交渉中・対局中なら BUSY、再申込みの拒否の対象も BUSY
-    if (m_deps.game->isBusy() || isReapplyBlocked(peerId)) {
+    // 自分の招待を使った相手からの接続。交渉中・対局中なら BUSY
+    if (m_deps.game->isBusy()) {
         rejectConnection(connection, P2p::ErrorCode::Busy);
         return;
     }
@@ -384,15 +316,9 @@ void P2pLobbyService::handleConnectionOpened(const QJsonObject& params)
     request.opponentPeerIdBytes = peerIdBytes;
     request.role = P2p::kRoleHost;
     request.viaRelay = viaRelay;
-    if (origin == QLatin1String("offer") && hasOffer()) {
-        request.myDisplayName = m_offerDisplayName;
-        request.mySide = m_offerSide;
-        request.offerId = m_offerId;
-        request.hostTerms = m_offerTerms;
-    } else if (origin == QLatin1String("invite") && m_inviteActive) {
+    if (origin == QLatin1String("invite") && m_inviteActive) {
         request.myDisplayName = m_inviteDisplayName;
         request.mySide = m_inviteSide;
-        request.offerId = P2p::zeroHash();
         request.hostTerms = m_inviteTerms;
     } else {
         rejectConnection(connection, P2p::ErrorCode::Expired);
@@ -410,82 +336,6 @@ void P2pLobbyService::rejectConnection(quint64 connection, P2p::ErrorCode code)
     frame.payload = P2p::rejectPayload(code);
     sendFrame(connection, frame.encode());
     closeConnection(connection);
-}
-
-bool P2pLobbyService::isReapplyBlocked(const QString& peerId) const
-{
-    const auto it = m_reapplyBlockedUntil.constFind(peerId);
-    return it != m_reapplyBlockedUntil.constEnd() && it.value() > QDateTime::currentSecsSinceEpoch();
-}
-
-void P2pLobbyService::onNegotiationAbandoned(const QString& peerId, const QByteArray& verifiedPlayerKey)
-{
-    Q_UNUSED(verifiedPlayerKey);
-    // 募集側だけが受ける申込みを、開始に至らなかった相手から10分間拒否する。繰り返す相手には時間を延ばす
-    if (peerId.isEmpty()) return;
-    const int count = ++m_reapplyCount[peerId];
-    const qint64 seconds = kReapplyBlockSeconds * qMin(8, 1 << qMin(3, count - 1));
-    m_reapplyBlockedUntil.insert(peerId, QDateTime::currentSecsSinceEpoch() + seconds);
-}
-
-void P2pLobbyService::onApplicantVerified(const QString& peerId)
-{
-    Q_UNUSED(peerId);
-    // 申込側の開始署名を確かめた時点で募集を取り下げる（実装仕様 3.3節）
-    if (hasOffer()) withdrawOffer();
-}
-
-// ---------------------------------------------------------------- 募集
-
-void P2pLobbyService::publishOffer(const QString& displayName, const P2p::TimeControlTerms& terms,
-                                   P2p::SidePreference side)
-{
-    if (!m_peer || m_status != Status::Online) return;
-    m_offerDisplayName = displayName;
-    m_offerTerms = terms;
-    m_offerSide = side;
-    QJsonObject params;
-    params[QStringLiteral("displayName")] = displayName;
-    params[QStringLiteral("mainMs")] = QString::number(terms.mainMs);
-    params[QStringLiteral("byoyomiMs")] = QString::number(terms.byoyomiMs);
-    params[QStringLiteral("sidePreference")] = sideName(side);
-    m_peer->request(QStringLiteral("publishOffer"), params);
-}
-
-void P2pLobbyService::withdrawOffer()
-{
-    if (m_peer && m_peer->isReady() && hasOffer()) m_peer->request(QStringLiteral("withdrawOffer"));
-    m_offerId.clear();
-    emit statusChanged();
-}
-
-void P2pLobbyService::refreshOffers()
-{
-    if (m_peer && m_status == Status::Online) m_peer->request(QStringLiteral("listOffers"));
-}
-
-bool P2pLobbyService::applyToOffer(const QByteArray& offerId, const QString& myDisplayName, P2p::SidePreference mySide)
-{
-    const auto it = m_offers.constFind(offerId);
-    if (!m_peer || m_status != Status::Online || it == m_offers.constEnd() || (m_deps.game && m_deps.game->isBusy())) {
-        return false;
-    }
-    if (!P2p::Negotiation::sidesCompatible(mySide, it->side)) return false;
-    P2pGameCoordinator::NegotiationRequest request;
-    request.role = P2p::kRoleApplicant;
-    request.myDisplayName = myDisplayName;
-    request.mySide = mySide;
-    request.offerId = offerId;
-    // 申込側は、HELLO の応答の条件・表示名・先後の希望が見た募集と同じであることを確かめる
-    request.expectedTerms = it->terms;
-    request.expectedDisplayName = it->displayName;
-    request.expectedHostSide = it->side;
-    QJsonObject params;
-    params[QStringLiteral("offerId")] = QString::fromLatin1(offerId.toHex());
-    const quint64 id = m_peer->request(QStringLiteral("connectOffer"), params);
-    if (id == 0) return false;
-    m_connectRequests.insert(id, request);
-    return true;
 }
 
 // ---------------------------------------------------------------- 招待
@@ -522,7 +372,6 @@ void P2pLobbyService::connectInvite(const QString& invite, bool allowPrivate, co
     request.myDisplayName = myDisplayName;
     // 招待では先後の希望を「指定なし」にし、条件は招待した側の HELLO の応答で初めて知る
     request.mySide = P2p::SidePreference::None;
-    request.offerId = P2p::zeroHash();
     QJsonObject params;
     params[QStringLiteral("invite")] = invite;
     params[QStringLiteral("allowPrivate")] = allowPrivate;

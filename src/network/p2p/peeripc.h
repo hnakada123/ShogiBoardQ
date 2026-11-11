@@ -14,7 +14,7 @@ namespace PeerIpc {
 
 /// IPC 1件の上限（128 KiB）
 inline constexpr qsizetype kMaxMessageBytes = 128 * 1024;
-inline constexpr int kProtocolVersion = 1;
+inline constexpr int kProtocolVersion = 2;
 
 /// 長さの前置きを付けたメッセージ
 QByteArray frame(const QJsonObject& message);
@@ -48,9 +48,6 @@ bool checkResult(const QString& method, const QJsonObject& result);
 
 /// 通知の params が、その通知の形に合うか（protocol/ipc.md 4章）
 bool checkNotification(const QString& name, const QJsonObject& params);
-
-/// 募集1件（offersChanged の added の要素）の形
-bool checkOffer(const QJsonObject& offer);
 
 } // namespace PeerIpc
 

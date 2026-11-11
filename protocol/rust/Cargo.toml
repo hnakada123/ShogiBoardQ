@@ -1,6 +1,6 @@
 [package]
 name = "sbq-protocol"
-description = "ShogiBoardQ P2P: deterministic CBOR, frames, invites, offers, display names"
+description = "ShogiBoardQ P2P: deterministic CBOR, frames, invites"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
