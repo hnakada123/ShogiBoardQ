@@ -88,6 +88,9 @@ private:
     QWidget* createSettingsTab();
     void loadSettings();
     bool checkDisplayName();
+    /// 文が増えて今の高さに収まらなくなったら、収まる高さまでウィンドウを広げる（画面の高さまで）。折り返すラベルの
+    /// 高さは幅で決まり、ウィンドウの最小の高さには入らないので、Qt は自動では広げず、足りない分だけ文が欠ける
+    void growToFit();
 
     QPointer<P2pLobbyService> m_lobby;
     QPointer<P2pGameCoordinator> m_game;
