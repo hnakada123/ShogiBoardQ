@@ -209,6 +209,15 @@
                 </div>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">与同一局域网的另一台电脑对局</span>
+                </div>
+                <p class="guide-step-text">把网络设为“本地验证用（同一电脑・同一局域网）”后，无需协作节点，只用邀请字符串就能与同一局域网的另一台电脑连接。只能在同一电脑和同一局域网内连接，无法连接互联网上的对手。</p>
+                <p class="guide-step-text">邀请方的电脑在 TCP 和 UDP 的 48210 端口等待连接（在同一电脑上运行第二个应用时，第二个会使用空闲端口）。无法连接时，请确认邀请方电脑的防火墙允许局域网内对该端口的连接。使用 firewalld 时，可用 <code>sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code> 在重启前临时放行。交换邀请方后也可能连接成功。</p>
+            </div>
+
         </div>
     </div>
 </section>

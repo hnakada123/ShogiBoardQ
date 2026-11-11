@@ -209,6 +209,15 @@
                 </div>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">與同一區域網路的另一台電腦對局</span>
+                </div>
+                <p class="guide-step-text">把網路設為「本機驗證用（同一電腦・同一區域網路）」後，無需協作節點，只用邀請字串就能與同一區域網路的另一台電腦連線。只能在同一電腦和同一區域網路內連線，無法連線網際網路上的對手。</p>
+                <p class="guide-step-text">邀請方的電腦在 TCP 和 UDP 的 48210 連接埠等待連線（在同一電腦上執行第二個應用程式時，第二個會使用空閒的連接埠）。無法連線時，請確認邀請方電腦的防火牆允許區域網路內對該連接埠的連線。使用 firewalld 時，可用 <code>sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code> 在重新開機前暫時放行。交換邀請方後也可能連線成功。</p>
+            </div>
+
         </div>
     </div>
 </section>
