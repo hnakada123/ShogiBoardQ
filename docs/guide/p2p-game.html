@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P対局（実験版） - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ P2P実験版のP2P対局の使い方。プレイヤー鍵の準備、招待文字列と公開募集での対局、条件確認画面、対局中の操作、対局記録（証跡）の検証、相手の管理、防げないことと相手に見える情報を解説します。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
+    <meta property="og:title" content="P2P対局（実験版） - ShogiBoardQ">
+    <meta property="og:description" content="対局サーバーを使わずに相手と直接つないで指し、開始と結果に双方が署名した対局記録を手元に残します。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/p2p-game/p2p-confirm.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="P2P対局（実験版） - ShogiBoardQ">
+    <meta name="twitter:description" content="対局サーバーを使わずに相手と直接つないで指し、開始と結果に双方が署名した対局記録を手元に残します。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/p2p-game/p2p-confirm.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-game.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-game.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-game.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="p2p-game.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/p2p-game.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/p2p-game.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/p2p-game.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="メニュー" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="#prepare">準備</a></li>
+            <li><a href="#invite">招待</a></li>
+            <li><a href="#offers">募集</a></li>
+            <li><a href="#playing">対局中</a></li>
+            <li><a href="#records">記録と検証</a></li>
+            <li><a href="#limits">注意</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>P2P対局（実験版）</h1>
+        <p class="hero-subtitle">対局サーバーを使わずに相手と直接つないで指し、開始と結果に双方が署名した対局記録を手元に残します</p>
+        <div class="hero-badges">
+            <span class="badge">サーバー不要</span>
+            <span class="badge">招待・公開募集</span>
+            <span class="badge">署名付きの対局記録</span>
+            <span class="badge">実験版・Linux</span>
+        </div>
+        <p class="screenshot-note">試験中の機能です。画面や決まりは今後変わることがあります。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="about" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">P2P対局とは</h2>
+        <p class="section-desc">将棋盤Q P2P実験版だけにある、試験中の対局の機能です</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">相手のパソコンと直接つないで指す</span>
+                </div>
+                <p class="guide-step-text">P2P対局では、<a href="csa-game.html">CSA通信対局</a>のような対局サーバーを使わず、自分と相手のアプリが直接つながって指します（直接つなげないときは中継を使います）。相手には招待文字列を渡すか、公開の募集一覧から相手を探します。</p>
+                <p class="guide-step-text">対局の開始と結果には、このアプリが作るプレイヤー鍵で双方が署名します。プレイヤー鍵の公開鍵が、あなたの「プレイヤーID」です。実名や外部サービスのアカウントは使いません。対局が終わると、双方の署名が付いた対局記録（証跡）が双方の手元に保存され、だれでも検証できます。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">実験版で使えるもの</span>
+                </div>
+                <p class="guide-step-text">P2P対局は、通常の ShogiBoardQ とは別のアプリ「将棋盤Q P2P実験版」（ShogiBoardQ-P2P）に入っています。設定ファイルや記録は通常版と分かれていて混ざりません。ソースからビルドするときに CMake で <code>-DENABLE_P2P_PLAY=ON</code> を付けます（libsodium と Rust が必要です。ビルドの手順は<a href="linux-build-and-release.html">Linux ビルド・リリース手順</a>）。</p>
+                <ul class="guide-step-text">
+                    <li><strong>対応OS</strong>：今は Linux だけです。通信を受け持つプロセス（shogiboardq-peer）の権限を OS の機能で制限できない環境では使えません。</li>
+                    <li><strong>ネットワーク</strong>：「ローカル検証用（同じPC・同じLAN）」と「限定試験用」の2つです。限定試験用は、協力ノードのアドレスを「設定」の「接続候補」に入れて参加します。</li>
+                    <li><strong>使用期限</strong>：ビルドした日から180日を過ぎると、限定試験用のネットワークに参加しません。ローカル検証用と、保存した記録の確認・検証は期限後も使えます。</li>
+                    <li><strong>自動化 API</strong>：<code>--automation</code> を付けて起動したときは、P2P対局は使えません。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">対局の決まり</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">項目</th><th scope="col">決まり</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>手合・対局者</strong></td><td>平手だけです。人間どうしの対局で、対局中は検討・詰み探索・棋譜解析・定跡の表示を使えません。</td></tr>
+                        <tr><td><strong>持ち時間</strong></td><td>持ち時間（分）と秒読み（秒）。消費時間は双方が自己申告し、相手が測った時間と照らし合わせます。</td></tr>
+                        <tr><td><strong>先後</strong></td><td>双方の希望が合えば希望どおり、「指定なし」なら双方の乱数で決めます。</td></tr>
+                        <tr><td><strong>終局</strong></td><td>投了・詰み・時間切れ・千日手（引き分け）・連続王手の千日手（王手をかけた側の負け）・512手到達（引き分け）・合意による引き分け・合意による中断。</td></tr>
+                        <tr><td><strong>ないもの</strong></td><td>待ったと入玉宣言はありません（入玉は双方の合意で引き分けにできます）。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="prepare" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">準備</h2>
+        <p class="section-desc">P2P対局のウィンドウを開き、プレイヤー鍵を作ってネットワークに接続します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">「対局」→「P2P対局（実験版）…」を開く</span>
+                </div>
+                <p class="guide-step-text">メニューバーの「対局」から「P2P対局（実験版）…」を選ぶと、P2P対局のウィンドウが開きます。ウィンドウは開いたままでも盤や棋譜を操作できます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-menu.png"><img src="../images/p2p-game/p2p-menu.png" alt="「対局」メニューを開き、「P2P対局（実験版）…」を選んだところ" width="177" height="408" loading="lazy"></a>
+                    <p class="screenshot-caption">「対局」メニュー：「P2P対局（実験版）…」でウィンドウを開く</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">初めて接続するときにプレイヤー鍵を作る</span>
+                </div>
+                <p class="guide-step-text">「対戦相手を探す」タブで「ネットワーク」を選び、「接続」を押します。初めてのときは「P2P対局の準備」が開きます。下に並ぶ「防げないこと」を読んでから、鍵の保管の方法を選び、「プレイヤー鍵を作る」を押します。</p>
+                <ul class="guide-step-text">
+                    <li><strong>OSの鍵の保管庫（推奨）</strong>：OS の鍵の保管庫（KWallet・GNOME キーリングなど）に保存します。QtKeychain なしでビルドしたときは選べません。</li>
+                    <li><strong>パスフレーズで暗号化したファイル</strong>：パスフレーズから作った鍵で暗号化したファイルに保存します。アプリを起動して最初に接続するときに、パスフレーズを尋ねます。</li>
+                    <li><strong>暗号化しないファイル</strong>：このPCのファイルを読める人や持ち出した人が、あなたになりすまして対局できます。</li>
+                </ul>
+                <p class="guide-step-text">鍵のファイルは <code>~/.local/share/ShogiBoardQ-P2P/p2p/identity</code> に置きます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-identity.png"><img src="../images/p2p-game/p2p-identity.png" alt="プレイヤー鍵の保管の方法を選ぶ3つの選択肢と、防げないことの一覧が並ぶ「P2P対局の準備」ダイアログ" width="533" height="536" loading="lazy"></a>
+                    <p class="screenshot-caption">初めて接続するときに開く「P2P対局の準備」</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">表示名と条件を決める</span>
+                </div>
+                <p class="guide-step-text">接続すると「状態」が「接続中（つながっているピア: N）」になり、「あなたのプレイヤーID」が出ます。「表示名」には相手に見せる名前を入れます。表示名は1〜32文字で、前後に空白を置けません。英数字・記号・かな・漢字・全角英数が使えます。</p>
+                <p class="guide-step-text">「持ち時間」「秒読み」「先後」は、招待文字列と募集の条件になります。ローカル検証用で同じPCの別のアプリと試すときは、「接続先」に出るアドレスを相手の「設定」の「接続候補」に入れます。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="invite" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">招待で対局する</h2>
+        <p class="section-desc">知り合いと対局するときは、招待文字列を相手だけに渡します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">招待文字列を作って渡す</span>
+                </div>
+                <p class="guide-step-text">「招待で接続」タブの「招待文字列を作る」を押すと、招待文字列ができます。「コピー」でコピーして、メッセージなど相手だけに届く方法で渡します。招待文字列にはあなたの接続先（IPアドレス）が入るので、公開の場所に貼らないでください。</p>
+                <p class="guide-step-text">招待文字列は10分で使えなくなり、1回だけ使えます。持ち時間と先後は「対戦相手を探す」タブの条件を使います。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">受け取った招待文字列で接続する</span>
+                </div>
+                <p class="guide-step-text">招待された側は、受け取った招待文字列を「招待で接続する」の欄に貼り付けて「招待文字列を確かめる」を押します。招待した相手の PeerId・期限・到達候補の数が出るので、確かめてから「接続する」を押します。接続しただけでは対局は始まりません。次に開く条件確認画面で相手を確かめてから始めます。</p>
+                <p class="guide-step-text">同じLANの相手の招待文字列には、私設アドレスが入ることがあります。そのアドレスへ接続するときは、「上の私設アドレス（同じLANの相手）へ接続してよい」にチェックを付けます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-invite.png"><img src="../images/p2p-game/p2p-invite.png" alt="「招待で接続」タブ。上で自分の招待文字列を作り、下で受け取った招待文字列を確かめたところ" width="820" height="770" loading="lazy"></a>
+                    <p class="screenshot-caption">「招待で接続」タブ：招待文字列を作る（上）・受け取った招待文字列で接続する（下）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="offers" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">募集から相手を探す</h2>
+        <p class="section-desc">同じネットワークの募集一覧から相手を探すか、自分で募集を出します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">募集一覧から申し込む</span>
+                </div>
+                <p class="guide-step-text">接続すると「募集一覧」に、同じネットワークで募集を出している人が並びます。「一覧を更新」で読み直します。表示名・先後・持ち時間・期限を見て募集を選び、「申し込む」を押します。先後の希望が合わない募集には申し込めません。</p>
+                <p class="guide-step-text">表示名は自己申告です。募集一覧には見つかった募集だけが並び、全員が出るわけではありません。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-find.png"><img src="../images/p2p-game/p2p-find.png" alt="接続中の「対戦相手を探す」タブ。表示名と条件の欄の下の募集一覧に、佐藤さんと山田さんの募集が並んでいる" width="820" height="770" loading="lazy"></a>
+                    <p class="screenshot-caption">「対戦相手を探す」タブ：接続して、募集一覧に募集が並んだところ</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">自分で募集を出す</span>
+                </div>
+                <p class="guide-step-text">「募集を出す」を押すと、「名乗る名前と条件」の表示名・持ち時間・先後で募集を出します。募集の期限は2分で、出している間は30秒ごとに更新されます。やめるときは「募集を取り下げる」を押します。だれかが申し込むと、条件確認画面が開きます。</p>
+                <p class="guide-step-text">募集を出すと、あなたの IP アドレスが不特定の相手に見えます。見せたくないときは招待で対局するか、「設定」の「直接接続を使わない」を使ってください（中継の運営者には見えます）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="confirm" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">条件確認画面</h2>
+        <p class="section-desc">対局を始める前に、相手と条件を確かめます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">相手を確かめる</span>
+                </div>
+                <p class="guide-step-text">招待で接続したときや、募集に申し込んだとき・申し込まれたときは、双方に「P2P対局の条件の確認」が開きます。「相手」には、相手の表示名（自己申告）とプレイヤーIDが省略せずに出ます。相手が同じ人かどうかは、表示名ではなくプレイヤーIDで確かめます。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">表示</th><th scope="col">意味</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>相手の署名はまだ確かめていません。このIDは相手の申告です。</strong></td><td>開始の手続きの途中です。プレイヤーIDは、まだ相手が名乗っただけの値です。</td></tr>
+                        <tr><td><strong>相手の開始署名を確かめました。このIDの鍵の持ち主です。</strong></td><td>相手がこのIDの鍵で開始に署名しました。</td></tr>
+                        <tr><td><strong>確認済みの相手です（確認コードで照合済み）。</strong></td><td>「相手の管理」で確認済みにした相手です。手元で付けた名前も出ます。</td></tr>
+                        <tr><td><strong>初めての相手です。／この相手との対局: N局</strong></td><td>これまでの対局の数と、そのうち結果が確定しなかった対局の数です。</td></tr>
+                        <tr><td><strong>「…」と名付けた相手と同じ表示名ですが、プレイヤーIDが違います。</strong></td><td>赤字で出ます。名前を付けた相手とは別人の可能性があります。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">条件を確かめて始める</span>
+                </div>
+                <p class="guide-step-text">「対局の条件と記録」には、先後とその決め方、持ち時間、ルール、対局記録に残るものが出ます。よければ「開始」を押します。双方が「開始」を押すと対局が始まります。「取りやめる」を押すか、60秒以内に双方がそろわなければ取り消されます（残りの秒数が下に出ます）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-confirm.png"><img src="../images/p2p-game/p2p-confirm.png" alt="相手の表示名とプレイヤーID、署名をまだ確かめていないこと、先後・持ち時間・ルール・記録に残るものが並ぶ条件確認画面" width="600" height="660" loading="lazy"></a>
+                    <p class="screenshot-caption">条件確認画面（相手の署名を確かめる前）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="playing" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">対局中</h2>
+        <p class="section-desc">メインウィンドウの盤で指し、「対局中」タブで投了や申し出をします</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">盤で指す</span>
+                </div>
+                <p class="guide-step-text">対局が始まると、メインウィンドウの盤・棋譜・対局時計を使います。「対局情報」には双方の表示名と対局IDが入ります。後手のときは、盤が自動で反転して自分の側から見る向きになります。</p>
+                <p class="guide-step-text">指した手は、相手のアプリが受け取って確かめてから盤に指されます（その間は「着手の確認を待っています…」と出ます）。待ったはありません。</p>
+                <div class="screenshot-item">
+                    <a href="../images/p2p-game/p2p-main.png"><img src="../images/p2p-game/p2p-main.png" alt="P2P対局中のメインウィンドウ。盤・棋譜と、対局者の入った対局情報" width="1389" height="980" loading="lazy"></a>
+                    <p class="screenshot-caption">対局中のメインウィンドウ（14手目まで）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">投了・申し出・対局をやめる</span>
+                </div>
+                <p class="guide-step-text">「対局中」タブには、相手・先後・経路（直接か中継か）・手番・切断時間の残りが出ます。</p>
+                <ul class="guide-step-text">
+                    <li><strong>投了</strong>：自分の手番のときに押せます。</li>
+                    <li><strong>引き分けを申し出る・中断を申し出る</strong>：相手に承諾するかを尋ねます。相手が承諾したときだけ、合意による引き分け・中断になります。断られたら対局を続けます。</li>
+                    <li><strong>対局をやめる（結果未確定）</strong>：一方的に対局を離れます。結果は確定せず、相手には中断が伝わります。</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-game.png"><img src="../images/p2p-game/p2p-game.png" alt="相手・先後・経路・手番・切断時間の残りと、投了・引き分けの申し出・中断の申し出・対局をやめるボタンが並ぶ「対局中」タブ" width="820" height="770" loading="lazy"></a>
+                    <p class="screenshot-caption">「対局中」タブ</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">回線が切れたとき</span>
+                </div>
+                <p class="guide-step-text">回線が切れると、アプリが自動でつなぎ直します（「再接続中（残り N 秒）」と出ます）。切れている間も手番の側の時計は進み、手番の側は1手だけ指せます（つながったときに送ります）。</p>
+                <p class="guide-step-text">120秒以内につなぎ直せなければ、対局は「通信中断（結果未確定）」で終わります。1局の切断時間の合計が10分を超えたときも中断になります。自分の回線の障害と相手の意図的な切断は見分けられないので、切断を相手の負けとは扱いません。</p>
+                <p class="guide-step-text">アプリや通信プロセスが終了したときと、PC がスリープしたときは、同じ対局には戻れません（結果未確定）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 7 -->
+<section id="records" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">対局記録と検証</h2>
+        <p class="section-desc">終わった対局の記録（証跡）は双方の手元に残り、だれでも検証できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">「対局記録」タブ</span>
+                </div>
+                <p class="guide-step-text">終わった対局は「対局記録」タブに並びます。「終わり方」は自分のアプリでの終わり方、「記録の区分」は証跡を検証した結果です。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">記録の区分</th><th scope="col">意味</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>双方の署名あり</strong></td><td>両方のプレイヤー鍵が同じ結果に署名しています。双方が同じ結果に同意したことを示せるのは、この区分だけです。</td></tr>
+                        <tr><td><strong>棋譜から決まる結果</strong></td><td>結果への署名はそろっていませんが、双方が署名した最後の局面までの棋譜で、詰み・千日手・連続王手の千日手・512手到達が決まっています。</td></tr>
+                        <tr><td><strong>結果未確定</strong></td><td>どちらでもありません。投了や時間切れの後に相手の署名が届かなかったときや、中断したときです。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">証跡は <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code> に保存されます。対局中にアプリが終了しても、それまでの記録は次に開いたときに「結果未確定」の記録として残ります。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-records.png"><img src="../images/p2p-game/p2p-records.png" alt="終わった日時・相手・あなた・終わり方・記録の区分・結果の列と、検証・書き出し・削除のボタンが並ぶ「対局記録」タブ" width="820" height="770" loading="lazy"></a>
+                    <p class="screenshot-caption">「対局記録」タブ：双方の署名がそろった記録</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">検証・書き出し・削除</span>
+                </div>
+                <p class="guide-step-text">「検証する」を押すと、署名の一致・棋譜がルールに適合するか・自己申告時間の計算の一致・結果が棋譜から決まるかと、記録の区分が出ます。「証跡を書き出す…」で証跡ファイル（.sbqmatch）を好きな場所に保存できます。「記録を削除」は手元の証跡を消します（戻せません）。</p>
+                <p class="guide-step-text">記録は、実際の思考時間・人間が指したこと・対局の日時を証明しません。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">コマンドラインで検証する</span>
+                </div>
+                <p class="guide-step-text">証跡ファイルは、GUI を起動せずに <code>shogiboardq-cli</code> の <code>verify-match</code> でも検証できます。結果は JSON で出ます（下の例は読みやすく整え、長い ID を省略しています）。</p>
+                <div class="build-steps"><pre><code>$ shogiboardq-cli verify-match --input-path ~/game.sbqmatch
+{
+  "black_player_id": "4b8788e2…",
+  "byoyomi_ms": 30000,
+  "category": "mutually_signed",
+  "checks": {
+    "clock_arithmetic": true,
+    "conditions_match": true,
+    "record_legal": true,
+    "result_conflicts_with_record": false,
+    "result_refers_to_record": true,
+    "signatures": true,
+    "start_signatures": true
+  },
+  "game_id": "c62a566e…",
+  "last_confirmed_ply": 15,
+  "main_time_ms": 600000,
+  "network": "sbq-local-1",
+  "network_id": "83cc9dfd…",
+  "not_verifiable": [
+    "actual_thinking_time",
+    "human_play",
+    "date_played"
+  ],
+  "ok": true,
+  "result": {
+    "black_signed": true,
+    "cause": "resign",
+    "outcome": "black_wins",
+    "ply": 15,
+    "result_digest": "a6cec2cd…",
+    "white_signed": true
+  },
+  "states": 16,
+  "valid": true,
+  "white_player_id": "8a3569db…"
+}</code></pre></div>
+                <p class="guide-step-text"><code>valid</code> が true なら署名と記録の形が正しく、<code>category</code> が記録の区分（<code>mutually_signed</code>・<code>determined_by_record</code>・<code>unconfirmed</code>）です。<code>not_verifiable</code> には、この記録からは確かめられないこと（実際の思考時間・人間が指したこと・対局の日時）が並びます。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 8 -->
+<section id="peers" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">相手の管理と設定</h2>
+        <p class="section-desc">対局した相手に名前を付け、確認コードで同じ人かを確かめます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">「相手の管理」タブ</span>
+                </div>
+                <p class="guide-step-text">対局した相手は、プレイヤーIDごとに「相手の管理」タブに並びます。表示名はだれでも同じものを名乗れるので、同じ人かどうかはプレイヤーIDで確かめます。</p>
+                <ul class="guide-step-text">
+                    <li><strong>名前を付ける…</strong>：相手に手元で付ける名前です。相手と棋譜には出ず、条件確認画面と対局記録に出ます。</li>
+                    <li><strong>確認コード…</strong>：双方のプレイヤーIDから作る30桁の数字です。双方に同じ数字が出るので、電話や対面など別の経路で見比べ、一致したら「確認済みにする」を押します。</li>
+                    <li><strong>ブロック</strong>：その相手からの申し込みと接続を断ります。相手には、ほかの相手と交渉中か対局中だと伝わります。</li>
+                    <li><strong>記録を削除</strong>：その相手の名前・確認済み・ブロック・対局数の記録を消します。</li>
+                </ul>
+                <p class="guide-step-text">プレイヤー鍵はだれでも無料で作り直せるので、ブロックや過去の成績は作り直しで避けられます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-peers.png"><img src="../images/p2p-game/p2p-peers.png" alt="プレイヤーID・手元の名前・最後の表示名・確認済み・ブロック・対局数・未確定の列と、名前を付ける・確認コード・確認済みを外す・ブロック・記録を削除のボタンが並ぶ「相手の管理」タブ" width="820" height="770" loading="lazy"></a>
+                    <p class="screenshot-caption">「相手の管理」タブ：名前を付け、確認コードで確認済みにした相手</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">「設定」タブ</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>接続候補</strong>：協力ノードのアドレス（/ip4/…/p2p/… の形）を1行に1つ入れます。</li>
+                    <li><strong>直接接続を使わない</strong>：中継だけを使い、相手から IP アドレスを隠します。中継の運営者には見えます。</li>
+                    <li><strong>対局したことのない相手の表示名を出さない</strong>：募集一覧・条件確認画面・対局記録で、初めての相手の表示名を「名前は非表示」にします。</li>
+                    <li><strong>プレイヤー鍵を作り直す…</strong>：プレイヤーIDが変わり、相手からは別人に見えます。古い鍵は消します。</li>
+                </ul>
+                <p class="guide-step-text">下には、プレイヤー鍵の保管の方法、通信プロセスに掛けた権限の制限（Landlock・seccomp など）、このビルドの使用期限が出ます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-settings.png"><img src="../images/p2p-game/p2p-settings.png" alt="接続候補・直接接続を使わない・表示名を出さないの設定と、プレイヤー鍵の保管・権限の制限・使用期限・防げないことが並ぶ「設定」タブ" width="820" height="770" loading="lazy"></a>
+                    <p class="screenshot-caption">「設定」タブ</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 9 -->
+<section id="limits" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">防げないことと相手に見える情報</h2>
+        <p class="section-desc">実験版のP2P対局を使う前に知っておいてほしいことです</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">防げないこと</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>表示名</strong>：表示名は自己申告です。相手を確かめる根拠はプレイヤーIDと確認コードです。</li>
+                    <li><strong>結果への署名</strong>：負けた側が結果への署名を拒めば、双方の署名がそろった記録は残りません。</li>
+                    <li><strong>消費時間</strong>：消費時間は自己申告です。1手あたり10秒までの水増しと、切断を使った時間稼ぎ（1局で合計10分まで）は見分けられません。</li>
+                    <li><strong>エンジン・示し合わせ</strong>：エンジンが指した対局や、示し合わせた対局は見分けられません。双方が示し合わせて架空の結果に署名することもできます。</li>
+                    <li><strong>プレイヤー鍵</strong>：同じ利用者の権限で動く悪意のあるプログラムからは、プレイヤー鍵を守れません。</li>
+                </ul>
+                <p class="guide-step-text">記録した勝ち数を、公式のレーティングや棋力の根拠にしないでください。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">相手やネットワークに見える情報</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">見る人</th><th scope="col">見えるもの</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>対局相手</strong></td><td>IPアドレス（直接つながったとき）・プレイヤーID・表示名・条件</td></tr>
+                        <tr><td><strong>募集を見た人（不特定）</strong></td><td>募集を出した人の IP アドレス・表示名・条件。申し込みを装えばプレイヤーIDも分かります</td></tr>
+                        <tr><td><strong>対局記録（証跡）を受け取った人</strong></td><td>双方のプレイヤーID・条件・全手順と自己申告の消費時間・結果と双方の署名。表示名・IPアドレス・手元で付けた名前は残りません</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">アプリが対局記録を公開したり、どこかへ送ったりすることはありません。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

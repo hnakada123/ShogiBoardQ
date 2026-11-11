@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Games (Experimental) - ShogiBoardQ</title>
+    <meta name="description" content="How to play P2P games in the ShogiBoardQ P2P experimental build: preparing a player key, playing by invitation or public offers, the confirmation screen, in-game controls, verifying game records (evidence), managing opponents, and what cannot be prevented.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-game.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-game.html">
+    <meta property="og:title" content="P2P Games (Experimental) - ShogiBoardQ">
+    <meta property="og:description" content="Connect directly to your opponent without a game server, and keep a game record signed by both players at the start and the end.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/p2p-game/p2p-confirm.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="P2P Games (Experimental) - ShogiBoardQ">
+    <meta name="twitter:description" content="Connect directly to your opponent without a game server, and keep a game record signed by both players at the start and the end.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/p2p-game/p2p-confirm.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-game.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-game.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-game.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/p2p-game.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="p2p-game.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/p2p-game.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/p2p-game.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#prepare">Setup</a></li>
+            <li><a href="#invite">Invitations</a></li>
+            <li><a href="#offers">Offers</a></li>
+            <li><a href="#playing">Playing</a></li>
+            <li><a href="#records">Records</a></li>
+            <li><a href="#limits">Limits</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>P2P Games (Experimental)</h1>
+        <p class="hero-subtitle">Connect directly to your opponent without a game server, and keep a game record that both players signed at the start and the end</p>
+        <div class="hero-badges">
+            <span class="badge">No Server</span>
+            <span class="badge">Invitations &amp; Offers</span>
+            <span class="badge">Signed Game Records</span>
+            <span class="badge">Experimental, Linux</span>
+        </div>
+        <p class="screenshot-note">This is an experimental feature; screens and rules may change. Screenshots were captured on Linux with the English interface.</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="about" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">What Are P2P Games?</h2>
+        <p class="section-desc">An experimental way to play that is available only in the ShogiBoardQ P2P experimental build</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Play over a Direct Connection</span>
+                </div>
+                <p class="guide-step-text">In a P2P game, your app and your opponent's app connect directly instead of going through a game server as in <a href="csa-game.html">CSA network play</a> (relays are used when a direct connection is not possible). You either send an invitation to your opponent or find one in the public list of offers.</p>
+                <p class="guide-step-text">Both players sign the start and the result of each game with a player key that this app creates. The public key of the player key is your player ID. No real name or external account is used. When the game ends, a game record (evidence) signed by both players is saved on both PCs, and anyone can verify it.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">What the Experimental Build Offers</span>
+                </div>
+                <p class="guide-step-text">P2P games are part of a separate app, ShogiBoardQ P2P Experimental (ShogiBoardQ-P2P). Its settings and records are kept apart from the regular ShogiBoardQ. To build it from source, pass <code>-DENABLE_P2P_PLAY=ON</code> to CMake (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a> for the build steps).</p>
+                <ul class="guide-step-text">
+                    <li><strong>Operating system</strong>: Linux only for now. P2P games are not available where the OS cannot restrict the communication process (shogiboardq-peer).</li>
+                    <li><strong>Networks</strong>: Local test (same PC / same LAN) and Limited test. To join the limited test, enter the addresses of cooperating nodes in Bootstrap nodes in Settings.</li>
+                    <li><strong>Expiry</strong>: 180 days after the build date, the build no longer joins the limited test network. The local test network and reviewing or verifying saved records keep working.</li>
+                    <li><strong>Automation API</strong>: P2P games are not available when the app is started with <code>--automation</code>.</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Game Rules</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Item</th><th scope="col">Rule</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Handicap and players</strong></td><td>Even games only, between humans. Consideration, mate search, game analysis, and the opening book display are unavailable during a game.</td></tr>
+                        <tr><td><strong>Time control</strong></td><td>Main time (minutes) and byoyomi (seconds). Each player reports their own time, which is checked against the time the opponent measured.</td></tr>
+                        <tr><td><strong>Sides</strong></td><td>Assigned by the players' preferences when they match; with No preference, decided by random numbers from both players.</td></tr>
+                        <tr><td><strong>Game end</strong></td><td>Resignation, checkmate, time loss, repetition (draw), perpetual check (the checking side loses), 512 moves reached (draw), draw by agreement, and abort by agreement.</td></tr>
+                        <tr><td><strong>Not available</strong></td><td>Takebacks and entering-king declarations (an entering-king game can end in a draw by agreement).</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="prepare" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Getting Ready</h2>
+        <p class="section-desc">Open the P2P window, create a player key, and connect to a network</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Open Game → P2P Game (Experimental)…</span>
+                </div>
+                <p class="guide-step-text">Choose P2P Game (Experimental)… from the Game menu in the menu bar to open the P2P window. You can keep using the board and the game record while the window is open.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-menu.png"><img src="../../images/en/p2p-game/p2p-menu.png" alt="Game menu open with P2P Game (Experimental)… highlighted" width="216" height="408" loading="lazy"></a>
+                    <p class="screenshot-caption">Game menu: P2P Game (Experimental)… opens the window</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Create a Player Key the First Time You Connect</span>
+                </div>
+                <p class="guide-step-text">On the Find Opponents tab, choose a Network and click Connect. The first time, Prepare P2P Games opens. Read the list of what cannot be prevented, choose how to store the key, and click Create Player Key.</p>
+                <ul class="guide-step-text">
+                    <li><strong>OS keychain (recommended)</strong>: Stores the key in the OS keychain (KWallet, GNOME Keyring, and so on). Not available in builds without QtKeychain.</li>
+                    <li><strong>File encrypted with a passphrase</strong>: Stores the key in a file encrypted with a key derived from your passphrase. You are asked for the passphrase the first time you connect after starting the app.</li>
+                    <li><strong>Unencrypted file</strong>: Anyone who can read or copy the files on this PC can play while impersonating you.</li>
+                </ul>
+                <p class="guide-step-text">The key files are kept in <code>~/.local/share/ShogiBoardQ-P2P/p2p/identity</code>.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-identity.png"><img src="../../images/en/p2p-game/p2p-identity.png" alt="Prepare P2P Games dialog with three ways to store the player key and the list of what cannot be prevented" width="533" height="555" loading="lazy"></a>
+                    <p class="screenshot-caption">Prepare P2P Games, shown the first time you connect</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Choose a Display Name and Conditions</span>
+                </div>
+                <p class="guide-step-text">Once connected, Status shows Connected (peers: N) and Your player ID appears. Enter the name your opponents will see in Display name. It must be 1 to 32 characters with no leading or trailing spaces, using letters, digits, symbols, kana, kanji, and full-width alphanumerics.</p>
+                <p class="guide-step-text">Time control, Byoyomi, and Side become the conditions of your invitations and offers. To try the local test with another app on the same PC, enter the addresses shown under Addresses into Bootstrap nodes in the other app's Settings.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="invite" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Playing by Invitation</h2>
+        <p class="section-desc">To play someone you know, send an invitation only to that person</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Create and Send an Invitation</span>
+                </div>
+                <p class="guide-step-text">On the Connect by Invitation tab, click Create Invitation. Click Copy and send the invitation by a channel that reaches only your opponent, such as a private message. The invitation contains your addresses (IP addresses), so do not post it in public.</p>
+                <p class="guide-step-text">An invitation expires after 10 minutes and can be used only once. It uses the time control and side on the Find Opponents tab.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Connect with an Invitation You Received</span>
+                </div>
+                <p class="guide-step-text">Paste the invitation into the Connect by invitation box and click Check Invitation. The inviter's PeerId, the expiry, and the number of addresses appear. Check them and click Connect. Connecting does not start the game yet; you start after checking your opponent on the confirmation screen that opens next.</p>
+                <p class="guide-step-text">An invitation from someone on the same LAN may contain private addresses. To connect to them, check Allow connecting to the private addresses above (opponent on the same LAN).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Connect by Invitation tab with your own invitation created at the top and a received invitation checked at the bottom" width="898" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">Connect by Invitation tab: create an invitation (top) and connect with one you received (bottom)</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="offers" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Finding an Opponent from Offers</h2>
+        <p class="section-desc">Pick an opponent from the offers on the same network, or publish your own offer</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Apply to an Offer</span>
+                </div>
+                <p class="guide-step-text">Once connected, Offers lists the players who are offering a game on the same network. Click Refresh to reload it. Check the display name, side, time control, and expiry, select an offer, and click Apply. You cannot apply to an offer whose side preference conflicts with yours.</p>
+                <p class="guide-step-text">Display names are self-declared. The list shows only the offers that were found, not everyone.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-find.png"><img src="../../images/en/p2p-game/p2p-find.png" alt="Find Opponents tab while connected, with offers from Sato and Yamada listed under Offers" width="898" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">Find Opponents tab: connected, with offers in the list</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Publish Your Own Offer</span>
+                </div>
+                <p class="guide-step-text">Click Publish Offer to offer a game with the display name, time control, and side under Display name and conditions. An offer expires after 2 minutes and is renewed every 30 seconds while it is published. Click Withdraw Offer to stop. When someone applies, the confirmation screen opens.</p>
+                <p class="guide-step-text">Publishing an offer exposes your IP address to anyone. If you do not want that, play by invitation or use Do not use direct connections in Settings (relay operators can still see it).</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="confirm" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">The Confirmation Screen</h2>
+        <p class="section-desc">Check your opponent and the conditions before the game starts</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Check Your Opponent</span>
+                </div>
+                <p class="guide-step-text">When you connect by invitation, or apply to an offer or receive an application, Confirm P2P Game Conditions opens for both players. Opponent shows the opponent's display name (self-declared) and the full player ID. Use the player ID, not the display name, to tell whether it is the same person.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Message</th><th scope="col">Meaning</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>The opponent's signature has not been verified yet. This ID is only what the opponent claims.</strong></td><td>The start procedure is still in progress. The player ID is only what the opponent has claimed.</td></tr>
+                        <tr><td><strong>The opponent's start signature has been verified. The opponent holds the key of this ID.</strong></td><td>The opponent signed the start with the key of this ID.</td></tr>
+                        <tr><td><strong>Verified opponent (checked with the verification code).</strong></td><td>You marked this opponent as verified on the Opponents tab. Your local name for them is also shown.</td></tr>
+                        <tr><td><strong>First game with this opponent. / Games with this opponent: N</strong></td><td>How many games you have played with them, and how many of those had no confirmed result.</td></tr>
+                        <tr><td><strong>Same display name as the opponent you named "…", but a different player ID.</strong></td><td>Shown in red. This may be someone other than the opponent you named.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Check the Conditions and Start</span>
+                </div>
+                <p class="guide-step-text">Game conditions and record shows the sides and how they were decided, the time control, the rules, and what the game record keeps. If everything is fine, click Start. The game begins when both players have clicked Start. Clicking Cancel, or not starting within 60 seconds, cancels it (the seconds left are shown at the bottom).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-confirm.png"><img src="../../images/en/p2p-game/p2p-confirm.png" alt="Confirmation screen showing the opponent&#x27;s display name and player ID, that the signature is not verified yet, and the sides, time control, rules, and record" width="600" height="660" loading="lazy"></a>
+                    <p class="screenshot-caption">Confirmation screen (before the opponent's signature is verified)</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="playing" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">During the Game</h2>
+        <p class="section-desc">Move on the main window's board, and resign or make offers on the Game tab</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Move on the Board</span>
+                </div>
+                <p class="guide-step-text">When the game starts, the board, game record, and clocks of the main window are used. Game Info shows both display names and the game ID. When you play White, the board flips automatically so that you see it from your side.</p>
+                <p class="guide-step-text">Your move is placed on the board after your opponent's app has received and checked it (Waiting for move confirmation… is shown meanwhile). There are no takebacks.</p>
+                <div class="screenshot-item">
+                    <a href="../../images/en/p2p-game/p2p-main.png"><img src="../../images/en/p2p-game/p2p-main.png" alt="Main window during a P2P game with the board, the game record, and Game Info showing the players" width="1423" height="1000" loading="lazy"></a>
+                    <p class="screenshot-caption">Main window during a game (after move 14)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Resign, Make Offers, or Leave</span>
+                </div>
+                <p class="guide-step-text">The Game tab shows the opponent, your side, the route (direct or relay), whose turn it is, and the disconnection time left.</p>
+                <ul class="guide-step-text">
+                    <li><strong>Resign</strong>: Available on your turn.</li>
+                    <li><strong>Offer Draw / Offer Abort</strong>: Asks your opponent whether to accept. Only if they accept does the game end in a draw or abort by agreement. If they decline, the game continues.</li>
+                    <li><strong>Leave Game (result unconfirmed)</strong>: Leaves the game unilaterally. The result is not confirmed, and your opponent is told the game was interrupted.</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-game.png"><img src="../../images/en/p2p-game/p2p-game.png" alt="Game tab showing the opponent, side, route, turn, and disconnection time left, with Resign, Offer Draw, Offer Abort, and Leave Game buttons" width="898" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">Game tab</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">When the Connection Drops</span>
+                </div>
+                <p class="guide-step-text">If the connection drops, the app reconnects automatically (Reconnecting (N s left) is shown). The clock of the side to move keeps running, and the side to move can still make one move, which is sent when the connection returns.</p>
+                <p class="guide-step-text">If the connection cannot be restored within 120 seconds, the game ends as Communication lost (unconfirmed). It is also interrupted when the total disconnection time in one game exceeds 10 minutes. A failure on your own line cannot be told apart from a deliberate disconnection, so a disconnection is not treated as a loss for the opponent.</p>
+                <p class="guide-step-text">If the app or the communication process exits, or the PC goes to sleep, the game cannot be resumed (the result is unconfirmed).</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 7 -->
+<section id="records" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Game Records and Verification</h2>
+        <p class="section-desc">The record (evidence) of each finished game stays on both PCs, and anyone can verify it</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">The Game Records Tab</span>
+                </div>
+                <p class="guide-step-text">Finished games are listed on the Game Records tab. How it ended is how the game ended in your app; Record status is the result of verifying the evidence.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Record status</th><th scope="col">Meaning</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Signed by both</strong></td><td>Both player keys signed the same result. This is the only status that shows that both players agreed on the result.</td></tr>
+                        <tr><td><strong>Determined by the moves</strong></td><td>The result was not signed by both, but the moves up to the last position signed by both players determine checkmate, repetition, perpetual check, or 512 moves reached.</td></tr>
+                        <tr><td><strong>Unconfirmed</strong></td><td>Neither of the above, for example when the opponent's signature did not arrive after a resignation or time loss, or when the game was interrupted.</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">Evidence is saved in <code>~/.local/share/ShogiBoardQ-P2P/p2p/evidence</code>. If the app exits during a game, the record up to that point appears as an unconfirmed record the next time you open the window.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-records.png"><img src="../../images/en/p2p-game/p2p-records.png" alt="Game Records tab with Ended, Opponent, You, How it ended, Record status, and Result columns and Verify, Export Evidence, and Delete Record buttons" width="898" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">Game Records tab: a record signed by both players</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Verify, Export, or Delete</span>
+                </div>
+                <p class="guide-step-text">Click Verify to see whether the signatures match, whether the moves follow the rules, whether the self-reported time arithmetic matches, whether the result is determined by the moves, and the record status. Export Evidence… saves the evidence file (.sbqmatch) wherever you like. Delete Record removes the evidence from your PC (this cannot be undone).</p>
+                <p class="guide-step-text">A record does not prove the actual thinking time, that humans played, or when the game was played.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Verify from the Command Line</span>
+                </div>
+                <p class="guide-step-text">You can also verify an evidence file without starting the GUI by using <code>verify-match</code> of <code>shogiboardq-cli</code>. The result is JSON (the example below is formatted and long IDs are shortened).</p>
+                <div class="build-steps"><pre><code>$ shogiboardq-cli verify-match --input-path ~/game.sbqmatch
+{
+  "black_player_id": "4b8788e2…",
+  "byoyomi_ms": 30000,
+  "category": "mutually_signed",
+  "checks": {
+    "clock_arithmetic": true,
+    "conditions_match": true,
+    "record_legal": true,
+    "result_conflicts_with_record": false,
+    "result_refers_to_record": true,
+    "signatures": true,
+    "start_signatures": true
+  },
+  "game_id": "c62a566e…",
+  "last_confirmed_ply": 15,
+  "main_time_ms": 600000,
+  "network": "sbq-local-1",
+  "network_id": "83cc9dfd…",
+  "not_verifiable": [
+    "actual_thinking_time",
+    "human_play",
+    "date_played"
+  ],
+  "ok": true,
+  "result": {
+    "black_signed": true,
+    "cause": "resign",
+    "outcome": "black_wins",
+    "ply": 15,
+    "result_digest": "a6cec2cd…",
+    "white_signed": true
+  },
+  "states": 16,
+  "valid": true,
+  "white_player_id": "8a3569db…"
+}</code></pre></div>
+                <p class="guide-step-text"><code>valid</code> is true when the signatures and the record structure are correct, and <code>category</code> is the record status (<code>mutually_signed</code>, <code>determined_by_record</code>, or <code>unconfirmed</code>). <code>not_verifiable</code> lists what this record cannot show (actual thinking time, human play, and the date played).</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 8 -->
+<section id="peers" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Opponents and Settings</h2>
+        <p class="section-desc">Name the opponents you have played and check with a verification code that they are the same person</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">The Opponents Tab</span>
+                </div>
+                <p class="guide-step-text">Opponents you have played are listed on the Opponents tab by player ID. Anyone can use the same display name, so use the player ID to tell whether it is the same person.</p>
+                <ul class="guide-step-text">
+                    <li><strong>Name…</strong>: A local name for the opponent. It is not shown to the opponent or written into game records; it appears on the confirmation screen and in Game Records.</li>
+                    <li><strong>Verification Code…</strong>: A 30-digit number made from both player IDs. Both players see the same number, so compare it through another channel such as a phone call or in person, and click Mark Verified if it matches.</li>
+                    <li><strong>Block</strong>: Refuses applications and connections from that opponent. They are told you are busy negotiating or playing with someone else.</li>
+                    <li><strong>Delete Record</strong>: Removes the opponent's name, verified mark, block, and game count.</li>
+                </ul>
+                <p class="guide-step-text">Anyone can create a new player key for free, so a block or past results can be avoided by recreating the key.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-peers.png"><img src="../../images/en/p2p-game/p2p-peers.png" alt="Opponents tab with Player ID, Local name, Last display name, Verified, Block, Games, and Unconfirmed columns and the Name, Verification Code, Unmark Verified, Block, and Delete Record buttons" width="898" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">Opponents tab: an opponent with a local name, verified with the verification code</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">The Settings Tab</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>Bootstrap nodes</strong>: Addresses of cooperating nodes (/ip4/…/p2p/…), one per line.</li>
+                    <li><strong>Do not use direct connections</strong>: Uses relays only and hides your IP address from opponents. Relay operators can still see it.</li>
+                    <li><strong>Hide display names of opponents you have not played</strong>: Shows Name hidden instead of the display names of new opponents in Offers, on the confirmation screen, and in Game Records.</li>
+                    <li><strong>Recreate Player Key…</strong>: Changes your player ID, so opponents see you as someone else. The old key is deleted.</li>
+                </ul>
+                <p class="guide-step-text">Below them are how the player key is stored, the restrictions placed on the communication process (Landlock, seccomp, and so on), and the expiry of this build.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-settings.png"><img src="../../images/en/p2p-game/p2p-settings.png" alt="Settings tab with Bootstrap nodes and the relay-only and hide-names options, followed by key storage, restrictions, expiry, and what cannot be prevented" width="898" height="732" loading="lazy"></a>
+                    <p class="screenshot-caption">Settings tab</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 9 -->
+<section id="limits" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">What Cannot Be Prevented and What Others See</h2>
+        <p class="section-desc">Please read this before using the experimental P2P games</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">What Cannot Be Prevented</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>Display names</strong>: Display names are self-declared. Identify opponents by player ID and verification code.</li>
+                    <li><strong>Signing the result</strong>: If the losing player refuses to sign the result, no record signed by both players remains.</li>
+                    <li><strong>Time used</strong>: Time used is self-reported. Padding of up to 10 seconds per move and stalling by disconnecting (up to 10 minutes in total per game) cannot be detected.</li>
+                    <li><strong>Engines and arranged games</strong>: Games played by engines and arranged games cannot be detected. Both players can also agree to sign a made-up result.</li>
+                    <li><strong>Player key</strong>: Malicious programs running as the same user can steal the player key.</li>
+                </ul>
+                <p class="guide-step-text">Do not use recorded wins as the basis for an official rating or playing strength.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">What Opponents and the Network Can See</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Who</th><th scope="col">What they can see</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Your opponent</strong></td><td>Your IP address (with a direct connection), player ID, display name, and conditions</td></tr>
+                        <tr><td><strong>Anyone viewing offers</strong></td><td>The IP address, display name, and conditions of whoever published the offer. Pretending to apply also reveals the player ID</td></tr>
+                        <tr><td><strong>Anyone who receives the game record (evidence)</strong></td><td>Both player IDs, the conditions, all moves with self-reported time, and the result with both signatures. Display names, IP addresses, and local names are not kept</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">The app never publishes your game records or sends them anywhere.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">← Back to User Guide</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
