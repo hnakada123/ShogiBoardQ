@@ -156,6 +156,12 @@ void Match::begin()
     send(FrameType::StatePropose, payload.toCbor());
 }
 
+const GameState& Match::lastState() const
+{
+    static const GameState kNoState;
+    return m_confirmed.empty() ? kNoState : m_confirmed.back().state;
+}
+
 bool Match::isMyTurn() const
 {
     if (m_confirmed.empty()) return false;
@@ -209,6 +215,9 @@ void Match::receive(const Frame& frame)
         && frame.type != FrameType::SyncChunk) {
         return;
     }
+    // 結果が一致した後の着手と承認は取り込まない。申し出た側の着手と相手の承諾が行き違うと、結果の指す手数より後の
+    // 状態が届く。それを承認すると、双方の証跡が「結果が最後の状態を指す」検査に通らなくなる
+    if (m_agreedResult && (frame.type == FrameType::StatePropose || frame.type == FrameType::StateAccept)) return;
     switch (frame.type) {
     case FrameType::StatePropose: {
         const std::optional<StateProposePayload> payload = StateProposePayload::fromCbor(frame.payload);
@@ -339,13 +348,12 @@ void Match::handleStatePropose(const StateProposePayload& payload)
 
 void Match::handleStateAccept(const StateAcceptPayload& payload)
 {
-    if (!m_pending) {
-        // 承認済みの手の承認の再送は無視する
-        if (!m_confirmed.empty() && payload.ply <= lastState().ply && m_confirmed[payload.ply].state.hash() == payload.stateHash) {
-            return;
-        }
-        return failWithError(ErrorCode::StateConflict, payload.ply);
+    // 承認済みの手の承認の再送は無視する。自分に未承認の手があるときも同じ（提案の再送に相手が承認を送り直し、
+    // それが、こちらが次の手を提案した後に届くことがある）
+    if (!m_confirmed.empty() && payload.ply <= lastState().ply && m_confirmed[payload.ply].state.hash() == payload.stateHash) {
+        return;
     }
+    if (!m_pending) return failWithError(ErrorCode::StateConflict, payload.ply);
     const GameState& state = m_pending->state;
     if (payload.ply != state.ply || payload.stateHash != state.hash()) {
         return failWithError(ErrorCode::StateConflict, payload.ply);

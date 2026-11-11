@@ -115,7 +115,8 @@ public:
     }
 
     /// 両方の開始署名がそろったら対局へ移る
-    void startMatches()
+    /// run が false なら、対局を作るだけで begin しない（開始の手続きの途中を試す）
+    void startMatches(bool run = true)
     {
         for (Side* s : {&applicant, &host}) {
             Negotiation& n = *s->negotiation;
@@ -138,12 +139,13 @@ public:
                     return true;
                 });
         }
+        if (!run) return;
         applicant.match->begin();
         host.match->begin();
         pump();
     }
 
-    void negotiateAndStart()
+    void negotiateAndStart(bool run = true)
     {
         applicant.negotiation->begin();
         pump();
@@ -152,7 +154,7 @@ public:
         host.negotiation->confirm();
         applicant.negotiation->confirm();
         pump();
-        startMatches();
+        startMatches(run);
     }
 
     Side& black() { return applicant.match->iAmBlack() ? applicant : host; }
@@ -453,6 +455,168 @@ private slots:
         const EvidenceReport report = EvidenceVerifier::verify(pair.black().match->evidence().encode());
         QVERIFY2(report.isValid(), qPrintable(report.error));
         QCOMPARE(report.category, EvidenceReport::Category::Unconfirmed);
+    }
+
+    /// 開始局面（State0）の承認がそろう前に対局が終わっても、最新の状態を読んで落ちない。
+    /// 相手が何も送らないまま開始の期限が過ぎたとき・最初に壊れた提案が届いたときに、司令塔は終局の行を書くために
+    /// 最新の状態を読む（以前は、空の列の末尾を読んでいた）
+    void endingBeforeState0IsHandled()
+    {
+        {
+            // 相手が State0 を送らないまま、開始の期限（30秒）が過ぎる
+            Pair pair;
+            pair.negotiateAndStart(false);
+            Side& white = pair.white();
+            white.match->begin();
+            pair.clock.ms += 31'000;
+            white.match->tick();
+            QCOMPARE(white.match->phase(), Match::Phase::Finished);
+            QCOMPARE(white.match->ending(), MatchEnding::Error);
+            QVERIFY(white.match->confirmedStates().empty());
+            QCOMPARE(white.match->lastState().ply, 0u);
+            QVERIFY(!white.match->isMyTurn());
+            // 結果も状態もない記録として読める
+            const EvidenceReport report = EvidenceVerifier::verify(white.match->evidence().encode());
+            QCOMPARE(report.category, EvidenceReport::Category::Unconfirmed);
+        }
+        {
+            // 最初の対局フレームが、形の合わない STATE_PROPOSE
+            Pair pair;
+            pair.negotiateAndStart(false);
+            Side& white = pair.white();
+            white.match->begin();
+            Frame bad;
+            bad.type = FrameType::StatePropose;
+            bad.requestId = 99;
+            bad.gameId = white.match->gameId();
+            bad.payload = CborValue::array({});
+            white.match->receive(bad);
+            QCOMPARE(white.match->phase(), Match::Phase::Finished);
+            QCOMPARE(white.match->ending(), MatchEnding::Error);
+            QCOMPARE(white.match->endingError(), std::optional<ErrorCode>(ErrorCode::InvalidMove));
+        }
+    }
+
+    /// 承認済みの手に対する承認の再送は、自分に未承認の手があっても無視する。
+    /// 提案の再送（5秒）に相手が承認を送り直し、それが、こちらが次の手を提案した後に届くことがある
+    void lateDuplicateAcceptanceIsIgnored()
+    {
+        Pair pair;
+        pair.negotiateAndStart();
+        Side& black = pair.black();
+        Side& white = pair.white();
+        const auto ofType = [](const std::vector<Frame>& frames, FrameType type) {
+            std::vector<Frame> out;
+            for (const Frame& f : frames) {
+                if (f.type == type) out.push_back(f);
+            }
+            return out;
+        };
+        // 先手の初手。後手は、提案を2回（再送）受けて、承認を2回送る
+        pair.clock.ms += 1000;
+        QCOMPARE(black.match->playMove(UsiMove::fromString(u"7g7f")), Match::MoveError::None);
+        const std::vector<Frame> proposal = black.match->takeOutgoing();
+        QCOMPARE(proposal.size(), std::size_t(1));
+        white.match->receive(proposal.front());
+        white.match->receive(proposal.front());
+        const std::vector<Frame> accepts = ofType(white.match->takeOutgoing(), FrameType::StateAccept);
+        QCOMPARE(accepts.size(), std::size_t(2));
+        black.match->receive(accepts[0]);
+        QCOMPARE(black.match->lastState().ply, quint32(1));
+        // 後手が指し、先手が受けて、次の手を提案する（未承認の手がある）
+        pair.clock.ms += 1000;
+        QCOMPARE(white.match->playMove(UsiMove::fromString(u"3c3d")), Match::MoveError::None);
+        for (const Frame& f : white.match->takeOutgoing()) black.match->receive(f);
+        QCOMPARE(black.match->lastState().ply, quint32(2));
+        black.match->takeOutgoing();
+        pair.clock.ms += 1000;
+        QCOMPARE(black.match->playMove(UsiMove::fromString(u"2g2f")), Match::MoveError::None);
+        QVERIFY(black.match->hasPendingMove());
+        // 遅れて届いた、初手への2つ目の承認
+        black.match->receive(accepts[1]);
+        QCOMPARE(black.match->phase(), Match::Phase::Playing);
+        QVERIFY(black.match->hasPendingMove());
+        // 知らない状態への承認は、これまでどおり止める
+        StateAcceptPayload unknown = *StateAcceptPayload::fromCbor(accepts[1].payload);
+        unknown.stateHash = QByteArray(32, '\x55');
+        Frame bad = accepts[1];
+        bad.payload = unknown.toCbor();
+        black.match->receive(bad);
+        QCOMPARE(black.match->ending(), MatchEnding::Error);
+        QCOMPARE(black.match->endingError(), std::optional<ErrorCode>(ErrorCode::StateConflict));
+    }
+
+    /// 結果が一致した後に届いた着手・承認は取り込まない。引き分けを申し出た側の着手と、相手の承諾が行き違っても、
+    /// 双方の記録が、結果の指す手数で終わる（その後の手を承認すると、証跡が検証に通らなくなる）
+    void movesCrossingAnAgreementAreNotCommitted()
+    {
+        Pair pair;
+        pair.negotiateAndStart();
+        Side& black = pair.black();
+        Side& white = pair.white();
+        pair.play(black, "7g7f");
+        // 後手が引き分けを申し出て、答えを待たずに指す
+        QVERIFY(white.match->offer(Cause::AgreedDraw));
+        const std::vector<Frame> offer = white.match->takeOutgoing();
+        pair.clock.ms += 1000;
+        QCOMPARE(white.match->playMove(UsiMove::fromString(u"3c3d")), Match::MoveError::None);
+        const std::vector<Frame> move = white.match->takeOutgoing();
+        // 先手は、着手が届く前に承諾する
+        for (const Frame& f : offer) black.match->receive(f);
+        QVERIFY(black.match->hasPendingOffer());
+        black.match->answerOffer(true);
+        QVERIFY(black.match->agreedResult().has_value());
+        const std::vector<Frame> echo = black.match->takeOutgoing();
+        // 行き違った着手が届く
+        for (const Frame& f : move) black.match->receive(f);
+        QCOMPARE(black.match->lastState().ply, quint32(1));
+        for (const Frame& f : black.match->takeOutgoing()) QVERIFY(f.type != FrameType::StateAccept);
+        // 後手は承諾を受けて一致し、双方の確定がそろう
+        for (const Frame& f : echo) white.match->receive(f);
+        pair.pump();
+        QCOMPARE(black.match->ending(), MatchEnding::MutuallySigned);
+        QCOMPARE(white.match->ending(), MatchEnding::MutuallySigned);
+        for (Side* s : {&black, &white}) {
+            const EvidenceReport report = EvidenceVerifier::verify(s->match->evidence().encode());
+            QVERIFY2(report.isValid(), qPrintable(report.error));
+            QCOMPARE(report.category, EvidenceReport::Category::MutuallySigned);
+            QCOMPARE(report.lastMutualPly, 1);
+            QCOMPARE(report.result->cause, Cause::AgreedDraw);
+        }
+    }
+
+    /// 回線が切れている間に相手の申し出へ答えても、結果を一致させない（承諾を相手へ送れないため）。
+    /// つなぎ直した後に相手が申し出を送り直すので、そのとき答える
+    void offerAnsweredWhileDisconnectedIsAskedAgain()
+    {
+        Pair pair;
+        pair.negotiateAndStart();
+        Side& black = pair.black();
+        Side& white = pair.white();
+        pair.play(black, "7g7f");
+        QVERIFY(white.match->offer(Cause::AgreedDraw));
+        pair.pump();
+        QVERIFY(black.match->hasPendingOffer());
+        pair.connected = false;
+        black.match->connectionLost();
+        white.match->connectionLost();
+        black.match->answerOffer(true);
+        QVERIFY(!black.match->agreedResult().has_value());
+        QCOMPARE(black.match->phase(), Match::Phase::Reconnecting);
+        // つなぎ直すと、後手の申し出がもう一度届く
+        black.events.clear();
+        pair.clock.ms += 3000;
+        pair.connected = true;
+        black.match->connectionEstablished();
+        white.match->connectionEstablished();
+        pair.pump();
+        QCOMPARE(black.match->phase(), Match::Phase::Playing);
+        QVERIFY(pair.hasEvent(black, MatchEvent::Type::OfferReceived));
+        QVERIFY(black.match->hasPendingOffer());
+        black.match->answerOffer(true);
+        pair.pump();
+        QCOMPARE(black.match->ending(), MatchEnding::MutuallySigned);
+        QCOMPARE(white.match->ending(), MatchEnding::MutuallySigned);
     }
 
     void duplicateProposalIsNotAppliedTwice()

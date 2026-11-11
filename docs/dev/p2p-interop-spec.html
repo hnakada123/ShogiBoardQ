@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P2P対局 互換実装のための仕様書（プロトコル v1） - ShogiBoardQ-P2P</title>
+<meta name="description" content="ShogiBoardQ-P2P の P2P対局と相互に対局できるソフトウェアを作るための仕様書。通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。">
+<style>
+:root {
+  --bg: #fbfaf7; --fg: #23261f; --muted: #5f655a; --line: #d9d6cc; --accent: #3f6b4f;
+  --code-bg: #f0eee6; --head-bg: #4d6650; --head-fg: #ffffff; --stripe: #f4f3ec; --note-bg: #eef3ea;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171a17; --fg: #e6e8e1; --muted: #a3a99d; --line: #3a4039; --accent: #9cc7a8;
+    --code-bg: #222722; --head-bg: #34473a; --head-fg: #f2f4ee; --stripe: #1d211d; --note-bg: #1f2a22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 1rem; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, system-ui, sans-serif;
+  line-height: 1.8; font-size: 16px; -webkit-text-size-adjust: 100%;
+}
+main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+header.doc h1 { font-size: 1.9rem; line-height: 1.35; margin: 0 0 .4rem; }
+header.doc p { margin: .2rem 0; color: var(--muted); }
+header.doc .lead { color: var(--fg); margin-top: 1rem; }
+nav.toc { border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1.2rem; margin: 2rem 0; background: var(--stripe); }
+nav.toc summary { cursor: pointer; font-weight: 700; }
+nav.toc ol { margin: .6rem 0 0; padding-left: 0; list-style: none; columns: 2 18rem; column-gap: 2rem; }
+nav.toc ol > li { break-inside: avoid; margin-bottom: .5rem; font-weight: 600; }
+nav.toc ul { list-style: none; margin: .1rem 0 0; padding-left: 1rem; font-weight: 400; font-size: .93rem; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+h2 { font-size: 1.5rem; margin: 3.2rem 0 1rem; padding-bottom: .35rem; border-bottom: 2px solid var(--accent); line-height: 1.4; }
+h3 { font-size: 1.15rem; margin: 2.2rem 0 .6rem; line-height: 1.5; }
+p { margin: .7rem 0; }
+ul, ol { padding-left: 1.5rem; margin: .6rem 0; }
+li { margin: .25rem 0; }
+code { font-family: "Noto Sans Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .9em;
+  background: var(--code-bg); padding: .08em .3em; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: .9rem 1rem;
+  overflow-x: auto; line-height: 1.55; margin: .9rem 0; }
+pre code { background: none; padding: 0; font-size: .86rem; overflow-wrap: normal; white-space: pre; }
+pre.vec code { white-space: pre-wrap; overflow-wrap: anywhere; }
+p.vec-title { margin: 1.1rem 0 .2rem; font-weight: 600; font-size: .95rem; }
+pre.vec { margin-top: .2rem; }
+.table-wrap { overflow-x: auto; margin: .9rem 0; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: .94rem; }
+th, td { padding: .55rem .75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+thead th { background: var(--head-bg); color: var(--head-fg); font-weight: 600; white-space: nowrap; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+tbody tr:last-child td { border-bottom: none; }
+td:first-child { font-weight: 600; }
+p.note { background: var(--note-bg); border-left: 4px solid var(--accent); padding: .6rem .9rem; border-radius: 0 6px 6px 0; }
+footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+@media (max-width: 40rem) {
+  main { padding: 1.2rem 1rem 3rem; }
+  header.doc h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.3rem; }
+  th, td { padding: .5rem .55rem; }
+}
+@media print {
+  nav.toc { break-after: page; }
+  pre, .table-wrap { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<main>
+<header class="doc">
+<h1>P2P対局 互換実装のための仕様書</h1>
+<p>ShogiBoardQ-P2P（将棋盤Q P2P実験版）／プロトコルの版 1／文書の版 2026-11-11</p>
+<p class="lead">ShogiBoardQ-P2P の「P2P対局」と相互に対局できるソフトウェアを作るための仕様書である。通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
+</header>
+<nav class="toc" aria-label="目次">
+<details open>
+<summary>目次</summary>
+<ol>
+<li><a href="#sec-1">1. この文書について</a>
+<ul>
+<li><a href="#sec-1-1">1.1 目的と適用範囲</a></li>
+<li><a href="#sec-1-2">1.2 言葉の使い方</a></li>
+<li><a href="#sec-1-3">1.3 全体の流れ</a></li>
+<li><a href="#sec-1-4">1.4 防げないこと</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2. 記法と共通の規則</a>
+<ul>
+<li><a href="#sec-2-1">2.1 値の書き方</a></li>
+<li><a href="#sec-2-2">2.2 決定的CBOR</a></li>
+<li><a href="#sec-2-3">2.3 ハッシュ</a></li>
+<li><a href="#sec-2-4">2.4 署名</a></li>
+<li><a href="#sec-2-5">2.5 文字列の制限</a></li>
+</ul>
+</li>
+<li><a href="#sec-3">3. ネットワークと識別子</a>
+<ul>
+<li><a href="#sec-3-1">3.1 ネットワーク</a></li>
+<li><a href="#sec-3-2">3.2 PeerId</a></li>
+<li><a href="#sec-3-3">3.3 プレイヤー鍵とプレイヤーID</a></li>
+<li><a href="#sec-3-4">3.4 一局用鍵</a></li>
+<li><a href="#sec-3-5">3.5 確認コード</a></li>
+<li><a href="#sec-3-6">3.6 表示名</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. 通信の層（libp2p）</a>
+<ul>
+<li><a href="#sec-4-1">4.1 使うプロトコル</a></li>
+<li><a href="#sec-4-2">4.2 待受</a></li>
+<li><a href="#sec-4-3">4.3 Identify</a></li>
+<li><a href="#sec-4-4">4.4 協力ノードと中継</a></li>
+<li><a href="#sec-4-5">4.5 宛先の規則</a></li>
+<li><a href="#sec-4-6">4.6 直接接続を使わない設定</a></li>
+<li><a href="#sec-4-7">4.7 上限</a></li>
+</ul>
+</li>
+<li><a href="#sec-5">5. 招待文字列</a>
+<ul>
+<li><a href="#sec-5-1">5.1 形</a></li>
+<li><a href="#sec-5-2">5.2 作る側</a></li>
+<li><a href="#sec-5-3">5.3 読む側</a></li>
+</ul>
+</li>
+<li><a href="#sec-6">6. 対局ストリームとフレーム</a>
+<ul>
+<li><a href="#sec-6-1">6.1 ストリーム</a></li>
+<li><a href="#sec-6-2">6.2 フレームの外枠</a></li>
+<li><a href="#sec-6-3">6.3 ストリームを開く手順と INVITE_TOKEN</a></li>
+<li><a href="#sec-6-4">6.4 頻度と大きさの上限</a></li>
+</ul>
+</li>
+<li><a href="#sec-7">7. 署名とハッシュの対象になる値</a>
+<ul>
+<li><a href="#sec-7-1">7.1 条件</a></li>
+<li><a href="#sec-7-2">7.2 状態（State）</a></li>
+<li><a href="#sec-7-3">7.3 指し手と局面の書き方</a></li>
+<li><a href="#sec-7-4">7.4 開始合意と対局ID</a></li>
+<li><a href="#sec-7-5">7.5 承認・制御・結果</a></li>
+</ul>
+</li>
+<li><a href="#sec-8">8. 開始までの手順</a>
+<ul>
+<li><a href="#sec-8-1">8.1 流れ</a></li>
+<li><a href="#sec-8-2">8.2 HELLO（開始前）</a></li>
+<li><a href="#sec-8-3">8.3 START_AGREEMENT</a></li>
+<li><a href="#sec-8-4">8.4 先後の決め方</a></li>
+<li><a href="#sec-8-5">8.5 START_SIGNATURE</a></li>
+<li><a href="#sec-8-6">8.6 期限</a></li>
+<li><a href="#sec-8-7">8.7 REJECT</a></li>
+</ul>
+</li>
+<li><a href="#sec-9">9. 対局中の手順</a>
+<ul>
+<li><a href="#sec-9-1">9.1 開始（State0 と READY）</a></li>
+<li><a href="#sec-9-2">9.2 着手の提案（STATE_PROPOSE）</a></li>
+<li><a href="#sec-9-3">9.3 承認（STATE_ACCEPT）</a></li>
+<li><a href="#sec-9-4">9.4 時間の決まり</a></li>
+<li><a href="#sec-9-5">9.5 制御メッセージ（CONTROL）</a></li>
+<li><a href="#sec-9-6">9.6 指し手の合法性</a></li>
+<li><a href="#sec-9-7">9.7 検査の失敗（ERROR）</a></li>
+</ul>
+</li>
+<li><a href="#sec-10">10. 終局と結果の確定</a>
+<ul>
+<li><a href="#sec-10-1">10.1 結果と原因</a></li>
+<li><a href="#sec-10-2">10.2 結果の提案と一致</a></li>
+<li><a href="#sec-10-3">10.3 棋譜から決まる終局</a></li>
+<li><a href="#sec-10-4">10.4 結果への署名（RESULT_SIGNATURE）</a></li>
+<li><a href="#sec-10-5">10.5 対局をやめる（ABORT）</a></li>
+</ul>
+</li>
+<li><a href="#sec-11">11. 再接続</a>
+<ul>
+<li><a href="#sec-11-1">11.1 つなぎ直す側と受ける側</a></li>
+<li><a href="#sec-11-2">11.2 HELLO（再接続）</a></li>
+<li><a href="#sec-11-3">11.3 RESUME</a></li>
+<li><a href="#sec-11-4">11.4 SYNC_REQUEST と SYNC_CHUNK</a></li>
+<li><a href="#sec-11-5">11.5 照合の後</a></li>
+<li><a href="#sec-11-6">11.6 切断の上限</a></li>
+</ul>
+</li>
+<li><a href="#sec-12">12. エラーの番号</a>
+</li>
+<li><a href="#sec-13">13. 対局記録（証跡）</a>
+<ul>
+<li><a href="#sec-13-1">13.1 形</a></li>
+<li><a href="#sec-13-2">13.2 検証の手順</a></li>
+<li><a href="#sec-13-3">13.3 記録の区分</a></li>
+</ul>
+</li>
+<li><a href="#sec-14">14. 定数の一覧</a>
+</li>
+<li><a href="#sec-15">15. 適合の確かめ方</a>
+<ul>
+<li><a href="#sec-15-1">15.1 試験の入力</a></li>
+<li><a href="#sec-15-2">15.2 確かめる順序</a></li>
+</ul>
+</li>
+<li><a href="#sec-A">付録 A. 試験用の値</a>
+<ul>
+<li><a href="#sec-A-1">A.1 条件のハッシュ</a></li>
+<li><a href="#sec-A-2">A.2 先後の乱数・接続・確認コード</a></li>
+<li><a href="#sec-A-3">A.3 状態と結果（gameId = aa…、基本 600,000 ms・秒読み 30,000 ms）</a></li>
+<li><a href="#sec-A-4">A.4 署名とフレーム</a></li>
+</ul>
+</li>
+</ol>
+</details>
+</nav>
+<section id="overview">
+<h2 id="sec-1">1. この文書について</h2>
+
+<h3 id="sec-1-1">1.1 目的と適用範囲</h3>
+<p>この文書は、ShogiBoardQ-P2P（将棋盤Q P2P実験版）の「P2P対局」と相互に対局できるソフトウェアを、別の実装として作るための仕様書である。ネットワークを流れるバイト列、手順、検査、時間の決まり、対局記録（証跡）のファイルの形を定める。この文書どおりに作った実装どうしは、招待文字列を渡して接続し、対局し、双方で確定した対局記録を残せる。</p>
+<p>対象は、プロトコルの版 1（フレームの <code>version</code> が 1、各値の版が 1）である。次のものは対象外で、実装ごとに自由に決めてよい。</p>
+<ul>
+<li>画面と操作、設定の保存、プレイヤー鍵の保管の方法（OS の鍵の保管庫・暗号化したファイルなど）</li>
+<li>通信を受け持つ部分と対局・画面の部分の分け方（ShogiBoardQ-P2P は別プロセスに分け、JSON の IPC でつなぐが、互換性には関係しない）</li>
+<li>権限の制限（サンドボックス）などの、実装の中の安全対策</li>
+</ul>
+
+<h3 id="sec-1-2">1.2 言葉の使い方</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>書き方</th><th>意味</th></tr></thead>
+<tbody>
+<tr><td>〜しなければならない／〜する</td><td>互換性と安全のために必ず守る（MUST）</td></tr>
+<tr><td>〜してはならない</td><td>必ず避ける（MUST NOT）</td></tr>
+<tr><td>〜することが望ましい</td><td>特別な理由がなければ従う（SHOULD）</td></tr>
+<tr><td>〜してよい</td><td>実装が選べる（MAY）</td></tr>
+</tbody>
+</table></div>
+<p>この文書で「断る」「拒否する」と書いた入力を受け取った実装は、それを正しい入力として扱ってはならない。どう知らせるか（REJECT を送る・ストリームを閉じる・黙って捨てる）は、各節に書く。</p>
+
+<h3 id="sec-1-3">1.3 全体の流れ</h3>
+<p>対局者を2人とし、招待する側を<strong>招待側</strong>（プロトコルの中では「募集側」、<code>role</code> = 2）、招待を受けて接続する側を<strong>申込側</strong>（<code>role</code> = 1）と呼ぶ。</p>
+<ol>
+<li><strong>接続</strong>：双方が libp2p のノードを起動する（<a href="#sec-4">4章</a>）。インターネット越しでは、利用者が指定した協力ノード（中継と到達性の確認を受け持つノード）にもつなぐ。</li>
+<li><strong>招待</strong>：招待側が招待文字列を作り、利用者が別の経路（メッセージなど）で相手に渡す（<a href="#sec-5">5章</a>）。</li>
+<li><strong>ストリーム</strong>：申込側が招待文字列の宛先へ接続し、対局ストリームを開いて、最初に招待の合言葉（INVITE_TOKEN）を送る（<a href="#sec-6">6章</a>）。</li>
+<li><strong>開始の交渉</strong>：HELLO を交換し、条件と先後を決め、開始合意（StartAgreement）に双方がプレイヤー鍵で署名する（<a href="#sec-8">8章</a>）。</li>
+<li><strong>対局</strong>：1手ごとに、指した側が状態（State）を提案し、相手が確かめて承認する。どちらも一局用鍵で署名する（<a href="#sec-9">9章</a>）。</li>
+<li><strong>終局</strong>：結果（FinalResult）を照らし合わせ、双方がプレイヤー鍵で署名する（<a href="#sec-10">10章</a>）。</li>
+<li><strong>記録</strong>：それぞれが、開始合意・全手順・署名を1つのファイル（証跡）に保存する。だれでも検証できる（<a href="#sec-13">13章</a>）。</li>
+</ol>
+<p>対局サーバーはない。対局の正しさは、相手のアプリを信用せずに、受け取った値を自分で確かめることで保つ。回線が切れたときは、同じ対局へつなぎ直せる（<a href="#sec-11">11章</a>）。</p>
+
+<h3 id="sec-1-4">1.4 防げないこと</h3>
+<p>このプロトコルは、次のことを防がない。互換実装は、利用者にそう説明することが望ましい。</p>
+<ul>
+<li>表示名は自己申告である。相手を見分ける根拠は、プレイヤー鍵の公開鍵（プレイヤーID）と確認コード（<a href="#sec-3-5">3.5節</a>）だけである。</li>
+<li>負けた側が結果に署名しなければ、双方が署名した記録は残らない。</li>
+<li>消費時間は自己申告である。1手あたり 10 秒までの水増しと、切断を使った時間稼ぎ（1局で合計10分まで）は見分けられない。</li>
+<li>エンジンが指した対局や、示し合わせた対局は見分けられない。</li>
+<li>直接つなぐと、相手は通信を調べて IP アドレスを知ることができる（中継だけを使う設定で避けられる。<a href="#sec-4-6">4.6節</a>）。</li>
+</ul>
+</section>
+<section id="notation">
+<h2 id="sec-2">2. 記法と共通の規則</h2>
+
+<h3 id="sec-2-1">2.1 値の書き方</h3>
+<p>この文書では、CBOR の値を次のように書く。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>書き方</th><th>意味</th></tr></thead>
+<tbody>
+<tr><td><code>uint</code></td><td>符号なし整数（0〜2<sup>64</sup>−1）</td></tr>
+<tr><td><code>bstr</code>、<code>bstr(32)</code></td><td>byte string。括弧の数は長さ（バイト）</td></tr>
+<tr><td><code>tstr</code></td><td>text string（UTF-8）</td></tr>
+<tr><td><code>[a, b, ...]</code></td><td>配列。要素の数と順序は固定で、書いていない要素を足してはならない</td></tr>
+<tr><td><code>"SBQ-..."</code></td><td>その文字列そのものの tstr（値の種類を表すラベル）</td></tr>
+<tr><td><code>zero32</code></td><td>ゼロ 32 バイトの bstr</td></tr>
+</tbody>
+</table></div>
+<p>真偽は uint の 0／1 で表す。時刻は UNIX 秒（uint）、時間の長さはミリ秒（uint）である。16進表記は小文字とする。</p>
+
+<h3 id="sec-2-2">2.2 決定的CBOR</h3>
+<p>署名・ハッシュ・フレーム・招待文字列・証跡に使う CBOR は、RFC 8949 の core deterministic encoding のうち、次の部分だけを使う。<strong>読む側は、ここにないものをすべて拒否しなければならない。</strong></p>
+<ul>
+<li>使える型は4つだけ：符号なし整数（major type 0）、byte string（2）、text string（3）、配列（4）。負の整数・map・タグ・浮動小数・単純値（true／false／null／undefined）は使わない。</li>
+<li>長さと整数は最短の形で書く（0〜23 は先頭バイトに、24〜255 は続く1バイト、256〜65535 は2バイト、65536〜2<sup>32</sup>−1 は4バイト、それ以上は8バイト）。最短でない形は拒否する。</li>
+<li>不定長（additional information 31）と、予約の値（28〜30）は拒否する。</li>
+<li>text string は正しい UTF-8 でなければならない（過長な形・サロゲート・U+10FFFF を超える値を拒否する）。</li>
+<li>入れ子は 16 段まで。最上位の値を1段目と数え、配列の中の値は、配列でなくても1段深いと数える（配列を 16 重にして、いちばん内側に値を1つ置くと 17 段になり、拒否する）。</li>
+<li>入力は値1つだけで、後ろに余りのバイトがあれば拒否する。</li>
+<li>長さを読んだら、残りの入力に収まるかを確かめてから領域を確保する。</li>
+</ul>
+<p>この規則を守ると、1つの値に対するバイト列は1通りに決まる。読み終えた値を符号化し直したバイト列は、元のバイト列と一致する。以下、<code>CBOR(x)</code> は値 x のこのバイト列を表す。</p>
+
+<h3 id="sec-2-3">2.3 ハッシュ</h3>
+<p>ハッシュ関数 <code>H</code> は SHA-256（出力 32 バイト）である。<code>H(CBOR(x))</code> は、値 x の決定的CBORのバイト列の SHA-256 を表す。この文書で「〜Hash」と名の付く値は、断りがなければ <code>H(CBOR(値))</code> である。</p>
+
+<h3 id="sec-2-4">2.4 署名</h3>
+<p>署名は Ed25519（RFC 8032）で、公開鍵 32 バイト、署名 64 バイトである。署名の対象は、値の決定的CBORのバイト列そのもの（<code>CBOR(値)</code>）で、前置きや文脈の文字列を足さない。値の先頭のラベル（<code>"SBQ-START"</code> など）が、署名の用途を分ける役目を持つ。</p>
+<p>検証は、次の2つの両方に通ったときだけ「正しい」とする。</p>
+<ol>
+<li><strong>公開鍵の検査</strong>：公開鍵が、libsodium の <code>crypto_core_ed25519_is_valid_point</code> に通る点である（正規の符号化で、曲線上にあり、素数位数の部分群に属し、小さな位数でない）。</li>
+<li><strong>署名の検査</strong>：libsodium の <code>crypto_sign_verify_detached</code> と同じ結果になる（正準でない署名を拒否する、という libsodium の既定の検査を含む）。</li>
+</ol>
+<p>1 の検査は、署名の検証のたびに行う（HELLO で受けた公開鍵にも、証跡の検証にも掛かる）。2 だけを行う実装は、素数位数の部分群に属さない公開鍵による署名を、ShogiBoardQ-P2P と違って受け付けてしまう。秘密鍵は 32 バイトの種（seed）から RFC 8032 のとおりに導く。</p>
+
+<h3 id="sec-2-5">2.5 文字列の制限</h3>
+<p>「ASCII の tstr」と書いた値は、0x20〜0x7E の文字だけでなければならない。長さの上限は各節に書く。上限を超える値・範囲外の文字を含む値は拒否する。</p>
+</section>
+<section id="identity">
+<h2 id="sec-3">3. ネットワークと識別子</h2>
+
+<h3 id="sec-3-1">3.1 ネットワーク</h3>
+<p>対局できるのは、同じ <code>networkName</code> を選んだ実装どうしだけである。ネットワークは名前から決まる 32 バイトの値 <code>networkId</code> で見分ける。</p>
+<pre><code>networkId = H(CBOR(["SBQ-NETWORK", 1, networkName]))     ; networkName は ASCII の tstr（1〜32 バイト）</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>networkName</th><th>用途</th><th>networkId（16進）</th></tr></thead>
+<tbody>
+<tr><td><code>sbq-local-1</code></td><td>ローカル検証用。同じ PC・同じ LAN の中だけでつなぐ（<a href="#sec-4-5">4.5節</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>限定試験用。インターネット上の相手とつなぐ</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
+</tbody>
+</table></div>
+<p>実装は、参加できる networkName の一覧を持ち、ほかの名前を断らなければならない。ShogiBoardQ-P2P は、ビルドから 180 日を過ぎると <code>sbq-limited-1</code> に参加しない（実験版の使用期限。互換実装が同じ期限を持つ必要はない）。</p>
+<p>libp2p の層には、ネットワークを分ける仕組み（private network の鍵など）を置いていない。ネットワークの違いは、招待文字列（<a href="#sec-5">5章</a>）と HELLO（<a href="#sec-8-2">8.2節</a>）の networkId で確かめる。</p>
+
+<h3 id="sec-3-2">3.2 PeerId</h3>
+<p>libp2p のノードの鍵は Ed25519 でなければならない。PeerId のバイナリ表現は、Ed25519 の公開鍵をそのまま入れた identity multihash の 38 バイトである。</p>
+<pre><code>peerId = 00 24 08 01 12 20 || 公開鍵（32 バイト）</code></pre>
+<p>この形でない PeerId（RSA の鍵・SHA-256 の multihash など）は、招待文字列でも HELLO でも断る。文字での表記は base58（<code>12D3KooW…</code>）である。</p>
+<p>PeerId はノードを起動するたびに作り直してよい（ShogiBoardQ-P2P は、接続するたびに新しい鍵を作る）。ただし、1局の間は同じ PeerId を使い続けなければならない。開始合意に PeerId のハッシュが入り、再接続は同じ PeerId からしか受け付けないためである（<a href="#sec-11">11章</a>）。</p>
+
+<h3 id="sec-3-3">3.3 プレイヤー鍵とプレイヤーID</h3>
+<p>利用者ごとに、長く使う Ed25519 の鍵を1つ持つ。これを<strong>プレイヤー鍵</strong>と呼び、その公開鍵（32 バイト）を<strong>プレイヤーID</strong>と呼ぶ。プレイヤー鍵は、開始合意（StartAgreement）と結果（FinalResult）への署名にだけ使う。PeerId の鍵とは別の鍵でなければならない。</p>
+<p>画面では、プレイヤーID を小文字の16進 64 桁で、8 桁ごとに空白で区切って出す（例：<code>cf3b0b03 a6e888db …</code>）。相手が同じ人かどうかを、省略した表示だけで利用者に判断させてはならない。</p>
+
+<h3 id="sec-3-4">3.4 一局用鍵</h3>
+<p>1回の交渉ごとに、新しい Ed25519 の鍵を作る。これを<strong>一局用鍵</strong>と呼び、対局中の状態の承認（StateApproval）と制御メッセージ（Control）への署名に使う。対局が終わったら捨て、保存しない。プレイヤー鍵・相手の鍵のどれとも違う鍵でなければならない。</p>
+
+<h3 id="sec-3-5">3.5 確認コード</h3>
+<p>2人のプレイヤーID から、双方の画面に同じ数字が出る確認コードを作る。利用者は、電話や対面など別の経路で数字を見比べて、相手のプレイヤーID が本人のものかを確かめる。</p>
+<pre><code>digest = H(CBOR(["SBQ-VERIFY", 1, keyLow, keyHigh]))    ; 2つの公開鍵を、バイト列の辞書順（符号なし）で小さいほうを先に
+組 g（0〜5）= digest[5g .. 5g+4] の 5 バイトをビッグエンディアンの整数として読み、100000 で割った余りを 5 桁（ゼロ詰め）で書く</code></pre>
+<p>確認コードは、この 5 桁の数字 6 組（計 30 桁）である。</p>
+
+<h3 id="sec-3-6">3.6 表示名</h3>
+<p>表示名は、相手の画面に出る自己申告の名前で、HELLO で送る。次の規則をすべて満たさなければならず、受け取った側は、<strong>受け取ったバイト列のまま</strong>判定する（先頭の BOM などを取り除いてから判定してはならない）。</p>
+<ul>
+<li>UTF-8 で 96 バイト以下、1〜32 文字（コードポイント）</li>
+<li>先頭と末尾が空白（U+0020）でない</li>
+<li>すべての文字が、次の表の範囲にある（両端を含む）</li>
+</ul>
+<div class="table-wrap"><table>
+<thead><tr><th>範囲（16進）</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td><code>0020..007E</code></td><td>ASCII の印字できる文字（空白を含む）</td></tr>
+<tr><td><code>3001..3003</code></td><td>、。〃</td></tr>
+<tr><td><code>3005..3007</code></td><td>々〆〇</td></tr>
+<tr><td><code>3041..3096</code></td><td>ひらがな（結合する濁点・半濁点 U+3099・U+309A は含まない）</td></tr>
+<tr><td><code>309B..309E</code></td><td>゛゜ゝゞ</td></tr>
+<tr><td><code>30A1..30FE</code></td><td>カタカナ（・ーヽヾ を含む）</td></tr>
+<tr><td><code>4E00..9FFF</code></td><td>CJK 統合漢字</td></tr>
+<tr><td><code>FF01..FF5E</code></td><td>全角の英数字と記号</td></tr>
+</tbody>
+</table></div>
+<p>表は、結合文字を含まず、NFC で形の変わらない文字だけから選んである。実装は、この表だけで判定し、OS や言語の Unicode の表を使ってはならない（実装によって結果が変わるため）。表示名は対局記録（証跡）には入らない。</p>
+</section>
+<section id="transport">
+<h2 id="sec-4">4. 通信の層（libp2p）</h2>
+
+<h3 id="sec-4-1">4.1 使うプロトコル</h3>
+<p>通信には libp2p を使う。ShogiBoardQ-P2P は rust-libp2p 0.56 で作ってあり、互換実装は次のプロトコルで相互に接続できなければならない。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>層</th><th>プロトコル</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td>トランスポート</td><td>QUIC v1（multiaddr は <code>/ip4/…/udp/&lt;port&gt;/quic-v1</code>）</td><td>どちらか一方でつながればよい。両方に対応することが望ましい</td></tr>
+<tr><td>トランスポート</td><td>TCP（<code>/ip4/…/tcp/&lt;port&gt;</code>）＋ multistream-select 1.0 ＋ Noise（<code>/noise</code>）＋ Yamux（<code>/yamux/1.0.0</code>）</td><td>中継経由の接続も、この Noise と Yamux を使う</td></tr>
+<tr><td>識別</td><td>Identify（<code>/ipfs/id/1.0.0</code>）</td><td>4.3節</td></tr>
+<tr><td>死活</td><td>Ping（<code>/ipfs/ping/1.0.0</code>）</td><td><strong>必須</strong>。10 秒ごとに送り、30 秒応答がなければ接続を閉じる。Ping に対応しない相手との接続は、すぐに閉じる</td></tr>
+<tr><td>中継</td><td>Circuit Relay v2（<code>/libp2p/circuit/relay/0.2.0/hop</code>・<code>/stop</code>）</td><td>4.4節。<code>sbq-limited-1</code> で使う</td></tr>
+<tr><td>直接接続への切り替え</td><td>DCUtR（<code>/libp2p/dcutr</code>）</td><td>省いてよい。中継だけを使う設定では行ってはならない</td></tr>
+<tr><td>到達性の確認</td><td>AutoNAT（<code>/libp2p/autonat/1.0.0</code>）</td><td>省いてよい。中継だけを使う設定では行ってはならない</td></tr>
+<tr><td>対局</td><td><code>/shogiboardq/game/1.0.0</code></td><td>6章以降。この文書の本体</td></tr>
+</tbody>
+</table></div>
+<p>mDNS・Kademlia（DHT）・GossipSub は使わない。相手を自動で探す仕組みはなく、接続を始める相手は、利用者が指定した協力ノードと、招待・対局の相手だけである。</p>
+
+<h3 id="sec-4-2">4.2 待受</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ネットワーク</th><th>待受</th></tr></thead>
+<tbody>
+<tr><td><code>sbq-local-1</code></td><td>IPv4 の全インターフェース。TCP と UDP（QUIC）の <strong>48210 番</strong>。使用中なら空いているポートを使う。IPv6 では待ち受けない</td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>IPv4 と IPv6 の全インターフェース。TCP と UDP（QUIC）の空いているポート</td></tr>
+</tbody>
+</table></div>
+<p>ポート番号は招待文字列の宛先に入るので、互換実装が別のポートで待ち受けても接続できる。48210 番は、ファイアウォールで許可するポートを利用者が決められるようにするための既定値である。</p>
+
+<h3 id="sec-4-3">4.3 Identify</h3>
+<p>Identify の <code>protocolVersion</code> は <code>/shogiboardq/1.0.0</code>、<code>agentVersion</code> は実装の名前と版（ShogiBoardQ-P2P は <code>shogiboardq-peer/&lt;版&gt;</code>）にする。相手のこれらの値で接続を断ってはならない（ネットワークの違いは networkId で確かめる）。</p>
+<p>Identify で配る自分のアドレス（listenAddrs）には、待受のアドレスをそのまま入れてはならない。入れてよいのは、相手が実際に届くと確かめた・決めたアドレスだけである（<code>sbq-local-1</code> では loopback と私設アドレス、<code>sbq-limited-1</code> では AutoNAT で確かめたインターネット上のアドレスと中継経由のアドレス）。待受のアドレスが変わったことを Identify の push で知らせない。</p>
+
+<h3 id="sec-4-4">4.4 協力ノードと中継</h3>
+<p>インターネット越し（<code>sbq-limited-1</code>）では、利用者が<strong>協力ノード</strong>のアドレス（<code>/ip4/…/tcp/…/p2p/&lt;PeerId&gt;</code> の形。16 件まで）を指定する。協力ノードは、Circuit Relay v2 の hop と Identify・Ping（と AutoNAT の応答）に対応した libp2p のノードで、対局のフレームの中身は読まない。標準の Circuit Relay v2 の中継ノードであれば、協力ノードとして使える。</p>
+<ul>
+<li>実装は、Identify の protocols に中継の hop がある協力ノードに、自分の到達性によらず中継の予約を取る（2件まで）。</li>
+<li>中継経由の自分のアドレスは <code>&lt;協力ノードのアドレス&gt;/p2p/&lt;協力ノードの PeerId&gt;/p2p-circuit</code> の形で、招待文字列に入れる。協力ノードは、予約の応答で自分のアドレスを返さなければならない（Circuit Relay v2 の標準の動き。返さない中継からは、このアドレスを作れない）。</li>
+<li>中継経由の宛先にも、先頭の IP アドレス（協力ノードのもの）に 4.5節の規則を掛ける。</li>
+<li>ShogiBoardQ-P2P の協力ノード（<code>shogiboardq-peer --service --relay</code>）は、中継1本あたり 30 分・8 MiB までで切る。切れたら、対局は再接続の手順（<a href="#sec-11">11章</a>）でつなぎ直す。</li>
+</ul>
+
+<h3 id="sec-4-5">4.5 宛先の規則</h3>
+<p>接続してよい宛先と、自分のアドレスとして出してよいアドレスは、ネットワークごとに決まる。IP アドレスは次のように分ける。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>分類</th><th>範囲</th></tr></thead>
+<tbody>
+<tr><td>loopback</td><td>127.0.0.0/8、::1（下の「使わない」より先に判定する）</td></tr>
+<tr><td>私設</td><td>10.0.0.0/8、172.16.0.0/12、192.168.0.0/16、fc00::/7（ULA）</td></tr>
+<tr><td>使わない</td><td>0.0.0.0/8、169.254.0.0/16、100.64.0.0/10、224.0.0.0/4、240.0.0.0/4（255.255.255.255 を含む）、192.0.0.0/24、192.0.2.0/24、198.51.100.0/24、203.0.113.0/24、198.18.0.0/15、::、IPv4 を埋め込んだ IPv6（::/96・::ffff:0:0/96）、fe80::/10、ff00::/8、2001:db8::/32、64:ff9b::/32</td></tr>
+<tr><td>インターネット</td><td>上のどれでもないアドレス</td></tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>ネットワーク</th><th>接続してよい宛先</th><th>受け付ける接続元</th></tr></thead>
+<tbody>
+<tr><td><code>sbq-local-1</code></td><td>loopback・私設・中継経由。インターネット上のアドレスへは接続しない</td><td>loopback と私設だけ。ほかの接続元から届いた接続は、接続として確立する前に閉じる（TCP では Noise の手続きを始める前）。中継経由の接続は接続元の IP を持たないので、ここでは断らない</td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>インターネット上のアドレスと中継経由。私設アドレスは、招待文字列の宛先で、利用者がその招待について許可したときだけ。loopback と「使わない」アドレスへは接続しない</td><td>制限しない</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>宛先として使えるのは、<code>/ip4/…</code> か <code>/ip6/…</code> で始まるアドレス（中継経由のアドレスを含む）と、<code>/p2p/&lt;協力ノード&gt;/p2p-circuit</code> の形だけである。DNS 名の宛先（<code>/dns</code>・<code>/dns4</code>・<code>/dns6</code>・<code>/dnsaddr</code>）は v1 では使わない。招待文字列に入れてはならず、入っていれば捨てる。</li>
+<li>1ピアあたりの宛先は 8 件まで。同時に試す接続は 8 件までとし、失敗した宛先は 60 秒再試行しない。</li>
+<li><code>sbq-limited-1</code> では、自分が出すアドレス（招待・Identify）から私設アドレスを除く。</li>
+</ul>
+
+<h3 id="sec-4-6">4.6 直接接続を使わない設定</h3>
+<p>対局の相手に自分の IP アドレスを見せないための設定である（実装するかは任意）。この設定の実装は、次を守らなければならない。</p>
+<ul>
+<li>直接つなぐ宛先は、利用者が指定した協力ノードの宛先（と、そのノードが Identify で名乗った別の宛先）だけにする。ほかの宛先への直接の接続は、どの経路で始まったものも断る。</li>
+<li>中継経由の宛先は、中継が指定した協力ノードのときだけ使う（指定していない中継には自分の IP が見える）。</li>
+<li>自分のアドレスとして出すのは、中継経由のアドレスだけにする（招待・Identify）。</li>
+<li>AutoNAT と DCUtR を行わない。どちらも、自分のアドレスの候補を相手に渡すためである。</li>
+</ul>
+<p>相手がこの設定で招待してきたときは、招待文字列の中継経由の宛先へ普通に接続すればよく、プロトコルの上の違いはない。</p>
+<p>この設定の側が<strong>申込側</strong>になるときは、招待文字列の宛先のうち、自分が指定した協力ノードを中継とするものにしか接続しない。そのため、招待側は、<strong>申込側が指定しているのと同じ協力ノード</strong>に中継の予約を取り、その中継経由のアドレスを招待文字列に入れておく必要がある（双方が同じ協力ノードを指定する）。使える宛先がなければ、申込側は接続を始めない。</p>
+
+<h3 id="sec-4-7">4.7 上限</h3>
+<p>ShogiBoardQ-P2P は、次の上限を超えた接続を閉じる・受け付けない。互換実装は、この範囲で動かなければならない。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>上限</th></tr></thead>
+<tbody>
+<tr><td>確立した接続の合計</td><td>32（確立前は受け・掛けそれぞれ 8）</td></tr>
+<tr><td>1ピアあたりの接続</td><td>4</td></tr>
+<tr><td>同じアドレス帯（IPv4 は /24、IPv6 は /48）から受け付ける接続</td><td>8</td></tr>
+<tr><td>対局ストリーム（開始前・対局中の合計）</td><td>8</td></tr>
+<tr><td>ストリームのない接続を保つ時間</td><td>120 秒</td></tr>
+</tbody>
+</table></div>
+</section>
+<section id="invite">
+<h2 id="sec-5">5. 招待文字列</h2>
+<p>対局の相手は、招待文字列で決める。招待側が作り、利用者が別の経路で相手に渡す。招待文字列には、招待側への接続先と、1回だけ使える合言葉（token）が入る。</p>
+
+<h3 id="sec-5-1">5.1 形</h3>
+<pre><code>invite = "sbqinv1." + base64url(body) + "." + hex(H(body)[0..4])
+body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt])</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>networkId</td><td>bstr(32)</td><td><a href="#sec-3-1">3.1節</a></td></tr>
+<tr><td>peerId</td><td>bstr(38)</td><td>招待側の PeerId のバイナリ表現（<a href="#sec-3-2">3.2節</a>の形だけ）</td></tr>
+<tr><td>addr</td><td>bstr</td><td>到達候補の multiaddr のバイナリ表現。末尾の <code>/p2p/&lt;招待側&gt;</code> は付けない（中継経由のアドレスの中の <code>/p2p/&lt;協力ノード&gt;</code> は残す）。0〜8 件、1件 1〜100 バイト</td></tr>
+<tr><td>token</td><td>bstr(32)</td><td>暗号用の乱数生成器で作る</td></tr>
+<tr><td>expiresAt</td><td>uint</td><td>有効期限（UNIX 秒）。作成から 600 秒後</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>base64url は RFC 4648 の URL 用の文字で、<code>=</code> を付けない。</li>
+<li>末尾の検査の値は、body の SHA-256 の先頭4バイトの小文字16進（8 文字）である。打ち間違い・欠けを見つけるためのもので、秘密ではない。</li>
+<li>文字列全体は 1024 バイト以下でなければならない。</li>
+</ul>
+
+<h3 id="sec-5-2">5.2 作る側</h3>
+<ul>
+<li>到達候補には、相手が実際に使えるアドレスだけを入れる（<a href="#sec-4-5">4.5節</a>・<a href="#sec-4-6">4.6節</a>）。<code>sbq-local-1</code> では、同じ LAN の相手が使う私設アドレスを先に、同じ PC でしか使えない loopback を最後に入れる。</li>
+<li>同時に有効な招待は 4 つまでとし、5つ目を作ったら最も古いものを無効にする。</li>
+<li>招待は1回だけ使える。合言葉が一致したストリームを受け付けたら、その招待を使用済みにする（<a href="#sec-6-3">6.3節</a>）。</li>
+<li>token をログなどに出してはならない。招待文字列は、相手だけに届く経路で渡すよう利用者に案内する（接続先が入っているため）。</li>
+</ul>
+
+<h3 id="sec-5-3">5.3 読む側</h3>
+<p>読む前に、前後の空白（ASCII の空白・タブ・CR・LF）だけを取り除く。そのうえで、次をすべて確かめ、1つでも外れれば使わない。</p>
+<ol>
+<li>全体が 1024 バイト以下で、接頭辞が <code>sbqinv1.</code> であり、残りが <code>.</code> でちょうど2つの部分に分かれる。</li>
+<li>前の部分が base64url として読め、後ろの部分が body の SHA-256 の先頭4バイトの小文字16進と一致する。</li>
+<li>body が決定的CBORで、7 要素の配列であり、ラベル・版・各項目の型と長さが 5.1節のとおりである。</li>
+<li>networkId が、自分が今参加しているネットワークと一致する。</li>
+<li>expiresAt が今の時刻より後で、今から 660 秒後（600 秒＋時計のずれ 60 秒）以内である。</li>
+<li>peerId が自分の PeerId でない。</li>
+</ol>
+<p>到達候補は、<strong>どれも multiaddr のバイナリ表現として読めなければならない</strong>。読めないものが1件でもあれば（知らないプロトコルの番号を含むなど）、招待文字列の全体を使わない。作る側は、広く使われているプロトコル（<code>ip4</code>・<code>ip6</code>・<code>tcp</code>・<code>udp</code>・<code>quic-v1</code>・<code>p2p</code>・<code>p2p-circuit</code>）だけで書く。</p>
+<p>読めた到達候補のうち、今のネットワークで接続してよい宛先（<a href="#sec-4-5">4.5節</a>）だけを使い、ほかは捨てる。使える宛先が1つも残らなければ接続しない。</p>
+</section>
+<section id="stream">
+<h2 id="sec-6">6. 対局ストリームとフレーム</h2>
+
+<h3 id="sec-6-1">6.1 ストリーム</h3>
+<p>交渉と対局のやり取りは、libp2p のプロトコル <code>/shogiboardq/game/1.0.0</code> のストリーム1本の上で行う。この文書で「接続」と書くときは、断りがなければこのストリームを指す。ストリームが閉じる・リセットされることを「切断」と呼ぶ。</p>
+<p>ストリームには、<strong>4 バイトのビッグエンディアンの長さ</strong>と、その長さの<strong>フレーム</strong>（決定的CBOR）を、繰り返し流す。長さは 1〜65536（64 KiB）でなければならない。受ける側は、長さを確かめてから領域を確保する。</p>
+
+<h3 id="sec-6-2">6.2 フレームの外枠</h3>
+<pre><code>Frame = [version, type, requestId, gameId, payload]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>version</td><td>uint</td><td>1</td></tr>
+<tr><td>type</td><td>uint</td><td>1〜11（下の表）</td></tr>
+<tr><td>requestId</td><td>uint</td><td>送る側が付ける番号（0〜2<sup>64</sup>−1）。受ける側は、値を見ない。ShogiBoardQ-P2P は、交渉の最初のフレームを 1 として、送るたびに 1 ずつ増やす（再接続の後も続きから数える）。INVITE_TOKEN だけは 0 に決まっている</td></tr>
+<tr><td>gameId</td><td>bstr(32)</td><td>対局ID（<a href="#sec-7-4">7.4節</a>）。対局ID が決まる前のフレームは zero32</td></tr>
+<tr><td>payload</td><td>配列</td><td>中身は種類ごとに決まる</td></tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>type</th><th>名前</th><th>使う場面</th><th>節</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>HELLO</td><td>開始前の名乗り／再接続の名乗り</td><td><a href="#sec-8-2">8.2</a>・<a href="#sec-11-2">11.2</a></td></tr>
+<tr><td>2</td><td>START_AGREEMENT</td><td>開始合意の提示</td><td><a href="#sec-8-3">8.3</a></td></tr>
+<tr><td>3</td><td>START_SIGNATURE</td><td>開始合意への署名</td><td><a href="#sec-8-5">8.5</a></td></tr>
+<tr><td>4</td><td>STATE_PROPOSE</td><td>状態（着手）の提案</td><td><a href="#sec-9-2">9.2</a></td></tr>
+<tr><td>5</td><td>STATE_ACCEPT</td><td>状態の承認</td><td><a href="#sec-9-3">9.3</a></td></tr>
+<tr><td>6</td><td>CONTROL</td><td>制御（準備完了・再開・結果の提案・中断・エラー）</td><td><a href="#sec-9-5">9.5</a></td></tr>
+<tr><td>7</td><td>SYNC_REQUEST</td><td>再接続後の状態の要求</td><td><a href="#sec-11-4">11.4</a></td></tr>
+<tr><td>8</td><td>SYNC_CHUNK</td><td>再接続後の状態の送付</td><td><a href="#sec-11-4">11.4</a></td></tr>
+<tr><td>9</td><td>RESULT_SIGNATURE</td><td>結果への署名</td><td><a href="#sec-10-4">10.4</a></td></tr>
+<tr><td>10</td><td>REJECT</td><td>開始前の拒否・取りやめ</td><td><a href="#sec-8-7">8.7</a></td></tr>
+<tr><td>11</td><td>INVITE_TOKEN</td><td>招待の合言葉（ストリームの最初だけ）</td><td><a href="#sec-6-3">6.3</a></td></tr>
+</tbody>
+</table></div>
+<p>外枠の規則（長さ・決定的CBOR・5 要素の配列・version・type の範囲・gameId の長さ・payload が配列）に合わないフレームを受けたら、ストリームを閉じなければならない。</p>
+
+<h3 id="sec-6-3">6.3 ストリームを開く手順と INVITE_TOKEN</h3>
+<pre><code>INVITE_TOKEN = [1, 11, 0, zero32, [token]]   ; token は bstr(32)</code></pre>
+<p><strong>申込側</strong>（招待文字列を受け取った側）は、次のようにする。</p>
+<ol>
+<li>招待文字列の peerId と宛先へ接続し、<code>/shogiboardq/game/1.0.0</code> のストリームを開く（ShogiBoardQ-P2P は 30 秒で諦める）。</li>
+<li>開いたら<strong>直ちに</strong>、最初のフレームとして INVITE_TOKEN を送る（requestId は 0）。</li>
+<li>続けて HELLO を送る（<a href="#sec-8-2">8.2節</a>）。</li>
+</ol>
+<p><strong>招待側</strong>は、届いたストリームの最初のフレームを 10 秒だけ待ち、次のように決める。</p>
+<ul>
+<li>最初のフレームが INVITE_TOKEN で、その token が、まだ使われていない有効期限内の招待の token と一致すれば、その招待を使用済みにして、ストリームを受け付ける。照合は、処理時間が中身によらない比較で、すべての招待と行う。</li>
+<li>それ以外（時間内に届かない・INVITE_TOKEN でない・token が一致しない）は、何も返さずにストリームを閉じる。</li>
+</ul>
+<p>INVITE_TOKEN の requestId は 0、gameId は zero32 でなければならない。INVITE_TOKEN を、ストリームの最初以外で送ってはならない（受けたら外枠の違反として閉じる）。対局中に受け付けるストリームについては <a href="#sec-11-1">11.1節</a>に書く。</p>
+
+<h3 id="sec-6-4">6.4 頻度と大きさの上限</h3>
+<p>ShogiBoardQ-P2P は、次を超えたストリームを閉じる。互換実装は、この範囲で送らなければならない。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>上限</th></tr></thead>
+<tbody>
+<tr><td>フレーム1件</td><td>65536 バイト</td></tr>
+<tr><td>フレームの頻度（双方が START_SIGNATURE を送るまで）</td><td>1 秒あたり 5 件（バースト 10 件）</td></tr>
+<tr><td>フレームの頻度（その後。<strong>START_SIGNATURE を交わしたストリームに限る</strong>）</td><td>1 秒あたり 20 件（バースト 40 件）</td></tr>
+<tr><td>フレームの頻度（再接続で開いたストリーム）</td><td>1 秒あたり 5 件（バースト 10 件）のまま</td></tr>
+<tr><td>処理待ちの受信の量</td><td>256 KiB</td></tr>
+</tbody>
+</table></div>
+<p>頻度は、ストリームごとのトークンバケット（1 件受けるごとに 1 を引き、時間とともに上限まで戻る）で数える。再接続で開いたストリームでは START_SIGNATURE を交わさないので、上限は 5 件/秒のままになる（ShogiBoardQ-P2P の今の動き）。再接続の照合（<a href="#sec-11">11章</a>）と、その直後の送り直しは、この範囲に収めなければならない。</p>
+</section>
+<section id="values">
+<h2 id="sec-7">7. 署名とハッシュの対象になる値</h2>
+<p>ここに挙げる値は、決定的CBORのバイト列がそのまま署名・ハッシュの対象になる。要素の順序・型・ラベルを1つでも変えると、署名が合わなくなる。</p>
+
+<h3 id="sec-7-1">7.1 条件</h3>
+<pre><code>Rules         = ["SBQ-RULES", 1, initialSfen, 512, "fourfold-draw", "perpetual-check-loss",
+                 "no-declaration", "human", "human"]
+TimeControl   = ["SBQ-TIME", 1, mainMs, byoyomiMs, 0, 0]
+NetworkPolicy = ["SBQ-NET", 1, 10000, 30000, 120000, 5000, 86400000, 10000, 600000]</code></pre>
+<ul>
+<li><strong>Rules</strong>：v1 で使える値は1つだけである。<code>initialSfen</code> は平手の初期局面 <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>。意味は、平手・512 手で引き分け・千日手は引き分け・連続王手の千日手は王手をかけた側の負け・入玉宣言なし・人間どうし、である。</li>
+<li><strong>TimeControl</strong>：<code>mainMs</code> は基本の持ち時間（0〜86,400,000）、<code>byoyomiMs</code> は秒読み（0〜600,000）。両方 0 は拒否する。後ろの 2 つの 0 は予約（加算・遅延。v1 では 0 だけ）。</li>
+<li><strong>NetworkPolicy</strong>：v1 で使える値は1つだけである。順に、ping の間隔 10 秒・着手の確認が届かないと切断とみなす時間 30 秒・再接続を待つ時間 120 秒・再送の間隔 5 秒・1局の実時間の上限 24 時間・消費時間の許容差 10 秒・1局の切断時間の合計の上限 600 秒。</li>
+</ul>
+<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7
+timeControlHash   = H(CBOR(TimeControl))
+networkPolicyHash = H(CBOR(NetworkPolicy))</code></pre>
+<p>Rules・NetworkPolicy は、受け取った値が上の値と完全に一致するときだけ受け付ける。</p>
+
+<h3 id="sec-7-2">7.2 状態（State）</h3>
+<pre><code>State      = ["SBQ-STATE", 1, gameId, ply, previousStateHash, moveUsi, sfen, spentMs, blackMainMs, whiteMainMs]
+Transcript = ["SBQ-TRANSCRIPT", 1, gameId, [State0, State1, ...]]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>gameId</td><td>bstr(32)</td><td>対局ID</td></tr>
+<tr><td>ply</td><td>uint</td><td>手数（0〜512）。State0 は 0</td></tr>
+<tr><td>previousStateHash</td><td>bstr(32)</td><td>1つ前の State の <code>H(CBOR(State))</code>。State0 は zero32</td></tr>
+<tr><td>moveUsi</td><td>ASCII の tstr</td><td>この状態に至った指し手（USI 形式。7.3節）。State0 は空文字、それ以外は 4〜5 文字</td></tr>
+<tr><td>sfen</td><td>ASCII の tstr</td><td>指した後の局面（7.3節の形）。1〜256 バイト</td></tr>
+<tr><td>spentMs</td><td>uint</td><td>この手に使った時間（自己申告。0〜86,400,000＋600,000）。State0 は 0</td></tr>
+<tr><td>blackMainMs・whiteMainMs</td><td>uint</td><td>この手を指した後の、先手・後手の基本の持ち時間の残り（0〜86,400,000）</td></tr>
+</tbody>
+</table></div>
+<p>State0（開始局面）は次の値で、双方が同じ値を計算できる。</p>
+<pre><code>State0 = ["SBQ-STATE", 1, gameId, 0, zero32, "", initialSfen, 0, mainMs, mainMs]</code></pre>
+<p>手番は ply で決まる。<code>ply</code> が偶数の State の次は先手が指し、奇数の次は後手が指す。</p>
+
+<h3 id="sec-7-3">7.3 指し手と局面の書き方</h3>
+<p>実装が違っても同じバイト列になるよう、指し手と局面の文字列は次の形だけを使う。受け取った文字列がこの形でなければ拒否する。</p>
+<ul>
+<li><strong>指し手（moveUsi）</strong>：USI の形。盤上の手は <code>&lt;移動元&gt;&lt;移動先&gt;</code>（例 <code>7g7f</code>）、成るときは末尾に <code>+</code>（例 <code>8h2b+</code>）。駒打ちは <code>&lt;駒&gt;*&lt;移動先&gt;</code> で、駒は大文字の <code>P L N S G B R</code>（例 <code>P*5e</code>）。筋は <code>1</code>〜<code>9</code>、段は <code>a</code>〜<code>i</code>。前後に空白を付けない。</li>
+<li><strong>局面（sfen）</strong>：<code>&lt;盤&gt; &lt;手番&gt; &lt;持ち駒&gt; &lt;手数&gt;</code> を空白1個で区切る。
+  <ul>
+  <li>盤は USI の SFEN のとおり（1段目から9段目、各段は9筋から1筋。空きマスは数字、成り駒は <code>+</code> を前置、先手は大文字・後手は小文字）。</li>
+  <li>手番は、次に指す側（先手 <code>b</code>・後手 <code>w</code>）。</li>
+  <li>持ち駒は、先手の <code>R B G S N L P</code>、続けて後手の <code>r b g s n l p</code> の順に、持っている駒だけを書く。2 枚以上は枚数を前に付ける（例 <code>2P</code>）。どちらも持っていなければ <code>-</code>。</li>
+  <li>手数の欄は <code>ply + 1</code>（State0 は 1）。</li>
+  </ul>
+</li>
+</ul>
+
+<h3 id="sec-7-4">7.4 開始合意と対局ID</h3>
+<pre><code>StartAgreement = ["SBQ-START", 1, networkId, blackNonce, whiteNonce, blackPlayerKey, whitePlayerKey,
+                  blackSessionKey, whiteSessionKey, blackPeerIdHash, whitePeerIdHash,
+                  rulesHash, timeControlHash, networkPolicyHash, startBefore]
+gameId = H(CBOR(StartAgreement))</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>networkId</td><td>bstr(32)</td><td><a href="#sec-3-1">3.1節</a></td></tr>
+<tr><td>blackNonce・whiteNonce</td><td>bstr(32)</td><td>先後を決める乱数（<a href="#sec-8-4">8.4節</a>）。先手になった側・後手になった側のもの</td></tr>
+<tr><td>blackPlayerKey・whitePlayerKey</td><td>bstr(32)</td><td>プレイヤー鍵の公開鍵</td></tr>
+<tr><td>blackSessionKey・whiteSessionKey</td><td>bstr(32)</td><td>一局用鍵の公開鍵</td></tr>
+<tr><td>blackPeerIdHash・whitePeerIdHash</td><td>bstr(32)</td><td>PeerId のバイナリ表現（<a href="#sec-3-2">3.2節</a>）の SHA-256（CBOR に包まず、バイト列をそのままハッシュする）</td></tr>
+<tr><td>rulesHash・timeControlHash・networkPolicyHash</td><td>bstr(32)</td><td>7.1節</td></tr>
+<tr><td>startBefore</td><td>uint</td><td>開始の期限（UNIX 秒）。申込側が、作った時刻の 180 秒後にする</td></tr>
+</tbody>
+</table></div>
+<p>4つの公開鍵がすべて異なり、2つの PeerIdHash が異なり、2つの nonce が異なっていなければならない。そうでない StartAgreement は拒否する。</p>
+
+<h3 id="sec-7-5">7.5 承認・制御・結果</h3>
+<pre><code>StateApproval = ["SBQ-APPROVE", 1, gameId, ply, stateHash]            ; stateHash = H(CBOR(State))
+Control       = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]
+FinalResult   = ["SBQ-RESULT", 1, gameId, finalStateHash, transcriptHash, ply, outcome, cause]
+
+connectionId   = H(CBOR(["SBQ-CONN", 1, gameId, blackRandom, whiteRandom]))
+transcriptHash = H(CBOR(Transcript))     ; State0 から ply までの、双方が承認した State
+resultDigest   = H(CBOR(FinalResult))    ; 結果の識別子</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>値</th><th>署名する鍵</th><th>意味</th></tr></thead>
+<tbody>
+<tr><td>StartAgreement</td><td>プレイヤー鍵</td><td>この条件・この相手・この先後で対局を始めることへの同意</td></tr>
+<tr><td>StateApproval</td><td>一局用鍵</td><td>その手数の State を正しいと認めること（指した側は自分の手として、相手は受け取った手として）</td></tr>
+<tr><td>Control</td><td>一局用鍵</td><td>制御メッセージ（<a href="#sec-9-5">9.5節</a>）が自分のものであること</td></tr>
+<tr><td>FinalResult</td><td>プレイヤー鍵</td><td>その結果への同意</td></tr>
+</tbody>
+</table></div>
+<p>FinalResult の <code>ply</code> は 0〜512、<code>finalStateHash</code> は最後の State のハッシュである。<code>outcome</code> と <code>cause</code> の値と、許される組み合わせは <a href="#sec-10-1">10.1節</a>に書く。組み合わせの合わない FinalResult は拒否する。</p>
+<p>Control の <code>sequence</code> は 1 以上、<code>kind</code> は 1〜6 である。<code>connectionId</code> は接続（ストリーム）ごとに変わる値で、<code>blackRandom</code>・<code>whiteRandom</code> は、先手・後手がその接続のために出した 32 バイトの乱数（最初の接続では開始前の HELLO の <code>connectionRandom</code>、再接続では再接続の HELLO のもの）である。</p>
+</section>
+<section id="start">
+<h2 id="sec-8">8. 開始までの手順</h2>
+
+<h3 id="sec-8-1">8.1 流れ</h3>
+<p>申込側を A、招待側を B とする。フレームはすべて同じストリームに流す。</p>
+<pre><code>A（申込側）                                   B（招待側）
+  ── INVITE_TOKEN ─────────────────────────→   合言葉を照合（6.3節）
+  ── HELLO（role 1, commitA）───────────────→   検査。断るなら REJECT
+  ←─────────────── HELLO（role 2, nonceB, 条件）──
+  先後を決め、StartAgreement を作る
+  ── START_AGREEMENT ──────────────────────→   検査（8.3節）
+            ［双方の利用者が、条件確認画面で相手と条件を確かめる］
+  利用者が「開始」を押す
+  ── START_SIGNATURE（A の署名）───────────→   署名を検査
+                                                利用者が「開始」を押す
+  ←────────────── START_SIGNATURE（B の署名）──
+  署名を検査
+            ［両方の署名がそろった＝対局開始。9.1節へ］</code></pre>
+<ul>
+<li>A は、自分の START_SIGNATURE を送った後でなければ、B の START_SIGNATURE を受け付けない。</li>
+<li>B は、A の START_SIGNATURE を確かめるまで、自分の START_SIGNATURE を送ってはならない。B の利用者が先に「開始」を押していたら、A の署名を確かめた時点で送る。</li>
+<li>どちらも、利用者が「開始」を押すまで、プレイヤー鍵で署名してはならない。</li>
+</ul>
+
+<h3 id="sec-8-2">8.2 HELLO（開始前）</h3>
+<pre><code>Frame   = [1, 1, requestId, zero32, payload]
+payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>role</td><td>uint</td><td>1＝申込側、2＝招待側</td></tr>
+<tr><td>networkId</td><td>bstr(32)</td><td>自分のネットワーク。相手と違えば REJECT（WRONG_NETWORK）</td></tr>
+<tr><td>（対応する版）</td><td>uint の配列</td><td>対応するプロトコルの版の一覧（8 件まで）。v1 は <code>[1]</code>。1 を含まなければ拒否する</td></tr>
+<tr><td>peerId</td><td>bstr</td><td>自分の PeerId のバイナリ表現（1〜64 バイト）。受けた側は、ストリームの相手の PeerId と一致することを確かめる</td></tr>
+<tr><td>connectionRandom</td><td>bstr(32)</td><td>この接続のための乱数。最初の connectionId に使う（<a href="#sec-7-5">7.5節</a>）</td></tr>
+<tr><td>playerKey</td><td>bstr(32)</td><td>プレイヤー鍵の公開鍵（申告。開始署名を確かめるまで、身元として扱わない）</td></tr>
+<tr><td>sessionKey</td><td>bstr(32)</td><td>この対局のために作った一局用鍵の公開鍵</td></tr>
+<tr><td>displayName</td><td>tstr</td><td>表示名（<a href="#sec-3-6">3.6節</a>の規則。96 バイト以下）</td></tr>
+<tr><td>sidePreference</td><td>uint</td><td>先後の希望。0＝指定なし、1＝先手、2＝後手</td></tr>
+<tr><td>offerId</td><td>bstr(32)</td><td>予約。常に zero32 を入れる。zero32 でなければ断る（招待側は EXPIRED、申込側は CONDITION_MISMATCH を返す）</td></tr>
+<tr><td>coin</td><td>bstr(32)</td><td>申込側は <code>commitA</code>、招待側は <code>nonceB</code>（<a href="#sec-8-4">8.4節</a>）</td></tr>
+<tr><td>conditions</td><td>配列</td><td>申込側は空の配列 <code>[]</code>。招待側は <code>[Rules, TimeControl, NetworkPolicy]</code>（<a href="#sec-7-1">7.1節</a>）</td></tr>
+</tbody>
+</table></div>
+<p>受けた側は、形のほかに次を確かめ、外れれば REJECT（CONDITION_MISMATCH。別の番号を書いたものはその番号）を送る。</p>
+<ul>
+<li>role が期待どおり（招待側が受けるのは 1、申込側が受けるのは 2）で、role と conditions の有無が合っている。</li>
+<li>playerKey・sessionKey が Ed25519 の公開鍵として使える点である（<a href="#sec-2-4">2.4節</a>）。</li>
+<li>playerKey・sessionKey・connectionRandom が、自分のものと同じ値でない。申込側は、相手の coin（nonceB）が自分の nonceA と同じでないことも確かめる。</li>
+<li>招待側：申込みで名乗った playerKey が、利用者がブロックした相手でない（ブロックした相手には、そうと知らせずに BUSY を返す）。双方の sidePreference が両立する（8.4節）。</li>
+</ul>
+<p>招待側は、合言葉を照合した後でも、利用者がその間に招待を取り消していれば、REJECT（EXPIRED）を送ってストリームを閉じる。すでにほかの相手と交渉中のときは、HELLO を返さずに REJECT（BUSY）を送ってストリームを閉じる（対局中は、対局の相手のほかのストリームを受け付けない。<a href="#sec-11-1">11.1節</a>）。断るときは、HELLO を返さずに REJECT を返し、自分の公開鍵を知らせない。</p>
+
+<h3 id="sec-8-3">8.3 START_AGREEMENT</h3>
+<pre><code>Frame   = [1, 2, requestId, zero32, payload]
+payload = [StartAgreement, Rules, TimeControl, NetworkPolicy]</code></pre>
+<p>申込側が、招待側の HELLO で初めて条件（持ち時間）を知り、先後を決めて作る。<code>startBefore</code> は今の時刻の 180 秒後にする。招待側は、次をすべて確かめ、外れれば REJECT を送る（番号を書いていないものは CONDITION_MISMATCH）。</p>
+<ul>
+<li>Rules・NetworkPolicy が v1 の値で、TimeControl が自分の HELLO で示したものと同じである。3 つのハッシュが StartAgreement の中の値と一致する。</li>
+<li>networkId が自分のネットワークである。</li>
+<li>自分の playerKey・sessionKey・nonce（nonceB）・PeerIdHash が、同じ側（先手か後手か）に正しく入っている。相手の playerKey・sessionKey・PeerIdHash が、相手の HELLO・ストリームの相手と一致し、反対の側に入っている。</li>
+<li>相手の側の nonce（nonceA）について、<code>H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code> が、相手の HELLO の coin（commitA）と一致する。</li>
+<li>先後が 8.4節の決め方どおりである。</li>
+<li><code>startBefore</code> が今の時刻より後で、今から 210 秒後（180 秒＋時計のずれ 30 秒）以内である。外れれば REJECT（EXPIRED）。</li>
+<li>4 つの公開鍵・2 つの PeerIdHash・2 つの nonce がそれぞれ異なる（<a href="#sec-7-4">7.4節</a>）。</li>
+</ul>
+
+<h3 id="sec-8-4">8.4 先後の決め方</h3>
+<p>先後は、双方の希望（sidePreference）と、双方が出した乱数で決める。</p>
+<ol>
+<li>双方が先後を希望し、それが同じ（どちらも先手・どちらも後手）なら、両立しないので REJECT（CONDITION_MISMATCH）。</li>
+<li>申込側が先手を希望、または招待側が後手を希望していれば、申込側が先手。</li>
+<li>申込側が後手を希望、または招待側が先手を希望していれば、申込側が後手。</li>
+<li>どちらも「指定なし」なら、乱数で決める。<code>coinHash = H(CBOR(["SBQ-COIN", 1, nonceA, nonceB]))</code> の最後のバイトの最下位ビットが 0 なら申込側が先手、1 なら申込側が後手。</li>
+</ol>
+<p>乱数は、片方が結果を見てから自分の値を選べないように、次の順で出す。申込側は、32 バイトの乱数 <code>nonceA</code> を作り、HELLO では <code>commitA = H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code> だけを見せる。招待側は、HELLO で <code>nonceB</code> をそのまま見せる。申込側は、START_AGREEMENT の中（自分の側の nonce の欄）で <code>nonceA</code> を明かす。希望で先後が決まるときも、この手順は同じように行う（nonce は対局ID を一意にする役目も持つ）。</p>
+<p class="note">ShogiBoardQ-P2P の画面では、先後の希望を出せるのは招待側だけである（申込側は常に 0 を送る）。互換実装が申込側で希望を送っても、上の規則どおりに扱われる。</p>
+
+<h3 id="sec-8-5">8.5 START_SIGNATURE</h3>
+<pre><code>Frame   = [1, 3, requestId, gameId, payload]
+payload = [side, signature]        ; side は 1＝先手、2＝後手。signature は bstr(64)</code></pre>
+<p><code>signature</code> は、自分のプレイヤー鍵による <code>CBOR(StartAgreement)</code> への署名である。<code>side</code> は自分の側。受けた側は、<code>side</code> が相手の側であること、署名が StartAgreement の相手の playerKey で正しいこと、今の時刻が <code>startBefore</code> より前であることを確かめる。外れれば REJECT（INVALID_SIGNATURE、期限切れは EXPIRED）。</p>
+<p>相手の開始署名を確かめた時点から、相手の playerKey を「確かめた身元」として扱ってよい。それまでは、相手が名乗っただけの値として画面に出す。</p>
+<p><strong>START_SIGNATURE は、1回だけ送る。</strong>送り直してはならない。開始前に2つ目を受けた側は REJECT（INVALID_SIGNATURE）で交渉を終え、開始後に受けた側はエラー（CONDITION_MISMATCH）で対局を止める。</p>
+<p>両方の開始署名（先手・後手のもの）は、対局記録（証跡）に入れる。</p>
+
+<h3 id="sec-8-6">8.6 期限</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>期限</th><th>長さ</th><th>過ぎたとき</th></tr></thead>
+<tbody>
+<tr><td>交渉を始めてから、両方の開始署名がそろうまで</td><td>60 秒</td><td>REJECT（CANCELLED）を送って取りやめる</td></tr>
+<tr><td>StartAgreement の <code>startBefore</code></td><td>作成から 180 秒</td><td>それ以後は署名しない・署名を受け付けない（EXPIRED）</td></tr>
+<tr><td>両方の開始署名がそろってから、State0 の承認と READY が済むまで</td><td>30 秒</td><td>対局を始めずに終える（<a href="#sec-9-1">9.1節</a>）</td></tr>
+</tbody>
+</table></div>
+<p>交渉は「ストリームを受け付けた／開いた」時点で始まる。開始前にストリームが切れたら、交渉を取りやめる（つなぎ直しはしない。新しい招待文字列が要る）。</p>
+
+<h3 id="sec-8-7">8.7 REJECT</h3>
+<pre><code>Frame   = [1, 10, requestId, zero32, payload]
+payload = [errorCode]              ; errorCode は 12章の表</code></pre>
+<p>開始前（両方の開始署名がそろうまで）に、相手を断る・取りやめるときに送る。gameId の欄は zero32 にする。受けた側は交渉を終える。利用者が条件確認画面で取りやめたときは CANCELLED（12）を送る。</p>
+<p>両方の開始署名がそろった後は、REJECT を送ってはならない（対局中のエラーは CONTROL で伝える）。開始後に届いた REJECT は、gameId が対局ID なら無視し、zero32 なら「対局ID の違うフレーム」としてエラー（CONDITION_MISMATCH）で止める（<a href="#sec-9">9章</a>の冒頭）。片方が取りやめた REJECT と、もう片方の最後の開始署名が行き違うと、開始署名がそろった側はこのエラーで終わる。どちらの側でも対局は始まらない。</p>
+</section>
+<section id="play">
+<h2 id="sec-9">9. 対局中の手順</h2>
+<p>両方の開始署名がそろった後のフレームは、すべて <code>gameId</code> に対局ID を入れる。対局ID の違うフレームを受けたら、エラー（CONDITION_MISMATCH）で対局を止める（<a href="#sec-9-7">9.7節</a>）。</p>
+
+<h3 id="sec-9-1">9.1 開始（State0 と READY）</h3>
+<pre><code>先手                                          後手
+  ── STATE_PROPOSE（State0, 先手の承認）────→   State0 と署名を検査
+  ←────────────── STATE_ACCEPT（0, 後手の承認）──
+  ←────────────── CONTROL READY（[state0Hash]）──   ここから、先手の初手の時間を観測する
+  READY を受けた時点から、初手の計時を始める</code></pre>
+<ul>
+<li>後手は、受けた State0 が <a href="#sec-7-2">7.2節</a>の値と完全に一致することと、署名が先手の一局用鍵で正しいことを確かめる。</li>
+<li>先手は、READY の <code>state0Hash</code> が自分の State0 のハッシュと一致することを確かめる。READY を2回受けても、時計を初期化し直さない。</li>
+<li>両方の開始署名がそろってから 30 秒以内にここまで済まなければ、対局を始めずに終える（結果のない記録になる）。</li>
+</ul>
+
+<h3 id="sec-9-2">9.2 着手の提案（STATE_PROPOSE）</h3>
+<pre><code>Frame   = [1, 4, requestId, gameId, payload]
+payload = [State, signature]       ; signature は、指した側の一局用鍵による StateApproval への署名（bstr(64)）</code></pre>
+<p>手番の側は、指し手を決めたら、次の State（<a href="#sec-7-2">7.2節</a>）を作り、その StateApproval に一局用鍵で署名して送る。</p>
+<ul>
+<li><code>spentMs</code> は、自分の手番が始まってから State を作る直前までの時間（自分の時計）である。</li>
+<li>残り時間は 9.4節の計算で決める。</li>
+<li>相手の承認（STATE_ACCEPT）が届くまで、次の手を提案してはならない。未承認の自分の手は、同時に1つだけである。</li>
+<li>5 秒たっても承認が届かなければ、<strong>同じバイト列</strong>（requestId も同じ）のフレームを送り直す。最初に送ってから 30 秒たっても届かなければ、接続が切れたものとして再接続へ移る（<a href="#sec-11">11章</a>）。</li>
+</ul>
+<p>受けた側は、次の順で確かめる。</p>
+<ol>
+<li>State の gameId が対局ID である。違えばエラー（CONDITION_MISMATCH）。</li>
+<li><code>ply</code> が 0 なら、9.1節のとおりに扱う（State0 が期待の値と違う・署名が正しくないときは、エラー（INVALID_SIGNATURE））。<code>ply</code> が 1 以上なのに、State0 の承認と READY がまだ済んでいなければ、エラー（CONDITION_MISMATCH）。</li>
+<li><code>ply</code> が、自分の知る最新の State 以下なら、再送として扱う。同じ State なら、保存してある自分の承認を STATE_ACCEPT で送り直す（盤・時計は動かさない）。同じ手数で<strong>違う</strong> State なら、エラー（STATE_CONFLICT）で止める。</li>
+<li><code>ply</code> が最新の次（＋1）で、相手の手番であり、自分に未承認の手がない。外れればエラー（STATE_CONFLICT）。</li>
+<li>署名が相手の一局用鍵で正しい。外れればエラー（INVALID_SIGNATURE）。</li>
+<li><code>previousStateHash</code> が最新の State のハッシュであり、指し手の文字列が 7.3節の形である。外れればエラー（INVALID_MOVE）。</li>
+<li>申告された <code>spentMs</code> が時間切れ（<code>E ≥ R + B</code>。9.4節）でない。時間切れならエラー（CLOCK_MISMATCH）。</li>
+<li>指し手が最新の局面で合法手であり（<a href="#sec-9-6">9.6節</a>）、<code>sfen</code> が、指した後の局面を 7.3節の形で書いたものと一致する。外れればエラー（INVALID_MOVE）。</li>
+<li>残り時間（<code>blackMainMs</code>・<code>whiteMainMs</code>）が 9.4節の計算どおりである。外れればエラー（CLOCK_MISMATCH）。</li>
+<li>申告された <code>spentMs</code> が、自分が測った時間と比べて短すぎない（9.4節の許容差）。外れればエラー（CLOCK_MISMATCH）。</li>
+</ol>
+<p>すべて通れば、承認を保存してから STATE_ACCEPT を送り、盤に反映する。payload の形が合わない STATE_PROPOSE は、エラー（INVALID_MOVE）で止める。</p>
+<p class="note">手順 3 の「承認の送り直し」は、自分がすでに次の手を提案した後は、行わなくてよい。ストリームは順序を保つので、最初に送った承認は必ず相手に届く（届かないのは切れたときで、そのときは再接続の照合が補う）。</p>
+
+<h3 id="sec-9-3">9.3 承認（STATE_ACCEPT）</h3>
+<pre><code>Frame   = [1, 5, requestId, gameId, payload]
+payload = [ply, stateHash, signature]    ; signature は、受けた側の一局用鍵による StateApproval への署名</code></pre>
+<p>提案した側は、<code>ply</code> と <code>stateHash</code> が未承認の自分の State と一致することと、署名が相手の一局用鍵で正しいことを確かめる。通れば、その State は<strong>双方が承認した状態</strong>になり、盤に反映する。</p>
+<ul>
+<li>すでに承認済みの手に対する同じ承認（<code>ply</code> と <code>stateHash</code> が、双方が承認した State のものと一致する再送）は、無視する。自分に未承認の手があるときも同じである（提案の再送に相手が承認を送り直し、それが、こちらが次の手を提案した後に届くことがある）。</li>
+<li>それ以外の承認（未承認の自分の手のものでも、承認済みの手のものでもない）は、エラー（STATE_CONFLICT）で止める。</li>
+<li>payload の形が合わない STATE_ACCEPT は、エラー（INVALID_SIGNATURE）で止める。</li>
+</ul>
+<p>双方が承認した State の列（State0 から最新まで）が、対局の正式な記録である。</p>
+
+<h3 id="sec-9-4">9.4 時間の決まり</h3>
+<p>持ち時間は「基本の持ち時間（R）＋1手ごとの秒読み（B）」である。手番の開始時の基本の持ち時間の残りを R、秒読みを B、その手に使った時間を E とする（すべてミリ秒）。</p>
+<ul>
+<li><strong>指せる条件</strong>：<code>E &lt; R + B</code>。<code>E ≥ R + B</code> は時間切れで、その手は指せない（境界と同じ値は時間切れ）。</li>
+<li><strong>指した後の残り</strong>：指した側の基本の持ち時間は <code>max(R − E, 0)</code>、相手の側は変わらない。これを State の <code>blackMainMs</code>・<code>whiteMainMs</code> に書く。</li>
+</ul>
+<p>時間は、指した側が自分の時計で測って申告する。相手は、自分の時計で観測した時間と照らし合わせる。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>測るもの</th><th>始まり</th></tr></thead>
+<tbody>
+<tr><td>自分の手番の時間（E）</td><td>先手の初手は、READY を受けた時点。それ以外は、相手の手を確かめて STATE_ACCEPT を送った時点</td></tr>
+<tr><td>相手の手番の観測</td><td>自分の STATE_PROPOSE を最初に送った時点。後手が先手の初手を観測するときは、READY を送った時点。<strong>再接続の後に、未承認の自分の手を送り直したときは、送り直した時点から測り直す</strong>（相手の手番は、相手がその手を受け取って承認した時点から始まるため。<a href="#sec-11-5">11.5節</a>）</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>申告の検査</strong>：受けた手について、<code>観測した時間 − spentMs &gt; 10,000 ＋ その手番の間に切れていた時間</code> なら、エラー（CLOCK_MISMATCH）で止める。つまり、申告は観測より 10 秒まで短くてよい（通信の遅れの分）。</li>
+<li><strong>自分の時間切れ</strong>：自分の手番で、未承認の手がなく、自分の時計で <code>E ≥ R + B</code> になったら、自分の負けを申告する（相手の勝ち・原因は時間切れの結果を提案する。<a href="#sec-10-2">10.2節</a>）。</li>
+<li><strong>相手の時間切れの主張</strong>：相手の手が届かないまま、<code>観測した時間（切れていた時間を除く） &gt; R + B + 10,000</code> になったら、時間切れによる自分の勝ちを提案してよい。同じ手数で1回だけ。</li>
+<li>回線が切れている間も、手番の側の時計は進む。</li>
+<li>時計は単調増加の時計で測る。スリープや時刻の変更で、測った時間の連続性を確かめられなくなった実装は、対局を中断する（ABORT、理由は CLOCK_DISCONTINUITY）。ShogiBoardQ-P2P は、単調増加の時計と OS の時刻の進みが 15 秒を超えて食い違ったら中断する。</li>
+</ul>
+
+<h3 id="sec-9-5">9.5 制御メッセージ（CONTROL）</h3>
+<pre><code>Frame   = [1, 6, requestId, gameId, payload]
+payload = [Control, body, signature]
+Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]     ; bodyHash = H(CBOR(body))</code></pre>
+<p><code>signature</code> は、送る側の一局用鍵による <code>CBOR(Control)</code> への署名（bstr(64)）である。<code>body</code> は配列で、中身は kind ごとに決まる。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>kind</th><th>名前</th><th>body</th><th>意味</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>READY</td><td><code>[state0Hash]</code></td><td>後手が、State0 を承認して対局を始められることを知らせる（9.1節）</td></tr>
+<tr><td>2</td><td>RESUME</td><td><code>[latestPly, latestStateHash]</code></td><td>再接続の後、双方が承認した最新の State を知らせる（<a href="#sec-11-3">11.3節</a>）</td></tr>
+<tr><td>3</td><td>RESULT_PROPOSE</td><td><code>FinalResult</code> そのもの</td><td>結果の提案・同意（<a href="#sec-10-2">10.2節</a>）</td></tr>
+<tr><td>4</td><td>ABORT</td><td><code>[latestStateHash, reasonCode]</code></td><td>一方的に対局を離れる。結果は確定しない（<a href="#sec-10-5">10.5節</a>）</td></tr>
+<tr><td>5</td><td>ERROR</td><td><code>[errorCode, relatedPly]</code></td><td>相手の入力を検査で断り、対局を止める（<a href="#sec-9-7">9.7節</a>）</td></tr>
+<tr><td>6</td><td>RESULT_DECLINE</td><td><code>[bodyHash]</code></td><td>RESULT_PROPOSE に同意しない（断る提案の bodyHash）</td></tr>
+</tbody>
+</table></div>
+<p><code>reasonCode</code>・<code>errorCode</code> は <a href="#sec-12">12章</a>の番号、<code>relatedPly</code> は関係する手数（0〜512）である。</p>
+<p><strong>番号（sequence）の規則</strong>：送る側は、接続ごと・向きごとに 1 から 1 ずつ増やす。再接続で新しい接続になったら 1 に戻す。受ける側は、次のように扱う。</p>
+<ol>
+<li>payload の形を確かめる（3 要素の配列、Control の形、<code>kind</code> が 1〜6、<code>sequence</code> が 1 以上、<code>body</code> が配列、<code>bodyHash</code> が body のハッシュと一致）。外れれば、どの接続のものでも、エラー（INVALID_SIGNATURE）で止める。</li>
+<li>Control の gameId・connectionId が今の対局・今の接続のものでなければ、黙って捨てる。</li>
+<li><code>sequence</code> が、すでに受けた番号以下なら、再送として黙って捨てる。</li>
+<li><code>sequence</code> が「最後に受けた番号＋1」でなければ、エラー（STATE_CONFLICT）で止める。</li>
+<li>署名が相手の一局用鍵で正しいことを確かめる。外れればエラー（INVALID_SIGNATURE）。通れば、その番号を「最後に受けた番号」にする。</li>
+</ol>
+<p>再接続の照合が済むまでの間に届いた RESUME 以外の制御メッセージは、上の検査をして番号を進めたうえで、中身を処理せずに捨てる。</p>
+<p>1局で送受信する制御メッセージは、合わせて 4096 件までとする。超えたらエラー（LIMIT_EXCEEDED）で止める。</p>
+
+<h3 id="sec-9-6">9.6 指し手の合法性</h3>
+<p>指し手は、本将棋の規則で合法でなければならない。互換実装は、少なくとも次を同じように判定しなければならない（判定が食い違うと、片方が INVALID_MOVE で対局を止める）。</p>
+<ul>
+<li>駒の動き、成り（敵陣に入る・敵陣の中で動く・敵陣から出る手で成れる。成れる駒だけ）</li>
+<li>行き所のない駒の禁止（1段目の歩・香、1〜2段目の桂は、不成で進めない・打てない）</li>
+<li>二歩の禁止、打ち歩詰めの禁止</li>
+<li>自分の玉に王手がかかったままにする手・自分の玉を王手にさらす手の禁止</li>
+<li>512 手を超える手の禁止（<code>ply</code> が 512 の State の次の手はない）</li>
+</ul>
+<p>持将棋の宣言（入玉宣言）と「待った」はない。入玉は、双方の合意で引き分けにできる（<a href="#sec-10-2">10.2節</a>）。</p>
+
+<h3 id="sec-9-7">9.7 検査の失敗（ERROR）</h3>
+<p>対局中に相手の入力が検査に通らなかったら、CONTROL ERROR（<code>[errorCode, relatedPly]</code>）を送り、自分の側の対局を「エラー（結果未確定）」として終える。ERROR を受けた側も、対局を同じく結果未確定として終える。<strong>検査の失敗を、相手の負けとして記録してはならない。</strong>どちらの側も、それまでの記録（双方が承認した State まで）を証跡として保存する。</p>
+<p>同じ手数に対して相手が2つの違う State に署名した証拠（2つの State と2つの署名）を得た実装は、それを保存しておくことが望ましい。</p>
+<p>形の合わない payload（配列の長さ・型・範囲が違う）を受けたときも、同じく ERROR で止める（STATE_PROPOSE は INVALID_MOVE、STATE_ACCEPT・CONTROL・RESULT_SIGNATURE は INVALID_SIGNATURE、SYNC_REQUEST・SYNC_CHUNK は STATE_CONFLICT）。開始前の形の HELLO・START_AGREEMENT・START_SIGNATURE を開始後に受けたときは、CONDITION_MISMATCH で止める。外枠の合わないフレームは、ストリームを閉じる（<a href="#sec-6-2">6.2節</a>）。</p>
+<p>次のときは、何も送らずに終える。再接続の照合が済むまでの間（<a href="#sec-11">11章</a>）に検査が失敗したとき、開始の期限（9.1節の 30 秒）が過ぎたとき、切断の上限（<a href="#sec-11-6">11.6節</a>）を超えたとき、結果への署名を待つ時間（<a href="#sec-10-4">10.4節</a>）が過ぎたとき。</p>
+<p>対局を終えた実装は、ストリームを閉じる。相手がすでに終えているとき、こちらから送ったフレームやつなぎ直しには、応答がない。</p>
+</section>
+<section id="result">
+<h2 id="sec-10">10. 終局と結果の確定</h2>
+
+<h3 id="sec-10-1">10.1 結果と原因</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>cause</th><th>原因</th><th>許される outcome</th><th>だれが提案するか</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>投了</td><td>1 か 2（勝った側）</td><td>負ける側だけ。自分の手番に限る</td></tr>
+<tr><td>2</td><td>詰み（手番の側に合法手がない）</td><td>1 か 2</td><td>双方（棋譜から決まる）</td></tr>
+<tr><td>3</td><td>時間切れ</td><td>1 か 2</td><td>切れた側の申告、または相手の主張（<a href="#sec-9-4">9.4節</a>）</td></tr>
+<tr><td>4</td><td>千日手</td><td>3</td><td>双方（棋譜から決まる）</td></tr>
+<tr><td>5</td><td>連続王手の千日手</td><td>1 か 2（王手をかけられた側の勝ち）</td><td>双方（棋譜から決まる）</td></tr>
+<tr><td>6</td><td>合意による引き分け</td><td>3</td><td>どちらか。相手の利用者が承諾したときだけ成立</td></tr>
+<tr><td>7</td><td>512 手到達</td><td>3</td><td>双方（棋譜から決まる）</td></tr>
+<tr><td>8</td><td>合意による中断</td><td>4</td><td>どちらか。相手の利用者が承諾したときだけ成立</td></tr>
+</tbody>
+</table></div>
+<p><code>outcome</code> は 1＝先手の勝ち、2＝後手の勝ち、3＝引き分け、4＝合意による中断。表にない組み合わせの FinalResult は拒否する。</p>
+
+<h3 id="sec-10-2">10.2 結果の提案と一致</h3>
+<p>結果は、CONTROL RESULT_PROPOSE（body は FinalResult）で提案する。<strong>双方が、同じ FinalResult の RESULT_PROPOSE を送り合った時点で、結果が一致した</strong>とする。同意する側は、受けた提案と同じ FinalResult を RESULT_PROPOSE で送り返す。同意しないときは RESULT_DECLINE を送り、対局を続ける。</p>
+<p>FinalResult は、<strong>今の</strong>双方が承認した最新の State を指していなければならない。</p>
+<pre><code>FinalResult = ["SBQ-RESULT", 1, gameId, H(CBOR(最新の State)), transcriptHash, 最新の ply, outcome, cause]</code></pre>
+<ul>
+<li>自分に未承認の手がある間は、結果を提案しない。</li>
+<li>手数が進んだら、それまでの提案と、答えを待っている申し出は無効になる。</li>
+<li>結果が一致した後は、別の結果の提案に同意しない（無視する）。</li>
+<li><strong>結果が一致した後に届いた STATE_PROPOSE・STATE_ACCEPT は、無視する（承認しない・盤に反映しない）。</strong>FinalResult が指す手数より後の State を承認すると、証跡が 13.2節の検査に通らなくなる。</li>
+<li>自分の「合意による引き分け・中断」の申し出に答えが届くまでは、次の手を提案しないことが望ましい。申し出た側の着手と、相手の承諾が行き違うと、上の状況になる（その着手は、相手の承認のない手として、指した側の証跡の最後にだけ残る）。</li>
+<li>再接続の照合が済むまでの間（<a href="#sec-11">11章</a>）は、相手の申し出に承諾して結果を一致させてはならない（承諾を相手へ送れない）。照合の後に相手が提案を送り直すので、そのときに答える。</li>
+</ul>
+<p>RESULT_PROPOSE を受けた側は、次のように決める。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>場合</th><th>扱い</th></tr></thead>
+<tbody>
+<tr><td>形が合わない、または今の最新の State（ply・finalStateHash・transcriptHash）を指していない</td><td>RESULT_DECLINE</td></tr>
+<tr><td>自分がすでに提案した FinalResult と同じ</td><td>一致</td></tr>
+<tr><td>投了（cause 1）</td><td>自分の勝ちで、かつ相手の手番なら、同じ提案を送り返して一致。そうでなければ RESULT_DECLINE</td></tr>
+<tr><td>詰み・千日手・連続王手の千日手・512 手到達（cause 2・4・5・7）</td><td>自分でも棋譜から判定する（10.3節）。終局でなければ RESULT_DECLINE。同じ結果なら、同じ提案を送って一致。<strong>終局だが結果が食い違うなら、エラー（CONDITION_MISMATCH）で止める</strong>（実装の不一致）</td></tr>
+<tr><td>時間切れで、自分の勝ち（相手が自分の時間切れを申告した）</td><td>相手の手番なら、同じ提案を送り返して一致。そうでなければ RESULT_DECLINE</td></tr>
+<tr><td>時間切れで、相手の勝ち（相手がこちらの時間切れを主張した）</td><td>自分の時計で確かめる。自分の手番で、未承認の手がなく、<code>E ≥ R + B</code> になっていれば、同じ提案を送り返して一致。そうでなければ RESULT_DECLINE</td></tr>
+<tr><td>合意による引き分け・合意による中断（cause 6・8）</td><td>利用者に尋ねる。承諾なら同じ提案を送り返して一致、断るなら RESULT_DECLINE。答える前に自分が指したら、断ったことにする</td></tr>
+</tbody>
+</table></div>
+<p>合意による引き分け・中断の申し出は、利用者の操作としては、同じ手数でそれぞれ1回までとする。ただし、受ける側は、同じ手数で同じ提案が繰り返し届いても、違反として扱ってはならない（その都度、上の表のとおりに扱う）。ShogiBoardQ-P2P は、再接続の後に提案を送り直し（<a href="#sec-11-5">11.5節</a>）、1局の実時間の上限を超えた後は、断られるたびに合意による中断を提案し直す（10.5節）。</p>
+
+<h3 id="sec-10-3">10.3 棋譜から決まる終局</h3>
+<p>手が1つ進む（双方が承認した State が増える）たびに、双方が次の順で判定し、終局なら、その結果を RESULT_PROPOSE で提案する。双方が同じ判定をすれば、同じ提案を送り合って一致する。</p>
+<ol>
+<li><strong>詰み</strong>：最新の局面（ply ≥ 1）で、手番の側に合法手が1つもなければ、手番の側の負け（cause 2）。王手がかかっていない場合も同じに扱う。</li>
+<li><strong>千日手</strong>：最新の局面と同じ局面（盤・持ち駒・手番が同じ。手数の欄は比べない）が、State0 からの列の中に、最新のものを含めて 4 回以上あるとき。
+  <ul>
+  <li>最新の1つ前に同じ局面が現れた State の次から、最新の State までを調べる。この間に先手が指した手がすべて王手なら、先手の負け（後手の勝ち・cause 5）。そうでなく、後手が指した手がすべて王手なら、後手の負け（先手の勝ち・cause 5）。「王手」は、その手を指した後の局面で、相手の玉に王手がかかっていることである。</li>
+  <li>どちらでもなければ、引き分け（cause 4）。</li>
+  </ul>
+</li>
+<li><strong>512 手到達</strong>：最新の ply が 512 なら、引き分け（cause 7）。</li>
+</ol>
+
+<h3 id="sec-10-4">10.4 結果への署名（RESULT_SIGNATURE）</h3>
+<pre><code>Frame   = [1, 9, requestId, gameId, payload]
+payload = [FinalResult, side, signature]    ; signature は、プレイヤー鍵による CBOR(FinalResult) への署名（bstr(64)）</code></pre>
+<p>結果が一致したら、それぞれが次の順で行う。</p>
+<ol>
+<li>一致した結果（resultDigest）を保存する。以後、この対局で別の結果に署名してはならない。</li>
+<li>プレイヤー鍵で FinalResult に署名し、RESULT_SIGNATURE を送る。</li>
+<li>相手の RESULT_SIGNATURE を待つ（30 秒）。</li>
+</ol>
+<p>受けた側は、<code>side</code> が相手の側であること、署名が StartAgreement の相手の playerKey で正しいこと、FinalResult が一致した結果と同じであることを確かめる。外れればエラー（INVALID_SIGNATURE、結果が違えば STATE_CONFLICT）。<code>side</code> と署名の検査は、結果が一致する前でも行う。</p>
+<p><strong>同意を示す RESULT_PROPOSE は、必ず RESULT_SIGNATURE より先に送る。</strong>結果が一致する前に届いた RESULT_SIGNATURE は、検査に通っても捨てられ、後から使われない（その対局は「相手の確定なし」で終わる）。</p>
+<ul>
+<li>双方の署名がそろえば、「<strong>双方で確定</strong>」した記録になる。</li>
+<li>30 秒たっても相手の署名が届かない、または待っている間に回線が切れたら、自分の署名だけの記録として終える（「相手の確定なし」）。</li>
+</ul>
+
+<h3 id="sec-10-5">10.5 対局をやめる（ABORT）</h3>
+<p>利用者が一方的に対局を離れるときは、CONTROL ABORT（<code>[最新の State のハッシュ, reasonCode]</code>）を送り、自分の側の対局を「中断（結果未確定）」として終える。reasonCode は、利用者の操作なら CANCELLED（12）を使う。ABORT を受けた側も、対局を結果未確定として終える。<strong>ABORT は合意による中断（cause 8）ではなく、相手の負けでもない。</strong></p>
+<p>ABORT は、再接続の照合が済むまでの間と、State0 の承認がそろう前には送らない（送らずに、自分の側の対局を終える）。</p>
+<p>1局の実時間（両方の開始署名がそろった時点から数える）が 24 時間を超えたら、合意による中断を提案する。断られたら、提案し直す。さらに 120 秒たっても一致しなければ、ABORT（理由は GAME_TIME_LIMIT）で終える。ShogiBoardQ-P2P は、24 時間を超えた後は、未承認の手の送り直しと、時間切れの申告・主張を行わない。</p>
+</section>
+<section id="reconnect">
+<h2 id="sec-11">11. 再接続</h2>
+<p>対局中にストリームが切れても、同じ対局へつなぎ直せる。つなぎ直した後は、双方の最新の状態を照らし合わせてから続ける。</p>
+
+<h3 id="sec-11-1">11.1 つなぎ直す側と受ける側</h3>
+<ul>
+<li>つなぎ直すのは<strong>申込側</strong>（最初にストリームを開いた側）である。切れている間、5 秒おきに相手の PeerId へ接続し、<code>/shogiboardq/game/1.0.0</code> のストリームを開く。宛先は、最初の接続で使えたもの・Identify で知ったものを使う。INVITE_TOKEN は送らない。</li>
+<li><strong>申込側は、ストリームを開いたら、相手を待たずに直ちに再接続の HELLO（11.2節）を送る。</strong>招待側は、最初のフレームを受け取るまで、新しいストリームができたことに気づかない。最初のフレームの gameId は対局ID でなければならない（違えば、対局がエラーで止まる）。</li>
+<li><strong>切れたと判断した側は、古いストリームを閉じる。</strong>閉じないと、相手は切れたことに気づかず、つなぎ直しが始まらない（申込側がつなぎ直すのは、自分のストリームが閉じたとき・自分が切れたと判断したときだけである）。</li>
+<li><strong>招待側</strong>は、対局が始まってから終わるまで、対局の相手の PeerId からのストリームだけを受け付ける（ほかの相手のストリームと、INVITE_TOKEN で始まるストリームは受け付けない）。最初のフレームを 10 秒待つのは <a href="#sec-6-3">6.3節</a>と同じである。</li>
+<li>相手がつなぎ直してきたとき、古いストリームがまだ生きているように見えても、古いほうを閉じ、切れたものとして下の手順へ進む。照合が済んだ直後でも同じで、新しいストリームが届くたびに、新しい乱数で照合をやり直す（申込側の接続の試みは重なることがある）。</li>
+<li>PeerId は対局の間、変えてはならない（<a href="#sec-3-2">3.2節</a>）。アプリやノードを終了すると、同じ対局には戻れない。</li>
+</ul>
+<p>「切れた」と判断するのは、ストリームが閉じた・リセットされたとき、または自分の STATE_PROPOSE に 30 秒承認が届かないとき（<a href="#sec-9-2">9.2節</a>）である。開始前（両方の開始署名がそろう前、または READY が済む前）に切れたときは、つなぎ直さずに終える。結果が一致した後（<a href="#sec-10-4">10.4節</a>の署名待ち）に切れたときも、つなぎ直さない。このとき、相手がまだ結果の一致に気づいていなければ（同意の RESULT_PROPOSE が届く前に切れた）、相手はつなぎ直そうとするが、応答はなく、相手の側は 11.6節の上限で終わる。</p>
+
+<h3 id="sec-11-2">11.2 HELLO（再接続）</h3>
+<pre><code>Frame   = [1, 1, requestId, gameId, payload]
+payload = ["SBQ-RECONNECT", 1, side, connectionRandom]     ; side は自分の側（1＝先手、2＝後手）</code></pre>
+<p>新しいストリームができたら、<strong>双方</strong>が、新しい 32 バイトの乱数を入れた再接続の HELLO を送る。相手の HELLO を受けたら、<code>side</code> が相手の側であることと、乱数が自分のものと違うことを確かめ、新しい connectionId を計算する（<a href="#sec-7-5">7.5節</a>。先手の乱数・後手の乱数の順）。制御メッセージの番号（sequence）は、双方とも 1 から始め直す。</p>
+<p>開始前の HELLO と再接続の HELLO は、フレームの gameId（zero32 か対局ID か）と payload のラベルで見分ける。</p>
+<p>再接続の HELLO が、再接続の間でないときに届いた・<code>side</code> が相手の側でない・乱数が自分のものと同じ、のどれかなら、ShogiBoardQ-P2P は黙って捨てる（照合は進まず、11.6節の上限で終わる）。</p>
+
+<h3 id="sec-11-3">11.3 RESUME</h3>
+<p>相手の再接続の HELLO を受けたら、CONTROL RESUME（<code>[latestPly, latestStateHash]</code>）を送る。<code>latestPly</code> は、双方が承認した自分の最新の State の手数、<code>latestStateHash</code> はそのハッシュである。この CONTROL は新しい connectionId に対する一局用鍵の署名を持つので、相手が開始のときと同じ相手であることを確かめ直せる。</p>
+<p><strong>RESUME を確かめるまで、ほかのフレームを受け付けてはならない</strong>（着手・承認・結果の提案などは、黙って捨てる）。再接続の間に送ってよいのは、再接続の HELLO・CONTROL RESUME・SYNC_REQUEST・SYNC_CHUNK だけである。</p>
+<p>RESUME は、1回の照合につき1回だけ送る。再接続の間でないとき（照合が済んだ後を含む）に届いた RESUME は、エラー（STATE_CONFLICT）で止める。求めていない SYNC_CHUNK も同じである。</p>
+<p>相手の RESUME を受けたら、自分の最新の手数（myPly）と比べる。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>場合</th><th>扱い</th></tr></thead>
+<tbody>
+<tr><td>相手の latestPly ＝ myPly</td><td>その手数の自分の State のハッシュが一致すれば、照合は終わり。違えばエラー（STATE_CONFLICT）</td></tr>
+<tr><td>相手の latestPly ＜ myPly</td><td>その手数の自分の State のハッシュが一致することを確かめ、相手の SYNC_REQUEST を待つ</td></tr>
+<tr><td>相手の latestPly ＞ myPly</td><td>足りない分を SYNC_REQUEST で求める</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="sec-11-4">11.4 SYNC_REQUEST と SYNC_CHUNK</h3>
+<pre><code>SYNC_REQUEST: Frame = [1, 7, requestId, gameId, [fromPly, previousStateHash]]
+SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteApproval], ...], final]]</code></pre>
+<ul>
+<li>古い側は、<code>fromPly</code> ＝ 自分の最新の手数＋1、<code>previousStateHash</code> ＝ 自分の最新の State のハッシュで求める。</li>
+<li>新しい側は、相手の RESUME を受けた後であること、<code>fromPly</code> が 1 以上で自分の最新の手数以下であること、<code>previousStateHash</code> が自分の <code>fromPly − 1</code> 手目の State のハッシュであることを確かめる。外れればエラー（STATE_CONFLICT）。通れば、<code>fromPly</code> から最新までの State を、双方の承認の署名（どちらも bstr(64)）とともに、1回に 64 件までの SYNC_CHUNK で順に返す。最後の塊は <code>final</code> ＝ 1、それ以外は 0。求められた範囲の外のものは送らない。</li>
+<li>古い側は、受けた State を1つずつ、手数が連続していること・双方の承認が正しいこと・<a href="#sec-9-2">9.2節</a>の手順 6〜9（前状態ハッシュ・指し手の形・時間切れ・合法手・局面・残り時間の計算）で確かめてから取り込む。どれが外れても、エラー（STATE_CONFLICT）で止める。自分に未承認の手があり、同じ手数で違う State が届いたら、エラー（STATE_CONFLICT）で止める（片方の署名しかない別の手順へ巻き戻さない）。同じ State なら、未承認の手が承認されたものとして扱う。</li>
+<li>再接続で初めて知った相手の手については、自分の手番の計時を、取り込んだ時点から始める（失われた時刻を推測しない）。</li>
+</ul>
+
+<h3 id="sec-11-5">11.5 照合の後</h3>
+<ul>
+<li>相手の承認のない自分の手が残っていれば、<strong>同じバイト列</strong>の STATE_PROPOSE を送り直す。相手の手番の観測（<a href="#sec-9-4">9.4節</a>）は、この送り直しの時点から測り直す。未承認だった手が SYNC で「承認済み」と分かったときは、測り直さない（最初に送った時点から測り、切れていた時間を差し引く）。</li>
+<li>結果を提案していたなら、RESULT_PROPOSE を送り直す。<strong>棋譜から決まる終局（<a href="#sec-10-3">10.3節</a>）に達しているなら、照合の後に必ず提案する。</strong>ShogiBoardQ-P2P は、最後の手を SYNC で知った側からは提案しないので、最新だった側が提案を送り直さないと、対局が終わらない。</li>
+<li>切れていた時間（切れたと判断してから照合が終わるまで）を、その対局の切断時間の合計に足す。</li>
+</ul>
+
+<h3 id="sec-11-6">11.6 切断の上限</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>上限</th><th>長さ</th><th>超えたとき</th></tr></thead>
+<tbody>
+<tr><td>1回の切断で、照合が終わるまで</td><td>120 秒</td><td>「通信中断（結果未確定）」として終える</td></tr>
+<tr><td>1局の切断時間の合計</td><td>600 秒</td><td>中断（理由は DISCONNECT_LIMIT）として終える</td></tr>
+</tbody>
+</table></div>
+<p>自分の回線の障害と、相手の意図的な切断は見分けられない。<strong>切断を、相手の負けとして扱ってはならない。</strong></p>
+</section>
+<section id="errors">
+<h2 id="sec-12">12. エラーの番号</h2>
+<p>REJECT（<a href="#sec-8-7">8.7節</a>）の errorCode、CONTROL ERROR の errorCode、CONTROL ABORT の reasonCode は、同じ表の番号（1〜15）を使う。送る側は、表にない番号を送ってはならない。受けた側は、表にない番号を、理由の分からない拒否・中断として扱う（相手を断る理由にはしない）。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>番号</th><th>名前</th><th>意味</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>対応していない版</td></tr>
+<tr><td>2</td><td>WRONG_NETWORK</td><td>networkId が違う</td></tr>
+<tr><td>3</td><td>BUSY</td><td>ほかの相手と交渉中・対局中（ブロックした相手にも、これを返す）</td></tr>
+<tr><td>4</td><td>EXPIRED</td><td>期限切れ（開始合意の期限・開始の手続きの期限）</td></tr>
+<tr><td>5</td><td>CONDITION_MISMATCH</td><td>条件・形・手順が合わない</td></tr>
+<tr><td>6</td><td>INVALID_SIGNATURE</td><td>署名が正しくない</td></tr>
+<tr><td>7</td><td>INVALID_MOVE</td><td>指し手が読めない・合法手でない・局面が合わない</td></tr>
+<tr><td>8</td><td>STATE_CONFLICT</td><td>状態の食い違い（同じ手数の違う状態・順序の合わないフレーム）</td></tr>
+<tr><td>9</td><td>CLOCK_MISMATCH</td><td>時間の計算が合わない・申告が観測と合わない</td></tr>
+<tr><td>10</td><td>LIMIT_EXCEEDED</td><td>上限（制御メッセージの件数など）を超えた</td></tr>
+<tr><td>11</td><td>STORAGE_ERROR</td><td>記録を保存できなかった</td></tr>
+<tr><td>12</td><td>CANCELLED</td><td>利用者が取りやめた・アプリを終了した</td></tr>
+<tr><td>13</td><td>DISCONNECT_LIMIT</td><td>切断時間の合計が上限を超えた</td></tr>
+<tr><td>14</td><td>GAME_TIME_LIMIT</td><td>1局の実時間の上限</td></tr>
+<tr><td>15</td><td>CLOCK_DISCONTINUITY</td><td>スリープ・時計の変更で、計時の連続性を確かめられない</td></tr>
+</tbody>
+</table></div>
+<p>どの番号で終わっても、検査の失敗・中断・切断は「結果未確定」であり、勝ち負けにはしない。勝ち負けが決まるのは、双方が同じ FinalResult に署名したとき（<a href="#sec-10-4">10.4節</a>）と、棋譜から終局が決まるとき（<a href="#sec-13-3">13.3節</a>）だけである。</p>
+</section>
+<section id="evidence">
+<h2 id="sec-13">13. 対局記録（証跡）</h2>
+<p>対局が終わったら（結果が確定しなかったときも）、それぞれが、対局の記録を1つのファイルに保存する。これを<strong>証跡</strong>と呼ぶ。証跡は、ネットワークも相手も使わずに、だれでも検証できる。拡張子は <code>.sbqmatch</code>、大きさは 8 MiB 以下である。互換実装が書いた証跡は、ShogiBoardQ-P2P の「対局記録」と <code>shogiboardq-cli verify-match</code> で検証できなければならず、逆も同じである。</p>
+
+<h3 id="sec-13-1">13.1 形</h3>
+<p>ファイルの中身は、次の値の決定的CBORのバイト列だけである（前後に何も付けない）。</p>
+<pre><code>Evidence = ["SBQ-MATCH", 1,
+            StartAgreement,
+            blackStartSignature, whiteStartSignature,
+            Rules, TimeControl, NetworkPolicy,
+            [[State, blackApproval, whiteApproval], ...],
+            FinalResult または [],
+            blackResultSignature, whiteResultSignature]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>StartAgreement</td><td><a href="#sec-7-4">7.4節</a></td></tr>
+<tr><td>blackStartSignature・whiteStartSignature</td><td>先手・後手のプレイヤー鍵による StartAgreement への署名。bstr(64)</td></tr>
+<tr><td>Rules・TimeControl・NetworkPolicy</td><td><a href="#sec-7-1">7.1節</a>の値そのもの（ハッシュではない）</td></tr>
+<tr><td>State の列</td><td>State0 から順に、0〜513 件。各 State に、先手・後手の一局用鍵による StateApproval への署名を添える</td></tr>
+<tr><td>FinalResult</td><td>一致した結果（<a href="#sec-7-5">7.5節</a>）。結果が一致しなかった対局では、空の配列 <code>[]</code></td></tr>
+<tr><td>blackResultSignature・whiteResultSignature</td><td>先手・後手のプレイヤー鍵による FinalResult への署名</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>まだない署名の欄は、長さ 0 の bstr にする。署名の欄は、長さ 0 か 64 でなければならない。</li>
+<li>FinalResult が <code>[]</code> のときは、結果への署名の欄を両方とも長さ 0 にする。</li>
+<li>相手の承認が届かなかった自分の最後の手は、自分の承認だけを付けた State として、列の最後に入れてよい。片方の承認しかない State の後ろに、ほかの State を置いてはならない。</li>
+<li>表示名・IP アドレス・PeerId そのもの・招待の合言葉・手元で付けた名前は入れない（PeerId は、StartAgreement の中のハッシュとしてだけ残る）。</li>
+</ul>
+
+<h3 id="sec-13-2">13.2 検証の手順</h3>
+<p>検証する側は、次を順に確かめる。それぞれの結果は別々に示す（「署名が正しい」「棋譜が規則に合う」「時間の計算が合う」を混ぜない）。署名の検証は、すべて <a href="#sec-2-4">2.4節</a>のとおりに行う（公開鍵の検査を含む）。</p>
+<ol>
+<li><strong>形</strong>：8 MiB 以下で、決定的CBORであり、13.1節の形である。Rules・NetworkPolicy が v1 の値で、TimeControl が <a href="#sec-7-1">7.1節</a>の範囲にある。</li>
+<li><strong>条件</strong>：Rules・TimeControl・NetworkPolicy のハッシュが、StartAgreement の中の 3 つのハッシュと一致する。</li>
+<li><strong>開始署名</strong>：2 つの開始署名が、StartAgreement の blackPlayerKey・whitePlayerKey でそれぞれ正しい。<code>gameId = H(CBOR(StartAgreement))</code> を計算する。</li>
+<li><strong>State の列</strong>：先頭から順に、次を確かめる。
+  <ul>
+  <li>State の gameId が対局ID で、<code>ply</code> が列の中の位置（0, 1, 2, …）と一致する。</li>
+  <li>長さ 0 でない承認の署名が、対応する側の一局用鍵（blackSessionKey・whiteSessionKey）で正しい。どちらの承認もない State は認めない。</li>
+  <li>State0 が <a href="#sec-7-2">7.2節</a>の値と一致する。それ以降は、前の State から <a href="#sec-9-2">9.2節</a>の手順 6〜9（前状態ハッシュ・指し手の形・時間切れ・合法手・局面・残り時間の計算）のとおりに作られている。</li>
+  <li>片方の承認しかない State は、列の最後にだけ置ける。</li>
+  </ul>
+</li>
+<li><strong>双方が承認した手順</strong>：両方の承認がそろった State（列の先頭からの連続した部分）を「双方が承認した手順」とする。これが空でなければ、<a href="#sec-10-3">10.3節</a>の判定を行い、棋譜から終局が決まるかを求める。</li>
+<li><strong>結果</strong>：FinalResult があれば、次を確かめる。
+  <ul>
+  <li>gameId が対局ID で、<code>ply</code>・<code>finalStateHash</code> が双方が承認した手順の最後の State を指し、<code>transcriptHash</code> が、双方が承認した手順から計算した値と一致する。</li>
+  <li>長さ 0 でない結果への署名が、対応する側のプレイヤー鍵で正しい。</li>
+  <li>棋譜から終局が決まるなら、FinalResult の outcome・cause がそれと一致する。棋譜から終局が決まらないなら、FinalResult の cause が、棋譜から決まる原因（詰み・千日手・連続王手の千日手・512 手到達）でない。</li>
+  </ul>
+</li>
+</ol>
+
+<h3 id="sec-13-3">13.3 記録の区分</h3>
+<p>検証の結果から、記録を次の 3 つに分ける。上から順に当てはめる。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>区分</th><th>条件</th><th>示せること</th></tr></thead>
+<tbody>
+<tr><td>双方で確定</td><td>手順 2〜4 に通り、FinalResult があって最後の State を指し、<strong>両方</strong>のプレイヤー鍵の署名が正しい</td><td>双方が同じ結果に同意した</td></tr>
+<tr><td>棋譜から決まる結果</td><td>手順 2〜4 に通り、双方が承認した手順が、棋譜から決まる終局（10.3節）で終わっている</td><td>双方が確かめた手順から、結果が決まる</td></tr>
+<tr><td>結果未確定</td><td>上のどちらでもない</td><td>ここまでの手順だけ（勝ち負けは示せない）</td></tr>
+</tbody>
+</table></div>
+<p>どの区分でも、証跡が示せないことがある。<strong>実際に考えた時間</strong>（消費時間は自己申告である）、<strong>人間が指したこと</strong>、<strong>対局した日時</strong>は、証跡からは確かめられない。検証の結果を出す実装は、そのことを一緒に示すことが望ましい。</p>
+</section>
+<section id="constants">
+<h2 id="sec-14">14. 定数の一覧</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>値</th><th>節</th></tr></thead>
+<tbody>
+<tr><td>対局のプロトコル</td><td><code>/shogiboardq/game/1.0.0</code></td><td><a href="#sec-6-1">6.1</a></td></tr>
+<tr><td>Identify の protocolVersion</td><td><code>/shogiboardq/1.0.0</code></td><td><a href="#sec-4-3">4.3</a></td></tr>
+<tr><td>ローカル検証用の待受のポート</td><td>48210（TCP・UDP）</td><td><a href="#sec-4-2">4.2</a></td></tr>
+<tr><td>フレームの長さ</td><td>1〜65536 バイト</td><td><a href="#sec-6-1">6.1</a></td></tr>
+<tr><td>CBOR の入れ子</td><td>16 段まで</td><td><a href="#sec-2-2">2.2</a></td></tr>
+<tr><td>招待文字列の長さ</td><td>1024 バイト以下</td><td><a href="#sec-5-1">5.1</a></td></tr>
+<tr><td>招待の有効期限</td><td>600 秒（読む側は時計のずれ 60 秒を見込む）</td><td><a href="#sec-5-3">5.3</a></td></tr>
+<tr><td>招待の到達候補</td><td>8 件まで、1件 100 バイトまで</td><td><a href="#sec-5-1">5.1</a></td></tr>
+<tr><td>同時に有効な招待</td><td>4 つまで</td><td><a href="#sec-5-2">5.2</a></td></tr>
+<tr><td>ストリームの最初のフレームを待つ時間</td><td>10 秒</td><td><a href="#sec-6-3">6.3</a></td></tr>
+<tr><td>フレームの頻度</td><td>開始署名を交わすまで 5 件/秒（バースト 10）、交わしたストリームではその後 20 件/秒（バースト 40）。再接続で開いたストリームは 5 件/秒（バースト 10）のまま</td><td><a href="#sec-6-4">6.4</a></td></tr>
+<tr><td>表示名</td><td>1〜32 文字、96 バイト以下</td><td><a href="#sec-3-6">3.6</a></td></tr>
+<tr><td>交渉の期限</td><td>60 秒</td><td><a href="#sec-8-6">8.6</a></td></tr>
+<tr><td>開始合意の期限（startBefore）</td><td>作成から 180 秒（受ける側は時計のずれ 30 秒を見込む）</td><td><a href="#sec-8-3">8.3</a></td></tr>
+<tr><td>開始署名から READY まで</td><td>30 秒</td><td><a href="#sec-9-1">9.1</a></td></tr>
+<tr><td>手数の上限</td><td>512 手</td><td><a href="#sec-10-3">10.3</a></td></tr>
+<tr><td>持ち時間</td><td>基本 0〜86,400,000 ms、秒読み 0〜600,000 ms（両方 0 は不可）</td><td><a href="#sec-7-1">7.1</a></td></tr>
+<tr><td>消費時間の許容差</td><td>10,000 ms</td><td><a href="#sec-9-4">9.4</a></td></tr>
+<tr><td>未承認の手の再送</td><td>5 秒ごと。30 秒で切断とみなす</td><td><a href="#sec-9-2">9.2</a></td></tr>
+<tr><td>制御メッセージ</td><td>1局で 4096 件まで</td><td><a href="#sec-9-5">9.5</a></td></tr>
+<tr><td>結果への署名を待つ時間</td><td>30 秒</td><td><a href="#sec-10-4">10.4</a></td></tr>
+<tr><td>再接続の試行の間隔</td><td>5 秒</td><td><a href="#sec-11-1">11.1</a></td></tr>
+<tr><td>1回の切断を待つ時間</td><td>120 秒</td><td><a href="#sec-11-6">11.6</a></td></tr>
+<tr><td>1局の切断時間の合計</td><td>600 秒</td><td><a href="#sec-11-6">11.6</a></td></tr>
+<tr><td>1局の実時間の上限</td><td>24 時間</td><td><a href="#sec-10-5">10.5</a></td></tr>
+<tr><td>SYNC_CHUNK の State</td><td>1回に 64 件まで</td><td><a href="#sec-11-4">11.4</a></td></tr>
+<tr><td>証跡のファイル</td><td>拡張子 <code>.sbqmatch</code>、8 MiB 以下、State は 513 件まで</td><td><a href="#sec-13">13</a></td></tr>
+</tbody>
+</table></div>
+</section>
+<section id="conformance">
+<h2 id="sec-15">15. 適合の確かめ方</h2>
+
+<h3 id="sec-15-1">15.1 試験の入力</h3>
+<p>ShogiBoardQ-P2P のリポジトリの <code>protocol/testvectors/</code> に、実装どうしで同じ結果になることを確かめるための入力がある。互換実装は、これらを自分の試験で読むことが望ましい。<code>#</code> で始まる行と空行は読み飛ばす。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ファイル</th><th>行の形</th><th>確かめること</th></tr></thead>
+<tbody>
+<tr><td><code>cbor.txt</code></td><td><code>valid &lt;hex&gt;</code>／<code>invalid &lt;hex&gt;</code></td><td>決定的CBORとして読めるか（<a href="#sec-2-2">2.2節</a>）</td></tr>
+<tr><td><code>frames.txt</code></td><td><code>valid &lt;hex&gt;</code>／<code>invalid &lt;hex&gt;</code></td><td>フレームの外枠として正しいか（<a href="#sec-6-2">6.2節</a>）</td></tr>
+<tr><td><code>displayname.txt</code></td><td><code>accept &lt;hex(UTF-8)&gt;</code>／<code>reject &lt;hex(UTF-8)&gt;</code></td><td>表示名の規則（<a href="#sec-3-6">3.6節</a>）</td></tr>
+<tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId と rulesHash（<a href="#sec-3-1">3.1節</a>・<a href="#sec-7-1">7.1節</a>）</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="sec-15-2">15.2 確かめる順序</h3>
+<p>互換実装を作るときは、下の層から順に確かめるとよい。</p>
+<ol>
+<li><strong>決定的CBORとハッシュ</strong>：15.1節の入力と、付録 A の値が一致する。</li>
+<li><strong>証跡の検証</strong>：ShogiBoardQ-P2P が保存した <code>.sbqmatch</code> を読み、<a href="#sec-13-2">13.2節</a>の検証がすべて通る（署名の検証と、指し手・局面・時間の計算が合っていることの確認になる）。</li>
+<li><strong>招待文字列</strong>：ShogiBoardQ-P2P が作った招待文字列を読めて、自分が作った招待文字列を ShogiBoardQ-P2P の「招待文字列を確かめる」で読める。</li>
+<li><strong>接続と交渉</strong>：ネットワークを <code>sbq-local-1</code> にして、同じ PC の ShogiBoardQ-P2P と、招待する側・される側の両方で条件確認画面まで進める。</li>
+<li><strong>対局</strong>：先手・後手の両方で、投了・詰み・時間切れ・合意による引き分けまで指し、双方の証跡が「双方で確定」になる。自分の書いた証跡を <code>shogiboardq-cli verify-match --input-path &lt;ファイル&gt;</code> で検証し、<code>valid</code> が true、<code>category</code> が <code>mutually_signed</code> になる。</li>
+<li><strong>再接続</strong>：対局中にストリームを切り、つなぎ直して続けられる（自分が申込側のとき・招待側のとき、未承認の手があるとき・ないとき）。</li>
+<li><strong>断ること</strong>：不正な署名・合法でない手・時間の計算の合わない State・番号の飛んだ CONTROL などを送り、相手が勝ち負けを付けずに止めることを確かめる。自分の実装も、同じ入力を同じように断る。</li>
+</ol>
+<p>ShogiBoardQ-P2P は、同じ PC でいくつも起動すると、開いた順に別のプレイヤーになる（2つ目は「2人目」）。互換実装との試験は、同じ PC の中で行える。</p>
+</section>
+
+<section id="appendix">
+<h2 id="sec-A">付録 A. 試験用の値</h2>
+<p>ここに挙げる値は、ShogiBoardQ-P2P の実装が出した値で、この文書の記述だけから計算した値と一致することを確かめてある。<code>aa…</code> は、その1バイトを 32 個並べた bstr(32) を表す。16進は 64 桁ごとに改行してある（改行はバイト列に含まれない）。</p>
+
+<h3 id="sec-A-1">A.1 条件のハッシュ</h3>
+<p class="vec-title">CBOR(Rules)</p>
+<pre class="vec"><code>89695342512d52554c455301783f6c6e73676b67736e6c2f31723562312f7070
+707070707070702f392f392f392f5050505050505050502f31423552312f4c4e
+53474b47534e4c2062202d20311902006d666f7572666f6c642d647261777470
+657270657475616c2d636865636b2d6c6f73736e6e6f2d6465636c6172617469
+6f6e6568756d616e6568756d616e</code></pre>
+<p class="vec-title">rulesHash</p>
+<pre class="vec"><code>e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7</code></pre>
+<p class="vec-title">networkPolicyHash</p>
+<pre class="vec"><code>9b7c8316692cc4e6593d4266afcb0d90670a0edb948920c920ef64a7fefebe73</code></pre>
+<p class="vec-title">CBOR(TimeControl)（基本 600,000 ms・秒読み 30,000 ms）</p>
+<pre class="vec"><code>86685342512d54494d45011a000927c01975300000</code></pre>
+<p class="vec-title">timeControlHash（同上）</p>
+<pre class="vec"><code>deb3972b6ab25b1992f94da6dfaf7755d8c81e7dd654b01818bce1b75eefe1db</code></pre>
+<h3 id="sec-A-2">A.2 先後の乱数・接続・確認コード</h3>
+<p class="vec-title">commitA（nonceA = 11…）</p>
+<pre class="vec"><code>30ea3fa164e93f6a60085b31b686b797a3989fb57d745e0541552f60f24761c5</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>nonceA</th><th>nonceB</th><th>申込側</th></tr></thead>
+<tbody>
+<tr><td><code>11…</code></td><td><code>22…</code></td><td>先手</td></tr>
+<tr><td><code>11…</code></td><td><code>33…</code></td><td>後手</td></tr>
+</tbody>
+</table></div>
+<p class="vec-title">connectionId（gameId = aa…、blackRandom = 01…、whiteRandom = 02…）</p>
+<pre class="vec"><code>7415d7e00efb5fb5ec6e8ec7fce4590bf0d0c6e13dedbc71e39ca55a86ed376b</code></pre>
+<p class="vec-title">PeerIdHash（PeerId = 00 24 08 01 12 20 に続けて 01 を 32 個）</p>
+<pre class="vec"><code>abb7e8338cc44a8fc428977193d4a7bd3a251a690cb322d5494ffb44df4f15a4</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>公開鍵 A</th><th>公開鍵 B</th><th>確認コード</th></tr></thead>
+<tbody>
+<tr><td><code>01…</code></td><td><code>02…</code></td><td><code>56744 64655 21922 42152 96570 31949</code></td></tr>
+<tr><td><code>ff…</code></td><td><code>02…</code></td><td><code>07831 76934 90118 77226 11286 72173</code>（<code>02…</code> が先。順序は符号なしで比べる）</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-A-3">A.3 状態と結果（gameId = aa…、基本 600,000 ms・秒読み 30,000 ms）</h3>
+<p class="vec-title">CBOR(State0)</p>
+<pre class="vec"><code>8a695342512d5354415445015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaa005820000000000000000000000000000000
+000000000000000000000000000000000060783f6c6e73676b67736e6c2f3172
+3562312f7070707070707070702f392f392f392f5050505050505050502f3142
+3552312f4c4e53474b47534e4c2062202d2031001a000927c01a000927c0</code></pre>
+<p class="vec-title">H(CBOR(State0))</p>
+<pre class="vec"><code>67a8f419018a1cec21de54322d407c4abba2e8f562acae327c16df68f1146fe8</code></pre>
+<p>先手が ▲７六歩（<code>7g7f</code>）を 2,500 ms で指した State1 は、<code>sfen</code> が <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2</code>、<code>blackMainMs</code> が 597,500、<code>whiteMainMs</code> が 600,000 になる。</p>
+<p class="vec-title">CBOR(State1)</p>
+<pre class="vec"><code>8a695342512d5354415445015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaa01582067a8f419018a1cec21de54322d407c
+4abba2e8f562acae327c16df68f1146fe8643767376678416c6e73676b67736e
+6c2f31723562312f7070707070707070702f392f392f3250362f505031505050
+5050502f31423552312f4c4e53474b47534e4c2077202d20321909c41a00091d
+fc1a000927c0</code></pre>
+<p class="vec-title">H(CBOR(State1))</p>
+<pre class="vec"><code>3215de1e8656241070b33e65d55ca10d2e9be4c27a3706ca283386b7acab07f2</code></pre>
+<p class="vec-title">CBOR(StateApproval)（ply = 1）</p>
+<pre class="vec"><code>856b5342512d415050524f5645015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0158203215de1e8656241070b33e65d5
+5ca10d2e9be4c27a3706ca283386b7acab07f2</code></pre>
+<p class="vec-title">transcriptHash（State0 と State1）</p>
+<pre class="vec"><code>cc375e47eda4829e8e31d0673f4de5c0173d2519a136d1a09416e3bfa2678ed1</code></pre>
+<p class="vec-title">CBOR(FinalResult)（ply = 1、先手の勝ち・投了）</p>
+<pre class="vec"><code>886a5342512d524553554c54015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
+0d2e9be4c27a3706ca283386b7acab07f25820cc375e47eda4829e8e31d0673f
+4de5c0173d2519a136d1a09416e3bfa2678ed1010101</code></pre>
+<p class="vec-title">resultDigest</p>
+<pre class="vec"><code>81c534940d53806ba1db2ca36f07f016999b848c70f25ebf0f7502772cd12e16</code></pre>
+<h3 id="sec-A-4">A.4 署名とフレーム</h3>
+<p>秘密鍵の種を RFC 8032 の試験の値 <code>9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60</code> としたとき。</p>
+<p class="vec-title">公開鍵</p>
+<pre class="vec"><code>d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a</code></pre>
+<p class="vec-title">A.3 の CBOR(StateApproval) への署名</p>
+<pre class="vec"><code>64cb12d9c0f548437ae77c21d68f6554f7afe16dae66b97f19f6b0810526e50e
+7aeb177dc3adb8a50dd8337317831c3a6abb75c03e28d9d09bf16841e7798c07</code></pre>
+<p class="vec-title">REJECT（BUSY、requestId = 3）のフレーム。ストリームには、この前に長さ 00 00 00 28 を付けて流す</p>
+<pre class="vec"><code>85010a0358200000000000000000000000000000000000000000000000000000
+0000000000008103</code></pre>
+<p class="vec-title">INVITE_TOKEN（token = 22…）のフレーム</p>
+<pre class="vec"><code>85010b0058200000000000000000000000000000000000000000000000000000
+0000000000008158202222222222222222222222222222222222222222222222
+222222222222222222</code></pre>
+</section>
+
+<footer class="doc">
+<p>この文書は、ShogiBoardQ-P2P の実装（2026-11-11 時点の main）と、リポジトリの <code>protocol/</code>（バイト列の形と試験の入力）をもとに、互換実装のために1つにまとめたものである。プロトコルは実験版で、今後、版を上げて変えることがある。この文書と実装の動きが食い違うときは、リポジトリへ知らせてほしい。</p>
+<p>ShogiBoardQ-P2P: <a href="https://github.com/hnakada123/ShogiBoardQ-P2P">https://github.com/hnakada123/ShogiBoardQ-P2P</a></p>
+</footer>
+</main>
+</body>
+</html>
