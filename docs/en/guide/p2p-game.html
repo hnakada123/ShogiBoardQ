@@ -184,7 +184,7 @@
 <section id="tabs" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">The Tabs of the Window</h2>
-        <p class="section-desc">The six tabs of the P2P window and what each item means</p>
+        <p class="section-desc">The six tabs of the P2P window, what each item means, and when to use the items on the Settings tab</p>
 
         <div class="screenshot-gallery">
 
@@ -204,7 +204,7 @@
                         <tr><td><strong>Game</strong></td><td>See the state of the game, resign, or offer a draw or an abort.</td></tr>
                         <tr><td><strong>Game Records</strong></td><td>See the records (evidence) of finished games, and verify, export, or delete them.</td></tr>
                         <tr><td><strong>Opponents</strong></td><td>Name the opponents you have played, check them with a verification code, and block them.</td></tr>
-                        <tr><td><strong>Settings</strong></td><td>Addresses of cooperating nodes, the setting that hides your IP address from opponents, and recreating the player key.</td></tr>
+                        <tr><td><strong>Settings</strong></td><td>Addresses of cooperating nodes, the setting that hides your IP address from opponents, and recreating the player key. None of them is needed for games on the same PC or LAN.</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">A- and A+ at the bottom change the text size (it is remembered the next time you open the window). Clicking Close closes the window, but the connection and the game continue. To open it again, choose Game → P2P Game (Experimental)…; to disconnect, click Disconnect on the Connection and Conditions tab.</p>
@@ -356,6 +356,7 @@
                     <span class="guide-step-number">7</span>
                     <span class="guide-step-title">The Settings Tab</span>
                 </div>
+                <p class="guide-step-text">If you only play on the same PC or LAN, you do not need to change anything on this tab. It is mainly for playing over the Internet (Limited test) and for showing less about yourself to opponents. Steps <a href="#settings-why">8 to 12</a> below explain when and why to use each item.</p>
                 <p class="guide-step-text">The box and the checkboxes are saved when you change them. Bootstrap nodes and Do not use direct connections take effect the next time you connect (if you are connected, disconnect and connect again).</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/en/p2p-game/p2p-settings.png"><img src="../../images/en/p2p-game/p2p-settings.png" alt="Settings tab with Bootstrap nodes and the relay-only and hide-names options, followed by key storage, restrictions, expiry, and what cannot be prevented" width="900" height="790" loading="lazy"></a>
@@ -375,6 +376,98 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">At the bottom is the list of what P2P games cannot prevent (<a href="#limits">What Cannot Be Prevented and What Others See</a>).</p>
+            </div>
+
+            <div class="guide-step" id="settings-why">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">When to Use the Settings Tab</span>
+                </div>
+                <p class="guide-step-text">Games on the same PC or LAN (Local test (same PC / same LAN)) work without touching the Settings tab because the addresses put in the invitation can be reached directly from the opponent's PC. Over the Internet (Limited test), that is not the case. The two networks differ as follows.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Item</th><th scope="col">Local test (same PC / same LAN)</th><th scope="col">Limited test (over the Internet)</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Addresses in the invitation</strong></td><td>This PC's address on the LAN (such as 192.168.…) and an address used only within the same PC. The opponent's PC can reach them directly</td><td>This PC's address as seen from the Internet, checked with the help of a cooperating node, and addresses that go through a cooperating node. Without a cooperating node, there are none</td></tr>
+                        <tr><td><strong>Cooperating node (Bootstrap nodes)</strong></td><td>Not needed</td><td>At least one is needed</td></tr>
+                        <tr><td><strong>Address the opponent can see</strong></td><td>Only your address on the LAN</td><td>With a direct connection, this PC's IP address on the Internet (Do not use direct connections hides it)</td></tr>
+                        <tr><td><strong>Expiry</strong></td><td>Does not apply</td><td>An expired build does not join</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">Use the items on the Settings tab in these cases.</p>
+                <ul class="guide-step-text">
+                    <li><strong>Bootstrap nodes</strong>: Enter cooperating nodes when you play over the Internet (<a href="#settings-node">9</a>).</li>
+                    <li><strong>Do not use direct connections</strong>: Use it when you do not want an opponent over the Internet to learn your IP address (<a href="#settings-relay">10</a>).</li>
+                    <li><strong>Hide display names of opponents you have not played</strong>: Use it when you do not want to see the display names of strangers. It works on both networks (<a href="#settings-names">11</a>).</li>
+                    <li><strong>Recreate Player Key…</strong>: Use it when someone else may have learned your key, for example. Player key storage and the expiry of this build are shown for information only (<a href="#settings-key">12</a>).</li>
+                </ul>
+            </div>
+
+            <div class="guide-step" id="settings-node">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">9</span>
+                    <span class="guide-step-title">Bootstrap Nodes: Why a Cooperating Node Is Needed</span>
+                </div>
+                <p class="guide-step-text">To play over the Internet, the invitation must contain an address that the opponent's app can use to reach your PC. However, most PCs on home or mobile connections are behind a router, and the PC itself does not know which address it has as seen from the Internet. Connections from outside may also be stopped by the router. P2P games have no server that finds opponents or tells players each other's addresses.</p>
+                <p class="guide-step-text">So your app first connects to a <em>cooperating node</em>, which runs at a place reachable from the Internet, and the node takes care of two things.</p>
+                <ul class="guide-step-text">
+                    <li><strong>Reachability check</strong>: It tells you your PC's address as seen from the Internet and whether that address can be reached from outside. If it can, the address goes into the invitation and you connect directly with your opponent.</li>
+                    <li><strong>Relay</strong>: Your app reserves a relay slot on the cooperating node and also puts an address that goes through the node into the invitation. When your PC cannot be reached directly from outside (as with most home connections), the opponent connects through the cooperating node with this address. After connecting, the connection may switch to a direct one (shown under Route on the Game tab).</li>
+                </ul>
+                <p class="guide-step-text">If you connect to Limited test without a cooperating node, your app connects to no one, so the invitation contains no address at all (Invitation route on the Connection and Conditions tab shows "There is no address yet that can be reached from outside. …"). Your opponent cannot connect with such an invitation. Within the same LAN, the opponent's PC can reach your PC's address directly, so no cooperating node is needed.</p>
+                <p class="guide-step-text">A cooperating node does not judge moves or results. Relayed traffic is encrypted between the two apps, so the node cannot read its contents either. What the operator can see is which IP addresses connected to each other.</p>
+                <p class="guide-step-text">The app does not come with any cooperating node addresses. Get an address in the form <code>/ip4/&lt;IP address&gt;/tcp/&lt;port&gt;/p2p/&lt;PeerId&gt;</code> from someone who runs a cooperating node, and enter one per line (up to 16). If you enter several, you can still use the others when one of them is down. It is simplest for both players to enter the same cooperating node.</p>
+                <p class="guide-step-text">To run one yourself, run the communication process <code>shogiboardq-peer</code> as a cooperating node on a server reachable from the Internet, and open its port (TCP) in the server's firewall. When it starts, the PeerId is shown after <code>service started as</code>; enter <code>/ip4/&lt;server IP address&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code> in Bootstrap nodes (for how it works, see section 4.4 of the <a href="../../dev/p2p-interop-spec.html#sec-4-4">P2P game interoperability specification</a>, in Japanese).</p>
+                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --network sbq-limited-1 \
+      --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001
+shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
+            </div>
+
+            <div class="guide-step" id="settings-relay">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">10</span>
+                    <span class="guide-step-title">Do Not Use Direct Connections: Hide Your IP Address</span>
+                </div>
+                <p class="guide-step-text">Normally, your opponent's app and your PC connect directly (the relay of a cooperating node is used only when they cannot). With a direct connection, your opponent can learn your IP address on the Internet by examining the traffic (the app does not show it). An IP address may reveal your rough location and your Internet provider. Your IP address is also put into your invitations.</p>
+                <p class="guide-step-text">When you check Do not use direct connections, your app always connects to the opponent through the relay of a cooperating node, and puts only addresses that go through the cooperating node into invitations. Your opponent sees only the cooperating node's address, and your IP address is visible only to the operators of the cooperating nodes you entered in Bootstrap nodes. Use it when you play with someone on the Internet whom you do not know well.</p>
+                <ul class="guide-step-text">
+                    <li><strong>A cooperating node is required</strong>: Enter a cooperating node that provides a relay in Bootstrap nodes. Otherwise Invitation route shows "No relay is available. …", and your opponent cannot connect even if you invite them.</li>
+                    <li><strong>The same cooperating node as your opponent</strong>: With this setting, when you connect with an invitation you received, your app uses only addresses that go through the cooperating nodes you entered. The opponent who invited you must also have the same cooperating node in Bootstrap nodes (otherwise you see "This invitation has no address that goes through the relay of your cooperating nodes. …"). It is simplest for both players to enter the same cooperating node.</li>
+                    <li><strong>Relay limits</strong>: Moves travel through the cooperating node, so they may arrive a little later than over a direct connection. ShogiBoardQ's cooperating node closes each relayed connection after 30 minutes, so a long game may include an automatic reconnection (Reconnecting) along the way.</li>
+                    <li><strong>Do not use it on the same PC or LAN</strong>: When checked, your app stops using direct connections within the LAN as well, so you cannot connect (Invitation route shows "No relay is available. …"). An opponent on the same LAN sees only your address on the LAN, so this setting is not needed there.</li>
+                </ul>
+                <p class="guide-step-text">Bootstrap nodes and this setting take effect the next time you connect. If you change them while connected, disconnect on the Connection and Conditions tab and connect again.</p>
+            </div>
+
+            <div class="guide-step" id="settings-names">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">11</span>
+                    <span class="guide-step-title">Hide Display Names of Opponents You Have Not Played</span>
+                </div>
+                <p class="guide-step-text">A display name is a name the opponent chooses freely. Anyone who sees an invitation can use it within its 10-minute lifetime, so if an invitation is seen by others, a stranger may connect to you. A stranger's display name may contain offensive words or text that looks like a message from the app.</p>
+                <p class="guide-step-text">With this setting, the display name of an opponent you have not played (one not listed on the Opponents tab) is shown as "Display name: hidden" on the confirmation screen and as Name hidden on the Game Records tab. Check the opponent by the player ID and "First game with this opponent.", and click Cancel if you do not recognize them.</p>
+                <ul class="guide-step-text">
+                    <li>The display names of opponents you have played (listed on the Opponents tab) are still shown. An opponent whose record you deleted with Delete Record on the Opponents tab is treated as one you have not played again.</li>
+                    <li>Once a game starts, the opponent's display name appears in the player names on the board, in the game information, and on the Game tab. This setting lets you cancel before starting without seeing a stranger's name.</li>
+                    <li>If you play only with people you know, you can leave it unchanged. It works on both networks.</li>
+                </ul>
+            </div>
+
+            <div class="guide-step" id="settings-key">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">12</span>
+                    <span class="guide-step-title">Player Key and Expiry</span>
+                </div>
+                <p class="guide-step-text"><strong>Player key storage</strong> only shows how the current key is stored and, while connected, the restrictions placed on the communication process (Landlock, seccomp, and so on). You cannot change them here.</p>
+                <p class="guide-step-text">Use <strong>Recreate Player Key…</strong> in cases like these.</p>
+                <ul class="guide-step-text">
+                    <li>When someone else may have learned your key file or passphrase (whoever has the key can play as you)</li>
+                    <li>When you want to change how the key is stored (you choose the storage again when recreating it)</li>
+                    <li>When you want to play with a new player ID that is not linked to your past games</li>
+                </ul>
+                <p class="guide-step-text">Recreating the key changes your player ID, so on your opponents' Opponents tab you appear as someone else (a new opponent). Your verification codes change too, so ask opponents who had marked you as verified to compare the code again. The old key is deleted and you cannot go back to the old player ID. Your past game records (evidence) are not deleted and keep the old player ID. Disconnect on the Connection and Conditions tab before clicking it.</p>
+                <p class="guide-step-text"><strong>This build expires</strong> shows the date 180 days after the build date. P2P games have no server that can stop old versions. So that old versions with unfixed bugs or security flaws do not stay on the Internet network, an expired build does not join Limited test. After it expires, build a new version. Local test games and reviewing and verifying saved records still work after the expiry.</p>
             </div>
 
         </div>
@@ -649,7 +742,7 @@
                     <li><strong>Hide display names of opponents you have not played</strong>: Shows Name hidden instead of the display names of new opponents on the confirmation screen and in Game Records.</li>
                     <li><strong>Recreate Player Key…</strong>: Changes your player ID, so opponents see you as someone else. The old key is deleted.</li>
                 </ul>
-                <p class="guide-step-text">Below them are how the player key is stored, the restrictions placed on the communication process (Landlock, seccomp, and so on), and the expiry of this build.</p>
+                <p class="guide-step-text">Below them are how the player key is stored, the restrictions placed on the communication process (Landlock, seccomp, and so on), and the expiry of this build. For when to use each item, and why games on the same PC or LAN do not need them, see <a href="#settings-why">When to use the Settings tab</a>.</p>
             </div>
 
         </div>

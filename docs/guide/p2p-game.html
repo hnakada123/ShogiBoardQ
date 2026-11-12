@@ -184,7 +184,7 @@
 <section id="tabs" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">ウィンドウのタブ</h2>
-        <p class="section-desc">P2P対局のウィンドウの6つのタブと、それぞれの項目です</p>
+        <p class="section-desc">P2P対局のウィンドウの6つのタブとそれぞれの項目、「設定」タブの項目を使う場面です</p>
 
         <div class="screenshot-gallery">
 
@@ -204,7 +204,7 @@
                         <tr><td><strong>対局中</strong></td><td>対局の状況を見て、投了や、引き分け・中断の申し出をします。</td></tr>
                         <tr><td><strong>対局記録</strong></td><td>終わった対局の記録（証跡）を見て、検証・書き出し・削除をします。</td></tr>
                         <tr><td><strong>相手の管理</strong></td><td>対局した相手に名前を付け、確認コードで同じ人かを確かめ、ブロックします。</td></tr>
-                        <tr><td><strong>設定</strong></td><td>協力ノードのアドレス、相手に IP アドレスを見せない設定、プレイヤー鍵の作り直しです。</td></tr>
+                        <tr><td><strong>設定</strong></td><td>協力ノードのアドレス、相手に IP アドレスを見せない設定、プレイヤー鍵の作り直しです。同じPC・同じLANの対局には、どれも要りません。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">ウィンドウの下の「A-」「A+」は文字の大きさを変えます（次に開いたときも同じ大きさです）。「閉じる」でウィンドウを閉じても、接続と対局は続きます。もう一度開くには「対局」→「P2P対局（実験版）…」を選び、接続を切るには「接続と条件」タブの「切断」を押します。</p>
@@ -356,6 +356,7 @@
                     <span class="guide-step-number">7</span>
                     <span class="guide-step-title">「設定」タブ</span>
                 </div>
+                <p class="guide-step-text">このタブの項目は、同じPC・同じLANで対局するだけなら、どれも変えなくてかまいません。使うのは主に、インターネット越しに対局するとき（「限定試験用」）と、相手に見せる情報を減らしたいときです。それぞれを使う場面と理由は、この後の<a href="#settings-why">8〜12</a>で説明します。</p>
                 <p class="guide-step-text">欄とチェックは、変えたときに保存します。「接続候補」と「直接接続を使わない」は、次に接続したときから使います（接続中なら、切断してから接続し直します）。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../images/p2p-game/p2p-settings.png"><img src="../images/p2p-game/p2p-settings.png" alt="接続候補・直接接続を使わない・表示名を出さないの設定と、プレイヤー鍵の保管・権限の制限・使用期限・防げないことが並ぶ「設定」タブ" width="900" height="790" loading="lazy"></a>
@@ -375,6 +376,98 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">いちばん下には、P2P対局で防げないことの一覧が出ます（<a href="#limits">防げないことと相手に見える情報</a>）。</p>
+            </div>
+
+            <div class="guide-step" id="settings-why">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">「設定」タブの項目を使う場面</span>
+                </div>
+                <p class="guide-step-text">同じPC・同じLANの対局（「ローカル検証用（同じPC・同じLAN）」）が「設定」タブを変えなくてもできるのは、招待文字列に入る宛先が、相手のPCからそのまま届くアドレスだからです。インターネット越し（「限定試験用」）では、そうはいきません。2つのネットワークの違いは次のとおりです。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">項目</th><th scope="col">ローカル検証用（同じPC・同じLAN）</th><th scope="col">限定試験用（インターネット越し）</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>招待文字列に入る宛先</strong></td><td>このPCのLANの中のアドレス（192.168.… など）と、同じPCの中だけで使うアドレス。相手のPCからそのまま届きます</td><td>協力ノードに確かめてもらった、インターネットから見たこのPCのアドレスと、協力ノードを経由する宛先。協力ノードがないと1つも入りません</td></tr>
+                        <tr><td><strong>協力ノード（「接続候補」）</strong></td><td>要りません</td><td>1つは要ります</td></tr>
+                        <tr><td><strong>相手に見えるアドレス</strong></td><td>LANの中のアドレスだけ</td><td>直接つなぐと、このPCのインターネット上の IP アドレス（「直接接続を使わない」で隠せます）</td></tr>
+                        <tr><td><strong>使用期限</strong></td><td>関係しません</td><td>期限を過ぎたビルドは参加しません</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">「設定」タブの項目は、次のときに使います。</p>
+                <ul class="guide-step-text">
+                    <li><strong>接続候補</strong>：インターネット越しに対局するときに、協力ノードを入れます（<a href="#settings-node">9</a>）。</li>
+                    <li><strong>直接接続を使わない</strong>：インターネット越しの相手に、自分の IP アドレスを知られたくないときに使います（<a href="#settings-relay">10</a>）。</li>
+                    <li><strong>対局したことのない相手の表示名を出さない</strong>：知らない人の表示名を見たくないときに使います。どちらのネットワークでも使えます（<a href="#settings-names">11</a>）。</li>
+                    <li><strong>プレイヤー鍵を作り直す…</strong>：鍵を他人に知られたかもしれないときなどに使います。「プレイヤー鍵の保管」と「このビルドの使用期限」は表示だけです（<a href="#settings-key">12</a>）。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step" id="settings-node">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">9</span>
+                    <span class="guide-step-title">「接続候補」：協力ノードが要る理由</span>
+                </div>
+                <p class="guide-step-text">インターネット越しに対局するには、相手のアプリがあなたのPCへつなぐための宛先を、招待文字列に入れておかなければなりません。ところが、家庭や携帯電話の回線のPCの多くはルーターの内側にあり、PC自身は、インターネットから自分がどのアドレスで見えるかを知りません。外から届いた接続が、ルーターで止まることもあります。P2P対局には、相手を探したり宛先を教え合ったりするサーバーもありません。</p>
+                <p class="guide-step-text">そこで、インターネットから届く場所で動いている「協力ノード」に最初につなぎ、次の2つを受け持ってもらいます。</p>
+                <ul class="guide-step-text">
+                    <li><strong>到達性の確認</strong>：インターネットから見たこのPCのアドレスと、外からそこへ届くかを確かめてもらいます。届くなら、そのアドレスを招待文字列に入れ、相手と直接つなぎます。</li>
+                    <li><strong>中継</strong>：協力ノードに中継の席を取っておき、協力ノードを経由する宛先も招待文字列に入れます。外から直接届かないとき（家庭の回線の多くはこちらです）は、相手はこの宛先で協力ノードを通ってつながります。つながった後、直接の接続に切り替わることもあります（「対局中」タブの「経路」に出ます）。</li>
+                </ul>
+                <p class="guide-step-text">協力ノードを入れずに「限定試験用」で接続すると、どこにもつながらないので、招待文字列に宛先が1つも入りません（「接続と条件」タブの「招待の経路」に「外から届く接続先がまだありません。…」と出ます）。この招待文字列では、相手は接続できません。同じLANの中なら、相手のPCからこのPCのアドレスにそのまま届くので、協力ノードは要りません。</p>
+                <p class="guide-step-text">協力ノードは、指し手や勝敗を判定しません。中継する通信は双方のアプリの間で暗号化しているので、中身も読めません。運営者に見えるのは、どの IP アドレスどうしがつないだかです。</p>
+                <p class="guide-step-text">アプリには協力ノードの宛先は入っていません。協力ノードを動かしている人から <code>/ip4/&lt;IPアドレス&gt;/tcp/&lt;ポート&gt;/p2p/&lt;PeerId&gt;</code> の形のアドレスを受け取り、1行に1つ入れます（16件まで）。いくつか入れておくと、1つが止まっていても、ほかの協力ノードを使えます。対局する2人とも、同じ協力ノードを入れておくのが簡単です。</p>
+                <p class="guide-step-text">自分で用意するときは、インターネットから届くサーバーで、通信プロセス <code>shogiboardq-peer</code> を協力ノードとして動かし、サーバーのファイアウォールでそのポート（TCP）を開けます。起動すると <code>service started as</code> の後に PeerId が出るので、<code>/ip4/&lt;サーバーのIPアドレス&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code> を「接続候補」に入れます（仕組みは<a href="../dev/p2p-interop-spec.html#sec-4-4">P2P対局の相互運用仕様の4.4節</a>）。</p>
+                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --network sbq-limited-1 \
+      --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001
+shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
+            </div>
+
+            <div class="guide-step" id="settings-relay">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">10</span>
+                    <span class="guide-step-title">「直接接続を使わない」：相手に IP アドレスを見せない</span>
+                </div>
+                <p class="guide-step-text">ふだんは、相手のアプリとあなたのPCが直接つながります（直接つなげないときだけ、協力ノードの中継を使います）。直接つながると、相手は通信を調べれば、あなたのインターネット上の IP アドレスを知ることができます（画面には出しません）。IP アドレスからは、おおよその地域や、使っている回線の会社が分かることがあります。招待文字列にも、あなたの IP アドレスが入ります。</p>
+                <p class="guide-step-text">「直接接続を使わない」にチェックを付けると、相手とは必ず協力ノードの中継を通してつなぎ、招待文字列にも協力ノードを経由する宛先だけを入れます。相手に見えるのは協力ノードのアドレスだけになり、あなたの IP アドレスが見えるのは、あなたが「接続候補」に入れた協力ノードの運営者だけになります。インターネット上の、よく知らない相手と指すときに使います。</p>
+                <ul class="guide-step-text">
+                    <li><strong>協力ノードが要ります</strong>：「接続候補」に、中継のできる協力ノードを入れてください。入っていないと、「招待の経路」に「中継を使えません。…」と出て、招待しても相手は接続できません。</li>
+                    <li><strong>相手と同じ協力ノード</strong>：この設定で、受け取った招待文字列で接続するときは、あなたが入れた協力ノードを通る宛先にしかつなぎません。招待した相手も同じ協力ノードを「接続候補」に入れている必要があります（違うと「この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。…」と出ます）。双方が同じ協力ノードを入れておくのが簡単です。</li>
+                    <li><strong>中継の制限</strong>：指し手は協力ノードを回って届くので、直接つなぐより少し遅れることがあります。ShogiBoardQ の協力ノードは中継1本を30分で切るので、長い対局では途中で自動のつなぎ直し（「再接続中」）が入ることがあります。</li>
+                    <li><strong>同じPC・同じLANの対局では使いません</strong>：チェックを付けると、LANの中の直接の接続も使わなくなるので、つながらなくなります（「招待の経路」に「中継を使えません。…」と出ます）。同じLANの相手に見えるのはLANの中のアドレスだけなので、この設定は要りません。</li>
+                </ul>
+                <p class="guide-step-text">「接続候補」とこの設定は、次に接続したときから使います。接続中に変えたときは、「接続と条件」タブで切断してから接続し直してください。</p>
+            </div>
+
+            <div class="guide-step" id="settings-names">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">11</span>
+                    <span class="guide-step-title">「対局したことのない相手の表示名を出さない」</span>
+                </div>
+                <p class="guide-step-text">表示名は、相手が自由に付けられる名前です。招待文字列は、期限の10分の間なら、見た人はだれでも使えます。招待文字列がほかの人の目に触れると、知らない人がつないでくることがあります。知らない人の表示名には、不快な言葉や、画面の知らせと紛らわしい文が入っているかもしれません。</p>
+                <p class="guide-step-text">この設定にすると、対局したことのない相手（「相手の管理」に並んでいない相手）の表示名を、条件確認画面では「表示名: 名前は非表示」、「対局記録」タブでは「名前は非表示」と出します。相手は、プレイヤーIDと「初めての相手です。」の表示で確かめ、心当たりがなければ「取りやめる」を押します。</p>
+                <ul class="guide-step-text">
+                    <li>一度対局した相手（「相手の管理」に並ぶ相手）の表示名は、この設定でも出します。「相手の管理」で「記録を削除」した相手は、また対局したことのない相手として扱います。</li>
+                    <li>対局を始めると、盤の対局者名・対局情報・「対局中」タブには相手の表示名が出ます。この設定は、知らない人の名前を見ずに、始める前に取りやめられるようにするものです。</li>
+                    <li>知り合いとだけ指しているなら、変えなくてかまいません。どちらのネットワークでも使えます。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step" id="settings-key">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">12</span>
+                    <span class="guide-step-title">プレイヤー鍵と使用期限</span>
+                </div>
+                <p class="guide-step-text"><strong>プレイヤー鍵の保管</strong>は、今の鍵の保管の方法と、接続している間に通信プロセスに掛けている権限の制限（Landlock・seccomp など）を見せるだけで、ここでは変えられません。</p>
+                <p class="guide-step-text"><strong>プレイヤー鍵を作り直す…</strong>は、次のようなときに使います。</p>
+                <ul class="guide-step-text">
+                    <li>鍵のファイルやパスフレーズを他人に知られたかもしれないとき（その鍵を持つ人は、あなたになりすまして対局できます）</li>
+                    <li>鍵の保管の方法を変えたいとき（作り直すときに、保管の方法を選び直します）</li>
+                    <li>これまでの対局と結び付かない、新しいプレイヤーIDで指したいとき</li>
+                </ul>
+                <p class="guide-step-text">作り直すとプレイヤーIDが変わり、相手の「相手の管理」では別人（初めての相手）に見えます。確認コードも変わるので、確認済みにしてもらっていた相手には、もう一度見比べてもらってください。古い鍵は消え、元のプレイヤーIDには戻せません。これまでの対局記録（証跡）は消えず、古いプレイヤーIDのまま残ります。押す前に、「接続と条件」タブで切断してください。</p>
+                <p class="guide-step-text"><strong>このビルドの使用期限</strong>は、ビルドした日から180日後の日付です。P2P対局には、古い版を止めるサーバーがありません。不具合や安全上の欠陥が直っていない古い版がインターネット越しのネットワークに残り続けないように、期限を過ぎたビルドは「限定試験用」に参加しません。期限を過ぎたら、新しい版をビルドし直してください。「ローカル検証用」の対局と、保存した記録の確認・検証は、期限後も使えます。</p>
             </div>
 
         </div>
@@ -649,7 +742,7 @@
                     <li><strong>対局したことのない相手の表示名を出さない</strong>：条件確認画面と対局記録で、初めての相手の表示名を「名前は非表示」にします。</li>
                     <li><strong>プレイヤー鍵を作り直す…</strong>：プレイヤーIDが変わり、相手からは別人に見えます。古い鍵は消します。</li>
                 </ul>
-                <p class="guide-step-text">下には、プレイヤー鍵の保管の方法、通信プロセスに掛けた権限の制限（Landlock・seccomp など）、このビルドの使用期限が出ます。</p>
+                <p class="guide-step-text">下には、プレイヤー鍵の保管の方法、通信プロセスに掛けた権限の制限（Landlock・seccomp など）、このビルドの使用期限が出ます。それぞれを使う場面と、同じPC・同じLANの対局では要らない理由は、<a href="#settings-why">「設定」タブの項目を使う場面</a>をご覧ください。</p>
             </div>
 
         </div>

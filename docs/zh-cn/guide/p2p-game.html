@@ -184,7 +184,7 @@
 <section id="tabs" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">窗口的标签页</h2>
-        <p class="section-desc">P2P对局窗口的6个标签页及各项目的说明</p>
+        <p class="section-desc">P2P对局窗口的6个标签页、各项目的说明，以及“设置”标签页各项目的使用场合</p>
 
         <div class="screenshot-gallery">
 
@@ -204,7 +204,7 @@
                         <tr><td><strong>对局中</strong></td><td>查看对局状况，认输，或提议和棋、中断。</td></tr>
                         <tr><td><strong>对局记录</strong></td><td>查看已结束对局的记录（凭证），并进行验证、导出和删除。</td></tr>
                         <tr><td><strong>对手管理</strong></td><td>为对局过的对手命名，用确认码确认是否为同一个人，以及屏蔽。</td></tr>
-                        <tr><td><strong>设置</strong></td><td>协作节点的地址、不让对手看到 IP 地址的设置，以及重新生成玩家密钥。</td></tr>
+                        <tr><td><strong>设置</strong></td><td>协作节点的地址、不让对手看到 IP 地址的设置，以及重新生成玩家密钥。同一电脑・同一局域网内的对局都不需要这些设置。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">窗口下方的“A-”“A+”用于改变文字大小（下次打开时保持相同大小）。点击“关闭”关闭窗口后，连接和对局仍会继续。要再次打开，请选择“对局”→“P2P对局（实验版）…”；要断开连接，请点击“连接与条件”标签页的“断开”。</p>
@@ -356,6 +356,7 @@
                     <span class="guide-step-number">7</span>
                     <span class="guide-step-title">“设置”标签页</span>
                 </div>
+                <p class="guide-step-text">如果只在同一电脑・同一局域网内对局，这个标签页的项目都不需要更改。它主要用于通过互联网对局（“限定测试用”）和减少给对手看到的信息。各项目的使用场合和理由，见下面的<a href="#settings-why">8〜12</a>。</p>
                 <p class="guide-step-text">输入框和复选框在更改时保存。“连接候选”和“不使用直接连接”从下次连接时开始生效（已连接时，请断开后重新连接）。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-cn/p2p-game/p2p-settings.png"><img src="../../images/zh-cn/p2p-game/p2p-settings.png" alt="显示连接候选、不使用直接连接、不显示显示名的设置，以及密钥保存方式、权限限制、使用期限和无法防止的情况的“设置”标签页" width="900" height="790" loading="lazy"></a>
@@ -375,6 +376,98 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">最下方列出P2P对局无法防止的情况（<a href="#limits">无法防止的情况与对方可以看到的信息</a>）。</p>
+            </div>
+
+            <div class="guide-step" id="settings-why">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">“设置”标签页各项目的使用场合</span>
+                </div>
+                <p class="guide-step-text">同一电脑・同一局域网的对局（“本地验证用（同一电脑・同一局域网）”）不改“设置”标签页也能进行，是因为邀请字符串中的地址能从对手的电脑直接到达。通过互联网（“限定测试用”）时则不是这样。两种网络的区别如下。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">项目</th><th scope="col">本地验证用（同一电脑・同一局域网）</th><th scope="col">限定测试用（通过互联网）</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>邀请字符串中的地址</strong></td><td>本机在局域网内的地址（192.168.… 等）和只在同一电脑内使用的地址。对手的电脑可以直接到达</td><td>由协作节点帮助确认的、从互联网看到的本机地址，以及经由协作节点的地址。没有协作节点时一个也没有</td></tr>
+                        <tr><td><strong>协作节点（“连接候选”）</strong></td><td>不需要</td><td>至少需要一个</td></tr>
+                        <tr><td><strong>对手能看到的地址</strong></td><td>只有局域网内的地址</td><td>直接连接时，本机在互联网上的 IP 地址（可用“不使用直接连接”隐藏）</td></tr>
+                        <tr><td><strong>使用期限</strong></td><td>无关</td><td>过期的版本不再加入</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">“设置”标签页的项目在以下场合使用。</p>
+                <ul class="guide-step-text">
+                    <li><strong>连接候选</strong>：通过互联网对局时填入协作节点（<a href="#settings-node">9</a>）。</li>
+                    <li><strong>不使用直接连接</strong>：不想让互联网上的对手知道自己的 IP 地址时使用（<a href="#settings-relay">10</a>）。</li>
+                    <li><strong>不显示未对局过的对手的显示名</strong>：不想看到陌生人的显示名时使用。两种网络都可以使用（<a href="#settings-names">11</a>）。</li>
+                    <li><strong>重新生成玩家密钥…</strong>：在密钥可能被他人得知等情况下使用。“玩家密钥保存”和“此版本的使用期限”只是显示（<a href="#settings-key">12</a>）。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step" id="settings-node">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">9</span>
+                    <span class="guide-step-title">“连接候选”：为什么需要协作节点</span>
+                </div>
+                <p class="guide-step-text">通过互联网对局时，邀请字符串中必须包含对手的应用程序连接到您电脑所用的地址。但是，家庭网络或手机网络中的电脑大多位于路由器内侧，电脑自身并不知道从互联网看到的自己的地址。从外部来的连接也可能被路由器挡住。P2P对局也没有帮助寻找对手或互相告知地址的服务器。</p>
+                <p class="guide-step-text">因此，应用程序先连接到运行在互联网可到达位置的“协作节点”，由它负责以下两件事。</p>
+                <ul class="guide-step-text">
+                    <li><strong>确认可达性</strong>：请协作节点确认从互联网看到的本机地址，以及从外部能否到达该地址。如果能到达，就把该地址放入邀请字符串，与对手直接连接。</li>
+                    <li><strong>中继</strong>：在协作节点上预留中继席位，并把经由协作节点的地址也放入邀请字符串。从外部无法直接到达时（大多数家庭网络属于这种情况），对手用这个地址通过协作节点连接。连接后也可能切换为直接连接（显示在“对局中”标签页的“路径”中）。</li>
+                </ul>
+                <p class="guide-step-text">不填协作节点就以“限定测试用”连接时，应用程序连不上任何节点，邀请字符串中一个地址也没有（“连接与条件”标签页的“邀请的路径”显示“尚无可从外部到达的连接地址。…”）。对手无法用这样的邀请字符串连接。在同一局域网内，对手的电脑可以直接到达本机的地址，所以不需要协作节点。</p>
+                <p class="guide-step-text">协作节点不判定着手和胜负。中继的通信在双方应用程序之间加密，节点也无法读取内容。运营者能看到的是哪些 IP 地址之间建立了连接。</p>
+                <p class="guide-step-text">应用程序中没有内置协作节点的地址。请从运行协作节点的人那里获得 <code>/ip4/&lt;IP地址&gt;/tcp/&lt;端口&gt;/p2p/&lt;PeerId&gt;</code> 形式的地址，每行填入一个（最多 16 个）。填入多个时，即使其中一个停止，也能使用其他协作节点。对局双方填入相同的协作节点最简单。</p>
+                <p class="guide-step-text">自己准备时，在可从互联网到达的服务器上，把通信进程 <code>shogiboardq-peer</code> 作为协作节点运行，并在服务器的防火墙中开放该端口（TCP）。启动后 <code>service started as</code> 后面会显示 PeerId，请把 <code>/ip4/&lt;服务器的IP地址&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code> 填入“连接候选”（原理见<a href="../../dev/p2p-interop-spec.html#sec-4-4">P2P对局互操作规范的 4.4 节</a>，日文）。</p>
+                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --network sbq-limited-1 \
+      --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001
+shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
+            </div>
+
+            <div class="guide-step" id="settings-relay">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">10</span>
+                    <span class="guide-step-title">“不使用直接连接”：不让对手看到 IP 地址</span>
+                </div>
+                <p class="guide-step-text">通常，对手的应用程序与您的电脑直接连接（只有无法直接连接时才使用协作节点的中继）。直接连接时，对手只要分析通信，就能知道您在互联网上的 IP 地址（画面上不显示）。从 IP 地址有时可以看出大致的地区和所用的网络运营商。邀请字符串中也会包含您的 IP 地址。</p>
+                <p class="guide-step-text">勾选“不使用直接连接”后，与对手一定通过协作节点的中继连接，邀请字符串中也只放入经由协作节点的地址。对手只能看到协作节点的地址，能看到您的 IP 地址的只有您在“连接候选”中填入的协作节点的运营者。适合与互联网上不太熟悉的对手对局时使用。</p>
+                <ul class="guide-step-text">
+                    <li><strong>需要协作节点</strong>：请在“连接候选”中填入可提供中继的协作节点。没有填入时，“邀请的路径”会显示“无法使用中继。…”，即使邀请对手，对手也无法连接。</li>
+                    <li><strong>与对手相同的协作节点</strong>：在此设置下用收到的邀请字符串连接时，只使用经由您填入的协作节点的地址。邀请您的对手也需要在“连接候选”中填入相同的协作节点（否则会显示“此邀请字符串中没有通过您的协作节点中继的连接地址。…”）。双方填入相同的协作节点最简单。</li>
+                    <li><strong>中继的限制</strong>：着手要绕经协作节点送达，可能比直接连接稍慢。ShogiBoardQ 的协作节点每条中继连接 30 分钟后断开，因此长时间的对局中途可能会自动重新连接（“正在重新连接”）。</li>
+                    <li><strong>同一电脑・同一局域网的对局不要使用</strong>：勾选后，局域网内的直接连接也不再使用，因此无法连接（“邀请的路径”显示“无法使用中继。…”）。同一局域网的对手只能看到局域网内的地址，所以不需要此设置。</li>
+                </ul>
+                <p class="guide-step-text">“连接候选”和此设置从下次连接时开始生效。连接期间更改时，请在“连接与条件”标签页断开后重新连接。</p>
+            </div>
+
+            <div class="guide-step" id="settings-names">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">11</span>
+                    <span class="guide-step-title">“不显示未对局过的对手的显示名”</span>
+                </div>
+                <p class="guide-step-text">显示名是对手可以自由设定的名称。邀请字符串在 10 分钟的期限内，任何看到的人都可以使用。邀请字符串被他人看到时，可能会有陌生人连接过来。陌生人的显示名中可能含有令人不快的词语，或与画面提示容易混淆的文字。</p>
+                <p class="guide-step-text">启用此设置后，未对局过的对手（未列在“对手管理”中的对手）的显示名，在条件确认画面显示为“显示名：已隐藏”，在“对局记录”标签页显示为“名称已隐藏”。请通过玩家ID和“首次对局的对手。”的提示确认对手，如果没有印象，请点击“取消”。</p>
+                <ul class="guide-step-text">
+                    <li>对局过的对手（列在“对手管理”中的对手）的显示名，在此设置下仍会显示。在“对手管理”中“删除记录”的对手，会再次被视为未对局过的对手。</li>
+                    <li>对局开始后，棋盘上的对局者名、对局信息和“对局中”标签页会显示对手的显示名。此设置的作用是让您在开始前不看到陌生人的名称就能取消。</li>
+                    <li>只和熟人对局时，可以不更改。两种网络都可以使用。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step" id="settings-key">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">12</span>
+                    <span class="guide-step-title">玩家密钥与使用期限</span>
+                </div>
+                <p class="guide-step-text"><strong>玩家密钥保存</strong>只显示当前密钥的保存方式，以及连接期间对通信进程施加的权限限制（Landlock、seccomp 等），不能在这里更改。</p>
+                <p class="guide-step-text"><strong>重新生成玩家密钥…</strong>在以下情况下使用。</p>
+                <ul class="guide-step-text">
+                    <li>密钥文件或密码短语可能被他人得知时（持有该密钥的人可以冒充您对局）</li>
+                    <li>想更改密钥的保存方式时（重新生成时重新选择保存方式）</li>
+                    <li>想用与过去对局无关的新玩家ID对局时</li>
+                </ul>
+                <p class="guide-step-text">重新生成后玩家ID会改变，在对手的“对手管理”中您会显示为另一个人（首次对局的对手）。确认码也会改变，请让曾把您设为已确认的对手再核对一次。旧密钥会被删除，无法恢复原来的玩家ID。过去的对局记录（凭证）不会被删除，仍保留旧的玩家ID。点击前，请在“连接与条件”标签页断开连接。</p>
+                <p class="guide-step-text"><strong>此版本的使用期限</strong>是构建日起 180 天后的日期。P2P对局没有可以停止旧版本的服务器。为了不让未修复缺陷或安全漏洞的旧版本一直留在互联网上的网络中，过期的版本不再加入“限定测试用”。过期后，请重新构建新版本。“本地验证用”的对局，以及查看和验证已保存的记录，过期后仍可使用。</p>
             </div>
 
         </div>
@@ -649,7 +742,7 @@
                     <li><strong>不显示未对局过的对手的显示名</strong>：在条件确认画面和对局记录中，把首次对局对手的显示名显示为“名称已隐藏”。</li>
                     <li><strong>重新生成玩家密钥…</strong>：玩家ID会改变，对手会把您看作另一个人。旧密钥将被删除。</li>
                 </ul>
-                <p class="guide-step-text">下方显示玩家密钥的保存方式、对通信进程施加的权限限制（Landlock、seccomp 等）以及此版本的使用期限。</p>
+                <p class="guide-step-text">下方显示玩家密钥的保存方式、对通信进程施加的权限限制（Landlock、seccomp 等）以及此版本的使用期限。各项目的使用场合，以及同一电脑・同一局域网的对局为什么不需要它们，请参阅<a href="#settings-why">“设置”标签页各项目的使用场合</a>。</p>
             </div>
 
         </div>
