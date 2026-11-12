@@ -172,6 +172,9 @@ private slots:
         QTest::newRow("illegal") << int(MatchCause::IllegalMove) << int(TerminalType::IllegalLoss) << false;
         QTest::newRow("sennichite") << int(MatchCause::Sennichite) << int(TerminalType::Repetition) << true;
         QTest::newRow("oute-sennichite") << int(MatchCause::OuteSennichite) << int(TerminalType::IllegalLoss) << false;
+        // P2P対局だけの原因（監査 2026-11-12 R1）
+        QTest::newRow("checkmate") << int(MatchCause::Checkmate) << int(TerminalType::Checkmate) << false;
+        QTest::newRow("agreed-draw") << int(MatchCause::AgreedDraw) << int(TerminalType::Draw) << true;
     }
 
     void endingTableIsShared()

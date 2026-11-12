@@ -84,11 +84,11 @@ bool Match::verifyApproval(const GameState& state, const QByteArray& signature, 
                           signature);
 }
 
-void Match::finish(MatchEnding ending, std::optional<ErrorCode> error, bool byMe)
+void Match::finish(Settlement ending, std::optional<ErrorCode> error, bool byMe)
 {
     if (m_phase == Phase::Finished) return;
     m_phase = Phase::Finished;
-    m_ending = ending;
+    m_settlement = ending;
     m_endingError = error;
     persist(RecordKinds::ending(endingName()));
     MatchEvent event;
@@ -104,18 +104,18 @@ void Match::failWithError(ErrorCode code, quint32 relatedPly)
     if (m_phase == Phase::Finished) return;
     // 検証の失敗では状態を変えずに中断へ移る（相手の負けとして記録しない）
     if (m_phase != Phase::Reconnecting) sendControl(ControlKind::Error, ControlBody::error(code, relatedPly));
-    finish(MatchEnding::Error, code, true);
+    finish(Settlement::Error, code, true);
 }
 
 QString Match::endingName() const
 {
-    switch (m_ending) {
-    case MatchEnding::None: return QStringLiteral("playing");
-    case MatchEnding::MutuallySigned: return QStringLiteral("mutually_signed");
-    case MatchEnding::SignatureMissing: return QStringLiteral("signature_missing");
-    case MatchEnding::Aborted: return QStringLiteral("aborted");
-    case MatchEnding::Error: return QStringLiteral("error");
-    case MatchEnding::Disconnected: return QStringLiteral("disconnected");
+    switch (m_settlement) {
+    case Settlement::None: return QStringLiteral("playing");
+    case Settlement::MutuallySigned: return QStringLiteral("mutually_signed");
+    case Settlement::SignatureMissing: return QStringLiteral("signature_missing");
+    case Settlement::Aborted: return QStringLiteral("aborted");
+    case Settlement::Error: return QStringLiteral("error");
+    case Settlement::Disconnected: return QStringLiteral("disconnected");
     }
     return QStringLiteral("unknown");
 }
@@ -465,16 +465,16 @@ void Match::tick()
     case Phase::Finished:
         return;
     case Phase::Opening:
-        if (t > m_openingDeadline) finish(MatchEnding::Error, ErrorCode::Expired, true);
+        if (t > m_openingDeadline) finish(Settlement::Error, ErrorCode::Expired, true);
         return;
     case Phase::Finishing:
-        if (t - m_resultAgreedAt > kResultSignatureWaitMs) finish(MatchEnding::SignatureMissing, std::nullopt, false);
+        if (t - m_resultAgreedAt > kResultSignatureWaitMs) finish(Settlement::SignatureMissing, std::nullopt, false);
         return;
     case Phase::Reconnecting:
         if (t - m_reconnectStart > static_cast<qint64>(policy.reconnectWaitMs)) {
-            finish(MatchEnding::Disconnected, std::nullopt, false);
+            finish(Settlement::Disconnected, std::nullopt, false);
         } else if (reconnectTotalMs() > static_cast<qint64>(policy.disconnectTotalMs)) {
-            finish(MatchEnding::Aborted, ErrorCode::DisconnectLimit, true);
+            finish(Settlement::Aborted, ErrorCode::DisconnectLimit, true);
         }
         return;
     case Phase::Playing:

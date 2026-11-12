@@ -130,7 +130,7 @@ signals:
     /// 結果が一致した（棋譜を確定し、P2P対局中を手放した後）
     void resultAgreed(const P2p::FinalResult& result);
     /// 対局が終わった（証跡を保存した後）
-    void gameFinished(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
+    void gameFinished(P2p::Settlement ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
 
 private slots:
     void onTick();

@@ -12127,7 +12127,7 @@ Please restart the application to apply the changes.</translation>
         <translation>Perpetual check by %1. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="456"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="458"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>

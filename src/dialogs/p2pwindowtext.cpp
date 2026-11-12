@@ -91,17 +91,17 @@ QString P2pWindowText::errorText(P2p::ErrorCode code)
     return QString();
 }
 
-QString P2pWindowText::endingText(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error)
+QString P2pWindowText::settlementText(P2p::Settlement ending, std::optional<P2p::ErrorCode> error)
 {
     switch (ending) {
-    case P2p::MatchEnding::MutuallySigned: return tr("結果が一致し、双方で確定しました。");
-    case P2p::MatchEnding::SignatureMissing: return tr("結果は一致しましたが、相手の確定が届きませんでした（相手の確定なしの記録）。");
-    case P2p::MatchEnding::Aborted:
+    case P2p::Settlement::MutuallySigned: return tr("結果が一致し、双方で確定しました。");
+    case P2p::Settlement::SignatureMissing: return tr("結果は一致しましたが、相手の確定が届きませんでした（相手の確定なしの記録）。");
+    case P2p::Settlement::Aborted:
         return tr("対局は中断されました（結果未確定）。") + (error ? errorText(*error) : QString());
-    case P2p::MatchEnding::Error:
+    case P2p::Settlement::Error:
         return tr("対局を続けられませんでした（結果未確定）。") + (error ? errorText(*error) : QString());
-    case P2p::MatchEnding::Disconnected: return tr("回線を復旧できませんでした（通信中断・結果未確定）。");
-    case P2p::MatchEnding::None: break;
+    case P2p::Settlement::Disconnected: return tr("回線を復旧できませんでした（通信中断・結果未確定）。");
+    case P2p::Settlement::None: break;
     }
     return QString();
 }

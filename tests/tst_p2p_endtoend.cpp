@@ -174,7 +174,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(hostFinished.count(), 1, 30000);
         QTRY_COMPARE_WITH_TIMEOUT(guestFinished.count(), 1, 30000);
         for (App* app : {&host, &guest}) {
-            QCOMPARE(app->game.match()->ending(), MatchEnding::MutuallySigned);
+            QCOMPARE(app->game.match()->settlement(), Settlement::MutuallySigned);
             QVERIFY(app->sink.finished);
             QCOMPARE(app->sink.entries.last().terminal, TerminalType::Resign);
             QFile file(app->game.lastEvidencePath());
@@ -226,7 +226,7 @@ private slots:
         host.game.confirmStart();
         guest.game.confirmStart();
         QTRY_COMPARE_WITH_TIMEOUT(hostFinished.count(), 1, 20000);
-        QCOMPARE(host.game.match()->ending(), MatchEnding::Aborted);
+        QCOMPARE(host.game.match()->settlement(), Settlement::Aborted);
         QCOMPARE(host.game.match()->endingError(), std::optional<ErrorCode>(ErrorCode::StorageError));
 
         // 遅れて届く取り上げの知らせを処理させても、接続したまま「P2P接続中」に戻っている
@@ -307,8 +307,8 @@ private slots:
         QSignalSpy offered(&black.game, &P2pGameCoordinator::offerReceived);
         QTRY_COMPARE_WITH_TIMEOUT(offered.count(), 1, 20000);
         black.game.answerOffer(true);
-        QTRY_VERIFY_WITH_TIMEOUT(black.game.match()->ending() == MatchEnding::MutuallySigned
-                                     && white.game.match()->ending() == MatchEnding::MutuallySigned, 30000);
+        QTRY_VERIFY_WITH_TIMEOUT(black.game.match()->settlement() == Settlement::MutuallySigned
+                                     && white.game.match()->settlement() == Settlement::MutuallySigned, 30000);
         QCOMPARE(black.game.match()->agreedResult()->cause, Cause::AgreedDraw);
         QCOMPARE(black.sink.entries.last().terminal, TerminalType::Draw);
         // 対局が終わっても、直接の経路には切り替わっていない

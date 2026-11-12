@@ -15,6 +15,7 @@
 #include "usimove.h"
 
 class Position;
+struct MatchGameEndInfo;
 
 namespace P2p {
 
@@ -72,6 +73,14 @@ std::optional<Terminal> judge(const std::vector<GameState>& states);
 
 /// 勝った側の outcome
 inline Outcome winnerOutcome(Turn winner) { return winner == Turn::Black ? Outcome::BlackWins : Outcome::WhiteWins; }
+
+/**
+ * @brief 合意した結果を、ローカル対局・通信対局と同じ終局の原因（MatchCause）にする
+ *
+ * 棋譜の終局の行は、この原因から MatchEnding::endingOf（matchending.h）で決める（最大手数は持将棋と書く）。
+ * 合意の中断は中断（BreakOff）。勝ち負けのない終局では loser を使わない。
+ */
+MatchGameEndInfo endInfo(const FinalResult& result);
 
 } // namespace GameRules
 

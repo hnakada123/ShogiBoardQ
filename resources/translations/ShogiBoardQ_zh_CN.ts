@@ -10447,7 +10447,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>%1连续王手千日手。%2获胜。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="456"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="458"/>
         <source>対局が終了しました。</source>
         <translation>对局已结束。</translation>
     </message>

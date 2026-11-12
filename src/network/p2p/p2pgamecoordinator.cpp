@@ -8,6 +8,7 @@
 
 #include "gameboard.h"
 #include "logcategories.h"
+#include "matchending.h"
 #include "matchrecordsink.h"
 #include "p2pknownpeers.h"
 #include "p2precordkinds.h"
@@ -20,7 +21,6 @@
 namespace {
 
 using P2p::Cause;
-using P2p::Outcome;
 
 /// 仮予約の期限（条件の交換と双方の利用者による確認を終えるまで。実装仕様 3.3節）
 constexpr qint64 kReservationMs = 60'000;
@@ -29,29 +29,6 @@ constexpr qint64 kReconnectIntervalMs = 5'000;
 constexpr int kTickMs = 250;
 
 Turn turnOf(bool black) { return black ? Turn::Black : Turn::White; }
-
-/// 終局の結果を棋譜の終局の行にする（行は終局した局面の手番側に書く）
-RecordEntry endingEntry(const P2p::FinalResult& result)
-{
-    const Turn toMove = P2p::GameRules::sideToMove(result.ply);
-    const Turn winner = result.outcome == Outcome::BlackWins ? Turn::Black : Turn::White;
-    const Turn loser = winner == Turn::Black ? Turn::White : Turn::Black;
-    switch (result.cause) {
-    case Cause::Resign: return RecordEntry::ending(TerminalType::Resign, loser);
-    case Cause::Checkmate: return RecordEntry::ending(TerminalType::Checkmate, toMove);
-    case Cause::Timeout: return RecordEntry::ending(TerminalType::Timeout, loser);
-    case Cause::Repetition: return RecordEntry::ending(TerminalType::Repetition, toMove);
-    case Cause::PerpetualCheck: {
-        // 連続王手の千日手は王手をかけていた側の反則負け
-        const RecordEntry::Ending e = RecordEntry::forSideToMove(TerminalType::IllegalLoss, loser, toMove);
-        return RecordEntry::ending(e.terminal, e.side);
-    }
-    case Cause::AgreedDraw: return RecordEntry::ending(TerminalType::Draw, toMove);
-    case Cause::MaxPly: return RecordEntry::ending(TerminalType::MaxMoves, toMove);
-    case Cause::AgreedAbort: return RecordEntry::ending(TerminalType::Interrupt, toMove);
-    }
-    return RecordEntry::ending(TerminalType::Interrupt, toMove);
-}
 
 } // namespace
 
@@ -394,7 +371,7 @@ void P2pGameCoordinator::handleMatchEvent(const P2p::MatchEvent& event)
         writeEndingRecord(nullptr);
         releaseGame();
         saveEvidence();
-        if (m_knownPeers && m_match->ending() != P2p::MatchEnding::MutuallySigned) {
+        if (m_knownPeers && m_match->settlement() != P2p::Settlement::MutuallySigned) {
             P2pKnownPeer& peer = m_knownPeers->upsert(opponentPlayerKey());
             ++peer.unconfirmed;
             m_knownPeers->save();
@@ -406,7 +383,7 @@ void P2pGameCoordinator::handleMatchEvent(const P2p::MatchEvent& event)
         m_connection = 0;
         m_phase = Phase::Finished;
         m_ticker->stop();
-        emit gameFinished(m_match->ending(), m_match->endingError(), m_lastEvidencePath);
+        emit gameFinished(m_match->settlement(), m_match->endingError(), m_lastEvidencePath);
         return;
     }
     }
@@ -458,13 +435,11 @@ void P2pGameCoordinator::writeEndingRecord(const P2p::FinalResult* result)
     m_recordFinished = true;
     if (m_deps.clock) m_deps.clock->stopClock();
     if (m_sink) {
-        const quint32 ply = m_match ? m_match->lastState().ply : 0;
-        if (result) {
-            m_sink->appendRecord(endingEntry(*result));
-        } else {
-            // 結果が一致しないまま終わった: 中断（結果未確定）
-            m_sink->appendRecord(RecordEntry::ending(TerminalType::Interrupt, P2p::GameRules::sideToMove(ply)));
-        }
+        const quint32 ply = result ? result->ply : (m_match ? m_match->lastState().ply : 0);
+        // 結果が一致しないまま終わったら中断（結果未確定）。行は終局した局面の手番側にそろえる
+        const MatchGameEndInfo info = result ? P2p::GameRules::endInfo(*result) : MatchGameEndInfo{MatchCause::BreakOff, Turn::Black};
+        const RecordEntry::Ending ending = MatchEnding::endingOf(info, P2p::GameRules::sideToMove(ply));
+        m_sink->appendRecord(RecordEntry::ending(ending.terminal, ending.side));
         m_sink->finishRecord(/*autoSave=*/false);
     }
 }

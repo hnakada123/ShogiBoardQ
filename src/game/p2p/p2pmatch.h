@@ -52,8 +52,9 @@ struct MatchEvent {
     std::optional<ErrorCode> error;      ///< Finished: 中断・エラーの理由
 };
 
-/// 対局の終わり方（記録の区分とは別の、ローカルの終局理由）
-enum class MatchEnding {
+/// 結果の確定のしかた（記録の区分とは別の、ローカルの終局理由。将棋の終局の原因は FinalResult の Cause で、
+/// 棋譜の終局の行は原因から MatchEnding（matchending.h）で決める）
+enum class Settlement {
     None,
     MutuallySigned,     ///< 結果が一致し、双方が最終結果に署名した
     SignatureMissing,   ///< 結果は一致したが、相手の署名が届かなかった
@@ -111,7 +112,7 @@ public:
     QByteArray gameId() const { return m_gameId; }
     const StartAgreement& agreement() const { return m_setup.agreement; }
     TimeControlTerms terms() const { return m_setup.terms; }
-    MatchEnding ending() const { return m_ending; }
+    Settlement settlement() const { return m_settlement; }
     std::optional<ErrorCode> endingError() const { return m_endingError; }
     /// 合意した結果
     const std::optional<FinalResult>& agreedResult() const { return m_agreedResult; }
@@ -141,7 +142,7 @@ private:
     void send(FrameType type, const CborValue& payload);
     void emitEvent(MatchEvent event) { m_events.push_back(std::move(event)); }
     bool persist(const CborValue& record);
-    void finish(MatchEnding ending, std::optional<ErrorCode> error, bool byMe);
+    void finish(Settlement ending, std::optional<ErrorCode> error, bool byMe);
     void failWithError(ErrorCode code, quint32 relatedPly);
     quint8 mySide() const { return m_setup.iAmBlack ? kSideBlack : kSideWhite; }
     QByteArray opponentSessionKey() const { return m_setup.agreement.sessionKey(!m_setup.iAmBlack); }
@@ -182,7 +183,7 @@ private:
     QByteArray m_gameId;
 
     Phase m_phase = Phase::Opening;
-    MatchEnding m_ending = MatchEnding::None;
+    Settlement m_settlement = Settlement::None;
     std::optional<ErrorCode> m_endingError;
     std::vector<Frame> m_outgoing;
     std::vector<MatchEvent> m_events;

@@ -451,6 +451,8 @@ QString MatchCoordinator::resultMessage(const GameEndInfo& info) const
     case Cause::Jishogi:      // 入玉宣言は宣言の判定結果で知らせる
     case Cause::NyugyokuWin:
     case Cause::BreakOff:     // 中断は知らせない
+    case Cause::Checkmate:    // 詰み・合意の引き分けは P2P対局だけ（ローカル対局では起きない）
+    case Cause::AgreedDraw:
         break;
     }
     return tr("対局が終了しました。");

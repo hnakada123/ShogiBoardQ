@@ -288,7 +288,7 @@ void P2pGameUiController::onProposalDeclined()
                                        NotificationPresenter::Wait::No);
 }
 
-void P2pGameUiController::onGameFinished(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error,
+void P2pGameUiController::onGameFinished(P2p::Settlement ending, std::optional<P2p::ErrorCode> error,
                                          const QString& evidencePath)
 {
     closeStaleOffer();
@@ -300,7 +300,7 @@ void P2pGameUiController::onGameFinished(P2p::MatchEnding ending, std::optional<
         const P2p::FinalResult& result = *match->agreedResult();
         lines << tr("終局: %1").arg(P2pWindowText::outcomeText(result.outcome, result.cause));
     }
-    lines << P2pWindowText::endingText(ending, error);
+    lines << P2pWindowText::settlementText(ending, error);
     if (evidencePath.isEmpty()) lines << tr("対局の記録（証跡）を保存できませんでした。");
     NotificationPresenter::information(dialogParent(), tr("P2P対局"), lines.join(QLatin1Char('\n')),
                                        NotificationPresenter::Wait::No);

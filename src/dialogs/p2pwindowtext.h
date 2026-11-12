@@ -33,7 +33,7 @@ public:
     static QString outcomeText(P2p::Outcome outcome, P2p::Cause cause);
     static QString causeText(P2p::Cause cause);
     static QString errorText(P2p::ErrorCode code);
-    static QString endingText(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error);
+    static QString settlementText(P2p::Settlement ending, std::optional<P2p::ErrorCode> error);
     /// 履歴に保存したローカルの終局理由の語
     static QString localEndingText(const QString& localEnding);
     static QString categoryText(P2p::EvidenceReport::Category category);

@@ -13,12 +13,14 @@ bool isDraw(MatchCause cause)
     case MatchCause::Jishogi:
     case MatchCause::MaxMoves:
     case MatchCause::Sennichite:
+    case MatchCause::AgreedDraw:
         return true;
     case MatchCause::Resignation:
     case MatchCause::Timeout:
     case MatchCause::NyugyokuWin:
     case MatchCause::IllegalMove:
     case MatchCause::OuteSennichite:
+    case MatchCause::Checkmate:
         return false;
     }
     return false;
@@ -38,6 +40,8 @@ TerminalType terminalOf(MatchCause cause)
     case MatchCause::Sennichite: return TerminalType::Repetition;
     // 連続王手の千日手は王手をかけていた側の反則負け
     case MatchCause::OuteSennichite: return TerminalType::IllegalLoss;
+    case MatchCause::Checkmate: return TerminalType::Checkmate;
+    case MatchCause::AgreedDraw: return TerminalType::Draw;
     }
     return TerminalType::Interrupt;
 }

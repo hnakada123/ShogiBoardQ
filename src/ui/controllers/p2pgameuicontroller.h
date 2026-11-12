@@ -69,7 +69,7 @@ private slots:
     /// 申し出が無効になった（手数が進んだ・結果が決まった・対局が終わった）なら、尋ねる箱を閉じる
     void closeStaleOffer();
     void onProposalDeclined();
-    void onGameFinished(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
+    void onGameFinished(P2p::Settlement ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
     void onPeerFailed(PeerProcess::Failure failure, const QString& detail);
     /// パスフレーズの要らない読み込み（保管庫・暗号化しないファイル）が終わった
     void onIdentityFinished(P2pIdentityStore::Failure failure);

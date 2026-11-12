@@ -6,6 +6,7 @@
 #include <QStringList>
 
 #include "enginemovevalidator.h"
+#include "matchending.h"
 #include "sennichitedetector.h"
 #include "shogiposition.h"
 
@@ -137,6 +138,22 @@ std::optional<Terminal> judge(const std::vector<GameState>& states)
 
     if (last.ply >= kMaxPly) return Terminal{Outcome::Draw, Cause::MaxPly};
     return std::nullopt;
+}
+
+MatchGameEndInfo endInfo(const FinalResult& result)
+{
+    const Turn loser = result.outcome == Outcome::BlackWins ? Turn::White : Turn::Black;
+    switch (result.cause) {
+    case Cause::Resign: return {MatchCause::Resignation, loser};
+    case Cause::Checkmate: return {MatchCause::Checkmate, loser};
+    case Cause::Timeout: return {MatchCause::Timeout, loser};
+    case Cause::Repetition: return {MatchCause::Sennichite, loser};
+    case Cause::PerpetualCheck: return {MatchCause::OuteSennichite, loser};
+    case Cause::AgreedDraw: return {MatchCause::AgreedDraw, loser};
+    case Cause::MaxPly: return {MatchCause::MaxMoves, loser};
+    case Cause::AgreedAbort: return {MatchCause::BreakOff, loser};
+    }
+    return {MatchCause::BreakOff, loser};
 }
 
 } // namespace GameRules

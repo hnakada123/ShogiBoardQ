@@ -57,12 +57,12 @@ void Match::handleControl(const ControlPayload& payload)
     case ControlKind::Abort: {
         const std::optional<ControlBody::Abort> abort = ControlBody::parseAbort(payload.body);
         // ABORT は一方的な離脱の通知で、合意中断ではない。対局を止め、結果未確定として閉じる
-        finish(MatchEnding::Aborted, abort ? abort->reason : ErrorCode::Cancelled, false);
+        finish(Settlement::Aborted, abort ? abort->reason : ErrorCode::Cancelled, false);
         return;
     }
     case ControlKind::Error: {
         const std::optional<ControlBody::Error> error = ControlBody::parseError(payload.body);
-        finish(MatchEnding::Error, error ? error->code : ErrorCode::ConditionMismatch, false);
+        finish(Settlement::Error, error ? error->code : ErrorCode::ConditionMismatch, false);
         return;
     }
     case ControlKind::ResultDecline: {
@@ -260,7 +260,7 @@ void Match::agree(const FinalResult& result)
     payload.signature.signature = m_myResultSignature;
     send(FrameType::ResultSignature, payload.toCbor());
     // 相手の署名が先に届いていれば、ここでそろう
-    if (!m_opponentResultSignature.isEmpty()) finish(MatchEnding::MutuallySigned, std::nullopt, false);
+    if (!m_opponentResultSignature.isEmpty()) finish(Settlement::MutuallySigned, std::nullopt, false);
 }
 
 void Match::handleResultSignature(const ResultSignaturePayload& payload)
@@ -279,7 +279,7 @@ void Match::handleResultSignature(const ResultSignaturePayload& payload)
     }
     m_opponentResultSignature = payload.signature.signature;
     persist(RecordKinds::resultSignature(opponentSide, m_opponentResultSignature));
-    finish(MatchEnding::MutuallySigned, std::nullopt, false);
+    finish(Settlement::MutuallySigned, std::nullopt, false);
 }
 
 void Match::abort(ErrorCode reason)
@@ -288,7 +288,7 @@ void Match::abort(ErrorCode reason)
     if (m_phase != Phase::Reconnecting && !m_confirmed.empty()) {
         sendControl(ControlKind::Abort, ControlBody::abort(lastState().hash(), reason));
     }
-    finish(MatchEnding::Aborted, reason, true);
+    finish(Settlement::Aborted, reason, true);
 }
 
 // ---------------------------------------------------------------- 再接続
@@ -297,12 +297,12 @@ void Match::connectionLost()
 {
     if (m_phase == Phase::Finished) return;
     if (m_phase == Phase::Opening) {
-        finish(MatchEnding::Error, ErrorCode::Expired, false);
+        finish(Settlement::Error, ErrorCode::Expired, false);
         return;
     }
     if (m_phase == Phase::Finishing) {
         // 結果は一致している。相手の署名を待たずに、署名のない証跡として閉じる
-        finish(MatchEnding::SignatureMissing, std::nullopt, false);
+        finish(Settlement::SignatureMissing, std::nullopt, false);
         return;
     }
     if (m_phase == Phase::Reconnecting) return;

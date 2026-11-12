@@ -506,7 +506,7 @@ void P2pWindow::updateGameStatus()
         lines << tr("再接続中（残り %1 秒）").arg(match->reconnectRemainingMs() / 1000);
         break;
     case P2p::Match::Phase::Finishing: lines << tr("結果を確定しています…"); break;
-    case P2p::Match::Phase::Finished: lines << P2pWindowText::endingText(match->ending(), match->endingError()); break;
+    case P2p::Match::Phase::Finished: lines << P2pWindowText::settlementText(match->settlement(), match->endingError()); break;
     }
     const qint64 disconnectLeft = static_cast<qint64>(P2p::NetworkPolicy::v1().disconnectTotalMs) - match->reconnectTotalMs();
     lines << tr("切断時間の残り: %1 秒").arg(qMax<qint64>(0, disconnectLeft) / 1000);

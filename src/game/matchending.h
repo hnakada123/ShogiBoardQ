@@ -9,7 +9,8 @@
 #include "shogitypes.h"
 #include "terminaltype.h"
 
-/// 終局原因（MatchCoordinator::Cause）。通信対局はサーバーの結果をこの原因に直す（CsaGameProgress::endInfo）
+/// 終局原因（MatchCoordinator::Cause）。通信対局はサーバーの結果を（CsaGameProgress::endInfo）、P2P対局は合意した結果を
+/// この原因に直す
 enum class MatchCause : int {
     Resignation    = 0,  ///< 投了
     Timeout        = 1,  ///< 時間切れ
@@ -20,6 +21,8 @@ enum class MatchCause : int {
     Sennichite     = 6,  ///< 千日手（引き分け）
     OuteSennichite = 7,  ///< 連続王手の千日手（反則負け）
     MaxMoves       = 8,  ///< 最大手数到達（棋譜には持将棋と書く）
+    Checkmate      = 9,  ///< 詰み（P2P対局。棋譜から決まる終局。負けは詰んだ手番側）
+    AgreedDraw     = 10, ///< 合意の引き分け（P2P対局）
 };
 
 /// 終局情報（MatchCoordinator::GameEndInfo）。対局者（先手・後手）は Turn で表す
@@ -31,12 +34,12 @@ struct MatchGameEndInfo {
 /**
  * @brief 終局の原因から、棋譜の終局の行とエンジンへの gameover を決める（この対応はここだけ）
  *
- * ローカル対局（MatchCoordinator）と通信対局（CsaGameCoordinator）が同じ関数を使い、同じ原因なら同じ終局語・
+ * ローカル対局（MatchCoordinator）・通信対局（CsaGameCoordinator）・P2P対局（P2pGameCoordinator）が同じ関数を使い、同じ原因なら同じ終局語・
  * 同じ gameover になる。最大手数は持将棋と書き、中断も含めて勝ち負けのない終局はエンジンに draw と知らせる。
  */
 namespace MatchEnding {
 
-/// 勝ち負けのない終局か（中断・持将棋・最大手数・千日手）
+/// 勝ち負けのない終局か（中断・持将棋・最大手数・千日手・合意の引き分け）
 bool isDraw(MatchCause cause);
 /// 棋譜の終局語（最大手数は持将棋、連続王手の千日手は王手をかけていた側の反則負け）
 TerminalType terminalOf(MatchCause cause);

@@ -5,8 +5,10 @@
 
 #include <deque>
 
+#include "matchending.h"
 #include "p2p_test_util.h"
 #include "p2pevidenceverifier.h"
+#include "p2pgamerules.h"
 #include "p2pmatch.h"
 #include "p2pnegotiation.h"
 
@@ -296,7 +298,7 @@ private slots:
         pair.pump();
         for (Side* s : {&pair.applicant, &pair.host}) {
             QCOMPARE(s->match->phase(), Match::Phase::Finished);
-            QCOMPARE(s->match->ending(), MatchEnding::MutuallySigned);
+            QCOMPARE(s->match->settlement(), Settlement::MutuallySigned);
             const EvidenceReport report = EvidenceVerifier::verify(s->match->evidence().encode());
             QVERIFY2(report.isValid(), qPrintable(report.error));
             QCOMPARE(report.category, EvidenceReport::Category::MutuallySigned);
@@ -315,7 +317,7 @@ private slots:
             pair.play(i % 2 == 0 ? pair.black() : pair.white(), moves.at(i).toLatin1().constData());
         }
         for (Side* s : {&pair.applicant, &pair.host}) {
-            QCOMPARE(s->match->ending(), MatchEnding::MutuallySigned);
+            QCOMPARE(s->match->settlement(), Settlement::MutuallySigned);
             QCOMPARE(s->match->agreedResult()->cause, Cause::Repetition);
         }
     }
@@ -340,7 +342,7 @@ private slots:
         pair.black().match->answerOffer(true);
         pair.pump();
         QCOMPARE(pair.black().match->agreedResult()->outcome, Outcome::Aborted);
-        QCOMPARE(pair.white().match->ending(), MatchEnding::MutuallySigned);
+        QCOMPARE(pair.white().match->settlement(), Settlement::MutuallySigned);
     }
 
     /// 届くのが許容差より遅れた手（観測 − 申告 > 10秒）は承認せずに中断する
@@ -356,7 +358,7 @@ private slots:
         pair.clock.ms += 15'000;
         for (const Frame& f : frames) white.match->receive(f);
         QCOMPARE(white.match->phase(), Match::Phase::Finished);
-        QCOMPARE(white.match->ending(), MatchEnding::Error);
+        QCOMPARE(white.match->settlement(), Settlement::Error);
         QCOMPARE(*white.match->endingError(), ErrorCode::ClockMismatch);
         QCOMPARE(white.match->lastState().ply, quint32(0));
     }
@@ -382,7 +384,7 @@ private slots:
         pair.black().match->tick();
         pair.pump();
         for (Side* s : {&pair.applicant, &pair.host}) {
-            QCOMPARE(s->match->ending(), MatchEnding::MutuallySigned);
+            QCOMPARE(s->match->settlement(), Settlement::MutuallySigned);
             QCOMPARE(s->match->agreedResult()->cause, Cause::Timeout);
             QCOMPARE(s->match->agreedResult()->outcome, Outcome::WhiteWins);
         }
@@ -451,7 +453,7 @@ private slots:
         pair.black().match->connectionLost();
         pair.clock.ms += 121'000;
         pair.black().match->tick();
-        QCOMPARE(pair.black().match->ending(), MatchEnding::Disconnected);
+        QCOMPARE(pair.black().match->settlement(), Settlement::Disconnected);
         const EvidenceReport report = EvidenceVerifier::verify(pair.black().match->evidence().encode());
         QVERIFY2(report.isValid(), qPrintable(report.error));
         QCOMPARE(report.category, EvidenceReport::Category::Unconfirmed);
@@ -471,7 +473,7 @@ private slots:
             pair.clock.ms += 31'000;
             white.match->tick();
             QCOMPARE(white.match->phase(), Match::Phase::Finished);
-            QCOMPARE(white.match->ending(), MatchEnding::Error);
+            QCOMPARE(white.match->settlement(), Settlement::Error);
             QVERIFY(white.match->confirmedStates().empty());
             QCOMPARE(white.match->lastState().ply, 0u);
             QVERIFY(!white.match->isMyTurn());
@@ -492,7 +494,7 @@ private slots:
             bad.payload = CborValue::array({});
             white.match->receive(bad);
             QCOMPARE(white.match->phase(), Match::Phase::Finished);
-            QCOMPARE(white.match->ending(), MatchEnding::Error);
+            QCOMPARE(white.match->settlement(), Settlement::Error);
             QCOMPARE(white.match->endingError(), std::optional<ErrorCode>(ErrorCode::InvalidMove));
         }
     }
@@ -542,7 +544,7 @@ private slots:
         Frame bad = accepts[1];
         bad.payload = unknown.toCbor();
         black.match->receive(bad);
-        QCOMPARE(black.match->ending(), MatchEnding::Error);
+        QCOMPARE(black.match->settlement(), Settlement::Error);
         QCOMPARE(black.match->endingError(), std::optional<ErrorCode>(ErrorCode::StateConflict));
     }
 
@@ -574,8 +576,8 @@ private slots:
         // 後手は承諾を受けて一致し、双方の確定がそろう
         for (const Frame& f : echo) white.match->receive(f);
         pair.pump();
-        QCOMPARE(black.match->ending(), MatchEnding::MutuallySigned);
-        QCOMPARE(white.match->ending(), MatchEnding::MutuallySigned);
+        QCOMPARE(black.match->settlement(), Settlement::MutuallySigned);
+        QCOMPARE(white.match->settlement(), Settlement::MutuallySigned);
         for (Side* s : {&black, &white}) {
             const EvidenceReport report = EvidenceVerifier::verify(s->match->evidence().encode());
             QVERIFY2(report.isValid(), qPrintable(report.error));
@@ -615,8 +617,8 @@ private slots:
         QVERIFY(black.match->hasPendingOffer());
         black.match->answerOffer(true);
         pair.pump();
-        QCOMPARE(black.match->ending(), MatchEnding::MutuallySigned);
-        QCOMPARE(white.match->ending(), MatchEnding::MutuallySigned);
+        QCOMPARE(black.match->settlement(), Settlement::MutuallySigned);
+        QCOMPARE(white.match->settlement(), Settlement::MutuallySigned);
     }
 
     void duplicateProposalIsNotAppliedTwice()
@@ -645,8 +647,48 @@ private slots:
         pair.black().failPersist = true;
         pair.clock.ms += 1000;
         QCOMPARE(pair.black().match->playMove(UsiMove::fromString(u"7g7f")), Match::MoveError::Finished);
-        QCOMPARE(pair.black().match->ending(), MatchEnding::Error);
+        QCOMPARE(pair.black().match->settlement(), Settlement::Error);
         QCOMPARE(*pair.black().match->endingError(), ErrorCode::StorageError);
+    }
+
+    /// 合意した結果の棋譜の終局の行は、ローカル対局・通信対局と同じ表（MatchEnding）で決める（監査 2026-11-12 R1）。
+    /// 最大手数は持将棋と書き、行は終局した局面の手番側にそろえる
+    void endingLineFollowsMatchEnding_data()
+    {
+        QTest::addColumn<int>("cause");
+        QTest::addColumn<int>("outcome");
+        QTest::addColumn<int>("ply");
+        QTest::addColumn<int>("terminal");
+        QTest::addColumn<int>("side");
+        const auto row = [](const char* name, Cause cause, Outcome outcome, int ply, TerminalType terminal, Turn side) {
+            QTest::newRow(name) << int(cause) << int(outcome) << ply << int(terminal) << int(side);
+        };
+        row("resign", Cause::Resign, Outcome::WhiteWins, 10, TerminalType::Resign, Turn::Black);
+        row("checkmate", Cause::Checkmate, Outcome::BlackWins, 11, TerminalType::Checkmate, Turn::White);
+        row("timeout", Cause::Timeout, Outcome::WhiteWins, 20, TerminalType::Timeout, Turn::Black);
+        row("repetition", Cause::Repetition, Outcome::Draw, 30, TerminalType::Repetition, Turn::Black);
+        // 王手を続けた後手の反則負けは、手番の先手の反則勝ちの行にする
+        row("perpetual-check", Cause::PerpetualCheck, Outcome::BlackWins, 40, TerminalType::IllegalWin, Turn::Black);
+        row("agreed-draw", Cause::AgreedDraw, Outcome::Draw, 5, TerminalType::Draw, Turn::White);
+        row("max-ply", Cause::MaxPly, Outcome::Draw, 512, TerminalType::Impasse, Turn::Black);
+        row("agreed-abort", Cause::AgreedAbort, Outcome::Aborted, 7, TerminalType::Interrupt, Turn::White);
+    }
+
+    void endingLineFollowsMatchEnding()
+    {
+        QFETCH(int, cause);
+        QFETCH(int, outcome);
+        QFETCH(int, ply);
+        QFETCH(int, terminal);
+        QFETCH(int, side);
+        FinalResult result;
+        result.ply = static_cast<quint32>(ply);
+        result.cause = static_cast<Cause>(cause);
+        result.outcome = static_cast<Outcome>(outcome);
+        const RecordEntry::Ending ending =
+            MatchEnding::endingOf(GameRules::endInfo(result), GameRules::sideToMove(result.ply));
+        QCOMPARE(int(ending.terminal), terminal);
+        QCOMPARE(int(ending.side), side);
     }
 
     void illegalMoveKeepsTheTurn()

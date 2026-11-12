@@ -207,7 +207,7 @@ private slots:
             QVERIFY(s->sink.finished);
             QVERIFY(s->sink.entries.last().isTerminal());
             QCOMPARE(s->sink.entries.last().terminal, TerminalType::Resign);
-            QCOMPARE(s->coordinator.match()->ending(), MatchEnding::MutuallySigned);
+            QCOMPARE(s->coordinator.match()->settlement(), Settlement::MutuallySigned);
             const QString path = s->coordinator.lastEvidencePath();
             QVERIFY(QFile::exists(path));
             QFile file(path);
