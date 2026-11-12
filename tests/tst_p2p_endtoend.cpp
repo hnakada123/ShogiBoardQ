@@ -193,6 +193,53 @@ private slots:
         QVERIFY(host.activity.is(AppActivityState::Activity::Idle));
     }
 
+    /// 開始のジャーナルを書けず、対局が始まった呼び出しの中で終わっても、P2P の接続は続く（監査 2026-11-12 B1）。
+    /// 「P2P対局中」を始めたときの、ロビーへの取り上げの知らせは次のイベントループで届く。そのときロビーは
+    /// 「P2P接続中」を取り直しているので、古い知らせで通信プロセスを止めない
+    void journalFailureAtStartKeepsConnection()
+    {
+        App host(m_dir.filePath(QStringLiteral("journal-host")));
+        App guest(m_dir.filePath(QStringLiteral("journal-guest")));
+        QVERIFY(createIdentity(host));
+        QVERIFY(createIdentity(guest));
+        QCOMPARE(host.lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::None);
+        QCOMPARE(guest.lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::None);
+        QTRY_COMPARE_WITH_TIMEOUT(host.lobby.status(), P2pLobbyService::Status::Online, 15000);
+        QTRY_COMPARE_WITH_TIMEOUT(guest.lobby.status(), P2pLobbyService::Status::Online, 15000);
+
+        QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
+        host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::None);
+        QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 10000);
+        guest.lobby.connectInvite(created.first().at(0).toString(), false, QStringLiteral("招待された側"));
+        QTRY_VERIFY_WITH_TIMEOUT(host.game.negotiation()
+                                     && host.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
+        QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
+                                     && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
+
+        // 招待した側のジャーナルの場所にフォルダを置き、開始の件を書けなくする
+        const QString journal = QDir(host.lobby.records()->root())
+                                    .filePath(QStringLiteral("journal/%1.journal")
+                                                  .arg(QString::fromLatin1(host.game.negotiation()->gameId().toHex())));
+        QVERIFY(QDir().mkpath(journal));
+
+        QSignalSpy hostFinished(&host.game, &P2pGameCoordinator::gameFinished);
+        host.game.confirmStart();
+        guest.game.confirmStart();
+        QTRY_COMPARE_WITH_TIMEOUT(hostFinished.count(), 1, 20000);
+        QCOMPARE(host.game.match()->ending(), MatchEnding::Aborted);
+        QCOMPARE(host.game.match()->endingError(), std::optional<ErrorCode>(ErrorCode::StorageError));
+
+        // 遅れて届く取り上げの知らせを処理させても、接続したまま「P2P接続中」に戻っている
+        QTest::qWait(200);
+        QCOMPARE(host.lobby.status(), P2pLobbyService::Status::Online);
+        QVERIFY(host.activity.is(AppActivityState::Activity::DuringP2pConnection));
+
+        host.lobby.end();
+        guest.lobby.end();
+        QTRY_VERIFY_WITH_TIMEOUT(host.lobby.status() == P2pLobbyService::Status::Off
+                                     && guest.lobby.status() == P2pLobbyService::Status::Off, 10000);
+    }
+
     /// 「直接接続を使わない」: 協力ノード（--service --relay）の中継だけを通って、招待から対局し、合意の引き分けで終える。
     /// 招待された側は相手の直接のアドレスへつながない（通信プロセスの試験 relay_only_* が宛先の規則を確かめる）
     void relayOnlyGameThroughServiceNode()

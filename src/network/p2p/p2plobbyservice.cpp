@@ -141,6 +141,8 @@ void P2pLobbyService::holdConnectionActivity()
 void P2pLobbyService::onActivityRevoked(QObject* owner)
 {
     if (owner != this) return;
+    // 知らせは次のイベントループで届く。その前に取り直した（対局が同じ呼び出しの中で終わった）なら古い知らせ
+    if (m_lease.isCurrent()) return;
     // 対局が始まって司令塔が「P2P対局中」にしたのは取り上げではない
     if (m_deps.game && m_deps.game->isBusy()) return;
     if (m_status == Status::Online || m_status == Status::Starting) {
