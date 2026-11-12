@@ -1217,6 +1217,24 @@ if(ENABLE_P2P_PLAY)
     endif()
 endif()
 
+# ==== ガイドの画像を撮るためのビルド（P2P対局を自動化 API から操作する） ====
+# ふだんは --automation で起動すると P2P対局を作らない（ローカルのソケットから招待・対局・確定を始めさせない。
+# docs/dev/p2p-game-spec.md 11章）。このオプションを付けたビルドだけ、ガイドの画像を撮るために自動化 API から
+# P2P対局を操作できる。配布してはならないので、Release・MinSizeRel ではビルドを止め、インストールもさせない
+# （複数の構成を持つジェネレーターでは、Release・MinSizeRel の構成にだけ定義を付けない）
+option(ENABLE_P2P_DOCS_AUTOMATION "Let the automation API drive P2P play, for guide screenshots only (never distribute)" OFF)
+if(ENABLE_P2P_DOCS_AUTOMATION)
+    if(NOT ENABLE_P2P_PLAY)
+        message(FATAL_ERROR "ENABLE_P2P_DOCS_AUTOMATION needs ENABLE_P2P_PLAY=ON")
+    endif()
+    if(CMAKE_BUILD_TYPE MATCHES "^(Release|MinSizeRel)$")
+        message(FATAL_ERROR "ENABLE_P2P_DOCS_AUTOMATION is for guide screenshots and cannot be used with ${CMAKE_BUILD_TYPE}")
+    endif()
+    message(WARNING "ENABLE_P2P_DOCS_AUTOMATION=ON: the automation API can drive P2P play. Do not distribute this build.")
+    list(APPEND SBQ_COMPILE_DEFINITIONS
+        $<$<NOT:$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>>>:SBQ_P2P_DOCS_AUTOMATION=1>)
+endif()
+
 qt_add_library(shogiboardq_objects OBJECT
     ${SRC_APP}
     ${SRC_CORE}
@@ -1363,6 +1381,11 @@ endif()
 
 # ==== Install ====
 include(GNUInstallDirs)
+
+# 撮影用のビルドはインストール・パッケージにしない（配布物に紛れ込ませない）
+if(ENABLE_P2P_DOCS_AUTOMATION)
+    install(CODE "message(FATAL_ERROR \"ENABLE_P2P_DOCS_AUTOMATION builds must not be installed or packaged\")")
+endif()
 
 install(DIRECTORY resources/licenses/ DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/ShogiBoardQ)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/qt-build.json

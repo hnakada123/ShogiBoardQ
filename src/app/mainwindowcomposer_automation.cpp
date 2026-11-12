@@ -8,6 +8,7 @@
 #include "mainwindow.h"
 
 #include "analysissession.h"
+#include "automationactionpolicy.h"
 #include "automationcommands.h"
 #include "automationcontext.h"
 #include "automationserver.h"
@@ -27,8 +28,16 @@ void MainWindowComposer::startAutomationServer(const QString& socketPath)
 {
     if (m_c.automationServer) return;
 #ifdef SBQ_ENABLE_P2P
-    // 自動化 API を有効にしたときは P2P対局の部品を作らない（ローカルのソケットから募集・対局・署名を始めさせない）
-    if (m_c.p2pUi) m_c.p2pUi->disableForAutomation();
+    // 自動化 API を有効にしたときは P2P対局の部品を作らない（ローカルのソケットから招待・対局・確定を始めさせない）。
+    // ガイドの画像を撮るためのビルド（ENABLE_P2P_DOCS_AUTOMATION）だけは、自動化 API から操作できる
+    if (m_c.p2pUi) {
+        if (AutomationActionPolicy::allowsP2pPlay()) {
+            QTextStream(stderr) << "automation: this build is for guide screenshots; the automation API can drive P2P play. "
+                                   "Do not distribute it.\n";
+        } else {
+            m_c.p2pUi->disableForAutomation();
+        }
+    }
 #endif
 
     auto* server = new AutomationServer(&m_window);

@@ -33,6 +33,10 @@ const QStringList& AutomationActionPolicy::allowedActions()
         QStringLiteral("actionUndoMove"),
         QStringLiteral("actionMakeImmediateMove"),
         QStringLiteral("actionCSA"),
+#ifdef SBQ_P2P_DOCS_AUTOMATION
+        // 撮影用のビルドだけ（allowsP2pPlay）
+        QStringLiteral("actionP2pGame"),
+#endif
         QStringLiteral("actionJishogiScore"),
         QStringLiteral("actionNyugyokuDeclaration"),
         // 解析・詰将棋

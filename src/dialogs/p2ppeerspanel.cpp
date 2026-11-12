@@ -37,6 +37,7 @@ P2pPeersPanel::P2pPeersPanel(P2pKnownPeers* knownPeers, P2pIdentityStore* identi
     note->setWordWrap(true);
     layout->addWidget(note);
     m_table = new QTableWidget(0, ColumnCount, this);
+    m_table->setObjectName(QStringLiteral("p2pPeerTable"));
     m_table->setHorizontalHeaderLabels({tr("プレイヤーID"), tr("手元の名前"), tr("最後の表示名"), tr("確認済み"), tr("ブロック"),
                                         tr("対局数"), tr("未確定")});
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -50,10 +51,15 @@ P2pPeersPanel::P2pPeersPanel(P2pKnownPeers* knownPeers, P2pIdentityStore* identi
     layout->addWidget(m_table, 1);
     auto* buttons = new QHBoxLayout;
     m_rename = new QPushButton(tr("名前を付ける…"), this);
+    m_rename->setObjectName(QStringLiteral("p2pPeerRename"));
     m_code = new QPushButton(tr("確認コード…"), this);
+    m_code->setObjectName(QStringLiteral("p2pPeerCode"));
     m_verified = new QPushButton(this);
+    m_verified->setObjectName(QStringLiteral("p2pPeerVerified"));
     m_blocked = new QPushButton(this);
+    m_blocked->setObjectName(QStringLiteral("p2pPeerBlocked"));
     m_remove = new QPushButton(tr("記録を削除"), this);
+    m_remove->setObjectName(QStringLiteral("p2pPeerRemove"));
     connect(m_rename, &QPushButton::clicked, this, &P2pPeersPanel::onRename);
     connect(m_code, &QPushButton::clicked, this, &P2pPeersPanel::onShowCode);
     connect(m_verified, &QPushButton::clicked, this, &P2pPeersPanel::onToggleVerified);

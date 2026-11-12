@@ -49,6 +49,7 @@ P2pHistoryPanel::P2pHistoryPanel(P2pRecordStore* store, P2pKnownPeers* knownPeer
     note->setWordWrap(true);
     layout->addWidget(note);
     m_table = new QTableWidget(0, ColumnCount, this);
+    m_table->setObjectName(QStringLiteral("p2pRecordTable"));
     m_table->setHorizontalHeaderLabels({tr("終わった日時"), tr("相手（表示名）"), tr("あなた"), tr("終わり方"), tr("記録の区分"), tr("結果")});
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -61,8 +62,11 @@ P2pHistoryPanel::P2pHistoryPanel(P2pRecordStore* store, P2pKnownPeers* knownPeer
     layout->addWidget(m_table, 1);
     auto* buttons = new QHBoxLayout;
     m_verify = new QPushButton(tr("検証する"), this);
+    m_verify->setObjectName(QStringLiteral("p2pRecordVerify"));
     m_export = new QPushButton(tr("証跡を書き出す…"), this);
+    m_export->setObjectName(QStringLiteral("p2pRecordExport"));
     m_remove = new QPushButton(tr("記録を削除"), this);
+    m_remove->setObjectName(QStringLiteral("p2pRecordRemove"));
     connect(m_verify, &QPushButton::clicked, this, &P2pHistoryPanel::onVerify);
     connect(m_export, &QPushButton::clicked, this, &P2pHistoryPanel::onExport);
     connect(m_remove, &QPushButton::clicked, this, &P2pHistoryPanel::onRemove);

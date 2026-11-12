@@ -41,6 +41,7 @@ P2pConfirmDialog::P2pConfirmDialog(P2pGameCoordinator* game, P2pKnownPeers* know
     , m_hideUnknownNames(hideUnknownNames)
     , m_timer(new QTimer(this))
 {
+    setObjectName(QStringLiteral("p2pConfirmDialog"));
     setWindowTitle(tr("P2P対局の条件の確認"));
     setModal(false);
     auto* layout = new QVBoxLayout(this);
@@ -82,7 +83,9 @@ P2pConfirmDialog::P2pConfirmDialog(P2pGameCoordinator* game, P2pKnownPeers* know
 
     auto* buttons = new QDialogButtonBox(this);
     m_start = buttons->addButton(tr("開始"), QDialogButtonBox::AcceptRole);
+    m_start->setObjectName(QStringLiteral("p2pConfirmStart"));
     m_cancel = buttons->addButton(tr("取りやめる"), QDialogButtonBox::RejectRole);
+    m_cancel->setObjectName(QStringLiteral("p2pConfirmCancel"));
     connect(m_start, &QPushButton::clicked, this, &P2pConfirmDialog::onStart);
     connect(m_cancel, &QPushButton::clicked, this, &P2pConfirmDialog::onCancel);
     layout->addWidget(buttons);

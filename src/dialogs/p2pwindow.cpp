@@ -59,6 +59,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     , m_game(game)
     , m_player(lobby ? lobby->playerNumber() : 1)
 {
+    setObjectName(QStringLiteral("p2pWindow"));
     setWindowTitle(m_player > 1 ? tr("P2P対局（実験版）— %1人目").arg(m_player) : tr("P2P対局（実験版）"));
     setModal(false);
     auto* layout = new QVBoxLayout(this);
@@ -147,6 +148,7 @@ QWidget* P2pWindow::createConnectionTab()
     m_playerId = plainLabel(networkBox);
     m_playerId->setTextInteractionFlags(Qt::TextSelectableByMouse);
     auto* copyId = new QPushButton(tr("コピー"), networkBox);
+    copyId->setObjectName(QStringLiteral("p2pCopyPlayerId"));
     connect(copyId, &QPushButton::clicked, this, &P2pWindow::onCopyPlayerId);
     idRow->addWidget(m_playerId, 1);
     idRow->addWidget(copyId);
@@ -165,9 +167,11 @@ QWidget* P2pWindow::createConnectionTab()
     conditionForm->addRow(tr("表示名"), m_displayName);
     auto* timeRow = new QHBoxLayout;
     m_mainMinutes = new QSpinBox(conditionBox);
+    m_mainMinutes->setObjectName(QStringLiteral("p2pMainMinutes"));
     m_mainMinutes->setRange(0, 1440);
     m_mainMinutes->setSuffix(tr(" 分"));
     m_byoyomi = new QSpinBox(conditionBox);
+    m_byoyomi->setObjectName(QStringLiteral("p2pByoyomi"));
     m_byoyomi->setRange(0, 600);
     m_byoyomi->setSuffix(tr(" 秒"));
     timeRow->addWidget(new QLabel(tr("持ち時間"), conditionBox));
@@ -177,6 +181,7 @@ QWidget* P2pWindow::createConnectionTab()
     timeRow->addStretch();
     conditionForm->addRow(tr("時間"), timeRow);
     m_side = new QComboBox(conditionBox);
+    m_side->setObjectName(QStringLiteral("p2pSide"));
     m_side->addItem(tr("指定なし（双方の乱数で決める）"), 0);
     m_side->addItem(tr("先手希望"), 1);
     m_side->addItem(tr("後手希望"), 2);
@@ -200,6 +205,7 @@ QWidget* P2pWindow::createInviteTab()
                                                      "招待文字列は10分で使えなくなり、1回だけ使えます。"
                                                      "持ち時間と先後は「接続と条件」の条件を使います。")));
     m_createInvite = new QPushButton(tr("招待文字列を作る"), createBox);
+    m_createInvite->setObjectName(QStringLiteral("p2pCreateInvite"));
     connect(m_createInvite, &QPushButton::clicked, this, &P2pWindow::onCreateInvite);
     createLayout->addWidget(m_createInvite);
     m_inviteOut = new QPlainTextEdit(createBox);
@@ -210,6 +216,7 @@ QWidget* P2pWindow::createInviteTab()
     auto* outRow = new QHBoxLayout;
     m_inviteOutInfo = plainLabel(createBox);
     m_copyInvite = new QPushButton(tr("コピー"), createBox);
+    m_copyInvite->setObjectName(QStringLiteral("p2pCopyInvite"));
     connect(m_copyInvite, &QPushButton::clicked, this, &P2pWindow::onCopyInvite);
     outRow->addWidget(m_inviteOutInfo, 1);
     outRow->addWidget(m_copyInvite);
@@ -225,6 +232,7 @@ QWidget* P2pWindow::createInviteTab()
     m_inviteIn->setMaximumHeight(90);
     joinLayout->addWidget(m_inviteIn);
     m_inspectInvite = new QPushButton(tr("招待文字列を確かめる"), joinBox);
+    m_inspectInvite->setObjectName(QStringLiteral("p2pInspectInvite"));
     connect(m_inspectInvite, &QPushButton::clicked, this, &P2pWindow::onInspectInvite);
     joinLayout->addWidget(m_inspectInvite);
     m_inviteInInfo = plainLabel(joinBox);
@@ -232,9 +240,11 @@ QWidget* P2pWindow::createInviteTab()
     m_inviteInInfo->setTextInteractionFlags(Qt::TextSelectableByMouse);
     joinLayout->addWidget(m_inviteInInfo);
     m_allowPrivate = new QCheckBox(tr("上の私設アドレス（同じLANの相手）へ接続してよい"), joinBox);
+    m_allowPrivate->setObjectName(QStringLiteral("p2pAllowPrivate"));
     m_allowPrivate->setVisible(false);
     joinLayout->addWidget(m_allowPrivate);
     m_connectInvite = new QPushButton(tr("接続する"), joinBox);
+    m_connectInvite->setObjectName(QStringLiteral("p2pConnectInvite"));
     m_connectInvite->setEnabled(false);
     connect(m_connectInvite, &QPushButton::clicked, this, &P2pWindow::onConnectInvite);
     joinLayout->addWidget(m_connectInvite);
@@ -253,9 +263,13 @@ QWidget* P2pWindow::createGameTab()
     layout->addWidget(m_gameStatus);
     auto* buttons = new QHBoxLayout;
     m_resign = new QPushButton(tr("投了"), tab);
+    m_resign->setObjectName(QStringLiteral("p2pResign"));
     m_offerDraw = new QPushButton(tr("引き分けを申し出る"), tab);
+    m_offerDraw->setObjectName(QStringLiteral("p2pOfferDraw"));
     m_offerAbort = new QPushButton(tr("中断を申し出る"), tab);
+    m_offerAbort->setObjectName(QStringLiteral("p2pOfferAbort"));
     m_leave = new QPushButton(tr("対局をやめる（結果未確定）"), tab);
+    m_leave->setObjectName(QStringLiteral("p2pLeave"));
     connect(m_resign, &QPushButton::clicked, this, &P2pWindow::onResign);
     connect(m_offerDraw, &QPushButton::clicked, this, &P2pWindow::onOfferDraw);
     connect(m_offerAbort, &QPushButton::clicked, this, &P2pWindow::onOfferAbort);
@@ -279,12 +293,14 @@ QWidget* P2pWindow::createSettingsTab()
     m_bootstrap->setMaximumHeight(100);
     form->addRow(tr("接続候補"), m_bootstrap);
     m_relayOnly = new QCheckBox(tr("直接接続を使わない"), tab);
+    m_relayOnly->setObjectName(QStringLiteral("p2pRelayOnly"));
     form->addRow(QString(), m_relayOnly);
     // 説明は折り返すラベルに分ける（チェックの文字は折り返せないので、長いとウィンドウの最小の幅が広がる。
     // 英語では 1200 を超えていた）
     form->addRow(QString(), plainLabel(tab, tr("接続候補の協力ノードの中継だけを使い、相手からIPアドレスを隠します。"
                                                "協力ノードの運営者には見えます。")));
     m_hideUnknown = new QCheckBox(tr("対局したことのない相手の表示名を出さない"), tab);
+    m_hideUnknown->setObjectName(QStringLiteral("p2pHideUnknownNames"));
     form->addRow(QString(), m_hideUnknown);
     layout->addLayout(form);
     for (QCheckBox* box : {m_relayOnly, m_hideUnknown}) connect(box, &QCheckBox::toggled, this, &P2pWindow::saveSettings);
@@ -294,6 +310,7 @@ QWidget* P2pWindow::createSettingsTab()
     m_identityInfo->setTextInteractionFlags(Qt::TextSelectableByMouse);
     layout->addWidget(m_identityInfo);
     auto* recreate = new QPushButton(tr("プレイヤー鍵を作り直す…"), tab);
+    recreate->setObjectName(QStringLiteral("p2pRecreateIdentity"));
     connect(recreate, &QPushButton::clicked, this, &P2pWindow::recreateIdentityRequested);
     layout->addWidget(recreate, 0, Qt::AlignLeft);
     m_buildInfo = plainLabel(tab);

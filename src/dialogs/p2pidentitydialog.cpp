@@ -44,6 +44,7 @@ P2pIdentityDialog::P2pIdentityDialog(Mode mode, P2pIdentityStore* store, QWidget
     , m_mode(mode)
     , m_store(store)
 {
+    setObjectName(QStringLiteral("p2pIdentityDialog"));
     setWindowTitle(mode == Mode::Create ? tr("P2P対局の準備") : tr("プレイヤー鍵の読み込み"));
     auto* layout = new QVBoxLayout(this);
 
@@ -55,8 +56,11 @@ P2pIdentityDialog::P2pIdentityDialog(Mode mode, P2pIdentityStore* store, QWidget
             this));
         m_methods = new QButtonGroup(this);
         m_keychain = new QRadioButton(tr("OSの鍵の保管庫（推奨）"), this);
+        m_keychain->setObjectName(QStringLiteral("p2pIdentityKeychain"));
         m_passphraseFile = new QRadioButton(tr("パスフレーズで暗号化したファイル"), this);
+        m_passphraseFile->setObjectName(QStringLiteral("p2pIdentityPassphraseFile"));
         m_plainFile = new QRadioButton(tr("暗号化しないファイル（ファイルを読める人は鍵を使えます）"), this);
+        m_plainFile->setObjectName(QStringLiteral("p2pIdentityPlainFile"));
         m_methods->addButton(m_keychain, static_cast<int>(P2pIdentityStore::Method::Keychain));
         m_methods->addButton(m_passphraseFile, static_cast<int>(P2pIdentityStore::Method::Passphrase));
         m_methods->addButton(m_plainFile, static_cast<int>(P2pIdentityStore::Method::Plain));
@@ -72,10 +76,12 @@ P2pIdentityDialog::P2pIdentityDialog(Mode mode, P2pIdentityStore* store, QWidget
 
     auto* form = new QFormLayout;
     m_passphrase = new QLineEdit(this);
+    m_passphrase->setObjectName(QStringLiteral("p2pPassphrase"));
     m_passphrase->setEchoMode(QLineEdit::Password);
     form->addRow(tr("パスフレーズ"), m_passphrase);
     if (mode == Mode::Create) {
         m_confirm = new QLineEdit(this);
+        m_confirm->setObjectName(QStringLiteral("p2pPassphraseConfirm"));
         m_confirm->setEchoMode(QLineEdit::Password);
         form->addRow(tr("パスフレーズ（確認）"), m_confirm);
         connect(m_confirm, &QLineEdit::textChanged, this, &P2pIdentityDialog::updateState);
@@ -89,6 +95,7 @@ P2pIdentityDialog::P2pIdentityDialog(Mode mode, P2pIdentityStore* store, QWidget
     layout->addWidget(m_status);
     m_buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     m_buttons->button(QDialogButtonBox::Ok)->setText(mode == Mode::Create ? tr("プレイヤー鍵を作る") : tr("読み込む"));
+    m_buttons->button(QDialogButtonBox::Ok)->setObjectName(QStringLiteral("p2pIdentityOk"));
     connect(m_buttons, &QDialogButtonBox::accepted, this, &P2pIdentityDialog::accept);
     connect(m_buttons, &QDialogButtonBox::rejected, this, &P2pIdentityDialog::reject);
     layout->addWidget(m_buttons);

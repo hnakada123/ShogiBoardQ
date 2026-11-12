@@ -8,6 +8,7 @@
 #include <QTemporaryDir>
 
 #include "appactivitystate.h"
+#include "automationactionpolicy.h"
 #include "automationcommands.h"
 #include "automationcontext.h"
 #include "automationdispatcher.h"
@@ -193,6 +194,20 @@ private slots:
         NetworkSettings::csaUseTls.set(true);
         CsaGameDialog tls;
         QVERIFY((tls.selection().start.transport == CsaClient::Transport::Tls));
+    }
+
+    /// P2P対局は、ガイドの画像を撮るためのビルド（ENABLE_P2P_DOCS_AUTOMATION）だけ自動化 API から操作できる。
+    /// ふだんのビルドでは、ローカルのソケットから招待・対局・確定を始めさせないので、P2P対局のメニュー項目を
+    /// 許可リストに入れない（--automation のときに P2P対局の部品を作らないのも allowsP2pPlay で決める）
+    void p2pPlayIsDrivableOnlyInTheDocsBuild()
+    {
+#ifdef SBQ_P2P_DOCS_AUTOMATION
+        QVERIFY(AutomationActionPolicy::allowsP2pPlay());
+        QVERIFY(AutomationActionPolicy::isAllowed(QStringLiteral("actionP2pGame")));
+#else
+        QVERIFY(!AutomationActionPolicy::allowsP2pPlay());
+        QVERIFY(!AutomationActionPolicy::isAllowed(QStringLiteral("actionP2pGame")));
+#endif
     }
 };
 

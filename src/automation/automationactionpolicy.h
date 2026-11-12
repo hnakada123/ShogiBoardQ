@@ -20,6 +20,18 @@ const QStringList& allowedActions();
 
 bool isAllowed(const QString& objectName);
 
+/// 自動化 API から P2P対局を操作してよいか。ガイドの画像を撮るためのビルド（CMake の
+/// ENABLE_P2P_DOCS_AUTOMATION）だけ true。ふだんのビルドでは、ローカルのソケットから招待・対局・確定を
+/// 始めさせないため false（docs/dev/p2p-game-spec.md 11章）
+constexpr bool allowsP2pPlay()
+{
+#ifdef SBQ_P2P_DOCS_AUTOMATION
+    return true;
+#else
+    return false;
+#endif
+}
+
 } // namespace AutomationActionPolicy
 
 #endif // AUTOMATIONACTIONPOLICY_H
