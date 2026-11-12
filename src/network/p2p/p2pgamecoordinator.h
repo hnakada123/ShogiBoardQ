@@ -112,8 +112,6 @@ public:
     {
         return m_phase == Phase::Negotiating ? qMax<qint64>(0, m_confirmationDeadline - now()) : 0;
     }
-    /// 自分の役割（申込側か募集側か）
-    quint8 role() const { return m_role; }
 
 signals:
     /// 交渉の段階が変わった（条件確認画面を出す・更新する）

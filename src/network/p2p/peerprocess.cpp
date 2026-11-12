@@ -154,11 +154,6 @@ quint64 PeerProcess::request(const QString& method, const QJsonObject& params)
     return send(method, params);
 }
 
-void PeerProcess::cancel(quint64 requestId)
-{
-    m_pending.remove(requestId);
-}
-
 quint64 PeerProcess::send(const QString& method, const QJsonObject& params)
 {
     if (!m_process) return 0;

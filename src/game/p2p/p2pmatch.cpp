@@ -162,12 +162,6 @@ bool Match::isMyTurn() const
     return (GameRules::sideToMove(lastState().ply) == Turn::Black) == m_setup.iAmBlack;
 }
 
-qint64 Match::currentTurnElapsedMs() const
-{
-    if (m_phase == Phase::Opening || m_confirmed.empty()) return 0;
-    return isMyTurn() ? m_timer.mySpentMs(now()) : m_timer.observedMs(now());
-}
-
 qint64 Match::reconnectTotalMs() const
 {
     return m_timer.disconnectedTotalMs(now());

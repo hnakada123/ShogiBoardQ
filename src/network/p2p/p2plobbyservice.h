@@ -66,7 +66,6 @@ public:
 
     /// 自動化 API を有効にして起動したときは使えなくする（P2P対局の部品を動かさない。実装仕様 10.2節）
     void disableForAutomation() { m_automationDisabled = true; }
-    bool isDisabledForAutomation() const { return m_automationDisabled; }
 
     /// 通信プロセスを起動してネットワークに参加する（保存先を開いていなければ開く。プレイヤー鍵は読み込み済みであること）
     StartFailure begin(const QString& networkName, const QStringList& bootstrap, bool relayOnly);
@@ -74,10 +73,7 @@ public:
     void end();
 
     Status status() const { return m_status; }
-    PeerProcess::Failure peerFailure() const { return m_peerFailure; }
-    QString networkName() const { return m_networkName; }
     bool isLocalProfile() const { return m_localProfile; }
-    QString peerIdText() const { return m_peerIdText; }
     int connectedPeers() const { return m_connectedPeers; }
     QString reachability() const { return m_reachability; }
     /// 協力ノードに取れた中継の予約の数（0 なら、中継経由では相手から届かない）
@@ -87,7 +83,6 @@ public:
 
     // --- 招待 ---
     void createInvite(const QString& displayName, const P2p::TimeControlTerms& terms, P2p::SidePreference side);
-    void cancelInvites();
     void inspectInvite(const QString& invite);
     void connectInvite(const QString& invite, bool allowPrivate, const QString& myDisplayName);
 
@@ -135,12 +130,10 @@ private:
     bool m_automationDisabled = false;
 
     Status m_status = Status::Off;
-    PeerProcess::Failure m_peerFailure = PeerProcess::Failure::None;
     QString m_networkName;
     QStringList m_bootstrap;
     bool m_relayOnly = false;
     bool m_localProfile = true;
-    QString m_peerIdText;
     QByteArray m_peerIdBytes;
     QByteArray m_networkId;
     int m_connectedPeers = 0;

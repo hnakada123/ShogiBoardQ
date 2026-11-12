@@ -30,7 +30,6 @@ public:
     static constexpr qint64 kMaxBytes = 16LL * 1024 * 1024;
 
     bool open(const QString& path);
-    bool isOpen() const { return m_file.isOpen(); }
     /// 1件を追記する（上限を超える・書けない・同期できないときは false）
     bool append(const P2p::CborValue& record);
     void close() { m_file.close(); }
@@ -44,12 +43,14 @@ private:
 };
 
 /// 履歴に出す、証跡の外の情報（表示名は証跡に入れないのでここに置く）
+///
+/// ファイルの7番目の欄は予約で、いつも空の text を書く（以前の版の「通常棋譜の場所」。値を入れることはなかった。
+/// 棋譜と証跡は対局情報の対局ID で対応させる）。欄の数を変えると保存済みの履歴を読めなくなるので、形は変えない。
 struct P2pHistoryInfo {
     quint8 mySide = P2p::kSideBlack;   ///< kSideBlack・kSideWhite
     QString opponentDisplayName;   ///< 相手が名乗った表示名
     P2p::Settlement settlement = P2p::Settlement::None;   ///< 結果の確定のしかた（ファイルには settlementName の語で書く）
     quint64 endedAt = 0;           ///< 終わった時刻（UNIX秒。手元の時計）
-    QString kifuPath;              ///< 保存した通常棋譜（あれば）
 };
 
 /**

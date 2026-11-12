@@ -76,8 +76,7 @@ Request closeConnection(quint64 connection);
 // ---------------------------------------------------------------- 応答（checkResult を通った result を読む）
 
 struct StartResult {
-    QString peerId;          ///< 文字列表記
-    QByteArray peerIdBytes;  ///< バイナリ
+    QByteArray peerIdBytes;  ///< バイナリ（文字列表記の peerId は形を確かめるだけで持たない）
     QByteArray networkId;
 };
 

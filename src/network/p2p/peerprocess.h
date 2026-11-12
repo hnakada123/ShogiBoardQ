@@ -48,10 +48,7 @@ public:
     /// 実行ファイルの場所（アプリと同じフォルダ。デバッグビルドだけ SHOGIBOARDQ_PEER_EXECUTABLE で差し替えられる）
     static QString executablePath();
 
-    State state() const { return m_state; }
     bool isReady() const { return m_state == State::Ready; }
-    /// 今のプロセスの世代
-    quint64 generation() const { return m_generation; }
     /// hello の応答の sandbox（権限の制限の結果）
     QJsonObject sandbox() const { return m_sandbox; }
 
@@ -63,8 +60,6 @@ public:
     /// 要求を送る（Ready のときだけ。0 は送れなかった）。結果は replied・requestFailed
     quint64 request(const QString& method, const QJsonObject& params = QJsonObject());
     quint64 request(const PeerIpc::Request& request) { return this->request(request.method, request.params); }
-    /// 要求の応答を受け取らない（取り消した要求の応答は捨てる）
-    void cancel(quint64 requestId);
 
 signals:
     void ready();

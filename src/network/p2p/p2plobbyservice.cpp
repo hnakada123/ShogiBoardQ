@@ -45,7 +45,6 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
     m_relayOnly = relayOnly;
     m_localProfile = network->local;
     m_status = Status::Starting;
-    m_peerFailure = PeerProcess::Failure::None;
     m_connectedPeers = 0;
     m_relayReservations = 0;
     holdConnectionActivity();
@@ -114,7 +113,6 @@ void P2pLobbyService::onPeerReplied(quint64 requestId, const QString& method, co
     const std::optional<PeerIpc::Reply> reply = PeerIpc::readReply(method, result);
     if (!reply) return;
     if (const auto* started = std::get_if<PeerIpc::StartResult>(&*reply)) {
-        m_peerIdText = started->peerId;
         m_peerIdBytes = started->peerIdBytes;
         m_networkId = started->networkId;
         // 通信プロセスが返した networkId を、こちらで計算した値と比べる
@@ -151,7 +149,6 @@ void P2pLobbyService::onPeerRequestFailed(quint64 requestId, const QString& meth
 
 void P2pLobbyService::onPeerFailed(PeerProcess::Failure failure, const QString& detail)
 {
-    m_peerFailure = failure;
     m_status = Status::Failed;
     // 通信プロセスの異常終了: 招待・交渉は取消。対局中なら中断（結果未確定）
     if (m_deps.game) {
@@ -266,12 +263,6 @@ void P2pLobbyService::createInvite(const QString& displayName, const P2p::TimeCo
     m_inviteTerms = terms;
     m_inviteSide = side;
     m_peer->request(PeerIpc::Requests::createInvite());
-}
-
-void P2pLobbyService::cancelInvites()
-{
-    m_inviteActive = false;
-    if (m_peer && m_peer->isReady()) m_peer->request(PeerIpc::Requests::cancelInvites());
 }
 
 void P2pLobbyService::inspectInvite(const QString& invite)

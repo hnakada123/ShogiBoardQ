@@ -409,7 +409,7 @@ Request closeConnection(quint64 connection)
 std::optional<Reply> readReply(const QString& method, const QJsonObject& result)
 {
     if (method == QLatin1String(kStart)) {
-        return StartResult{result.value(QStringLiteral("peerId")).toString(), base64Of(result.value(QStringLiteral("peerIdBytes"))),
+        return StartResult{base64Of(result.value(QStringLiteral("peerIdBytes"))),
                            QByteArray::fromHex(result.value(QStringLiteral("networkId")).toString().toLatin1())};
     }
     if (method == QLatin1String(kCreateInvite)) {

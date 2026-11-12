@@ -92,12 +92,10 @@ public:
     QByteArray gameId() const { return m_agreement ? m_agreement->gameId() : QByteArray(); }
     QByteArray blackStartSignature() const { return m_iAmBlack ? m_myStartSignature : m_opponentStartSignature; }
     QByteArray whiteStartSignature() const { return m_iAmBlack ? m_opponentStartSignature : m_myStartSignature; }
-    const SigningKey& sessionKey() const { return m_sessionKey; }
     /// 一局用鍵を対局へ渡す（Started の後に1回だけ）
     SigningKey takeSessionKey() { return std::move(m_sessionKey); }
     QByteArray myConnectionRandom() const { return m_myRandom; }
     QByteArray opponentConnectionRandom() const { return m_opponent ? m_opponentRandom : QByteArray(); }
-    quint8 role() const { return m_config.role; }
     /// 次に送るフレームの requestId（対局へ引き継ぐ）
     quint64 nextRequestId() const { return m_requestId; }
 

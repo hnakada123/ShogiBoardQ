@@ -59,8 +59,6 @@ StateCheck checkNext(const GameState& previous, const GameState& next, const Tim
 struct Terminal {
     Outcome outcome = Outcome::Draw;
     Cause cause = Cause::MaxPly;
-
-    friend bool operator==(const Terminal& a, const Terminal& b) { return a.outcome == b.outcome && a.cause == b.cause; }
 };
 
 /**

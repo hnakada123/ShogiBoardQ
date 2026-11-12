@@ -78,14 +78,6 @@ SigningKey SigningKey::fromSeed(const SecureBytes& seed)
     return key;
 }
 
-SecureBytes SigningKey::seed() const
-{
-    SecureBytes out(crypto_sign_SEEDBYTES);
-    if (!out.isValid() || !isValid()) return SecureBytes();
-    if (crypto_sign_ed25519_sk_to_seed(out.data(), m_secret.data()) != 0) return SecureBytes();
-    return out;
-}
-
 QByteArray SigningKey::sign(QByteArrayView message) const
 {
     if (!isValid()) return {};
@@ -131,13 +123,6 @@ QByteArray randomBytes(int size)
     QByteArray out(size, '\0');
     randombytes_buf(out.data(), static_cast<std::size_t>(size));
     return out;
-}
-
-bool constantTimeEquals(QByteArrayView a, QByteArrayView b)
-{
-    if (a.size() != b.size() || !initialize()) return false;
-    if (a.isEmpty()) return true;
-    return sodium_memcmp(a.data(), b.data(), static_cast<std::size_t>(a.size())) == 0;
 }
 
 } // namespace Crypto

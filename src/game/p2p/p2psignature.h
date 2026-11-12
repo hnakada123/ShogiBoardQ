@@ -60,8 +60,6 @@ public:
     bool isValid() const { return m_secret.isValid(); }
     /// 公開鍵（32バイト）
     QByteArray publicKey() const { return m_publicKey; }
-    /// 種（32バイト）を保護付きメモリに写す（保管するときだけ使う）
-    SecureBytes seed() const;
     /// メッセージへの署名（64バイト）
     QByteArray sign(QByteArrayView message) const;
     /// 値の決定的CBORへの署名
@@ -94,9 +92,6 @@ bool isValidPublicKey(const QByteArray& publicKey);
 
 /// OS の CSPRNG からの乱数
 QByteArray randomBytes(int size);
-
-/// 処理時間が内容によらない比較（長さが違えば false）
-bool constantTimeEquals(QByteArrayView a, QByteArrayView b);
 
 } // namespace Crypto
 

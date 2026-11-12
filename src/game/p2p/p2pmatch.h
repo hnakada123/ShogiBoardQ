@@ -104,7 +104,6 @@ public:
     bool iAmBlack() const { return m_setup.iAmBlack; }
     QByteArray gameId() const { return m_gameId; }
     const StartAgreement& agreement() const { return m_setup.agreement; }
-    TimeControlTerms terms() const { return m_setup.terms; }
     Settlement settlement() const { return m_settlement; }
     std::optional<ErrorCode> endingError() const { return m_endingError; }
     /// 合意した結果
@@ -117,8 +116,6 @@ public:
     /// （開始の手続きの途中で対局が終わったとき・相手が最初に壊れた提案を送ったときにも呼ばれる。空の列の末尾を読まない）
     const GameState& lastState() const;
     const std::vector<SignedState>& confirmedStates() const { return m_confirmed; }
-    /// 今の手番の経過時間（ミリ秒。自分の手番は自分の計時、相手の手番は観測）
-    qint64 currentTurnElapsedMs() const;
     /// 1局の切断時間の合計（ミリ秒）
     qint64 reconnectTotalMs() const;
     /// 再接続の待ちの残り（ミリ秒。Reconnecting でなければ -1）

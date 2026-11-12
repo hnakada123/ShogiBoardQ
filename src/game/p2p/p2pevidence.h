@@ -20,8 +20,6 @@ struct SignedState {
     GameState state;
     QByteArray blackApproval;
     QByteArray whiteApproval;
-
-    bool isMutuallySigned() const { return !blackApproval.isEmpty() && !whiteApproval.isEmpty(); }
 };
 
 /**

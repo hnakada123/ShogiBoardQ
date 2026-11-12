@@ -63,7 +63,7 @@ QByteArray infoBytes(const P2pHistoryInfo& info)
     return P2p::Cbor::encode(CborValue::array({CborValue::text("SBQ-HISTORY"), CborValue::uint(1),
                                                CborValue::uint(info.mySide), CborValue::text(info.opponentDisplayName),
                                                CborValue::text(P2p::settlementName(info.settlement)), CborValue::uint(info.endedAt),
-                                               CborValue::text(info.kifuPath)}));
+                                               CborValue::text("")}));   // 予約の欄（P2pHistoryInfo の説明）
 }
 
 std::optional<P2pHistoryInfo> parseInfo(const QByteArray& bytes)
@@ -76,7 +76,7 @@ std::optional<P2pHistoryInfo> parseInfo(const QByteArray& bytes)
     info.opponentDisplayName = r.utf8(3, 96);
     info.settlement = P2p::settlementFromName(QString::fromLatin1(r.ascii(4, 64))).value_or(P2p::Settlement::None);
     info.endedAt = r.uint(5, 0xFFFFFFFFFFULL);
-    info.kifuPath = r.utf8(6, 4096);
+    r.utf8(6, 4096);   // 予約の欄は、形だけ確かめて読み捨てる
     if (!r.ok() || (info.mySide != P2p::kSideBlack && info.mySide != P2p::kSideWhite)) return std::nullopt;
     return info;
 }
