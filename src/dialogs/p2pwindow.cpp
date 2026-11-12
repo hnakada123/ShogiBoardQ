@@ -97,7 +97,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
         connect(m_lobby, &P2pLobbyService::networkStatusChanged, this, &P2pWindow::refresh);
         connect(m_lobby, &P2pLobbyService::inviteCreated, this, &P2pWindow::onInviteCreated);
         connect(m_lobby, &P2pLobbyService::inviteInspected, this, &P2pWindow::onInviteInspected);
-        connect(m_lobby, &P2pLobbyService::requestFailed, this, &P2pWindow::onRequestFailed);
+        connect(m_lobby, &P2pLobbyService::inviteRejected, this, &P2pWindow::onInviteRejected);
         connect(m_lobby, &P2pLobbyService::connectFailed, this, &P2pWindow::onConnectFailed);
     }
     if (m_game) {
@@ -599,26 +599,26 @@ void P2pWindow::onConnectInvite()
     m_inviteInInfo->setText(tr("接続しています…"));
 }
 
-void P2pWindow::onRequestFailed(const QString& method, const QString& code)
-{
-    if (method == QLatin1String("inspectInvite") || method == QLatin1String("connectInvite")) {
-        QString text;
-        if (code == QLatin1String("invite_expired")) text = tr("招待文字列の期限が過ぎています。");
-        else if (code == QLatin1String("invite_wrong_network")) text = tr("別のネットワークの招待文字列です。");
-        else if (code == QLatin1String("invite_own")) text = tr("自分が作った招待文字列です。");
-        else text = tr("招待文字列を読めません。");
-        m_inviteInInfo->setText(text);
-    }
-}
-
-void P2pWindow::onConnectFailed(const QString& reason)
+void P2pWindow::onInviteRejected(PeerIpc::InviteRejection rejection)
 {
     QString text;
-    if (reason == QLatin1String("no_relay_route")) {
+    switch (rejection) {
+    case PeerIpc::InviteRejection::Expired: text = tr("招待文字列の期限が過ぎています。"); break;
+    case PeerIpc::InviteRejection::WrongNetwork: text = tr("別のネットワークの招待文字列です。"); break;
+    case PeerIpc::InviteRejection::Own: text = tr("自分が作った招待文字列です。"); break;
+    case PeerIpc::InviteRejection::Unreadable: text = tr("招待文字列を読めません。"); break;
+    }
+    m_inviteInInfo->setText(text);
+}
+
+void P2pWindow::onConnectFailed(PeerIpc::CloseReason reason)
+{
+    QString text;
+    if (reason == PeerIpc::CloseReason::NoRelayRoute) {
         text = tr("この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。「直接接続を使わない」設定では、"
                   "相手と同じ協力ノードを「設定」の「接続候補」に入れる必要があります。");
     } else {
-        text = reason == QLatin1String("timeout") ? tr("相手に接続できませんでした（時間切れ）。") : tr("相手に接続できませんでした。");
+        text = reason == PeerIpc::CloseReason::Timeout ? tr("相手に接続できませんでした（時間切れ）。") : tr("相手に接続できませんでした。");
         if (m_lobby && m_lobby->isLocalProfile()) {
             // 同じ LAN の別の PC: 招待した側の PC が、外から届く接続を止めていることが多い
             text += QLatin1Char('\n')

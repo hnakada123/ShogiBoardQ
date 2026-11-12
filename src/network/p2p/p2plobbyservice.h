@@ -56,13 +56,7 @@ public:
     Q_ENUM(StartFailure)
 
     /// 招待文字列を読んだ結果（通信プロセスの解釈。対局・UI側は文字列を読まない）
-    struct InviteInfo {
-        QString peerId;
-        quint64 expiresAt = 0;
-        int addressCount = 0;
-        int usableAddressCount = 0;
-        QStringList privateAddresses;
-    };
+    using InviteInfo = PeerIpc::InspectedInvite;
 
     P2pLobbyService(const Deps& deps, const QString& dataRoot, QObject* parent = nullptr);
     ~P2pLobbyService() override;
@@ -125,10 +119,10 @@ signals:
     /// 作った招待文字列（記録しない。利用者に渡してもらう）
     void inviteCreated(const QString& invite, quint64 expiresAt, int addressCount);
     void inviteInspected(const P2pLobbyService::InviteInfo& info);
-    /// 要求が失敗した（method と通信プロセスのエラーの code）
-    void requestFailed(const QString& method, const QString& code);
+    /// 招待文字列の確認・招待での接続を、通信プロセスが断った
+    void inviteRejected(PeerIpc::InviteRejection rejection);
     /// 招待の接続が開けなかった
-    void connectFailed(const QString& reason);
+    void connectFailed(PeerIpc::CloseReason reason);
     /// 通信プロセスが使えなくなった
     void peerFailed(PeerProcess::Failure failure, const QString& detail);
 
@@ -145,10 +139,8 @@ private slots:
 private:
     /// 動作状態を「P2P接続中」にする（対局中は司令塔が持つ）
     void holdConnectionActivity();
-    void handleConnectionOpened(const QJsonObject& params);
-    void handleNetworkStatus(const QJsonObject& params);
+    void handleConnectionOpened(const PeerIpc::ConnectionOpened& opened);
     void rejectConnection(quint64 connection, P2p::ErrorCode code);
-    quint64 connectionOf(const QJsonObject& params) const;
 
     Deps m_deps;
     QString m_dataRoot;

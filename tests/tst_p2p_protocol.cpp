@@ -136,6 +136,62 @@ private slots:
         }
     }
 
+    /// IPC の要求の作成と、応答・通知の読み取りは、検査と同じ名前と語を使う（監査 2026-11-12 R5）
+    void ipcRequestsAndRepliesAreTyped()
+    {
+        const auto object = [](const char* text) { return QJsonDocument::fromJson(QByteArray(text)).object(); };
+        const PeerIpc::Request send = PeerIpc::Requests::sendFrame(5, QByteArray("ab"));
+        QCOMPARE(send.method, QStringLiteral("sendFrame"));
+        QCOMPARE(send.params.value(QStringLiteral("connection")).toString(), QStringLiteral("5"));
+        QCOMPARE(send.params.value(QStringLiteral("frame")).toString(), QStringLiteral("YWI="));
+        const PeerIpc::Request start = PeerIpc::Requests::start(QStringLiteral("sbq-local-1"), {QStringLiteral("/ip4/x")}, true);
+        QCOMPARE(start.method, QStringLiteral("start"));
+        QCOMPARE(start.params.value(QStringLiteral("relayOnly")).toBool(), true);
+        QCOMPARE(start.params.value(QStringLiteral("bootstrap")).toArray().size(), 1);
+
+        // 応答
+        const QByteArray hex(64, 'b');
+        const QJsonObject startResult = object((R"({"peerId":"12D3KooWabc","peerIdBytes":"AAEC","networkId":")" + hex
+                                                + R"(","profile":"local"})").constData());
+        QVERIFY(PeerIpc::checkResult(QStringLiteral("start"), startResult));
+        const std::optional<PeerIpc::Reply> started = PeerIpc::readReply(QStringLiteral("start"), startResult);
+        QVERIFY(started && std::holds_alternative<PeerIpc::StartResult>(*started));
+        QCOMPARE(std::get<PeerIpc::StartResult>(*started).peerIdBytes, QByteArray::fromHex("000102"));
+        QCOMPARE(std::get<PeerIpc::StartResult>(*started).networkId, QByteArray::fromHex(hex));
+        const std::optional<PeerIpc::Reply> connecting =
+            PeerIpc::readReply(QStringLiteral("connectPeer"), object(R"({"connection":"9"})"));
+        QVERIFY(connecting && std::holds_alternative<PeerIpc::ConnectionStarted>(*connecting));
+        QCOMPARE(std::get<PeerIpc::ConnectionStarted>(*connecting).connection, quint64(9));
+        QVERIFY(!PeerIpc::readReply(QStringLiteral("unknownMethod"), QJsonObject()));
+
+        // 招待の要求の失敗だけを理由にする
+        QCOMPARE(PeerIpc::inviteRejection(QStringLiteral("inspectInvite"), QStringLiteral("invite_own")),
+                 std::optional<PeerIpc::InviteRejection>(PeerIpc::InviteRejection::Own));
+        QCOMPARE(PeerIpc::inviteRejection(QStringLiteral("connectInvite"), QStringLiteral("invite_invalid")),
+                 std::optional<PeerIpc::InviteRejection>(PeerIpc::InviteRejection::Unreadable));
+        QVERIFY(!PeerIpc::inviteRejection(QStringLiteral("sendFrame"), QStringLiteral("unknown_connection")));
+
+        // 通知
+        const QJsonObject opened = object(R"({"connection":"5","peerId":"12D3KooWabc","peerIdBytes":"AAEC",)"
+                                          R"("route":"relay","direction":"outbound","origin":"game"})");
+        QVERIFY(PeerIpc::checkNotification(QStringLiteral("connectionOpened"), opened));
+        const std::optional<PeerIpc::Notification> openedRead = PeerIpc::readNotification(QStringLiteral("connectionOpened"), opened);
+        QVERIFY(openedRead && std::holds_alternative<PeerIpc::ConnectionOpened>(*openedRead));
+        const auto& o = std::get<PeerIpc::ConnectionOpened>(*openedRead);
+        QVERIFY(o.viaRelay && o.outbound && o.gameReconnect);
+        QCOMPARE(o.connection, quint64(5));
+        const QJsonObject closed = object(R"({"connection":"7","reason":"no_relay_route"})");
+        QVERIFY(PeerIpc::checkNotification(QStringLiteral("connectionClosed"), closed));
+        const std::optional<PeerIpc::Notification> closedRead = PeerIpc::readNotification(QStringLiteral("connectionClosed"), closed);
+        QVERIFY(closedRead && std::holds_alternative<PeerIpc::ConnectionClosed>(*closedRead));
+        QCOMPARE(std::get<PeerIpc::ConnectionClosed>(*closedRead).reason, PeerIpc::CloseReason::NoRelayRoute);
+        const std::optional<PeerIpc::Notification> frame =
+            PeerIpc::readNotification(QStringLiteral("frameReceived"), object(R"({"connection":"7","frame":"YWI="})"));
+        QVERIFY(frame && std::holds_alternative<PeerIpc::FrameReceived>(*frame));
+        QCOMPARE(std::get<PeerIpc::FrameReceived>(*frame).frame, QByteArray("ab"));
+        QVERIFY(!PeerIpc::readNotification(QStringLiteral("unknownNotification"), QJsonObject()));
+    }
+
     /// 交渉の前に接続を断る REJECT は、外枠の規則どおりに読めて、理由を読み戻せる（監査 2026-11-12 R5）
     void rejectFrameRoundTrips()
     {

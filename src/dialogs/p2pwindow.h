@@ -79,8 +79,8 @@ private slots:
     void onInspectInvite();
     void onInviteInspected(const P2pLobbyService::InviteInfo& info);
     void onConnectInvite();
-    void onRequestFailed(const QString& method, const QString& code);
-    void onConnectFailed(const QString& reason);
+    void onInviteRejected(PeerIpc::InviteRejection rejection);
+    void onConnectFailed(PeerIpc::CloseReason reason);
     void onCopyPlayerId();
     void saveSettings();
     void updateGameStatus();

@@ -11,6 +11,8 @@
 #include <QProcess>
 #include <QString>
 
+#include "peeripc.h"
+
 class QTimer;
 
 /**
@@ -60,6 +62,7 @@ public:
 
     /// 要求を送る（Ready のときだけ。0 は送れなかった）。結果は replied・requestFailed
     quint64 request(const QString& method, const QJsonObject& params = QJsonObject());
+    quint64 request(const PeerIpc::Request& request) { return this->request(request.method, request.params); }
     /// 要求の応答を受け取らない（取り消した要求の応答は捨てる）
     void cancel(quint64 requestId);
 

@@ -5,7 +5,6 @@
 
 #include <QDateTime>
 #include <QDir>
-#include <QJsonArray>
 
 #include "logcategories.h"
 #include "p2pbuildinfo.h"
@@ -14,15 +13,6 @@
 #include "p2pplayerslot.h"
 #include "p2precordstore.h"
 #include "peeripc.h"
-
-namespace {
-
-quint64 u64(const QJsonValue& value)
-{
-    return PeerIpc::parseU64(value).value_or(0);
-}
-
-} // namespace
 
 P2pLobbyService::P2pLobbyService(const Deps& deps, const QString& dataRoot, QObject* parent)
     : QObject(parent)
@@ -121,7 +111,7 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
 void P2pLobbyService::end()
 {
     if (m_deps.game) m_deps.game->leaveGame();
-    if (m_peer && m_peer->isReady()) m_peer->request(QStringLiteral("cancelInvites"));
+    if (m_peer && m_peer->isReady()) m_peer->request(PeerIpc::Requests::cancelInvites());
     m_inviteActive = false;
     if (m_peer) m_peer->stop();
     m_status = Status::Off;
@@ -160,19 +150,17 @@ void P2pLobbyService::onGameReleased()
 
 void P2pLobbyService::onPeerReady()
 {
-    QJsonObject params;
-    params[QStringLiteral("networkName")] = m_networkName;
-    params[QStringLiteral("bootstrap")] = QJsonArray::fromStringList(m_bootstrap);
-    params[QStringLiteral("relayOnly")] = m_relayOnly;
-    m_peer->request(QStringLiteral("start"), params);
+    m_peer->request(PeerIpc::Requests::start(m_networkName, m_bootstrap, m_relayOnly));
 }
 
 void P2pLobbyService::onPeerReplied(quint64 requestId, const QString& method, const QJsonObject& result)
 {
-    if (method == QLatin1String("start")) {
-        m_peerIdText = result.value(QStringLiteral("peerId")).toString();
-        m_peerIdBytes = QByteArray::fromBase64(result.value(QStringLiteral("peerIdBytes")).toString().toLatin1());
-        m_networkId = QByteArray::fromHex(result.value(QStringLiteral("networkId")).toString().toLatin1());
+    const std::optional<PeerIpc::Reply> reply = PeerIpc::readReply(method, result);
+    if (!reply) return;
+    if (const auto* started = std::get_if<PeerIpc::StartResult>(&*reply)) {
+        m_peerIdText = started->peerId;
+        m_peerIdBytes = started->peerIdBytes;
+        m_networkId = started->networkId;
         // 通信プロセスが返した networkId を、こちらで計算した値と比べる
         if (m_networkId != P2p::networkId(m_networkName.toLatin1())) {
             onPeerFailed(PeerProcess::Failure::HelloMismatch, QStringLiteral("networkId mismatch"));
@@ -180,36 +168,19 @@ void P2pLobbyService::onPeerReplied(quint64 requestId, const QString& method, co
         }
         m_status = Status::Online;
         emit statusChanged();
-        return;
-    }
-    if (method == QLatin1String("createInvite")) {
+    } else if (const auto* created = std::get_if<PeerIpc::CreatedInvite>(&*reply)) {
         m_inviteActive = true;
-        emit inviteCreated(result.value(QStringLiteral("invite")).toString(), u64(result.value(QStringLiteral("expiresAt"))),
-                           result.value(QStringLiteral("addressCount")).toInt());
-        return;
-    }
-    if (method == QLatin1String("inspectInvite")) {
-        InviteInfo info;
-        info.peerId = result.value(QStringLiteral("peerId")).toString();
-        info.expiresAt = u64(result.value(QStringLiteral("expiresAt")));
-        info.addressCount = result.value(QStringLiteral("addressCount")).toInt();
-        info.usableAddressCount = result.value(QStringLiteral("usableAddressCount")).toInt();
-        const QJsonArray array1 = result.value(QStringLiteral("privateAddresses")).toArray();
-        for (const auto& address : array1) {
-            info.privateAddresses << address.toString();
-        }
-        emit inviteInspected(info);
-        return;
-    }
-    if (method == QLatin1String("connectInvite")) {
-        // 接続の番号を受け取った。開いたら交渉を始める
+        emit inviteCreated(created->invite, created->expiresAt, created->addressCount);
+    } else if (const auto* inspected = std::get_if<PeerIpc::InspectedInvite>(&*reply)) {
+        emit inviteInspected(*inspected);
+    } else if (const auto* connecting = std::get_if<PeerIpc::ConnectionStarted>(&*reply)) {
+        // 招待で接続を始めた（接続し直しの connectPeer は振り分けない）。開いたら交渉を始める
         const auto it = m_connectRequests.find(requestId);
         if (it == m_connectRequests.end()) return;
         P2pGameCoordinator::NegotiationRequest request = it.value();
         m_connectRequests.erase(it);
-        request.connection = u64(result.value(QStringLiteral("connection")));
+        request.connection = connecting->connection;
         m_pendingConnections.insert(request.connection, request);
-        return;
     }
 }
 
@@ -217,7 +188,9 @@ void P2pLobbyService::onPeerRequestFailed(quint64 requestId, const QString& meth
 {
     m_connectRequests.remove(requestId);
     qCInfo(lcGame) << "P2P request failed:" << method << code;
-    emit requestFailed(method, code);
+    if (const std::optional<PeerIpc::InviteRejection> rejection = PeerIpc::inviteRejection(method, code)) {
+        emit inviteRejected(*rejection);
+    }
 }
 
 void P2pLobbyService::onPeerFailed(PeerProcess::Failure failure, const QString& detail)
@@ -248,64 +221,43 @@ void P2pLobbyService::onPeerStopped()
 
 void P2pLobbyService::onPeerNotified(const QString& name, const QJsonObject& params)
 {
-    if (name == QLatin1String("networkStatus")) {
-        handleNetworkStatus(params);
-    } else if (name == QLatin1String("connectionOpened")) {
-        handleConnectionOpened(params);
-    } else if (name == QLatin1String("frameReceived")) {
-        const quint64 connection = connectionOf(params);
-        const QByteArray frame = QByteArray::fromBase64(params.value(QStringLiteral("frame")).toString().toLatin1());
-        if (m_deps.game) m_deps.game->onFrame(connection, frame);
-    } else if (name == QLatin1String("connectionClosed")) {
-        const quint64 connection = connectionOf(params);
-        if (m_pendingConnections.remove(connection) > 0) {
-            emit connectFailed(params.value(QStringLiteral("reason")).toString());
-        }
-        if (m_deps.game) m_deps.game->onConnectionClosed(connection);
-    } else if (name == QLatin1String("connectionRoute")) {
-        if (m_deps.game) {
-            m_deps.game->onRouteChanged(connectionOf(params),
-                                        params.value(QStringLiteral("route")).toString() == QLatin1String("relay"));
-        }
+    const std::optional<PeerIpc::Notification> notification = PeerIpc::readNotification(name, params);
+    if (!notification) return;
+    if (const auto* status = std::get_if<PeerIpc::NetworkStatus>(&*notification)) {
+        m_connectedPeers = status->connectedPeers;
+        m_reachability = status->reachability;
+        m_relayReservations = status->relayReservations;
+        emit networkStatusChanged();
+    } else if (const auto* opened = std::get_if<PeerIpc::ConnectionOpened>(&*notification)) {
+        handleConnectionOpened(*opened);
+    } else if (const auto* received = std::get_if<PeerIpc::FrameReceived>(&*notification)) {
+        if (m_deps.game) m_deps.game->onFrame(received->connection, received->frame);
+    } else if (const auto* closed = std::get_if<PeerIpc::ConnectionClosed>(&*notification)) {
+        if (m_pendingConnections.remove(closed->connection) > 0) emit connectFailed(closed->reason);
+        if (m_deps.game) m_deps.game->onConnectionClosed(closed->connection);
+    } else if (const auto* route = std::get_if<PeerIpc::ConnectionRoute>(&*notification)) {
+        if (m_deps.game) m_deps.game->onRouteChanged(route->connection, route->viaRelay);
     }
-}
-
-quint64 P2pLobbyService::connectionOf(const QJsonObject& params) const
-{
-    return u64(params.value(QStringLiteral("connection")));
-}
-
-void P2pLobbyService::handleNetworkStatus(const QJsonObject& params)
-{
-    m_connectedPeers = params.value(QStringLiteral("connectedPeers")).toInt();
-    m_reachability = params.value(QStringLiteral("reachability")).toString();
-    m_relayReservations = params.value(QStringLiteral("relayReservations")).toInt();
-    emit networkStatusChanged();
 }
 
 // ---------------------------------------------------------------- 接続の振り分け
 
-void P2pLobbyService::handleConnectionOpened(const QJsonObject& params)
+void P2pLobbyService::handleConnectionOpened(const PeerIpc::ConnectionOpened& opened)
 {
-    const quint64 connection = connectionOf(params);
-    const QString peerId = params.value(QStringLiteral("peerId")).toString();
-    const QByteArray peerIdBytes = QByteArray::fromBase64(params.value(QStringLiteral("peerIdBytes")).toString().toLatin1());
-    const bool viaRelay = params.value(QStringLiteral("route")).toString() == QLatin1String("relay");
-    const QString origin = params.value(QStringLiteral("origin")).toString();
-    const bool outbound = params.value(QStringLiteral("direction")).toString() == QLatin1String("outbound");
+    const quint64 connection = opened.connection;
     if (!m_deps.game) {
         closeConnection(connection);
         return;
     }
 
     // 対局の相手の再接続
-    if (origin == QLatin1String("game")) {
-        m_deps.game->onConnectionOpened(connection, peerId, viaRelay);
+    if (opened.gameReconnect) {
+        m_deps.game->onConnectionOpened(connection, opened.peerId, opened.viaRelay);
         if (!m_deps.game->ownsConnection(connection)) closeConnection(connection);
         return;
     }
 
-    if (outbound) {
+    if (opened.outbound) {
         // 自分が招待で接続した
         const auto it = m_pendingConnections.find(connection);
         if (it == m_pendingConnections.end()) {
@@ -314,32 +266,31 @@ void P2pLobbyService::handleConnectionOpened(const QJsonObject& params)
         }
         P2pGameCoordinator::NegotiationRequest request = it.value();
         m_pendingConnections.erase(it);
-        request.opponentPeerId = peerId;
-        request.opponentPeerIdBytes = peerIdBytes;
-        request.viaRelay = viaRelay;
+        request.opponentPeerId = opened.peerId;
+        request.opponentPeerIdBytes = opened.peerIdBytes;
+        request.viaRelay = opened.viaRelay;
         if (!m_deps.game->startNegotiation(request)) closeConnection(connection);
         return;
     }
 
-    // 自分の招待を使った相手からの接続。交渉中・対局中なら BUSY
+    // 自分の招待を使った相手からの接続。交渉中・対局中なら BUSY、招待を取り消した後なら期限切れ
     if (m_deps.game->isBusy()) {
         rejectConnection(connection, P2p::ErrorCode::Busy);
         return;
     }
-    P2pGameCoordinator::NegotiationRequest request;
-    request.connection = connection;
-    request.opponentPeerId = peerId;
-    request.opponentPeerIdBytes = peerIdBytes;
-    request.role = P2p::kRoleHost;
-    request.viaRelay = viaRelay;
-    if (origin == QLatin1String("invite") && m_inviteActive) {
-        request.myDisplayName = m_inviteDisplayName;
-        request.mySide = m_inviteSide;
-        request.hostTerms = m_inviteTerms;
-    } else {
+    if (!m_inviteActive) {
         rejectConnection(connection, P2p::ErrorCode::Expired);
         return;
     }
+    P2pGameCoordinator::NegotiationRequest request;
+    request.connection = connection;
+    request.opponentPeerId = opened.peerId;
+    request.opponentPeerIdBytes = opened.peerIdBytes;
+    request.role = P2p::kRoleHost;
+    request.viaRelay = opened.viaRelay;
+    request.myDisplayName = m_inviteDisplayName;
+    request.mySide = m_inviteSide;
+    request.hostTerms = m_inviteTerms;
     if (!m_deps.game->startNegotiation(request)) rejectConnection(connection, P2p::ErrorCode::Busy);
 }
 
@@ -358,21 +309,19 @@ void P2pLobbyService::createInvite(const QString& displayName, const P2p::TimeCo
     m_inviteDisplayName = displayName;
     m_inviteTerms = terms;
     m_inviteSide = side;
-    m_peer->request(QStringLiteral("createInvite"));
+    m_peer->request(PeerIpc::Requests::createInvite());
 }
 
 void P2pLobbyService::cancelInvites()
 {
     m_inviteActive = false;
-    if (m_peer && m_peer->isReady()) m_peer->request(QStringLiteral("cancelInvites"));
+    if (m_peer && m_peer->isReady()) m_peer->request(PeerIpc::Requests::cancelInvites());
 }
 
 void P2pLobbyService::inspectInvite(const QString& invite)
 {
     if (!m_peer || m_status != Status::Online) return;
-    QJsonObject params;
-    params[QStringLiteral("invite")] = invite;
-    m_peer->request(QStringLiteral("inspectInvite"), params);
+    m_peer->request(PeerIpc::Requests::inspectInvite(invite));
 }
 
 void P2pLobbyService::connectInvite(const QString& invite, bool allowPrivate, const QString& myDisplayName)
@@ -383,10 +332,7 @@ void P2pLobbyService::connectInvite(const QString& invite, bool allowPrivate, co
     request.myDisplayName = myDisplayName;
     // 招待では先後の希望を「指定なし」にし、条件は招待した側の HELLO の応答で初めて知る
     request.mySide = P2p::SidePreference::None;
-    QJsonObject params;
-    params[QStringLiteral("invite")] = invite;
-    params[QStringLiteral("allowPrivate")] = allowPrivate;
-    const quint64 id = m_peer->request(QStringLiteral("connectInvite"), params);
+    const quint64 id = m_peer->request(PeerIpc::Requests::connectInvite(invite, allowPrivate));
     if (id != 0) m_connectRequests.insert(id, request);
 }
 
@@ -395,32 +341,23 @@ void P2pLobbyService::connectInvite(const QString& invite, bool allowPrivate, co
 bool P2pLobbyService::sendFrame(quint64 connection, const QByteArray& frame)
 {
     if (!m_peer || !m_peer->isReady() || connection == 0) return false;
-    QJsonObject params;
-    params[QStringLiteral("connection")] = QString::number(connection);
-    params[QStringLiteral("frame")] = QString::fromLatin1(frame.toBase64());
-    return m_peer->request(QStringLiteral("sendFrame"), params) != 0;
+    return m_peer->request(PeerIpc::Requests::sendFrame(connection, frame)) != 0;
 }
 
 void P2pLobbyService::closeConnection(quint64 connection)
 {
     if (!m_peer || !m_peer->isReady() || connection == 0) return;
-    QJsonObject params;
-    params[QStringLiteral("connection")] = QString::number(connection);
-    m_peer->request(QStringLiteral("closeConnection"), params);
+    m_peer->request(PeerIpc::Requests::closeConnection(connection));
 }
 
 void P2pLobbyService::setGamePeer(const QString& peerId)
 {
     if (!m_peer || !m_peer->isReady()) return;
-    QJsonObject params;
-    params[QStringLiteral("peerId")] = peerId;
-    m_peer->request(QStringLiteral("setGamePeer"), params);
+    m_peer->request(PeerIpc::Requests::setGamePeer(peerId));
 }
 
 void P2pLobbyService::reconnectGamePeer(const QString& peerId)
 {
     if (!m_peer || !m_peer->isReady() || peerId.isEmpty()) return;
-    QJsonObject params;
-    params[QStringLiteral("peerId")] = peerId;
-    m_peer->request(QStringLiteral("connectPeer"), params);
+    m_peer->request(PeerIpc::Requests::connectPeer(peerId));
 }
