@@ -58,6 +58,8 @@ B1 の経路は2つある。
 
 ### R1 終局の行の対応表が `MatchEnding` の外にある
 
+**状態: 済（a5fd1533）**。`MatchCause` に詰み・合意の引き分けを足し、`P2p::GameRules::endInfo` で直して `MatchEnding::endingOf` を通す。512手到達は持将棋と書くようになった。`P2p::MatchEnding` は `P2p::Settlement` に改名した。
+
 - `p2pgamecoordinator.cpp:34` の `endingEntry` が、P2P の終局の原因（`P2p::Cause`）から棋譜の終局の行を自前で作る。CLAUDE.md は、原因から終局の行への対応を `MatchEnding`（`src/game/matchending.h`）の「ここだけ」に置くと定めている。ローカル対局と CSA通信対局はそれを通る（CSA はサーバーの結果を `MatchCause` に直す）。
 - 連続王手の千日手だけ `RecordEntry::forSideToMove` を自分で呼んでいて、ほかの原因とそろえ方が違う。
 - 名前もぶつかる。`P2p::MatchEnding`（`p2pmatch.h:56`、署名がそろったか・中断したかのローカルの終わり方の enum）と `::MatchEnding`（終局の対応表の名前空間）は、同じ名前で意味が違う。`P2pWindowText::endingText(P2p::MatchEnding, ...)` と `MatchEnding::endingOf` が並ぶと読み違えやすい。
@@ -65,12 +67,16 @@ B1 の経路は2つある。
 
 ### R2 ジャーナルの書き手と読み手が別の層にある
 
+**状態: 済（c14d0d75）**。読み戻しは `RecordKinds::replay`、開始の件も `Match::begin` が書き、`Match::hasConflictProof` を足した。
+
 - 書くのは `P2p::RecordKinds`（`src/game/p2p/p2precordkinds.cpp`）、読み戻すのは `P2pRecordStore::evidenceFromJournal`（`src/network/p2p/p2precordstore.cpp:220`）である。件のラベル（`"J-START"`・`"J-STATE"` など）と各件の要素の並びが、両方に文字列と添字で重複している。読み手は `CborReader` を使わず、ほかの読み取りと書き方が違う。
 - 書き手も割れている。開始の3件（`J-START`・`J-STARTSIG`）は司令塔（`p2pgamecoordinator.cpp:195`）が書き、残りは `Match` が書く。`p2precordkinds.h` の説明は「対局の状態機械（Match）が書き」としている。
 - `P2pGameCoordinator::saveEvidence`（`p2pgamecoordinator.cpp:477`）は、相手の矛盾した署名の証明があったか（ジャーナルを残すか）を知るためだけに、ジャーナル全体をディスクから読み直して `evidenceFromJournal` に通している（`:488`）。証明を書いたのは `Match` なので、`Match` は既にそれを知っている。
 - 直し方: 読み戻しを `RecordKinds` の隣（game/p2p）に移し、ラベルを1か所で持つ（headless の試験で書いて読み戻せる）。開始の件も `Match` が書く（相手の表示名は `MatchSetup` に入れる）。`Match` に `hasConflictProof()` を持たせ、`saveEvidence` は読み直さない。
 
 ### R3 ローカルの終わり方の語が文字列で3か所にある
+
+**状態: 済（14f598e8）**。`p2psettlement.h` に値と語の相互の変換を置き、アプリの終了での中断も `Settlement::Interrupted` にした。通知の文と記録の表の短い語は役割が違うので2つのまま（どちらも値で引く）。
 
 - `Match::endingName`（`p2pmatch.cpp:110`）が enum を `"mutually_signed"` などの語にし、ジャーナルと履歴の情報に書く。
 - `P2pRecordStore::recoverJournals`（`p2precordstore.cpp:285`）は、enum に無い `"interrupted"` を自分で書く。
@@ -144,6 +150,8 @@ IPC の欄の名前を知っている場所は、検査（`peeripc.cpp` の `che
 
 ### R10 `P2pWindow` が操作を直接実行している
 
+**状態: 済（1bce4701）**。ウィンドウだけにあった投了の確認はなくなり、メニューと同じ動きになった。
+
 - `P2pWindow`（dialogs の層）は、接続と切断・鍵の作り直しは意図のシグナル（`startRequested` など）で知らせ、`P2pGameUiController` が受ける。一方、招待（`p2pwindow.cpp:537,571,596`）と投了・申し出・対局の中止（`:643-661`）は、ロビーと司令塔を直接呼ぶ。定跡ウィンドウ（`JosekiWindow`）は意図のシグナルだけで知らせる形にそろえてある。
 - そのため投了の入口が2つある。メニューの投了は `GameChannels::active()` の `P2pGameChannel::resign` を通るが、ウィンドウの投了は通らず、確認のダイアログも別に書いている。
 - `p2pwindow.cpp:37` は、LAN の待受のポートの文（`:627`）のためだけに IPC の層の `peeripc.h` を include している。
@@ -151,11 +159,15 @@ IPC の欄の名前を知っている場所は、検査（`peeripc.cpp` の `che
 
 ### R11 既知の相手の記録を3か所が直接書き換える
 
+**状態: 済（1bce4701）**。相手の表は対局の開始と終局（司令塔が書き換えるとき）に作り直しているので、変更の知らせは足さなかった。
+
 - 司令塔（`p2pgamecoordinator.cpp` の `startMatch` と `Finished` の処理）、相手の表（`p2ppeerspanel.cpp:120-170`）が、`P2pKnownPeers::upsert` で返る参照を書き換えてから `save()` を呼ぶ。保存を呼び忘れても気づけない。
 - 相手の表は表示したときの一覧を持つだけで、対局で数が変わっても作り直さない。
 - 直し方: `P2pKnownPeers` に意図ごとの関数（対局を始めた・結果が確定しなかった・名前を付ける・確認済みにする・ブロックする・消す）を置き、保存もその中で行う。変わったら知らせる。
 
 ### R12 文の表が2か所にある
+
+**状態: 済（1bce4701）**
 
 `P2pWindowText` は「共通の文」だが、通信プロセスの失敗（`PeerProcess::Failure`）と使い始められない理由（`P2pLobbyService::StartFailure`）の文は `p2pgameuicontroller.cpp` に直接書いている。`P2pWindowText` に集める。
 
@@ -169,11 +181,15 @@ IPC の欄の名前を知っている場所は、検査（`peeripc.cpp` の `che
 
 ### 5.2 実験版の使用期限を2つの言語が別々に決めている
 
+**状態: 済（2a1a2b48）**。起点は CMake が決めて cargo に渡し、日数は `sbq-protocol` の `BUILD_LIFETIME_DAYS` から CMake が読む。
+
 - 日数の 180 を、Rust（`protocol/rust/src/network.rs:48` の `BUILD_LIFETIME_DAYS`）と C++（`p2plobbyservice.h` の `kBuildLifetimeDays`）が別々に持つ。
 - 起点の時刻も別々に決める。Rust は `peer/build.rs` が最後に動いた時刻、C++ は CMake で構成した時刻（`CMakeLists.txt:1075`）。どちらも `SOURCE_DATE_EPOCH` があればそれを使うが、無いと起点がずれ、期限の近くで両者の判定が食い違いうる。共通の試験入力にもない。
 - 直し方: CMake が cargo に起点を環境変数で渡す。または、通信プロセスが hello の応答で期限を返し、C++ はそれを使う。
 
 ### 5.3 protocol/ に置かれていない通信の定数
+
+**状態: 済（6f70ad22）**
 
 互換仕様書（`p2p-interop-spec.html:395, 1123-1124`）に載っている次の2つが、`protocol/README.md` と `sbq-protocol` にない。
 
@@ -183,6 +199,8 @@ IPC の欄の名前を知っている場所は、検査（`peeripc.cpp` の `che
 `sbq-protocol` の network に置き、README に足す。
 
 ### 5.4 共通の試験入力が本番の関数を通らない
+
+**状態: 済（23db09b4）**。IPC は向きごとに読み手が違うので共通の試験入力は持たず、`PeerIpc` に直接の試験を足した。
 
 `tst_p2p_protocol` が `protocol/testvectors/frames.txt` で確かめているのは `Frame::isWellFormedEnvelope`（`p2pframes.cpp:33`）で、これは試験からしか使われない。本番で使う `Frame::decode`（`p2pframes.cpp:46`）は、同じ外枠の検査を別に書いている（INVITE_TOKEN を断るところだけが違う）。`decode` が外枠の検査を `isWellFormedEnvelope` と共有するか、試験入力を `decode` にも通す。
 
