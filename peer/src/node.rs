@@ -1,7 +1,10 @@
 //! 対局・UI側から使うときの通信プロセス（IPC の要求を受けて Swarm を動かす）
+//!
+//! 主ループと Swarm の作成はここに置き、役割ごとに分ける: 要求の処理（requests）、Swarm の出来事（events）、
+//! 対局ストリーム（streams）、作った招待（invites）、中継の予約（reservations）。待受は crate::listen
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -10,93 +13,30 @@ use base64::Engine;
 use futures::StreamExt;
 use libp2p::identity::Keypair;
 use libp2p::swarm::ConnectionId;
-use libp2p::{Multiaddr, PeerId, Stream, StreamProtocol, Swarm};
-use sbq_protocol::frame::{self, FrameHeader, GAME_PROTOCOL};
+use libp2p::{Multiaddr, PeerId, StreamProtocol, Swarm};
+use sbq_protocol::frame::GAME_PROTOCOL;
 use sbq_protocol::hash::hex;
-use sbq_protocol::network::{self, NetworkSpec, Profile, LAN_PORT};
+use sbq_protocol::network::{self, NetworkSpec, Profile};
 use serde_json::json;
 use tokio::sync::mpsc;
-use tokio::task::AbortHandle;
 
 use crate::addr::{self, AddrPolicy};
-use crate::game::{self, ConnEvent, ConnShared};
+use crate::game::ConnEvent;
 use crate::ipc::{self, Method, Out, Request};
+use crate::listen;
 use crate::sandbox::SandboxReport;
 use crate::swarm::{self, Behaviour, SwarmOptions};
 
 mod events;
+mod invites;
 mod requests;
 mod reservations;
+mod streams;
 
-/// 対局ストリーム（開始前・対局中を合わせて）の上限
-pub const MAX_GAME_CONNECTIONS: usize = 8;
-/// 最初のフレームを待つ時間
-const FIRST_FRAME_TIMEOUT: Duration = Duration::from_secs(10);
-/// 接続を開くまでの時間
-const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+pub use streams::{Conn, ConnState, Internal, MAX_GAME_CONNECTIONS};
+
 /// 宛先を覚えるピアの上限
 const MAX_ADDR_BOOK_PEERS: usize = 64;
-
-/// 決まったポートの TCP の待受を、ほかのプロセスが使っていないか（ポートを決めていないアドレスと TCP 以外は true）。
-/// libp2p の TCP の待受は、同じポートを複数のプロセスで共有できる設定（SO_REUSEPORT）で開くので、使用中でも開けて
-/// しまい、届いた接続が2つのプロセスに振り分けられる。先に、共有しない待受を試して確かめる。
-/// 確かめてから開くまでの間に、同時に起動した通信プロセスが同じことをすると両方が開けてしまうので、決まったポートの
-/// TCP は、同じ番号の UDP を開けたプロセスだけが試す（fixed_port_allowed）
-fn tcp_port_available(addr: &Multiaddr) -> bool {
-    let mut ip: Option<std::net::IpAddr> = None;
-    for protocol in addr.iter() {
-        match protocol {
-            libp2p::multiaddr::Protocol::Ip4(v4) => ip = Some(v4.into()),
-            libp2p::multiaddr::Protocol::Ip6(v6) => ip = Some(v6.into()),
-            libp2p::multiaddr::Protocol::Tcp(port) if port != 0 => {
-                return ip.is_some_and(|ip| std::net::TcpListener::bind((ip, port)).is_ok());
-            }
-            _ => {}
-        }
-    }
-    true
-}
-
-/// 決まったポート（LAN_PORT）のアドレスか（UDP か TCP か）
-fn fixed_port_of(addr: &Multiaddr) -> Option<&'static str> {
-    addr.iter().find_map(|p| match p {
-        libp2p::multiaddr::Protocol::Udp(port) if port == LAN_PORT => Some("udp"),
-        libp2p::multiaddr::Protocol::Tcp(port) if port == LAN_PORT => Some("tcp"),
-        _ => None,
-    })
-}
-
-/// この待受の候補を試してよいか。決まったポートの TCP は、同じ番号の UDP（QUIC）を開けたプロセスだけが試す。
-/// UDP の待受は共有できない（ほかのプロセスが開けていれば失敗する）ので、決まったポートの持ち主が1つに決まる
-fn fixed_port_allowed(addr: &Multiaddr, own_fixed_udp: bool) -> bool {
-    fixed_port_of(addr) != Some("tcp") || own_fixed_udp
-}
-
-/// 待受のアドレスの候補。外側の1件ごとに、内側を先頭から試して最初に開けたものを使う
-pub fn listen_candidates(profile: Profile) -> Vec<Vec<Multiaddr>> {
-    let groups: Vec<Vec<String>> = match profile {
-        // 同じ PC・同じ LAN: LAN 側でも待ち受ける（受け付ける接続元は loopback と私設アドレスだけ。AddrPolicy）。
-        // IPv6 では待ち受けない（家庭の LAN の IPv6 はインターネットから届くアドレスのことが多い）。
-        // UDP を先に開ける（決まったポートの TCP は、同じ番号の UDP を開けたプロセスだけが使う。fixed_port_allowed）
-        Profile::Local => vec![
-            vec![
-                format!("/ip4/0.0.0.0/udp/{LAN_PORT}/quic-v1"),
-                "/ip4/0.0.0.0/udp/0/quic-v1".to_owned(),
-            ],
-            vec![format!("/ip4/0.0.0.0/tcp/{LAN_PORT}"), "/ip4/0.0.0.0/tcp/0".to_owned()],
-        ],
-        Profile::Internet => vec![
-            vec!["/ip4/0.0.0.0/tcp/0".to_owned()],
-            vec!["/ip4/0.0.0.0/udp/0/quic-v1".to_owned()],
-            vec!["/ip6/::/tcp/0".to_owned()],
-            vec!["/ip6/::/udp/0/quic-v1".to_owned()],
-        ],
-    };
-    groups
-        .into_iter()
-        .map(|group| group.iter().filter_map(|a| a.parse().ok()).collect())
-        .collect()
-}
 
 /// UNIX 秒
 pub fn unix_now() -> u64 {
@@ -117,53 +57,6 @@ pub fn build_expired(now: u64) -> bool {
     now > build_unix().saturating_add(lifetime)
 }
 
-/// 主ループへの知らせ（接続を開くタスクから）
-pub enum Internal {
-    OutboundOpened {
-        conn: u64,
-        stream: Stream,
-    },
-    OutboundFailed {
-        conn: u64,
-        reason: ipc::CloseReason,
-    },
-    Inbound {
-        peer: PeerId,
-        stream: Stream,
-        header: FrameHeader,
-        first: Vec<u8>,
-    },
-}
-
-/// 開いた接続の状態
-pub enum ConnState {
-    Connecting,
-    Open {
-        writer: mpsc::Sender<Vec<u8>>,
-        shared: Arc<ConnShared>,
-        tasks: [AbortHandle; 2],
-        route: ipc::Route,
-    },
-}
-
-pub struct Conn {
-    pub peer: PeerId,
-    pub origin: ipc::Origin,
-    pub direction: ipc::Direction,
-    pub state: ConnState,
-}
-
-impl Drop for Conn {
-    fn drop(&mut self) {
-        if let ConnState::Open { tasks, .. } = &self.state {
-            // 送信のタスクは送る列が閉じれば閉じるが、受信のタスクは止める
-            if let Some(reader) = tasks.first() {
-                reader.abort();
-            }
-        }
-    }
-}
-
 /// Swarm を作る条件
 pub struct NodeConfig {
     pub spec: NetworkSpec,
@@ -173,12 +66,6 @@ pub struct NodeConfig {
     pub relay_server: bool,
     /// 待受のアドレスの候補（1件ごとに、先頭から試して最初に開けたものを使う）
     pub listen: Vec<Vec<Multiaddr>>,
-}
-
-/// 作った招待
-pub struct OutstandingInvite {
-    pub token: [u8; 32],
-    pub expires_at: u64,
 }
 
 pub struct Node {
@@ -196,7 +83,7 @@ pub struct Node {
     pub internal: mpsc::UnboundedSender<Internal>,
     pub conns: HashMap<u64, Conn>,
     pub next_conn: u64,
-    pub invites: Vec<OutstandingInvite>,
+    pub invites: invites::Invites,
     pub game_peer: Option<PeerId>,
     pub peer_conns: HashMap<PeerId, HashMap<ConnectionId, bool>>,
     /// 受け付けた接続の接続元のアドレス帯
@@ -310,7 +197,7 @@ impl Node {
             relay_only: p.relay_only,
             service: false,
             relay_server: false,
-            listen: listen_candidates(spec.profile),
+            listen: listen::candidates(spec.profile),
         };
         let mut node = Node::create(out, config).map_err(|e| ("internal", e))?;
         node.connect_nodes(&p.bootstrap);
@@ -345,23 +232,7 @@ impl Node {
             autonat: internet && !config.relay_only,
         })?;
 
-        let mut listening = 0usize;
-        let mut own_fixed_udp = false;
-        for candidates in config.listen {
-            // 候補の先頭（決まったポート）が使用中なら、次の候補（空いているポート）で待ち受ける
-            if candidates.into_iter().any(|addr| {
-                if !fixed_port_allowed(&addr, own_fixed_udp) {
-                    return false;
-                }
-                let fixed_udp = fixed_port_of(&addr) == Some("udp");
-                let opened = tcp_port_available(&addr) && swarm.listen_on(addr).is_ok();
-                own_fixed_udp |= opened && fixed_udp;
-                opened
-            }) {
-                listening = listening.saturating_add(1);
-            }
-        }
-        if listening == 0 {
+        if listen::open(&mut swarm, config.listen) == 0 {
             return Err("could not listen".into());
         }
 
@@ -373,7 +244,7 @@ impl Node {
             let incoming = control
                 .accept(StreamProtocol::new(GAME_PROTOCOL))
                 .map_err(|e| e.to_string())?;
-            tokio::spawn(accept_task(
+            tokio::spawn(streams::accept_task(
                 incoming,
                 internal_tx.clone(),
                 Arc::new(AtomicUsize::new(0)),
@@ -394,7 +265,7 @@ impl Node {
             internal: internal_tx,
             conns: HashMap::new(),
             next_conn: 1,
-            invites: Vec::new(),
+            invites: invites::Invites::default(),
             game_peer: None,
             peer_conns: HashMap::new(),
             inbound_prefixes: HashMap::new(),
@@ -449,136 +320,6 @@ impl Node {
         }
     }
 
-    pub fn alloc_conn(&mut self) -> u64 {
-        let id = self.next_conn;
-        self.next_conn = self.next_conn.saturating_add(1);
-        id
-    }
-
-    pub fn game_connection_count(&self) -> usize {
-        self.conns.len()
-    }
-
-    pub fn route_of(&self, peer: &PeerId) -> ipc::Route {
-        match self.peer_conns.get(peer) {
-            Some(conns) if conns.values().any(|relayed| !relayed) => ipc::Route::Direct,
-            Some(conns) if !conns.is_empty() => ipc::Route::Relay,
-            _ => ipc::Route::Direct,
-        }
-    }
-
-    /// 接続を開き始める（結果は Internal で届く）
-    pub fn start_outbound(
-        &mut self,
-        conn: u64,
-        peer: PeerId,
-        addrs: Vec<Multiaddr>,
-        token: Option<[u8; 32]>,
-        origin: ipc::Origin,
-    ) {
-        let connected = self.swarm.is_connected(&peer);
-        for a in &addrs {
-            self.swarm.add_peer_address(peer, a.clone());
-        }
-        // つなぐのに使った宛先を覚える（対局中に切れたときの再接続に使う）
-        self.remember_addrs(peer, &addrs);
-        if !connected {
-            let opts = libp2p::swarm::dial_opts::DialOpts::peer_id(peer)
-                .addresses(addrs.clone())
-                .extend_addresses_through_behaviour()
-                .build();
-            let _ = self.swarm.dial(opts);
-        }
-        self.conns.insert(
-            conn,
-            Conn {
-                peer,
-                origin,
-                direction: ipc::Direction::Outbound,
-                state: ConnState::Connecting,
-            },
-        );
-        let mut control = self.control.clone();
-        let internal = self.internal.clone();
-        tokio::spawn(async move {
-            let result = tokio::time::timeout(
-                CONNECT_TIMEOUT,
-                control.open_stream(peer, StreamProtocol::new(GAME_PROTOCOL)),
-            )
-            .await;
-            let event = match result {
-                Ok(Ok(mut stream)) => {
-                    let token_ok = match token {
-                        Some(t) => game::write_frame(&mut stream, &frame::invite_token_frame(&t))
-                            .await
-                            .is_ok(),
-                        None => true,
-                    };
-                    if token_ok {
-                        Internal::OutboundOpened { conn, stream }
-                    } else {
-                        Internal::OutboundFailed {
-                            conn,
-                            reason: ipc::CloseReason::Unreachable,
-                        }
-                    }
-                }
-                Ok(Err(_)) => Internal::OutboundFailed {
-                    conn,
-                    reason: ipc::CloseReason::Unreachable,
-                },
-                Err(_) => Internal::OutboundFailed {
-                    conn,
-                    reason: ipc::CloseReason::Timeout,
-                },
-            };
-            let _ = internal.send(event);
-        });
-    }
-
-    /// 開いたストリームの読み書きを始め、connectionOpened を知らせる
-    pub fn open_conn(&mut self, conn: u64, stream: Stream) {
-        let Some(entry) = self.conns.get(&conn) else { return };
-        let peer = entry.peer;
-        let (reader, writer) = game::split(stream);
-        let shared = Arc::new(ConnShared::default());
-        let (frame_tx, frame_rx) = mpsc::channel(64);
-        let reader_task = tokio::spawn(game::reader_task(
-            conn,
-            reader,
-            shared.clone(),
-            self.conn_events.clone(),
-        ));
-        let writer_task = tokio::spawn(game::writer_task(conn, writer, frame_rx, self.conn_events.clone()));
-        let route = self.route_of(&peer);
-        if let Some(entry) = self.conns.get_mut(&conn) {
-            entry.state = ConnState::Open {
-                writer: frame_tx,
-                shared,
-                tasks: [reader_task.abort_handle(), writer_task.abort_handle()],
-                route,
-            };
-            self.out.notify(ipc::Notification::ConnectionOpened {
-                connection: conn,
-                peer_id: &peer.to_base58(),
-                peer_id_bytes: &peer.to_bytes(),
-                route,
-                direction: entry.direction,
-                origin: entry.origin,
-            });
-        }
-    }
-
-    /// 接続を閉じて connectionClosed を知らせる
-    pub fn close_conn(&mut self, conn: u64, reason: ipc::CloseReason, notify: bool) {
-        if self.conns.remove(&conn).is_some() && notify {
-            self.out.notify(ipc::Notification::ConnectionClosed {
-                connection: conn,
-                reason,
-            });
-        }
-    }
-
     /// 主ループ。requests は対局・UI側からの要求（協力ノードは IPC を持たないので None）。列が閉じたら終わる
     pub async fn run_loop(&mut self, mut requests: Option<mpsc::UnboundedReceiver<Request>>) {
         let Some((mut conn_events, mut internal)) = self.pending_streams.take() else {
@@ -599,112 +340,6 @@ impl Node {
         }
     }
 
-    fn on_conn_event(&mut self, event: ConnEvent) {
-        match event {
-            ConnEvent::Frame { conn, frame, shared } => {
-                let len = frame.len();
-                if self.conns.contains_key(&conn) {
-                    self.out.notify_with_release(
-                        ipc::Notification::FrameReceived {
-                            connection: conn,
-                            frame: &frame,
-                        },
-                        Some(ipc::Release {
-                            counter: shared.pending.clone(),
-                            bytes: len,
-                        }),
-                    );
-                } else {
-                    shared.pending.fetch_sub(len, Ordering::SeqCst);
-                }
-            }
-            ConnEvent::Closed { conn, reason } => self.close_conn(conn, reason, true),
-        }
-    }
-
-    fn on_internal(&mut self, event: Internal) {
-        match event {
-            Internal::OutboundOpened { conn, stream } => {
-                if matches!(self.conns.get(&conn).map(|c| &c.state), Some(ConnState::Connecting)) {
-                    self.open_conn(conn, stream);
-                }
-            }
-            Internal::OutboundFailed { conn, reason } => self.close_conn(conn, reason, true),
-            Internal::Inbound {
-                peer,
-                stream,
-                header,
-                first,
-            } => self.on_inbound(peer, stream, header, first),
-        }
-    }
-
-    /// 届いた対局ストリームを受け付けるか決める（protocol/README.md 2.1節・ipc.md 3章）
-    fn on_inbound(&mut self, peer: PeerId, stream: Stream, header: FrameHeader, first: Vec<u8>) {
-        if self.game_connection_count() >= MAX_GAME_CONNECTIONS {
-            return;
-        }
-        let (origin, forward_first) = if let Some(game_peer) = self.game_peer {
-            if peer != game_peer || header.frame_type == frame::TYPE_INVITE_TOKEN {
-                return;
-            }
-            (ipc::Origin::Game, true)
-        } else if header.frame_type == frame::TYPE_INVITE_TOKEN {
-            let Some(token) = frame::invite_token(&header) else {
-                return;
-            };
-            let now = unix_now();
-            let mut matched: Option<usize> = None;
-            for (i, invite) in self.invites.iter().enumerate() {
-                // すべての招待と、処理時間が一致した長さで変わらない比較で照合する
-                if constant_time_eq(&invite.token, &token) && invite.expires_at > now {
-                    matched = Some(i);
-                }
-            }
-            let Some(i) = matched else { return };
-            if i < self.invites.len() {
-                self.invites.remove(i);
-            }
-            (ipc::Origin::Invite, false)
-        } else {
-            // 有効な招待の合言葉を持たない相手のストリームは受け付けない
-            return;
-        };
-        let conn = self.alloc_conn();
-        self.conns.insert(
-            conn,
-            Conn {
-                peer,
-                origin,
-                direction: ipc::Direction::Inbound,
-                state: ConnState::Connecting,
-            },
-        );
-        self.open_conn(conn, stream);
-        if forward_first {
-            let shared = match self.conns.get(&conn).map(|c| &c.state) {
-                Some(ConnState::Open { shared, .. }) => shared.clone(),
-                _ => return,
-            };
-            if header.frame_type == frame::TYPE_START_SIGNATURE {
-                shared.received_start_signature.store(true, Ordering::SeqCst);
-            }
-            // 2つ目からのフレーム（game::reader_task）と同じく、書き出すまで受信キューに数える
-            let len = first.len();
-            shared.pending.fetch_add(len, Ordering::SeqCst);
-            self.out.notify_with_release(
-                ipc::Notification::FrameReceived {
-                    connection: conn,
-                    frame: &first,
-                },
-                Some(ipc::Release {
-                    counter: shared.pending.clone(),
-                    bytes: len,
-                }),
-            );
-        }
-    }
-
     fn on_tick(&mut self) {
         if let Some(at) = self.shutdown_at {
             if Instant::now() >= at {
@@ -715,8 +350,7 @@ impl Node {
             return;
         }
         self.last_second = Instant::now();
-        let now = unix_now();
-        self.invites.retain(|i| i.expires_at > now);
+        self.invites.expire(unix_now());
         // 断られた・失われた中継の予約を頼み直す（協力ノードとつながっている間）
         for peer in self.reservations.due(Instant::now()) {
             if self.peer_conns.contains_key(&peer) {
@@ -758,105 +392,5 @@ async fn next_request(requests: &mut Option<mpsc::UnboundedReceiver<Request>>) -
     match requests {
         Some(rx) => rx.recv().await,
         None => std::future::pending().await,
-    }
-}
-
-/// 長さが一致した値どうしで、処理時間が中身によらない比較
-pub fn constant_time_eq(a: &[u8; 32], b: &[u8; 32]) -> bool {
-    let mut diff = 0u8;
-    for (x, y) in a.iter().zip(b.iter()) {
-        diff |= x ^ y;
-    }
-    diff == 0
-}
-
-/// 届いた対局ストリームの最初のフレームを読み、主ループへ渡す
-async fn accept_task(
-    mut incoming: libp2p_stream::IncomingStreams,
-    internal: mpsc::UnboundedSender<Internal>,
-    pending: Arc<AtomicUsize>,
-) {
-    while let Some((peer, mut stream)) = incoming.next().await {
-        if pending.load(Ordering::SeqCst) >= MAX_GAME_CONNECTIONS {
-            continue;
-        }
-        pending.fetch_add(1, Ordering::SeqCst);
-        let internal = internal.clone();
-        let pending = pending.clone();
-        tokio::spawn(async move {
-            let first = tokio::time::timeout(FIRST_FRAME_TIMEOUT, game::read_frame(&mut stream)).await;
-            pending.fetch_sub(1, Ordering::SeqCst);
-            if let Ok(Ok((bytes, header))) = first {
-                let _ = internal.send(Internal::Inbound {
-                    peer,
-                    stream,
-                    header,
-                    first: bytes,
-                });
-            }
-        });
-    }
-}
-
-#[cfg(test)]
-#[allow(clippy::unwrap_used)]
-mod tests {
-    use super::*;
-
-    /// ローカルのネットワークは、TCP と UDP のそれぞれで、決まったポートを先に試し、使用中なら空いているポートを使う。
-    /// IPv6 では待ち受けない
-    #[test]
-    fn local_listens_on_the_fixed_port_first() {
-        let groups = listen_candidates(Profile::Local);
-        let text: Vec<Vec<String>> = groups
-            .iter()
-            .map(|g| g.iter().map(ToString::to_string).collect())
-            .collect();
-        assert_eq!(
-            text,
-            vec![
-                vec![
-                    "/ip4/0.0.0.0/udp/48210/quic-v1".to_owned(),
-                    "/ip4/0.0.0.0/udp/0/quic-v1".to_owned()
-                ],
-                vec!["/ip4/0.0.0.0/tcp/48210".to_owned(), "/ip4/0.0.0.0/tcp/0".to_owned()],
-            ]
-        );
-        // インターネットの profile は、空いているポートで IPv4 と IPv6 の両方
-        let internet = listen_candidates(Profile::Internet);
-        assert_eq!(internet.len(), 4);
-        assert!(internet.iter().all(|g| g.len() == 1));
-    }
-
-    /// 決まったポートの TCP は、同じ番号の UDP を開けたプロセスだけが試す（同時に起動した通信プロセスどうしが、
-    /// TCP のポートを確かめ合って両方開けてしまわないように）。ほかの待受は、いつでも試す
-    #[test]
-    fn fixed_tcp_port_needs_the_fixed_udp_port() {
-        let fixed_tcp: Multiaddr = "/ip4/0.0.0.0/tcp/48210".parse().unwrap();
-        let any_tcp: Multiaddr = "/ip4/0.0.0.0/tcp/0".parse().unwrap();
-        let fixed_udp: Multiaddr = "/ip4/0.0.0.0/udp/48210/quic-v1".parse().unwrap();
-        assert!(!fixed_port_allowed(&fixed_tcp, false));
-        assert!(fixed_port_allowed(&fixed_tcp, true));
-        assert!(fixed_port_allowed(&any_tcp, false));
-        assert!(fixed_port_allowed(&fixed_udp, false));
-        assert_eq!(fixed_port_of(&fixed_udp), Some("udp"));
-        assert_eq!(fixed_port_of(&fixed_tcp), Some("tcp"));
-        assert_eq!(fixed_port_of(&any_tcp), None);
-    }
-
-    /// ほかのプロセスが待ち受けている TCP のポートは、使えないと判定する（同じポートを共有しない）
-    #[test]
-    fn busy_tcp_port_is_not_shared() {
-        let holder = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
-        let port = holder.local_addr().unwrap().port();
-        let busy: Multiaddr = format!("/ip4/127.0.0.1/tcp/{port}").parse().unwrap();
-        assert!(!tcp_port_available(&busy));
-        drop(holder);
-        assert!(tcp_port_available(&busy));
-        // ポートを決めていないアドレスと、TCP でないアドレスは確かめない
-        assert!(tcp_port_available(&"/ip4/0.0.0.0/tcp/0".parse().unwrap()));
-        assert!(tcp_port_available(
-            &format!("/ip4/127.0.0.1/udp/{port}/quic-v1").parse().unwrap()
-        ));
     }
 }

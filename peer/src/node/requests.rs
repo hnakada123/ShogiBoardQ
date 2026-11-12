@@ -12,13 +12,10 @@ use sbq_protocol::invite::{self, Invite, InviteError};
 use sbq_protocol::network::Profile;
 use serde_json::{json, Value};
 
-use super::{unix_now, ConnState, Node, OutstandingInvite, MAX_GAME_CONNECTIONS};
+use super::{unix_now, ConnState, Node, MAX_GAME_CONNECTIONS};
 use crate::addr::{self, AddrPolicy};
 use crate::ipc::{self, Method, Request};
 use crate::swarm::parse_peer_id;
-
-/// 同時に持つ招待の上限
-const MAX_INVITES: usize = 4;
 
 type ReqResult = Result<Value, (&'static str, String)>;
 
@@ -115,10 +112,7 @@ impl Node {
         let text = inv
             .encode()
             .ok_or(("internal", "could not encode the invite".to_owned()))?;
-        while self.invites.len() >= MAX_INVITES {
-            self.invites.remove(0);
-        }
-        self.invites.push(OutstandingInvite { token, expires_at });
+        self.invites.add(token, expires_at);
         Ok(json!({ "invite": text, "expiresAt": expires_at.to_string(), "addressCount": address_count }))
     }
 
