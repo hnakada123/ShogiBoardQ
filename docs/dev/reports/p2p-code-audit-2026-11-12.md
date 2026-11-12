@@ -91,6 +91,8 @@ B1 の経路は2つある。
 
 ### R5 `P2pLobbyService` が7つの責務を持つ
 
+**状態: 済（229f7a86・51cabd3a・de085031・e3574a32）**。REJECT は `P2p::rejectFrame`、IPC の要求・応答・通知は `PeerIpc` の型（ウィンドウには招待の失敗と切断の理由を enum で知らせる）、プレイヤーの保存先は `P2pPlayerProfile`（ロックも `P2pRecordStore` から移した）、使用期限は `P2pBuildExpiry` にした。
+
 `p2plobbyservice.h/.cpp` が次のものを持つ。
 
 - プレイヤーの保存先の持ち主: 何人目のプレイヤーか（`acquire`）、ロック（`P2pRecordStore::lock`）、ジャーナルの復旧、既知の相手、プレイヤー鍵
@@ -112,6 +114,8 @@ IPC の欄の名前を知っている場所は、検査（`peeripc.cpp` の `che
 
 ### R6 `Match` を責務ではなく行数で2ファイルに分けている
 
+**状態: 一部済（bbcd6700）**。計時の記録を値 `P2p::MatchTimer` に切り出した。結果の提案・申し出・署名の交換は、送信・ジャーナル・終局と結び付いていて、別のクラスにすると状態機械への参照が要るので `Match` に残した（2ファイルの分け方もそのまま）。
+
 `P2p::Match` は1つのクラス（約955行）を `p2pmatch.cpp`（State0 と着手）と `p2pmatch_control.cpp`（制御・結果・再接続）に分けている。CLAUDE.md の「行数で機械的に分けず、責務を別のクラスに切り出す」に合わない。
 
 切り出す候補:
@@ -120,6 +124,8 @@ IPC の欄の名前を知っている場所は、検査（`peeripc.cpp` の `che
 - 結果の交換: 自分の提案・相手の申し出・同じ手数での申し出の回数・結果への署名（`m_myProposal` から `m_resultAgreedAt` まで）。
 
 ### R7 Rust の `node.rs`（851行）が抱えすぎている
+
+**状態: 済（97537316）**。`node/invites.rs`・`listen.rs`・`node/streams.rs` に分け、`node.rs` は主ループ・起動・Swarm の作成・毎秒の処理だけ（393行）。IPC の握手と start は `node.rs` に残した。
 
 `peer/src/node.rs` に次のものが同居している。
 
@@ -137,12 +143,16 @@ IPC の欄の名前を知っている場所は、検査（`peeripc.cpp` の `che
 
 ### R8 Rust の IPC の出力の形が散らばっている
 
+**状態: 済（bc47237a）**。通知は `ipc::Notification`、語は enum。最初のフレームも受信キューに数える。エラーの code と応答の結果は、これまでどおり `json!` で組む。
+
 - 要求は `ipc.rs` の型で受けるが、応答と通知は `json!` で直接組んでいる。組む場所が `node.rs:268,321,566,584,614,697,739`、`events.rs:134`、`sandbox.rs:19` に分かれる。
 - `frameReceived` は2か所で組んでいて、扱いが違う。`node.rs:698`（ストリームの最初のフレーム）は `notify` で送り、受信キューの計上（`notify_with_release`）を通らない。`node.rs:615` は通る。
 - 切断の理由・経路・接続の由来は `&'static str` の文字列があちこちに書かれている。C++ 側は `peeripc.cpp:207-275` の1つの表で検査している。
 - 直し方: `ipc.rs` に結果と通知の Serialize できる型と、理由の enum を置き、`ipc.md` の3章・4章と1対1にする。
 
 ### R9 Rust の協力ノードが IPC の偽の経路を作っている
+
+**状態: 済（951ae75b）**。`Out::discard` と、要求の列を持たない主ループにした。`service` フラグによる振る舞いの違いはそのまま。
 
 `service.rs:121-123` は知らせを捨てるだけの `Out` を作り、`:141` は使わない要求の通路を作っている。`service` フラグによる分岐も `create`・`on_tick`・`on_identify`・swarm に散っている。`Node` が IPC に直結しているためで、`Node` は型付きのイベントを返し、IPC への橋渡しを別の部品にすれば、協力ノードは知らせを受けなくて済む。
 
@@ -226,7 +236,7 @@ START_SIGNATURE を見て受信の頻度の上限を変える規則がある。�
 | S8 | `P2pHistoryInfo::mySide` が 1・2 の数で、読み戻しも `== 2 ? 2 : 1` と書く（`kSideBlack`・`kSideWhite` を使わない） | `p2precordstore.h`・`p2precordstore.cpp:237` |
 | S9 | `TimeControlTerms` から `TimeControl` への換算を、棋譜と時計のために同じ関数の中で2回書いている | `p2pgamecoordinator.cpp:221-233` |
 | S10 | CMake の `SRC_P2P` の並びが崩れている（`peeripc`・`peerprocess` が ui の後） | `CMakeLists.txt:1104-1111` |
-| S11 | Rust: `status_dirty` は書くだけで読まれない | `node.rs:214`・`events.rs` の8か所 |
+| S11 | Rust: `status_dirty` は書くだけで読まれない | `node.rs:214`・`events.rs` の8か所<br>**状態: 済（bc47237a、R8）** |
 | S12 | Rust: 使われない関数・値 | `hash::from_hex32`（`hash.rs:50`）・`peerid::ed25519_public_key`（`peerid.rs:14`）・`ConnState::Open` の tasks の2つ目（`node.rs:147`） |
 | S13 | Rust: `game::split` は `stream.split()` の言い換えだけ。tokio の実行器の組み立てが2か所で同じ。16件の上限が4か所に別々に書かれている。`relay_only` を `Node` と `AddrPolicy` の両方が持つ | `game.rs:180`・`main.rs:23-33`・`service.rs:108-118`・`node.rs:308`・`events.rs:31`・`reservations.rs:18`・`addr.rs:22` |
 | S14 | Rust: `sbq-protocol` のモジュールの説明の一覧に `peerid` が無い | `protocol/rust/src/lib.rs:4-8` |
