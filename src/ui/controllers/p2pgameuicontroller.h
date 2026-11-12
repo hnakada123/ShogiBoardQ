@@ -64,7 +64,6 @@ private slots:
     void onGameStarted();
     void onOfferReceived(P2p::Cause cause);
     void onProposalDeclined();
-    void onResultAgreed(const P2p::FinalResult& result);
     void onGameFinished(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
     void onPeerFailed(PeerProcess::Failure failure, const QString& detail);
     /// パスフレーズの要らない読み込み（保管庫・暗号化しないファイル）が終わった

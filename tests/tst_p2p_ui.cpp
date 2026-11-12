@@ -21,6 +21,7 @@
 #include "gameboard.h"
 #include "mainwindowappearancecontroller.h"
 #include "networksettings.h"
+#include "notificationpresenter.h"
 #include "p2pconfirmdialog.h"
 #include "p2pgamecoordinator.h"
 #include "p2pgameuicontroller.h"
@@ -429,6 +430,35 @@ private slots:
         QVERIFY(applicant.game.match()->iAmBlack() != host.game.match()->iAmBlack());
         for (Seat* seat : {&applicant, &host}) {
             QCOMPARE(seat->view->flipMode(), !seat->game.match()->iAmBlack());
+        }
+    }
+
+    /// 終局の結果と双方での確定は、それぞれの側に1つの知らせで出す（結果の一致と確定で2つ続けて出さない）
+    void gameEndIsOneNotification()
+    {
+        Seat applicant(QByteArray(38, 'e'));
+        Seat host(QByteArray(38, 'k'));
+        P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("end-a")));
+        P2pRecordStore hostStore(m_dir.filePath(QStringLiteral("end-h")));
+        QVERIFY(applicantStore.lock() && hostStore.lock());
+        P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("end-a.cbor")));
+        P2pKnownPeers hostKnown(m_dir.filePath(QStringLiteral("end-h.cbor")));
+        QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, &hostStore, &hostKnown));
+
+        NotificationPresenter::ScopedCapture capture;
+        Seat& black = applicant.game.match()->iAmBlack() ? applicant : host;
+        QTRY_VERIFY(black.game.canResign());
+        black.game.resign();
+        QTRY_VERIFY(applicant.game.phase() == P2pGameCoordinator::Phase::Finished
+                    && host.game.phase() == P2pGameCoordinator::Phase::Finished);
+        QCoreApplication::processEvents();
+        QCOMPARE(capture.notices().size(), 2);
+        for (const QString& notice : capture.notices()) {
+            const QStringList lines = notice.split(QLatin1Char('\n'));
+            QVERIFY2(lines.size() == 2, qPrintable(notice));
+            QVERIFY2(lines.at(0).startsWith(QStringLiteral("終局: ")) && lines.at(0).contains(QStringLiteral("投了")),
+                     qPrintable(notice));
+            QCOMPARE(lines.at(1), QStringLiteral("結果が一致し、双方で確定しました。"));
         }
     }
 

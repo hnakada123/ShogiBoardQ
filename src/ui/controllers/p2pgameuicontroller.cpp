@@ -22,6 +22,7 @@
 #include "shogiview.h"
 
 #include <QDir>
+#include <QStringList>
 
 P2pGameUiController::P2pGameUiController(const Deps& deps, QObject* parent)
     : QObject(parent)
@@ -33,7 +34,6 @@ P2pGameUiController::P2pGameUiController(const Deps& deps, QObject* parent)
         connect(m_deps.game, &P2pGameCoordinator::gameStarted, this, &P2pGameUiController::onGameStarted);
         connect(m_deps.game, &P2pGameCoordinator::offerReceived, this, &P2pGameUiController::onOfferReceived);
         connect(m_deps.game, &P2pGameCoordinator::proposalDeclined, this, &P2pGameUiController::onProposalDeclined);
-        connect(m_deps.game, &P2pGameCoordinator::resultAgreed, this, &P2pGameUiController::onResultAgreed);
         connect(m_deps.game, &P2pGameCoordinator::gameFinished, this, &P2pGameUiController::onGameFinished);
     }
 }
@@ -259,19 +259,21 @@ void P2pGameUiController::onProposalDeclined()
                                        NotificationPresenter::Wait::No);
 }
 
-void P2pGameUiController::onResultAgreed(const P2p::FinalResult& result)
-{
-    NotificationPresenter::information(dialogParent(), tr("P2P対局"),
-                                       tr("終局: %1").arg(P2pWindowText::outcomeText(result.outcome, result.cause)),
-                                       NotificationPresenter::Wait::No);
-}
-
 void P2pGameUiController::onGameFinished(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error,
                                          const QString& evidencePath)
 {
-    QString text = P2pWindowText::endingText(ending, error);
-    if (evidencePath.isEmpty()) text += QLatin1Char('\n') + tr("対局の記録（証跡）を保存できませんでした。");
-    NotificationPresenter::information(dialogParent(), tr("P2P対局"), text, NotificationPresenter::Wait::No);
+    // 終局の結果と、双方で確定できたかは1つの知らせにまとめる（結果の一致と確定は続けて起きる）。
+    // 相手の確定を待つ間（届かなければ最長30秒）も、結果は棋譜の終局の行と P2P対局のウィンドウに出ている
+    QStringList lines;
+    const P2p::Match* match = m_deps.game ? m_deps.game->match() : nullptr;
+    if (match && match->agreedResult()) {
+        const P2p::FinalResult& result = *match->agreedResult();
+        lines << tr("終局: %1").arg(P2pWindowText::outcomeText(result.outcome, result.cause));
+    }
+    lines << P2pWindowText::endingText(ending, error);
+    if (evidencePath.isEmpty()) lines << tr("対局の記録（証跡）を保存できませんでした。");
+    NotificationPresenter::information(dialogParent(), tr("P2P対局"), lines.join(QLatin1Char('\n')),
+                                       NotificationPresenter::Wait::No);
     if (m_window) m_window->refresh();
 }
 
