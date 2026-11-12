@@ -445,7 +445,7 @@ void P2pGameCoordinator::saveEvidence()
     P2pHistoryInfo info;
     info.mySide = m_match->iAmBlack() ? P2p::kSideBlack : P2p::kSideWhite;
     info.opponentDisplayName = m_opponentDisplayName;
-    info.localEnding = m_match->endingName();
+    info.settlement = m_match->settlement();
     info.endedAt = static_cast<quint64>(QDateTime::currentSecsSinceEpoch());
     // 相手が同じ手数の異なる状態に署名した証明があれば、ジャーナルを残す
     if (m_journal) m_journal->close();

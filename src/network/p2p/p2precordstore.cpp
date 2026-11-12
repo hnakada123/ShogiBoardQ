@@ -63,7 +63,7 @@ QByteArray infoBytes(const P2pHistoryInfo& info)
 {
     return P2p::Cbor::encode(CborValue::array({CborValue::text("SBQ-HISTORY"), CborValue::uint(1),
                                                CborValue::uint(info.mySide), CborValue::text(info.opponentDisplayName),
-                                               CborValue::text(info.localEnding), CborValue::uint(info.endedAt),
+                                               CborValue::text(P2p::settlementName(info.settlement)), CborValue::uint(info.endedAt),
                                                CborValue::text(info.kifuPath)}));
 }
 
@@ -75,7 +75,7 @@ std::optional<P2pHistoryInfo> parseInfo(const QByteArray& bytes)
     P2pHistoryInfo info;
     info.mySide = static_cast<quint8>(r.uint(2, 2));
     info.opponentDisplayName = r.utf8(3, 96);
-    info.localEnding = QString::fromLatin1(r.ascii(4, 64));
+    info.settlement = P2p::settlementFromName(QString::fromLatin1(r.ascii(4, 64))).value_or(P2p::Settlement::None);
     info.endedAt = r.uint(5, 0xFFFFFFFFFFULL);
     info.kifuPath = r.utf8(6, 4096);
     if (!r.ok()) return std::nullopt;
@@ -230,7 +230,7 @@ int P2pRecordStore::recoverJournals()
         P2pHistoryInfo info;
         info.mySide = replay->mySide;
         info.opponentDisplayName = replay->opponentDisplayName;
-        info.localEnding = replay->localEnding.isEmpty() ? QStringLiteral("interrupted") : replay->localEnding;
+        info.settlement = replay->settlement.value_or(P2p::Settlement::Interrupted);
         info.endedAt = static_cast<quint64>(QFileInfo(path).lastModified().toSecsSinceEpoch());
         if (!saveEvidence(replay->evidence, info, replay->hasConflictProof).isEmpty()) ++recovered;
     }

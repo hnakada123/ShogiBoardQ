@@ -221,6 +221,7 @@ private slots:
             const QList<P2pRecordStore::Entry> history = s->store.history();
             QCOMPARE(history.size(), 1);
             QVERIFY(!history.first().hasJournal);
+            QCOMPARE(history.first().info.settlement, Settlement::MutuallySigned);
         }
         QVERIFY(!applicant.coordinator.isBusy());
     }
@@ -290,7 +291,7 @@ private slots:
         QCOMPARE(store.recoverJournals(), 1);
         const QList<P2pRecordStore::Entry> history = store.history();
         QCOMPARE(history.size(), 1);
-        QCOMPARE(history.first().info.localEnding, QStringLiteral("interrupted"));
+        QCOMPARE(history.first().info.settlement, Settlement::Interrupted);
         QCOMPARE(history.first().gameId, a.gameId());
         // 2つ目のアプリはロックを取れない
         P2pRecordStore second(root);

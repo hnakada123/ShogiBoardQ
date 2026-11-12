@@ -90,7 +90,7 @@ void Match::finish(Settlement ending, std::optional<ErrorCode> error, bool byMe)
     m_phase = Phase::Finished;
     m_settlement = ending;
     m_endingError = error;
-    persist(RecordKinds::ending(endingName()));
+    persist(RecordKinds::ending(m_settlement));
     MatchEvent event;
     event.type = MatchEvent::Type::Finished;
     event.byMe = byMe;
@@ -105,19 +105,6 @@ void Match::failWithError(ErrorCode code, quint32 relatedPly)
     // 検証の失敗では状態を変えずに中断へ移る（相手の負けとして記録しない）
     if (m_phase != Phase::Reconnecting) sendControl(ControlKind::Error, ControlBody::error(code, relatedPly));
     finish(Settlement::Error, code, true);
-}
-
-QString Match::endingName() const
-{
-    switch (m_settlement) {
-    case Settlement::None: return QStringLiteral("playing");
-    case Settlement::MutuallySigned: return QStringLiteral("mutually_signed");
-    case Settlement::SignatureMissing: return QStringLiteral("signature_missing");
-    case Settlement::Aborted: return QStringLiteral("aborted");
-    case Settlement::Error: return QStringLiteral("error");
-    case Settlement::Disconnected: return QStringLiteral("disconnected");
-    }
-    return QStringLiteral("unknown");
 }
 
 Evidence Match::evidence() const

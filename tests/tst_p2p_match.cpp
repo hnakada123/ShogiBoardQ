@@ -326,7 +326,7 @@ private slots:
             QCOMPARE(replay->evidence.encode(), s->match->evidence().encode());
             QCOMPARE(replay->mySide, s->match->iAmBlack() ? kSideBlack : kSideWhite);
             QCOMPARE(replay->opponentDisplayName, s == &pair.applicant ? QStringLiteral("募集") : QStringLiteral("申込"));
-            QCOMPARE(replay->localEnding, s->match->endingName());
+            QCOMPARE(replay->settlement, std::optional<Settlement>(s->match->settlement()));
             QVERIFY(!replay->hasConflictProof);
             QVERIFY(!s->match->hasConflictProof());
         }
@@ -334,6 +334,21 @@ private slots:
         QVERIFY(!RecordKinds::replay({}));
         std::vector<CborValue> withoutStart(pair.black().journal.begin() + 1, pair.black().journal.end());
         QVERIFY(!RecordKinds::replay(withoutStart));
+    }
+
+    /// 結果の確定のしかたと、ジャーナル・履歴に書く語は1対1（監査 2026-11-12 R3）
+    void settlementNamesRoundTrip()
+    {
+        QSet<QString> names;
+        for (const Settlement s : {Settlement::None, Settlement::MutuallySigned, Settlement::SignatureMissing,
+                                   Settlement::Aborted, Settlement::Error, Settlement::Disconnected,
+                                   Settlement::Interrupted}) {
+            names.insert(settlementName(s));
+            QCOMPARE(settlementFromName(settlementName(s)), std::optional<Settlement>(s));
+        }
+        QCOMPARE(names.size(), 7);
+        QVERIFY(!settlementFromName(u"resign"));
+        QVERIFY(!settlementFromName(u""));
     }
 
     /// 相手の矛盾した署名の証明の件があれば、読み戻しで分かる（ジャーナルを残す）
@@ -348,7 +363,7 @@ private slots:
         const std::optional<JournalReplay> replay = RecordKinds::replay(records);
         QVERIFY(replay);
         QVERIFY(replay->hasConflictProof);
-        QVERIFY(replay->localEnding.isEmpty());
+        QVERIFY(!replay->settlement);
         QCOMPARE(replay->evidence.states.size(), std::size_t(2));
     }
 

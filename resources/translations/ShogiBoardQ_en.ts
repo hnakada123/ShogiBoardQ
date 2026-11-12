@@ -14305,13 +14305,13 @@ Are you sure you want to declare?</translation>
         <translation>The results matched, but the opponent&apos;s confirmation did not arrive (record without the opponent&apos;s confirmation).</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="111"/>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="123"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="114"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="128"/>
         <source>双方で確定</source>
         <translation>Confirmed by both</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="112"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="115"/>
         <source>相手の確定なし</source>
         <translation>Without opponent&apos;s confirmation</translation>
     </message>
@@ -14396,32 +14396,32 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Without opponent&apos;s signature</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="113"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="116"/>
         <source>中断（結果未確定）</source>
         <translation>Interrupted (unconfirmed)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="114"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="117"/>
         <source>エラー（結果未確定）</source>
         <translation>Error (unconfirmed)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="115"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="118"/>
         <source>通信中断（結果未確定）</source>
         <translation>Communication lost (unconfirmed)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="116"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="119"/>
         <source>アプリの終了で中断（結果未確定）</source>
         <translation>Interrupted by app exit (unconfirmed)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="124"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="129"/>
         <source>棋譜から決まる結果</source>
         <translation>Determined by the moves</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="125"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="130"/>
         <source>結果未確定</source>
         <translation>Unconfirmed</translation>
     </message>

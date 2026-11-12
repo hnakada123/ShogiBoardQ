@@ -1097,6 +1097,7 @@ if(ENABLE_P2P_PLAY)
         src/game/p2p/p2pprotocol.h
         src/game/p2p/p2precordkinds.cpp
         src/game/p2p/p2precordkinds.h
+        src/game/p2p/p2psettlement.h
         src/game/p2p/p2psignature.cpp
         src/game/p2p/p2psignature.h
         src/headless/matchverificationservice.cpp

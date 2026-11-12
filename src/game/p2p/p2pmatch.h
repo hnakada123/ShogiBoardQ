@@ -14,6 +14,7 @@
 #include "p2pevidence.h"
 #include "p2pframes.h"
 #include "p2pgamerules.h"
+#include "p2psettlement.h"
 #include "p2psignature.h"
 
 namespace P2p {
@@ -52,17 +53,6 @@ struct MatchEvent {
     quint64 spentMs = 0;
     std::optional<FinalResult> result;   ///< OfferReceived・ResultAgreed・Finished（結果が一致していれば）
     std::optional<ErrorCode> error;      ///< Finished: 中断・エラーの理由
-};
-
-/// 結果の確定のしかた（記録の区分とは別の、ローカルの終局理由。将棋の終局の原因は FinalResult の Cause で、
-/// 棋譜の終局の行は原因から MatchEnding（matchending.h）で決める）
-enum class Settlement {
-    None,
-    MutuallySigned,     ///< 結果が一致し、双方が最終結果に署名した
-    SignatureMissing,   ///< 結果は一致したが、相手の署名が届かなかった
-    Aborted,            ///< どちらかが ABORT した（結果未確定）
-    Error,              ///< 検証の失敗・制限超過など（結果未確定）
-    Disconnected,       ///< 回線を復旧できなかった（通信中断・結果未確定）
 };
 
 /**
@@ -138,8 +128,6 @@ public:
     bool hasConflictProof() const { return m_conflictProof; }
     /// 証跡（いつでも作れる。結果がまだなければ空の結果）
     Evidence evidence() const;
-    /// ローカルの終局理由の語（履歴に書く）
-    QString endingName() const;
 
 private:
     // --- 共通 ---

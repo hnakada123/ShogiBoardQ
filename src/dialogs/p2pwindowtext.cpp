@@ -101,20 +101,25 @@ QString P2pWindowText::settlementText(P2p::Settlement ending, std::optional<P2p:
     case P2p::Settlement::Error:
         return tr("対局を続けられませんでした（結果未確定）。") + (error ? errorText(*error) : QString());
     case P2p::Settlement::Disconnected: return tr("回線を復旧できませんでした（通信中断・結果未確定）。");
+    // アプリの終了での中断は、再起動の後にジャーナルから直した記録だけ（通知には出ない）
+    case P2p::Settlement::Interrupted:
     case P2p::Settlement::None: break;
     }
     return QString();
 }
 
-QString P2pWindowText::localEndingText(const QString& localEnding)
+QString P2pWindowText::settlementLabel(P2p::Settlement settlement)
 {
-    if (localEnding == QLatin1String("mutually_signed")) return tr("双方で確定");
-    if (localEnding == QLatin1String("signature_missing")) return tr("相手の確定なし");
-    if (localEnding == QLatin1String("aborted")) return tr("中断（結果未確定）");
-    if (localEnding == QLatin1String("error")) return tr("エラー（結果未確定）");
-    if (localEnding == QLatin1String("disconnected")) return tr("通信中断（結果未確定）");
-    if (localEnding == QLatin1String("interrupted")) return tr("アプリの終了で中断（結果未確定）");
-    return localEnding;
+    switch (settlement) {
+    case P2p::Settlement::MutuallySigned: return tr("双方で確定");
+    case P2p::Settlement::SignatureMissing: return tr("相手の確定なし");
+    case P2p::Settlement::Aborted: return tr("中断（結果未確定）");
+    case P2p::Settlement::Error: return tr("エラー（結果未確定）");
+    case P2p::Settlement::Disconnected: return tr("通信中断（結果未確定）");
+    case P2p::Settlement::Interrupted: return tr("アプリの終了で中断（結果未確定）");
+    case P2p::Settlement::None: break;
+    }
+    return QString();
 }
 
 QString P2pWindowText::categoryText(P2p::EvidenceReport::Category category)

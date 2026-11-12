@@ -107,7 +107,7 @@ void P2pHistoryPanel::reload()
         if (!hideName) opponentItem->setToolTip(plainToolTip(opponent));
         m_table->setItem(row, Opponent, opponentItem);
         m_table->setItem(row, Side, new QTableWidgetItem(entry.info.mySide == P2p::kSideBlack ? tr("先手") : tr("後手")));
-        m_table->setItem(row, Ending, new QTableWidgetItem(P2pWindowText::localEndingText(entry.info.localEnding)));
+        m_table->setItem(row, Ending, new QTableWidgetItem(P2pWindowText::settlementLabel(entry.info.settlement)));
         if (report) {
             const QString category = report->isValid() ? P2pWindowText::categoryText(report->category) : tr("検証に失敗");
             m_table->setItem(row, Category, new QTableWidgetItem(category));

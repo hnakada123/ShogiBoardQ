@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "p2pevidence.h"
+#include "p2psettlement.h"
 
 /**
  * @brief 1局の対局ジャーナル（追記型。1件ごとに長さとチェックサムを付け、ストレージへの同期まで済ませる）
@@ -46,7 +47,7 @@ private:
 struct P2pHistoryInfo {
     quint8 mySide = 1;             ///< 1=先手、2=後手
     QString opponentDisplayName;   ///< 相手が名乗った表示名
-    QString localEnding;           ///< ローカルの終局理由（"resign" など。protocol の語）
+    P2p::Settlement settlement = P2p::Settlement::None;   ///< 結果の確定のしかた（ファイルには settlementName の語で書く）
     quint64 endedAt = 0;           ///< 終わった時刻（UNIX秒。手元の時計）
     QString kifuPath;              ///< 保存した通常棋譜（あれば）
 };

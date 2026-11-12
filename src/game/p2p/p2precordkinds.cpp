@@ -61,9 +61,9 @@ CborValue control(bool sent, const CborValue& controlPayload)
     return CborValue::array({CborValue::text(kControl), CborValue::uint(sent ? 1 : 0), controlPayload});
 }
 
-CborValue ending(const QString& localEnding)
+CborValue ending(Settlement settlement)
 {
-    return CborValue::array({CborValue::text(kEnding), CborValue::text(localEnding.toLatin1())});
+    return CborValue::array({CborValue::text(kEnding), CborValue::text(settlementName(settlement).toLatin1())});
 }
 
 std::optional<JournalReplay> replay(const std::vector<CborValue>& records)
@@ -106,7 +106,7 @@ std::optional<JournalReplay> replay(const std::vector<CborValue>& records)
         } else if (kind == kConflict) {
             out.hasConflictProof = true;
         } else if (kind == kEnding && items.size() == 2 && items[1].isText()) {
-            out.localEnding = items[1].toText();
+            out.settlement = settlementFromName(items[1].toText());
         }
     }
     if (!started) return std::nullopt;

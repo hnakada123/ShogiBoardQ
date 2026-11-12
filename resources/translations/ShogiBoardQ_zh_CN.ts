@@ -12471,13 +12471,13 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>结果一致，但未收到对手的确定（无对手确定的记录）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="111"/>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="123"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="114"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="128"/>
         <source>双方で確定</source>
         <translation>双方已确定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="112"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="115"/>
         <source>相手の確定なし</source>
         <translation>无对手确定</translation>
     </message>
@@ -12562,32 +12562,32 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">无对手签名</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="113"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="116"/>
         <source>中断（結果未確定）</source>
         <translation>中断（结果未确定）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="114"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="117"/>
         <source>エラー（結果未確定）</source>
         <translation>错误（结果未确定）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="115"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="118"/>
         <source>通信中断（結果未確定）</source>
         <translation>通信中断（结果未确定）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="116"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="119"/>
         <source>アプリの終了で中断（結果未確定）</source>
         <translation>因应用退出而中断（结果未确定）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="124"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="129"/>
         <source>棋譜から決まる結果</source>
         <translation>由棋谱决定的结果</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="125"/>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="130"/>
         <source>結果未確定</source>
         <translation>结果未确定</translation>
     </message>

@@ -12,6 +12,7 @@
 #include "p2pevidence.h"
 #include "p2pframes.h"
 #include "p2pprotocol.h"
+#include "p2psettlement.h"
 
 namespace P2p {
 
@@ -20,7 +21,7 @@ struct JournalReplay {
     Evidence evidence;
     quint8 mySide = kSideBlack;
     QString opponentDisplayName;   ///< 相手が名乗った表示名（証跡には入れない）
-    QString localEnding;           ///< 終わりの件のローカルの終局理由（終わる前に止まったジャーナルでは空）
+    std::optional<Settlement> settlement;  ///< 終わりの件の確定のしかた（終わる前に止まったジャーナルでは nullopt）
     bool hasConflictProof = false; ///< 相手が同じ手数の異なる状態に署名した証明がある
 };
 
@@ -40,7 +41,7 @@ CborValue resultSignature(quint8 side, const QByteArray& signature);
 CborValue conflict(const GameState& first, const QByteArray& firstSignature, const GameState& second,
                    const QByteArray& secondSignature);
 CborValue control(bool sent, const CborValue& controlPayload);
-CborValue ending(const QString& localEnding);
+CborValue ending(Settlement settlement);
 
 /// ジャーナルの件を書いた順に読み、証跡を組み立てる（形の合わない件は飛ばす。開始の件が無ければ nullopt）。
 /// 同じ手数の状態は後の件（署名が足されたもの）で置き換える
