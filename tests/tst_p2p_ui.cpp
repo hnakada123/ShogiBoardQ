@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMainWindow>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QTabWidget>
 #include <QTableWidget>
@@ -461,6 +462,54 @@ private slots:
                      qPrintable(notice));
             QCOMPARE(lines.at(1), QStringLiteral("結果が一致し、双方で確定しました。"));
         }
+    }
+
+    /// 相手の申し出は待たずに尋ね、答えるまでの間も対局が進む（監査 2026-11-12 B2）。手数が進んで無効になった箱と、
+    /// 同じ手数の次の申し出で置き換わった箱は、答えとして扱わずに閉じる
+    void offerIsAskedWithoutBlocking()
+    {
+        Seat applicant(QByteArray(38, 'f'));
+        Seat host(QByteArray(38, 'm'));
+        P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("offer-a")));
+        P2pRecordStore hostStore(m_dir.filePath(QStringLiteral("offer-h")));
+        QVERIFY(applicantStore.lock() && hostStore.lock());
+        P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("offer-a.cbor")));
+        P2pKnownPeers hostKnown(m_dir.filePath(QStringLiteral("offer-h.cbor")));
+        QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, &hostStore, &hostKnown));
+        Seat& black = applicant.game.match()->iAmBlack() ? applicant : host;
+        Seat& white = applicant.game.match()->iAmBlack() ? host : applicant;
+        const auto visibleBox = [](Seat& seat, const QString& word) -> QMessageBox* {
+            const QList<QMessageBox*> boxes = seat.window.findChildren<QMessageBox*>(QStringLiteral("p2pOfferBox"));
+            for (QMessageBox* box : boxes) {
+                if (box->isVisible() && box->text().contains(word)) return box;
+            }
+            return nullptr;
+        };
+
+        // 先手が引き分けを申し出る: 後手には待たない箱が出る
+        QTRY_VERIFY(black.game.isHumanToMove());
+        black.game.offerDraw();
+        QTRY_VERIFY(visibleBox(white, QStringLiteral("引き分け")));
+        QPointer<QMessageBox> drawBox = visibleBox(white, QStringLiteral("引き分け"));
+        QVERIFY(!drawBox->isModal());
+
+        // 答える前に先手が指すと、申し出は無効になり、箱は閉じる
+        QCOMPARE(black.game.playMove(UsiMove::fromString(u"2g2f")), GameChannel::MoveResult::Sent);
+        QTRY_VERIFY(white.game.match()->lastState().ply == 1);
+        QTRY_VERIFY(!drawBox);
+        QTRY_VERIFY(black.game.match()->lastState().ply == 1 && !black.game.match()->hasPendingMove());
+
+        // 同じ手数で引き分けの後に中断を申し出る: 引き分けの箱を閉じても、中断の申し出を断らない
+        QSignalSpy declined(&black.game, &P2pGameCoordinator::proposalDeclined);
+        black.game.offerDraw();
+        QTRY_VERIFY(visibleBox(white, QStringLiteral("引き分け")));
+        black.game.offerAbort();
+        QTRY_VERIFY(visibleBox(white, QStringLiteral("中断")));
+        QTRY_VERIFY(!visibleBox(white, QStringLiteral("引き分け")));
+        visibleBox(white, QStringLiteral("中断"))->button(QMessageBox::Yes)->click();
+        QTRY_VERIFY(black.game.match()->agreedResult() && white.game.match()->agreedResult());
+        QCOMPARE(black.game.match()->agreedResult()->cause, Cause::AgreedAbort);
+        QCOMPARE(declined.count(), 0);
     }
 
     /// 記録と相手の表は、通信プロセスの知らせ（数秒ごと）では作り直さず、対局の後・タブを開いたときに作り直す。

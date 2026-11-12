@@ -52,6 +52,11 @@ void fitWrappedLabels(QWidget* dialog);
 bool confirmAction(QWidget* parent, const QString& title, const QString& text,
                    const QString& actionText, QMessageBox::Icon icon = QMessageBox::Question);
 
+/// confirmAction と同じ問いの箱を、待たずに出すために作る（閉じたら消える）。出すのは呼ぶ側（show）で、
+/// 答えは finished で受ける（操作を選べば QMessageBox::Yes、キャンセル・閉じるは QMessageBox::Cancel）
+QMessageBox* createConfirmBox(QWidget* parent, const QString& title, const QString& text,
+                              const QString& actionText, QMessageBox::Icon icon = QMessageBox::Question);
+
 /// 知らせのメッセージボックス（dialogs・widgets 用。ui・app は NotificationPresenter を使う）。
 /// QMessageBox の静的関数は文を自動判定し、外から来た文字列が HTML として読まれるので、文は PlainText で出す
 void warning(QWidget* parent, const QString& title, const QString& text);

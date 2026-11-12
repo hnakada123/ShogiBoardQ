@@ -121,15 +121,33 @@ void fitWrappedLabels(QWidget* dialog)
     dialog->resize(dialog->size().expandedTo(dialog->minimumSizeHint()));
 }
 
-bool confirmAction(QWidget* parent, const QString& title, const QString& text,
-                   const QString& actionText, QMessageBox::Icon icon)
+namespace {
+/// 確認の問いの箱の形（操作名のボタンとキャンセル。既定と Esc はキャンセル）
+void setUpConfirmBox(QMessageBox& box, const QString& actionText)
 {
-    QMessageBox box(icon, title, text, QMessageBox::Yes | QMessageBox::Cancel, parent);
     box.setTextFormat(Qt::PlainText);   // 文には棋譜や定跡の文字列が入るので HTML として読まない
     box.button(QMessageBox::Yes)->setText(actionText);
     box.setDefaultButton(QMessageBox::Cancel);
     box.setEscapeButton(QMessageBox::Cancel);
+}
+} // namespace
+
+bool confirmAction(QWidget* parent, const QString& title, const QString& text,
+                   const QString& actionText, QMessageBox::Icon icon)
+{
+    QMessageBox box(icon, title, text, QMessageBox::Yes | QMessageBox::Cancel, parent);
+    setUpConfirmBox(box, actionText);
     return box.exec() == QMessageBox::Yes;
+}
+
+QMessageBox* createConfirmBox(QWidget* parent, const QString& title, const QString& text,
+                              const QString& actionText, QMessageBox::Icon icon)
+{
+    auto* box = new QMessageBox(icon, title, text, QMessageBox::Yes | QMessageBox::Cancel, parent);
+    setUpConfirmBox(*box, actionText);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->setModal(false);
+    return box;
 }
 
 namespace {

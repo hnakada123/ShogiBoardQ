@@ -3,6 +3,7 @@
 
 #include "p2pgameuicontroller.h"
 
+#include <QMessageBox>
 #include <QWidget>
 
 #include "apppaths.h"
@@ -33,6 +34,8 @@ P2pGameUiController::P2pGameUiController(const Deps& deps, QObject* parent)
         connect(m_deps.game, &P2pGameCoordinator::negotiationEnded, this, &P2pGameUiController::onNegotiationEnded);
         connect(m_deps.game, &P2pGameCoordinator::gameStarted, this, &P2pGameUiController::onGameStarted);
         connect(m_deps.game, &P2pGameCoordinator::offerReceived, this, &P2pGameUiController::onOfferReceived);
+        connect(m_deps.game, &P2pGameCoordinator::statusChanged, this, &P2pGameUiController::closeStaleOffer);
+        connect(m_deps.game, &P2pGameCoordinator::resultAgreed, this, &P2pGameUiController::closeStaleOffer);
         connect(m_deps.game, &P2pGameCoordinator::proposalDeclined, this, &P2pGameUiController::onProposalDeclined);
         connect(m_deps.game, &P2pGameCoordinator::gameFinished, this, &P2pGameUiController::onGameFinished);
     }
@@ -246,11 +249,37 @@ void P2pGameUiController::onGameStarted()
 
 void P2pGameUiController::onOfferReceived(P2p::Cause cause)
 {
+    // 待たずに尋ねる（司令塔の知らせの途中でイベントループを回さない。答えるまでの間も盤で指せる）。
+    // 前の申し出の箱が残っていれば、答えとして扱わずに閉じる
+    closeOfferBox();
     const QString question = cause == P2p::Cause::AgreedDraw ? tr("相手が引き分けを申し出ました。承諾しますか？")
                                                               : tr("相手が対局の中断を申し出ました。承諾しますか？");
-    const bool accept = DialogUtils::confirmAction(dialogParent(), tr("P2P対局"), question, tr("承諾"));
-    // 答えるまでに手数が進んだ・対局が終わったなら、司令塔が無効として扱う
-    if (m_deps.game) m_deps.game->answerOffer(accept);
+    m_offerBox = DialogUtils::createConfirmBox(dialogParent(), tr("P2P対局"), question, tr("承諾"));
+    m_offerBox->setObjectName(QStringLiteral("p2pOfferBox"));
+    connect(m_offerBox, &QMessageBox::finished, this, &P2pGameUiController::onOfferAnswered);
+    m_offerBox->show();
+}
+
+void P2pGameUiController::onOfferAnswered(int result)
+{
+    // 答えるまでに手数が進んだ・対局が終わったなら、対局の状態機械が無効として扱う
+    if (m_deps.game) m_deps.game->answerOffer(result == QMessageBox::Yes);
+}
+
+void P2pGameUiController::closeStaleOffer()
+{
+    if (!m_offerBox) return;
+    const P2p::Match* match = m_deps.game ? m_deps.game->match() : nullptr;
+    if (!match || !match->hasPendingOffer()) closeOfferBox();
+}
+
+void P2pGameUiController::closeOfferBox()
+{
+    if (!m_offerBox) return;
+    // 閉じると finished が出るので、先に外す（古い箱を閉じたことを、次の申し出への答えにしない）
+    disconnect(m_offerBox, &QMessageBox::finished, this, &P2pGameUiController::onOfferAnswered);
+    m_offerBox->close();
+    m_offerBox.clear();
 }
 
 void P2pGameUiController::onProposalDeclined()
@@ -262,6 +291,7 @@ void P2pGameUiController::onProposalDeclined()
 void P2pGameUiController::onGameFinished(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error,
                                          const QString& evidencePath)
 {
+    closeStaleOffer();
     // 終局の結果と、双方で確定できたかは1つの知らせにまとめる（結果の一致と確定は続けて起きる）。
     // 相手の確定を待つ間（届かなければ最長30秒）も、結果は棋譜の終局の行と P2P対局のウィンドウに出ている
     QStringList lines;

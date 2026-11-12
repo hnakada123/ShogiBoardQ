@@ -21,6 +21,7 @@ class P2pConfirmDialog;
 class P2pGameCoordinator;
 class P2pLobbyService;
 class P2pWindow;
+class QMessageBox;
 class QWidget;
 class ShogiView;
 
@@ -63,6 +64,10 @@ private slots:
     void onNegotiationEnded(bool started, std::optional<P2p::ErrorCode> code, bool byPeer);
     void onGameStarted();
     void onOfferReceived(P2p::Cause cause);
+    /// 相手の申し出に答えた（result は QMessageBox::Yes なら承諾）
+    void onOfferAnswered(int result);
+    /// 申し出が無効になった（手数が進んだ・結果が決まった・対局が終わった）なら、尋ねる箱を閉じる
+    void closeStaleOffer();
     void onProposalDeclined();
     void onGameFinished(P2p::MatchEnding ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
     void onPeerFailed(PeerProcess::Failure failure, const QString& detail);
@@ -74,11 +79,14 @@ private:
     /// ネットワークに参加する（プレイヤー鍵は読み込み済み）
     void beginNetwork();
     QWidget* dialogParent() const;
+    /// 尋ねる箱を、答えとして扱わずに閉じる
+    void closeOfferBox();
 
     Deps m_deps;
     P2pLobbyService* m_lobby = nullptr;          ///< 子オブジェクト（開いたときに作る）
     QPointer<P2pWindow> m_window;
     QPointer<P2pConfirmDialog> m_confirm;
+    QPointer<QMessageBox> m_offerBox;   ///< 相手の申し出を尋ねる箱（モードレス。閉じたら消える）
     bool m_automationDisabled = false;
     bool m_startAfterUnlock = false;   ///< 鍵を読み込んだら参加する
 };
