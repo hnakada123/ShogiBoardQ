@@ -1,12 +1,12 @@
 //! Swarm のイベントの処理（接続・到達性・中継の予約）
 
 use std::net::IpAddr;
+use std::time::Instant;
 
 use libp2p::core::ConnectedPoint;
 use libp2p::multiaddr::Protocol;
 use libp2p::swarm::{DialError, SwarmEvent};
 use libp2p::{autonat, identify, ping, relay, Multiaddr, PeerId};
-use sbq_protocol::network::Profile;
 use serde_json::json;
 
 use super::{ConnState, Node};
@@ -15,8 +15,6 @@ use crate::swarm::{supports_relay_hop, BehaviourEvent};
 
 /// 同じアドレス帯から受け付ける接続の上限
 const MAX_INBOUND_PER_PREFIX: usize = 8;
-/// 中継の予約の数
-const MAX_RELAY_RESERVATIONS: usize = 2;
 
 /// 接続元のアドレス帯（IPv4 は /24、IPv6 は /48）
 fn prefix_of(addr: &Multiaddr) -> Option<Vec<u8>> {
@@ -34,14 +32,18 @@ impl Node {
                     self.listen_addrs.push(address.clone());
                 }
                 // ローカル（同じPC・同じLAN）では、待受のアドレスのうち loopback と私設アドレスを、そのまま自分の
-                // アドレスにする（Identify に載せ、再接続の宛先にする）。「直接接続を使わない」のときは載せない
-                if self.spec.profile == Profile::Local
-                    && !addr::is_circuit(&address)
-                    && self.policy.advertisable(&address)
-                {
+                // アドレスにする（Identify に載せ、再接続の宛先にする）。協力ノードは、インターネットのグローバルな
+                // 待受を自分のアドレスにする（中継の予約の応答に載せる）。「直接接続を使わない」のときは載せない
+                if self.policy.listen_is_external(self.service, &address) {
                     self.swarm.add_external_address(address);
                 }
                 self.status_dirty = true;
+            }
+            SwarmEvent::ListenerClosed { listener_id, .. } => {
+                // 中継の待受が閉じた（予約を断られた・協力ノードとの接続が切れた）。少し待って頼み直す
+                if self.reservations.closed(listener_id, Instant::now()) {
+                    self.status_dirty = true;
+                }
             }
             SwarmEvent::ExpiredListenAddr { address, .. } => {
                 self.listen_addrs.retain(|a| a != &address);
@@ -150,7 +152,7 @@ impl Node {
                 self.swarm.close_connection(connection);
             }
             BehaviourEvent::RelayClient(relay::client::Event::ReservationReqAccepted { relay_peer_id, .. }) => {
-                self.relay_reservations.insert(relay_peer_id);
+                self.reservations.accepted(relay_peer_id);
                 self.status_dirty = true;
             }
             BehaviourEvent::Autonat(autonat::Event::StatusChanged { new, .. }) => {
@@ -178,20 +180,22 @@ impl Node {
         self.remember_addrs(peer, &addrs);
         // 中継の予約は、自分の到達性によらず取る。「直接接続を使わない」相手は、中継経由のアドレスでしか
         // つなげないので、外から直接届く側も中継経由のアドレスを招待に入れる
-        let reserved = self.relay_requested.len();
-        if !self.service
-            && is_node
-            && supports_relay_hop(&info)
-            && reserved < MAX_RELAY_RESERVATIONS
-            && !self.relay_requested.contains(&peer)
-        {
-            // 中継のアドレスは、利用者が指定した宛先から作る（同じ協力ノードを指定した相手が、そのまま使える）
-            if let Some(base) = node_addr {
-                let circuit = base.with(Protocol::P2p(peer)).with(Protocol::P2pCircuit);
-                if self.swarm.listen_on(circuit).is_ok() {
-                    self.relay_requested.insert(peer);
-                }
-            }
+        if !self.service && is_node && supports_relay_hop(&info) {
+            self.reservations.add_hop_node(peer);
+            self.request_reservation(peer);
+        }
+    }
+
+    /// 協力ノードに中継の予約を頼む（中継の待受を始める）
+    pub(super) fn request_reservation(&mut self, peer: PeerId) {
+        if !self.reservations.may_request(&peer, Instant::now()) {
+            return;
+        }
+        // 中継のアドレスは、利用者が指定した宛先から作る（同じ協力ノードを指定した相手が、そのまま使える）
+        let Some(base) = self.bootstrap.get(&peer).cloned() else { return };
+        let circuit = base.with(Protocol::P2p(peer)).with(Protocol::P2pCircuit);
+        if let Ok(listener) = self.swarm.listen_on(circuit) {
+            self.reservations.requested(peer, listener);
         }
     }
 }

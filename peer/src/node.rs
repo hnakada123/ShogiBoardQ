@@ -1,6 +1,6 @@
 //! 対局・UI側から使うときの通信プロセス（IPC の要求を受けて Swarm を動かす）
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -26,6 +26,7 @@ use crate::swarm::{self, Behaviour, SwarmOptions};
 
 mod events;
 mod requests;
+mod reservations;
 
 /// 対局ストリーム（開始前・対局中を合わせて）の上限
 pub const MAX_GAME_CONNECTIONS: usize = 8;
@@ -188,8 +189,8 @@ pub struct Node {
     pub addr_book: HashMap<PeerId, Vec<Multiaddr>>,
     /// 利用者が指定した協力ノードと、指定された宛先
     pub bootstrap: HashMap<PeerId, Multiaddr>,
-    pub relay_requested: HashSet<PeerId>,
-    pub relay_reservations: HashSet<PeerId>,
+    /// 協力ノードの中継の予約
+    pub reservations: reservations::Reservations,
     pub listen_addrs: Vec<Multiaddr>,
     pub reachability: &'static str,
     pub status_dirty: bool,
@@ -379,8 +380,7 @@ impl Node {
             inbound_prefixes: HashMap::new(),
             addr_book: HashMap::new(),
             bootstrap: HashMap::new(),
-            relay_requested: HashSet::new(),
-            relay_reservations: HashSet::new(),
+            reservations: reservations::Reservations::default(),
             listen_addrs: Vec::new(),
             reachability: "unknown",
             status_dirty: true,
@@ -689,6 +689,12 @@ impl Node {
         self.last_second = Instant::now();
         let now = unix_now();
         self.invites.retain(|i| i.expires_at > now);
+        // 断られた・失われた中継の予約を頼み直す（協力ノードとつながっている間）
+        for peer in self.reservations.due(Instant::now()) {
+            if self.peer_conns.contains_key(&peer) {
+                self.request_reservation(peer);
+            }
+        }
         self.emit_status();
         if self.service && self.last_service_log.elapsed() >= Duration::from_secs(60) {
             self.last_service_log = Instant::now();
@@ -710,7 +716,7 @@ impl Node {
             "state": state,
             "connectedPeers": connected,
             "reachability": self.reachability,
-            "relayReservations": self.relay_reservations.len(),
+            "relayReservations": self.reservations.accepted_count(),
         });
         if self.last_status.as_ref() != Some(&status) {
             self.out.notify("networkStatus", status.clone());

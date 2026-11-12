@@ -284,6 +284,15 @@ impl AddrPolicy {
         )
     }
 
+    /// 待受のアドレスを、そのまま自分のアドレス（外から届く宛先）にしてよいか。ローカル（同じPC・同じLAN）では
+    /// loopback と私設アドレス。インターネットでは、協力ノードのグローバルなアドレスだけにする（協力ノードは
+    /// 中継の予約の応答で自分のアドレスを返す。到達性の確認を待つと、起動した直後の予約を断ることになる）。
+    /// ふつうのプレイヤーのインターネットのアドレスは、到達性の確認（AutoNAT）で決める。
+    /// 「直接接続を使わない」のときは載せない（advertisable）
+    pub fn listen_is_external(&self, service: bool, addr: &Multiaddr) -> bool {
+        !is_circuit(addr) && self.advertisable(addr) && (self.profile == Profile::Local || service)
+    }
+
     /// ダイヤルしてよいか（失敗の待ちも見る）
     pub fn allows_dial(&self, addr: &Multiaddr) -> bool {
         if !self.usable(addr) {
@@ -428,6 +437,26 @@ mod tests {
 
     /// 「直接接続を使わない」: 直接つなぐのは利用者が指定した協力ノードだけ。相手の直接のアドレスにも、
     /// 指定していない中継にもつながない（自分の IP を見せない）。自分の直接のアドレスは広告しない
+    #[test]
+    fn listen_addresses_that_are_external() {
+        // 協力ノードは、インターネットのグローバルな待受をすぐ自分のアドレスにする（予約の応答に載せる）
+        let internet = AddrPolicy::new(Profile::Internet, false);
+        assert!(internet.listen_is_external(true, &ma("/ip4/8.8.8.8/tcp/4001")));
+        assert!(!internet.listen_is_external(true, &ma("/ip4/192.168.1.2/tcp/4001")));
+        assert!(!internet.listen_is_external(true, &ma("/ip4/127.0.0.1/tcp/4001")));
+        // ふつうのプレイヤーは、到達性の確認で決める
+        assert!(!internet.listen_is_external(false, &ma("/ip4/8.8.8.8/tcp/4001")));
+        // ローカルは loopback と私設アドレス（「直接接続を使わない」なら載せない）
+        let local = AddrPolicy::new(Profile::Local, false);
+        assert!(local.listen_is_external(false, &ma("/ip4/192.168.1.2/tcp/48210")));
+        assert!(!local.listen_is_external(false, &ma("/ip4/8.8.8.8/tcp/48210")));
+        let local_relay_only = AddrPolicy::new(Profile::Local, true);
+        assert!(!local_relay_only.listen_is_external(false, &ma("/ip4/192.168.1.2/tcp/48210")));
+        // 中継経由のアドレスは待受の規則に掛けない
+        let circuit = ma("/ip4/8.8.8.8/tcp/4001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN/p2p-circuit");
+        assert!(!internet.listen_is_external(true, &circuit));
+    }
+
     #[test]
     fn relay_only_rules() {
         let p = AddrPolicy::new(Profile::Internet, true);
