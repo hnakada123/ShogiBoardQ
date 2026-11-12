@@ -67,11 +67,6 @@ public:
     void disableForAutomation() { m_automationDisabled = true; }
     bool isDisabledForAutomation() const { return m_automationDisabled; }
 
-    /// 使用期限を過ぎたビルドか（期限のあるネットワークで使えない）
-    static bool isBuildExpired();
-    /// 使用期限（UNIX秒。起点と日数は通信プロセスと同じ値を CMake が p2pbuildinfo.h に書く）
-    static qint64 buildExpiresAt();
-
     /// 通信プロセスを起動してネットワークに参加する（保存先を開いていなければ開く。プレイヤー鍵は読み込み済みであること）
     StartFailure begin(const QString& networkName, const QStringList& bootstrap, bool relayOnly);
     /// 招待を無効にし、対局中なら中断を知らせて、通信プロセスを止める（保存先も閉じる）

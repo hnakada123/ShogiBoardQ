@@ -3,10 +3,8 @@
 
 #include "p2plobbyservice.h"
 
-#include <QDateTime>
-
 #include "logcategories.h"
-#include "p2pbuildinfo.h"
+#include "p2pbuildexpiry.h"
 #include "p2pidentitystore.h"
 #include "p2pplayerprofile.h"
 #include "peeripc.h"
@@ -27,16 +25,6 @@ P2pLobbyService::P2pLobbyService(const Deps& deps, P2pPlayerProfile* profile, QO
 
 P2pLobbyService::~P2pLobbyService() = default;
 
-qint64 P2pLobbyService::buildExpiresAt()
-{
-    return kP2pBuildEpochSeconds + kP2pBuildLifetimeDays * 24 * 60 * 60;
-}
-
-bool P2pLobbyService::isBuildExpired()
-{
-    return QDateTime::currentSecsSinceEpoch() > buildExpiresAt();
-}
-
 // ---------------------------------------------------------------- 開始と終了
 
 P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName, const QStringList& bootstrap,
@@ -47,7 +35,7 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
     const std::optional<P2p::NetworkInfo> network = P2p::findNetwork(networkName);
     if (!network) return StartFailure::NetworkNotAllowed;
     // 期限を過ぎたビルドは、限定試験用と公開用のネットワークへ参加しない（ローカル検証用は使える）
-    if (!network->local && isBuildExpired()) return StartFailure::BuildExpired;
+    if (!network->local && P2pBuildExpiry::isExpired()) return StartFailure::BuildExpired;
     // 保存先を使えるアプリは同時に1つ（実装仕様 9章）
     if (!m_profile || !m_profile->open()) return StartFailure::Locked;
     if (!m_profile->identity()->isUnlocked()) return StartFailure::NoIdentity;

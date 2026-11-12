@@ -27,6 +27,7 @@
 #include "dialogfontscale.h"
 #include "dialogutils.h"
 #include "networksettings.h"
+#include "p2pbuildexpiry.h"
 #include "p2pdisplayname.h"
 #include "p2pgamecoordinator.h"
 #include "p2phistorypanel.h"
@@ -449,7 +450,7 @@ void P2pWindow::refresh()
     }
     m_identityInfo->setText(identityLines.join(QLatin1Char('\n')));
     m_buildInfo->setText(tr("このビルドの使用期限: %1（期限後は限定試験用のネットワークに参加しません）")
-                             .arg(dateText(static_cast<quint64>(P2pLobbyService::buildExpiresAt()))));
+                             .arg(dateText(static_cast<quint64>(P2pBuildExpiry::expiresAt()))));
     updateGameStatus();
 }
 

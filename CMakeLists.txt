@@ -1118,6 +1118,8 @@ if(ENABLE_P2P_PLAY)
         src/game/p2p/p2psignature.h
         src/headless/matchverificationservice.cpp
         src/headless/matchverificationservice.h
+        src/network/p2p/p2pbuildexpiry.cpp
+        src/network/p2p/p2pbuildexpiry.h
         src/network/p2p/p2pgamechannel.cpp
         src/network/p2p/p2pgamechannel.h
         src/network/p2p/p2pgamecoordinator.cpp

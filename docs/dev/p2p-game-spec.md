@@ -782,6 +782,7 @@ Evidence = ["SBQ-MATCH", 1,
 | `src/network/p2p/p2pplayerslot.h` | 同じ PC の何人目のプレイヤーかと、その保存先 |
 | `src/network/p2p/p2ptransport.h` | 司令塔がフレームを送る先の窓口（通信プロセスを直接知らないため） |
 | `src/network/p2p/p2plobbyservice.h/.cpp` | 通信プロセスの窓口（起動・停止、招待と、開いた接続の振り分け） |
+| `src/network/p2p/p2pbuildexpiry.h/.cpp` | 実験版のビルドの使用期限（起点と日数は通信プロセスと同じ値） |
 | `src/network/p2p/p2pgamecoordinator.h/.cpp` | 交渉と対局の状態機械を、盤・時計・棋譜・動作状態・証跡へつなぐ司令塔 |
 | `src/network/p2p/p2pgamechannel.h/.cpp` | GameChannelを実装。送信直後はMoveResult::Sent |
 | `src/headless/matchverificationservice.h/.cpp`・`src/cli/clicommands_p2p.cpp` | 証跡の検証サービスと `verify-match` コマンド |

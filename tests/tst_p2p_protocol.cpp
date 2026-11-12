@@ -3,6 +3,7 @@
 
 #include <QtTest>
 
+#include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -13,6 +14,7 @@
 #include "p2pevidenceverifier.h"
 #include "p2pframes.h"
 #include "matchverificationservice.h"
+#include "p2pbuildexpiry.h"
 #include "peeripc.h"
 
 using namespace P2p;
@@ -190,6 +192,17 @@ private slots:
         QVERIFY(frame && std::holds_alternative<PeerIpc::FrameReceived>(*frame));
         QCOMPARE(std::get<PeerIpc::FrameReceived>(*frame).frame, QByteArray("ab"));
         QVERIFY(!PeerIpc::readNotification(QStringLiteral("unknownNotification"), QJsonObject()));
+    }
+
+    /// 実験版のビルドの使用期限は、期限の時刻を過ぎてから（監査 2026-11-12 R5。通信プロセスと同じ起点と日数）
+    void buildExpiryIsAfterTheLifetime()
+    {
+        const qint64 expiresAt = P2pBuildExpiry::expiresAt();
+        QVERIFY(!P2pBuildExpiry::isExpiredAt(expiresAt));
+        QVERIFY(P2pBuildExpiry::isExpiredAt(expiresAt + 1));
+        // 期限は構成した時刻から180日後で、試験を動かしている今はまだ過ぎていない
+        QVERIFY(expiresAt > QDateTime::currentSecsSinceEpoch());
+        QVERIFY(!P2pBuildExpiry::isExpired());
     }
 
     /// 交渉の前に接続を断る REJECT は、外枠の規則どおりに読めて、理由を読み戻せる（監査 2026-11-12 R5）
