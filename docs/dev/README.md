@@ -88,6 +88,7 @@
 コード監査（各回は前回の修正の後の状態が対象）:
 
 - [2026-10-16](reports/code-audit-2026-10-16.md)・[2026-10-23](reports/code-audit-2026-10-23.md)・[2026-10-29](reports/code-audit-2026-10-29.md)・[2026-11-01](reports/code-audit-2026-11-01.md)・[2026-11-07](reports/code-audit-2026-11-07.md)
+- [p2p-code-audit-2026-11-12.md](reports/p2p-code-audit-2026-11-12.md): P2P対局のコード（C++ と通信プロセスの Rust）の責務の整理
 
 セキュリティ監査:
 
