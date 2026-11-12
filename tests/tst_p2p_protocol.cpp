@@ -3,12 +3,17 @@
 
 #include <QtTest>
 
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+
 #include "p2p_test_util.h"
 #include "p2pcbor.h"
 #include "p2pdisplayname.h"
 #include "p2pevidenceverifier.h"
 #include "p2pframes.h"
 #include "matchverificationservice.h"
+#include "peeripc.h"
 
 using namespace P2p;
 
@@ -118,8 +123,70 @@ private slots:
             const QList<QByteArray> parts = line.split(' ');
             QVERIFY2(parts.size() >= 2, line.constData());
             const bool expected = parts.at(0) == "valid";
-            QVERIFY2(Frame::isWellFormedEnvelope(QByteArray::fromHex(parts.at(1))) == expected, line.constData());
+            const QByteArray bytes = QByteArray::fromHex(parts.at(1));
+            QVERIFY2(Frame::isWellFormedEnvelope(bytes) == expected, line.constData());
+            // 本番の読み取りも同じ外枠の規則で読む。正しい外枠で断るのは、対局・UI側に届かない INVITE_TOKEN だけ
+            // （監査 2026-11-12 5.4）
+            const std::optional<Frame> frame = Frame::decode(bytes);
+            if (!expected) {
+                QVERIFY2(!frame, line.constData());
+            } else if (!frame) {
+                QCOMPARE(Cbor::decode(bytes)->items().at(1).toUInt(), quint64(FrameType::InviteToken));
+            }
         }
+    }
+
+    /// 通信プロセスから届く IPC のメッセージは、外枠と中身の形をすべて確かめる（監査 2026-11-12 5.4。protocol/ipc.md）
+    void ipcMessagesAreCheckedStrictly()
+    {
+        const auto json = [](const char* text) { return QByteArray(text); };
+        // 外枠
+        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":2,"processGeneration":"3","requestId":"17","result":{}})")));
+        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":2,"processGeneration":"3","notification":"x","params":{}})")));
+        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":2,"processGeneration":"3","requestId":"17",)"
+                                    R"("error":{"code":"unknown_connection","message":"m"}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":1,"processGeneration":"3","requestId":"17","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":2,"processGeneration":"03","requestId":"17","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":2,"processGeneration":3,"requestId":"17","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":2,"processGeneration":"3","requestId":"+1","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":2,"processGeneration":"3","requestId":"17","result":{},"x":1})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":2,"processGeneration":"3","requestId":"17",)"
+                                     R"("error":{"code":"c","message":"m","extra":"e"}})")));
+        QVERIFY(!PeerIpc::parse(json(R"([1,2])")));
+        QCOMPARE(PeerIpc::parseU64(QJsonValue(QStringLiteral("18446744073709551615"))), std::optional<quint64>(~0ULL));
+        QVERIFY(!PeerIpc::parseU64(QJsonValue(QStringLiteral("18446744073709551616"))));
+
+        // 応答の中身（知らないフィールド・足りないフィールド・形の合わない値を拒否する）
+        const auto object = [](const char* text) { return QJsonDocument::fromJson(QByteArray(text)).object(); };
+        const QByteArray hex(64, 'a');
+        const QJsonObject start = object((R"({"peerId":"12D3KooWabc","peerIdBytes":"AAEC","networkId":")" + hex
+                                          + R"(","profile":"local"})").constData());
+        QVERIFY(PeerIpc::checkResult(QStringLiteral("start"), start));
+        QJsonObject extra = start;
+        extra.insert(QStringLiteral("address"), QStringLiteral("192.0.2.1"));
+        QVERIFY(!PeerIpc::checkResult(QStringLiteral("start"), extra));
+        QJsonObject missing = start;
+        missing.remove(QStringLiteral("profile"));
+        QVERIFY(!PeerIpc::checkResult(QStringLiteral("start"), missing));
+        QJsonObject upper = start;
+        upper.insert(QStringLiteral("networkId"), QString::fromLatin1(hex.toUpper()));
+        QVERIFY(!PeerIpc::checkResult(QStringLiteral("start"), upper));
+        QVERIFY(PeerIpc::checkResult(QStringLiteral("sendFrame"), QJsonObject()));
+        QVERIFY(!PeerIpc::checkResult(QStringLiteral("sendFrame"), object(R"({"ok":true})")));
+        QVERIFY(!PeerIpc::checkResult(QStringLiteral("unknownMethod"), QJsonObject()));
+
+        // 通知の中身
+        QVERIFY(PeerIpc::checkNotification(QStringLiteral("connectionClosed"),
+                                           object(R"({"connection":"5","reason":"closed"})")));
+        // 通信プロセスは shutdown の後に知らせずに終わるので、shutdown の理由は届かない（ipc.md 4章）
+        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("connectionClosed"),
+                                            object(R"({"connection":"5","reason":"shutdown"})")));
+        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("connectionOpened"),
+                                            object(R"({"connection":"5","peerId":"12D3KooWabc","peerIdBytes":"AAEC",)"
+                                                   R"("route":"direct","direction":"inbound","origin":"public"})")));
+        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("frameReceived"),
+                                            object(R"({"connection":"5","frame":"not base64!"})")));
+        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("unknownNotification"), QJsonObject()));
     }
 
     void networkSharedVectors()

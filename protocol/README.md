@@ -140,4 +140,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 | `network.txt` | `<networkName> <hex(networkId)> <hex(rulesHash)>`（rulesHash は C++ だけが確かめる） |
 
 `#` で始まる行と空行は読み飛ばす。C++（`tests/tst_p2p_protocol.cpp`）と Rust（`protocol/rust` の試験）が
-同じファイルを読み、同じ結果になることを確かめる（開発方針 5.1節の「実装どうしの一致」）。
+同じファイルを読み、同じ結果になることを確かめる（開発方針 5.1節の「実装どうしの一致」）。`frames.txt` は、
+対局・UI側が本番で使う読み取り（`P2p::Frame::decode`。正しい外枠でも INVITE_TOKEN だけは断る）にも通す。
+IPC のメッセージは向きごとに読み手が違う（要求は通信プロセス、応答と通知は対局・UI側）ので、共通の試験入力を
+持たず、それぞれの読み手の試験（`peer/src/ipc.rs`・`tests/tst_p2p_protocol.cpp`）で確かめる。

@@ -55,7 +55,7 @@ struct Frame {
     QByteArray encode() const;
     /// 上限・決定的CBOR・外枠を確かめて読む。INVITE_TOKEN は対局・UI側に届かないはずなので拒否する
     static std::optional<Frame> decode(QByteArrayView bytes, QString* error = nullptr);
-    /// 外枠の規則（protocol/README.md 2章。type は 1〜11）に合うか。通信プロセスと同じ判定
+    /// 外枠の規則（protocol/README.md 2章。type は 1〜11）に合うか。通信プロセスと同じ判定で、decode も同じ規則で読む
     static bool isWellFormedEnvelope(QByteArrayView bytes);
 };
 

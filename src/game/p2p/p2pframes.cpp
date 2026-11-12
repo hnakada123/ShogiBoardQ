@@ -30,20 +30,15 @@ QByteArray Frame::encode() const
     return Cbor::encode(CborValue::array({u(1), u(static_cast<quint64>(type)), u(requestId), b(gameId), payload}));
 }
 
-bool Frame::isWellFormedEnvelope(QByteArrayView bytes)
-{
-    if (bytes.isEmpty() || bytes.size() > kMaxFrameBytes) return false;
-    const std::optional<CborValue> root = Cbor::decode(bytes);
-    if (!root) return false;
-    CborReader r(*root, nullptr, 5);
-    const quint64 version = r.uint(0, 1);
-    const quint64 type = r.uint(1, static_cast<quint64>(FrameType::InviteToken));
-    r.uint(2, 0xFFFFFFFFFFFFFFFFULL);
-    r.bytes(3, kHashSize);
-    return r.ok() && version == 1 && type >= 1 && r.item(4).isArray();
-}
+namespace {
 
-std::optional<Frame> Frame::decode(QByteArrayView bytes, QString* error)
+/**
+ * @brief 外枠の規則（protocol/README.md 2章。type は 1〜11）で読む
+ *
+ * 通信プロセスと同じ判定で、共通の試験入力（protocol/testvectors/frames.txt）で確かめる。本番の読み取り（decode）と
+ * 試験（isWellFormedEnvelope）が同じこの関数を通る。
+ */
+std::optional<Frame> readEnvelope(QByteArrayView bytes, QString* error)
 {
     const auto fail = [error](const QString& reason) {
         if (error) *error = reason;
@@ -62,10 +57,28 @@ std::optional<Frame> Frame::decode(QByteArrayView bytes, QString* error)
     const CborValue& payload = r.item(4);
     if (!r.ok() || !payload.isArray()) return fail(QStringLiteral("malformed frame envelope"));
     if (version != 1) return fail(QStringLiteral("unsupported frame version"));
-    // INVITE_TOKEN は通信プロセスが処理し、対局・UI側には届かない
-    if (type < 1 || type > static_cast<quint64>(FrameType::Reject)) return fail(QStringLiteral("unknown frame type"));
+    if (type < 1 || type > static_cast<quint64>(FrameType::InviteToken)) return fail(QStringLiteral("unknown frame type"));
     frame.type = static_cast<FrameType>(type);
     frame.payload = payload;
+    return frame;
+}
+
+} // namespace
+
+bool Frame::isWellFormedEnvelope(QByteArrayView bytes)
+{
+    return readEnvelope(bytes, nullptr).has_value();
+}
+
+std::optional<Frame> Frame::decode(QByteArrayView bytes, QString* error)
+{
+    std::optional<Frame> frame = readEnvelope(bytes, error);
+    if (!frame) return std::nullopt;
+    // INVITE_TOKEN は通信プロセスが処理し、対局・UI側には届かない
+    if (frame->type == FrameType::InviteToken) {
+        if (error) *error = QStringLiteral("INVITE_TOKEN is not for the game");
+        return std::nullopt;
+    }
     return frame;
 }
 
