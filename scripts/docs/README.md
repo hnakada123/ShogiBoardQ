@@ -23,6 +23,7 @@
 | `kwin_x_capture.sh` | `kwin_capture.sh` の Xwayland 版。アプリを xcb で起動するので `x11ctl.py move` でメインウィンドウや浮動ドックの位置を決められる（Wayland のクライアントは自分の位置を決められないため、浮動ドックを並べる `dock-04-floating` に使う）。撮影は `spectacle -b -n -f -o out.png`（全画面）で、背景は黒になるので `magick in -alpha set -fuzz 1% -fill transparent -draw 'color 1,1 floodfill' …` で透明にする（英語版のようにメインウィンドウが浮動ドックに重なると黒い部分が左右に分かれるので、右上・右下などからも `-draw 'color X,Y floodfill'` を重ねる） |
 | `shoot_tables.py` | 思考表・検討タブの表が主な題材の画像（検討ページ・ドックの既定配置・詰み探索の思考タブ・ホームのメイン画像・対局の思考タブ・多言語対応の画面）を言語ごとに撮る。`docs/images` と同じ並びで書き出す |
 | `shoot_csa.py` | ローカルの shogi-server で4言語のCSA設定・待機・対局・終局を撮影する。floodgateは設定画面だけを撮り、公開サーバーには接続しない |
+| `p2p_internet/` | インターネット越し（限定試験用）の P2P対局の画像を撮る。`lab.sh` が Docker のコンテナ（ホストの `/usr` を読み取り専用で見せる `archlinux:latest`、外とつながらない）の中に、協力ノード・家庭のルーター2台（NAT）・その内側の2人のアプリの仮想のネットワークを作り（`inside.sh`）、`shoot.py` が自動化 API で2人を操作して招待・対局・撮影まで進める。アプリは撮影用のビルド（下記）を使う |
 | `sample_kifu/` | 画像に写る見本の棋譜（▲鈴木・▽山田、105行）。`mkkif.py` が `full.usi` から言語別の KIF（`sample-<言語>.kif`・ホーム用の `main-<言語>.kif`）を書き出す。1〜50手目（`first50.usi`）は画像から読み取った手順、51手目以降は `continue_game.py` でやねうら王に指させた |
 
 ## 典型的な使い方
@@ -89,3 +90,32 @@ xvfb-run -a -s '-screen 0 1920x1440x24' python3 scripts/docs/shoot_csa.py \
 4言語それぞれ8枚を `docs/images/{,en/,zh-cn/,zh-tw/}csa-game/` に保存します。
 `--languages ja_JP en` のように対象言語を指定できます。起動には既存の `launch.sh` を使い、
 サーバーの記録とアプリの設定は `/tmp` に隔離します。終了後は今回起動したアプリとサーバーを停止します。
+
+## インターネット越しの P2P対局の画像の撮り直し
+
+P2P対局は、ふだんのビルドでは自動化 API から操作できない（`--automation` で起動すると P2P対局を作らない）。
+撮影には、自動化 API から P2P対局を操作できる撮影用のビルドを使う。配布してはならないので、Release・MinSizeRel では
+ビルドできず、`cmake --install` もできない（`docs/dev/p2p-game-spec.md` 10.2節）。
+
+```bash
+cmake -B build-p2p-docs -S . -G Ninja -DENABLE_P2P_PLAY=ON -DENABLE_P2P_DOCS_AUTOMATION=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
+ninja -C build-p2p-docs
+
+scripts/docs/p2p_internet/lab.sh up        # コンテナ・仮想のネットワーク・協力ノード・Xvfb
+for lang in ja_JP en zh_CN zh_TW; do
+  scripts/docs/p2p_internet/lab.sh exec python3 /repo/scripts/docs/p2p_internet/shoot.py $lang
+done
+scripts/docs/p2p_internet/lab.sh down      # 作業フォルダの持ち主をホストの利用者に戻して止める
+```
+
+画像は作業フォルダ（既定 `/tmp/sbq-p2p-lab-<uid>`）の `shots/<言語>/internet-*.png` に出る。ガイドでは
+`docs/images/{,en/,zh-cn/,zh-tw/}p2p-game/p2p-internet-*.png` として使う。`shoot.py <言語> settings` のように
+場面（`basic`・`direct`・`relay_only`・`settings`）を選んで撮り直せる。「設定」タブの「接続候補」は、IP アドレスの前半を
+伏せた見本（`XXX.XXX.113.10`）に書き換えて写す。
+
+- 「インターネット」は 192.88.99.0/24（6to4 のために予約され、今は使われない範囲）。アプリは文書用のアドレス
+  （203.0.113.0/24 など）を宛先に使わないので、グローバル扱いになるこの範囲を使う。コンテナの外へは出ない
+- ルーターは外から始まる接続を、変換の記録を作る前に捨てる。記録すると、ホールパンチングで相手の包みが先に届いたとき
+  変換表が衝突して送り元のポートが変わり、直接の接続に切り替わらない
+- `inside.sh nat <A|B> strict` は接続ごとに送り元のポートを変える NAT で、ホールパンチングが通らない（「経路: 中継」の画像）
+
