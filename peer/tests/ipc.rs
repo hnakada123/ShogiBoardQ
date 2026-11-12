@@ -296,7 +296,8 @@ fn invite_connection_and_frames() {
         "unknown_connection"
     );
 
-    // 使った招待はもう使えない（招待した側に届かない）
+    // 使った招待はもう使えない（招待した側に届かない）。招待した側は合言葉の合わないストリームをすぐ閉じるので、
+    // B が送る前に接続が閉じていることがある（そのときの sendFrame は unknown_connection）
     let reused = b.ok("connectInvite", json!({ "invite": text, "allowPrivate": false }))["connection"]
         .as_str()
         .unwrap()
@@ -304,7 +305,7 @@ fn invite_connection_and_frames() {
     if b.wait("connectionOpened", |p| p["connection"] == reused.as_str(), TIMEOUT)
         .is_some()
     {
-        b.ok("sendFrame", json!({ "connection": reused, "frame": hello_frame(3) }));
+        let _ = b.call("sendFrame", json!({ "connection": reused, "frame": hello_frame(3) }));
     }
     assert!(
         a.wait("connectionOpened", |_| true, Duration::from_secs(3)).is_none(),
