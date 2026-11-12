@@ -128,3 +128,35 @@ pub fn invite_token(header: &FrameHeader) -> Option<[u8; 32]> {
     }
     items.first()?.as_fixed_bytes::<32>()
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    /// INVITE_TOKEN は `[1, 11, 0, zero32, [token]]` の形だけを読む（protocol/README.md 2.1節）
+    #[test]
+    fn invite_token_round_trip_and_shape() {
+        let token = [7u8; 32];
+        let header = check(&invite_token_frame(&token)).unwrap();
+        assert_eq!(header.frame_type, TYPE_INVITE_TOKEN);
+        assert_eq!(invite_token(&header), Some(token));
+        // 型・requestId・gameId・payload の形が違えば読まない
+        let other_type = check(&build(1, 0, &[0u8; 32], vec![Value::bytes(&token)])).unwrap();
+        assert_eq!(invite_token(&other_type), None);
+        let with_request = check(&build(TYPE_INVITE_TOKEN, 1, &[0u8; 32], vec![Value::bytes(&token)])).unwrap();
+        assert_eq!(invite_token(&with_request), None);
+        let with_game = check(&build(TYPE_INVITE_TOKEN, 0, &[1u8; 32], vec![Value::bytes(&token)])).unwrap();
+        assert_eq!(invite_token(&with_game), None);
+        let short = check(&build(TYPE_INVITE_TOKEN, 0, &[0u8; 32], vec![Value::bytes(&[7u8; 31])])).unwrap();
+        assert_eq!(invite_token(&short), None);
+        let two = check(&build(
+            TYPE_INVITE_TOKEN,
+            0,
+            &[0u8; 32],
+            vec![Value::bytes(&token), Value::bytes(&token)],
+        ))
+        .unwrap();
+        assert_eq!(invite_token(&two), None);
+    }
+}

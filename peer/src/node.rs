@@ -74,8 +74,8 @@ pub struct Node {
     pub local_peer: PeerId,
     pub spec: NetworkSpec,
     pub network_id: [u8; 32],
+    /// 宛先の規則（「直接接続を使わない」も持つ）
     pub policy: Arc<AddrPolicy>,
-    pub relay_only: bool,
     /// 協力ノード（--service）
     pub service: bool,
     pub control: libp2p_stream::Control,
@@ -188,7 +188,7 @@ impl Node {
         if spec.expires_with_build && build_expired(unix_now()) {
             return Err(("build_expired", "this build has expired".into()));
         }
-        if p.bootstrap.len() > 16 {
+        if p.bootstrap.len() > ipc::MAX_BOOTSTRAP {
             return Err(("invalid_request", "too many addresses".into()));
         }
         let config = NodeConfig {
@@ -258,7 +258,6 @@ impl Node {
             spec,
             network_id,
             policy,
-            relay_only: config.relay_only,
             service: config.service,
             control,
             conn_events: conn_tx,

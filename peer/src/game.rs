@@ -53,6 +53,12 @@ pub async fn write_frame<W: futures::AsyncWrite + Unpin>(writer: &mut W, frame: 
     writer.flush().await
 }
 
+/// 双方が START_SIGNATURE を送るまでの、1秒あたりのフレームの数（protocol/ipc.md 5章。バーストは2倍）。
+/// 再接続で開いたストリームは START_SIGNATURE を送り直さないので、この上限のまま（互換実装の仕様書 4.5節）
+pub const OPENING_RATE: u64 = 5;
+/// 双方が START_SIGNATURE を送った後の、1秒あたりのフレームの数（バーストは2倍）
+pub const GAME_RATE: u64 = 20;
+
 /// フレームの頻度の上限（トークンバケット。値はミリ単位のトークン）
 pub struct RateLimiter {
     tokens_milli: u64,
@@ -98,8 +104,26 @@ pub struct ConnShared {
 }
 
 impl ConnShared {
-    pub fn in_game(&self) -> bool {
-        self.sent_start_signature.load(Ordering::SeqCst) && self.received_start_signature.load(Ordering::SeqCst)
+    /// 送るフレームを見る（START_SIGNATURE を送ったら覚える）
+    pub fn observe_sent(&self, header: &FrameHeader) {
+        if header.frame_type == TYPE_START_SIGNATURE {
+            self.sent_start_signature.store(true, Ordering::SeqCst);
+        }
+    }
+
+    /// 受けたフレームを見る（START_SIGNATURE を受けたら覚える）
+    pub fn observe_received(&self, header: &FrameHeader) {
+        if header.frame_type == TYPE_START_SIGNATURE {
+            self.received_start_signature.store(true, Ordering::SeqCst);
+        }
+    }
+
+    /// 今の受信の頻度の上限（1秒あたりの件数, バーストの件数）
+    pub fn rate(&self) -> (u64, u64) {
+        let in_game =
+            self.sent_start_signature.load(Ordering::SeqCst) && self.received_start_signature.load(Ordering::SeqCst);
+        let rate = if in_game { GAME_RATE } else { OPENING_RATE };
+        (rate, rate.saturating_mul(2))
     }
 }
 
@@ -123,7 +147,7 @@ pub async fn reader_task(
     shared: Arc<ConnShared>,
     events: mpsc::UnboundedSender<ConnEvent>,
 ) {
-    let mut limiter = RateLimiter::new(10);
+    let mut limiter = RateLimiter::new(OPENING_RATE.saturating_mul(2));
     let reason = loop {
         let (bytes, header) = match read_frame(&mut reader).await {
             Ok(v) => v,
@@ -131,7 +155,7 @@ pub async fn reader_task(
             Err(FrameReadError::Io) => break ipc::CloseReason::Reset,
             Err(FrameReadError::Invalid) => break ipc::CloseReason::InvalidFrame,
         };
-        let (rate, burst) = if shared.in_game() { (20, 40) } else { (5, 10) };
+        let (rate, burst) = shared.rate();
         if !limiter.allow(rate, burst) {
             break ipc::CloseReason::RateLimited;
         }
@@ -139,9 +163,7 @@ pub async fn reader_task(
             // トークンは接続の最初にだけ送る。後から来たものは外枠の違反として閉じる
             break ipc::CloseReason::InvalidFrame;
         }
-        if header.frame_type == TYPE_START_SIGNATURE {
-            shared.received_start_signature.store(true, Ordering::SeqCst);
-        }
+        shared.observe_received(&header);
         let len = bytes.len();
         let pending = shared.pending.fetch_add(len, Ordering::SeqCst).saturating_add(len);
         if pending > MAX_PENDING_BYTES {
@@ -181,11 +203,6 @@ pub async fn writer_task(
     let _ = writer.close().await;
 }
 
-/// ストリームを読み書きのタスクに分ける
-pub fn split(stream: Stream) -> (ReadHalf<Stream>, WriteHalf<Stream>) {
-    stream.split()
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -196,6 +213,20 @@ mod tests {
         let mut l = RateLimiter::new(10);
         let allowed = (0..20).filter(|_| l.allow(5, 10)).count();
         assert_eq!(allowed, 10);
+    }
+
+    /// 双方が START_SIGNATURE を送った後だけ、頻度の上限が上がる（protocol/ipc.md 5章）
+    #[test]
+    fn rate_rises_after_both_start_signatures() {
+        let shared = ConnShared::default();
+        let start = frame::check(&frame::build(TYPE_START_SIGNATURE, 0, &[0u8; 32], vec![])).unwrap();
+        let other = frame::check(&frame::build(1, 0, &[0u8; 32], vec![])).unwrap();
+        assert_eq!(shared.rate(), (OPENING_RATE, OPENING_RATE * 2));
+        shared.observe_received(&other);
+        shared.observe_received(&start);
+        assert_eq!(shared.rate(), (OPENING_RATE, OPENING_RATE * 2));
+        shared.observe_sent(&start);
+        assert_eq!(shared.rate(), (GAME_RATE, GAME_RATE * 2));
     }
 
     #[tokio::test]

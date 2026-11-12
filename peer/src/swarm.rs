@@ -10,7 +10,7 @@ use libp2p::core::upgrade::Version;
 use libp2p::identity::Keypair;
 use libp2p::swarm::behaviour::toggle::Toggle;
 use libp2p::swarm::NetworkBehaviour;
-use libp2p::{autonat, connection_limits, dcutr, identify, noise, ping, quic, relay, tcp, yamux, PeerId, Swarm};
+use libp2p::{autonat, connection_limits, dcutr, identify, noise, ping, quic, relay, tcp, yamux, Swarm};
 
 use sbq_protocol::network::IDENTIFY_PROTOCOL;
 
@@ -134,14 +134,4 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
 /// 中継の hop を持つピアか（Identify の protocols）
 pub fn supports_relay_hop(info: &identify::Info) -> bool {
     info.protocols.iter().any(|p| p.as_ref() == RELAY_HOP_PROTOCOL)
-}
-
-/// ピアの PeerId を表記から読む（Ed25519 の identity multihash に限る）
-pub fn parse_peer_id(text: &str) -> Option<PeerId> {
-    let peer: PeerId = text.parse().ok()?;
-    if sbq_protocol::peerid::is_ed25519(&peer.to_bytes()) {
-        Some(peer)
-    } else {
-        None
-    }
 }

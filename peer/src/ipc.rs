@@ -18,6 +18,8 @@ use tokio::sync::mpsc;
 pub const MAX_MESSAGE_BYTES: usize = 128 * 1024;
 /// IPC の版
 pub const IPC_VERSION: u64 = 2;
+/// start の bootstrap（利用者が指定した協力ノード）の上限（ipc.md 3章）
+pub const MAX_BOOTSTRAP: usize = 16;
 
 /// 読み取りの失敗
 #[derive(Debug, PartialEq, Eq)]

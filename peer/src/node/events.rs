@@ -1,6 +1,5 @@
 //! Swarm のイベントの処理（接続・到達性・中継の予約）
 
-use std::net::IpAddr;
 use std::time::Instant;
 
 use libp2p::core::ConnectedPoint;
@@ -15,20 +14,14 @@ use crate::swarm::{supports_relay_hop, BehaviourEvent};
 
 /// 同じアドレス帯から受け付ける接続の上限
 const MAX_INBOUND_PER_PREFIX: usize = 8;
-
-/// 接続元のアドレス帯（IPv4 は /24、IPv6 は /48）
-fn prefix_of(addr: &Multiaddr) -> Option<Vec<u8>> {
-    match addr::first_ip(addr)? {
-        IpAddr::V4(v4) => v4.octets().get(..3).map(<[u8]>::to_vec),
-        IpAddr::V6(v6) => v6.octets().get(..6).map(<[u8]>::to_vec),
-    }
-}
+/// 覚える待受のアドレスの上限
+const MAX_LISTEN_ADDRS: usize = 16;
 
 impl Node {
     pub fn on_swarm_event(&mut self, event: SwarmEvent<BehaviourEvent>) {
         match event {
             SwarmEvent::NewListenAddr { address, .. } => {
-                if !self.listen_addrs.contains(&address) && self.listen_addrs.len() < 16 {
+                if !self.listen_addrs.contains(&address) && self.listen_addrs.len() < MAX_LISTEN_ADDRS {
                     self.listen_addrs.push(address.clone());
                 }
                 // ローカル（同じPC・同じLAN）では、待受のアドレスのうち loopback と私設アドレスを、そのまま自分の
@@ -99,7 +92,9 @@ impl Node {
 
     /// 同じアドレス帯から受け付けた接続が多すぎるか（多すぎなければ数に入れる）
     fn admit_inbound(&mut self, connection: libp2p::swarm::ConnectionId, addr: &Multiaddr) -> bool {
-        let Some(prefix) = prefix_of(addr) else { return true };
+        let Some(prefix) = addr::prefix_of(addr) else {
+            return true;
+        };
         let count = self.inbound_prefixes.values().filter(|p| **p == prefix).count();
         if count >= MAX_INBOUND_PER_PREFIX {
             return false;

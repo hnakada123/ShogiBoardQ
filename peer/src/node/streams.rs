@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use futures::StreamExt;
+use futures::{AsyncReadExt, StreamExt};
 use libp2p::{Multiaddr, PeerId, Stream, StreamProtocol};
 use sbq_protocol::frame::{self, FrameHeader, GAME_PROTOCOL};
 use tokio::sync::mpsc;
@@ -47,7 +47,8 @@ pub enum ConnState {
     Open {
         writer: mpsc::Sender<Vec<u8>>,
         shared: Arc<ConnShared>,
-        tasks: [AbortHandle; 2],
+        /// 受信のタスク（送信のタスクは送る列が閉じれば終わる）
+        reader: AbortHandle,
         route: ipc::Route,
     },
 }
@@ -61,11 +62,9 @@ pub struct Conn {
 
 impl Drop for Conn {
     fn drop(&mut self) {
-        if let ConnState::Open { tasks, .. } = &self.state {
+        if let ConnState::Open { reader, .. } = &self.state {
             // 送信のタスクは送る列が閉じれば閉じるが、受信のタスクは止める
-            if let Some(reader) = tasks.first() {
-                reader.abort();
-            }
+            reader.abort();
         }
     }
 }
@@ -162,7 +161,7 @@ impl Node {
     pub fn open_conn(&mut self, conn: u64, stream: Stream) {
         let Some(entry) = self.conns.get(&conn) else { return };
         let peer = entry.peer;
-        let (reader, writer) = game::split(stream);
+        let (reader, writer) = stream.split();
         let shared = Arc::new(ConnShared::default());
         let (frame_tx, frame_rx) = mpsc::channel(64);
         let reader_task = tokio::spawn(game::reader_task(
@@ -171,13 +170,14 @@ impl Node {
             shared.clone(),
             self.conn_events.clone(),
         ));
-        let writer_task = tokio::spawn(game::writer_task(conn, writer, frame_rx, self.conn_events.clone()));
+        // 送信のタスクは、送る列（writer）が閉じれば（接続を消せば）終わる
+        tokio::spawn(game::writer_task(conn, writer, frame_rx, self.conn_events.clone()));
         let route = self.route_of(&peer);
         if let Some(entry) = self.conns.get_mut(&conn) {
             entry.state = ConnState::Open {
                 writer: frame_tx,
                 shared,
-                tasks: [reader_task.abort_handle(), writer_task.abort_handle()],
+                reader: reader_task.abort_handle(),
                 route,
             };
             self.out.notify(ipc::Notification::ConnectionOpened {
@@ -279,9 +279,7 @@ impl Node {
                 Some(ConnState::Open { shared, .. }) => shared.clone(),
                 _ => return,
             };
-            if header.frame_type == frame::TYPE_START_SIGNATURE {
-                shared.received_start_signature.store(true, Ordering::SeqCst);
-            }
+            shared.observe_received(&header);
             // 2つ目からのフレーム（game::reader_task）と同じく、書き出すまで受信キューに数える
             let len = first.len();
             shared.pending.fetch_add(len, Ordering::SeqCst);

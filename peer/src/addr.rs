@@ -11,6 +11,7 @@ use libp2p::core::muxing::StreamMuxerBox;
 use libp2p::core::transport::{Boxed, DialOpts, ListenerId, Transport, TransportError, TransportEvent};
 use libp2p::multiaddr::Protocol;
 use libp2p::{Multiaddr, PeerId};
+use sbq_protocol::invite;
 use sbq_protocol::network::Profile;
 
 /// 1ピアあたりの宛先の上限
@@ -94,6 +95,14 @@ pub fn first_ip(addr: &Multiaddr) -> Option<IpAddr> {
         Protocol::Ip4(ip) => Some(IpAddr::V4(ip)),
         Protocol::Ip6(ip) => Some(IpAddr::V6(ip)),
         _ => None,
+    }
+}
+
+/// 接続元のアドレス帯（IPv4 は /24、IPv6 は /48。同じ帯からの接続の数を数える）
+pub fn prefix_of(addr: &Multiaddr) -> Option<Vec<u8>> {
+    match first_ip(addr)? {
+        IpAddr::V4(v4) => v4.octets().get(..3).map(<[u8]>::to_vec),
+        IpAddr::V6(v6) => v6.octets().get(..6).map(<[u8]>::to_vec),
     }
 }
 
@@ -270,6 +279,33 @@ impl AddrPolicy {
         }
     }
 
+    /// 招待に入れる宛先を候補から選ぶ。同じ LAN の相手が使う宛先を先にし（invite_rank）、PeerId を外し、広告して
+    /// よい宛先だけを、重複なく、招待の上限まで入れる
+    pub fn invite_addrs(&self, mut candidates: Vec<Multiaddr>) -> Vec<Vec<u8>> {
+        candidates.sort_by_key(AddrPolicy::invite_rank);
+        let mut out: Vec<Vec<u8>> = Vec::new();
+        for a in candidates {
+            let a = without_peer_id(&a);
+            if !self.advertisable(&a) {
+                continue;
+            }
+            let bytes = a.to_vec();
+            if bytes.len() > invite::MAX_ADDR_BYTES || out.contains(&bytes) {
+                continue;
+            }
+            out.push(bytes);
+            if out.len() >= invite::MAX_ADDRS {
+                break;
+            }
+        }
+        out
+    }
+
+    /// 「直接接続を使わない」か
+    pub fn relay_only(&self) -> bool {
+        self.relay_only
+    }
+
     /// 自分のアドレスとして広告してよいか（「直接接続を使わない」のときは中継経由のアドレスだけ）
     pub fn advertisable(&self, addr: &Multiaddr) -> bool {
         if is_circuit(addr) {
@@ -387,6 +423,28 @@ mod tests {
 
     fn ma(s: &str) -> Multiaddr {
         s.parse().unwrap()
+    }
+
+    /// 招待に入れる宛先: 同じ LAN の私設アドレスを先、loopback を後にし、広告できない宛先・重複・PeerId を除く
+    #[test]
+    fn invite_addrs_are_ordered_and_filtered() {
+        let local = AddrPolicy::new(Profile::Local, false);
+        let peer = "12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN";
+        let out = local.invite_addrs(vec![
+            ma("/ip4/127.0.0.1/tcp/1"),
+            ma(&format!("/ip4/192.168.1.2/tcp/1/p2p/{peer}")),
+            ma("/ip4/8.8.8.8/tcp/1"),
+            ma("/ip4/192.168.1.2/tcp/1"),
+        ]);
+        let text: Vec<String> = out
+            .into_iter()
+            .map(|b| Multiaddr::try_from(b).unwrap().to_string())
+            .collect();
+        assert_eq!(text, vec!["/ip4/192.168.1.2/tcp/1", "/ip4/127.0.0.1/tcp/1"]);
+        // 「直接接続を使わない」では中継経由の宛先だけ
+        let relay_only = AddrPolicy::new(Profile::Internet, true);
+        assert!(relay_only.invite_addrs(vec![ma("/ip4/8.8.8.8/tcp/1")]).is_empty());
+        assert!(relay_only.relay_only());
     }
 
     #[test]

@@ -1,6 +1,5 @@
 //! IPC の要求の処理（protocol/ipc.md 3章）
 
-use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use base64::engine::general_purpose::STANDARD as B64;
@@ -15,7 +14,6 @@ use serde_json::{json, Value};
 use super::{unix_now, ConnState, Node, MAX_GAME_CONNECTIONS};
 use crate::addr::{self, AddrPolicy};
 use crate::ipc::{self, Method, Request};
-use crate::swarm::parse_peer_id;
 
 type ReqResult = Result<Value, (&'static str, String)>;
 
@@ -31,6 +29,16 @@ fn invite_error(e: InviteError) -> (&'static str, String) {
         InviteError::Own => "invite_own",
     };
     (code, e.to_string())
+}
+
+/// 要求の引数の PeerId を表記から読む（Ed25519 の identity multihash に限る）
+fn parse_peer_id(text: &str) -> Option<PeerId> {
+    let peer: PeerId = text.parse().ok()?;
+    if sbq_protocol::peerid::is_ed25519(&peer.to_bytes()) {
+        Some(peer)
+    } else {
+        None
+    }
 }
 
 impl Node {
@@ -76,24 +84,7 @@ impl Node {
                 candidates.extend(self.listen_addrs.iter().filter(|a| addr::is_circuit(a)).cloned());
             }
         }
-        // 同じ LAN の相手が使うアドレスを先に入れる（入れられるのは MAX_ADDRS 件まで）
-        candidates.sort_by_key(AddrPolicy::invite_rank);
-        let mut out: Vec<Vec<u8>> = Vec::new();
-        for a in candidates {
-            let a = addr::without_peer_id(&a);
-            if !self.policy.advertisable(&a) {
-                continue;
-            }
-            let bytes = a.to_vec();
-            if bytes.len() > invite::MAX_ADDR_BYTES || out.contains(&bytes) {
-                continue;
-            }
-            out.push(bytes);
-            if out.len() >= invite::MAX_ADDRS {
-                break;
-            }
-        }
-        out
+        self.policy.invite_addrs(candidates)
     }
 
     fn create_invite(&mut self) -> ReqResult {
@@ -173,7 +164,7 @@ impl Node {
         let conn = self.alloc_conn();
         if usable.is_empty() && !self.swarm.is_connected(&peer) {
             // 「直接接続を使わない」のときは、自分の協力ノードの中継を通る宛先が招待に無ければつながない
-            let reason = if self.relay_only && had_addrs {
+            let reason = if self.policy.relay_only() && had_addrs {
                 ipc::CloseReason::NoRelayRoute
             } else {
                 ipc::CloseReason::Unreachable
@@ -239,9 +230,7 @@ impl Node {
         let ConnState::Open { writer, shared, .. } = &entry.state else {
             return Err(("unknown_connection", "connection is not open".to_owned()));
         };
-        if header.frame_type == frame::TYPE_START_SIGNATURE {
-            shared.sent_start_signature.store(true, Ordering::SeqCst);
-        }
+        shared.observe_sent(&header);
         writer.try_send(bytes).map_err(|e| match e {
             tokio::sync::mpsc::error::TrySendError::Full(_) => ("rate_limited", "send queue is full".to_owned()),
             tokio::sync::mpsc::error::TrySendError::Closed(_) => {

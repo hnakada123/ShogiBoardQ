@@ -14,8 +14,8 @@ use libp2p::PeerId;
 pub const MAX_RESERVATIONS: usize = 2;
 /// 予約が取れなかった・失われたときに、頼み直すまでの時間
 pub const RETRY_AFTER: Duration = Duration::from_secs(30);
-/// 覚える中継のできる協力ノードの上限（指定は16件まで）
-const MAX_HOP_NODES: usize = 16;
+/// 覚える中継のできる協力ノードの上限（指定できる協力ノードの数）
+const MAX_HOP_NODES: usize = crate::ipc::MAX_BOOTSTRAP;
 
 #[derive(Default)]
 pub struct Reservations {

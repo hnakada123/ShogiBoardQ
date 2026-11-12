@@ -104,17 +104,7 @@ pub fn run(args: &[String]) -> i32 {
         eprintln!("shogiboardq-peer: sandbox: {e}");
         return 3;
     }
-    let runtime = match tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(2)
-        .enable_all()
-        .build()
-    {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("shogiboardq-peer: runtime: {e}");
-            return 1;
-        }
-    };
+    let Some(runtime) = crate::runtime() else { return 1 };
     runtime.block_on(async move {
         // 協力ノードは IPC を使わない（知らせは書かず、要求も来ない）
         let out = Out::discard();

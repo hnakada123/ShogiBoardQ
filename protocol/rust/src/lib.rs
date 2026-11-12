@@ -6,6 +6,7 @@
 //! - [`network`] — networkId（README 1.1節）
 //! - [`frame`] — 対局フレームの外枠と INVITE_TOKEN（README 2章）
 //! - [`invite`] — 招待文字列（README 3章）
+//! - [`peerid`] — PeerId のバイナリ表現（Ed25519 の identity multihash）
 //!
 //! 表示名の判定と対局の規則（Rules）は対局・UI側だけが扱う（通信プロセスは使わない）。
 

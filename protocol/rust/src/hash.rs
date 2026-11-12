@@ -45,12 +45,3 @@ pub fn from_hex(s: &str) -> Option<Vec<u8>> {
     }
     Some(out)
 }
-
-/// 32バイトの16進（小文字のみ）を読む
-pub fn from_hex32(s: &str) -> Option<[u8; 32]> {
-    if s.len() != 64 || s.bytes().any(|b| b.is_ascii_uppercase()) {
-        return None;
-    }
-    let v = from_hex(s)?;
-    <[u8; 32]>::try_from(v.as_slice()).ok()
-}

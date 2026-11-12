@@ -21,19 +21,24 @@ fn run_ipc(initial_ppid: i32) -> i32 {
             return 3;
         }
     };
-    let runtime = match tokio::runtime::Builder::new_multi_thread()
+    let Some(runtime) = runtime() else { return 1 };
+    runtime.block_on(node::run(report));
+    0
+}
+
+/// 非同期の実行器（対局・UI側から使うときと協力ノードで同じ）。作れなければ理由を標準エラーに書いて None
+fn runtime() -> Option<tokio::runtime::Runtime> {
+    match tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
         .enable_all()
         .build()
     {
-        Ok(r) => r,
+        Ok(r) => Some(r),
         Err(e) => {
             eprintln!("shogiboardq-peer: runtime: {e}");
-            return 1;
+            None
         }
-    };
-    runtime.block_on(node::run(report));
-    0
+    }
 }
 
 fn self_test(initial_ppid: i32) -> i32 {
