@@ -64,9 +64,6 @@ public:
         QStringList privateAddresses;
     };
 
-    /// 実験版のビルドの使用期限（日。実装仕様 3.1節）
-    static constexpr qint64 kBuildLifetimeDays = 180;
-
     P2pLobbyService(const Deps& deps, const QString& dataRoot, QObject* parent = nullptr);
     ~P2pLobbyService() override;
 
@@ -86,7 +83,7 @@ public:
 
     /// 使用期限を過ぎたビルドか（期限のあるネットワークで使えない）
     static bool isBuildExpired();
-    /// 使用期限（UNIX秒）
+    /// 使用期限（UNIX秒。起点と日数は通信プロセスと同じ値を CMake が p2pbuildinfo.h に書く）
     static qint64 buildExpiresAt();
 
     /// p2p/ のロックを取り、残ったジャーナルを証跡に直す（使い始める前に1回）

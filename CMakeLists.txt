@@ -1071,8 +1071,20 @@ if(ENABLE_P2P_PLAY)
     file(READ ${CMAKE_CURRENT_SOURCE_DIR}/protocol/displayname-v1.txt SBQ_DISPLAYNAME_TABLE)
     configure_file(cmake/p2pdisplaynametable.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/p2pdisplaynametable.h @ONLY)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS protocol/displayname-v1.txt)
-    # 使用期限の起点（実装仕様 3.1節。構成した時刻。SOURCE_DATE_EPOCH があればそれを使う）
+    # 実験版のビルドの使用期限（実装仕様 3.1節）。起点は構成した時刻（SOURCE_DATE_EPOCH があればそれ）で、ここで
+    # 1回だけ決めて通信プロセスの cargo にも渡す（SBQ_P2P_BUILD_EPOCH）。日数は通信プロセスと同じ値を、
+    # sbq-protocol の BUILD_LIFETIME_DAYS の1か所から読む（対局・UI側と通信プロセスの判定を食い違わせない）
     string(TIMESTAMP SBQ_P2P_BUILD_EPOCH "%s" UTC)
+    file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/protocol/rust/src/network.rs SBQ_P2P_LIFETIME_LINE
+         REGEX "^pub const BUILD_LIFETIME_DAYS: u64 = [0-9]+;$")
+    set(SBQ_P2P_BUILD_LIFETIME_DAYS "")
+    if(SBQ_P2P_LIFETIME_LINE MATCHES "= ([0-9]+)")
+        set(SBQ_P2P_BUILD_LIFETIME_DAYS ${CMAKE_MATCH_1})
+    endif()
+    if(NOT SBQ_P2P_BUILD_LIFETIME_DAYS MATCHES "^[0-9]+$")
+        message(FATAL_ERROR "BUILD_LIFETIME_DAYS was not found in protocol/rust/src/network.rs")
+    endif()
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS protocol/rust/src/network.rs)
     configure_file(cmake/p2pbuildinfo.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/p2pbuildinfo.h @ONLY)
 
     set(SRC_P2P
@@ -1295,7 +1307,8 @@ if(ENABLE_P2P_PLAY)
         set(SBQ_PEER_NAME shogiboardq-peer)
     endif()
     add_custom_target(shogiboardq_peer ALL
-        COMMAND ${CARGO_EXECUTABLE} build --release --locked -p shogiboardq-peer --target-dir ${SBQ_CARGO_TARGET_DIR}
+        COMMAND ${CMAKE_COMMAND} -E env SBQ_P2P_BUILD_EPOCH=${SBQ_P2P_BUILD_EPOCH}
+            ${CARGO_EXECUTABLE} build --release --locked -p shogiboardq-peer --target-dir ${SBQ_CARGO_TARGET_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${SBQ_CARGO_TARGET_DIR}/release/${SBQ_PEER_NAME} $<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

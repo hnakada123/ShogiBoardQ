@@ -44,7 +44,8 @@ pub const NETWORKS: &[NetworkSpec] = &[
     },
 ];
 
-/// ビルドの使用期限（ビルドした日からの日数。実装仕様 3.1節）
+/// ビルドの使用期限（ビルドした日からの日数。実装仕様 3.1節）。対局・UI側（C++）の日数も、CMake がこの行から読む
+/// （行の形 `pub const BUILD_LIFETIME_DAYS: u64 = <数>;` を変えない）
 pub const BUILD_LIFETIME_DAYS: u64 = 180;
 
 /// 名前のネットワークを探す（一覧にない名前は None）

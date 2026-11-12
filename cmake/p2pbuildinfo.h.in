@@ -2,7 +2,10 @@
 #ifndef P2PBUILDINFO_H
 #define P2PBUILDINFO_H
 
-/// このビルドを構成した時刻（UNIX秒。SOURCE_DATE_EPOCH があればその値）。実験版の使用期限の起点
+/// このビルドを構成した時刻（UNIX秒。SOURCE_DATE_EPOCH があればその値）。実験版の使用期限の起点で、
+/// 通信プロセスも同じ値を使う（CMake が cargo に SBQ_P2P_BUILD_EPOCH で渡す）
 inline constexpr long long kP2pBuildEpochSeconds = @SBQ_P2P_BUILD_EPOCH@LL;
+/// 使用期限の日数（通信プロセスと同じ値。protocol/rust/src/network.rs の BUILD_LIFETIME_DAYS から読む）
+inline constexpr long long kP2pBuildLifetimeDays = @SBQ_P2P_BUILD_LIFETIME_DAYS@LL;
 
 #endif // P2PBUILDINFO_H

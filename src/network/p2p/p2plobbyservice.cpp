@@ -58,7 +58,7 @@ P2pLobbyService* P2pLobbyService::acquire(const Deps& deps, const QString& dataD
 
 qint64 P2pLobbyService::buildExpiresAt()
 {
-    return kP2pBuildEpochSeconds + kBuildLifetimeDays * 24 * 60 * 60;
+    return kP2pBuildEpochSeconds + kP2pBuildLifetimeDays * 24 * 60 * 60;
 }
 
 bool P2pLobbyService::isBuildExpired()
