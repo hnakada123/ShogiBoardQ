@@ -320,6 +320,16 @@ std::optional<ErrorCode> parseReject(const CborValue& value)
     return errorCodeOf(code);
 }
 
+Frame rejectFrame(ErrorCode code)
+{
+    Frame frame;
+    frame.type = FrameType::Reject;
+    frame.requestId = 1;
+    frame.gameId = zeroHash();
+    frame.payload = rejectPayload(code);
+    return frame;
+}
+
 // ---------------------------------------------------------------- CONTROL の body
 
 namespace ControlBody {

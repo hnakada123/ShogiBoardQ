@@ -136,6 +136,17 @@ private slots:
         }
     }
 
+    /// 交渉の前に接続を断る REJECT は、外枠の規則どおりに読めて、理由を読み戻せる（監査 2026-11-12 R5）
+    void rejectFrameRoundTrips()
+    {
+        const std::optional<Frame> frame = Frame::decode(rejectFrame(ErrorCode::Busy).encode());
+        QVERIFY(frame);
+        QCOMPARE(frame->type, FrameType::Reject);
+        QCOMPARE(frame->requestId, quint64(1));
+        QCOMPARE(frame->gameId, zeroHash());
+        QCOMPARE(parseReject(frame->payload), std::optional<ErrorCode>(ErrorCode::Busy));
+    }
+
     /// 通信プロセスから届く IPC のメッセージは、外枠と中身の形をすべて確かめる（監査 2026-11-12 5.4。protocol/ipc.md）
     void ipcMessagesAreCheckedStrictly()
     {

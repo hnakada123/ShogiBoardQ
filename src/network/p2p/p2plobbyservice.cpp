@@ -345,12 +345,7 @@ void P2pLobbyService::handleConnectionOpened(const QJsonObject& params)
 
 void P2pLobbyService::rejectConnection(quint64 connection, P2p::ErrorCode code)
 {
-    P2p::Frame frame;
-    frame.type = P2p::FrameType::Reject;
-    frame.requestId = 1;
-    frame.gameId = P2p::zeroHash();
-    frame.payload = P2p::rejectPayload(code);
-    sendFrame(connection, frame.encode());
+    sendFrame(connection, P2p::rejectFrame(code).encode());
     closeConnection(connection);
 }
 

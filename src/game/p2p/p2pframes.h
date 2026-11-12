@@ -158,6 +158,9 @@ struct ResultSignaturePayload {
 
 CborValue rejectPayload(ErrorCode code);
 std::optional<ErrorCode> parseReject(const CborValue& value);
+/// 交渉を始める前の接続を断るフレーム（REJECT。対局ID が決まる前なのでゼロの gameId、その接続で最初のフレームなので
+/// requestId は 1）
+Frame rejectFrame(ErrorCode code);
 
 /// CONTROL の body
 namespace ControlBody {
