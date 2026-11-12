@@ -36,13 +36,13 @@
 対局・UI側は通信プロセスを終了させる）。
 
 ```json
-{"protocolVersion":1,"processGeneration":"3","requestId":"17","method":"sendFrame","params":{...}}
-{"protocolVersion":1,"processGeneration":"3","requestId":"17","result":{...}}
-{"protocolVersion":1,"processGeneration":"3","requestId":"17","error":{"code":"unknown_connection","message":"..."}}
-{"protocolVersion":1,"processGeneration":"3","notification":"frameReceived","params":{...}}
+{"protocolVersion":2,"processGeneration":"3","requestId":"17","method":"sendFrame","params":{...}}
+{"protocolVersion":2,"processGeneration":"3","requestId":"17","result":{...}}
+{"protocolVersion":2,"processGeneration":"3","requestId":"17","error":{"code":"unknown_connection","message":"..."}}
+{"protocolVersion":2,"processGeneration":"3","notification":"frameReceived","params":{...}}
 ```
 
-- `protocolVersion` は 1。違えば IPC の違反。
+- `protocolVersion` は 2（`hello` の応答の `ipcVersion` と同じ）。違えば IPC の違反。
 - `processGeneration` は対局・UI側が起動ごとに決める 10進の文字列。通信プロセスは最初の要求（`hello`）の値を覚え、
   以後の要求の値が違えば IPC の違反とし、応答と通知にはこの値を付ける。対局・UI側は、今の世代と違う値の
   メッセージを捨てる（古いプロセスの残り）。
@@ -132,7 +132,8 @@
 - `reachability` は AutoNAT の結果（`relayOnly` では確かめないので `unknown` のまま）。`route` は、その相手との接続が
   すべて中継経由なら `relay`、1つでも直接の接続があれば `direct`。
 - `frameReceived` は外枠を確かめたフレームだけを運ぶ。INVITE_TOKEN は運ばない。
-- `connectionClosed` の `reason` は `closed`・`reset`・`timeout`・`unreachable`・`no_relay_route`・`invalid_frame`・`rate_limited`・`limit`・`shutdown`。
+- `connectionClosed` の `reason` は `closed`・`reset`・`timeout`・`unreachable`・`no_relay_route`・`invalid_frame`・`rate_limited`・`limit`。
+  `shutdown` の後は、開いている接続を知らせずに終わる（接続は通信プロセスとともに閉じる）。
 
 ## 5. 宛先の規則
 

@@ -757,26 +757,38 @@ Evidence = ["SBQ-MATCH", 1,
 
 ### 10.2 追加する部品
 
-以下のパス・名称は新規追加案である。実装時は既存規約の小さなクラス、メンバ関数ポインタによるsignal/slot接続を守る。
+実装した部品は次のとおり（2026-11-12 の時点。実装前の案にあった `p2pgameprogress`・`p2pevidencestore`・`p2pgamedialog` は、それぞれ `P2p::Match`・`P2pRecordStore`・`P2pConfirmDialog` になった）。既存規約の小さなクラス、メンバ関数ポインタによるsignal/slot接続を守る。
 
-プロトコルの値・符号化・検証のうち、ソケットもプロセスも GUI も使わない部分は `src/game/p2p/` に置く。証跡の検証を CLI から使うには headless の部品にする必要があり、headless は network を参照できない（`tests/tst_layer_dependencies.cpp`）ためである。
+プロトコルの値・符号化・検証と、交渉・対局の状態機械のうち、ソケットもプロセスも GUI も使わない部分は `src/game/p2p/` に置く。証跡の検証を CLI から使うには headless の部品にする必要があり、headless は network を参照できない（`tests/tst_layer_dependencies.cpp`）ためである。
 
 | 追加先 | 責務 |
 |---|---|
-| `src/game/p2p/p2pprotocol.h/.cpp` | 条件・State・証跡の値型、決定的CBOR、ハッシュ、境界値と形式の検証 |
+| `src/game/p2p/p2pcbor.h/.cpp` | 決定的CBOR の値・符号化・読み取りと SHA-256 |
+| `src/game/p2p/p2pprotocol.h/.cpp` | 条件・状態・開始合意・結果の値とその CBOR、識別子（networkId・先後の決定・connectionId・確認コード）、境界値 |
+| `src/game/p2p/p2pframes.h/.cpp` | 対局フレームの外枠と payload |
+| `src/game/p2p/p2pdisplayname.h/.cpp` | 表示名の判定（表は CMake が `protocol/displayname-v1.txt` から作る） |
 | `src/game/p2p/p2psignature.h/.cpp` | libsodium の包み（鍵の生成、署名、検証、保護付きメモリ） |
-| `src/game/p2p/p2pevidenceverifier.h/.cpp` | 証跡の検証（署名、手順、合法性、時計の算術、ハッシュ） |
-| `src/network/p2p/p2pidentitystore.h/.cpp` | プレイヤー鍵の生成・保管・読み込み・作り直し（OS の鍵の保管庫、暗号化したファイル） |
+| `src/game/p2p/p2pgamerules.h/.cpp` | 次の状態の作成と検証、時計の算術、棋譜から決まる終局 |
+| `src/game/p2p/p2pnegotiation.h/.cpp` | 開始までの交渉の状態機械（HELLO、先後の決定、開始合意、開始署名） |
+| `src/game/p2p/p2pmatch.h/.cpp`・`p2pmatch_control.cpp` | 開始後の対局の状態機械（State0、着手の合意、時計の観測、再接続と照合、結果の提案と署名）。一局用鍵を持つ |
+| `src/game/p2p/p2precordkinds.h/.cpp` | 対局ジャーナルの件の形 |
+| `src/game/p2p/p2pevidence.h/.cpp`・`p2pevidenceverifier.h/.cpp` | 証跡の値と読み書き、証跡の検証（署名、手順、合法性、時計の算術、ハッシュ） |
+| `src/network/p2p/peeripc.h/.cpp` | IPC のメッセージの形と、受けたメッセージの検査 |
 | `src/network/p2p/peerprocess.h/.cpp` | 通信プロセスの起動、サンドボックス適用の確認、非同期IPC、プロセス世代と要求IDの管理 |
-| `src/network/p2p/p2plobbyservice.h/.cpp` | 通信プロセスの窓口（招待と、開いた接続の振り分け） |
-| `src/network/p2p/p2pgamecoordinator.h/.cpp` | 開始、着手合意、復旧、終局の状態機械。一局用鍵を持つ |
+| `src/network/p2p/p2pidentitystore.h/.cpp` | プレイヤー鍵の生成・保管・読み込み・作り直し（OS の鍵の保管庫、暗号化したファイル） |
+| `src/network/p2p/p2precordstore.h/.cpp` | 保存先のロック、ジャーナル、証跡の原子的保存、復旧、履歴 |
+| `src/network/p2p/p2pknownpeers.h/.cpp` | 既知の相手（手元で付けた名前、確認済みか、ブロック、対局数） |
+| `src/network/p2p/p2pplayerslot.h` | 同じ PC の何人目のプレイヤーかと、その保存先 |
+| `src/network/p2p/p2ptransport.h` | 司令塔がフレームを送る先の窓口（通信プロセスを直接知らないため） |
+| `src/network/p2p/p2plobbyservice.h/.cpp` | 通信プロセスの窓口（起動・停止、招待と、開いた接続の振り分け） |
+| `src/network/p2p/p2pgamecoordinator.h/.cpp` | 交渉と対局の状態機械を、盤・時計・棋譜・動作状態・証跡へつなぐ司令塔 |
 | `src/network/p2p/p2pgamechannel.h/.cpp` | GameChannelを実装。送信直後はMoveResult::Sent |
-| `src/network/p2p/p2pgameprogress.h/.cpp` | 確定手順、合意済み残り時間、保留中の一手の値型 |
-| `src/network/p2p/p2pevidencestore.h/.cpp` | ジャーナル、証跡の原子的保存、復旧 |
-| `src/headless/`・`src/cli/` | 証跡の検証サービスと `verify-match` コマンド |
-| `src/dialogs/p2pwindow.h/.cpp` | 接続と条件、招待、対局中、記録、相手、設定 |
-| `src/dialogs/p2pgamedialog.h/.cpp` | 条件、相手の確認、対局記録に残る内容の確認 |
-| `src/ui/controllers/p2pgameuicontroller.h/.cpp` | メニュー・状態・終局表示の接続 |
+| `src/headless/matchverificationservice.h/.cpp`・`src/cli/clicommands_p2p.cpp` | 証跡の検証サービスと `verify-match` コマンド |
+| `src/dialogs/p2pwindow.h/.cpp`・`p2phistorypanel`・`p2ppeerspanel` | 接続と条件、招待、対局中、記録、相手、設定のタブ |
+| `src/dialogs/p2pconfirmdialog.h/.cpp` | 条件、相手の確認、対局記録に残る内容の確認 |
+| `src/dialogs/p2pidentitydialog.h/.cpp` | プレイヤー鍵の作成・読み込み |
+| `src/dialogs/p2pwindowtext.h/.cpp` | P2P対局の画面で共通の文 |
+| `src/ui/controllers/p2pgameuicontroller.h/.cpp` | 「P2P対局」を開いたときに部品を作り、プレイヤー鍵の準備・条件確認・申し出・終局の知らせをつなぐ |
 | `peer/` | Rust。通信プロセス（P2P、招待、識別鍵）と `--service` モード |
 | `protocol/` | スキーマ、C++・Rust 共通の署名・エンコードのテストベクトル、形式検査用の Rust crate |
 

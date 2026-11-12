@@ -268,7 +268,7 @@ bool checkNotification(const QString& name, const QJsonObject& params)
     if (name == QLatin1String("connectionClosed")) {
         return exactFields(params, {{"connection", u64()},
                                     {"reason", oneOf({"closed", "reset", "timeout", "unreachable", "no_relay_route",
-                                                      "invalid_frame", "rate_limited", "limit", "shutdown"})}});
+                                                      "invalid_frame", "rate_limited", "limit"})}});
     }
     return false;
 }
