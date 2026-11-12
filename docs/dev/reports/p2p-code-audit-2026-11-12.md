@@ -85,6 +85,8 @@ B1 の経路は2つある。
 
 ### R4 所有者だけが読み書きできるファイルの原子的な書き込みが3つある
 
+**状態: 済（5165dbae）**。`P2pOwnerFile` にまとめた。
+
 `p2pknownpeers.cpp:67`・`p2precordstore.cpp:84`（`writeAtomically`）・`p2pidentitystore.cpp:160`（`writeFileAtomically`）が、同じ手順（`QSaveFile`・`ReadOwner | WriteOwner`・`commit`）を別々に書いている。フォルダの権限を付けるのは2つだけである。安全に関わる規則なので、1つの関数にまとめる。
 
 ## 3. 抱えすぎている部品
@@ -218,6 +220,8 @@ IPC の形には共通の試験入力が無い。C++ の `PeerIpc::parse`・`che
 
 ### 5.5 Rust の「対局中か」の判定が3か所にある
 
+**状態: 済（0f0179ea）**。`ConnShared::observe_sent`・`observe_received`・`rate` と定数 `OPENING_RATE`・`GAME_RATE` にまとめた。再接続で開いたストリームが 5件/秒のままなのは、互換実装の仕様書 4.5節に書いてある決まりなので変えていない。
+
 START_SIGNATURE を見て受信の頻度の上限を変える規則がある。その記録が `game.rs:140`、`node.rs:694`、`requests.rs:248` に散っている。`game.rs:124` の `RateLimiter::new(10)` は、`:132` の `(5, 10)` とは別に書いた数である。`ConnShared` に送信・受信の観測と上限の決定をまとめる。
 
 再接続の手順（`game-frames.md` 4章）では START_SIGNATURE を送り直さないので、再接続の新しいストリームは毎秒5件の上限のままになる。SYNC_CHUNK がこの上限に掛かるかは確かめていない。
@@ -226,24 +230,26 @@ START_SIGNATURE を見て受信の頻度の上限を変える規則がある。�
 
 | # | 内容 | 場所 |
 |---|---|---|
-| S1 | 汎用の CBOR の読み取り補助 `CborReader` が、条件・状態の値のヘッダーにある。保存先の部品（既知の相手・記録・鍵）もこれのために `p2pprotocol.h` を読む | `p2pprotocol.h:34`。`p2pcbor.h` に移す |
-| S2 | 「仮予約」（`kReservationMs`・`reservationRemainingMs`・`m_reservationDeadline`）は公開募集の時代の語で、仕様書に無い。中身は条件の確認と開始署名までの期限 | `p2pgamecoordinator.cpp:26`・`p2pgamecoordinator.h`・`p2pconfirmdialog.cpp:180` |
-| S3 | 後ろに宣言のない注釈「申込側の開始署名を確かめた（募集側はここで募集を取り下げる）」 | `p2pnegotiation.h:86` |
-| S4 | `P2pRecordStore` のファイルの説明が「既知の相手」を挙げるが、既知の相手は `P2pKnownPeers` | `p2precordstore.h:5` |
-| S5 | ロビー・ウィンドウの説明は「アドレス（IP）は届かない・出さない」と書くが、`inspectInvite` の `privateAddresses` は届き、ウィンドウに出す（`ipc.md:128-129` は例外として書いている） | `p2plobbyservice.h:33`・`p2pwindow.h:28`・`p2pwindow.cpp:580` |
+| S1 | 汎用の CBOR の読み取り補助 `CborReader` が、条件・状態の値のヘッダーにある。保存先の部品（既知の相手・記録・鍵）もこれのために `p2pprotocol.h` を読む | `p2pprotocol.h:34`。`p2pcbor.h` に移す<br>**状態: 済（5165dbae）** |
+| S2 | 「仮予約」（`kReservationMs`・`reservationRemainingMs`・`m_reservationDeadline`）は公開募集の時代の語で、仕様書に無い。中身は条件の確認と開始署名までの期限 | `p2pgamecoordinator.cpp:26`・`p2pgamecoordinator.h`・`p2pconfirmdialog.cpp:180`<br>**状態: 済（5165dbae）**。`confirmationRemainingMs` にした |
+| S3 | 後ろに宣言のない注釈「申込側の開始署名を確かめた（募集側はここで募集を取り下げる）」 | `p2pnegotiation.h:86`<br>**状態: 済（5165dbae）** |
+| S4 | `P2pRecordStore` のファイルの説明が「既知の相手」を挙げるが、既知の相手は `P2pKnownPeers` | `p2precordstore.h:5`<br>**状態: 済（de085031、R5）** |
+| S5 | ロビー・ウィンドウの説明は「アドレス（IP）は届かない・出さない」と書くが、`inspectInvite` の `privateAddresses` は届き、ウィンドウに出す（`ipc.md:128-129` は例外として書いている） | `p2plobbyservice.h:33`・`p2pwindow.h:28`・`p2pwindow.cpp:580`<br>**状態: 済（5165dbae）**。説明に例外を書いた |
 | S6 | 仕様 10.2節の部品の表に、実在しない `p2pgameprogress`・`p2pevidencestore`・`p2pgamedialog` が載り、`p2pnegotiation`・`p2pmatch`・`p2pframes`・`p2precordstore`・`p2pknownpeers` などが無い。司令塔を「状態機械」と書くが、状態機械は `Match`・`Negotiation` | `docs/dev/p2p-game-spec.md:758-779`<br>**状態: 済（aed37b09）** |
-| S7 | IPC のフレームの base64 の上限が 64 KiB を自分で計算している（`P2p::kMaxFrameBytes` を使わない） | `peeripc.cpp:132` |
-| S8 | `P2pHistoryInfo::mySide` が 1・2 の数で、読み戻しも `== 2 ? 2 : 1` と書く（`kSideBlack`・`kSideWhite` を使わない） | `p2precordstore.h`・`p2precordstore.cpp:237` |
-| S9 | `TimeControlTerms` から `TimeControl` への換算を、棋譜と時計のために同じ関数の中で2回書いている | `p2pgamecoordinator.cpp:221-233` |
-| S10 | CMake の `SRC_P2P` の並びが崩れている（`peeripc`・`peerprocess` が ui の後） | `CMakeLists.txt:1104-1111` |
+| S7 | IPC のフレームの base64 の上限が 64 KiB を自分で計算している（`P2p::kMaxFrameBytes` を使わない） | `peeripc.cpp:132`<br>**状態: 済（5165dbae）** |
+| S8 | `P2pHistoryInfo::mySide` が 1・2 の数で、読み戻しも `== 2 ? 2 : 1` と書く（`kSideBlack`・`kSideWhite` を使わない） | `p2precordstore.h`・`p2precordstore.cpp:237`<br>**状態: 済（5165dbae）**。読むときに先手・後手以外を断る |
+| S9 | `TimeControlTerms` から `TimeControl` への換算を、棋譜と時計のために同じ関数の中で2回書いている | `p2pgamecoordinator.cpp:221-233`<br>**状態: 済（5165dbae）** |
+| S10 | CMake の `SRC_P2P` の並びが崩れている（`peeripc`・`peerprocess` が ui の後） | `CMakeLists.txt:1104-1111`<br>**状態: 済（5165dbae）** |
 | S11 | Rust: `status_dirty` は書くだけで読まれない | `node.rs:214`・`events.rs` の8か所<br>**状態: 済（bc47237a、R8）** |
-| S12 | Rust: 使われない関数・値 | `hash::from_hex32`（`hash.rs:50`）・`peerid::ed25519_public_key`（`peerid.rs:14`）・`ConnState::Open` の tasks の2つ目（`node.rs:147`） |
-| S13 | Rust: `game::split` は `stream.split()` の言い換えだけ。tokio の実行器の組み立てが2か所で同じ。16件の上限が4か所に別々に書かれている。`relay_only` を `Node` と `AddrPolicy` の両方が持つ | `game.rs:180`・`main.rs:23-33`・`service.rs:108-118`・`node.rs:308`・`events.rs:31`・`reservations.rs:18`・`addr.rs:22` |
-| S14 | Rust: `sbq-protocol` のモジュールの説明の一覧に `peerid` が無い | `protocol/rust/src/lib.rs:4-8` |
-| S15 | Rust: 宛先を扱うコードが `addr.rs` の外にもある（IP とポートの読み直し、`prefix_of`、招待に入れる宛先の選択、`parse_peer_id`） | `node.rs:48-70`・`events.rs:20`・`requests.rs:73-100`・`swarm.rs:140` |
-| S16 | 対局記録のタブを開くたびに、全部の証跡を GUI スレッドで読んで検証する（記録は合計 1 GiB まで残る） | `p2phistorypanel.cpp:34` |
+| S12 | Rust: 使われない関数・値 | `hash::from_hex32`（`hash.rs:50`）・`peerid::ed25519_public_key`（`peerid.rs:14`）・`ConnState::Open` の tasks の2つ目（`node.rs:147`）<br>**状態: 済（0f0179ea）** |
+| S13 | Rust: `game::split` は `stream.split()` の言い換えだけ。tokio の実行器の組み立てが2か所で同じ。16件の上限が4か所に別々に書かれている。`relay_only` を `Node` と `AddrPolicy` の両方が持つ | `game.rs:180`・`main.rs:23-33`・`service.rs:108-118`・`node.rs:308`・`events.rs:31`・`reservations.rs:18`・`addr.rs:22`<br>**状態: 済（0f0179ea）**。上限 16 は `ipc::MAX_BOOTSTRAP` にした（`addr.rs` の上限は 64 で別のもの。待受のアドレスの上限は別の名前の定数） |
+| S14 | Rust: `sbq-protocol` のモジュールの説明の一覧に `peerid` が無い | `protocol/rust/src/lib.rs:4-8`<br>**状態: 済（0f0179ea）** |
+| S15 | Rust: 宛先を扱うコードが `addr.rs` の外にもある（IP とポートの読み直し、`prefix_of`、招待に入れる宛先の選択、`parse_peer_id`） | `node.rs:48-70`・`events.rs:20`・`requests.rs:73-100`・`swarm.rs:140`<br>**状態: 済（0f0179ea）**。`prefix_of` と `AddrPolicy::invite_addrs` を `addr.rs` に、PeerId の読み取りを `requests.rs` に移した（`listen.rs` の IP とポートの読み直しは待受だけのもの） |
+| S16 | 対局記録のタブを開くたびに、全部の証跡を GUI スレッドで読んで検証する（記録は合計 1 GiB まで残る） | `p2phistorypanel.cpp:34`<br>**状態: 済（5165dbae）**。検証の結果を場所・大きさ・更新時刻ごとに覚える。初めて開いたときは全部を検証する |
 
 ## 7. 試験の置き場所
+
+**状態: 済**。ジャーナルの読み戻し（c14d0d75）、`PeerIpc` の検査と読み取り（23db09b4・51cabd3a）、招待の状態（97537316）、招待に入れる宛先と INVITE_TOKEN の形（0f0179ea）の試験を足した。`requests.rs`・`events.rs` のほかの処理は、これまでどおり本物のプロセスを使う `peer/tests/ipc.rs` で確かめる。
 
 - ジャーナルの読み戻し（`evidenceFromJournal`）は、`tst_p2p_coordinator` の `recoverJournals` の1件でしか通らない。R2 で game/p2p に移せば、書いて読み戻す試験を `tst_p2p_protocol` に置ける。
 - `PeerIpc` の検査は直接の試験が無い（5.4）。
