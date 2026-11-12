@@ -47,10 +47,9 @@
         <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
             <li><a href="../index.html">Home</a></li>
             <li><a href="index.html">User Guide</a></li>
+            <li><a href="#ways">Ways to Play</a></li>
             <li><a href="#prepare">Setup</a></li>
             <li><a href="#tabs">Tabs</a></li>
-            <li><a href="#invite">Invitations</a></li>
-            <li><a href="#internet">Internet</a></li>
             <li><a href="#playing">Playing</a></li>
             <li><a href="#records">Records</a></li>
             <li><a href="#limits">Limits</a></li>
@@ -92,16 +91,34 @@
                 <p class="guide-step-text">The start and the result of each game are confirmed automatically by both players' apps with a player key that this app creates (no action is needed). The public key of the player key is your player ID. No real name or external account is used. When the game ends, a game record (evidence) confirmed by both players is saved on both PCs, and anyone can verify it.</p>
             </div>
 
-            <div class="guide-step">
+            <div class="guide-step" id="one-game">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">One-on-One Games, One Game per App at a Time</span>
+                </div>
+                <p class="guide-step-text">A P2P game is a one-on-one game between two players, and one app can have only one game at a time. This is the same with or without a cooperating node. A cooperating node only checks reachability and relays traffic; it does not pair players or let one app play several games.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Case</th><th scope="col">Without a cooperating node</th><th scope="col">With a cooperating node</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>You invite seven people</strong></td><td>You can play only one game at a time. You play whoever connects first, and the others are refused with "The opponent is busy negotiating or playing with someone else." To play all seven, give the next person a new invitation after each game and play them one by one.</td><td>The same as without a cooperating node: only one game at a time.</td></tr>
+                        <tr><td><strong>Eight people play four games at once</strong></td><td>In each of the four pairs, one player creates an invitation and sends it to the other. Within the same LAN, each pair connects separately, so all four games can be played at once (even one PC can run up to eight copies of the app).</td><td>In each of the four pairs, one player invites the other. All four pairs can use the same cooperating node (one cooperating node relays for up to 128 people at a time).</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">Up to four invitations can be valid at the same time, so if you create seven, the first three stop working. There is no feature for pairing invited players with each other (such as running a tournament), and no way to watch games. For the invitation rules, see <a href="p2p-direct.html#invite-rules">How Many People You Can Invite, and How Often</a>.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
                     <span class="guide-step-title">What the Experimental Build Offers</span>
                 </div>
                 <p class="guide-step-text">P2P games are an experimental feature and are not included in the distributed ShogiBoardQ. To use them, pass <code>-DENABLE_P2P_PLAY=ON</code> to CMake when you build from source (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a> for the build steps).</p>
                 <ul class="guide-step-text">
                     <li><strong>Operating system</strong>: Linux only for now. P2P games are not available where the OS cannot restrict the communication process (shogiboardq-peer).</li>
-                    <li><strong>Networks</strong>: Local test (same PC / same LAN) and Limited test.</li>
-                    <li><strong>Cooperating node</strong>: Games over the internet (Limited test) need one cooperating node as the first peer to connect to. It is a server that checks reachability and relays traffic; enter its address in Bootstrap nodes in Settings. Games on the same PC or LAN do not need one.</li>
+                    <li><strong>Networks</strong>: Local test (same PC / same LAN) and Limited test. For which to use, see <a href="#ways">Two Ways to Play</a>.</li>
+                    <li><strong>Cooperating node</strong>: Games over the Internet (Limited test) need one cooperating node as the first peer to connect to (<a href="p2p-relay.html">Playing with a Cooperating Node</a>). Games on the same PC or LAN do not need one (<a href="p2p-direct.html">Playing Without a Cooperating Node</a>).</li>
                     <li><strong>Expiry</strong>: 180 days after the build date, the build no longer joins the limited test network. The local test network and reviewing or verifying saved records keep working.</li>
                     <li><strong>Automation API</strong>: P2P games are not available when the app is started with <code>--automation</code>.</li>
                 </ul>
@@ -109,7 +126,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">Game Rules</span>
                 </div>
                 <table class="info-table">
@@ -131,7 +148,66 @@
 </section>
 
 <!-- Section 2 -->
-<section id="prepare" class="section">
+<section id="ways" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Two Ways to Play</h2>
+        <p class="section-desc">Where your opponent is decides whether you need a cooperating node. Each way is explained step by step on its own page</p>
+
+        <div class="features-grid features-grid--two">
+            <a href="p2p-direct.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Playing Without a Cooperating Node</h3>
+                    <p>Play an opponent on the same PC or LAN, connected with just an invitation. You need neither a cooperating node nor any change on the Settings tab. How many people you can invite and the firewall settings are also on this page.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+            <a href="p2p-relay.html" class="feature-card-link">
+                <div class="feature-card">
+                    <h3>Playing with a Cooperating Node</h3>
+                    <p>Play an opponent on the Internet through a cooperating node. Who runs the cooperating node, how to run it, and how to hide your IP address from your opponent are also on this page.</p>
+                    <span class="feature-card-more">Learn more &rarr;</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">How the Two Ways Differ</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Item</th><th scope="col">Without a cooperating node</th><th scope="col">With a cooperating node</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Who you can play</strong></td><td>Opponents on the same PC or LAN</td><td>Opponents on the Internet (another home, another connection)</td></tr>
+                        <tr><td><strong>Network</strong></td><td>Local test (same PC / same LAN)</td><td>Limited test</td></tr>
+                        <tr><td><strong>Cooperating node</strong></td><td>Not needed</td><td>One is needed (someone runs it, and both players enter its address)</td></tr>
+                        <tr><td><strong>Settings tab</strong></td><td>No changes needed</td><td>Enter the cooperating node in Bootstrap nodes</td></tr>
+                        <tr><td><strong>Addresses in the invitation</strong></td><td>This PC's address on the LAN (such as 192.168.…)</td><td>Addresses that go through the cooperating node (and, if your PC can be reached directly from outside, your IP address on the Internet)</td></tr>
+                        <tr><td><strong>Address the opponent can see</strong></td><td>Only your address on the LAN</td><td>With a direct connection, your IP address on the Internet (Do not use direct connections hides it)</td></tr>
+                        <tr><td><strong>Expiry</strong></td><td>None</td><td>180 days after the build</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">The two networks do not connect to each other. Both players choose the same network and connect.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">What Is the Same Either Way</span>
+                </div>
+                <p class="guide-step-text"><a href="#prepare">Setting up</a> the player key and display name, exchanging invitations, the <a href="#confirm">confirmation screen</a>, the controls while <a href="#playing">playing</a>, and <a href="#records">game records and verification</a> are the same either way. This page explains them.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="prepare" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">Getting Ready</h2>
         <p class="section-desc">Open the P2P window, create a player key, and connect to a network</p>
@@ -181,8 +257,8 @@
     </div>
 </section>
 
-<!-- Section 3 -->
-<section id="tabs" class="section section--alt">
+<!-- Section 4 -->
+<section id="tabs" class="section">
     <div class="section-inner">
         <h2 class="section-title">The Tabs of the Window</h2>
         <p class="section-desc">The six tabs of the P2P window, what each item means, and when to use the items on the Settings tab</p>
@@ -244,7 +320,7 @@
                     <span class="guide-step-number">3</span>
                     <span class="guide-step-title">The Connect by Invitation Tab</span>
                 </div>
-                <p class="guide-step-text">Invite an opponent at the top is for the inviter, and Connect by invitation at the bottom is for the invited player. Both work only while connected. For the steps, see <a href="#invite">Playing by Invitation</a>.</p>
+                <p class="guide-step-text">Invite an opponent at the top is for the inviter, and Connect by invitation at the bottom is for the invited player. Both work only while connected. For the steps, see <a href="p2p-direct.html#steps">Playing Without a Cooperating Node</a> and <a href="p2p-relay.html#play">Playing with a Cooperating Node</a>.</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Connect by Invitation tab with your own invitation created at the top and a received invitation checked at the bottom" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">Connect by Invitation tab: create an invitation (top) and connect with one you received (bottom)</p>
@@ -254,7 +330,7 @@
                         <tr><th scope="col">Item</th><th scope="col">Description</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Create Invitation</strong></td><td>Creates an invitation and shows it in the box below. Under the box are the expiry time and the number of addresses the opponent can use. An invitation expires in 10 minutes and can be used once. Up to four can be valid at the same time.</td></tr>
+                        <tr><td><strong>Create Invitation</strong></td><td>Creates an invitation and shows it in the box below. Under the box are the expiry time and the number of addresses the opponent can use. An invitation expires in 10 minutes and can be used once. Up to four can be valid at the same time (<a href="p2p-direct.html#invite-rules">How many people you can invite</a>).</td></tr>
                         <tr><td><strong>Copy</strong></td><td>Copies the invitation. Send it in a way that reaches only your opponent.</td></tr>
                         <tr><td><strong>Connect by invitation (box)</strong></td><td>Paste the invitation you received here.</td></tr>
                         <tr><td><strong>Check Invitation</strong></td><td>Reads the pasted invitation and shows the inviter's PeerId (the beginning of it), the expiry time, and the number of addresses below.</td></tr>
@@ -327,7 +403,7 @@
                     <span class="guide-step-number">6</span>
                     <span class="guide-step-title">The Opponents Tab</span>
                 </div>
-                <p class="guide-step-text">The opponents you have played are listed one per row by player ID. Select a row and click a button below.</p>
+                <p class="guide-step-text">The opponents you have played are listed one per row by player ID. Anyone can use the same display name, so use the player ID to tell whether it is the same person. Select a row and click a button below.</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/en/p2p-game/p2p-peers.png"><img src="../../images/en/p2p-game/p2p-peers.png" alt="Opponents tab with Player ID, Local name, Last display name, Verified, Block, Games, and Unconfirmed columns and the Name, Verification Code, Unmark Verified, Block, and Delete Record buttons" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">Opponents tab: an opponent with a local name, verified with the verification code</p>
@@ -346,10 +422,11 @@
                         <tr><td><strong>Name…</strong></td><td>Gives the opponent a local name. It appears on the confirmation screen and on the Game Records tab.</td></tr>
                         <tr><td><strong>Verification Code…</strong></td><td>Shows a 30-digit number made from both player IDs. Compare it with your opponent through another channel, such as a phone call or in person.</td></tr>
                         <tr><td><strong>Mark Verified / Unmark Verified</strong></td><td>Marks an opponent whose verification code matched as verified. Click again to remove the mark.</td></tr>
-                        <tr><td><strong>Block / Unblock</strong></td><td>Refuses that opponent even if they connect with an invitation. Click again to unblock.</td></tr>
+                        <tr><td><strong>Block / Unblock</strong></td><td>Refuses that opponent even if they connect with an invitation. They are told you are busy negotiating or playing with someone else. Click again to unblock.</td></tr>
                         <tr><td><strong>Delete Record</strong></td><td>Removes the opponent's name, verified mark, block, and game count.</td></tr>
                     </tbody>
                 </table>
+                <p class="guide-step-text">Anyone can create a new player key for free, so a block or past results can be avoided by recreating the key.</p>
             </div>
 
             <div class="guide-step">
@@ -357,7 +434,7 @@
                     <span class="guide-step-number">7</span>
                     <span class="guide-step-title">The Settings Tab</span>
                 </div>
-                <p class="guide-step-text">If you only play on the same PC or LAN, you do not need to change anything on this tab. It is mainly for playing over the Internet (Limited test) and for showing less about yourself to opponents. Steps <a href="#settings-why">8 to 12</a> below explain when and why to use each item.</p>
+                <p class="guide-step-text">If you only play on the same PC or LAN, you do not need to change anything on this tab. Bootstrap nodes and Do not use direct connections are for playing over the Internet (<a href="p2p-relay.html">Playing with a Cooperating Node</a>). Hide display names of opponents you have not played, the player key and the expiry are explained in steps <a href="#settings-names">8</a> and <a href="#settings-key">9</a> below.</p>
                 <p class="guide-step-text">The box and the checkboxes are saved when you change them. Bootstrap nodes and Do not use direct connections take effect the next time you connect (if you are connected, disconnect and connect again).</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/en/p2p-game/p2p-settings.png"><img src="../../images/en/p2p-game/p2p-settings.png" alt="Settings tab with Bootstrap nodes and the relay-only and hide-names options, followed by key storage, restrictions, expiry, and what cannot be prevented" width="900" height="790" loading="lazy"></a>
@@ -368,8 +445,8 @@
                         <tr><th scope="col">Item</th><th scope="col">Description</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Bootstrap nodes</strong></td><td>Addresses of cooperating nodes (/ip4/…/p2p/…), one per line, up to 16. If you only use Local test, you can leave it empty.</td></tr>
-                        <tr><td><strong>Do not use direct connections</strong></td><td>Uses only the relay of the cooperating nodes in Bootstrap nodes, so opponents cannot see your IP address. The node operators can still see it.</td></tr>
+                        <tr><td><strong>Bootstrap nodes</strong></td><td>Addresses of cooperating nodes (/ip4/…/p2p/…), one per line, up to 16. If you only use Local test, you can leave it empty (to arrange one, see <a href="p2p-relay.html#who">Who Runs the Cooperating Node?</a>).</td></tr>
+                        <tr><td><strong>Do not use direct connections</strong></td><td>Uses only the relay of the cooperating nodes in Bootstrap nodes, so opponents cannot see your IP address. The node operators can still see it (<a href="p2p-relay.html#relay-only">Play Without Showing Your IP Address</a>).</td></tr>
                         <tr><td><strong>Hide display names of opponents you have not played</strong></td><td>Shows Name hidden instead of the display names of new opponents on the confirmation screen and on the Game Records tab.</td></tr>
                         <tr><td><strong>Player key storage</strong></td><td>How the current player key is stored (OS keychain, a passphrase-encrypted file, or an unencrypted file). While connected, the restrictions placed on the communication process are shown too.</td></tr>
                         <tr><td><strong>Recreate Player Key…</strong></td><td>Creates a new player key. Your player ID changes, so opponents see you as someone else. The old key is deleted. Disconnect before clicking it.</td></tr>
@@ -379,72 +456,9 @@
                 <p class="guide-step-text">At the bottom is the list of what P2P games cannot prevent (<a href="#limits">What Cannot Be Prevented and What Others See</a>).</p>
             </div>
 
-            <div class="guide-step" id="settings-why">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">8</span>
-                    <span class="guide-step-title">When to Use the Settings Tab</span>
-                </div>
-                <p class="guide-step-text">Games on the same PC or LAN (Local test (same PC / same LAN)) work without touching the Settings tab because the addresses put in the invitation can be reached directly from the opponent's PC. Over the Internet (Limited test), that is not the case. The two networks differ as follows.</p>
-                <table class="info-table">
-                    <thead>
-                        <tr><th scope="col">Item</th><th scope="col">Local test (same PC / same LAN)</th><th scope="col">Limited test (over the Internet)</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><strong>Addresses in the invitation</strong></td><td>This PC's address on the LAN (such as 192.168.…) and an address used only within the same PC. The opponent's PC can reach them directly</td><td>This PC's address as seen from the Internet, checked with the help of a cooperating node, and addresses that go through a cooperating node. Without a cooperating node, there are none</td></tr>
-                        <tr><td><strong>Cooperating node (Bootstrap nodes)</strong></td><td>Not needed</td><td>At least one is needed</td></tr>
-                        <tr><td><strong>Address the opponent can see</strong></td><td>Only your address on the LAN</td><td>With a direct connection, this PC's IP address on the Internet (Do not use direct connections hides it)</td></tr>
-                        <tr><td><strong>Expiry</strong></td><td>Does not apply</td><td>An expired build does not join</td></tr>
-                    </tbody>
-                </table>
-                <p class="guide-step-text">Use the items on the Settings tab in these cases.</p>
-                <ul class="guide-step-text">
-                    <li><strong>Bootstrap nodes</strong>: Enter cooperating nodes when you play over the Internet (<a href="#settings-node">9</a>).</li>
-                    <li><strong>Do not use direct connections</strong>: Use it when you do not want an opponent over the Internet to learn your IP address (<a href="#settings-relay">10</a>).</li>
-                    <li><strong>Hide display names of opponents you have not played</strong>: Use it when you do not want to see the display names of strangers. It works on both networks (<a href="#settings-names">11</a>).</li>
-                    <li><strong>Recreate Player Key…</strong>: Use it when someone else may have learned your key, for example. Player key storage and the expiry of this build are shown for information only (<a href="#settings-key">12</a>).</li>
-                </ul>
-                <p class="guide-step-text">For what this looks like in practice, see <a href="#internet">Playing over the Internet (Limited Test)</a>.</p>
-            </div>
-
-            <div class="guide-step" id="settings-node">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">9</span>
-                    <span class="guide-step-title">Bootstrap Nodes: Why a Cooperating Node Is Needed</span>
-                </div>
-                <p class="guide-step-text">To play over the Internet, the invitation must contain an address that the opponent's app can use to reach your PC. However, most PCs on home or mobile connections are behind a router, and the PC itself does not know which address it has as seen from the Internet. Connections from outside may also be stopped by the router. P2P games have no server that finds opponents or tells players each other's addresses.</p>
-                <p class="guide-step-text">So your app first connects to a <em>cooperating node</em>, which runs at a place reachable from the Internet, and the node takes care of two things.</p>
-                <ul class="guide-step-text">
-                    <li><strong>Reachability check</strong>: It tells you your PC's address as seen from the Internet and whether that address can be reached from outside. If it can, the address goes into the invitation and you connect directly with your opponent.</li>
-                    <li><strong>Relay</strong>: Your app reserves a relay slot on the cooperating node and also puts an address that goes through the node into the invitation. When your PC cannot be reached directly from outside (as with most home connections), the opponent connects through the cooperating node with this address. After connecting, the connection may switch to a direct one (shown under Route on the Game tab).</li>
-                </ul>
-                <p class="guide-step-text">If you connect to Limited test without a cooperating node, your app connects to no one, so the invitation contains no address at all (Invitation route on the Connection and Conditions tab shows "There is no address yet that can be reached from outside. …"). Your opponent cannot connect with such an invitation. Within the same LAN, the opponent's PC can reach your PC's address directly, so no cooperating node is needed.</p>
-                <p class="guide-step-text">A cooperating node does not judge moves or results. Relayed traffic is encrypted between the two apps, so the node cannot read its contents either. What the operator can see is which IP addresses connected to each other.</p>
-                <p class="guide-step-text">The app does not come with any cooperating node addresses. Get an address in the form <code>/ip4/&lt;IP address&gt;/tcp/&lt;port&gt;/p2p/&lt;PeerId&gt;</code> from someone who runs a cooperating node, and enter one per line (up to 16). If you enter several, you can still use the others when one of them is down. It is simplest for both players to enter the same cooperating node.</p>
-                <p class="guide-step-text">To run one yourself, run the communication process <code>shogiboardq-peer</code> as a cooperating node on a server reachable from the Internet, and open its port (TCP) in the server's firewall. When it starts, the PeerId is shown after <code>service started as</code>; enter <code>/ip4/&lt;server IP address&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code> in Bootstrap nodes (for how it works, see section 4.4 of the <a href="../../dev/p2p-interop-spec.html#sec-4-4">P2P game interoperability specification</a>, in Japanese).</p>
-                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --network sbq-limited-1 \
-      --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001
-shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
-            </div>
-
-            <div class="guide-step" id="settings-relay">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">10</span>
-                    <span class="guide-step-title">Do Not Use Direct Connections: Hide Your IP Address</span>
-                </div>
-                <p class="guide-step-text">Normally, your opponent's app and your PC connect directly (the relay of a cooperating node is used only when they cannot). With a direct connection, your opponent can learn your IP address on the Internet by examining the traffic (the app does not show it). An IP address may reveal your rough location and your Internet provider. Your IP address is also put into your invitations.</p>
-                <p class="guide-step-text">When you check Do not use direct connections, your app always connects to the opponent through the relay of a cooperating node, and puts only addresses that go through the cooperating node into invitations. Your opponent sees only the cooperating node's address, and your IP address is visible only to the operators of the cooperating nodes you entered in Bootstrap nodes. Use it when you play with someone on the Internet whom you do not know well.</p>
-                <ul class="guide-step-text">
-                    <li><strong>A cooperating node is required</strong>: Enter a cooperating node that provides a relay in Bootstrap nodes. Otherwise Invitation route shows "No relay is available. …", and your opponent cannot connect even if you invite them.</li>
-                    <li><strong>The same cooperating node as your opponent</strong>: With this setting, when you connect with an invitation you received, your app uses only addresses that go through the cooperating nodes you entered. The opponent who invited you must also have the same cooperating node in Bootstrap nodes (otherwise you see "This invitation has no address that goes through the relay of your cooperating nodes. …"). It is simplest for both players to enter the same cooperating node.</li>
-                    <li><strong>Relay limits</strong>: Moves travel through the cooperating node, so they may arrive a little later than over a direct connection. ShogiBoardQ's cooperating node closes each relayed connection after 30 minutes, so a long game may include an automatic reconnection (Reconnecting) along the way.</li>
-                    <li><strong>Do not use it on the same PC or LAN</strong>: When checked, your app stops using direct connections within the LAN as well, so you cannot connect (Invitation route shows "No relay is available. …"). An opponent on the same LAN sees only your address on the LAN, so this setting is not needed there.</li>
-                </ul>
-                <p class="guide-step-text">Bootstrap nodes and this setting take effect the next time you connect. If you change them while connected, disconnect on the Connection and Conditions tab and connect again.</p>
-            </div>
-
             <div class="guide-step" id="settings-names">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">11</span>
+                    <span class="guide-step-number">8</span>
                     <span class="guide-step-title">Hide Display Names of Opponents You Have Not Played</span>
                 </div>
                 <p class="guide-step-text">A display name is a name the opponent chooses freely. Anyone who sees an invitation can use it within its 10-minute lifetime, so if an invitation is seen by others, a stranger may connect to you. A stranger's display name may contain offensive words or text that looks like a message from the app.</p>
@@ -458,7 +472,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
 
             <div class="guide-step" id="settings-key">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">12</span>
+                    <span class="guide-step-number">9</span>
                     <span class="guide-step-title">Player Key and Expiry</span>
                 </div>
                 <p class="guide-step-text"><strong>Player key storage</strong> only shows how the current key is stored and, while connected, the restrictions placed on the communication process (Landlock, seccomp, and so on). You cannot change them here.</p>
@@ -476,140 +490,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 4 -->
-<section id="invite" class="section">
-    <div class="section-inner">
-        <h2 class="section-title">Playing by Invitation</h2>
-        <p class="section-desc">To play someone you know, send an invitation only to that person</p>
-
-        <div class="screenshot-gallery">
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">Create and Send an Invitation</span>
-                </div>
-                <p class="guide-step-text">On the Connect by Invitation tab, click Create Invitation. Click Copy and send the invitation by a channel that reaches only your opponent, such as a private message. The invitation contains the addresses for reaching you (including your IP address unless Do not use direct connections is set), so do not post it in public.</p>
-                <p class="guide-step-text">An invitation expires after 10 minutes and can be used only once. Up to four can be valid at the same time. It uses the time control and side on the Connection and Conditions tab.</p>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">Connect with an Invitation You Received</span>
-                </div>
-                <p class="guide-step-text">Paste the invitation into the Connect by invitation box and click Check Invitation. The inviter's PeerId, the expiry, and the number of addresses appear. Check them and click Connect. Connecting does not start the game yet; you start after checking your opponent on the confirmation screen that opens next.</p>
-                <p class="guide-step-text">An invitation from someone on the same LAN may contain private addresses. To connect to them, check Allow connecting to the private addresses above (opponent on the same LAN).</p>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">Play Another PC on the Same LAN</span>
-                </div>
-                <p class="guide-step-text">With the network set to Local test (same PC / same LAN), you can connect to another PC on the same LAN with just an invitation, without a cooperating node. It only connects within the same PC and the same LAN, not to opponents on the internet.</p>
-                <p class="guide-step-text">The inviter's PC waits for connections on TCP and UDP port 48210 (a second app on the same PC uses a free port instead). If the connection fails, check that the firewall on the inviter's PC allows connections to this port from the LAN. With firewalld, <code>sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code> allows it until the next reboot. Swapping who creates the invitation may also work.</p>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
-                    <span class="guide-step-title">Try It on One PC</span>
-                </div>
-                <p class="guide-step-text">If you start this app several times on the same PC and open P2P Game in each, the second one opens automatically as Player 2, the third as Player 3, and so on (up to eight at a time). The window title and the note at the top show which player it is. When only one app is running, it is always Player 1.</p>
-                <p class="guide-step-text">The player key (player ID), display name, game records and opponent list are saved separately for each player. Set the network to Local test (same PC / same LAN) in both apps and connect, then paste the invitation created in one app into the other to play without a cooperating node.</p>
-            </div>
-
-        </div>
-    </div>
-</section>
-
 <!-- Section 5 -->
-<section id="internet" class="section section--alt">
-    <div class="section-inner">
-        <h2 class="section-title">Playing over the Internet (Limited Test)</h2>
-        <p class="section-desc">Play an invited opponent on the Internet through a cooperating node</p>
-
-        <div class="screenshot-gallery">
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">Both Players Enter a Cooperating Node</span>
-                </div>
-                <p class="guide-step-text">A game over the Internet needs one cooperating node (for why, see <a href="#settings-node">Bootstrap Nodes: Why a Cooperating Node Is Needed</a>). Both players enter the address of the same cooperating node in Bootstrap nodes on the Settings tab.</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-internet-settings.png"><img src="../../images/en/p2p-game/p2p-internet-settings.png" alt="Settings tab with a cooperating node address in Bootstrap nodes" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Settings tab: a cooperating node in Bootstrap nodes (part of the address is masked)</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">Connect to Limited Test</span>
-                </div>
-                <p class="guide-step-text">On the Connection and Conditions tab, set Network to Limited test and click Connect. Once your app connects to the cooperating node and reserves a relay slot, Invitation route shows "Through the relay of your cooperating node (it may switch to a direct connection after connecting)." The reservation may take a little while.</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-internet-connected.png"><img src="../../images/en/p2p-game/p2p-internet-connected.png" alt="Connection and Conditions tab connected to Limited test, with Invitation route going through the cooperating node's relay" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Connected to a cooperating node</p>
-                </div>
-                <p class="guide-step-text">If you connect without a cooperating node, your app connects to no one ("Connected (peers: 0)"), and Invitation route shows "There is no address yet that can be reached from outside. …". An invitation created in this state contains no address, and "This invitation contains no address, so your opponent cannot connect. …" appears below Create Invitation.</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-internet-no-node.png"><img src="../../images/en/p2p-game/p2p-internet-no-node.png" alt="Connection and Conditions tab connected to Limited test without a cooperating node, saying there is no address reachable from outside yet" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Connected without a cooperating node</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">Connect with an Invitation</span>
-                </div>
-                <p class="guide-step-text">From here on, it works the same as a game on the same PC or LAN (<a href="#invite">Playing by Invitation</a>). The inviter sends the invitation made with Create Invitation, and the opponent clicks Check Invitation. If "Addresses: N (N usable)" shows at least one usable address, Connect connects to the inviter.</p>
-                <p class="guide-step-text">The invitation contains addresses that go through the cooperating node (and, if the inviter's PC can be reached directly from outside, that PC's IP address too).</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-internet-invite.png"><img src="../../images/en/p2p-game/p2p-internet-invite.png" alt="Connect by Invitation tab after checking a received invitation, showing the inviter's PeerId, expiry, and number of addresses" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">The invited side: checking a received invitation</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
-                    <span class="guide-step-title">Route: Relay and Direct</span>
-                </div>
-                <p class="guide-step-text">The opponent first connects through the relay of the cooperating node. Right after that, both apps try to get through their routers and connect directly (hole punching). If it works, Route on the Game tab becomes "direct" (usually before the game starts).</p>
-                <p class="guide-step-text">Behind a router that changes the source port for every connection, or on a line with several layers of address translation such as a mobile connection, a direct connection is not possible and the game stays on "relay". You can still play over the relay, but moves travel through the cooperating node and may arrive a little later. ShogiBoardQ's cooperating node closes each relayed connection after 30 minutes, so a long game may include an automatic reconnection (Reconnecting) along the way.</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-internet-relay.png"><img src="../../images/en/p2p-game/p2p-internet-relay.png" alt="Game tab with the route through the relay" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Route: relay — the routers did not let a direct connection through</p>
-                </div>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-internet-direct.png"><img src="../../images/en/p2p-game/p2p-internet-direct.png" alt="Game tab with a direct route" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Route: direct — switched to a direct connection after connecting through the relay</p>
-                </div>
-                <p class="guide-step-text">The images in this section were taken by recreating a cooperating node and home routers (NAT) on a virtual network inside Docker and playing a real game between two apps. For the "relay" image, the routers were set to change the source port for every connection.</p>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
-                    <span class="guide-step-title">Play Without Showing Your IP Address</span>
-                </div>
-                <p class="guide-step-text">If you check Do not use direct connections on the Settings tab before connecting, Invitation route shows "Only through the relay of your cooperating node (direct connections are turned off)." Since no direct connection is attempted, Route stays "relay" for the whole game. When the side that connects with an invitation uses this setting, the inviter must also have the same cooperating node in Bootstrap nodes (see <a href="#settings-relay">Do Not Use Direct Connections</a>).</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-internet-relay-only.png"><img src="../../images/en/p2p-game/p2p-internet-relay-only.png" alt="Connection and Conditions tab connected with direct connections turned off, going only through the cooperating node's relay" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Connected with Do not use direct connections</p>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- Section 6 -->
-<section id="confirm" class="section">
+<section id="confirm" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">The Confirmation Screen</h2>
         <p class="section-desc">Check your opponent and the conditions before the game starts</p>
@@ -652,8 +534,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="playing" class="section section--alt">
+<!-- Section 6 -->
+<section id="playing" class="section">
     <div class="section-inner">
         <h2 class="section-title">During the Game</h2>
         <p class="section-desc">Move on the main window's board, and resign or make offers on the Game tab</p>
@@ -708,8 +590,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="records" class="section">
+<!-- Section 7 -->
+<section id="records" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">Game Records and Verification</h2>
         <p class="section-desc">The record (evidence) of each finished game stays on both PCs, and anyone can verify it</p>
@@ -794,48 +676,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 9 -->
-<section id="peers" class="section section--alt">
-    <div class="section-inner">
-        <h2 class="section-title">Opponents and Settings</h2>
-        <p class="section-desc">Name the opponents you have played and check with a verification code that they are the same person</p>
-
-        <div class="screenshot-gallery">
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">The Opponents Tab</span>
-                </div>
-                <p class="guide-step-text">Opponents you have played are listed on the Opponents tab by player ID. Anyone can use the same display name, so use the player ID to tell whether it is the same person.</p>
-                <ul class="guide-step-text">
-                    <li><strong>Name…</strong>: A local name for the opponent. It is not shown to the opponent or written into game records; it appears on the confirmation screen and in Game Records.</li>
-                    <li><strong>Verification Code…</strong>: A 30-digit number made from both player IDs. Both players see the same number, so compare it through another channel such as a phone call or in person, and click Mark Verified if it matches.</li>
-                    <li><strong>Block</strong>: Refuses that opponent even if they connect with an invitation. They are told you are busy negotiating or playing with someone else.</li>
-                    <li><strong>Delete Record</strong>: Removes the opponent's name, verified mark, block, and game count.</li>
-                </ul>
-                <p class="guide-step-text">Anyone can create a new player key for free, so a block or past results can be avoided by recreating the key.</p>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">The Settings Tab</span>
-                </div>
-                <ul class="guide-step-text">
-                    <li><strong>Bootstrap nodes</strong>: Addresses of cooperating nodes (/ip4/…/p2p/…), one per line.</li>
-                    <li><strong>Do not use direct connections</strong>: Uses only the relay of the cooperating nodes in Bootstrap nodes, so opponents cannot see your IP address. The node operators can still see it. Your opponent must use the same cooperating node.</li>
-                    <li><strong>Hide display names of opponents you have not played</strong>: Shows Name hidden instead of the display names of new opponents on the confirmation screen and in Game Records.</li>
-                    <li><strong>Recreate Player Key…</strong>: Changes your player ID, so opponents see you as someone else. The old key is deleted.</li>
-                </ul>
-                <p class="guide-step-text">Below them are how the player key is stored, the restrictions placed on the communication process (Landlock, seccomp, and so on), and the expiry of this build. For when to use each item, and why games on the same PC or LAN do not need them, see <a href="#settings-why">When to use the Settings tab</a>.</p>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- Section 10 -->
+<!-- Section 8 -->
 <section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">What Cannot Be Prevented and What Others See</h2>

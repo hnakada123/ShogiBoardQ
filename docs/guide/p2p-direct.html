@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>協力ノードなしで対局する（P2P対局） - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ のP2P対局（実験版）を、協力ノードを使わずに同じPC・同じLANの相手と指す方法。ローカル検証用での接続、招待文字列のやり取り、招待できる人数と回数、ファイアウォール、つながらないときの確かめ方を解説します。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-direct.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-direct.html">
+    <meta property="og:title" content="協力ノードなしで対局する（P2P対局） - ShogiBoardQ">
+    <meta property="og:description" content="同じPC・同じLANの相手となら、協力ノードなしで、招待文字列だけでつないで対局できます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/p2p-game/p2p-invite.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="協力ノードなしで対局する（P2P対局） - ShogiBoardQ">
+    <meta name="twitter:description" content="同じPC・同じLANの相手となら、協力ノードなしで、招待文字列だけでつないで対局できます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/p2p-game/p2p-invite.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-direct.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="p2p-direct.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/p2p-direct.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/p2p-direct.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/p2p-direct.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="メニュー" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="p2p-game.html">P2P対局</a></li>
+            <li><a href="#about">しくみ</a></li>
+            <li><a href="#steps">手順</a></li>
+            <li><a href="#invite-rules">招待の人数</a></li>
+            <li><a href="#lan">同じLAN</a></li>
+            <li><a href="#same-pc">同じPC</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>協力ノードなしで対局する</h1>
+        <p class="hero-subtitle">P2P対局（実験版）で、同じPC・同じLANの相手と、招待文字列だけでつないで指します</p>
+        <div class="hero-badges">
+            <span class="badge">同じPC・同じLAN</span>
+            <span class="badge">協力ノード不要</span>
+            <span class="badge">招待は1人に1回</span>
+            <span class="badge">実験版・Linux</span>
+        </div>
+        <p class="screenshot-note">P2P対局の準備（プレイヤー鍵・表示名）・画面・対局記録は<a href="p2p-game.html">P2P対局（実験版）</a>にあります。インターネット越しの相手とは<a href="p2p-relay.html">協力ノードを使って対局する</a>をご覧ください。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="about" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">協力ノードなしで指せる相手</h2>
+        <p class="section-desc">「ローカル検証用（同じPC・同じLAN）」のネットワークでは、協力ノードも「設定」タブの変更も要りません</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">同じPC・同じLANの相手とつながる</span>
+                </div>
+                <p class="guide-step-text">「ネットワーク」を「ローカル検証用（同じPC・同じLAN）」にして接続すると、招待文字列に、このPCのLANの中のアドレス（192.168.… など）と、同じPCの中だけで使うアドレスが入ります。相手のPCからこのアドレスへそのまま届くので、間を取り持つ協力ノードは要りません。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">相手</th><th scope="col">つながるか</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>同じPCで動かしている、もう1つのアプリ</strong></td><td>つながります（<a href="#same-pc">同じPCで試す</a>）</td></tr>
+                        <tr><td><strong>同じLAN（家庭や職場の、同じルーターの下のネットワーク）にある別のPC</strong></td><td>つながります（<a href="#lan">同じLANの別のPCと対局する</a>）</td></tr>
+                        <tr><td><strong>インターネット上の相手（別の家・携帯電話の回線など）</strong></td><td>つながりません。<a href="p2p-relay.html">協力ノードを使って対局する</a>をご覧ください</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">このネットワークでは、接続元が同じPCかLANの中のアドレスの接続だけを受け付けます。インターネットから届いた接続は受け付けません。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">「設定」タブは変えなくてかまいません</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>「接続候補」</strong>：空のままでかまいません。</li>
+                    <li><strong>「直接接続を使わない」</strong>：チェックを外しておきます。付けると、LANの中の直接の接続も使わなくなるので、つながりません（「招待の経路」に「中継を使えません。…」と出ます）。</li>
+                    <li><strong>相手に見えるアドレス</strong>：LANの中のアドレスだけです。インターネット上の IP アドレスは相手に渡りません。</li>
+                    <li><strong>使用期限</strong>：ありません。ビルドから180日を過ぎても使えます（期限があるのは「限定試験用」だけです）。</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="steps" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">対局までの手順</h2>
+        <p class="section-desc">2人とも「ローカル検証用」で接続し、片方が作った招待文字列を、もう片方が貼り付けます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">2人とも「ローカル検証用」で接続する</span>
+                </div>
+                <p class="guide-step-text">「対局」→「P2P対局（実験版）…」でウィンドウを開きます。初めてのときは、プレイヤー鍵を作り、表示名を入れます（<a href="p2p-game.html#prepare">準備</a>）。</p>
+                <p class="guide-step-text">「接続と条件」タブで「ネットワーク」を「ローカル検証用（同じPC・同じLAN）」にして「接続」を押します。「状態」が「接続中（つながっているピア: 0）」になり、「招待の経路」に「同じPC・同じLANの相手と直接つなぎます。」と出れば準備できています（相手とつながるまで、ピアは 0 のままです）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-connection.png"><img src="../images/p2p-game/p2p-connection.png" alt="ローカル検証用で接続し、招待の経路に同じPC・同じLANの相手と直接つなぐと出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「ローカル検証用（同じPC・同じLAN）」で接続したところ</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">招待する人：招待文字列を作って渡す</span>
+                </div>
+                <p class="guide-step-text">招待する人は、先に「接続と条件」タブの「持ち時間」「秒読み」「先後」を決めます。この条件で対局します。</p>
+                <p class="guide-step-text">「招待で接続」タブの「相手を招待する」で「招待文字列を作る」を押し、「コピー」でコピーして、メッセージなど相手だけに届く方法で渡します。欄の下に期限と到達候補の数が出ます。招待文字列は10分で使えなくなるので、作ったらすぐに渡します。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">招待された人：貼り付けて接続する</span>
+                </div>
+                <p class="guide-step-text">招待された人は、「招待で接続」タブの「招待で接続する」の欄に招待文字列を貼り付けて、「招待文字列を確かめる」を押します。招待した相手の PeerId・期限・到達候補の数が出たら、「接続する」を押します。</p>
+                <p class="guide-step-text">招待された人は、持ち時間などの条件を決めなくてかまいません（招待した人の条件で対局します）。「表示名」だけは入れておきます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-invite.png"><img src="../images/p2p-game/p2p-invite.png" alt="「招待で接続」タブ。上で招待文字列を作り、下で受け取った招待文字列を確かめたところ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">上：招待する人が招待文字列を作ったところ　下：招待された人が確かめたところ</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">条件を確かめて始める</span>
+                </div>
+                <p class="guide-step-text">つながると、双方に「P2P対局の条件の確認」が開きます。相手の表示名とプレイヤーID、先後・持ち時間を確かめて「開始」を押します。双方が60秒以内に「開始」を押すと、対局が始まります。</p>
+                <p class="guide-step-text">表示の意味は<a href="p2p-game.html#confirm">条件確認画面</a>、対局中の操作は<a href="p2p-game.html#playing">対局中</a>、終わった後の記録は<a href="p2p-game.html#records">対局記録と検証</a>をご覧ください。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="invite-rules" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">招待できる人数と回数</h2>
+        <p class="section-desc">対局は2人で1局ずつです。招待文字列は、相手1人に1つずつ作ります</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">1つの招待文字列で1人・1回</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>1人だけ</strong>：1つの招待文字列でつなげるのは1人だけです。相手がつないだ時点で、その招待文字列は使えなくなります。</li>
+                    <li><strong>10分で期限切れ</strong>：使わなくても、作ってから10分で使えなくなります（貼り付けた人には「招待文字列の期限が過ぎています。」と出ます）。</li>
+                    <li><strong>対局は1対1</strong>：3人以上で1局を指す仕組みや、ほかの人が観戦する仕組みはありません。</li>
+                    <li><strong>続けてもう1局</strong>：対局が終わると接続を閉じます。同じ相手ともう1局指すときは、新しい招待文字列を作って渡します。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">何人かに招待を出す</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>同時に4つまで</strong>：招待文字列は、何人かに1つずつ作って渡せます。同時に有効にできるのは4つまでで、5つ目を作ると、いちばん古いものが使えなくなります。</li>
+                    <li><strong>1つのアプリで指せるのは一度に1局</strong>：最初につないできた人と条件の確認に進みます。その間と対局中は、ほかの人はつなげません（条件の確認中なら「相手は今、ほかの相手と交渉中か対局中です。」と出ます）。つなげなかった人には、対局が終わってから新しい招待文字列を渡してください。8人で4局を同時に指すときは、組ごとに片方が相手を招待します（<a href="p2p-game.html#one-game">対局は1対1、1つのアプリで一度に1局</a>）。</li>
+                    <li><strong>対局の後も使える</strong>：対局が終わった後も、期限内でまだ使われていない招待文字列は使えます。</li>
+                    <li><strong>条件は最後に作ったときのもの</strong>：有効な招待文字列は、どれも、最後に「招待文字列を作る」を押したときの表示名・持ち時間・秒読み・先後で対局します。条件を変えたいときは、変えてから作り直します。</li>
+                    <li><strong>まとめて取り消す</strong>：「接続と条件」タブで「切断」を押すと、有効な招待文字列をすべて使えなくします。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">どちらが招待してもかまいません</span>
+                </div>
+                <p class="guide-step-text">招待するのは2人のどちらでもかまいません。持ち時間と先後は、招待した人の条件になります。招待された人は、招待文字列を作る必要はありません。自分で作った招待文字列は、自分では使えません（「自分が作った招待文字列です。」と出ます）。</p>
+                <p class="guide-step-text">同じLANの別のPCとつながらないときは、招待する人を入れ替えると、つながることがあります。接続を待つのは招待した人のPCなので、そのPCのファイアウォールが関わるためです（<a href="#lan">次の節</a>）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="lan" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">同じLANの別のPCと対局する</h2>
+        <p class="section-desc">招待した人のPCは、TCP と UDP の 48210 番ポートで接続を待ちます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">ファイアウォールでポートを開ける</span>
+                </div>
+                <p class="guide-step-text">招待した人のPCは、TCP と UDP の 48210 番ポートで、相手からの接続を待ちます（同じPCで2つ目のアプリを動かすと、2つ目は空いているポートを使います）。PCのファイアウォールがこのポートへの接続を止めていると、相手には「相手に接続できませんでした。」と出ます。</p>
+                <p class="guide-step-text">firewalld なら、次のコマンドで再起動まで許可できます。</p>
+                <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
+                <p class="guide-step-text">ufw なら <code>sudo ufw allow 48210</code> で許可できます（要らなくなったら <code>sudo ufw delete allow 48210</code>）。アプリは接続元がLANの中のアドレスの接続だけを受け付けるので、ポートを開けても、インターネットから届いた接続は断ります。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">つながらないとき</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">出る文・状態</th><th scope="col">確かめること</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>「別のネットワークの招待文字列です。」</strong></td><td>2人の「ネットワーク」が違います。2人とも「ローカル検証用（同じPC・同じLAN）」で接続し直し、招待文字列を作り直します。</td></tr>
+                        <tr><td><strong>「招待文字列の期限が過ぎています。」</strong></td><td>作ってから10分たちました。招待文字列を作り直します。</td></tr>
+                        <tr><td><strong>「相手に接続できませんでした。」</strong></td><td>招待した人のPCのファイアウォールを確かめます（上の1）。招待する人を入れ替えると、つながることもあります。</td></tr>
+                        <tr><td><strong>「招待の経路」に「中継を使えません。…」</strong></td><td>「設定」タブの「直接接続を使わない」のチェックを外し、切断してから接続し直します。</td></tr>
+                        <tr><td><strong>「相手は今、ほかの相手と交渉中か対局中です。」</strong></td><td>相手がほかの人と条件の確認中か対局中です。終わってから、新しい招待文字列をもらいます。</td></tr>
+                        <tr><td><strong>ゲスト用の Wi-Fi など</strong></td><td>つないだ機器どうしの通信を止めているネットワークでは、同じLANでもつながりません。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="same-pc" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">同じPCで試す</h2>
+        <p class="section-desc">このアプリを同じPCでいくつか起動すると、1台で対局を試せます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">2人目・3人目として開く</span>
+                </div>
+                <p class="guide-step-text">このアプリを同じPCでいくつか起動して、それぞれで「P2P対局」を開くと、2つ目は自動で「2人目」、3つ目は「3人目」として開きます（同時に8つまで）。何人目かは、ウィンドウの題名と上の案内に出ます。アプリを1つだけ起動しているときは、いつも1人目です。</p>
+                <p class="guide-step-text">プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、何人目かごとに別に保存します。両方とも「ローカル検証用（同じPC・同じLAN）」で接続し、片方で作った招待文字列をもう片方に貼り付ければ、協力ノードなしで対局できます。同じPCの中の接続なので、ふつうはファイアウォールの設定も要りません。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="p2p-game.html" class="back-link">← P2P対局（実験版）に戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

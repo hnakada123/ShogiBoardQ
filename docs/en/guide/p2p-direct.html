@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playing Without a Cooperating Node (P2P Games) - ShogiBoardQ</title>
+    <meta name="description" content="How to play P2P games (experimental) in ShogiBoardQ with an opponent on the same PC or LAN, without a cooperating node: connecting to Local test, exchanging invitations, how many people you can invite and how often, the firewall, and what to check when you cannot connect.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-direct.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-direct.html">
+    <meta property="og:title" content="Playing Without a Cooperating Node (P2P Games) - ShogiBoardQ">
+    <meta property="og:description" content="With an opponent on the same PC or LAN, you can connect with just an invitation and play without a cooperating node.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/p2p-game/p2p-invite.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Playing Without a Cooperating Node (P2P Games) - ShogiBoardQ">
+    <meta name="twitter:description" content="With an opponent on the same PC or LAN, you can connect with just an invitation and play without a cooperating node.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/p2p-game/p2p-invite.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-direct.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/p2p-direct.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="p2p-direct.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/p2p-direct.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/p2p-direct.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="p2p-game.html">P2P Games</a></li>
+            <li><a href="#about">How It Works</a></li>
+            <li><a href="#steps">Steps</a></li>
+            <li><a href="#invite-rules">Invitations</a></li>
+            <li><a href="#lan">Same LAN</a></li>
+            <li><a href="#same-pc">Same PC</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Playing Without a Cooperating Node</h1>
+        <p class="hero-subtitle">Play a P2P game (experimental) with an opponent on the same PC or LAN, connected with just an invitation</p>
+        <div class="hero-badges">
+            <span class="badge">Same PC / Same LAN</span>
+            <span class="badge">No Cooperating Node</span>
+            <span class="badge">One Invitation per Person</span>
+            <span class="badge">Experimental, Linux</span>
+        </div>
+        <p class="screenshot-note">Setting up P2P games (player key and display name), the window, and game records are covered in <a href="p2p-game.html">P2P Games (Experimental)</a>. To play someone over the Internet, see <a href="p2p-relay.html">Playing with a Cooperating Node</a>.</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="about" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Who You Can Play Without a Cooperating Node</h2>
+        <p class="section-desc">On the Local test (same PC / same LAN) network, you need neither a cooperating node nor any change on the Settings tab</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Connect to Opponents on the Same PC or LAN</span>
+                </div>
+                <p class="guide-step-text">When you connect with Network set to Local test (same PC / same LAN), the invitation contains this PC's address on the LAN (such as 192.168.…) and an address used only within the same PC. The opponent's PC can reach these addresses directly, so no cooperating node is needed in between.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Opponent</th><th scope="col">Can you connect?</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Another copy of the app running on the same PC</strong></td><td>Yes (<a href="#same-pc">Try It on One PC</a>)</td></tr>
+                        <tr><td><strong>Another PC on the same LAN (the network behind the same router at home or at work)</strong></td><td>Yes (<a href="#lan">Play Another PC on the Same LAN</a>)</td></tr>
+                        <tr><td><strong>An opponent on the Internet (another home, a mobile connection, and so on)</strong></td><td>No. See <a href="p2p-relay.html">Playing with a Cooperating Node</a></td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">On this network, the app accepts connections only from addresses on the same PC or the LAN. Connections from the Internet are refused.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">No Need to Change the Settings Tab</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>Bootstrap nodes</strong>: You can leave it empty.</li>
+                    <li><strong>Do not use direct connections</strong>: Leave it unchecked. When checked, the app stops using direct connections within the LAN as well, so you cannot connect (Invitation route shows "No relay is available. …").</li>
+                    <li><strong>Address your opponent can see</strong>: Only your address on the LAN. Your IP address on the Internet is not given to the opponent.</li>
+                    <li><strong>Expiry</strong>: None. It keeps working more than 180 days after the build (only Limited test expires).</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="steps" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Steps to Start a Game</h2>
+        <p class="section-desc">Both players connect to Local test, and one pastes the invitation the other created</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Both Players Connect to Local Test</span>
+                </div>
+                <p class="guide-step-text">Open the window with Game → P2P Game (Experimental)…. The first time, create a player key and enter a display name (<a href="p2p-game.html#prepare">Setup</a>).</p>
+                <p class="guide-step-text">On the Connection and Conditions tab, set Network to Local test (same PC / same LAN) and click Connect. You are ready when Status shows Connected (peers: 0) and Invitation route shows "Direct connection to an opponent on the same PC or LAN." (the peer count stays 0 until your opponent connects).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-connection.png"><img src="../../images/en/p2p-game/p2p-connection.png" alt="Connection and Conditions tab connected to Local test, with Invitation route showing a direct connection to an opponent on the same PC or LAN" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connected to Local test (same PC / same LAN)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">The Inviter: Create and Send an Invitation</span>
+                </div>
+                <p class="guide-step-text">The inviter first sets Time control, Byoyomi and Side on the Connection and Conditions tab. The game is played with these conditions.</p>
+                <p class="guide-step-text">Under Invite an opponent on the Connect by Invitation tab, click Create Invitation, click Copy, and send the invitation by a channel that reaches only your opponent, such as a private message. The expiry and the number of addresses appear below the box. An invitation stops working after 10 minutes, so send it right after creating it.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">The Invited Player: Paste and Connect</span>
+                </div>
+                <p class="guide-step-text">The invited player pastes the invitation into the Connect by invitation box on the Connect by Invitation tab and clicks Check Invitation. When the inviter's PeerId, the expiry and the number of addresses appear, click Connect.</p>
+                <p class="guide-step-text">The invited player does not need to set the time control or other conditions (the inviter's conditions are used). Just enter a Display name.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Connect by Invitation tab, with an invitation created at the top and a received invitation checked at the bottom" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Top: the inviter has created an invitation. Bottom: the invited player has checked it</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Check the Conditions and Start</span>
+                </div>
+                <p class="guide-step-text">Once connected, Confirm P2P Game Conditions opens for both players. Check the opponent's display name and player ID, the sides and the time control, and click Start. The game begins when both players click Start within 60 seconds.</p>
+                <p class="guide-step-text">For what the screen shows, see <a href="p2p-game.html#confirm">Confirmation Screen</a>; for in-game controls, see <a href="p2p-game.html#playing">Playing</a>; for the record kept after the game, see <a href="p2p-game.html#records">Game Records and Verification</a>.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="invite-rules" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">How Many People You Can Invite, and How Often</h2>
+        <p class="section-desc">A game is one-on-one, one game at a time. Create one invitation for each opponent</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">One Invitation: One Person, One Use</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>One person only</strong>: Only one person can connect with an invitation. Once your opponent connects, that invitation can no longer be used.</li>
+                    <li><strong>Expires in 10 minutes</strong>: Even if unused, an invitation stops working 10 minutes after it is created (the person who pastes it sees "The invitation has expired.").</li>
+                    <li><strong>One-on-one games</strong>: There is no way for three or more people to play one game, and no way for others to watch.</li>
+                    <li><strong>Another game</strong>: The connection is closed when a game ends. To play the same opponent again, create a new invitation and send it.</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Inviting Several People</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>Up to four at a time</strong>: You can create one invitation each for several people. Up to four can be valid at the same time; creating a fifth makes the oldest one stop working.</li>
+                    <li><strong>One game per app at a time</strong>: You move on to confirming conditions with whoever connects first. During that time and during the game, no one else can connect (while conditions are being confirmed, the other person sees "The opponent is busy negotiating or playing with someone else."). Give anyone who could not connect a new invitation after the game. For eight people to play four games at once, one player in each pair invites the other (<a href="p2p-game.html#one-game">One-on-One Games, One Game per App at a Time</a>).</li>
+                    <li><strong>Still usable after a game</strong>: Invitations that are still within their 10 minutes and unused remain valid after a game ends.</li>
+                    <li><strong>The latest conditions apply</strong>: Every valid invitation plays with the display name, time control, byoyomi and side that were set when you last clicked Create Invitation. To change the conditions, change them and create the invitation again.</li>
+                    <li><strong>Cancel them all</strong>: Clicking Disconnect on the Connection and Conditions tab makes all valid invitations stop working.</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Either Player Can Invite</span>
+                </div>
+                <p class="guide-step-text">Either of the two players can be the inviter. The time control and side are the inviter's conditions. The invited player does not need to create an invitation. You cannot use an invitation you created yourself ("This is your own invitation." appears).</p>
+                <p class="guide-step-text">If another PC on the same LAN cannot connect, swapping who creates the invitation may help. The inviter's PC is the one that waits for the connection, so its firewall is what matters (<a href="#lan">next section</a>).</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="lan" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Play Another PC on the Same LAN</h2>
+        <p class="section-desc">The inviter's PC waits for connections on TCP and UDP port 48210</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Open the Port in the Firewall</span>
+                </div>
+                <p class="guide-step-text">The inviter's PC waits for the opponent's connection on TCP and UDP port 48210 (a second app on the same PC uses a free port instead). If the PC's firewall blocks connections to this port, the opponent sees "Could not connect to the opponent."</p>
+                <p class="guide-step-text">With firewalld, the following command allows it until the next reboot.</p>
+                <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
+                <p class="guide-step-text">With ufw, <code>sudo ufw allow 48210</code> allows it (remove it later with <code>sudo ufw delete allow 48210</code>). The app accepts connections only from addresses on the LAN, so even with the port open, connections from the Internet are refused.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">If You Cannot Connect</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Message or state</th><th scope="col">What to check</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>"The invitation is for another network."</strong></td><td>The two players chose different networks. Both reconnect to Local test (same PC / same LAN), and the inviter creates a new invitation.</td></tr>
+                        <tr><td><strong>"The invitation has expired."</strong></td><td>Ten minutes have passed since it was created. Create a new invitation.</td></tr>
+                        <tr><td><strong>"Could not connect to the opponent."</strong></td><td>Check the firewall on the inviter's PC (step 1 above). Swapping who creates the invitation may also help.</td></tr>
+                        <tr><td><strong>Invitation route shows "No relay is available. …"</strong></td><td>Uncheck Do not use direct connections on the Settings tab, then disconnect and connect again.</td></tr>
+                        <tr><td><strong>"The opponent is busy negotiating or playing with someone else."</strong></td><td>The opponent is confirming conditions or playing with someone else. Get a new invitation after they finish.</td></tr>
+                        <tr><td><strong>Guest Wi-Fi and similar networks</strong></td><td>On a network that blocks traffic between connected devices, you cannot connect even on the same LAN.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="same-pc" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Try It on One PC</h2>
+        <p class="section-desc">Start this app several times on the same PC to try a game on one computer</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Open as Player 2, Player 3, …</span>
+                </div>
+                <p class="guide-step-text">If you start this app several times on the same PC and open P2P Game in each, the second one opens automatically as Player 2, the third as Player 3, and so on (up to eight at a time). The window title and the note at the top show which player it is. When only one app is running, it is always Player 1.</p>
+                <p class="guide-step-text">The player key (player ID), display name, game records and opponent list are saved separately for each player. Connect both to Local test (same PC / same LAN), then paste the invitation created in one into the other to play without a cooperating node. Since the connection stays within the same PC, you usually do not need to change the firewall either.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="p2p-game.html" class="back-link">← Back to P2P Games (Experimental)</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

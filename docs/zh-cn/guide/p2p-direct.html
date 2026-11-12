@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>不使用协作节点对局（P2P对局） - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 的P2P对局（实验版）中，不使用协作节点、与同一电脑・同一局域网的对手下棋的方法：以本地验证用连接、交换邀请字符串、可以邀请的人数与次数、防火墙，以及无法连接时的检查方法。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-direct.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-direct.html">
+    <meta property="og:title" content="不使用协作节点对局（P2P对局） - ShogiBoardQ">
+    <meta property="og:description" content="与同一电脑・同一局域网的对手，无需协作节点，只用邀请字符串即可连接对局。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/p2p-game/p2p-invite.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="不使用协作节点对局（P2P对局） - ShogiBoardQ">
+    <meta name="twitter:description" content="与同一电脑・同一局域网的对手，无需协作节点，只用邀请字符串即可连接对局。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/p2p-game/p2p-invite.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-direct.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/p2p-direct.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/p2p-direct.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="p2p-direct.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/p2p-direct.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="index.html">使用指南</a></li>
+            <li><a href="p2p-game.html">P2P对局</a></li>
+            <li><a href="#about">原理</a></li>
+            <li><a href="#steps">步骤</a></li>
+            <li><a href="#invite-rules">邀请人数</a></li>
+            <li><a href="#lan">同一局域网</a></li>
+            <li><a href="#same-pc">同一电脑</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>不使用协作节点对局</h1>
+        <p class="hero-subtitle">在P2P对局（实验版）中，与同一电脑・同一局域网的对手只用邀请字符串连接下棋</p>
+        <div class="hero-badges">
+            <span class="badge">同一电脑・同一局域网</span>
+            <span class="badge">无需协作节点</span>
+            <span class="badge">邀请一人一次</span>
+            <span class="badge">实验版・Linux</span>
+        </div>
+        <p class="screenshot-note">P2P对局的准备（玩家密钥・显示名）、窗口和对局记录请参阅<a href="p2p-game.html">P2P对局（实验版）</a>。与互联网上的对手对局请参阅<a href="p2p-relay.html">使用协作节点对局</a>。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="about" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">不用协作节点可以对局的对手</h2>
+        <p class="section-desc">在“本地验证用（同一电脑・同一局域网）”网络中，既不需要协作节点，也不需要更改“设置”标签页</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">与同一电脑・同一局域网的对手连接</span>
+                </div>
+                <p class="guide-step-text">把“网络”设为“本地验证用（同一电脑・同一局域网）”并连接后，邀请字符串中会放入这台电脑在局域网内的地址（192.168.… 等）和只在同一台电脑内使用的地址。对手的电脑可以直接到达这些地址，因此不需要居中协调的协作节点。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">对手</th><th scope="col">能否连接</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>在同一台电脑上运行的另一个应用</strong></td><td>可以（<a href="#same-pc">在同一台电脑上试用</a>）</td></tr>
+                        <tr><td><strong>同一局域网（家庭或单位中同一路由器下的网络）中的另一台电脑</strong></td><td>可以（<a href="#lan">与同一局域网的另一台电脑对局</a>）</td></tr>
+                        <tr><td><strong>互联网上的对手（另一个家庭、手机网络等）</strong></td><td>不可以。请参阅<a href="p2p-relay.html">使用协作节点对局</a></td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">在这个网络中，只接受来源为同一台电脑或局域网内地址的连接。来自互联网的连接不会被接受。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">无需更改“设置”标签页</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>“连接候选”</strong>：保持为空即可。</li>
+                    <li><strong>“不使用直接连接”</strong>：请取消勾选。勾选后，局域网内的直接连接也不再使用，因此无法连接（“邀请的路径”中显示“无法使用中继。…”）。</li>
+                    <li><strong>对手能看到的地址</strong>：只有局域网内的地址。互联网上的 IP 地址不会交给对手。</li>
+                    <li><strong>使用期限</strong>：没有。构建后超过 180 天仍可使用（只有“限定测试用”有期限）。</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="steps" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">开始对局的步骤</h2>
+        <p class="section-desc">双方都以“本地验证用”连接，一方把另一方生成的邀请字符串粘贴进来</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">双方都以“本地验证用”连接</span>
+                </div>
+                <p class="guide-step-text">用“对局”→“P2P对局（实验版）…”打开窗口。第一次使用时，生成玩家密钥并填入显示名（<a href="p2p-game.html#prepare">准备</a>）。</p>
+                <p class="guide-step-text">在“连接与条件”标签页中把“网络”设为“本地验证用（同一电脑・同一局域网）”，点击“连接”。“状态”变为“已连接（已连接的节点：0）”，“邀请的路径”中显示“与同一电脑・同一局域网的对手直接连接。”即准备完毕（在与对手连接之前，节点数一直是 0）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-connection.png"><img src="../../images/zh-cn/p2p-game/p2p-connection.png" alt="以本地验证用连接，邀请的路径显示与同一电脑・同一局域网的对手直接连接的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以“本地验证用（同一电脑・同一局域网）”连接后</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">邀请方：生成并交给对方邀请字符串</span>
+                </div>
+                <p class="guide-step-text">邀请方先在“连接与条件”标签页中设定“用时规则”“读秒”“先后手”。对局按这些条件进行。</p>
+                <p class="guide-step-text">在“通过邀请连接”标签页的“邀请对手”中点击“生成邀请字符串”，用“复制”复制后，通过私信等只能送达对方的方式交给对方。输入框下方会显示期限和地址数量。邀请字符串 10 分钟后失效，生成后请立即交给对方。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">被邀请方：粘贴并连接</span>
+                </div>
+                <p class="guide-step-text">被邀请方把邀请字符串粘贴到“通过邀请连接”标签页的“通过邀请连接”栏中，点击“检查邀请字符串”。显示邀请方的 PeerId、期限和地址数量后，点击“连接”。</p>
+                <p class="guide-step-text">被邀请方无需设定用时规则等条件（按邀请方的条件对局）。只需填好“显示名”。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-invite.png" alt="“通过邀请连接”标签页。上方生成了邀请字符串，下方检查了收到的邀请字符串" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">上：邀请方生成了邀请字符串　下：被邀请方检查后</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">确认条件后开始</span>
+                </div>
+                <p class="guide-step-text">连接后，双方都会打开“确认P2P对局条件”。确认对手的显示名和玩家ID、先后手和用时规则后点击“开始”。双方在 60 秒内都点击“开始”后，对局开始。</p>
+                <p class="guide-step-text">画面上各项的含义请参阅<a href="p2p-game.html#confirm">条件确认画面</a>，对局中的操作请参阅<a href="p2p-game.html#playing">对局中</a>，结束后的记录请参阅<a href="p2p-game.html#records">对局记录与验证</a>。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="invite-rules" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">可以邀请的人数与次数</h2>
+        <p class="section-desc">对局是两人一次一局。邀请字符串要为每位对手各生成一个</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">一个邀请字符串：一人、一次</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>只能一人</strong>：一个邀请字符串只能让一个人连接。对手连接的那一刻，这个邀请字符串就不能再用了。</li>
+                    <li><strong>10 分钟后过期</strong>：即使没有使用，生成 10 分钟后也会失效（粘贴的人会看到“邀请字符串已过期。”）。</li>
+                    <li><strong>一对一对局</strong>：没有三人以上下同一局的机制，也没有他人观战的机制。</li>
+                    <li><strong>再下一局</strong>：对局结束后会关闭连接。要与同一对手再下一局时，请生成新的邀请字符串交给对方。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">邀请多个人</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>同时最多 4 个</strong>：可以为几个人各生成一个邀请字符串交给他们。同时有效的最多 4 个，生成第 5 个时，最早的一个会失效。</li>
+                    <li><strong>一个应用一次只能下一局</strong>：会与最先连接的人进入条件确认。在此期间和对局中，其他人无法连接（条件确认期间，对方会看到“对手正在与他人协商或对局。”）。对于没能连接的人，请在对局结束后交给他们新的邀请字符串。8 人同时下 4 局时，每组由一方邀请另一方（<a href="p2p-game.html#one-game">一对一对局，一个应用一次一局</a>）。</li>
+                    <li><strong>对局后仍可使用</strong>：对局结束后，仍在期限内且尚未使用的邀请字符串依然有效。</li>
+                    <li><strong>条件以最后一次生成时为准</strong>：所有有效的邀请字符串，都按最后一次点击“生成邀请字符串”时的显示名、用时规则、读秒和先后手对局。要更改条件时，请先更改再重新生成。</li>
+                    <li><strong>全部取消</strong>：在“连接与条件”标签页中点击“断开”，所有有效的邀请字符串都会失效。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">由谁邀请都可以</span>
+                </div>
+                <p class="guide-step-text">两人中任何一方邀请都可以。用时规则和先后手按邀请方的条件。被邀请方不需要生成邀请字符串。自己生成的邀请字符串不能自己使用（会显示“这是您自己生成的邀请字符串。”）。</p>
+                <p class="guide-step-text">与同一局域网的另一台电脑连不上时，交换邀请方后有时可以连接。等待连接的是邀请方的电脑，因此与那台电脑的防火墙有关（<a href="#lan">下一节</a>）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="lan" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">与同一局域网的另一台电脑对局</h2>
+        <p class="section-desc">邀请方的电脑在 TCP 和 UDP 的 48210 号端口等待连接</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">在防火墙中开放端口</span>
+                </div>
+                <p class="guide-step-text">邀请方的电脑在 TCP 和 UDP 的 48210 号端口等待对手的连接（在同一台电脑上运行第二个应用时，第二个使用空闲的端口）。如果电脑的防火墙阻止了到这个端口的连接，对手会看到“无法连接到对手。”。</p>
+                <p class="guide-step-text">使用 firewalld 时，可以用下面的命令允许连接，直到重新启动为止。</p>
+                <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
+                <p class="guide-step-text">使用 ufw 时，可以用 <code>sudo ufw allow 48210</code> 允许（不再需要时用 <code>sudo ufw delete allow 48210</code>）。应用只接受来源为局域网内地址的连接，因此即使开放端口，来自互联网的连接也会被拒绝。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">无法连接时</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">显示的消息・状态</th><th scope="col">要检查的内容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>“这是其他网络的邀请字符串。”</strong></td><td>两人的“网络”不同。两人都重新以“本地验证用（同一电脑・同一局域网）”连接，并重新生成邀请字符串。</td></tr>
+                        <tr><td><strong>“邀请字符串已过期。”</strong></td><td>生成后已超过 10 分钟。请重新生成邀请字符串。</td></tr>
+                        <tr><td><strong>“无法连接到对手。”</strong></td><td>检查邀请方电脑的防火墙（上面的 1）。交换邀请方后也可能连接成功。</td></tr>
+                        <tr><td><strong>“邀请的路径”中显示“无法使用中继。…”</strong></td><td>取消勾选“设置”标签页的“不使用直接连接”，断开后重新连接。</td></tr>
+                        <tr><td><strong>“对手正在与他人协商或对局。”</strong></td><td>对手正在与他人确认条件或对局。结束后请向对方要新的邀请字符串。</td></tr>
+                        <tr><td><strong>访客 Wi-Fi 等</strong></td><td>在阻止已连接设备之间通信的网络中，即使在同一局域网也无法连接。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="same-pc" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">在同一台电脑上试用</h2>
+        <p class="section-desc">在同一台电脑上启动多个本应用，就能用一台电脑试着对局</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">以第2位、第3位玩家打开</span>
+                </div>
+                <p class="guide-step-text">在同一台电脑上多次启动本应用，并分别打开“P2P对局”，第二个会自动以“第2位玩家”的身份打开，第三个为“第3位玩家”（最多同时8个）。窗口标题和顶部的说明会显示是第几位玩家。只启动一个应用时，始终是第1位玩家。</p>
+                <p class="guide-step-text">玩家密钥（玩家ID）、显示名、对局记录和对手列表会按玩家分别保存。两边都以“本地验证用（同一电脑・同一局域网）”连接，然后把其中一个生成的邀请字符串粘贴到另一个，无需协作节点即可对局。由于是同一台电脑内的连接，通常也不需要设置防火墙。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="p2p-game.html" class="back-link">← 返回P2P对局（实验版）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

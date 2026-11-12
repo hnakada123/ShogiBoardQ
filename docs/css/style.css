@@ -436,6 +436,13 @@ html:lang(en) .nav-links a {
     gap: 1.5rem;
 }
 
+/* ページの中で2つのページへ案内するカード（狭い画面では下のメディアクエリで1列になる） */
+.features-grid--two {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 960px;
+    margin: 0 auto 2.5rem;
+}
+
 .feature-card {
     background: var(--color-card-bg);
     border: 1px solid var(--color-border);

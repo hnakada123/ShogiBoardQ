@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playing with a Cooperating Node (P2P Games) - ShogiBoardQ</title>
+    <meta name="description" content="How to play P2P games (experimental) in ShogiBoardQ with an opponent over the Internet through a cooperating node: what the node does, who runs it, how to run it (shogiboardq-peer --service), preparing both players, routes, hiding your IP address, and what to check when you cannot connect.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-relay.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-relay.html">
+    <meta property="og:title" content="Playing with a Cooperating Node (P2P Games) - ShogiBoardQ">
+    <meta property="og:description" content="A game over the Internet needs one cooperating node. This page explains who runs it, how to run it, and how the two players prepare.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/p2p-game/p2p-internet-connected.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Playing with a Cooperating Node (P2P Games) - ShogiBoardQ">
+    <meta name="twitter:description" content="A game over the Internet needs one cooperating node. This page explains who runs it, how to run it, and how the two players prepare.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/p2p-game/p2p-internet-connected.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-relay.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-relay.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-relay.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-relay.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-relay.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/p2p-relay.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="p2p-relay.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/p2p-relay.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/p2p-relay.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="p2p-game.html">P2P Games</a></li>
+            <li><a href="#who">Who Runs It</a></li>
+            <li><a href="#start">Running It</a></li>
+            <li><a href="#prepare">Preparing</a></li>
+            <li><a href="#play">Playing</a></li>
+            <li><a href="#relay-only">Hiding Your IP</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Playing with a Cooperating Node</h1>
+        <p class="hero-subtitle">Play a P2P game (experimental) by invitation with an opponent on the Internet, through a cooperating node</p>
+        <div class="hero-badges">
+            <span class="badge">Over the Internet</span>
+            <span class="badge">One Cooperating Node</span>
+            <span class="badge">Option to Hide Your IP</span>
+            <span class="badge">Experimental, Linux</span>
+        </div>
+        <p class="screenshot-note">Setting up P2P games (player key and display name), the window, and game records are covered in <a href="p2p-game.html">P2P Games (Experimental)</a>. To play someone on the same PC or LAN, see <a href="p2p-direct.html">Playing Without a Cooperating Node</a>.</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="node" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">What Is a Cooperating Node?</h2>
+        <p class="section-desc">A server that both players' apps connect to first in a game over the Internet</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Why a Cooperating Node Is Needed</span>
+                </div>
+                <p class="guide-step-text">To play over the Internet, the invitation must contain an address that the opponent's app can use to reach your PC. However, most PCs on home or mobile connections are behind a router, and the PC itself does not know which address it has as seen from the Internet. Connections from outside may also be stopped by the router. P2P games have no server that finds opponents or tells players each other's addresses.</p>
+                <p class="guide-step-text">So your app first connects to a <em>cooperating node</em>, which runs at a place reachable from the Internet, and the node takes care of two things.</p>
+                <ul class="guide-step-text">
+                    <li><strong>Reachability check</strong>: It tells you your PC's address as seen from the Internet and whether that address can be reached from outside. If it can, the address goes into the invitation and you connect directly with your opponent.</li>
+                    <li><strong>Relay</strong>: Your app reserves a relay slot on the cooperating node and also puts an address that goes through the node into the invitation. When your PC cannot be reached directly from outside (as with most home connections), the opponent connects through the cooperating node with this address.</li>
+                </ul>
+                <p class="guide-step-text">If you connect to Limited test without a cooperating node, the invitation contains no address at all, and your opponent cannot connect.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">What a Cooperating Node Does and Does Not Do</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>Does</strong>: Only the reachability check and the relay.</li>
+                    <li><strong>Does not</strong>: It does not judge moves or results, and does not store game records. Relayed traffic is encrypted between the two apps, so the node cannot read its contents (moves, player IDs, display names) either.</li>
+                    <li><strong>What the operator can see</strong>: The IP addresses of the users and which IP addresses connected to each other. The cooperating node program does not write source IP addresses to its log, but the operator can find them by examining the traffic.</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="who" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Who Runs the Cooperating Node?</h2>
+        <p class="section-desc">One cooperating node is enough. Someone who can provide a server reachable from the Internet runs it and gives its address to the players</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Two Players Share One Cooperating Node</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>One is enough</strong>: The two players need only one cooperating node between them. They do not each have to run one.</li>
+                    <li><strong>Both enter the same address</strong>: The person who runs it shares the address, and both players enter it in Bootstrap nodes on the Settings tab. If the inviter has not entered it, the invitation contains no address. A player who turns on Do not use direct connections must have the same cooperating node as the opponent.</li>
+                    <li><strong>Shared by many pairs</strong>: One cooperating node can be used by many pairs of players (relay slots for up to 128 people at a time).</li>
+                    <li><strong>Not built into the app</strong>: The app does not come with any cooperating node addresses, so the players arrange one themselves.</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Who Runs It, and What They Need</span>
+                </div>
+                <p class="guide-step-text">The cooperating node is run by someone who can provide a server reachable from the Internet. It can be one of the two players or someone they both know.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Who runs it</th><th scope="col">Suitable when</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>One of the two players</strong></td><td>They have a server such as a VPS, or can open a port on their home router</td></tr>
+                        <tr><td><strong>Someone they know (who does not play)</strong></td><td>In a study group or club, one person runs a cooperating node and all members use its address</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">The person who runs it needs the following.</p>
+                <ul class="guide-step-text">
+                    <li><strong>An IP address reachable from the Internet</strong>: A server with a global IP address (such as a VPS), or a home connection where you can open a port. Mobile connections and connections where the provider stacks address translation (CGNAT) cannot be reached from outside, so they cannot run one.</li>
+                    <li><strong>Linux</strong>: The cooperating node program restricts its own privileges with Landlock and seccomp before it runs. It does not run where the restrictions cannot be applied.</li>
+                    <li><strong>One TCP port you can open</strong>: Port 4001 in the examples on this page.</li>
+                    <li><strong>Keep it running</strong>: Do not stop it while the two players are playing. A game played over the relay is cut off when the cooperating node stops, and is aborted (result unconfirmed) if it cannot reconnect within 120 seconds.</li>
+                </ul>
+                <p class="guide-step-text">The operator can see the users' IP addresses. Let the users know this.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="start" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Run a Cooperating Node</h2>
+        <p class="section-desc">Run the P2P communication process shogiboardq-peer as a cooperating node</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Get the Program</span>
+                </div>
+                <p class="guide-step-text">A cooperating node is the P2P communication process <code>shogiboardq-peer</code> started with <code>--service</code>. When you build the app with P2P games enabled, it is created in the same folder as the app (installing puts it in <code>bin</code>).</p>
+                <p class="guide-step-text">The server needs neither Qt nor a display. With Rust (1.85 or later) and a C compiler, you can build only the communication process.</p>
+                <div class="build-steps"><pre><code>$ git clone https://github.com/hnakada123/ShogiBoardQ.git
+$ cd ShogiBoardQ
+$ cargo build --release --locked -p shogiboardq-peer
+$ sudo install -m 755 target/release/shogiboardq-peer /usr/local/bin/</code></pre></div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Start It</span>
+                </div>
+                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --network sbq-limited-1 \
+      --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001
+shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Option</th><th scope="col">Meaning</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong><code>--service</code></strong></td><td>Runs as a cooperating node.</td></tr>
+                        <tr><td><strong><code>--relay</code></strong></td><td>Provides the relay. Games between home connections almost always need it.</td></tr>
+                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>The Limited test network. The app's Limited test joins the network with this name.</td></tr>
+                        <tr><td><strong><code>--identity &lt;file&gt;</code></strong></td><td>The file with the cooperating node's identity key. It is created if missing (readable and writable only by its owner). As long as you keep using the same file, the PeerId does not change. If you delete it, the PeerId changes and you have to share the address again.</td></tr>
+                        <tr><td><strong><code>--listen &lt;address&gt;</code></strong></td><td>The address and port to listen on. <code>0.0.0.0</code> listens on all network interfaces. The port does not have to be 4001.</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">When it starts, the PeerId is shown after <code>service started as</code>. Press Ctrl+C to stop it.</p>
+                <p class="guide-step-text">A cooperating node does not expire (the expiry applies only when the app joins Limited test).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Open the Port</span>
+                </div>
+                <p class="guide-step-text">In the server's firewall, allow connections to the port given in <code>--listen</code> (TCP port 4001). On a VPS, also allow it in the provider's packet filter (such as a security group) in its control panel.</p>
+                <div class="build-steps"><pre><code># firewalld
+$ sudo firewall-cmd --permanent --add-port=4001/tcp
+$ sudo firewall-cmd --reload
+# ufw
+$ sudo ufw allow 4001/tcp</code></pre></div>
+                <p class="guide-step-text">To run it on a PC at home, forward the port on your router to that PC (port forwarding). If your home's global IP address changes, the cooperating node's address changes too. Also, to use this cooperating node from a PC inside the same home, the router must support connections looped back to its own global IP address (hairpin NAT), because Limited test does not connect to cooperating nodes at LAN addresses.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Share the Address</span>
+                </div>
+                <p class="guide-step-text">A cooperating node's address has the following form. The PeerId is the string shown after <code>service started as</code> when it started.</p>
+                <div class="build-steps"><pre><code>/ip4/&lt;server's global IP address&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
+                <p class="guide-step-text">Write it with an IP address (domain names cannot be used). Give this address to the players.</p>
+                <p class="guide-step-text">You can check that it works in the app. Enter it in Bootstrap nodes and connect to Limited test. If the peer count becomes 1 or more and Invitation route shows "Through the relay of your cooperating node (…)." or "Direct connection (the relay of your cooperating node is also available).", the cooperating node and its relay are working.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Keep It Running (systemd)</span>
+                </div>
+                <p class="guide-step-text">To keep it running on a server, make it a systemd service so that it also starts automatically when the server restarts. Create <code>/etc/systemd/system/sbq-coop-node.service</code> with the following contents (the identity key is kept in <code>/var/lib/sbq-coop-node</code>).</p>
+                <div class="build-steps"><pre><code>[Unit]
+Description=ShogiBoardQ P2P cooperating node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+DynamicUser=yes
+StateDirectory=sbq-coop-node
+ExecStart=/usr/local/bin/shogiboardq-peer --service --relay --network sbq-limited-1 \
+    --identity /var/lib/sbq-coop-node/coop-node.key --listen /ip4/0.0.0.0/tcp/4001
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target</code></pre></div>
+                <div class="build-steps"><pre><code>$ sudo systemctl enable --now sbq-coop-node
+$ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="prepare" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Preparing the Two Players</h2>
+        <p class="section-desc">Both players enter the same cooperating node and connect to Limited test</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Enter the Cooperating Node in Bootstrap Nodes</span>
+                </div>
+                <p class="guide-step-text">The first time, create a player key and enter a display name (<a href="p2p-game.html#prepare">Setup</a>).</p>
+                <p class="guide-step-text">In Bootstrap nodes on the Settings tab, enter the cooperating node addresses you were given, one per line (up to 16). If you enter several, you can still use the others when one of them is down. Bootstrap nodes take effect the next time you connect (if you change them while connected, disconnect and connect again).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-settings.png"><img src="../../images/en/p2p-game/p2p-internet-settings.png" alt="Settings tab with a cooperating node address in Bootstrap nodes" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Settings tab: a cooperating node in Bootstrap nodes (part of the address is masked)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Connect to Limited Test</span>
+                </div>
+                <p class="guide-step-text">On the Connection and Conditions tab, set Network to Limited test and click Connect. Once your app connects to the cooperating node and reserves a relay slot, Invitation route shows "Through the relay of your cooperating node (it may switch to a direct connection after connecting)." The reservation may take a little while.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-connected.png"><img src="../../images/en/p2p-game/p2p-internet-connected.png" alt="Connection and Conditions tab connected to Limited test, with Invitation route going through the cooperating node&#x27;s relay" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connected to a cooperating node</p>
+                </div>
+                <p class="guide-step-text">If you connect without a cooperating node, your app connects to no one ("Connected (peers: 0)"), and Invitation route shows "There is no address yet that can be reached from outside. …". An invitation created in this state contains no address, and "This invitation contains no address, so your opponent cannot connect. …" appears below Create Invitation.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-no-node.png"><img src="../../images/en/p2p-game/p2p-internet-no-node.png" alt="Connection and Conditions tab connected to Limited test without a cooperating node, saying there is no address reachable from outside yet" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connected without a cooperating node</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="play" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Invite and Play</h2>
+        <p class="section-desc">Exchanging invitations works the same as in games without a cooperating node</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Connect with an Invitation</span>
+                </div>
+                <p class="guide-step-text">The inviter creates an invitation with Create Invitation on the Connect by Invitation tab and sends it by a channel that reaches only the opponent, and the opponent clicks Check Invitation. If "Addresses: N (N usable)" shows at least one usable address, Connect connects to the inviter. The confirmation screen and the game that follow are the same as in <a href="p2p-direct.html#steps">games without a cooperating node</a>.</p>
+                <p class="guide-step-text">The invitation contains addresses that go through the cooperating node (and, if the inviter's PC can be reached directly from outside, that PC's IP address too). Do not post it in public.</p>
+                <p class="guide-step-text">An invitation lets one person connect once and stops working after 10 minutes. Up to four can be valid at the same time, and you can play one game at a time (see <a href="p2p-direct.html#invite-rules">How Many People You Can Invite, and How Often</a>).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-invite.png"><img src="../../images/en/p2p-game/p2p-internet-invite.png" alt="Connect by Invitation tab after checking a received invitation, showing the inviter&#x27;s PeerId, expiry, and number of addresses" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">The invited player: checking a received invitation</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Route: Relay and Direct</span>
+                </div>
+                <p class="guide-step-text">The opponent first connects through the relay of the cooperating node. Right after that, both apps try to get through their routers and connect directly (hole punching). If it works, Route on the Game tab becomes "direct" (usually before the game starts).</p>
+                <p class="guide-step-text">Behind a router that changes the source port for every connection, or on a line with several layers of address translation such as a mobile connection, a direct connection is not possible and the game stays on "relay". You can still play over the relay, but moves travel through the cooperating node and may arrive a little later. ShogiBoardQ's cooperating node closes each relayed connection after 30 minutes, so a long game may include an automatic reconnection (Reconnecting) along the way.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-relay.png"><img src="../../images/en/p2p-game/p2p-internet-relay.png" alt="Game tab with the route through the relay" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Route: relay — the routers did not let a direct connection through</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-direct.png"><img src="../../images/en/p2p-game/p2p-internet-direct.png" alt="Game tab with a direct route" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Route: direct — switched to a direct connection after connecting through the relay</p>
+                </div>
+                <p class="guide-step-text">The images on this page were taken by recreating a cooperating node and home routers (NAT) on a virtual network inside Docker and playing a real game between two apps. For the "relay" image, the routers were set to change the source port for every connection.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="relay-only" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Play Without Showing Your IP Address</h2>
+        <p class="section-desc">With Do not use direct connections, your opponent sees only the cooperating node's address</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">What a Direct Connection Reveals</span>
+                </div>
+                <p class="guide-step-text">Normally, your opponent's app and your PC connect directly (the relay of a cooperating node is used only when they cannot). With a direct connection, your opponent can learn your IP address on the Internet by examining the traffic (the app does not show it). An IP address may reveal your rough location and your Internet provider. Your IP address is also put into your invitations.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Turn On Do Not Use Direct Connections</span>
+                </div>
+                <p class="guide-step-text">When you check Do not use direct connections on the Settings tab, your app always connects to the opponent through the relay of a cooperating node, and puts only addresses that go through the cooperating node into invitations. Your opponent sees only the cooperating node's address, and your IP address is visible only to the operators of the cooperating nodes you entered in Bootstrap nodes. Use it when you play with someone on the Internet whom you do not know well.</p>
+                <ul class="guide-step-text">
+                    <li><strong>A cooperating node is required</strong>: Enter a cooperating node that provides a relay in Bootstrap nodes. Otherwise Invitation route shows "No relay is available. …", and your opponent cannot connect even if you invite them.</li>
+                    <li><strong>The same cooperating node as your opponent</strong>: With this setting, when you connect with an invitation you received, your app uses only addresses that go through the cooperating nodes you entered. The opponent who invited you must also have the same cooperating node in Bootstrap nodes (otherwise you see "This invitation has no address that goes through the relay of your cooperating nodes. …").</li>
+                    <li><strong>Always relayed</strong>: Since no direct connection is attempted, Route stays "relay" for the whole game. Moves travel through the cooperating node, so they may arrive a little later than over a direct connection, and a long game may include an automatic reconnection (Reconnecting) along the way.</li>
+                </ul>
+                <p class="guide-step-text">This setting takes effect the next time you connect. Once connected, Invitation route shows "Only through the relay of your cooperating node (direct connections are turned off)."</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-relay-only.png"><img src="../../images/en/p2p-game/p2p-internet-relay-only.png" alt="Connection and Conditions tab connected with direct connections turned off, going only through the cooperating node&#x27;s relay" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connected with Do not use direct connections</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 7 -->
+<section id="trouble" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">If You Cannot Connect, and Expiry</h2>
+        <p class="section-desc">The message on the screen tells you what to check</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">If You Cannot Connect</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Message or state</th><th scope="col">What to check</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>The peer count stays at 0 ("Connected (peers: 0)")</strong></td><td>The address in Bootstrap nodes is wrong, the cooperating node is down, or the server's firewall is closed. Write the address with an IP address (domain names and LAN addresses cannot be used).</td></tr>
+                        <tr><td><strong>Invitation route shows "There is no address yet that can be reached from outside. …"</strong></td><td>Your app has not connected to the cooperating node yet, or has not reserved a relay slot yet. If it does not change after a while, check the row above.</td></tr>
+                        <tr><td><strong>Invitation route shows "No relay is available. …"</strong></td><td>Do not use direct connections is on, and Bootstrap nodes has no cooperating node that provides a relay. Also check that the cooperating node was started with <code>--relay</code>.</td></tr>
+                        <tr><td><strong>"This invitation has no address that goes through the relay of your cooperating nodes. …"</strong></td><td>Do not use direct connections is on, and your cooperating node differs from the inviter's. Enter the same cooperating node.</td></tr>
+                        <tr><td><strong>"The invitation is for another network."</strong></td><td>The two players chose different networks. Both connect to Limited test.</td></tr>
+                        <tr><td><strong>"This build has expired and cannot join the limited test network. …"</strong></td><td>The build has passed its expiry (step 2 below).</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Expiry</span>
+                </div>
+                <p class="guide-step-text">A build can join Limited test for 180 days from the day the app was built (shown as This build expires on the Settings tab). P2P games have no server that can stop old versions, so this keeps old versions with unfixed bugs or security flaws from staying on the network. After it expires, build a new version.</p>
+                <p class="guide-step-text">Only the app's Limited test expires. The cooperating node, Local test games, and reviewing and verifying saved records have no expiry.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="p2p-game.html" class="back-link">← Back to P2P Games (Experimental)</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

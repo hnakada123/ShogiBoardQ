@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用协作节点对局（P2P对局） - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 的P2P对局（实验版）中，通过协作节点与互联网上的对手下棋的方法：协作节点的作用、由谁启动、启动方法（shogiboardq-peer --service）、双方的准备、路径、不让对手看到 IP 地址的设置，以及无法连接时的检查方法。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-relay.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-relay.html">
+    <meta property="og:title" content="使用协作节点对局（P2P对局） - ShogiBoardQ">
+    <meta property="og:description" content="通过互联网对局需要一个协作节点。本页说明由谁启动、如何运行，以及对局双方如何准备。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/p2p-game/p2p-internet-connected.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="使用协作节点对局（P2P对局） - ShogiBoardQ">
+    <meta name="twitter:description" content="通过互联网对局需要一个协作节点。本页说明由谁启动、如何运行，以及对局双方如何准备。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/p2p-game/p2p-internet-connected.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-relay.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-relay.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-relay.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-relay.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-relay.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/p2p-relay.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/p2p-relay.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="p2p-relay.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/p2p-relay.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="index.html">使用指南</a></li>
+            <li><a href="p2p-game.html">P2P对局</a></li>
+            <li><a href="#who">由谁启动</a></li>
+            <li><a href="#start">启动方法</a></li>
+            <li><a href="#prepare">双方的准备</a></li>
+            <li><a href="#play">对局</a></li>
+            <li><a href="#relay-only">隐藏IP</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>使用协作节点对局</h1>
+        <p class="hero-subtitle">在P2P对局（实验版）中，通过协作节点与互联网上的对手以邀请方式对局</p>
+        <div class="hero-badges">
+            <span class="badge">通过互联网</span>
+            <span class="badge">一个协作节点</span>
+            <span class="badge">可隐藏IP的设置</span>
+            <span class="badge">实验版・Linux</span>
+        </div>
+        <p class="screenshot-note">P2P对局的准备（玩家密钥・显示名）、窗口和对局记录请参阅<a href="p2p-game.html">P2P对局（实验版）</a>。与同一电脑・同一局域网的对手对局请参阅<a href="p2p-direct.html">不使用协作节点对局</a>。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="node" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">什么是协作节点</h2>
+        <p class="section-desc">在通过互联网的对局中，双方的应用最先连接的服务器</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">为什么需要协作节点</span>
+                </div>
+                <p class="guide-step-text">要通过互联网对局，必须在邀请字符串中放入对手的应用连接到您的电脑所用的地址。但是，家庭网络和手机网络的电脑大多在路由器内侧，电脑本身并不知道自己在互联网上以哪个地址被看到。来自外部的连接也可能被路由器拦下。P2P对局也没有寻找对手或互相告知地址的服务器。</p>
+                <p class="guide-step-text">因此，应用会先连接运行在互联网可以到达之处的“协作节点”，请它负责下面两件事。</p>
+                <ul class="guide-step-text">
+                    <li><strong>可达性确认</strong>：请协作节点确认从互联网看到的这台电脑的地址，以及能否从外部到达该地址。如果能到达，就把这个地址放入邀请字符串，与对手直接连接。</li>
+                    <li><strong>中继</strong>：在协作节点上预约中继的席位，并把经由协作节点的地址也放入邀请字符串。无法从外部直接到达时（家庭网络大多如此），对手用这个地址经由协作节点连接。</li>
+                </ul>
+                <p class="guide-step-text">不填协作节点就以“限定测试用”连接时，邀请字符串中一个地址也没有，对手无法连接。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">协作节点做什么、不做什么</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>做的事</strong>：只有可达性确认和中继。</li>
+                    <li><strong>不做的事</strong>：不判定着手和胜负，也不保存对局记录。中继的通信在双方的应用之间加密，因此它也读不到内容（着手、玩家ID、显示名）。</li>
+                    <li><strong>运营者能看到的</strong>：使用者的 IP 地址，以及哪些 IP 地址之间建立了连接。协作节点的程序不会把来源 IP 地址写入日志，但运营者检查通信就能知道。</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="who" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">由谁启动协作节点</h2>
+        <p class="section-desc">一个协作节点就够了。由能准备互联网可达服务器的人启动，并把地址告诉对局的人</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">两人共用一个协作节点</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>一个就够</strong>：对局的两人合起来只需要一个协作节点，不需要各自启动。</li>
+                    <li><strong>两人填入相同的地址</strong>：启动的人告知地址，两人都把它填入“设置”标签页的“连接候选”。邀请方没有填入时，邀请字符串中没有连接地址。使用“不使用直接连接”的人，必须与对手填入相同的协作节点。</li>
+                    <li><strong>多组共用</strong>：一个协作节点可以供许多组对局者使用（中继席位同时最多 128 人）。</li>
+                    <li><strong>应用中没有内置</strong>：应用中没有协作节点的地址，需要由对局的人自己准备。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">启动的人与所需条件</span>
+                </div>
+                <p class="guide-step-text">协作节点由能准备互联网可达服务器的人启动。可以是对局两人中的一方，也可以是两人都认识的人。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">启动的人</th><th scope="col">适合的情况</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>对局两人中的一方</strong></td><td>拥有 VPS 等服务器，或能在家里的路由器上开放端口时</td></tr>
+                        <tr><td><strong>熟人（不参加对局的人）</strong></td><td>在研究会或社团中，由一人运行协作节点，全体成员共用其地址时</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">启动的人需要下面这些条件。</p>
+                <ul class="guide-step-text">
+                    <li><strong>互联网可以到达的 IP 地址</strong>：拥有公网 IP 地址的服务器（VPS 等），或可以开放端口的家庭网络。手机网络，以及运营商叠加多层地址转换的网络（CGNAT）无法从外部到达，因此无法运行。</li>
+                    <li><strong>Linux</strong>：协作节点的程序会先用 Landlock 和 seccomp 限制自己的权限再运行。在无法施加这些限制的环境中无法运行。</li>
+                    <li><strong>一个可以开放的 TCP 端口</strong>：本页的示例为 4001 号。</li>
+                    <li><strong>持续运行</strong>：两人对局期间请不要停止。通过中继下棋的对局会在协作节点停止时断开，如果 120 秒内无法重新连接，就会中断（结果未确定）。</li>
+                </ul>
+                <p class="guide-step-text">运营者能看到使用者的 IP 地址。请事先告知使用者。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="start" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">启动协作节点</h2>
+        <p class="section-desc">把P2P对局的通信进程 shogiboardq-peer 作为协作节点运行</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">准备程序</span>
+                </div>
+                <p class="guide-step-text">协作节点就是加上 <code>--service</code> 启动的P2P对局通信进程 <code>shogiboardq-peer</code>。启用P2P对局构建应用后，它会生成在与应用相同的文件夹中（安装后放在 <code>bin</code> 中）。</p>
+                <p class="guide-step-text">服务器上既不需要 Qt 也不需要显示器。只要有 Rust（1.85 以上）和 C 编译器，就可以只构建通信进程。</p>
+                <div class="build-steps"><pre><code>$ git clone https://github.com/hnakada123/ShogiBoardQ.git
+$ cd ShogiBoardQ
+$ cargo build --release --locked -p shogiboardq-peer
+$ sudo install -m 755 target/release/shogiboardq-peer /usr/local/bin/</code></pre></div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">启动</span>
+                </div>
+                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --network sbq-limited-1 \
+      --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001
+shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">选项</th><th scope="col">含义</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong><code>--service</code></strong></td><td>作为协作节点运行。</td></tr>
+                        <tr><td><strong><code>--relay</code></strong></td><td>负责中继。家庭网络之间的对局几乎都需要。</td></tr>
+                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>“限定测试用”的网络。应用的“限定测试用”会加入这个名称的网络。</td></tr>
+                        <tr><td><strong><code>--identity &lt;文件&gt;</code></strong></td><td>协作节点的身份密钥文件。不存在时会生成（只有所有者可以读写的权限）。只要一直使用同一个文件，PeerId 就不会变。删除后 PeerId 会变，需要重新告知地址。</td></tr>
+                        <tr><td><strong><code>--listen &lt;地址&gt;</code></strong></td><td>监听的地址和端口。<code>0.0.0.0</code> 表示在所有网络接口上监听。端口不一定是 4001。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">启动后，<code>service started as</code> 后面会显示 PeerId。要停止时按 Ctrl+C。</p>
+                <p class="guide-step-text">协作节点没有使用期限（期限只在应用加入“限定测试用”时起作用）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">开放端口</span>
+                </div>
+                <p class="guide-step-text">在服务器的防火墙中，允许到 <code>--listen</code> 中所写端口（TCP 4001 号）的连接。使用 VPS 时，还要在服务商管理界面的数据包过滤（安全组等）中允许。</p>
+                <div class="build-steps"><pre><code># firewalld
+$ sudo firewall-cmd --permanent --add-port=4001/tcp
+$ sudo firewall-cmd --reload
+# ufw
+$ sudo ufw allow 4001/tcp</code></pre></div>
+                <p class="guide-step-text">在家里的电脑上运行时，要在路由器上把该端口转发到这台电脑（端口转发）。家里的公网 IP 地址变化后，协作节点的地址也会变。另外，要从同一个家里的电脑使用这个协作节点，路由器必须支持回到自己公网 IP 地址的连接（NAT 回环），因为“限定测试用”不会连接局域网内地址的协作节点。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">告知地址</span>
+                </div>
+                <p class="guide-step-text">协作节点的地址是下面的形式。PeerId 是启动时 <code>service started as</code> 后面显示的字符串。</p>
+                <div class="build-steps"><pre><code>/ip4/&lt;服务器的公网IP地址&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
+                <p class="guide-step-text">请用 IP 地址书写（不能使用域名）。把这个地址告诉对局的人。</p>
+                <p class="guide-step-text">可以在应用中确认它是否在运行。把地址填入“连接候选”并以“限定测试用”连接，如果节点数变为 1 以上，并且“邀请的路径”中显示“通过协作节点的中继（…）。”或“直接连接（也可使用协作节点的中继）。”，就说明协作节点和中继可以使用。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">持续运行（systemd）</span>
+                </div>
+                <p class="guide-step-text">要在服务器上持续运行，可以做成 systemd 服务，服务器重启后也会自动启动。用下面的内容创建 <code>/etc/systemd/system/sbq-coop-node.service</code>（身份密钥放在 <code>/var/lib/sbq-coop-node</code>）。</p>
+                <div class="build-steps"><pre><code>[Unit]
+Description=ShogiBoardQ P2P cooperating node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+DynamicUser=yes
+StateDirectory=sbq-coop-node
+ExecStart=/usr/local/bin/shogiboardq-peer --service --relay --network sbq-limited-1 \
+    --identity /var/lib/sbq-coop-node/coop-node.key --listen /ip4/0.0.0.0/tcp/4001
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target</code></pre></div>
+                <div class="build-steps"><pre><code>$ sudo systemctl enable --now sbq-coop-node
+$ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="prepare" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">对局双方的准备</h2>
+        <p class="section-desc">双方都填入相同的协作节点，并以“限定测试用”连接</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">在“连接候选”中填入协作节点</span>
+                </div>
+                <p class="guide-step-text">第一次使用时，生成玩家密钥并填入显示名（<a href="p2p-game.html#prepare">准备</a>）。</p>
+                <p class="guide-step-text">在“设置”标签页的“连接候选”中，每行填入一个对方告知的协作节点地址（最多 16 个）。填入多个时，即使其中一个停止，也能使用其他协作节点。“连接候选”从下次连接时起生效（连接中更改时，请断开后重新连接）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-settings.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-settings.png" alt="在“连接候选”中填入协作节点地址的“设置”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“设置”标签页：在“连接候选”中填入协作节点后（地址的一部分已隐藏）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">以“限定测试用”连接</span>
+                </div>
+                <p class="guide-step-text">在“连接与条件”标签页中把“网络”设为“限定测试用”，点击“连接”。连接到协作节点并预约到中继后，“邀请的路径”中会显示“通过协作节点的中继（连接后可能切换为直接连接）。”。预约可能需要一点时间。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-connected.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-connected.png" alt="以限定测试用连接，邀请的路径显示通过协作节点中继的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">连接到协作节点后</p>
+                </div>
+                <p class="guide-step-text">不填协作节点就连接时，不会连接到任何地方（“已连接（已连接的节点：0）”），“邀请的路径”中显示“尚无可从外部到达的连接地址。…”。在这种状态下生成的邀请字符串中没有连接地址，“生成邀请字符串”下方会显示“此邀请字符串中没有连接地址，对手无法连接。…”。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-no-node.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-no-node.png" alt="不填协作节点就以限定测试用连接，显示尚无可从外部到达的连接地址的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">不填协作节点就连接后</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="play" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">邀请并对局</h2>
+        <p class="section-desc">交换邀请字符串的方式与不使用协作节点的对局相同</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">用邀请字符串连接</span>
+                </div>
+                <p class="guide-step-text">邀请方在“通过邀请连接”标签页中用“生成邀请字符串”生成邀请字符串，通过只能送达对方的方式交给对方，对方点击“检查邀请字符串”。“地址：N 个（可用 N 个）”中可用的地址有 1 个以上，就可以用“连接”连接。之后的条件确认画面和对局，与<a href="p2p-direct.html#steps">不使用协作节点的对局</a>相同。</p>
+                <p class="guide-step-text">邀请字符串中放入经由协作节点的地址（如果邀请方的电脑可以从外部直接到达，还会放入那台电脑的 IP 地址）。请不要贴在公开的地方。</p>
+                <p class="guide-step-text">一个邀请字符串只能让一个人连接一次，10 分钟后失效。同时有效的最多 4 个，一次只能下一局（详见<a href="p2p-direct.html#invite-rules">可以邀请的人数与次数</a>）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-invite.png" alt="检查收到的邀请字符串后，显示邀请方 PeerId、期限和地址数量的“通过邀请连接”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">被邀请方：检查收到的邀请字符串后</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">路径：中继与直接</span>
+                </div>
+                <p class="guide-step-text">对手首先经由协作节点的中继连接。连接后，双方的应用会立即尝试穿过各自的路由器直接连接（打洞）。成功后，“对局中”标签页的“路径”会变为“直接”（多数在对局开始前完成）。</p>
+                <p class="guide-step-text">在每次连接都改变源端口的路由器后面，或在手机网络这类多层地址转换的线路上，无法直接连接，会一直以“中继”对局。通过中继也可以对局，但着手要绕经协作节点送达，可能会稍有延迟。ShogiBoardQ 的协作节点每条中继 30 分钟后会断开，因此长时间的对局中途可能会自动重新连接（“正在重新连接”）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-relay.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-relay.png" alt="路径为中继的“对局中”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“路径：中继”：路由器没有让直接连接通过时</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-direct.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-direct.png" alt="路径为直接的“对局中”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“路径：直接”：经由中继连接后切换为直接连接时</p>
+                </div>
+                <p class="guide-step-text">本页的截图是在 Docker 中的虚拟网络上重现协作节点和家庭路由器（NAT），用两个应用实际对局拍摄的。“中继”的截图使用了每次连接都改变源端口的路由器。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="relay-only" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">不让对手看到 IP 地址对局</h2>
+        <p class="section-desc">使用“不使用直接连接”后，对手只能看到协作节点的地址</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">直接连接时对手能看到什么</span>
+                </div>
+                <p class="guide-step-text">通常，对手的应用和您的电脑会直接连接（只有无法直接连接时才使用协作节点的中继）。直接连接后，对手检查通信就能知道您在互联网上的 IP 地址（画面上不显示）。从 IP 地址有时能知道大致的地区和所用网络的运营商。邀请字符串中也会放入您的 IP 地址。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">使用“不使用直接连接”</span>
+                </div>
+                <p class="guide-step-text">在“设置”标签页中勾选“不使用直接连接”后，与对手一定经由协作节点的中继连接，邀请字符串中也只放入经由协作节点的地址。对手只能看到协作节点的地址，能看到您 IP 地址的只有您填入“连接候选”的协作节点的运营者。与互联网上不太了解的对手下棋时使用。</p>
+                <ul class="guide-step-text">
+                    <li><strong>需要协作节点</strong>：请在“连接候选”中填入可以中继的协作节点。没有填入时，“邀请的路径”中显示“无法使用中继。…”，即使邀请，对手也无法连接。</li>
+                    <li><strong>与对手相同的协作节点</strong>：在此设置下用收到的邀请字符串连接时，只连接经由您所填协作节点的地址。邀请方也必须在“连接候选”中填入相同的协作节点（不同时会显示“此邀请字符串中没有通过您的协作节点中继的连接地址。…”）。</li>
+                    <li><strong>一直中继</strong>：不尝试直接连接，因此对局期间“路径”一直是“中继”。着手绕经协作节点送达，可能比直接连接稍有延迟，长时间的对局中途可能会自动重新连接（“正在重新连接”）。</li>
+                </ul>
+                <p class="guide-step-text">此设置从下次连接时起生效。连接后，“邀请的路径”中显示“仅通过协作节点的中继（已设置不使用直接连接）。”。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-relay-only.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-relay-only.png" alt="以不使用直接连接的设置连接，显示仅通过协作节点中继的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以“不使用直接连接”连接后</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 7 -->
+<section id="trouble" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">无法连接时・使用期限</h2>
+        <p class="section-desc">根据画面上显示的消息，就能知道要检查什么</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">无法连接时</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">显示的消息・状态</th><th scope="col">要检查的内容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>一直是“已连接（已连接的节点：0）”</strong></td><td>“连接候选”的地址有误、协作节点已停止、服务器的防火墙未开放，三者之一。地址请用 IP 地址书写（不能使用域名和局域网内的地址）。</td></tr>
+                        <tr><td><strong>“邀请的路径”中显示“尚无可从外部到达的连接地址。…”</strong></td><td>还没有连接到协作节点，或还没有预约到中继。稍等后仍无变化，请检查上一行。</td></tr>
+                        <tr><td><strong>“邀请的路径”中显示“无法使用中继。…”</strong></td><td>设置了“不使用直接连接”，但“连接候选”中没有可以中继的协作节点。还要确认协作节点是否加上 <code>--relay</code> 启动。</td></tr>
+                        <tr><td><strong>“此邀请字符串中没有通过您的协作节点中继的连接地址。…”</strong></td><td>设置了“不使用直接连接”，且与邀请方的协作节点不同。请填入相同的协作节点。</td></tr>
+                        <tr><td><strong>“这是其他网络的邀请字符串。”</strong></td><td>两人的“网络”不同。两人都以“限定测试用”连接。</td></tr>
+                        <tr><td><strong>“此版本已过使用期限，无法加入限定测试网络。…”</strong></td><td>这是已过使用期限的版本（下面的 2）。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">使用期限</span>
+                </div>
+                <p class="guide-step-text">可以加入“限定测试用”的期限是从构建应用之日起 180 天（显示在“设置”标签页的“此版本的使用期限”中）。P2P对局没有可以停止旧版本的服务器，因此这样做是为了不让未修复缺陷或安全漏洞的旧版本一直留在网络中。过期后，请重新构建新版本。</p>
+                <p class="guide-step-text">只有应用的“限定测试用”有期限。协作节点、“本地验证用”的对局，以及查看和验证已保存的记录都没有期限。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="p2p-game.html" class="back-link">← 返回P2P对局（实验版）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

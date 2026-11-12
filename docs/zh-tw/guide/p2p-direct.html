@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>不使用協作節點對局（P2P對局） - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 的P2P對局（實驗版）中，不使用協作節點、與同一電腦・同一區域網路的對手下棋的方法：以本機驗證用連線、交換邀請字串、可以邀請的人數與次數、防火牆，以及無法連線時的檢查方法。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-direct.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-direct.html">
+    <meta property="og:title" content="不使用協作節點對局（P2P對局） - ShogiBoardQ">
+    <meta property="og:description" content="與同一電腦・同一區域網路的對手，無需協作節點，只用邀請字串即可連線對局。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/p2p-game/p2p-invite.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="不使用協作節點對局（P2P對局） - ShogiBoardQ">
+    <meta name="twitter:description" content="與同一電腦・同一區域網路的對手，無需協作節點，只用邀請字串即可連線對局。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/p2p-game/p2p-invite.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-direct.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-direct.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/p2p-direct.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/p2p-direct.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/p2p-direct.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="p2p-direct.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="index.html">使用指南</a></li>
+            <li><a href="p2p-game.html">P2P對局</a></li>
+            <li><a href="#about">原理</a></li>
+            <li><a href="#steps">步驟</a></li>
+            <li><a href="#invite-rules">邀請人數</a></li>
+            <li><a href="#lan">同一區域網路</a></li>
+            <li><a href="#same-pc">同一電腦</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>不使用協作節點對局</h1>
+        <p class="hero-subtitle">在P2P對局（實驗版）中，與同一電腦・同一區域網路的對手只用邀請字串連線下棋</p>
+        <div class="hero-badges">
+            <span class="badge">同一電腦・同一區域網路</span>
+            <span class="badge">無需協作節點</span>
+            <span class="badge">邀請一人一次</span>
+            <span class="badge">實驗版・Linux</span>
+        </div>
+        <p class="screenshot-note">P2P對局的準備（玩家金鑰・顯示名稱）、視窗和對局記錄請參閱<a href="p2p-game.html">P2P對局（實驗版）</a>。與網際網路上的對手對局請參閱<a href="p2p-relay.html">使用協作節點對局</a>。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="about" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">不用協作節點可以對局的對手</h2>
+        <p class="section-desc">在「本機驗證用（同一電腦・同一區域網路）」網路中，既不需要協作節點，也不需要變更「設定」分頁</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">與同一電腦・同一區域網路的對手連線</span>
+                </div>
+                <p class="guide-step-text">把「網路」設為「本機驗證用（同一電腦・同一區域網路）」並連線後，邀請字串中會放入這台電腦在區域網路內的位址（192.168.… 等）和只在同一台電腦內使用的位址。對手的電腦可以直接到達這些位址，因此不需要居中協調的協作節點。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">對手</th><th scope="col">能否連線</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>在同一台電腦上執行的另一個應用程式</strong></td><td>可以（<a href="#same-pc">在同一台電腦上試用</a>）</td></tr>
+                        <tr><td><strong>同一區域網路（家中或公司裡同一台路由器下的網路）中的另一台電腦</strong></td><td>可以（<a href="#lan">與同一區域網路的另一台電腦對局</a>）</td></tr>
+                        <tr><td><strong>網際網路上的對手（另一個家庭、行動網路等）</strong></td><td>不可以。請參閱<a href="p2p-relay.html">使用協作節點對局</a></td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">在這個網路中，只接受來源為同一台電腦或區域網路內位址的連線。來自網際網路的連線不會被接受。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">無需變更「設定」分頁</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>「連線候選」</strong>：保持空白即可。</li>
+                    <li><strong>「不使用直接連線」</strong>：請取消勾選。勾選後，區域網路內的直接連線也不再使用，因此無法連線（「邀請的路徑」中顯示「無法使用中繼。…」）。</li>
+                    <li><strong>對手能看到的位址</strong>：只有區域網路內的位址。網際網路上的 IP 位址不會交給對手。</li>
+                    <li><strong>使用期限</strong>：沒有。建置後超過 180 天仍可使用（只有「限定測試用」有期限）。</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="steps" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">開始對局的步驟</h2>
+        <p class="section-desc">雙方都以「本機驗證用」連線，一方把另一方產生的邀請字串貼上</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">雙方都以「本機驗證用」連線</span>
+                </div>
+                <p class="guide-step-text">用「對局」→「P2P對局（實驗版）…」開啟視窗。第一次使用時，產生玩家金鑰並填入顯示名稱（<a href="p2p-game.html#prepare">準備</a>）。</p>
+                <p class="guide-step-text">在「連線與條件」分頁中把「網路」設為「本機驗證用（同一電腦・同一區域網路）」，按一下「連線」。「狀態」變為「已連線（已連線的節點：0）」，「邀請的路徑」中顯示「與同一電腦・同一區域網路的對手直接連線。」即準備完成（在與對手連線之前，節點數一直是 0）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-connection.png"><img src="../../images/zh-tw/p2p-game/p2p-connection.png" alt="以本機驗證用連線，邀請的路徑顯示與同一電腦・同一區域網路的對手直接連線的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以「本機驗證用（同一電腦・同一區域網路）」連線後</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">邀請方：產生並交給對方邀請字串</span>
+                </div>
+                <p class="guide-step-text">邀請方先在「連線與條件」分頁中設定「用時規則」「讀秒」「先後手」。對局依這些條件進行。</p>
+                <p class="guide-step-text">在「透過邀請連線」分頁的「邀請對手」中按一下「產生邀請字串」，用「複製」複製後，透過私訊等只能送達對方的方式交給對方。輸入框下方會顯示期限和位址數量。邀請字串 10 分鐘後失效，產生後請立即交給對方。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">被邀請方：貼上並連線</span>
+                </div>
+                <p class="guide-step-text">被邀請方把邀請字串貼到「透過邀請連線」分頁的「透過邀請連線」欄中，按一下「檢查邀請字串」。顯示邀請方的 PeerId、期限和位址數量後，按一下「連線」。</p>
+                <p class="guide-step-text">被邀請方無需設定用時規則等條件（依邀請方的條件對局）。只需填好「顯示名稱」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-invite.png"><img src="../../images/zh-tw/p2p-game/p2p-invite.png" alt="「透過邀請連線」分頁。上方產生了邀請字串，下方檢查了收到的邀請字串" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">上：邀請方產生了邀請字串　下：被邀請方檢查後</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">確認條件後開始</span>
+                </div>
+                <p class="guide-step-text">連線後，雙方都會開啟「確認P2P對局條件」。確認對手的顯示名稱和玩家ID、先後手和用時規則後按一下「開始」。雙方在 60 秒內都按下「開始」後，對局開始。</p>
+                <p class="guide-step-text">畫面上各項的意義請參閱<a href="p2p-game.html#confirm">條件確認畫面</a>，對局中的操作請參閱<a href="p2p-game.html#playing">對局中</a>，結束後的記錄請參閱<a href="p2p-game.html#records">對局記錄與驗證</a>。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="invite-rules" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">可以邀請的人數與次數</h2>
+        <p class="section-desc">對局是兩人一次一局。邀請字串要為每位對手各產生一個</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">一個邀請字串：一人、一次</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>只能一人</strong>：一個邀請字串只能讓一個人連線。對手連線的那一刻，這個邀請字串就不能再用了。</li>
+                    <li><strong>10 分鐘後過期</strong>：即使沒有使用，產生 10 分鐘後也會失效（貼上的人會看到「邀請字串已過期。」）。</li>
+                    <li><strong>一對一對局</strong>：沒有三人以上下同一局的機制，也沒有他人觀戰的機制。</li>
+                    <li><strong>再下一局</strong>：對局結束後會關閉連線。要與同一對手再下一局時，請產生新的邀請字串交給對方。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">邀請多個人</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li><strong>同時最多 4 個</strong>：可以為幾個人各產生一個邀請字串交給他們。同時有效的最多 4 個，產生第 5 個時，最早的一個會失效。</li>
+                    <li><strong>一個應用程式一次只能下一局</strong>：會與最先連線的人進入條件確認。在此期間和對局中，其他人無法連線（條件確認期間，對方會看到「對手正在與他人協商或對局。」）。對於沒能連線的人，請在對局結束後交給他們新的邀請字串。8 人同時下 4 局時，每組由一方邀請另一方（<a href="p2p-game.html#one-game">一對一對局，一個應用程式一次一局</a>）。</li>
+                    <li><strong>對局後仍可使用</strong>：對局結束後，仍在期限內且尚未使用的邀請字串依然有效。</li>
+                    <li><strong>條件以最後一次產生時為準</strong>：所有有效的邀請字串，都依最後一次按下「產生邀請字串」時的顯示名稱、用時規則、讀秒和先後手對局。要變更條件時，請先變更再重新產生。</li>
+                    <li><strong>全部取消</strong>：在「連線與條件」分頁中按一下「中斷連線」，所有有效的邀請字串都會失效。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">由誰邀請都可以</span>
+                </div>
+                <p class="guide-step-text">兩人中任何一方邀請都可以。用時規則和先後手依邀請方的條件。被邀請方不需要產生邀請字串。自己產生的邀請字串不能自己使用（會顯示「這是您自己產生的邀請字串。」）。</p>
+                <p class="guide-step-text">與同一區域網路的另一台電腦連不上時，交換邀請方後有時可以連線。等待連線的是邀請方的電腦，因此與那台電腦的防火牆有關（<a href="#lan">下一節</a>）。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="lan" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">與同一區域網路的另一台電腦對局</h2>
+        <p class="section-desc">邀請方的電腦在 TCP 和 UDP 的 48210 連接埠等待連線</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">在防火牆中開放連接埠</span>
+                </div>
+                <p class="guide-step-text">邀請方的電腦在 TCP 和 UDP 的 48210 連接埠等待對手的連線（在同一台電腦上執行第二個應用程式時，第二個會使用空閒的連接埠）。如果電腦的防火牆阻擋了到這個連接埠的連線，對手會看到「無法連線到對手。」。</p>
+                <p class="guide-step-text">使用 firewalld 時，可以用下面的指令允許連線，直到重新開機為止。</p>
+                <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
+                <p class="guide-step-text">使用 ufw 時，可以用 <code>sudo ufw allow 48210</code> 允許（不再需要時用 <code>sudo ufw delete allow 48210</code>）。應用程式只接受來源為區域網路內位址的連線，因此即使開放連接埠，來自網際網路的連線也會被拒絕。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">無法連線時</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">顯示的訊息・狀態</th><th scope="col">要檢查的內容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>「這是其他網路的邀請字串。」</strong></td><td>兩人的「網路」不同。兩人都重新以「本機驗證用（同一電腦・同一區域網路）」連線，並重新產生邀請字串。</td></tr>
+                        <tr><td><strong>「邀請字串已過期。」</strong></td><td>產生後已超過 10 分鐘。請重新產生邀請字串。</td></tr>
+                        <tr><td><strong>「無法連線到對手。」</strong></td><td>檢查邀請方電腦的防火牆（上面的 1）。交換邀請方後也可能連線成功。</td></tr>
+                        <tr><td><strong>「邀請的路徑」中顯示「無法使用中繼。…」</strong></td><td>取消勾選「設定」分頁的「不使用直接連線」，中斷連線後重新連線。</td></tr>
+                        <tr><td><strong>「對手正在與他人協商或對局。」</strong></td><td>對手正在與他人確認條件或對局。結束後請向對方要新的邀請字串。</td></tr>
+                        <tr><td><strong>訪客 Wi-Fi 等</strong></td><td>在阻擋已連線裝置之間通訊的網路中，即使在同一區域網路也無法連線。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="same-pc" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">在同一台電腦上試用</h2>
+        <p class="section-desc">在同一台電腦上啟動多個本應用程式，就能用一台電腦試著對局</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">以第2位、第3位玩家開啟</span>
+                </div>
+                <p class="guide-step-text">在同一台電腦上多次啟動本應用程式，並分別開啟「P2P對局」，第二個會自動以「第2位玩家」的身分開啟，第三個為「第3位玩家」（最多同時8個）。視窗標題和頂端的說明會顯示是第幾位玩家。只啟動一個應用程式時，一律是第1位玩家。</p>
+                <p class="guide-step-text">玩家金鑰（玩家ID）、顯示名稱、對局記錄和對手清單會依玩家分別儲存。兩邊都以「本機驗證用（同一電腦・同一區域網路）」連線，然後把其中一個產生的邀請字串貼到另一個，無需協作節點即可對局。由於是同一台電腦內的連線，通常也不需要設定防火牆。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="p2p-game.html" class="back-link">← 返回P2P對局（實驗版）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

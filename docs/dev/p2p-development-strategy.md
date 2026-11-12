@@ -310,6 +310,6 @@ P2P のネットワークには、中央から機能を止める仕組みがな�
 | P2P対局 | CMake の `ENABLE_P2P_PLAY`（既定 OFF）を ON にしたビルドだけに入る。OFF では libsodium・QtKeychain・Rust を要求せず、P2P の部品も通信プロセスも作らないので、P2P を使わない利用者に待受や補助プロセスは増えない（10章の条件）。配布しているビルド（`release.yml`・`scripts/build-linux.sh`）は OFF のまま |
 | 識別子・保存先 | 11.2節で実験版用に変えた名前を通常版の値に戻した（`src/services/appidentity.h`）。アプリ名 `ShogiBoardQ`、設定ファイル `ShogiBoardQ.ini`、desktop 名 `shogiboardq`（`resources/platform/shogiboardq.desktop`）、bundle ID `io.github.hnakada123.ShogiBoardQ`、自動化 API のソケット `shogiboardq/automation.sock`、ウィンドウの題名「将棋盤Q」。OS の鍵の保管庫のプレイヤー鍵の項目のサービス名もアプリ名なので `ShogiBoardQ` になる。実験版で作ったプレイヤー鍵・対局記録（`ShogiBoardQ-P2P` のフォルダと項目）は引き継がない |
 | ワークフロー | 実験版で `packaging/disabled-workflows/` へ移して止めた `release.yml`・`maintenance-reminder.yml` を `.github/workflows/` に戻した。`ci.yml` の P2P のジョブ（Rust の試験と clippy、`ENABLE_P2P_PLAY=ON` のビルドと P2P の試験）は残した |
-| 文書 | 実装仕様（`p2p-game-spec.md`）・互換仕様書（`p2p-interop-spec.html`）・`protocol/`・ガイド（`docs/*/guide/p2p-game.html`）は通常版のリポジトリで更新する。ガイドとホームページは、別アプリではなく P2P対局を有効にしたビルドの機能として案内する |
+| 文書 | 実装仕様（`p2p-game-spec.md`）・互換仕様書（`p2p-interop-spec.html`）・`protocol/`・ガイド（`docs/*/guide/p2p-game.html` と、そこから案内する `p2p-direct.html`・`p2p-relay.html`）は通常版のリポジトリで更新する。ガイドとホームページは、別アプリではなく P2P対局を有効にしたビルドの機能として案内する |
 
 D4（限定ネットワーク試験）へ進む条件と、11.2節の「残り」の項目は、取り込みの前と同じく満たしていない。
