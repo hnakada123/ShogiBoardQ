@@ -72,7 +72,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <main>
 <header class="doc">
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ（将棋盤Q。P2P対局を有効にしたビルド）／プロトコルの版 1／文書の版 2026-11-11</p>
+<p>ShogiBoardQ（将棋盤Q。P2P対局を有効にしたビルド）／プロトコルの版 1／文書の版 2026-11-12</p>
 <p class="lead">ShogiBoardQ の「P2P対局」と相互に対局できるソフトウェアを作るための仕様書である。通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
@@ -389,16 +389,18 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 </tbody>
 </table></div>
 <p>ポート番号は招待文字列の宛先に入るので、互換実装が別のポートで待ち受けても接続できる。48210 番は、ファイアウォールで許可するポートを利用者が決められるようにするための既定値である。</p>
+<p>ほかのプロセスが待ち受けているポートで待ち受けてはならない。libp2p の TCP の待受は、同じポートを複数のプロセスで共有できる設定（<code>SO_REUSEPORT</code>）で開くので、使用中でも開けてしまい、届いた接続が2つのプロセス（同じ PC の2つ目のアプリや、別の実装）に振り分けられる。ShogiBoardQ は、TCP の 48210 番を共有しない待受で試して使用中でないことを確かめてから開く。確かめてから開くまでの間に、同時に起動したプロセスも同じことをすると両方が開けてしまうので、UDP（QUIC。共有の設定を付けない）を先に開け、48210 番の UDP を開けたプロセスだけが TCP でも 48210 番を使う。</p>
 
 <h3 id="sec-4-3">4.3 Identify</h3>
 <p>Identify の <code>protocolVersion</code> は <code>/shogiboardq/1.0.0</code>、<code>agentVersion</code> は実装の名前と版（ShogiBoardQ は <code>shogiboardq-peer/&lt;版&gt;</code>）にする。相手のこれらの値で接続を断ってはならない（ネットワークの違いは networkId で確かめる）。</p>
-<p>Identify で配る自分のアドレス（listenAddrs）には、待受のアドレスをそのまま入れてはならない。入れてよいのは、相手が実際に届くと確かめた・決めたアドレスだけである（<code>sbq-local-1</code> では loopback と私設アドレス、<code>sbq-limited-1</code> では AutoNAT で確かめたインターネット上のアドレスと中継経由のアドレス）。待受のアドレスが変わったことを Identify の push で知らせない。</p>
+<p>Identify で配る自分のアドレス（listenAddrs）には、待受のアドレスをそのまま入れてはならない。入れてよいのは、相手が実際に届くと確かめた・決めたアドレスだけである（<code>sbq-local-1</code> では loopback と私設アドレス、<code>sbq-limited-1</code> では AutoNAT で確かめたインターネット上のアドレスと中継経由のアドレス。協力ノードは、インターネット上の待受のアドレスも入れてよい。4.4節）。待受のアドレスが変わったことを Identify の push で知らせない。</p>
 
 <h3 id="sec-4-4">4.4 協力ノードと中継</h3>
 <p>インターネット越し（<code>sbq-limited-1</code>）では、利用者が<strong>協力ノード</strong>のアドレス（<code>/ip4/…/tcp/…/p2p/&lt;PeerId&gt;</code> の形。16 件まで）を指定する。協力ノードは、Circuit Relay v2 の hop と Identify・Ping（と AutoNAT の応答）に対応した libp2p のノードで、対局のフレームの中身は読まない。標準の Circuit Relay v2 の中継ノードであれば、協力ノードとして使える。</p>
 <ul>
-<li>実装は、Identify の protocols に中継の hop がある協力ノードに、自分の到達性によらず中継の予約を取る（2件まで）。</li>
-<li>中継経由の自分のアドレスは <code>&lt;協力ノードのアドレス&gt;/p2p/&lt;協力ノードの PeerId&gt;/p2p-circuit</code> の形で、招待文字列に入れる。協力ノードは、予約の応答で自分のアドレスを返さなければならない（Circuit Relay v2 の標準の動き。返さない中継からは、このアドレスを作れない）。</li>
+<li>実装は、Identify の protocols に中継の hop がある協力ノードに、自分の到達性によらず中継の予約を取る（2件まで）。予約を断られたとき・協力ノードとの接続が切れて予約を失ったときは、少し待ってから頼み直すことが望ましい（ShogiBoardQ は 30 秒後）。頼み直さないと、つなぎ直すまで招待文字列に中継経由の宛先が入らない。</li>
+<li>中継経由の自分のアドレスは <code>&lt;協力ノードのアドレス&gt;/p2p/&lt;協力ノードの PeerId&gt;/p2p-circuit</code> の形で、利用者が指定した協力ノードのアドレスから作り、招待文字列に入れる（同じ協力ノードを指定した相手が、そのまま使える）。</li>
+<li>協力ノードは、予約の応答で自分のアドレスを返さなければならない。アドレスの無い応答を、libp2p の実装（ShogiBoardQ の使う rust-libp2p など）は予約の失敗として扱う。起動した直後の中継ノードは、到達性の確認（AutoNAT）が済むまで自分のアドレスを持たず、その間の予約をすべて失敗させることがある。協力ノードは、インターネット上のアドレスで待ち受けたら、確認を待たずにそれを自分のアドレスにすることが望ましい（ShogiBoardQ の協力ノードはそうする）。</li>
 <li>中継経由の宛先にも、先頭の IP アドレス（協力ノードのもの）に 4.5節の規則を掛ける。</li>
 <li>ShogiBoardQ の協力ノード（<code>shogiboardq-peer --service --relay</code>）は、中継1本あたり 30 分・8 MiB までで切る。切れたら、対局は再接続の手順（<a href="#sec-11">11章</a>）でつなぎ直す。</li>
 </ul>
@@ -1120,6 +1122,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>対局のプロトコル</td><td><code>/shogiboardq/game/1.0.0</code></td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>Identify の protocolVersion</td><td><code>/shogiboardq/1.0.0</code></td><td><a href="#sec-4-3">4.3</a></td></tr>
 <tr><td>ローカル検証用の待受のポート</td><td>48210（TCP・UDP）</td><td><a href="#sec-4-2">4.2</a></td></tr>
+<tr><td>中継の予約</td><td>2 件まで。断られた・失ったら 30 秒後に頼み直す</td><td><a href="#sec-4-4">4.4</a></td></tr>
 <tr><td>フレームの長さ</td><td>1〜65536 バイト</td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>CBOR の入れ子</td><td>16 段まで</td><td><a href="#sec-2-2">2.2</a></td></tr>
 <tr><td>招待文字列の長さ</td><td>1024 バイト以下</td><td><a href="#sec-5-1">5.1</a></td></tr>
@@ -1265,7 +1268,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 </section>
 
 <footer class="doc">
-<p>この文書は、ShogiBoardQ の P2P対局の実装（実験版リポジトリ ShogiBoardQ-P2P の 2026-11-11 時点の main。同じ日に通常版へ取り込んだ）と、リポジトリの <code>protocol/</code>（バイト列の形と試験の入力）をもとに、互換実装のために1つにまとめたものである。プロトコルは実験版で、今後、版を上げて変えることがある。この文書と実装の動きが食い違うときは、リポジトリへ知らせてほしい。</p>
+<p>この文書は、ShogiBoardQ の P2P対局の実装（実験版リポジトリ ShogiBoardQ-P2P の 2026-11-11 時点の main。同じ日に通常版へ取り込んだ。2026-11-12 に、通常版で直した中継の予約の頼み直しと、待受のポートを共有しない決まりを足した）と、リポジトリの <code>protocol/</code>（バイト列の形と試験の入力）をもとに、互換実装のために1つにまとめたものである。プロトコルは実験版で、今後、版を上げて変えることがある。この文書と実装の動きが食い違うときは、リポジトリへ知らせてほしい。</p>
 <p>ShogiBoardQ: <a href="https://github.com/hnakada123/ShogiBoardQ">https://github.com/hnakada123/ShogiBoardQ</a></p>
 </footer>
 </main>
