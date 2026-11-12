@@ -201,7 +201,6 @@ QList<P2pRecordStore::Entry> P2pRecordStore::history() const
         entry.gameId = QByteArray::fromHex(file.completeBaseName().toLatin1());
         if (entry.gameId.size() != P2p::kHashSize) continue;
         entry.evidencePath = file.absoluteFilePath();
-        entry.bytes = file.size();
         QFile infoFile(dir.filePath(file.completeBaseName() + QStringLiteral(".info")));
         if (infoFile.open(QIODevice::ReadOnly)) {
             if (const std::optional<P2pHistoryInfo> info = parseInfo(infoFile.read(kMaxInfoBytes))) entry.info = *info;

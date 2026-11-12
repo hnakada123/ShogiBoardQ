@@ -5,7 +5,6 @@
 
 #include <sodium.h>
 
-#include <cstring>
 #include <utility>
 
 namespace P2p {

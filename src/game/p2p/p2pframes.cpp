@@ -367,27 +367,22 @@ std::optional<Resume> parseResume(const CborValue& body)
     return resume;
 }
 
-std::optional<Abort> parseAbort(const CborValue& body)
+std::optional<ErrorCode> parseAbort(const CborValue& body)
 {
     CborReader r(body, nullptr, 2);
-    Abort abort;
-    abort.latestStateHash = r.bytes(0, kHashSize);
-    const quint64 reason = r.uint(1, 0xFF);
-    const std::optional<ErrorCode> code = errorCodeOf(reason);
-    if (!r.ok() || !code) return std::nullopt;
-    abort.reason = *code;
-    return abort;
+    r.bytes(0, kHashSize);   // latestStateHash
+    const std::optional<ErrorCode> reason = errorCodeOf(r.uint(1, 0xFF));
+    if (!r.ok()) return std::nullopt;
+    return reason;
 }
 
-std::optional<Error> parseError(const CborValue& body)
+std::optional<ErrorCode> parseError(const CborValue& body)
 {
     CborReader r(body, nullptr, 2);
-    Error e;
     const std::optional<ErrorCode> code = errorCodeOf(r.uint(0, 0xFF));
-    e.relatedPly = static_cast<quint32>(r.uint(1, kMaxPly));
-    if (!r.ok() || !code) return std::nullopt;
-    e.code = *code;
-    return e;
+    r.uint(1, kMaxPly);   // relatedPly
+    if (!r.ok()) return std::nullopt;
+    return code;
 }
 
 std::optional<QByteArray> parseDecline(const CborValue& body)

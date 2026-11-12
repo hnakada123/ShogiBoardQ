@@ -48,12 +48,9 @@ struct MatchEvent {
         Finished,          ///< 対局が終わった（証跡を保存する）
     };
     Type type = Type::MoveCommitted;
-    quint32 ply = 0;
-    QByteArray moveUsi;
-    bool byMe = false;          ///< MoveCommitted: 自分の手か。Finished: 自分が終わらせたか
-    quint64 spentMs = 0;
+    QByteArray moveUsi;    ///< MoveCommitted
+    quint64 spentMs = 0;   ///< MoveCommitted: その手の消費時間（ミリ秒。指した側の申告）
     std::optional<FinalResult> result;   ///< OfferReceived・ResultAgreed・Finished（結果が一致していれば）
-    std::optional<ErrorCode> error;      ///< Finished: 中断・エラーの理由
 };
 
 /**
@@ -132,7 +129,7 @@ private:
     void send(FrameType type, const CborValue& payload);
     void emitEvent(MatchEvent event) { m_events.push_back(std::move(event)); }
     bool persist(const CborValue& record);
-    void finish(Settlement ending, std::optional<ErrorCode> error, bool byMe);
+    void finish(Settlement ending, std::optional<ErrorCode> error);
     void failWithError(ErrorCode code, quint32 relatedPly);
     quint8 mySide() const { return m_setup.iAmBlack ? kSideBlack : kSideWhite; }
     QByteArray opponentSessionKey() const { return m_setup.agreement.sessionKey(!m_setup.iAmBlack); }
@@ -144,7 +141,7 @@ private:
     // --- State0 と着手（p2pmatch.cpp） ---
     void handleStatePropose(const StateProposePayload& payload);
     void handleStateAccept(const StateAcceptPayload& payload);
-    void commit(const SignedState& state, bool byMe);
+    void commit(const SignedState& state);
     void checkTerminal();
 
     // --- 制御・結果・再接続（p2pmatch_control.cpp） ---

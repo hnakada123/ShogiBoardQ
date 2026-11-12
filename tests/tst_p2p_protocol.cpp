@@ -216,6 +216,19 @@ private slots:
         QCOMPARE(parseReject(frame->payload), std::optional<ErrorCode>(ErrorCode::Busy));
     }
 
+    /// ABORT・ERROR の body は理由のコードを読み戻す。受けた側が使わない latestStateHash・relatedPly も形は確かめる
+    void abortAndErrorBodiesRoundTrip()
+    {
+        const QByteArray hash(kHashSize, '\x02');
+        QCOMPARE(ControlBody::parseAbort(ControlBody::abort(hash, ErrorCode::DisconnectLimit)),
+                 std::optional<ErrorCode>(ErrorCode::DisconnectLimit));
+        QCOMPARE(ControlBody::parseError(ControlBody::error(ErrorCode::ClockMismatch, 12)),
+                 std::optional<ErrorCode>(ErrorCode::ClockMismatch));
+        QVERIFY(!ControlBody::parseAbort(ControlBody::abort(QByteArray(3, '\x02'), ErrorCode::Cancelled)));
+        QVERIFY(!ControlBody::parseError(ControlBody::error(ErrorCode::Cancelled, kMaxPly + 1)));
+        QVERIFY(!ControlBody::parseAbort(CborValue::array({CborValue::bytes(hash), CborValue::uint(0xFE)})));
+    }
+
     /// 通信プロセスから届く IPC のメッセージは、外枠と中身の形をすべて確かめる（監査 2026-11-12 5.4。protocol/ipc.md）
     void ipcMessagesAreCheckedStrictly()
     {

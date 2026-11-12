@@ -173,10 +173,10 @@ CborValue decline(const QByteArray& proposalBodyHash);
 std::optional<QByteArray> parseReady(const CborValue& body);
 struct Resume { quint32 latestPly = 0; QByteArray latestStateHash; };
 std::optional<Resume> parseResume(const CborValue& body);
-struct Abort { QByteArray latestStateHash; ErrorCode reason = ErrorCode::Cancelled; };
-std::optional<Abort> parseAbort(const CborValue& body);
-struct Error { ErrorCode code = ErrorCode::Cancelled; quint32 relatedPly = 0; };
-std::optional<Error> parseError(const CborValue& body);
+/// ABORT の reasonCode（latestStateHash は形だけ確かめる。受けた側は使わない）
+std::optional<ErrorCode> parseAbort(const CborValue& body);
+/// ERROR の errorCode（relatedPly は形だけ確かめる。受けた側は使わない）
+std::optional<ErrorCode> parseError(const CborValue& body);
 std::optional<QByteArray> parseDecline(const CborValue& body);
 } // namespace ControlBody
 

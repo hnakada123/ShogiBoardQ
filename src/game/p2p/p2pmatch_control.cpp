@@ -54,24 +54,19 @@ void Match::handleControl(const ControlPayload& payload)
     case ControlKind::ResultPropose:
         handleResultPropose(payload.body, c.bodyHash);
         return;
-    case ControlKind::Abort: {
-        const std::optional<ControlBody::Abort> abort = ControlBody::parseAbort(payload.body);
+    case ControlKind::Abort:
         // ABORT は一方的な離脱の通知で、合意中断ではない。対局を止め、結果未確定として閉じる
-        finish(Settlement::Aborted, abort ? abort->reason : ErrorCode::Cancelled, false);
+        finish(Settlement::Aborted, ControlBody::parseAbort(payload.body).value_or(ErrorCode::Cancelled));
         return;
-    }
-    case ControlKind::Error: {
-        const std::optional<ControlBody::Error> error = ControlBody::parseError(payload.body);
-        finish(Settlement::Error, error ? error->code : ErrorCode::ConditionMismatch, false);
+    case ControlKind::Error:
+        finish(Settlement::Error, ControlBody::parseError(payload.body).value_or(ErrorCode::ConditionMismatch));
         return;
-    }
     case ControlKind::ResultDecline: {
         const std::optional<QByteArray> declined = ControlBody::parseDecline(payload.body);
         if (declined && m_myProposal && *declined == m_myProposalHash) {
             m_myProposal.reset();
             m_myProposalHash.clear();
-            emitEvent(MatchEvent{MatchEvent::Type::ProposalDeclined, lastState().ply, {}, false, 0, std::nullopt,
-                                 std::nullopt});
+            emitEvent(MatchEvent{MatchEvent::Type::ProposalDeclined, {}, 0, std::nullopt});
         }
         return;
     }
@@ -89,7 +84,7 @@ void Match::handleReady(const CborValue& body)
     m_readyDone = true;
     m_phase = Phase::Playing;
     m_timer.startMyTurn(now());
-    emitEvent(MatchEvent{MatchEvent::Type::Ready, 0, {}, true, 0, std::nullopt, std::nullopt});
+    emitEvent(MatchEvent{MatchEvent::Type::Ready, {}, 0, std::nullopt});
 }
 
 // ---------------------------------------------------------------- 結果
@@ -236,7 +231,7 @@ void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHas
         // 利用者に尋ねる（答えるまでに手数が進めば無効）
         m_pendingOffer = *result;
         m_pendingOfferHash = bodyHash;
-        emitEvent(MatchEvent{MatchEvent::Type::OfferReceived, lastState().ply, {}, false, 0, *result, std::nullopt});
+        emitEvent(MatchEvent{MatchEvent::Type::OfferReceived, {}, 0, *result});
         return;
     }
     }
@@ -250,7 +245,7 @@ void Match::agree(const FinalResult& result)
     m_agreedResult = result;
     m_phase = Phase::Finishing;
     m_resultAgreedAt = now();
-    emitEvent(MatchEvent{MatchEvent::Type::ResultAgreed, result.ply, {}, false, 0, result, std::nullopt});
+    emitEvent(MatchEvent{MatchEvent::Type::ResultAgreed, {}, 0, result});
     // 2. プレイヤー鍵で FinalResult に署名し、RESULT_SIGNATURE を送る
     m_myResultSignature = m_playerKey ? m_playerKey->sign(result.toCbor()) : QByteArray();
     persist(RecordKinds::resultSignature(mySide(), m_myResultSignature));
@@ -260,7 +255,7 @@ void Match::agree(const FinalResult& result)
     payload.signature.signature = m_myResultSignature;
     send(FrameType::ResultSignature, payload.toCbor());
     // 相手の署名が先に届いていれば、ここでそろう
-    if (!m_opponentResultSignature.isEmpty()) finish(Settlement::MutuallySigned, std::nullopt, false);
+    if (!m_opponentResultSignature.isEmpty()) finish(Settlement::MutuallySigned, std::nullopt);
 }
 
 void Match::handleResultSignature(const ResultSignaturePayload& payload)
@@ -279,7 +274,7 @@ void Match::handleResultSignature(const ResultSignaturePayload& payload)
     }
     m_opponentResultSignature = payload.signature.signature;
     persist(RecordKinds::resultSignature(opponentSide, m_opponentResultSignature));
-    finish(Settlement::MutuallySigned, std::nullopt, false);
+    finish(Settlement::MutuallySigned, std::nullopt);
 }
 
 void Match::abort(ErrorCode reason)
@@ -288,7 +283,7 @@ void Match::abort(ErrorCode reason)
     if (m_phase != Phase::Reconnecting && !m_confirmed.empty()) {
         sendControl(ControlKind::Abort, ControlBody::abort(lastState().hash(), reason));
     }
-    finish(Settlement::Aborted, reason, true);
+    finish(Settlement::Aborted, reason);
 }
 
 // ---------------------------------------------------------------- 再接続
@@ -297,12 +292,12 @@ void Match::connectionLost()
 {
     if (m_phase == Phase::Finished) return;
     if (m_phase == Phase::Opening) {
-        finish(Settlement::Error, ErrorCode::Expired, false);
+        finish(Settlement::Error, ErrorCode::Expired);
         return;
     }
     if (m_phase == Phase::Finishing) {
         // 結果は一致している。相手の署名を待たずに、署名のない証跡として閉じる
-        finish(Settlement::SignatureMissing, std::nullopt, false);
+        finish(Settlement::SignatureMissing, std::nullopt);
         return;
     }
     if (m_phase == Phase::Reconnecting) return;
@@ -313,7 +308,7 @@ void Match::connectionLost()
     m_syncing = false;
     m_myRandom.clear();
     m_opponentRandom.clear();
-    emitEvent(MatchEvent{MatchEvent::Type::Reconnecting, lastState().ply, {}, false, 0, std::nullopt, std::nullopt});
+    emitEvent(MatchEvent{MatchEvent::Type::Reconnecting, {}, 0, std::nullopt});
 }
 
 void Match::connectionEstablished()
@@ -404,7 +399,7 @@ void Match::handleSyncChunk(const SyncChunkPayload& chunk)
         }
         // 復旧で初めて受理した相手の着手では、自分の手番は今から始める（失われた時刻を推測しない）
         if (!byMe) m_timer.startMyTurn(now());
-        commit(s, byMe);
+        commit(s);
         if (m_phase == Phase::Finished) return;
     }
     if (chunk.final) finishResume();
@@ -416,7 +411,7 @@ void Match::finishResume()
     m_syncing = false;
     m_timer.reconnected(now());
     m_phase = Phase::Playing;
-    emitEvent(MatchEvent{MatchEvent::Type::Resumed, lastState().ply, {}, false, 0, std::nullopt, std::nullopt});
+    emitEvent(MatchEvent{MatchEvent::Type::Resumed, {}, 0, std::nullopt});
     // 相手の承認のない自分の手は、同じバイト列で送り直す
     if (m_pending) {
         m_pendingSent = false;

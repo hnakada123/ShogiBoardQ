@@ -69,7 +69,6 @@ public:
         QByteArray gameId;
         QString evidencePath;
         P2pHistoryInfo info;
-        qint64 bytes = 0;
         bool hasJournal = false;   ///< 相手の矛盾した署名の証明を残したジャーナルがある
     };
 

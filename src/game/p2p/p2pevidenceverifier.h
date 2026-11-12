@@ -47,7 +47,6 @@ struct EvidenceReport {
     bool signaturesValid = false;      ///< 状態の承認の署名がすべて正しい（空の欄は除く）
     bool recordLegal = false;          ///< 両署名付きの手順が連続し、合法手だけからなる
     bool clockArithmeticValid = false; ///< 自己申告の消費時間から計算した残り時間が一致する
-    int failedPly = -1;                ///< 手順の検査で失敗した手数
 
     std::optional<GameRules::Terminal> terminal;  ///< 両署名付きの手順の最後が規則上の終局ならその結果
 

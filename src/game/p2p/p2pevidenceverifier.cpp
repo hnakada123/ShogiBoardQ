@@ -35,7 +35,6 @@ void verifyStates(const Evidence& e, EvidenceReport& report, std::vector<GameSta
         const int ply = static_cast<int>(i);
         if (s.state.gameId != gameId || s.state.ply != static_cast<quint32>(i)) {
             report.recordLegal = false;
-            report.failedPly = ply;
             setError(report, QStringLiteral("state %1 does not belong to this game or is out of order").arg(ply));
             return;
         }
@@ -46,13 +45,11 @@ void verifyStates(const Evidence& e, EvidenceReport& report, std::vector<GameSta
             && Crypto::verify(e.agreement.whiteSessionKey, approval, s.whiteApproval);
         if ((!s.blackApproval.isEmpty() && !blackOk) || (!s.whiteApproval.isEmpty() && !whiteOk)) {
             report.signaturesValid = false;
-            report.failedPly = ply;
             setError(report, QStringLiteral("invalid approval signature at ply %1").arg(ply));
             return;
         }
         if (chainEnded || (!blackOk && !whiteOk)) {
             report.recordLegal = false;
-            report.failedPly = ply;
             setError(report, QStringLiteral("state %1 follows an unconfirmed state or has no approval").arg(ply));
             return;
         }
@@ -61,7 +58,6 @@ void verifyStates(const Evidence& e, EvidenceReport& report, std::vector<GameSta
         if (i == 0) {
             if (s.state != GameRules::initialState(gameId, e.timeControl)) {
                 report.recordLegal = false;
-                report.failedPly = 0;
                 setError(report, QStringLiteral("State0 is not the initial position"));
                 return;
             }
@@ -71,12 +67,10 @@ void verifyStates(const Evidence& e, EvidenceReport& report, std::vector<GameSta
                 break;
             case GameRules::StateCheck::ClockMismatch:
                 report.clockArithmeticValid = false;
-                report.failedPly = ply;
                 setError(report, QStringLiteral("clock arithmetic does not match at ply %1").arg(ply));
                 return;
             default:
                 report.recordLegal = false;
-                report.failedPly = ply;
                 setError(report, QStringLiteral("illegal or inconsistent state at ply %1").arg(ply));
                 return;
             }

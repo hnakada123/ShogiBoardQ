@@ -84,19 +84,14 @@ bool Match::verifyApproval(const GameState& state, const QByteArray& signature, 
                           signature);
 }
 
-void Match::finish(Settlement ending, std::optional<ErrorCode> error, bool byMe)
+void Match::finish(Settlement ending, std::optional<ErrorCode> error)
 {
     if (m_phase == Phase::Finished) return;
     m_phase = Phase::Finished;
     m_settlement = ending;
     m_endingError = error;
     persist(RecordKinds::ending(m_settlement));
-    MatchEvent event;
-    event.type = MatchEvent::Type::Finished;
-    event.byMe = byMe;
-    event.result = m_agreedResult;
-    event.error = error;
-    emitEvent(event);
+    emitEvent(MatchEvent{MatchEvent::Type::Finished, {}, 0, m_agreedResult});
 }
 
 void Match::failWithError(ErrorCode code, quint32 relatedPly)
@@ -104,7 +99,7 @@ void Match::failWithError(ErrorCode code, quint32 relatedPly)
     if (m_phase == Phase::Finished) return;
     // 検証の失敗では状態を変えずに中断へ移る（相手の負けとして記録しない）
     if (m_phase != Phase::Reconnecting) sendControl(ControlKind::Error, ControlBody::error(code, relatedPly));
-    finish(Settlement::Error, code, true);
+    finish(Settlement::Error, code);
 }
 
 Evidence Match::evidence() const
@@ -276,7 +271,7 @@ void Match::handleStatePropose(const StateProposePayload& payload)
         m_readyDone = true;
         m_phase = Phase::Playing;
         m_timer.startObserving(now());
-        emitEvent(MatchEvent{MatchEvent::Type::Ready, 0, {}, false, 0, std::nullopt, std::nullopt});
+        emitEvent(MatchEvent{MatchEvent::Type::Ready, {}, 0, std::nullopt});
         return;
     }
     if (m_confirmed.empty() || !m_readyDone) return failWithError(ErrorCode::ConditionMismatch, state.ply);
@@ -325,7 +320,7 @@ void Match::handleStatePropose(const StateProposePayload& payload)
          StateAcceptPayload{state.ply, state.hash(), m_setup.iAmBlack ? both.blackApproval : both.whiteApproval}.toCbor());
     // 自分の手番は、相手の着手を確かめて STATE_ACCEPT を送った時点から
     m_timer.startMyTurn(now());
-    commit(both, false);
+    commit(both);
 }
 
 void Match::handleStateAccept(const StateAcceptPayload& payload)
@@ -354,10 +349,10 @@ void Match::handleStateAccept(const StateAcceptPayload& payload)
         m_confirmed.push_back(both);
         return;
     }
-    commit(both, true);
+    commit(both);
 }
 
-void Match::commit(const SignedState& state, bool byMe)
+void Match::commit(const SignedState& state)
 {
     m_confirmed.push_back(state);
     // ply が進んだら、それまでの提案と申し出は無効
@@ -365,13 +360,7 @@ void Match::commit(const SignedState& state, bool byMe)
     m_myProposalHash.clear();
     m_pendingOffer.reset();
     m_pendingOfferHash.clear();
-    MatchEvent event;
-    event.type = MatchEvent::Type::MoveCommitted;
-    event.ply = state.state.ply;
-    event.moveUsi = state.state.moveUsi;
-    event.byMe = byMe;
-    event.spentMs = state.state.spentMs;
-    emitEvent(event);
+    emitEvent(MatchEvent{MatchEvent::Type::MoveCommitted, state.state.moveUsi, state.state.spentMs, std::nullopt});
     checkTerminal();
 }
 
@@ -446,16 +435,16 @@ void Match::tick()
     case Phase::Finished:
         return;
     case Phase::Opening:
-        if (t > m_openingDeadline) finish(Settlement::Error, ErrorCode::Expired, true);
+        if (t > m_openingDeadline) finish(Settlement::Error, ErrorCode::Expired);
         return;
     case Phase::Finishing:
-        if (t - m_resultAgreedAt > kResultSignatureWaitMs) finish(Settlement::SignatureMissing, std::nullopt, false);
+        if (t - m_resultAgreedAt > kResultSignatureWaitMs) finish(Settlement::SignatureMissing, std::nullopt);
         return;
     case Phase::Reconnecting:
         if (m_timer.currentDisconnectMs(t) > static_cast<qint64>(policy.reconnectWaitMs)) {
-            finish(Settlement::Disconnected, std::nullopt, false);
+            finish(Settlement::Disconnected, std::nullopt);
         } else if (m_timer.disconnectedTotalMs(t) > static_cast<qint64>(policy.disconnectTotalMs)) {
-            finish(Settlement::Aborted, ErrorCode::DisconnectLimit, true);
+            finish(Settlement::Aborted, ErrorCode::DisconnectLimit);
         }
         return;
     case Phase::Playing:
