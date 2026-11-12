@@ -369,14 +369,23 @@ pub struct OutMessage {
 #[derive(Clone)]
 pub struct Out {
     generation: Arc<std::sync::OnceLock<String>>,
-    tx: mpsc::UnboundedSender<OutMessage>,
+    /// 書き出す列（協力ノードは対局・UI側を持たないので None。何も書かない）
+    tx: Option<mpsc::UnboundedSender<OutMessage>>,
 }
 
 impl Out {
     pub fn new(tx: mpsc::UnboundedSender<OutMessage>) -> Out {
         Out {
             generation: Arc::new(std::sync::OnceLock::new()),
-            tx,
+            tx: Some(tx),
+        }
+    }
+
+    /// 何も書かない書き手（IPC を持たない協力ノード）
+    pub fn discard() -> Out {
+        Out {
+            generation: Arc::new(std::sync::OnceLock::new()),
+            tx: None,
         }
     }
 
@@ -389,9 +398,15 @@ impl Out {
     }
 
     fn send(&self, value: &Value, release: Option<Release>) {
+        let Some(tx) = &self.tx else {
+            if let Some(r) = release {
+                r.counter.fetch_sub(r.bytes, Ordering::SeqCst);
+            }
+            return;
+        };
         match frame_message(value) {
             Some(bytes) => {
-                let _ = self.tx.send(OutMessage { bytes, release });
+                let _ = tx.send(OutMessage { bytes, release });
             }
             None => {
                 if let Some(r) = release {

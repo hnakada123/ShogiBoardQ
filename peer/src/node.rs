@@ -288,7 +288,7 @@ pub async fn run(report: SandboxReport) {
             _ => out.error(&request.request_id, "invalid_state", "start has not been called"),
         }
     };
-    node.run_loop(req_rx).await;
+    node.run_loop(Some(req_rx)).await;
 }
 
 impl Node {
@@ -579,7 +579,8 @@ impl Node {
         }
     }
 
-    pub async fn run_loop(&mut self, mut requests: mpsc::UnboundedReceiver<Request>) {
+    /// 主ループ。requests は対局・UI側からの要求（協力ノードは IPC を持たないので None）。列が閉じたら終わる
+    pub async fn run_loop(&mut self, mut requests: Option<mpsc::UnboundedReceiver<Request>>) {
         let Some((mut conn_events, mut internal)) = self.pending_streams.take() else {
             return;
         };
@@ -587,7 +588,7 @@ impl Node {
         loop {
             tokio::select! {
                 event = self.swarm.select_next_some() => self.on_swarm_event(event),
-                request = requests.recv() => match request {
+                request = next_request(&mut requests) => match request {
                     Some(r) => self.on_request(r),
                     None => std::process::exit(0),
                 },
@@ -749,6 +750,14 @@ impl Node {
             self.out.notify(ipc::Notification::NetworkStatus(status));
             self.last_status = Some(status);
         }
+    }
+}
+
+/// 次の要求（要求の列がなければ来ない）
+async fn next_request(requests: &mut Option<mpsc::UnboundedReceiver<Request>>) -> Option<Request> {
+    match requests {
+        Some(rx) => rx.recv().await,
+        None => std::future::pending().await,
     }
 }
 

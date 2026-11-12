@@ -10,7 +10,6 @@ use std::path::Path;
 use libp2p::identity::Keypair;
 use libp2p::Multiaddr;
 use sbq_protocol::network;
-use tokio::sync::mpsc;
 
 use crate::ipc::Out;
 use crate::node::{Node, NodeConfig};
@@ -117,10 +116,8 @@ pub fn run(args: &[String]) -> i32 {
         }
     };
     runtime.block_on(async move {
-        // 協力ノードは IPC を使わない。知らせは捨てる
-        let (out_tx, mut out_rx) = mpsc::unbounded_channel();
-        tokio::spawn(async move { while out_rx.recv().await.is_some() {} });
-        let out = Out::new(out_tx);
+        // 協力ノードは IPC を使わない（知らせは書かず、要求も来ない）
+        let out = Out::discard();
         let config = NodeConfig {
             spec,
             keypair,
@@ -138,8 +135,7 @@ pub fn run(args: &[String]) -> i32 {
         };
         node.connect_nodes(&args.bootstrap);
         eprintln!("shogiboardq-peer: service started as {}", node.local_peer);
-        let (_keep, requests) = mpsc::unbounded_channel();
-        node.run_loop(requests).await;
+        node.run_loop(None).await;
         0
     })
 }
