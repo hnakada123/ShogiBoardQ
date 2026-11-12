@@ -1107,6 +1107,7 @@ if(ENABLE_P2P_PLAY)
         src/game/p2p/p2pmatch.cpp
         src/game/p2p/p2pmatch.h
         src/game/p2p/p2pmatch_control.cpp
+        src/game/p2p/p2pmatchtimer.h
         src/game/p2p/p2pnegotiation.cpp
         src/game/p2p/p2pnegotiation.h
         src/game/p2p/p2pprotocol.cpp

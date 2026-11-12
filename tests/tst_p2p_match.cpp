@@ -10,6 +10,7 @@
 #include "p2pevidenceverifier.h"
 #include "p2pgamerules.h"
 #include "p2pmatch.h"
+#include "p2pmatchtimer.h"
 #include "p2pnegotiation.h"
 #include "p2precordkinds.h"
 
@@ -188,6 +189,33 @@ class TestP2pMatch : public QObject
 
 private slots:
     void initTestCase() { QVERIFY(Crypto::initialize()); }
+
+    /// 計時の記録: 自分の消費時間、相手の手番の観測時間、観測を始めてから切れていた時間（監査 2026-11-12 R6）
+    void matchTimerKeepsTurnsAndDisconnections()
+    {
+        MatchTimer timer;
+        timer.startMyTurn(1000);
+        QCOMPARE(timer.mySpentMs(3500), qint64(2500));
+        QCOMPARE(timer.mySpentMs(500), qint64(0));   // 負にしない
+
+        // 観測の前の切断は、観測の許容に入れない
+        timer.disconnected(4000);
+        QCOMPARE(timer.currentDisconnectMs(4500), qint64(500));
+        timer.disconnected(4200);                    // 切れている間に呼んでも始まりは変わらない
+        timer.reconnected(5000);
+        QCOMPARE(timer.currentDisconnectMs(5000), qint64(-1));
+        QCOMPARE(timer.disconnectedTotalMs(9000), qint64(1000));
+
+        timer.startObserving(6000);
+        QCOMPARE(timer.disconnectedSinceObservingMs(6000), qint64(0));
+        timer.disconnected(7000);
+        // 切れている間も、観測を始めてからの切断の時間に入る
+        QCOMPARE(timer.disconnectedSinceObservingMs(7300), qint64(300));
+        timer.reconnected(8000);
+        QCOMPARE(timer.observedMs(10000), qint64(4000));
+        QCOMPARE(timer.disconnectedSinceObservingMs(10000), qint64(1000));
+        QCOMPARE(timer.disconnectedTotalMs(10000), qint64(2000));
+    }
 
     void negotiationAgreesOnSidesAndKeys()
     {

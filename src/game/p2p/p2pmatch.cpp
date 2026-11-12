@@ -165,24 +165,19 @@ bool Match::isMyTurn() const
 qint64 Match::currentTurnElapsedMs() const
 {
     if (m_phase == Phase::Opening || m_confirmed.empty()) return 0;
-    if (isMyTurn()) return now() - m_myTurnStart;
-    return now() - m_observeStart;
+    return isMyTurn() ? m_timer.mySpentMs(now()) : m_timer.observedMs(now());
 }
 
 qint64 Match::reconnectTotalMs() const
 {
-    return m_reconnectTotal + (m_reconnectStart >= 0 ? now() - m_reconnectStart : 0);
+    return m_timer.disconnectedTotalMs(now());
 }
 
 qint64 Match::reconnectRemainingMs() const
 {
-    if (m_reconnectStart < 0) return -1;
-    return qMax<qint64>(0, static_cast<qint64>(NetworkPolicy::v1().reconnectWaitMs) - (now() - m_reconnectStart));
-}
-
-void Match::startMyTurn()
-{
-    m_myTurnStart = now();
+    const qint64 disconnected = m_timer.currentDisconnectMs(now());
+    if (disconnected < 0) return -1;
+    return qMax<qint64>(0, static_cast<qint64>(NetworkPolicy::v1().reconnectWaitMs) - disconnected);
 }
 
 // ---------------------------------------------------------------- 受信
@@ -286,8 +281,7 @@ void Match::handleStatePropose(const StateProposePayload& payload)
         // 後手は READY を送った時点から、先手の初手の時間を観測する
         m_readyDone = true;
         m_phase = Phase::Playing;
-        m_observeStart = now();
-        m_reconnectAtObserveStart = reconnectTotalMs();
+        m_timer.startObserving(now());
         emitEvent(MatchEvent{MatchEvent::Type::Ready, 0, {}, false, 0, std::nullopt, std::nullopt});
         return;
     }
@@ -324,8 +318,8 @@ void Match::handleStatePropose(const StateProposePayload& payload)
         return failWithError(ErrorCode::InvalidMove, state.ply);
     }
     // 自己申告の消費時間と観測時間の差（実装仕様 7.1節）
-    const qint64 observed = now() - m_observeStart;
-    const qint64 disconnected = reconnectTotalMs() - m_reconnectAtObserveStart;
+    const qint64 observed = m_timer.observedMs(now());
+    const qint64 disconnected = m_timer.disconnectedSinceObservingMs(now());
     const auto tolerance = static_cast<qint64>(NetworkPolicy::v1().toleranceMs);
     if (observed - static_cast<qint64>(state.spentMs) > tolerance + disconnected) {
         return failWithError(ErrorCode::ClockMismatch, state.ply);
@@ -336,7 +330,7 @@ void Match::handleStatePropose(const StateProposePayload& payload)
     send(FrameType::StateAccept,
          StateAcceptPayload{state.ply, state.hash(), m_setup.iAmBlack ? both.blackApproval : both.whiteApproval}.toCbor());
     // 自分の手番は、相手の着手を確かめて STATE_ACCEPT を送った時点から
-    startMyTurn();
+    m_timer.startMyTurn(now());
     commit(both, false);
 }
 
@@ -406,7 +400,7 @@ Match::MoveError Match::playMove(const UsiMove& move)
     // 二重送信の禁止（切断中も1手だけ指せる）
     if (m_pending) return MoveError::Pending;
     // 消費時間は、状態を作る直前に固定する
-    const auto spent = static_cast<quint64>(qMax<qint64>(0, now() - m_myTurnStart));
+    const auto spent = static_cast<quint64>(m_timer.mySpentMs(now()));
     const quint64 remaining = m_setup.iAmBlack ? lastState().blackMainMs : lastState().whiteMainMs;
     if (!GameRules::canMoveWithin(remaining, m_setup.terms.byoyomiMs, spent)) return MoveError::TimeUp;
     const std::optional<GameState> next = GameRules::nextState(lastState(), move, spent, m_setup.terms);
@@ -442,8 +436,7 @@ void Match::resendPending()
     if (!m_pendingSent) {
         // 観測は、自分の STATE_PROPOSE を最初に送信キューへ渡した時点から
         m_pendingSent = true;
-        m_observeStart = now();
-        m_reconnectAtObserveStart = reconnectTotalMs();
+        m_timer.startObserving(now());
     }
     m_pendingSentAt = now();
     m_outgoing.push_back(*frame);
@@ -465,9 +458,9 @@ void Match::tick()
         if (t - m_resultAgreedAt > kResultSignatureWaitMs) finish(Settlement::SignatureMissing, std::nullopt, false);
         return;
     case Phase::Reconnecting:
-        if (t - m_reconnectStart > static_cast<qint64>(policy.reconnectWaitMs)) {
+        if (m_timer.currentDisconnectMs(t) > static_cast<qint64>(policy.reconnectWaitMs)) {
             finish(Settlement::Disconnected, std::nullopt, false);
-        } else if (reconnectTotalMs() > static_cast<qint64>(policy.disconnectTotalMs)) {
+        } else if (m_timer.disconnectedTotalMs(t) > static_cast<qint64>(policy.disconnectTotalMs)) {
             finish(Settlement::Aborted, ErrorCode::DisconnectLimit, true);
         }
         return;
@@ -485,7 +478,7 @@ void Match::tick()
     }
     // 着手の確認: 5秒で同じメッセージを再送し、30秒で接続の復旧へ移る
     if (m_pending && m_pendingSent) {
-        if (t - m_observeStart > static_cast<qint64>(policy.disconnectDetectMs)) {
+        if (m_timer.observedMs(t) > static_cast<qint64>(policy.disconnectDetectMs)) {
             connectionLost();
             return;
         }
@@ -496,14 +489,14 @@ void Match::tick()
     if (isMyTurn() && !m_pending) {
         // 自分の時計が切れたら、負けを申告する
         const quint64 remaining = m_setup.iAmBlack ? lastState().blackMainMs : lastState().whiteMainMs;
-        if (!m_myTimeoutDeclared && !GameRules::canMoveWithin(remaining, byoyomi, static_cast<quint64>(t - m_myTurnStart))) {
+        if (!m_myTimeoutDeclared && !GameRules::canMoveWithin(remaining, byoyomi, static_cast<quint64>(m_timer.mySpentMs(t)))) {
             m_myTimeoutDeclared = true;
             proposeResult(GameRules::winnerOutcome(m_setup.iAmBlack ? Turn::White : Turn::Black), Cause::Timeout);
         }
     } else if (!isMyTurn() && m_claimedTimeoutPly != lastState().ply) {
         // 相手の着手が届かないまま、相手の R + B に許容差を足した時間を超えたら、時間切れの勝ちを主張できる
         const quint64 remaining = m_setup.iAmBlack ? lastState().whiteMainMs : lastState().blackMainMs;
-        const qint64 observed = t - m_observeStart - (reconnectTotalMs() - m_reconnectAtObserveStart);
+        const qint64 observed = m_timer.observedMs(t) - m_timer.disconnectedSinceObservingMs(t);
         if (observed > static_cast<qint64>(remaining + byoyomi + policy.toleranceMs)) {
             m_claimedTimeoutPly = lastState().ply;
             proposeResult(GameRules::winnerOutcome(m_setup.iAmBlack ? Turn::Black : Turn::White), Cause::Timeout);

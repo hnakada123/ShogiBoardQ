@@ -88,7 +88,7 @@ void Match::handleReady(const CborValue& body)
     }
     m_readyDone = true;
     m_phase = Phase::Playing;
-    startMyTurn();
+    m_timer.startMyTurn(now());
     emitEvent(MatchEvent{MatchEvent::Type::Ready, 0, {}, true, 0, std::nullopt, std::nullopt});
 }
 
@@ -220,7 +220,7 @@ void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHas
         } else {
             // 相手が自分の時間切れを主張した: 自分の時計で確かめる
             const quint64 remaining = m_setup.iAmBlack ? lastState().blackMainMs : lastState().whiteMainMs;
-            const auto elapsed = static_cast<quint64>(qMax<qint64>(0, now() - m_myTurnStart));
+            const auto elapsed = static_cast<quint64>(m_timer.mySpentMs(now()));
             if (!isMyTurn() || m_pending || GameRules::canMoveWithin(remaining, m_setup.terms.byoyomiMs, elapsed)) {
                 return decline();
             }
@@ -307,7 +307,7 @@ void Match::connectionLost()
     }
     if (m_phase == Phase::Reconnecting) return;
     m_phase = Phase::Reconnecting;
-    m_reconnectStart = now();
+    m_timer.disconnected(now());
     m_resumeSent = false;
     m_resumeReceived = false;
     m_syncing = false;
@@ -403,7 +403,7 @@ void Match::handleSyncChunk(const SyncChunkPayload& chunk)
             m_pendingSent = false;
         }
         // 復旧で初めて受理した相手の着手では、自分の手番は今から始める（失われた時刻を推測しない）
-        if (!byMe) startMyTurn();
+        if (!byMe) m_timer.startMyTurn(now());
         commit(s, byMe);
         if (m_phase == Phase::Finished) return;
     }
@@ -414,8 +414,7 @@ void Match::finishResume()
 {
     if (m_phase != Phase::Reconnecting) return;
     m_syncing = false;
-    m_reconnectTotal += now() - m_reconnectStart;
-    m_reconnectStart = -1;
+    m_timer.reconnected(now());
     m_phase = Phase::Playing;
     emitEvent(MatchEvent{MatchEvent::Type::Resumed, lastState().ply, {}, false, 0, std::nullopt, std::nullopt});
     // 相手の承認のない自分の手は、同じバイト列で送り直す

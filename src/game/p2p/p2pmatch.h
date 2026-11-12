@@ -14,6 +14,7 @@
 #include "p2pevidence.h"
 #include "p2pframes.h"
 #include "p2pgamerules.h"
+#include "p2pmatchtimer.h"
 #include "p2psettlement.h"
 #include "p2psignature.h"
 
@@ -147,7 +148,6 @@ private:
     void handleStatePropose(const StateProposePayload& payload);
     void handleStateAccept(const StateAcceptPayload& payload);
     void commit(const SignedState& state, bool byMe);
-    void startMyTurn();
     void checkTerminal();
 
     // --- 制御・結果・再接続（p2pmatch_control.cpp） ---
@@ -204,11 +204,7 @@ private:
     // 時計
     qint64 m_startedAt = 0;          ///< 対局の開始（1局の実時間の上限）
     qint64 m_openingDeadline = 0;
-    qint64 m_myTurnStart = 0;        ///< 自分の手番の始まり
-    qint64 m_observeStart = 0;       ///< 相手の手番の観測の始まり（自分の提案を最初に送った時点）
-    qint64 m_reconnectAtObserveStart = 0;
-    qint64 m_reconnectTotal = 0;     ///< 終わった切断の時間の合計
-    qint64 m_reconnectStart = -1;    ///< 今の切断の始まり（切れていなければ -1）
+    MatchTimer m_timer;              ///< 自分の消費時間・相手の手番の観測・切断の時間
     quint32 m_claimedTimeoutPly = 0xFFFFFFFFu;
     bool m_myTimeoutDeclared = false;
 
