@@ -50,6 +50,7 @@
             <li><a href="#prepare">准备</a></li>
             <li><a href="#tabs">标签页</a></li>
             <li><a href="#invite">邀请</a></li>
+            <li><a href="#internet">互联网</a></li>
             <li><a href="#playing">对局中</a></li>
             <li><a href="#records">记录与验证</a></li>
             <li><a href="#limits">注意事项</a></li>
@@ -402,6 +403,7 @@
                     <li><strong>不显示未对局过的对手的显示名</strong>：不想看到陌生人的显示名时使用。两种网络都可以使用（<a href="#settings-names">11</a>）。</li>
                     <li><strong>重新生成玩家密钥…</strong>：在密钥可能被他人得知等情况下使用。“玩家密钥保存”和“此版本的使用期限”只是显示（<a href="#settings-key">12</a>）。</li>
                 </ul>
+                <p class="guide-step-text">实际画面的流程请参阅<a href="#internet">通过互联网对局（限定测试用）</a>。</p>
             </div>
 
             <div class="guide-step" id="settings-node">
@@ -523,7 +525,91 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
 </section>
 
 <!-- Section 5 -->
-<section id="confirm" class="section section--alt">
+<section id="internet" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">通过互联网对局（限定测试用）</h2>
+        <p class="section-desc">通过协作节点，与互联网上的对手经邀请对局</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">双方都填入协作节点</span>
+                </div>
+                <p class="guide-step-text">通过互联网对局需要一个协作节点（理由见<a href="#settings-node">“连接候选”：为什么需要协作节点</a>）。对局双方都在“设置”标签页的“连接候选”中填入同一个协作节点的地址。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-settings.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-settings.png" alt="在“连接候选”中填入协作节点地址的“设置”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“设置”标签页：在“连接候选”中填入协作节点（地址的一部分已隐去）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">以“限定测试用”连接</span>
+                </div>
+                <p class="guide-step-text">在“连接与条件”标签页把“网络”设为“限定测试用”，然后点击“连接”。连上协作节点并预留到中继后，“邀请的路径”显示“通过协作节点的中继（连接后可能切换为直接连接）。”。预留中继可能需要一点时间。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-connected.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-connected.png" alt="以限定测试用连接、邀请的路径显示通过协作节点中继的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">连上协作节点时</p>
+                </div>
+                <p class="guide-step-text">不填协作节点就连接时，应用程序连不上任何节点（“已连接的节点：0”），“邀请的路径”显示“尚无可从外部到达的连接地址。…”。此时生成的邀请字符串中没有连接地址，“生成邀请字符串”下方会显示“此邀请字符串中没有连接地址，对手无法连接。…”。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-no-node.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-no-node.png" alt="不填协作节点而以限定测试用连接、显示尚无可从外部到达的连接地址的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">不填协作节点就连接时</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">用邀请字符串连接</span>
+                </div>
+                <p class="guide-step-text">之后的步骤与同一电脑・同一局域网的对局相同（<a href="#invite">通过邀请对局</a>）。邀请方把用“生成邀请字符串”生成的邀请字符串交给对手，对手点击“检查邀请字符串”。如果“地址：N 个（可用 N 个）”中可用的地址有 1 个以上，就可以用“连接”连接。</p>
+                <p class="guide-step-text">邀请字符串中包含经由协作节点的地址（如果邀请方的电脑可以从外部直接到达，也包含该电脑的 IP 地址）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-invite.png" alt="检查收到的邀请字符串后显示邀请方 PeerId、期限和地址数的“通过邀请连接”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">被邀请方：检查收到的邀请字符串时</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">路径：中继与直接</span>
+                </div>
+                <p class="guide-step-text">对手首先通过协作节点的中继连接。连接后，双方的应用程序会立即尝试穿过各自的路由器直接连接（打洞）。如果成功，“对局中”标签页的“路径”会变为“直接”（多数在对局开始前完成）。</p>
+                <p class="guide-step-text">如果路由器每次连接都更换源端口，或者像手机网络那样经过多层地址转换，就无法直接连接，对局会一直使用“中继”。通过中继也可以对局，但着手要绕经协作节点送达，可能会稍有延迟。ShogiBoardQ 的协作节点每条中继连接 30 分钟后断开，因此长时间的对局中途可能会自动重新连接（“正在重新连接”）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-relay.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-relay.png" alt="路径为中继的“对局中”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“路径：中继”：路由器不允许直接连接时</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-direct.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-direct.png" alt="路径为直接的“对局中”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“路径：直接”：通过中继连接后切换为直接连接时</p>
+                </div>
+                <p class="guide-step-text">本节的图片是在 Docker 中的虚拟网络里重现协作节点和家用路由器（NAT），由两个应用程序实际对局拍摄的。“中继”的图片是把路由器设为每次连接都更换源端口时拍摄的。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">不让对手看到 IP 地址的对局</span>
+                </div>
+                <p class="guide-step-text">在“设置”标签页勾选“不使用直接连接”后再连接，“邀请的路径”会显示“仅通过协作节点的中继（已设置不使用直接连接）。”。由于不尝试直接连接，整个对局期间“路径”都是“中继”。如果用邀请字符串连接的一方使用此设置，邀请方也需要在“连接候选”中填入相同的协作节点（详见<a href="#settings-relay">“不使用直接连接”</a>）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-relay-only.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-relay-only.png" alt="以不使用直接连接的设置连接、显示仅通过协作节点中继的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以“不使用直接连接”连接时</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="confirm" class="section">
     <div class="section-inner">
         <h2 class="section-title">条件确认画面</h2>
         <p class="section-desc">开始对局前确认对手和条件</p>
@@ -566,8 +652,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 6 -->
-<section id="playing" class="section">
+<!-- Section 7 -->
+<section id="playing" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">对局中</h2>
         <p class="section-desc">在主窗口的棋盘上走棋，在“对局中”标签页中认输或提出提议</p>
@@ -622,8 +708,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="records" class="section section--alt">
+<!-- Section 8 -->
+<section id="records" class="section">
     <div class="section-inner">
         <h2 class="section-title">对局记录与验证</h2>
         <p class="section-desc">已结束对局的记录（凭证）保存在双方的电脑中，任何人都可以验证</p>
@@ -708,8 +794,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="peers" class="section">
+<!-- Section 9 -->
+<section id="peers" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">对手管理与设置</h2>
         <p class="section-desc">为对局过的对手命名，并用确认码确认是否为同一个人</p>
@@ -749,8 +835,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 9 -->
-<section id="limits" class="section section--alt">
+<!-- Section 10 -->
+<section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">无法防止的情况与对方可以看到的信息</h2>
         <p class="section-desc">使用实验版P2P对局前请先了解</p>

@@ -50,6 +50,7 @@
             <li><a href="#prepare">準備</a></li>
             <li><a href="#tabs">分頁</a></li>
             <li><a href="#invite">邀請</a></li>
+            <li><a href="#internet">網際網路</a></li>
             <li><a href="#playing">對局中</a></li>
             <li><a href="#records">記錄與驗證</a></li>
             <li><a href="#limits">注意事項</a></li>
@@ -402,6 +403,7 @@
                     <li><strong>不顯示未對局過的對手的顯示名稱</strong>：不想看到陌生人的顯示名稱時使用。兩種網路都可以使用（<a href="#settings-names">11</a>）。</li>
                     <li><strong>重新產生玩家金鑰…</strong>：在金鑰可能被他人得知等情況下使用。「玩家金鑰保存」和「此版本的使用期限」只是顯示（<a href="#settings-key">12</a>）。</li>
                 </ul>
+                <p class="guide-step-text">實際畫面的流程請參閱<a href="#internet">透過網際網路對局（限定測試用）</a>。</p>
             </div>
 
             <div class="guide-step" id="settings-node">
@@ -523,7 +525,91 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
 </section>
 
 <!-- Section 5 -->
-<section id="confirm" class="section section--alt">
+<section id="internet" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">透過網際網路對局（限定測試用）</h2>
+        <p class="section-desc">透過協作節點，與網際網路上的對手經邀請對局</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">雙方都填入協作節點</span>
+                </div>
+                <p class="guide-step-text">透過網際網路對局需要一個協作節點（理由見<a href="#settings-node">「連線候選」：為什麼需要協作節點</a>）。對局雙方都在「設定」分頁的「連線候選」中填入同一個協作節點的位址。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-settings.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-settings.png" alt="在「連線候選」中填入協作節點位址的「設定」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「設定」分頁：在「連線候選」中填入協作節點（位址的一部分已隱去）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">以「限定測試用」連線</span>
+                </div>
+                <p class="guide-step-text">在「連線與條件」分頁把「網路」設為「限定測試用」，然後按一下「連線」。連上協作節點並預留到中繼後，「邀請的路徑」顯示「透過協作節點的中繼（連線後可能切換為直接連線）。」。預留中繼可能需要一點時間。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-connected.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-connected.png" alt="以限定測試用連線、邀請的路徑顯示透過協作節點中繼的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">連上協作節點時</p>
+                </div>
+                <p class="guide-step-text">不填協作節點就連線時，應用程式連不上任何節點（「已連線的節點：0」），「邀請的路徑」顯示「尚無可從外部到達的連線位址。…」。此時產生的邀請字串中沒有連線位址，「產生邀請字串」下方會顯示「此邀請字串中沒有連線位址，對手無法連線。…」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-no-node.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-no-node.png" alt="不填協作節點而以限定測試用連線、顯示尚無可從外部到達的連線位址的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">不填協作節點就連線時</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">用邀請字串連線</span>
+                </div>
+                <p class="guide-step-text">之後的步驟與同一電腦・同一區域網路的對局相同（<a href="#invite">透過邀請對局</a>）。邀請方把用「產生邀請字串」產生的邀請字串交給對手，對手按一下「檢查邀請字串」。如果「位址：N 個（可用 N 個）」中可用的位址有 1 個以上，就可以用「連線」連線。</p>
+                <p class="guide-step-text">邀請字串中包含經由協作節點的位址（如果邀請方的電腦可以從外部直接到達，也包含該電腦的 IP 位址）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-invite.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-invite.png" alt="檢查收到的邀請字串後顯示邀請方 PeerId、期限和位址數的「透過邀請連線」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">被邀請方：檢查收到的邀請字串時</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">路徑：中繼與直接</span>
+                </div>
+                <p class="guide-step-text">對手首先透過協作節點的中繼連線。連線後，雙方的應用程式會立即嘗試穿過各自的路由器直接連線（打洞）。如果成功，「對局中」分頁的「路徑」會變為「直接」（多數在對局開始前完成）。</p>
+                <p class="guide-step-text">如果路由器每次連線都更換來源連接埠，或者像行動網路那樣經過多層位址轉換，就無法直接連線，對局會一直使用「中繼」。透過中繼也可以對局，但著手要繞經協作節點送達，可能會稍有延遲。ShogiBoardQ 的協作節點每條中繼連線 30 分鐘後中斷，因此長時間的對局中途可能會自動重新連線（「正在重新連線」）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-relay.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-relay.png" alt="路徑為中繼的「對局中」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「路徑：中繼」：路由器不允許直接連線時</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-direct.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-direct.png" alt="路徑為直接的「對局中」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「路徑：直接」：透過中繼連線後切換為直接連線時</p>
+                </div>
+                <p class="guide-step-text">本節的圖片是在 Docker 中的虛擬網路裡重現協作節點和家用路由器（NAT），由兩個應用程式實際對局拍攝的。「中繼」的圖片是把路由器設為每次連線都更換來源連接埠時拍攝的。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">不讓對手看到 IP 位址的對局</span>
+                </div>
+                <p class="guide-step-text">在「設定」分頁勾選「不使用直接連線」後再連線，「邀請的路徑」會顯示「僅透過協作節點的中繼（已設定不使用直接連線）。」。由於不嘗試直接連線，整個對局期間「路徑」都是「中繼」。如果用邀請字串連線的一方使用此設定，邀請方也需要在「連線候選」中填入相同的協作節點（詳見<a href="#settings-relay">「不使用直接連線」</a>）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-relay-only.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-relay-only.png" alt="以不使用直接連線的設定連線、顯示僅透過協作節點中繼的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以「不使用直接連線」連線時</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="confirm" class="section">
     <div class="section-inner">
         <h2 class="section-title">條件確認畫面</h2>
         <p class="section-desc">開始對局前確認對手和條件</p>
@@ -566,8 +652,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 6 -->
-<section id="playing" class="section">
+<!-- Section 7 -->
+<section id="playing" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">對局中</h2>
         <p class="section-desc">在主視窗的棋盤上走棋，在「對局中」分頁中認輸或提出提議</p>
@@ -622,8 +708,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="records" class="section section--alt">
+<!-- Section 8 -->
+<section id="records" class="section">
     <div class="section-inner">
         <h2 class="section-title">對局記錄與驗證</h2>
         <p class="section-desc">已結束對局的記錄（憑證）保存在雙方的電腦中，任何人都可以驗證</p>
@@ -708,8 +794,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="peers" class="section">
+<!-- Section 9 -->
+<section id="peers" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">對手管理與設定</h2>
         <p class="section-desc">為對局過的對手命名，並用確認碼確認是否為同一個人</p>
@@ -749,8 +835,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 9 -->
-<section id="limits" class="section section--alt">
+<!-- Section 10 -->
+<section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">無法防止的情況與對方可以看到的資訊</h2>
         <p class="section-desc">使用實驗版P2P對局前請先了解</p>

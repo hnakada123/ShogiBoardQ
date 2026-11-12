@@ -50,6 +50,7 @@
             <li><a href="#prepare">準備</a></li>
             <li><a href="#tabs">タブ</a></li>
             <li><a href="#invite">招待</a></li>
+            <li><a href="#internet">インターネット</a></li>
             <li><a href="#playing">対局中</a></li>
             <li><a href="#records">記録と検証</a></li>
             <li><a href="#limits">注意</a></li>
@@ -402,6 +403,7 @@
                     <li><strong>対局したことのない相手の表示名を出さない</strong>：知らない人の表示名を見たくないときに使います。どちらのネットワークでも使えます（<a href="#settings-names">11</a>）。</li>
                     <li><strong>プレイヤー鍵を作り直す…</strong>：鍵を他人に知られたかもしれないときなどに使います。「プレイヤー鍵の保管」と「このビルドの使用期限」は表示だけです（<a href="#settings-key">12</a>）。</li>
                 </ul>
+                <p class="guide-step-text">実際の画面の流れは、<a href="#internet">インターネット越しに対局する（限定試験用）</a>をご覧ください。</p>
             </div>
 
             <div class="guide-step" id="settings-node">
@@ -523,7 +525,91 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
 </section>
 
 <!-- Section 5 -->
-<section id="confirm" class="section section--alt">
+<section id="internet" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">インターネット越しに対局する（限定試験用）</h2>
+        <p class="section-desc">協力ノードを通して、インターネット上の相手と招待で対局します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">両方が協力ノードを入れる</span>
+                </div>
+                <p class="guide-step-text">インターネット越しの対局には、協力ノードが1つ要ります（理由は<a href="#settings-node">「接続候補」：協力ノードが要る理由</a>）。対局する2人とも、「設定」タブの「接続候補」に同じ協力ノードのアドレスを入れます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-internet-settings.png"><img src="../images/p2p-game/p2p-internet-settings.png" alt="「接続候補」に協力ノードのアドレスを入れた「設定」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「設定」タブ：「接続候補」に協力ノードを入れたところ（アドレスの一部は伏せています）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">限定試験用で接続する</span>
+                </div>
+                <p class="guide-step-text">「接続と条件」タブで「ネットワーク」を「限定試験用」にして「接続」を押します。協力ノードにつながり、中継の予約が取れると、「招待の経路」に「協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。」と出ます。予約が取れるまで、少し時間がかかることがあります。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-internet-connected.png"><img src="../images/p2p-game/p2p-internet-connected.png" alt="限定試験用で接続し、招待の経路に協力ノードの中継を通ると出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">協力ノードにつながったところ</p>
+                </div>
+                <p class="guide-step-text">協力ノードを入れずに接続すると、どこにもつながらず（「つながっているピア: 0」）、「招待の経路」に「外から届く接続先がまだありません。…」と出ます。この状態で招待文字列を作っても接続先が入らず、「招待文字列を作る」の下に「この招待文字列には接続先が入っていないので、相手は接続できません。…」と出ます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-internet-no-node.png"><img src="../images/p2p-game/p2p-internet-no-node.png" alt="協力ノードを入れずに限定試験用で接続し、外から届く接続先がまだないと出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">協力ノードを入れずに接続したところ</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">招待文字列で接続する</span>
+                </div>
+                <p class="guide-step-text">ここからは、同じPC・同じLANの対局と同じです（<a href="#invite">招待で対局する</a>）。招待した側が「招待文字列を作る」で作った招待文字列を相手に渡し、相手は「招待文字列を確かめる」を押します。「到達候補: N 件（使える候補 N 件）」の使える候補が1件以上あれば、「接続する」で接続できます。</p>
+                <p class="guide-step-text">招待文字列には、協力ノードを経由する宛先が入ります（外から直接届く PC なら、その PC の IP アドレスも入ります）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-internet-invite.png"><img src="../images/p2p-game/p2p-internet-invite.png" alt="受け取った招待文字列を確かめ、招待した相手の PeerId・期限・到達候補の数が出た「招待で接続」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">招待を受けた側：受け取った招待文字列を確かめたところ</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">経路：中継と直接</span>
+                </div>
+                <p class="guide-step-text">相手は、まず協力ノードの中継を通ってつながります。つながるとすぐ、双方のアプリが、それぞれのルーターを通り抜けて直接つなげないかを試します（ホールパンチング）。うまくいけば、「対局中」タブの「経路」が「直接」になります（多くは対局が始まる前に済みます）。</p>
+                <p class="guide-step-text">接続ごとに送り元のポートを変えるルーターや、携帯電話の回線のように何段も変換を重ねる回線では、直接つなげず、「中継」のまま対局します。中継でも対局はできますが、指し手は協力ノードを回って届くので、少し遅れることがあります。ShogiBoardQ の協力ノードは中継1本を30分で切るので、長い対局では途中で自動のつなぎ直し（「再接続中」）が入ることがあります。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-internet-relay.png"><img src="../images/p2p-game/p2p-internet-relay.png" alt="経路が中継の「対局中」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「経路: 中継」：ルーターが直接の接続を通さなかったとき</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-internet-direct.png"><img src="../images/p2p-game/p2p-internet-direct.png" alt="経路が直接の「対局中」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「経路: 直接」：中継でつながった後、直接の接続に切り替わったとき</p>
+                </div>
+                <p class="guide-step-text">この節の画像は、協力ノードと家庭のルーター（NAT）を Docker の中の仮想のネットワークで再現し、2つのアプリで実際に対局して撮りました。「中継」の画像は、接続ごとに送り元のポートを変えるルーターにしたものです。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">相手に IP アドレスを見せずに対局する</span>
+                </div>
+                <p class="guide-step-text">「設定」タブで「直接接続を使わない」にチェックを付けてから接続すると、「招待の経路」に「協力ノードの中継だけを通ります（直接接続を使わない設定）。」と出ます。直接の接続を試さないので、対局の間ずっと「経路」は「中継」です。招待を受けて接続する側がこの設定のときは、招待した側も同じ協力ノードを「接続候補」に入れている必要があります（詳しくは<a href="#settings-relay">「直接接続を使わない」</a>）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-internet-relay-only.png"><img src="../images/p2p-game/p2p-internet-relay-only.png" alt="直接接続を使わない設定で接続し、協力ノードの中継だけを通ると出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「直接接続を使わない」で接続したところ</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="confirm" class="section">
     <div class="section-inner">
         <h2 class="section-title">条件確認画面</h2>
         <p class="section-desc">対局を始める前に、相手と条件を確かめます</p>
@@ -566,8 +652,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 6 -->
-<section id="playing" class="section">
+<!-- Section 7 -->
+<section id="playing" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">対局中</h2>
         <p class="section-desc">メインウィンドウの盤で指し、「対局中」タブで投了や申し出をします</p>
@@ -622,8 +708,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="records" class="section section--alt">
+<!-- Section 8 -->
+<section id="records" class="section">
     <div class="section-inner">
         <h2 class="section-title">対局記録と検証</h2>
         <p class="section-desc">終わった対局の記録（証跡）は双方の手元に残り、だれでも検証できます</p>
@@ -708,8 +794,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="peers" class="section">
+<!-- Section 9 -->
+<section id="peers" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">相手の管理と設定</h2>
         <p class="section-desc">対局した相手に名前を付け、確認コードで同じ人かを確かめます</p>
@@ -749,8 +835,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 9 -->
-<section id="limits" class="section section--alt">
+<!-- Section 10 -->
+<section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">防げないことと相手に見える情報</h2>
         <p class="section-desc">実験版のP2P対局を使う前に知っておいてほしいことです</p>

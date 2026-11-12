@@ -50,6 +50,7 @@
             <li><a href="#prepare">Setup</a></li>
             <li><a href="#tabs">Tabs</a></li>
             <li><a href="#invite">Invitations</a></li>
+            <li><a href="#internet">Internet</a></li>
             <li><a href="#playing">Playing</a></li>
             <li><a href="#records">Records</a></li>
             <li><a href="#limits">Limits</a></li>
@@ -402,6 +403,7 @@
                     <li><strong>Hide display names of opponents you have not played</strong>: Use it when you do not want to see the display names of strangers. It works on both networks (<a href="#settings-names">11</a>).</li>
                     <li><strong>Recreate Player Key…</strong>: Use it when someone else may have learned your key, for example. Player key storage and the expiry of this build are shown for information only (<a href="#settings-key">12</a>).</li>
                 </ul>
+                <p class="guide-step-text">For what this looks like in practice, see <a href="#internet">Playing over the Internet (Limited Test)</a>.</p>
             </div>
 
             <div class="guide-step" id="settings-node">
@@ -523,7 +525,91 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
 </section>
 
 <!-- Section 5 -->
-<section id="confirm" class="section section--alt">
+<section id="internet" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Playing over the Internet (Limited Test)</h2>
+        <p class="section-desc">Play an invited opponent on the Internet through a cooperating node</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Both Players Enter a Cooperating Node</span>
+                </div>
+                <p class="guide-step-text">A game over the Internet needs one cooperating node (for why, see <a href="#settings-node">Bootstrap Nodes: Why a Cooperating Node Is Needed</a>). Both players enter the address of the same cooperating node in Bootstrap nodes on the Settings tab.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-settings.png"><img src="../../images/en/p2p-game/p2p-internet-settings.png" alt="Settings tab with a cooperating node address in Bootstrap nodes" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Settings tab: a cooperating node in Bootstrap nodes (part of the address is masked)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Connect to Limited Test</span>
+                </div>
+                <p class="guide-step-text">On the Connection and Conditions tab, set Network to Limited test and click Connect. Once your app connects to the cooperating node and reserves a relay slot, Invitation route shows "Through the relay of your cooperating node (it may switch to a direct connection after connecting)." The reservation may take a little while.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-connected.png"><img src="../../images/en/p2p-game/p2p-internet-connected.png" alt="Connection and Conditions tab connected to Limited test, with Invitation route going through the cooperating node's relay" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connected to a cooperating node</p>
+                </div>
+                <p class="guide-step-text">If you connect without a cooperating node, your app connects to no one ("Connected (peers: 0)"), and Invitation route shows "There is no address yet that can be reached from outside. …". An invitation created in this state contains no address, and "This invitation contains no address, so your opponent cannot connect. …" appears below Create Invitation.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-no-node.png"><img src="../../images/en/p2p-game/p2p-internet-no-node.png" alt="Connection and Conditions tab connected to Limited test without a cooperating node, saying there is no address reachable from outside yet" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connected without a cooperating node</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Connect with an Invitation</span>
+                </div>
+                <p class="guide-step-text">From here on, it works the same as a game on the same PC or LAN (<a href="#invite">Playing by Invitation</a>). The inviter sends the invitation made with Create Invitation, and the opponent clicks Check Invitation. If "Addresses: N (N usable)" shows at least one usable address, Connect connects to the inviter.</p>
+                <p class="guide-step-text">The invitation contains addresses that go through the cooperating node (and, if the inviter's PC can be reached directly from outside, that PC's IP address too).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-invite.png"><img src="../../images/en/p2p-game/p2p-internet-invite.png" alt="Connect by Invitation tab after checking a received invitation, showing the inviter's PeerId, expiry, and number of addresses" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">The invited side: checking a received invitation</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Route: Relay and Direct</span>
+                </div>
+                <p class="guide-step-text">The opponent first connects through the relay of the cooperating node. Right after that, both apps try to get through their routers and connect directly (hole punching). If it works, Route on the Game tab becomes "direct" (usually before the game starts).</p>
+                <p class="guide-step-text">Behind a router that changes the source port for every connection, or on a line with several layers of address translation such as a mobile connection, a direct connection is not possible and the game stays on "relay". You can still play over the relay, but moves travel through the cooperating node and may arrive a little later. ShogiBoardQ's cooperating node closes each relayed connection after 30 minutes, so a long game may include an automatic reconnection (Reconnecting) along the way.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-relay.png"><img src="../../images/en/p2p-game/p2p-internet-relay.png" alt="Game tab with the route through the relay" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Route: relay — the routers did not let a direct connection through</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-direct.png"><img src="../../images/en/p2p-game/p2p-internet-direct.png" alt="Game tab with a direct route" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Route: direct — switched to a direct connection after connecting through the relay</p>
+                </div>
+                <p class="guide-step-text">The images in this section were taken by recreating a cooperating node and home routers (NAT) on a virtual network inside Docker and playing a real game between two apps. For the "relay" image, the routers were set to change the source port for every connection.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Play Without Showing Your IP Address</span>
+                </div>
+                <p class="guide-step-text">If you check Do not use direct connections on the Settings tab before connecting, Invitation route shows "Only through the relay of your cooperating node (direct connections are turned off)." Since no direct connection is attempted, Route stays "relay" for the whole game. When the side that connects with an invitation uses this setting, the inviter must also have the same cooperating node in Bootstrap nodes (see <a href="#settings-relay">Do Not Use Direct Connections</a>).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-relay-only.png"><img src="../../images/en/p2p-game/p2p-internet-relay-only.png" alt="Connection and Conditions tab connected with direct connections turned off, going only through the cooperating node's relay" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connected with Do not use direct connections</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="confirm" class="section">
     <div class="section-inner">
         <h2 class="section-title">The Confirmation Screen</h2>
         <p class="section-desc">Check your opponent and the conditions before the game starts</p>
@@ -566,8 +652,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 6 -->
-<section id="playing" class="section">
+<!-- Section 7 -->
+<section id="playing" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">During the Game</h2>
         <p class="section-desc">Move on the main window's board, and resign or make offers on the Game tab</p>
@@ -622,8 +708,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 7 -->
-<section id="records" class="section section--alt">
+<!-- Section 8 -->
+<section id="records" class="section">
     <div class="section-inner">
         <h2 class="section-title">Game Records and Verification</h2>
         <p class="section-desc">The record (evidence) of each finished game stays on both PCs, and anyone can verify it</p>
@@ -708,8 +794,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 8 -->
-<section id="peers" class="section">
+<!-- Section 9 -->
+<section id="peers" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">Opponents and Settings</h2>
         <p class="section-desc">Name the opponents you have played and check with a verification code that they are the same person</p>
@@ -749,8 +835,8 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
     </div>
 </section>
 
-<!-- Section 9 -->
-<section id="limits" class="section section--alt">
+<!-- Section 10 -->
+<section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">What Cannot Be Prevented and What Others See</h2>
         <p class="section-desc">Please read this before using the experimental P2P games</p>
