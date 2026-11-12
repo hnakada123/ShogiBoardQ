@@ -11,6 +11,7 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
+#include <QAction>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QPushButton>
@@ -203,6 +204,44 @@ private slots:
         // 自動化 API を有効にしたときは使い始めない
         lobby.disableForAutomation();
         QCOMPARE(lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::AutomationEnabled);
+    }
+
+    /// ウィンドウの操作は意図のシグナルで画面の部品が受け、投了と合意中断はメニューと同じ QAction を通る
+    /// （監査 2026-11-12 R10。メニューと同じ入口なので、同じ規則で窓口へ送る）
+    void windowButtonsGoThroughTheMenuActions()
+    {
+        const QByteArray savedData = qgetenv("SHOGIBOARDQ_DATA_HOME");
+        qputenv("SHOGIBOARDQ_DATA_HOME", m_dir.filePath(QStringLiteral("buttons-data")).toUtf8());
+        AppActivityState activity;
+        GameBoard board;
+        ShogiClock clock;
+        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
+        QMainWindow main;
+        QAction resign;
+        QAction breakOff;
+        QSignalSpy resigned(&resign, &QAction::triggered);
+        QSignalSpy brokeOff(&breakOff, &QAction::triggered);
+        P2pGameUiController::Deps deps;
+        deps.game = &game;
+        deps.activity = &activity;
+        deps.parentWidget = &main;
+        deps.resignAction = &resign;
+        deps.breakOffAction = &breakOff;
+        P2pGameUiController ui(deps);
+        ui.openWindow();
+        auto* window = main.findChild<P2pWindow*>();
+        QVERIFY(window);
+        for (const char* name : {"p2pResign", "p2pOfferAbort"}) {
+            auto* button = window->findChild<QPushButton*>(QLatin1String(name));
+            QVERIFY2(button, name);
+            button->setEnabled(true);   // 対局していないので押せない。結び付きだけを確かめる
+            button->click();
+        }
+        QCOMPARE(resigned.count(), 1);
+        QCOMPARE(brokeOff.count(), 1);
+        ui.shutdown();
+        if (savedData.isNull()) qunsetenv("SHOGIBOARDQ_DATA_HOME");
+        else qputenv("SHOGIBOARDQ_DATA_HOME", savedData);
     }
 
     /// 同じ PC でいくつものアプリが「P2P対局」を開くと、開いた順に、空いている最初の番号のプレイヤーになる

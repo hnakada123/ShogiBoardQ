@@ -117,14 +117,13 @@ void P2pPeersPanel::onRename()
 {
     const QByteArray key = selectedKey();
     if (key.isEmpty() || !m_knownPeers) return;
-    P2pKnownPeer& peer = m_knownPeers->upsert(key);
+    const P2pKnownPeer* peer = m_knownPeers->find(key);
     bool ok = false;
     const QString name = QInputDialog::getText(this, tr("名前を付ける"),
                                                tr("この相手に手元で付ける名前（相手と棋譜には出ません）"), QLineEdit::Normal,
-                                               peer.localName, &ok);
+                                               peer ? peer->localName : QString(), &ok);
     if (!ok) return;
-    m_knownPeers->upsert(key).localName = name.trimmed().left(64);
-    m_knownPeers->save();
+    m_knownPeers->setLocalName(key, name);
     reload();
 }
 
@@ -142,9 +141,8 @@ void P2pPeersPanel::onToggleVerified()
 {
     const QByteArray key = selectedKey();
     if (key.isEmpty() || !m_knownPeers) return;
-    P2pKnownPeer& peer = m_knownPeers->upsert(key);
-    peer.verified = !peer.verified;
-    m_knownPeers->save();
+    const P2pKnownPeer* peer = m_knownPeers->find(key);
+    m_knownPeers->setVerified(key, !(peer && peer->verified));
     reload();
 }
 
@@ -152,9 +150,8 @@ void P2pPeersPanel::onToggleBlocked()
 {
     const QByteArray key = selectedKey();
     if (key.isEmpty() || !m_knownPeers) return;
-    P2pKnownPeer& peer = m_knownPeers->upsert(key);
-    peer.blocked = !peer.blocked;
-    m_knownPeers->save();
+    const P2pKnownPeer* peer = m_knownPeers->find(key);
+    m_knownPeers->setBlocked(key, !(peer && peer->blocked));
     reload();
 }
 
@@ -167,6 +164,5 @@ void P2pPeersPanel::onRemove()
         return;
     }
     m_knownPeers->remove(key);
-    m_knownPeers->save();
     reload();
 }

@@ -131,3 +131,39 @@ QString P2pWindowText::categoryText(P2p::EvidenceReport::Category category)
     }
     return QString();
 }
+
+QString P2pWindowText::startFailureText(P2pLobbyService::StartFailure failure)
+{
+    switch (failure) {
+    case P2pLobbyService::StartFailure::None: break;
+    case P2pLobbyService::StartFailure::Locked: return tr("ほかの ShogiBoardQ が P2P対局を使っています。");
+    case P2pLobbyService::StartFailure::NetworkNotAllowed: return tr("このビルドはそのネットワークに参加できません。");
+    case P2pLobbyService::StartFailure::BuildExpired:
+        return tr("このビルドは使用期限を過ぎたので、限定試験用のネットワークに参加できません。新しい版に更新してください。"
+                  "保存した記録の確認と、ローカル検証用のネットワークは使えます。");
+    case P2pLobbyService::StartFailure::NoIdentity: return tr("プレイヤー鍵を読み込んでいません。");
+    case P2pLobbyService::StartFailure::AutomationEnabled:
+        return tr("自動化 API を有効にして起動したときは、P2P対局を使えません。");
+    }
+    return QString();
+}
+
+QString P2pWindowText::peerFailureText(PeerProcess::Failure failure, const QString& detail)
+{
+    switch (failure) {
+    case PeerProcess::Failure::None: break;
+    case PeerProcess::Failure::NotFound: return tr("通信プロセス（shogiboardq-peer）が見つかりません。");
+    case PeerProcess::Failure::UnsupportedOs:
+        return tr("この OS では、通信プロセスの権限を制限できないので、P2P対局を使えません。");
+    case PeerProcess::Failure::SandboxFailed: {
+        const QString text = tr("通信プロセスの権限を制限できなかったので、P2P対局を使えません。制限なしでは続けません。");
+        return detail.isEmpty() ? text : text + QLatin1Char('\n') + detail;
+    }
+    case PeerProcess::Failure::HelloMismatch:
+    case PeerProcess::Failure::ProtocolViolation:
+        return tr("通信プロセスとのやり取りに異常があったので、通信プロセスを止めました。");
+    case PeerProcess::Failure::Crashed:
+        return tr("通信プロセスが異常終了しました。招待・交渉は取り消し、対局中なら中断（結果未確定）になります。");
+    }
+    return QString();
+}

@@ -21,6 +21,7 @@ class P2pConfirmDialog;
 class P2pGameCoordinator;
 class P2pLobbyService;
 class P2pWindow;
+class QAction;
 class QMessageBox;
 class QWidget;
 class ShogiView;
@@ -42,6 +43,10 @@ public:
         QWidget* parentWidget = nullptr;
         ShogiView* shogiView = nullptr;                        ///< 盤の向き
         MainWindowAppearanceController* appearance = nullptr;  ///< 後手のとき盤を反転する（通信対局と同じ）
+        /// メニューの「投了」「中断」。ウィンドウのボタンもこれを起こし、メニューと同じ入口を通す（GameSession が
+        /// 対局中の窓口 P2pGameChannel へ送る）
+        QAction* resignAction = nullptr;
+        QAction* breakOffAction = nullptr;
     };
 
     explicit P2pGameUiController(const Deps& deps, QObject* parent = nullptr);
@@ -60,6 +65,11 @@ private slots:
     void onStartRequested();
     void onStopRequested();
     void onRecreateIdentity();
+    void onCreateInviteRequested();
+    void onInspectInviteRequested(const QString& invite);
+    void onConnectInviteRequested(const QString& invite, bool allowPrivate);
+    void onOfferDrawRequested();
+    void onLeaveGameRequested();
     void onNegotiationChanged();
     void onNegotiationEnded(bool started, std::optional<P2p::ErrorCode> code, bool byPeer);
     void onGameStarted();

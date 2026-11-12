@@ -176,12 +176,7 @@ void P2pGameCoordinator::startMatch()
     if (m_transport) m_transport->setGamePeer(m_opponentPeerId);
 
     // 相手の開始署名を確かめたので、プレイヤーID を既知の相手として数える
-    if (m_knownPeers) {
-        P2pKnownPeer& peer = m_knownPeers->upsert(setup.agreement.playerKey(!setup.iAmBlack));
-        peer.lastDisplayName = m_opponentDisplayName;
-        ++peer.games;
-        m_knownPeers->save();
-    }
+    if (m_knownPeers) m_knownPeers->recordGameStarted(setup.agreement.playerKey(!setup.iAmBlack), m_opponentDisplayName);
 
     // 棋譜を作ってから P2P対局中にする（対局者名は双方が名乗った表示名。手元で付けた名前は入れない）
     if (m_deps.gameBoard) m_deps.gameBoard->newGame(QString::fromLatin1(P2p::Rules::initialSfen()));
@@ -362,9 +357,7 @@ void P2pGameCoordinator::handleMatchEvent(const P2p::MatchEvent& event)
         releaseGame();
         saveEvidence();
         if (m_knownPeers && m_match->settlement() != P2p::Settlement::MutuallySigned) {
-            P2pKnownPeer& peer = m_knownPeers->upsert(opponentPlayerKey());
-            ++peer.unconfirmed;
-            m_knownPeers->save();
+            m_knownPeers->recordUnconfirmed(opponentPlayerKey());
         }
         if (m_transport) {
             m_transport->setGamePeer(QString());

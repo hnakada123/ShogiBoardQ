@@ -12864,17 +12864,17 @@ Are you sure you want to declare?</translation>
 <context>
     <name>P2pGameUiController</name>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="74"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="83"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="92"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="142"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="172"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="180"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="235"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="257"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="287"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="305"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="334"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="75"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="84"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="94"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="154"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="166"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="174"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="263"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="285"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="315"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="333"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="342"/>
         <source>P2P対局</source>
         <translation>P2P Game</translation>
     </message>
@@ -12887,18 +12887,16 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Up to %1 ShogiBoardQ-P2P apps can use P2P Game on this PC at the same time. Close another ShogiBoardQ-P2P and try again.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="84"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="85"/>
         <source>P2P対局の記録が 1 GiB を超えています。「対局記録」で古い記録を削除してください。</source>
         <translation>P2P game records exceed 1 GiB. Delete old records in &quot;Game Records&quot;.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="93"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="169"/>
         <source>自動化 API を有効にして起動したときは、P2P対局を使えません。</source>
-        <translation>P2P games are not available when the automation API is enabled.</translation>
+        <translation type="vanished">P2P games are not available when the automation API is enabled.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="143"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="155"/>
         <source>プレイヤー鍵を読み込めませんでした。「設定」でプレイヤー鍵を作り直せます。</source>
         <translation>Could not load the player key. You can recreate it in &quot;Settings&quot;.</translation>
     </message>
@@ -12907,134 +12905,136 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Another ShogiBoardQ-P2P is using P2P games.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="75"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="76"/>
         <source>このPCで同時に P2P対局を使える ShogiBoardQ は %1 個までです。ほかの ShogiBoardQ を閉じてから開いてください。</source>
         <translation>Up to %1 ShogiBoardQ apps can use P2P Game on this PC at the same time. Close another ShogiBoardQ and try again.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="156"/>
         <source>ほかの ShogiBoardQ が P2P対局を使っています。</source>
-        <translation>Another ShogiBoardQ is using P2P games.</translation>
+        <translation type="vanished">Another ShogiBoardQ is using P2P games.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="159"/>
         <source>このビルドはそのネットワークに参加できません。</source>
-        <translation>This build cannot join that network.</translation>
+        <translation type="vanished">This build cannot join that network.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="162"/>
         <source>このビルドは使用期限を過ぎたので、限定試験用のネットワークに参加できません。新しい版に更新してください。保存した記録の確認と、ローカル検証用のネットワークは使えます。</source>
-        <translation>This build has expired and cannot join the limited test network. Please update to a newer version. You can still review saved records and use the local test network.</translation>
+        <translation type="vanished">This build has expired and cannot join the limited test network. Please update to a newer version. You can still review saved records and use the local test network.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="166"/>
         <source>プレイヤー鍵を読み込んでいません。</source>
-        <translation>The player key is not loaded.</translation>
+        <translation type="vanished">The player key is not loaded.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="181"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="175"/>
         <source>対局中です。切断すると対局は中断され、結果は確定しません。切断しますか？</source>
         <translation>A game is in progress. Disconnecting interrupts it and leaves the result unconfirmed. Disconnect?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="182"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="176"/>
         <source>切断</source>
         <translation>Disconnect</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="193"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="187"/>
         <source>プレイヤー鍵</source>
         <translation>Player Key</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="193"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="187"/>
         <source>切断してから作り直してください。</source>
         <translation>Disconnect before recreating it.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="196"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="190"/>
         <source>プレイヤー鍵を作り直す</source>
         <translation>Recreate Player Key</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="197"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="191"/>
         <source>プレイヤー鍵を作り直すとプレイヤーIDが変わり、相手からは別人に見えます。古い鍵は消します。作り直しますか？</source>
         <translation>Recreating the player key changes your player ID, and opponents will see you as someone else. The old key is deleted. Recreate it?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="199"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="193"/>
         <source>作り直す</source>
         <translation>Recreate</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="232"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="227"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="229"/>
+        <source>対局をやめる</source>
+        <translation>Leave Game</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="228"/>
+        <source>対局をやめますか？ 結果は確定せず、相手には中断が伝わります。</source>
+        <translation>Leave the game? The result will not be confirmed, and the opponent will be told the game was interrupted.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="260"/>
         <source>相手が対局を始めませんでした。</source>
         <translation>The opponent did not start the game.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="232"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="260"/>
         <source>対局を始められませんでした。</source>
         <translation>Could not start the game.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="233"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="261"/>
         <source>相手が取りやめました。</source>
         <translation>The opponent cancelled.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="255"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="283"/>
         <source>相手が引き分けを申し出ました。承諾しますか？</source>
         <translation>The opponent offers a draw. Accept?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="256"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="284"/>
         <source>相手が対局の中断を申し出ました。承諾しますか？</source>
         <translation>The opponent offers to abort the game. Accept?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="257"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="285"/>
         <source>承諾</source>
         <translation>Accept</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="287"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="315"/>
         <source>相手が申し出を断りました。対局を続けます。</source>
         <translation>The opponent declined the offer. The game continues.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="301"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="329"/>
         <source>終局: %1</source>
         <translation>Game over: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="304"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="332"/>
         <source>対局の記録（証跡）を保存できませんでした。</source>
         <translation>Could not save the game record (evidence).</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="315"/>
         <source>通信プロセス（shogiboardq-peer）が見つかりません。</source>
-        <translation>The communication process (shogiboardq-peer) was not found.</translation>
+        <translation type="vanished">The communication process (shogiboardq-peer) was not found.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="318"/>
         <source>この OS では、通信プロセスの権限を制限できないので、P2P対局を使えません。</source>
-        <translation>P2P games are not available on this OS because the communication process cannot be restricted.</translation>
+        <translation type="vanished">P2P games are not available on this OS because the communication process cannot be restricted.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="321"/>
         <source>通信プロセスの権限を制限できなかったので、P2P対局を使えません。制限なしでは続けません。</source>
-        <translation>The communication process could not be restricted, so P2P games are not available. It will not run unrestricted.</translation>
+        <translation type="vanished">The communication process could not be restricted, so P2P games are not available. It will not run unrestricted.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="325"/>
         <source>通信プロセスとのやり取りに異常があったので、通信プロセスを止めました。</source>
-        <translation>The communication process was stopped because its messages were invalid.</translation>
+        <translation type="vanished">The communication process was stopped because its messages were invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="328"/>
         <source>通信プロセスが異常終了しました。招待・交渉は取り消し、対局中なら中断（結果未確定）になります。</source>
-        <translation>The communication process terminated abnormally. Invitations and negotiations are cancelled; a game in progress is interrupted (result unconfirmed).</translation>
+        <translation type="vanished">The communication process terminated abnormally. Invitations and negotiations are cancelled; a game in progress is interrupted (result unconfirmed).</translation>
     </message>
     <message>
         <source>通信プロセスが異常終了しました。募集・交渉は取り消し、対局中なら中断（結果未確定）になります。</source>
@@ -13473,7 +13473,7 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="61"/>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="165"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="162"/>
         <source>記録を削除</source>
         <translation>Delete Record</translation>
     </message>
@@ -13508,12 +13508,12 @@ Are you sure you want to declare?</translation>
         <translation>A local name for this opponent (not shown to the opponent or in game records)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="136"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="135"/>
         <source>確認コード</source>
         <translation>Verification Code</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="137"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="136"/>
         <source>相手と別の経路（電話や対面など）で、次の数字を見比べてください。一致したら「確認済みにする」を押してください。
 
 %1</source>
@@ -13522,12 +13522,12 @@ Are you sure you want to declare?</translation>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="165"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="162"/>
         <source>この相手の記録（名前・確認済み・ブロック・対局数）を削除しますか？</source>
         <translation>Delete this opponent&apos;s record (name, verified, block, game count)?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="166"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="163"/>
         <source>削除</source>
         <translation>Delete</translation>
     </message>
@@ -13736,8 +13736,6 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2pwindow.cpp" line="265"/>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="643"/>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="643"/>
         <source>投了</source>
         <translation>Resign</translation>
     </message>
@@ -14135,20 +14133,16 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">When connecting to another PC on the same LAN, check that the firewall on the inviter&apos;s PC is not blocking the connection. Swapping who creates the invitation may also work.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="643"/>
         <source>投了しますか？</source>
-        <translation>Resign?</translation>
+        <translation type="vanished">Resign?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="658"/>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="660"/>
         <source>対局をやめる</source>
-        <translation>Leave Game</translation>
+        <translation type="vanished">Leave Game</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="659"/>
         <source>対局をやめますか？ 結果は確定せず、相手には中断が伝わります。</source>
-        <translation>Leave the game? The result will not be confirmed, and the opponent will be told the game was interrupted.</translation>
+        <translation type="vanished">Leave the game? The result will not be confirmed, and the opponent will be told the game was interrupted.</translation>
     </message>
 </context>
 <context>
@@ -14314,6 +14308,56 @@ Are you sure you want to declare?</translation>
         <location filename="../../src/dialogs/p2pwindowtext.cpp" line="115"/>
         <source>相手の確定なし</source>
         <translation>Without opponent&apos;s confirmation</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="139"/>
+        <source>ほかの ShogiBoardQ が P2P対局を使っています。</source>
+        <translation>Another ShogiBoardQ is using P2P games.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="140"/>
+        <source>このビルドはそのネットワークに参加できません。</source>
+        <translation>This build cannot join that network.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="142"/>
+        <source>このビルドは使用期限を過ぎたので、限定試験用のネットワークに参加できません。新しい版に更新してください。保存した記録の確認と、ローカル検証用のネットワークは使えます。</source>
+        <translation>This build has expired and cannot join the limited test network. Please update to a newer version. You can still review saved records and use the local test network.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="144"/>
+        <source>プレイヤー鍵を読み込んでいません。</source>
+        <translation>The player key is not loaded.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="146"/>
+        <source>自動化 API を有効にして起動したときは、P2P対局を使えません。</source>
+        <translation>P2P games are not available when the automation API is enabled.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="155"/>
+        <source>通信プロセス（shogiboardq-peer）が見つかりません。</source>
+        <translation>The communication process (shogiboardq-peer) was not found.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="157"/>
+        <source>この OS では、通信プロセスの権限を制限できないので、P2P対局を使えません。</source>
+        <translation>P2P games are not available on this OS because the communication process cannot be restricted.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="159"/>
+        <source>通信プロセスの権限を制限できなかったので、P2P対局を使えません。制限なしでは続けません。</source>
+        <translation>The communication process could not be restricted, so P2P games are not available. It will not run unrestricted.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="164"/>
+        <source>通信プロセスとのやり取りに異常があったので、通信プロセスを止めました。</source>
+        <translation>The communication process was stopped because its messages were invalid.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="166"/>
+        <source>通信プロセスが異常終了しました。招待・交渉は取り消し、対局中なら中断（結果未確定）になります。</source>
+        <translation>The communication process terminated abnormally. Invitations and negotiations are cancelled; a game in progress is interrupted (result unconfirmed).</translation>
     </message>
     <message>
         <source>署名を確かめられませんでした。相手が名乗ったIDの持ち主であることを示せませんでした。</source>

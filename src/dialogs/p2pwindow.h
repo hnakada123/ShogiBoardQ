@@ -26,8 +26,9 @@ class QTabWidget;
  *
  * 通常の画面では鍵の用語を主な操作に使わず、「招待で接続」のような行動の分かる語にする。対局の相手は招待で決める
  * （不特定の相手との公開募集は持たない）。自分や相手のアドレス（IP）は出さない。
- * 相手や通信プロセスから来た文字列（表示名・PeerId）は PlainText で出す。接続と切断はプレイヤー鍵の準備が要るので、
- * 意図のシグナルで知らせる（受けるのは P2pGameUiController）。
+ * 相手や通信プロセスから来た文字列（表示名・PeerId）は PlainText で出す。ロビーと司令塔は表示のために読むだけで、
+ * 接続・招待・対局の操作は意図のシグナルで知らせる（受けるのは P2pGameUiController。投了と合意中断はメニューと
+ * 同じ QAction を通る）。
  */
 class P2pWindow : public QDialog
 {
@@ -53,6 +54,16 @@ signals:
     void stopRequested();
     /// プレイヤー鍵を作り直す
     void recreateIdentityRequested();
+    /// 招待を作る（表示名・持ち時間・先後の希望はウィンドウの欄の値）
+    void createInviteRequested();
+    /// 受け取った招待文字列を確かめる・その招待で接続する（名乗る表示名はウィンドウの欄の値）
+    void inspectInviteRequested(const QString& invite);
+    void connectInviteRequested(const QString& invite, bool allowPrivate);
+    /// 対局中の操作（投了・合意引き分けの申し出・合意中断の申し出・対局をやめる）
+    void resignRequested();
+    void offerDrawRequested();
+    void offerAbortRequested();
+    void leaveGameRequested();
 
 public slots:
     /// 接続・招待・対局の状態を出し直す（通信プロセスの知らせのたびに呼ばれるので、記録の表は作り直さない）
@@ -71,10 +82,6 @@ private slots:
     void onRequestFailed(const QString& method, const QString& code);
     void onConnectFailed(const QString& reason);
     void onCopyPlayerId();
-    void onResign();
-    void onOfferDraw();
-    void onOfferAbort();
-    void onLeaveGame();
     void saveSettings();
     void updateGameStatus();
     void onTabChanged(int index);

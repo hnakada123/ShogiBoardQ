@@ -82,7 +82,7 @@ const P2pKnownPeer* P2pKnownPeers::find(const QByteArray& playerKey) const
     return nullptr;
 }
 
-P2pKnownPeer& P2pKnownPeers::upsert(const QByteArray& playerKey)
+P2pKnownPeer& P2pKnownPeers::entry(const QByteArray& playerKey)
 {
     for (P2pKnownPeer& peer : m_peers) {
         if (peer.playerKey == playerKey) return peer;
@@ -93,9 +93,42 @@ P2pKnownPeer& P2pKnownPeers::upsert(const QByteArray& playerKey)
     return m_peers.last();
 }
 
-void P2pKnownPeers::remove(const QByteArray& playerKey)
+bool P2pKnownPeers::recordGameStarted(const QByteArray& playerKey, const QString& displayName)
+{
+    P2pKnownPeer& peer = entry(playerKey);
+    peer.lastDisplayName = displayName;
+    ++peer.games;
+    return save();
+}
+
+bool P2pKnownPeers::recordUnconfirmed(const QByteArray& playerKey)
+{
+    ++entry(playerKey).unconfirmed;
+    return save();
+}
+
+bool P2pKnownPeers::setLocalName(const QByteArray& playerKey, const QString& name)
+{
+    entry(playerKey).localName = name.trimmed().left(kMaxLocalNameLength);
+    return save();
+}
+
+bool P2pKnownPeers::setVerified(const QByteArray& playerKey, bool verified)
+{
+    entry(playerKey).verified = verified;
+    return save();
+}
+
+bool P2pKnownPeers::setBlocked(const QByteArray& playerKey, bool blocked)
+{
+    entry(playerKey).blocked = blocked;
+    return save();
+}
+
+bool P2pKnownPeers::remove(const QByteArray& playerKey)
 {
     m_peers.removeIf([&playerKey](const P2pKnownPeer& peer) { return peer.playerKey == playerKey; });
+    return save();
 }
 
 QList<P2pKnownPeer> P2pKnownPeers::sameNameDifferentId(const QString& displayName, const QByteArray& playerKey) const

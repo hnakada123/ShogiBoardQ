@@ -3,6 +3,7 @@
 
 #include "p2pgameuicontroller.h"
 
+#include <QAction>
 #include <QMessageBox>
 #include <QWidget>
 
@@ -89,8 +90,9 @@ bool P2pGameUiController::ensureLobby()
 void P2pGameUiController::openWindow()
 {
     if (m_automationDisabled) {
-        NotificationPresenter::information(m_deps.parentWidget, tr("P2P対局"),
-                                           tr("自動化 API を有効にして起動したときは、P2P対局を使えません。"));
+        NotificationPresenter::information(
+            m_deps.parentWidget, tr("P2P対局"),
+            P2pWindowText::startFailureText(P2pLobbyService::StartFailure::AutomationEnabled));
         return;
     }
     if (!ensureLobby()) return;
@@ -100,6 +102,16 @@ void P2pGameUiController::openWindow()
         connect(m_window, &P2pWindow::startRequested, this, &P2pGameUiController::onStartRequested);
         connect(m_window, &P2pWindow::stopRequested, this, &P2pGameUiController::onStopRequested);
         connect(m_window, &P2pWindow::recreateIdentityRequested, this, &P2pGameUiController::onRecreateIdentity);
+        connect(m_window, &P2pWindow::createInviteRequested, this, &P2pGameUiController::onCreateInviteRequested);
+        connect(m_window, &P2pWindow::inspectInviteRequested, this, &P2pGameUiController::onInspectInviteRequested);
+        connect(m_window, &P2pWindow::connectInviteRequested, this, &P2pGameUiController::onConnectInviteRequested);
+        // 投了と合意中断は、メニュー・ツールバーと同じ操作にする
+        if (m_deps.resignAction) connect(m_window, &P2pWindow::resignRequested, m_deps.resignAction, &QAction::trigger);
+        if (m_deps.breakOffAction) {
+            connect(m_window, &P2pWindow::offerAbortRequested, m_deps.breakOffAction, &QAction::trigger);
+        }
+        connect(m_window, &P2pWindow::offerDrawRequested, this, &P2pGameUiController::onOfferDrawRequested);
+        connect(m_window, &P2pWindow::leaveGameRequested, this, &P2pGameUiController::onLeaveGameRequested);
     }
     m_window->refresh();
     m_window->show();
@@ -149,26 +161,8 @@ void P2pGameUiController::onIdentityFinished(P2pIdentityStore::Failure failure)
 void P2pGameUiController::beginNetwork()
 {
     if (!m_lobby || !m_window) return;
-    QString message;
-    switch (m_lobby->begin(m_window->networkName(), m_window->bootstrap(), m_window->relayOnly())) {
-    case P2pLobbyService::StartFailure::None: break;
-    case P2pLobbyService::StartFailure::Locked:
-        message = tr("ほかの ShogiBoardQ が P2P対局を使っています。");
-        break;
-    case P2pLobbyService::StartFailure::NetworkNotAllowed:
-        message = tr("このビルドはそのネットワークに参加できません。");
-        break;
-    case P2pLobbyService::StartFailure::BuildExpired:
-        message = tr("このビルドは使用期限を過ぎたので、限定試験用のネットワークに参加できません。新しい版に更新してください。"
-                     "保存した記録の確認と、ローカル検証用のネットワークは使えます。");
-        break;
-    case P2pLobbyService::StartFailure::NoIdentity:
-        message = tr("プレイヤー鍵を読み込んでいません。");
-        break;
-    case P2pLobbyService::StartFailure::AutomationEnabled:
-        message = tr("自動化 API を有効にして起動したときは、P2P対局を使えません。");
-        break;
-    }
+    const QString message =
+        P2pWindowText::startFailureText(m_lobby->begin(m_window->networkName(), m_window->bootstrap(), m_window->relayOnly()));
     if (!message.isEmpty()) NotificationPresenter::warning(dialogParent(), tr("P2P対局"), message);
     if (m_window) m_window->refresh();
 }
@@ -203,6 +197,40 @@ void P2pGameUiController::onRecreateIdentity()
     P2pIdentityDialog dialog(P2pIdentityDialog::Mode::Create, m_lobby->identity(), dialogParent());
     dialog.exec();
     if (m_window) m_window->refresh();
+}
+
+// ---------------------------------------------------------------- 招待と対局中の操作
+
+void P2pGameUiController::onCreateInviteRequested()
+{
+    if (m_lobby && m_window) m_lobby->createInvite(m_window->displayName(), m_window->terms(), m_window->sidePreference());
+}
+
+void P2pGameUiController::onInspectInviteRequested(const QString& invite)
+{
+    if (m_lobby) m_lobby->inspectInvite(invite);
+}
+
+void P2pGameUiController::onConnectInviteRequested(const QString& invite, bool allowPrivate)
+{
+    if (m_lobby && m_window) m_lobby->connectInvite(invite, allowPrivate, m_window->displayName());
+}
+
+void P2pGameUiController::onOfferDrawRequested()
+{
+    if (m_deps.game) m_deps.game->offerDraw();
+}
+
+void P2pGameUiController::onLeaveGameRequested()
+{
+    if (!m_deps.game) return;
+    if (!DialogUtils::confirmAction(dialogParent(), tr("対局をやめる"),
+                                    tr("対局をやめますか？ 結果は確定せず、相手には中断が伝わります。"),
+                                    tr("対局をやめる"), QMessageBox::Warning)) {
+        return;
+    }
+    // 確かめている間に対局が終わっていれば、司令塔が何もしない
+    m_deps.game->leaveGame();
 }
 
 // ---------------------------------------------------------------- 交渉
@@ -309,28 +337,8 @@ void P2pGameUiController::onGameFinished(P2p::Settlement ending, std::optional<P
 
 void P2pGameUiController::onPeerFailed(PeerProcess::Failure failure, const QString& detail)
 {
-    QString text;
-    switch (failure) {
-    case PeerProcess::Failure::NotFound:
-        text = tr("通信プロセス（shogiboardq-peer）が見つかりません。");
-        break;
-    case PeerProcess::Failure::UnsupportedOs:
-        text = tr("この OS では、通信プロセスの権限を制限できないので、P2P対局を使えません。");
-        break;
-    case PeerProcess::Failure::SandboxFailed:
-        text = tr("通信プロセスの権限を制限できなかったので、P2P対局を使えません。制限なしでは続けません。");
-        break;
-    case PeerProcess::Failure::HelloMismatch:
-    case PeerProcess::Failure::ProtocolViolation:
-        text = tr("通信プロセスとのやり取りに異常があったので、通信プロセスを止めました。");
-        break;
-    case PeerProcess::Failure::Crashed:
-        text = tr("通信プロセスが異常終了しました。招待・交渉は取り消し、対局中なら中断（結果未確定）になります。");
-        break;
-    case PeerProcess::Failure::None:
-        return;
-    }
-    if (!detail.isEmpty() && failure == PeerProcess::Failure::SandboxFailed) text += QLatin1Char('\n') + detail;
+    const QString text = P2pWindowText::peerFailureText(failure, detail);
+    if (text.isEmpty()) return;
     NotificationPresenter::warning(dialogParent(), tr("P2P対局"), text);
     if (m_window) m_window->refresh();
 }

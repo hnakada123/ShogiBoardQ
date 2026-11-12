@@ -2,7 +2,7 @@
 #define P2PWINDOWTEXT_H
 
 /// @file p2pwindowtext.h
-/// @brief P2P対局の画面の文（プレイヤーID・持ち時間・ルール・記録に残る内容・終わり方・記録の区分）
+/// @brief P2P対局の画面の文（プレイヤーID・持ち時間・ルール・記録に残る内容・終わり方・記録の区分・使えない理由）
 
 #include <QCoreApplication>
 #include <QString>
@@ -11,7 +11,9 @@
 
 #include "p2pevidenceverifier.h"
 #include "p2pframes.h"
+#include "p2plobbyservice.h"
 #include "p2pmatch.h"
+#include "peerprocess.h"
 
 /**
  * @brief P2P対局の画面で共通の文
@@ -37,6 +39,10 @@ public:
     /// 記録の表に出す、結果の確定のしかたの短い語（通知の文は settlementText）
     static QString settlementLabel(P2p::Settlement settlement);
     static QString categoryText(P2p::EvidenceReport::Category category);
+    /// P2P対局を使い始められない理由（None なら空）
+    static QString startFailureText(P2pLobbyService::StartFailure failure);
+    /// 通信プロセスが使えなくなった理由（None なら空。権限の制限の失敗だけ、診断の detail を添える）
+    static QString peerFailureText(PeerProcess::Failure failure, const QString& detail);
 };
 
 #endif // P2PWINDOWTEXT_H

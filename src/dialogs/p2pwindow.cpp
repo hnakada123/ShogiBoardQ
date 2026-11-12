@@ -270,10 +270,10 @@ QWidget* P2pWindow::createGameTab()
     m_offerAbort->setObjectName(QStringLiteral("p2pOfferAbort"));
     m_leave = new QPushButton(tr("対局をやめる（結果未確定）"), tab);
     m_leave->setObjectName(QStringLiteral("p2pLeave"));
-    connect(m_resign, &QPushButton::clicked, this, &P2pWindow::onResign);
-    connect(m_offerDraw, &QPushButton::clicked, this, &P2pWindow::onOfferDraw);
-    connect(m_offerAbort, &QPushButton::clicked, this, &P2pWindow::onOfferAbort);
-    connect(m_leave, &QPushButton::clicked, this, &P2pWindow::onLeaveGame);
+    connect(m_resign, &QPushButton::clicked, this, &P2pWindow::resignRequested);
+    connect(m_offerDraw, &QPushButton::clicked, this, &P2pWindow::offerDrawRequested);
+    connect(m_offerAbort, &QPushButton::clicked, this, &P2pWindow::offerAbortRequested);
+    connect(m_leave, &QPushButton::clicked, this, &P2pWindow::leaveGameRequested);
     for (QPushButton* b : {m_resign, m_offerDraw, m_offerAbort, m_leave}) buttons->addWidget(b);
     layout->addLayout(buttons);
     layout->addWidget(plainLabel(tab, tr("合意による引き分け・中断は、相手が承諾したときだけ成立します。"
@@ -534,7 +534,7 @@ void P2pWindow::onCreateInvite()
 {
     if (!m_lobby || !checkDisplayName() || !terms().isValid()) return;
     saveSettings();
-    m_lobby->createInvite(displayName(), terms(), sidePreference());
+    emit createInviteRequested();
 }
 
 void P2pWindow::onInviteCreated(const QString& invite, quint64 expiresAt, int addressCount)
@@ -568,7 +568,7 @@ void P2pWindow::onInspectInvite()
     m_connectInvite->setEnabled(false);
     m_allowPrivate->setVisible(false);
     m_inviteInInfo->setText(tr("確かめています…"));
-    m_lobby->inspectInvite(m_inviteIn->toPlainText().trimmed());
+    emit inspectInviteRequested(m_inviteIn->toPlainText().trimmed());
 }
 
 void P2pWindow::onInviteInspected(const P2pLobbyService::InviteInfo& info)
@@ -593,7 +593,7 @@ void P2pWindow::onConnectInvite()
     if (!m_lobby || !checkDisplayName()) return;
     saveSettings();
     m_connectInvite->setEnabled(false);
-    m_lobby->connectInvite(m_inviteIn->toPlainText().trimmed(), m_allowPrivate->isChecked(), displayName());
+    emit connectInviteRequested(m_inviteIn->toPlainText().trimmed(), m_allowPrivate->isChecked());
     // 招待文字列はもう使わない（ログ・設定に残さない）
     m_inviteIn->clear();
     m_inviteInInfo->setText(tr("接続しています…"));
@@ -635,29 +635,5 @@ void P2pWindow::onCopyPlayerId()
 {
     if (m_lobby && m_lobby->identity()) {
         QApplication::clipboard()->setText(QString::fromLatin1(m_lobby->identity()->publicKey().toHex()));
-    }
-}
-
-void P2pWindow::onResign()
-{
-    if (m_game && DialogUtils::confirmAction(this, tr("投了"), tr("投了しますか？"), tr("投了"))) m_game->resign();
-}
-
-void P2pWindow::onOfferDraw()
-{
-    if (m_game) m_game->offerDraw();
-}
-
-void P2pWindow::onOfferAbort()
-{
-    if (m_game) m_game->offerAbort();
-}
-
-void P2pWindow::onLeaveGame()
-{
-    if (m_game && DialogUtils::confirmAction(this, tr("対局をやめる"),
-                                             tr("対局をやめますか？ 結果は確定せず、相手には中断が伝わります。"),
-                                             tr("対局をやめる"), QMessageBox::Warning)) {
-        m_game->leaveGame();
     }
 }
