@@ -44,8 +44,8 @@
 
 | # | 不具合 | 原因 | 確認 |
 |---|---|---|---|
-| B1 | 対局が始まった直後に同じ呼び出しの中で終わると、ロビーが遅れて届いた「取り上げ」の知らせを受けて `end()` し、通信プロセスまで止まる（P2P の接続が切れ、招待も無効になる） | `P2pLobbyService::onActivityRevoked`（`p2plobbyservice.cpp:141`）が、自分のリースが今も有効か（`m_lease.isCurrent()`）を見ず、司令塔が対局中か（`isBusy()`）だけで無視するかを決めている。`AppActivityState::begin` の `revoked` は次のイベントループで届く（`appactivitystate.cpp:52`） | コードで確認 |
-| B2 | 相手の合意引き分け・合意中断の申し出を尋ねている間に、通信プロセスからの知らせと毎秒の確認が入れ子で処理され、知らせの処理の順が前後する。自分の手番に申し出が来ると、答えるまで盤を操作できず、その間も自分の時計は進む | `P2pGameUiController::onOfferReceived`（`p2pgameuicontroller.cpp:247`）が `DialogUtils::confirmAction`（`exec`）を開く。これは司令塔の `flushMatch` の知らせのループ（`p2pgamecoordinator.cpp:370`）の途中で、さらにその外側は `PeerProcess::onReadyReadStdout`（`peerprocess.cpp:183`）のループである | コードで確認 |
+| B1 | 対局が始まった直後に同じ呼び出しの中で終わると、ロビーが遅れて届いた「取り上げ」の知らせを受けて `end()` し、通信プロセスまで止まる（P2P の接続が切れ、招待も無効になる） | `P2pLobbyService::onActivityRevoked`（`p2plobbyservice.cpp:141`）が、自分のリースが今も有効か（`m_lease.isCurrent()`）を見ず、司令塔が対局中か（`isBusy()`）だけで無視するかを決めている。`AppActivityState::begin` の `revoked` は次のイベントループで届く（`appactivitystate.cpp:52`） | コードで確認<br>**状態: 済（ee00f039）** |
+| B2 | 相手の合意引き分け・合意中断の申し出を尋ねている間に、通信プロセスからの知らせと毎秒の確認が入れ子で処理され、知らせの処理の順が前後する。自分の手番に申し出が来ると、答えるまで盤を操作できず、その間も自分の時計は進む | `P2pGameUiController::onOfferReceived`（`p2pgameuicontroller.cpp:247`）が `DialogUtils::confirmAction`（`exec`）を開く。これは司令塔の `flushMatch` の知らせのループ（`p2pgamecoordinator.cpp:370`）の途中で、さらにその外側は `PeerProcess::onReadyReadStdout`（`peerprocess.cpp:183`）のループである | コードで確認<br>**状態: 済（567d4526）** |
 
 B1 の経路は2つある。
 
@@ -163,6 +163,8 @@ IPC の欄の名前を知っている場所は、検査（`peeripc.cpp` の `che
 
 ### 5.1 IPC の文書の版が実装と違う
 
+**状態: 済（aed37b09）**。`shutdown` は通信プロセスから出ないので、文書と対局・UI側の検査から外した。
+
 `protocol/ipc.md:39-45` は `protocolVersion` を 1 と書いているが、実装は C++（`peeripc.h:17`）も Rust（`ipc.rs:18`）も 2 である。同じ文書の75行目は `ipcVersion` を 2 としている。切断の理由 `shutdown` は `ipc.md:135` と `peeripc.cpp:270` にあるが、Rust のどこからも出ない。
 
 ### 5.2 実験版の使用期限を2つの言語が別々に決めている
@@ -201,7 +203,7 @@ START_SIGNATURE を見て受信の頻度の上限を変える規則がある。�
 | S3 | 後ろに宣言のない注釈「申込側の開始署名を確かめた（募集側はここで募集を取り下げる）」 | `p2pnegotiation.h:86` |
 | S4 | `P2pRecordStore` のファイルの説明が「既知の相手」を挙げるが、既知の相手は `P2pKnownPeers` | `p2precordstore.h:5` |
 | S5 | ロビー・ウィンドウの説明は「アドレス（IP）は届かない・出さない」と書くが、`inspectInvite` の `privateAddresses` は届き、ウィンドウに出す（`ipc.md:128-129` は例外として書いている） | `p2plobbyservice.h:33`・`p2pwindow.h:28`・`p2pwindow.cpp:580` |
-| S6 | 仕様 10.2節の部品の表に、実在しない `p2pgameprogress`・`p2pevidencestore`・`p2pgamedialog` が載り、`p2pnegotiation`・`p2pmatch`・`p2pframes`・`p2precordstore`・`p2pknownpeers` などが無い。司令塔を「状態機械」と書くが、状態機械は `Match`・`Negotiation` | `docs/dev/p2p-game-spec.md:758-779` |
+| S6 | 仕様 10.2節の部品の表に、実在しない `p2pgameprogress`・`p2pevidencestore`・`p2pgamedialog` が載り、`p2pnegotiation`・`p2pmatch`・`p2pframes`・`p2precordstore`・`p2pknownpeers` などが無い。司令塔を「状態機械」と書くが、状態機械は `Match`・`Negotiation` | `docs/dev/p2p-game-spec.md:758-779`<br>**状態: 済（aed37b09）** |
 | S7 | IPC のフレームの base64 の上限が 64 KiB を自分で計算している（`P2p::kMaxFrameBytes` を使わない） | `peeripc.cpp:132` |
 | S8 | `P2pHistoryInfo::mySide` が 1・2 の数で、読み戻しも `== 2 ? 2 : 1` と書く（`kSideBlack`・`kSideWhite` を使わない） | `p2precordstore.h`・`p2precordstore.cpp:237` |
 | S9 | `TimeControlTerms` から `TimeControl` への換算を、棋譜と時計のために同じ関数の中で2回書いている | `p2pgamecoordinator.cpp:221-233` |
