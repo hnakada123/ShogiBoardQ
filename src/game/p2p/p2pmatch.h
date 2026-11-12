@@ -29,6 +29,8 @@ struct MatchSetup {
     QByteArray opponentConnectionRandom;
     /// この接続で次に送るフレームの requestId（交渉から続けて増やす）
     quint64 nextRequestId = 1;
+    /// 相手が名乗った表示名（ジャーナルの開始の件に書く。証跡には入れない）
+    QString opponentDisplayName;
 };
 
 /// 対局からの知らせ
@@ -82,7 +84,7 @@ public:
 
     Match(MatchSetup setup, SigningKey sessionKey, const SigningKey* playerKey, MonotonicClock clock, Persist persist);
 
-    /// 開始する（先手は State0 を提案する）
+    /// 開始する（開始合意と両方の開始署名をジャーナルに書いてから。先手は State0 を提案する）
     void begin();
     void receive(const Frame& frame);
     /// 時間に関わる確認（再送・復旧・切断の上限・時間切れ・署名の待ち）。定期的に呼ぶ
@@ -132,6 +134,8 @@ public:
     qint64 reconnectRemainingMs() const;
     /// 相手の申し出に答える前か
     bool hasPendingOffer() const { return m_pendingOffer.has_value(); }
+    /// 相手が同じ手数の異なる状態に署名した証明をジャーナルに書いたか（ジャーナルを残す）
+    bool hasConflictProof() const { return m_conflictProof; }
     /// 証跡（いつでも作れる。結果がまだなければ空の結果）
     Evidence evidence() const;
     /// ローカルの終局理由の語（履歴に書く）
@@ -185,6 +189,7 @@ private:
     Phase m_phase = Phase::Opening;
     Settlement m_settlement = Settlement::None;
     std::optional<ErrorCode> m_endingError;
+    bool m_conflictProof = false;
     std::vector<Frame> m_outgoing;
     std::vector<MatchEvent> m_events;
     quint64 m_requestId = 1;

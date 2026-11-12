@@ -97,10 +97,6 @@ public:
     /// p2p/ 全体の大きさ
     qint64 totalBytes() const;
 
-    /// ジャーナルの件から証跡を組み立てる（読めない件は飛ばす）
-    static std::optional<P2p::Evidence> evidenceFromJournal(const std::vector<P2p::CborValue>& records,
-                                                            P2pHistoryInfo* info, bool* hasConflict);
-
 private:
     QString journalDirectory() const;
     QString evidenceDirectory() const;

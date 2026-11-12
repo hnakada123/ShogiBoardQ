@@ -771,7 +771,7 @@ Evidence = ["SBQ-MATCH", 1,
 | `src/game/p2p/p2pgamerules.h/.cpp` | 次の状態の作成と検証、時計の算術、棋譜から決まる終局 |
 | `src/game/p2p/p2pnegotiation.h/.cpp` | 開始までの交渉の状態機械（HELLO、先後の決定、開始合意、開始署名） |
 | `src/game/p2p/p2pmatch.h/.cpp`・`p2pmatch_control.cpp` | 開始後の対局の状態機械（State0、着手の合意、時計の観測、再接続と照合、結果の提案と署名）。一局用鍵を持つ |
-| `src/game/p2p/p2precordkinds.h/.cpp` | 対局ジャーナルの件の形 |
+| `src/game/p2p/p2precordkinds.h/.cpp` | 対局ジャーナルの件の形と読み戻し |
 | `src/game/p2p/p2pevidence.h/.cpp`・`p2pevidenceverifier.h/.cpp` | 証跡の値と読み書き、証跡の検証（署名、手順、合法性、時計の算術、ハッシュ） |
 | `src/network/p2p/peeripc.h/.cpp` | IPC のメッセージの形と、受けたメッセージの検査 |
 | `src/network/p2p/peerprocess.h/.cpp` | 通信プロセスの起動、サンドボックス適用の確認、非同期IPC、プロセス世代と要求IDの管理 |

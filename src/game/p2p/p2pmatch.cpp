@@ -144,6 +144,13 @@ void Match::begin()
 {
     m_startedAt = now();
     m_openingDeadline = m_startedAt + kOpeningTimeoutMs;
+    // 開始合意と両方の開始署名をジャーナルに書いてから始める（書けなければ何も送らずに中断する）
+    if (!persist(RecordKinds::start(m_setup.agreement, m_setup.terms, mySide(), m_setup.opponentDisplayName))
+        || !persist(RecordKinds::startSignature(kSideBlack, m_setup.blackStartSignature))
+        || !persist(RecordKinds::startSignature(kSideWhite, m_setup.whiteStartSignature))) {
+        abort(ErrorCode::StorageError);
+        return;
+    }
     if (!m_setup.iAmBlack) return;
     // 先手が State0 を提案する
     const GameState state0 = GameRules::initialState(m_gameId, m_setup.terms);
@@ -310,8 +317,8 @@ void Match::handleStatePropose(const StateProposePayload& payload)
         }
         // 同じ手数の異なる状態: 相手の2つの署名を証明として残して止める
         if (verifyApproval(state, payload.signature, opponentIsBlack)) {
-            persist(RecordKinds::conflict(known.state, opponentIsBlack ? known.blackApproval : known.whiteApproval,
-                                          state, payload.signature));
+            m_conflictProof = persist(RecordKinds::conflict(
+                known.state, opponentIsBlack ? known.blackApproval : known.whiteApproval, state, payload.signature));
         }
         return failWithError(ErrorCode::StateConflict, state.ply);
     }

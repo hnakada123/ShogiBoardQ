@@ -18,6 +18,7 @@
 #endif
 
 #include "logcategories.h"
+#include "p2precordkinds.h"
 
 namespace {
 
@@ -217,60 +218,6 @@ QString P2pRecordStore::saveEvidence(const P2p::Evidence& evidence, const P2pHis
     return path;
 }
 
-std::optional<P2p::Evidence> P2pRecordStore::evidenceFromJournal(const std::vector<CborValue>& records,
-                                                                 P2pHistoryInfo* info, bool* hasConflict)
-{
-    P2p::Evidence e;
-    bool started = false;
-    if (hasConflict) *hasConflict = false;
-    for (const CborValue& record : records) {
-        if (!record.isArray() || record.items().empty() || !record.items()[0].isText()) continue;
-        const QByteArray kind = record.items()[0].data();
-        const std::vector<CborValue>& items = record.items();
-        if (kind == "J-START" && items.size() == 5) {
-            const std::optional<P2p::StartAgreement> agreement = P2p::StartAgreement::fromCbor(items[1]);
-            const std::optional<P2p::TimeControlTerms> terms = P2p::TimeControlTerms::fromCbor(items[2]);
-            if (!agreement || !terms) return std::nullopt;
-            e.agreement = *agreement;
-            e.timeControl = *terms;
-            if (info) {
-                info->mySide = items[3].isUInt() && items[3].toUInt() == 2 ? 2 : 1;
-                info->opponentDisplayName = items[4].isText() ? items[4].toText() : QString();
-            }
-            started = true;
-        } else if (!started) {
-            continue;
-        } else if (kind == "J-STARTSIG" && items.size() == 3 && items[1].isUInt() && items[2].isBytes()) {
-            (items[1].toUInt() == 1 ? e.blackStartSignature : e.whiteStartSignature) = items[2].data();
-        } else if (kind == "J-STATE" && items.size() == 4 && items[2].isBytes() && items[3].isBytes()) {
-            const std::optional<P2p::GameState> state = P2p::GameState::fromCbor(items[1]);
-            if (!state) continue;
-            P2p::SignedState s{*state, items[2].data(), items[3].data()};
-            // 同じ手数の記録は新しいもの（署名が足されたもの）で置き換える
-            if (state->ply < e.states.size()) {
-                e.states[state->ply] = s;
-                e.states.resize(state->ply + 1);
-            } else if (state->ply == e.states.size()) {
-                e.states.push_back(s);
-            }
-        } else if (kind == "J-RESULT" && items.size() == 3) {
-            e.result = P2p::FinalResult::fromCbor(items[2]);
-        } else if (kind == "J-RESULTSIG" && items.size() == 3 && items[1].isUInt() && items[2].isBytes()) {
-            (items[1].toUInt() == 1 ? e.blackResultSignature : e.whiteResultSignature) = items[2].data();
-        } else if (kind == "J-CONFLICT") {
-            if (hasConflict) *hasConflict = true;
-        } else if (kind == "J-END" && items.size() == 2 && items[1].isText() && info) {
-            info->localEnding = items[1].toText();
-        }
-    }
-    if (!started) return std::nullopt;
-    if (!e.result) {
-        e.blackResultSignature.clear();
-        e.whiteResultSignature.clear();
-    }
-    return e;
-}
-
 int P2pRecordStore::recoverJournals()
 {
     int recovered = 0;
@@ -278,13 +225,14 @@ int P2pRecordStore::recoverJournals()
     const QStringList files = dir.entryList({QStringLiteral("*.journal")}, QDir::Files);
     for (const QString& name : files) {
         const QString path = dir.filePath(name);
+        const std::optional<P2p::JournalReplay> replay = P2p::RecordKinds::replay(P2pJournal::readAll(path));
+        if (!replay) continue;
         P2pHistoryInfo info;
-        bool hasConflict = false;
-        const std::optional<P2p::Evidence> evidence = evidenceFromJournal(P2pJournal::readAll(path), &info, &hasConflict);
-        if (!evidence) continue;
-        if (info.localEnding.isEmpty()) info.localEnding = QStringLiteral("interrupted");
+        info.mySide = replay->mySide;
+        info.opponentDisplayName = replay->opponentDisplayName;
+        info.localEnding = replay->localEnding.isEmpty() ? QStringLiteral("interrupted") : replay->localEnding;
         info.endedAt = static_cast<quint64>(QFileInfo(path).lastModified().toSecsSinceEpoch());
-        if (!saveEvidence(*evidence, info, hasConflict).isEmpty()) ++recovered;
+        if (!saveEvidence(replay->evidence, info, replay->hasConflictProof).isEmpty()) ++recovered;
     }
     if (recovered > 0) qCInfo(lcGame) << "P2P: recovered" << recovered << "journal(s) as unconfirmed records";
     return recovered;

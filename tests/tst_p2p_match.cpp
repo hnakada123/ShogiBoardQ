@@ -11,6 +11,7 @@
 #include "p2pgamerules.h"
 #include "p2pmatch.h"
 #include "p2pnegotiation.h"
+#include "p2precordkinds.h"
 
 using namespace P2p;
 
@@ -132,6 +133,7 @@ public:
             setup.myConnectionRandom = n.myConnectionRandom();
             setup.opponentConnectionRandom = n.opponentConnectionRandom();
             setup.nextRequestId = n.nextRequestId();
+            setup.opponentDisplayName = n.opponent()->displayName;
             Side* side = s;
             s->match = std::make_unique<Match>(
                 setup, n.takeSessionKey(), &s->playerKey, [this]() { return clock.ms; },
@@ -306,6 +308,48 @@ private slots:
             QCOMPARE(report.result->cause, Cause::Resign);
         }
         QCOMPARE(pair.black().match->evidence().encode(), pair.white().match->evidence().encode());
+    }
+
+    /// 対局が書いたジャーナルを読み戻すと、対局の証跡と同じになる（監査 2026-11-12 R2。再起動の後の復旧と同じ読み戻し）
+    void journalReplaysToTheSameEvidence()
+    {
+        Pair pair;
+        pair.negotiateAndStart();
+        pair.play(pair.black(), "7g7f");
+        pair.play(pair.white(), "3c3d");
+        QVERIFY(pair.black().match->resign());
+        pair.pump();
+        for (Side* s : {&pair.applicant, &pair.host}) {
+            QCOMPARE(s->match->settlement(), Settlement::MutuallySigned);
+            const std::optional<JournalReplay> replay = RecordKinds::replay(s->journal);
+            QVERIFY(replay);
+            QCOMPARE(replay->evidence.encode(), s->match->evidence().encode());
+            QCOMPARE(replay->mySide, s->match->iAmBlack() ? kSideBlack : kSideWhite);
+            QCOMPARE(replay->opponentDisplayName, s == &pair.applicant ? QStringLiteral("募集") : QStringLiteral("申込"));
+            QCOMPARE(replay->localEnding, s->match->endingName());
+            QVERIFY(!replay->hasConflictProof);
+            QVERIFY(!s->match->hasConflictProof());
+        }
+        // 開始の件がなければ読み戻さない
+        QVERIFY(!RecordKinds::replay({}));
+        std::vector<CborValue> withoutStart(pair.black().journal.begin() + 1, pair.black().journal.end());
+        QVERIFY(!RecordKinds::replay(withoutStart));
+    }
+
+    /// 相手の矛盾した署名の証明の件があれば、読み戻しで分かる（ジャーナルを残す）
+    void journalReplayFindsTheConflictProof()
+    {
+        Pair pair;
+        pair.negotiateAndStart();
+        pair.play(pair.black(), "7g7f");
+        std::vector<CborValue> records = pair.white().journal;
+        const SignedState& last = pair.white().match->confirmedStates().back();
+        records.push_back(RecordKinds::conflict(last.state, last.blackApproval, last.state, last.blackApproval));
+        const std::optional<JournalReplay> replay = RecordKinds::replay(records);
+        QVERIFY(replay);
+        QVERIFY(replay->hasConflictProof);
+        QVERIFY(replay->localEnding.isEmpty());
+        QCOMPARE(replay->evidence.states.size(), std::size_t(2));
     }
 
     void repetitionIsAgreedAutomatically()

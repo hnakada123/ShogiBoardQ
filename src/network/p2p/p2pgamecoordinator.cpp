@@ -11,7 +11,6 @@
 #include "matchending.h"
 #include "matchrecordsink.h"
 #include "p2pknownpeers.h"
-#include "p2precordkinds.h"
 #include "p2precordstore.h"
 #include "p2ptransport.h"
 #include "shogiboard.h"
@@ -163,16 +162,12 @@ void P2pGameCoordinator::startMatch()
     setup.myConnectionRandom = n.myConnectionRandom();
     setup.opponentConnectionRandom = n.opponentConnectionRandom();
     setup.nextRequestId = n.nextRequestId();
+    setup.opponentDisplayName = m_opponentDisplayName;
     const QByteArray gameId = setup.agreement.gameId();
 
-    // 開始合意と両方の開始署名をジャーナルに書いてから始める
+    // ジャーナルに書けなければ、対局の状態機械が開始の件を書くところで中断する
     m_journal = m_store ? m_store->createJournal(gameId) : nullptr;
     const auto persist = [this](const P2p::CborValue& record) { return m_journal && m_journal->append(record); };
-    const quint8 mySide = setup.iAmBlack ? P2p::kSideBlack : P2p::kSideWhite;
-    const bool journaled = persist(P2p::RecordKinds::start(setup.agreement, setup.terms, mySide, m_opponentDisplayName))
-        && persist(P2p::RecordKinds::startSignature(P2p::kSideBlack, setup.blackStartSignature))
-        && persist(P2p::RecordKinds::startSignature(P2p::kSideWhite, setup.whiteStartSignature));
-
     m_match = std::make_unique<P2p::Match>(setup, n.takeSessionKey(), m_playerKey, [this]() { return now(); }, persist);
     m_negotiation.reset();
     m_phase = Phase::Playing;
@@ -217,11 +212,6 @@ void P2pGameCoordinator::startMatch()
     emit negotiationEnded(true, std::nullopt, false);
     emit gameStarted();
 
-    if (!journaled) {
-        m_match->abort(P2p::ErrorCode::StorageError);
-        flushMatch();
-        return;
-    }
     m_match->begin();
     flushMatch();
 }
@@ -458,13 +448,8 @@ void P2pGameCoordinator::saveEvidence()
     info.localEnding = m_match->endingName();
     info.endedAt = static_cast<quint64>(QDateTime::currentSecsSinceEpoch());
     // 相手が同じ手数の異なる状態に署名した証明があれば、ジャーナルを残す
-    bool conflict = false;
-    if (m_journal) {
-        const std::vector<P2p::CborValue> records = P2pJournal::readAll(m_journal->path());
-        P2pRecordStore::evidenceFromJournal(records, nullptr, &conflict);
-        m_journal->close();
-    }
-    m_lastEvidencePath = m_store->saveEvidence(m_match->evidence(), info, conflict);
+    if (m_journal) m_journal->close();
+    m_lastEvidencePath = m_store->saveEvidence(m_match->evidence(), info, m_match->hasConflictProof());
     m_journal.reset();
 }
 
