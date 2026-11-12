@@ -611,6 +611,39 @@ fn relay_only_refuses_direct_only_invites() {
     assert_eq!(own["addressCount"], 0);
 }
 
+/// 決まったポート（48210）の UDP をほかのプロセスが使っているときは、TCP も決まったポートを使わない。
+/// libp2p の TCP の待受は共有できる設定（SO_REUSEPORT）で開くので、同時に起動した通信プロセスがどちらも TCP の
+/// ポートが空いていると確かめてから開けると、同じポートを共有して届いた接続を取り違える。共有できない UDP を
+/// 開けたプロセスだけが TCP でも決まったポートを使う
+#[test]
+fn fixed_tcp_port_follows_the_udp_port() {
+    // 決まったポートの UDP を開けておく（ほかの試験の通信プロセスが使っていれば、空くまで待つ）
+    let deadline = Instant::now() + TIMEOUT;
+    let holder = loop {
+        if let Ok(socket) = std::net::UdpSocket::bind(("0.0.0.0", 48210)) {
+            break socket;
+        }
+        assert!(Instant::now() < deadline, "UDP 48210 stayed busy");
+        std::thread::sleep(Duration::from_millis(100));
+    };
+    let mut p = Peer::spawn();
+    p.start(vec![]);
+    // 待受のアドレス（インターフェースごと）が出そろうのを待つ
+    std::thread::sleep(Duration::from_secs(1));
+    let text = p.ok("createInvite", json!({}))["invite"].as_str().unwrap().to_owned();
+    let addrs: Vec<String> = Invite::decode(&text)
+        .unwrap()
+        .addrs
+        .iter()
+        .map(|bytes| libp2p::Multiaddr::try_from(bytes.clone()).unwrap().to_string())
+        .collect();
+    assert!(addrs.iter().any(|a| a.contains("/tcp/")), "{addrs:?}");
+    for addr in &addrs {
+        assert!(!addr.contains("/tcp/48210") && !addr.contains("/udp/48210"), "{addr}");
+    }
+    drop(holder);
+}
+
 /// 招待の到達候補の先頭の IPv4 アドレス
 fn invite_ipv4(bytes: &[u8]) -> std::net::Ipv4Addr {
     let addr = libp2p::Multiaddr::try_from(bytes.to_vec()).unwrap();
