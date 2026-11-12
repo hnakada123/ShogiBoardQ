@@ -48,6 +48,14 @@ pub const NETWORKS: &[NetworkSpec] = &[
 /// （行の形 `pub const BUILD_LIFETIME_DAYS: u64 = <数>;` を変えない）
 pub const BUILD_LIFETIME_DAYS: u64 = 180;
 
+/// Identify で示すプロトコルの版（README 1.1節。相手のこの値で接続を断らない）
+pub const IDENTIFY_PROTOCOL: &str = "/shogiboardq/1.0.0";
+
+/// ローカルのネットワーク（同じ PC・同じ LAN）の待受のポート（TCP と UDP。README 1.1節・ipc.md 5章）。起動のたびに
+/// 変わると、招待する側の PC のファイアウォールで許可するポートを決められない。対局・UI側の案内の文も、CMake が
+/// この行から読む（行の形 `pub const LAN_PORT: u16 = <数>;` を変えない）
+pub const LAN_PORT: u16 = 48210;
+
 /// 名前のネットワークを探す（一覧にない名前は None）
 pub fn find(name: &str) -> Option<NetworkSpec> {
     NETWORKS.iter().copied().find(|n| n.name == name)

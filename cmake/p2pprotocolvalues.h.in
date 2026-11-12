@@ -1,0 +1,9 @@
+// CMake が構成のたびに作るファイル。直接編集しない。
+#ifndef P2PPROTOCOLVALUES_H
+#define P2PPROTOCOLVALUES_H
+
+/// ローカルのネットワーク（同じ PC・同じ LAN）の待受のポート（TCP と UDP。protocol/README.md 1.1節）。
+/// 通信プロセスと同じ値を、protocol/rust/src/network.rs の LAN_PORT から読む
+inline constexpr int kP2pLanPort = @SBQ_P2P_LAN_PORT@;
+
+#endif // P2PPROTOCOLVALUES_H

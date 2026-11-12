@@ -50,6 +50,15 @@ networkId = H(CBOR(["SBQ-NETWORK", 1, networkName]))     ; networkName は text�
 | `sbq-local-1` | `local`（ローカル検証用。同じ PC・同じ LAN） | なし | loopback と私設アドレスを使える。待受は IPv4 の全インターフェース（ポート 48210。`ipc.md` 5章）で、接続元が loopback・私設アドレスの接続だけを受け付ける |
 | `sbq-limited-1` | `internet`（限定試験用） | ビルドから180日 | インターネット上のアドレスと中継だけ（`ipc.md` 5章） |
 
+両方の実装が同じ値を使う、ネットワークの定数（Rust は `sbq-protocol` の `network`。対局・UI側の C++ の値は、
+CMake が `network.rs` の行から読む）:
+
+| 定数 | 値 | 使うところ |
+|---|---|---|
+| `IDENTIFY_PROTOCOL` | `/shogiboardq/1.0.0` | libp2p の Identify で示すプロトコルの版。相手のこの値で接続を断らない |
+| `LAN_PORT` | 48210 | ローカルのネットワークの待受のポート（TCP と UDP。使用中なら空いているポート。`ipc.md` 5章） |
+| `BUILD_LIFETIME_DAYS` | 180 | 実験版のビルドの使用期限の日数（期限のあるネットワークだけ。実装仕様 3.1節） |
+
 `rulesHash` は v1 では1つの値（平手・512手・人間対人間の `Rules`。`game-frames.md`）だけを使う。
 対局・UI側だけが扱い、通信プロセスは使わない。
 

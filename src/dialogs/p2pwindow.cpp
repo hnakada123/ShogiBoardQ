@@ -33,8 +33,8 @@
 #include "p2pidentitydialog.h"
 #include "p2pidentitystore.h"
 #include "p2ppeerspanel.h"
+#include "p2pprotocolvalues.h"
 #include "p2pwindowtext.h"
-#include "peeripc.h"
 
 namespace {
 
@@ -624,7 +624,7 @@ void P2pWindow::onConnectFailed(const QString& reason)
             text += QLatin1Char('\n')
                     + tr("同じLANの別のPCとつなぐときは、招待した側のPCのファイアウォールで、TCP と UDP の %1 番ポートへの接続が"
                          "許可されているか確かめてください。招待する側を入れ替えると、つながることがあります。")
-                          .arg(PeerIpc::kLanPort);
+                          .arg(kP2pLanPort);
         }
     }
     m_inviteInInfo->clear();

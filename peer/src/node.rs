@@ -13,7 +13,7 @@ use libp2p::swarm::ConnectionId;
 use libp2p::{Multiaddr, PeerId, Stream, StreamProtocol, Swarm};
 use sbq_protocol::frame::{self, FrameHeader, GAME_PROTOCOL};
 use sbq_protocol::hash::hex;
-use sbq_protocol::network::{self, NetworkSpec, Profile};
+use sbq_protocol::network::{self, NetworkSpec, Profile, LAN_PORT};
 use serde_json::{json, Value};
 use tokio::sync::mpsc;
 use tokio::task::AbortHandle;
@@ -36,9 +36,6 @@ const FIRST_FRAME_TIMEOUT: Duration = Duration::from_secs(10);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 /// 宛先を覚えるピアの上限
 const MAX_ADDR_BOOK_PEERS: usize = 64;
-/// ローカルのネットワーク（同じ PC・同じ LAN）の待受のポート（TCP と UDP）。起動のたびに変わると、
-/// 招待する側の PC のファイアウォールで許可するポートを決められない。使用中なら空いているポートで待ち受ける
-pub const LAN_PORT: u16 = 48210;
 
 /// 決まったポートの TCP の待受を、ほかのプロセスが使っていないか（ポートを決めていないアドレスと TCP 以外は true）。
 /// libp2p の TCP の待受は、同じポートを複数のプロセスで共有できる設定（SO_REUSEPORT）で開くので、使用中でも開けて

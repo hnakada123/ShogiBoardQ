@@ -1075,17 +1075,21 @@ if(ENABLE_P2P_PLAY)
     # 1回だけ決めて通信プロセスの cargo にも渡す（SBQ_P2P_BUILD_EPOCH）。日数は通信プロセスと同じ値を、
     # sbq-protocol の BUILD_LIFETIME_DAYS の1か所から読む（対局・UI側と通信プロセスの判定を食い違わせない）
     string(TIMESTAMP SBQ_P2P_BUILD_EPOCH "%s" UTC)
-    file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/protocol/rust/src/network.rs SBQ_P2P_LIFETIME_LINE
-         REGEX "^pub const BUILD_LIFETIME_DAYS: u64 = [0-9]+;$")
-    set(SBQ_P2P_BUILD_LIFETIME_DAYS "")
-    if(SBQ_P2P_LIFETIME_LINE MATCHES "= ([0-9]+)")
-        set(SBQ_P2P_BUILD_LIFETIME_DAYS ${CMAKE_MATCH_1})
-    endif()
-    if(NOT SBQ_P2P_BUILD_LIFETIME_DAYS MATCHES "^[0-9]+$")
-        message(FATAL_ERROR "BUILD_LIFETIME_DAYS was not found in protocol/rust/src/network.rs")
-    endif()
+    # sbq-protocol（protocol/rust/src/network.rs）の数の定数を、`pub const 名前: 型 = 数;` の1行から読む
+    function(sbq_read_protocol_const NAME TYPE OUT)
+        file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/protocol/rust/src/network.rs _line
+             REGEX "^pub const ${NAME}: ${TYPE} = [0-9]+;$")
+        if(NOT _line MATCHES "= ([0-9]+)")
+            message(FATAL_ERROR "${NAME} was not found in protocol/rust/src/network.rs")
+        endif()
+        set(${OUT} ${CMAKE_MATCH_1} PARENT_SCOPE)
+    endfunction()
+    sbq_read_protocol_const(BUILD_LIFETIME_DAYS u64 SBQ_P2P_BUILD_LIFETIME_DAYS)
+    # ローカルのネットワークの待受のポート（画面の案内の文に出す。通信プロセスと同じ値）
+    sbq_read_protocol_const(LAN_PORT u16 SBQ_P2P_LAN_PORT)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS protocol/rust/src/network.rs)
     configure_file(cmake/p2pbuildinfo.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/p2pbuildinfo.h @ONLY)
+    configure_file(cmake/p2pprotocolvalues.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/p2pprotocolvalues.h @ONLY)
 
     set(SRC_P2P
         src/game/p2p/p2pcbor.cpp

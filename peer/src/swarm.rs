@@ -12,10 +12,10 @@ use libp2p::swarm::behaviour::toggle::Toggle;
 use libp2p::swarm::NetworkBehaviour;
 use libp2p::{autonat, connection_limits, dcutr, identify, noise, ping, quic, relay, tcp, yamux, PeerId, Swarm};
 
+use sbq_protocol::network::IDENTIFY_PROTOCOL;
+
 use crate::addr::{AddrPolicy, FilteredTransport};
 
-/// Identify で示すプロトコルの版
-pub const IDENTIFY_PROTOCOL: &str = "/shogiboardq/1.0.0";
 /// 中継の hop のプロトコル
 pub const RELAY_HOP_PROTOCOL: &str = "/libp2p/circuit/relay/0.2.0/hop";
 

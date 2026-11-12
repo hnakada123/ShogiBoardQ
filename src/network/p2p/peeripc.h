@@ -15,8 +15,6 @@ namespace PeerIpc {
 /// IPC 1件の上限（128 KiB）
 inline constexpr qsizetype kMaxMessageBytes = 128 * 1024;
 inline constexpr int kProtocolVersion = 2;
-/// ローカルのネットワーク（同じ PC・同じ LAN）の待受のポート（TCP と UDP。protocol/ipc.md 5章。通信プロセスの LAN_PORT と同じ値）
-inline constexpr int kLanPort = 48210;
 
 /// 長さの前置きを付けたメッセージ
 QByteArray frame(const QJsonObject& message);
