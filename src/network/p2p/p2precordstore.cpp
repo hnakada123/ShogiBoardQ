@@ -7,7 +7,6 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
-#include <QSaveFile>
 
 #include <algorithm>
 
@@ -18,6 +17,7 @@
 #endif
 
 #include "logcategories.h"
+#include "p2pownerfile.h"
 #include "p2precordkinds.h"
 
 namespace {
@@ -25,7 +25,6 @@ namespace {
 using P2p::CborValue;
 
 constexpr QFileDevice::Permissions kOwnerFile = QFileDevice::ReadOwner | QFileDevice::WriteOwner;
-constexpr QFileDevice::Permissions kOwnerDir = QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner;
 constexpr int kChecksumBytes = 4;
 /// 履歴の情報のファイルの上限
 constexpr qint64 kMaxInfoBytes = 4096;
@@ -73,25 +72,13 @@ std::optional<P2pHistoryInfo> parseInfo(const QByteArray& bytes)
     if (!value) return std::nullopt;
     P2p::CborReader r(*value, "SBQ-HISTORY", 7);
     P2pHistoryInfo info;
-    info.mySide = static_cast<quint8>(r.uint(2, 2));
+    info.mySide = static_cast<quint8>(r.uint(2, P2p::kSideWhite));
     info.opponentDisplayName = r.utf8(3, 96);
     info.settlement = P2p::settlementFromName(QString::fromLatin1(r.ascii(4, 64))).value_or(P2p::Settlement::None);
     info.endedAt = r.uint(5, 0xFFFFFFFFFFULL);
     info.kifuPath = r.utf8(6, 4096);
-    if (!r.ok()) return std::nullopt;
+    if (!r.ok() || (info.mySide != P2p::kSideBlack && info.mySide != P2p::kSideWhite)) return std::nullopt;
     return info;
-}
-
-bool writeAtomically(const QString& path, const QByteArray& bytes)
-{
-    QSaveFile file(path);
-    if (!file.open(QIODevice::WriteOnly)) return false;
-    file.setPermissions(kOwnerFile);
-    if (file.write(bytes) != bytes.size()) {
-        file.cancelWriting();
-        return false;
-    }
-    return file.commit();
 }
 
 } // namespace
@@ -158,10 +145,7 @@ QString P2pRecordStore::evidenceDirectory() const
 
 bool P2pRecordStore::ensureDirectory(const QString& path) const
 {
-    if (!QDir().mkpath(path)) return false;
-    QFile::setPermissions(m_root, kOwnerDir);
-    QFile::setPermissions(path, kOwnerDir);
-    return true;
+    return P2pOwnerFile::ensureDirectory(m_root) && P2pOwnerFile::ensureDirectory(path);
 }
 
 std::unique_ptr<P2pJournal> P2pRecordStore::createJournal(const QByteArray& gameId)
@@ -178,8 +162,8 @@ QString P2pRecordStore::saveEvidence(const P2p::Evidence& evidence, const P2pHis
     if (!ensureDirectory(evidenceDirectory())) return QString();
     const QString base = QString::fromLatin1(evidence.gameId().toHex());
     const QString path = QDir(evidenceDirectory()).filePath(base + QStringLiteral(".") + QLatin1String(P2p::Evidence::kSuffix));
-    if (!writeAtomically(path, evidence.encode())) return QString();
-    if (!writeAtomically(QDir(evidenceDirectory()).filePath(base + QStringLiteral(".info")), infoBytes(info))) {
+    if (!P2pOwnerFile::writeAtomically(path, evidence.encode())) return QString();
+    if (!P2pOwnerFile::writeAtomically(QDir(evidenceDirectory()).filePath(base + QStringLiteral(".info")), infoBytes(info))) {
         return QString();
     }
     if (!keepJournal) QFile::remove(QDir(journalDirectory()).filePath(base + QStringLiteral(".journal")));

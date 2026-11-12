@@ -779,6 +779,7 @@ Evidence = ["SBQ-MATCH", 1,
 | `src/network/p2p/p2pidentitystore.h/.cpp` | プレイヤー鍵の生成・保管・読み込み・作り直し（OS の鍵の保管庫、暗号化したファイル） |
 | `src/network/p2p/p2pplayerprofile.h/.cpp` | プレイヤーの保存先（同じ PC の何人目か、ロック、対局の記録・既知の相手・プレイヤー鍵の持ち主） |
 | `src/network/p2p/p2precordstore.h/.cpp` | ジャーナル、証跡の原子的保存、復旧、履歴 |
+| `src/network/p2p/p2pownerfile.h/.cpp` | 所有者だけが読み書きできる権限での原子的な書き込み（鍵・記録・既知の相手で共通） |
 | `src/network/p2p/p2pknownpeers.h/.cpp` | 既知の相手（手元で付けた名前、確認済みか、ブロック、対局数） |
 | `src/network/p2p/p2pplayerslot.h` | 同じ PC の何人目のプレイヤーかと、その保存先 |
 | `src/network/p2p/p2ptransport.h` | 司令塔がフレームを送る先の窓口（通信プロセスを直接知らないため） |

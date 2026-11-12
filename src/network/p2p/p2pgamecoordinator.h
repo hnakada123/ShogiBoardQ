@@ -107,10 +107,10 @@ public:
     bool viaRelay() const { return m_viaRelay; }
     /// 最後に保存した証跡の場所
     QString lastEvidencePath() const { return m_lastEvidencePath; }
-    /// 仮予約の残り（ミリ秒。交渉中でなければ 0）
-    qint64 reservationRemainingMs() const
+    /// 条件の確認と開始署名の期限までの残り（ミリ秒。交渉中でなければ 0）
+    qint64 confirmationRemainingMs() const
     {
-        return m_phase == Phase::Negotiating ? qMax<qint64>(0, m_reservationDeadline - now()) : 0;
+        return m_phase == Phase::Negotiating ? qMax<qint64>(0, m_confirmationDeadline - now()) : 0;
     }
     /// 自分の役割（申込側か募集側か）
     quint8 role() const { return m_role; }
@@ -168,7 +168,7 @@ private:
     QString m_myDisplayName;
     quint8 m_role = P2p::kRoleApplicant;
     bool m_viaRelay = false;
-    qint64 m_reservationDeadline = 0;   ///< 仮予約の期限（条件の確認と開始署名まで60秒）
+    qint64 m_confirmationDeadline = 0;  ///< 条件の確認と開始署名の期限（交渉を始めてから60秒）
     qint64 m_lastTickMono = -1;         ///< 前の確認の単調増加時計（スリープの検出）
     qint64 m_lastTickWallMs = 0;        ///< 前の確認の OS の時刻
     qint64 m_nextReconnectAt = 0;

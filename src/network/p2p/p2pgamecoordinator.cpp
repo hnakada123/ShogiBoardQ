@@ -21,13 +21,23 @@ namespace {
 
 using P2p::Cause;
 
-/// 仮予約の期限（条件の交換と双方の利用者による確認を終えるまで。実装仕様 3.3節）
-constexpr qint64 kReservationMs = 60'000;
+/// 条件の確認と開始署名の期限（条件の交換と双方の利用者による確認を終えるまで。実装仕様 3.3節）
+constexpr qint64 kConfirmationMs = 60'000;
 /// 再接続の間隔
 constexpr qint64 kReconnectIntervalMs = 5'000;
 constexpr int kTickMs = 250;
 
 Turn turnOf(bool black) { return black ? Turn::Black : Turn::White; }
+
+/// 合意した持ち時間を、棋譜と時計の持ち時間にする（先手・後手で同じ。v1 は加算なし）
+TimeControl timeControlOf(const P2p::TimeControlTerms& terms)
+{
+    TimeControl tc;
+    tc.black.mainMs = static_cast<qint64>(terms.mainMs);
+    tc.black.byoyomiMs = static_cast<qint64>(terms.byoyomiMs);
+    tc.white = tc.black;
+    return tc;
+}
 
 } // namespace
 
@@ -87,7 +97,7 @@ bool P2pGameCoordinator::startNegotiation(const NegotiationRequest& request)
     m_viaRelay = request.viaRelay;
     m_opponentDisplayName.clear();
     m_myDisplayName = request.myDisplayName;
-    m_reservationDeadline = now() + kReservationMs;
+    m_confirmationDeadline = now() + kConfirmationMs;
     m_phase = Phase::Negotiating;
     m_ticker->start();
     m_negotiation->begin();
@@ -185,20 +195,12 @@ void P2pGameCoordinator::startMatch()
         start.startSfen = QString::fromLatin1(P2p::Rules::initialSfen());
         start.players.seat(turnOf(setup.iAmBlack)).humanName = m_myDisplayName;
         start.players.seat(turnOf(!setup.iAmBlack)).humanName = m_opponentDisplayName;
-        TimeControl tc;
-        tc.black.mainMs = static_cast<qint64>(setup.terms.mainMs);
-        tc.black.byoyomiMs = static_cast<qint64>(setup.terms.byoyomiMs);
-        tc.white = tc.black;
-        start.timeControl = tc;
+        start.timeControl = timeControlOf(setup.terms);
         start.extraInfo.append({GameInfoKeys::kP2pGameId, QString::fromLatin1(gameId.toHex())});
         m_sink->beginRecord(start);
     }
     if (m_deps.clock) {
-        TimeControl tc;
-        tc.black.mainMs = static_cast<qint64>(setup.terms.mainMs);
-        tc.black.byoyomiMs = static_cast<qint64>(setup.terms.byoyomiMs);
-        tc.white = tc.black;
-        m_deps.clock->setTimeControl(tc);
+        m_deps.clock->setTimeControl(timeControlOf(setup.terms));
         // 時間切れは対局の状態機械が判定する（表示の時計では終局させない）
         m_deps.clock->setLoseOnTimeout(false);
         m_deps.clock->setCurrentPlayer(Turn::Black);
@@ -280,8 +282,8 @@ void P2pGameCoordinator::onRouteChanged(quint64 connection, bool viaRelay)
 void P2pGameCoordinator::onTick()
 {
     if (m_phase == Phase::Negotiating && m_negotiation) {
-        // 仮予約の60秒を過ぎたら取りやめる
-        if (now() > m_reservationDeadline) {
+        // 確認の期限（60秒）を過ぎたら取りやめる
+        if (now() > m_confirmationDeadline) {
             m_negotiation->cancel();
             flushNegotiation();
         }

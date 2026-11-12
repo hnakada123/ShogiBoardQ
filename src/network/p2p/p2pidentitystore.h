@@ -116,7 +116,6 @@ private:
                       Failure failure);
     void adoptSeed(const P2p::SecureBytes& seed);
     bool writeInfo(Method method, const QByteArray& publicKey);
-    bool writeFileAtomically(const QString& path, const QByteArray& bytes);
     QString infoPath() const;
     QString keyFilePath() const;
 

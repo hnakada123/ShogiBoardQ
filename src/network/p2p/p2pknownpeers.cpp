@@ -6,10 +6,10 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QSaveFile>
 
 #include "p2pcbor.h"
 #include "p2pdisplayname.h"
+#include "p2pownerfile.h"
 #include "p2pprotocol.h"
 
 namespace {
@@ -63,15 +63,7 @@ bool P2pKnownPeers::save() const
     }
     const QByteArray bytes = P2p::Cbor::encode(
         CborValue::array({CborValue::text("SBQ-PEERS"), CborValue::uint(1), CborValue::array(std::move(items))}));
-    QDir().mkpath(QFileInfo(m_path).absolutePath());
-    QSaveFile file(m_path);
-    if (!file.open(QIODevice::WriteOnly)) return false;
-    file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
-    if (file.write(bytes) != bytes.size()) {
-        file.cancelWriting();
-        return false;
-    }
-    return file.commit();
+    return P2pOwnerFile::writeAtomically(m_path, bytes);
 }
 
 const P2pKnownPeer* P2pKnownPeers::find(const QByteArray& playerKey) const

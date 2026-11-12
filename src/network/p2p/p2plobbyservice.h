@@ -29,7 +29,8 @@
  * プレイヤーの保存先（P2pPlayerProfile）のものを使う。
  * 通信プロセスは「P2P対局」を始めてから終えるまでだけ動かす。使う間は動作状態を「P2P接続中」にする
  * （対局の間は司令塔が「P2P対局中」にする）。対局の相手は招待文字列で決める（不特定の相手との公開募集は持たない）。
- * 自分や相手のアドレス（IP）は通信プロセスだけが扱い、ここには届かない。
+ * 自分や相手のアドレス（IP）は通信プロセスだけが扱い、ここには届かない（例外は、招待文字列を確かめた結果の私設アドレスの
+ * 到達候補 InviteInfo::privateAddresses だけ。protocol/ipc.md 4章）。
  */
 class P2pLobbyService : public QObject, public P2pTransport
 {

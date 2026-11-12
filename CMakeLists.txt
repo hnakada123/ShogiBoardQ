@@ -1131,12 +1131,18 @@ if(ENABLE_P2P_PLAY)
         src/network/p2p/p2pknownpeers.h
         src/network/p2p/p2plobbyservice.cpp
         src/network/p2p/p2plobbyservice.h
+        src/network/p2p/p2pownerfile.cpp
+        src/network/p2p/p2pownerfile.h
         src/network/p2p/p2pplayerprofile.cpp
         src/network/p2p/p2pplayerprofile.h
         src/network/p2p/p2pplayerslot.h
         src/network/p2p/p2precordstore.cpp
         src/network/p2p/p2precordstore.h
         src/network/p2p/p2ptransport.h
+        src/network/p2p/peeripc.cpp
+        src/network/p2p/peeripc.h
+        src/network/p2p/peerprocess.cpp
+        src/network/p2p/peerprocess.h
         src/dialogs/p2pconfirmdialog.cpp
         src/dialogs/p2pconfirmdialog.h
         src/dialogs/p2phistorypanel.cpp
@@ -1151,10 +1157,6 @@ if(ENABLE_P2P_PLAY)
         src/dialogs/p2pwindowtext.h
         src/ui/controllers/p2pgameuicontroller.cpp
         src/ui/controllers/p2pgameuicontroller.h
-        src/network/p2p/peeripc.cpp
-        src/network/p2p/peeripc.h
-        src/network/p2p/peerprocess.cpp
-        src/network/p2p/peerprocess.h
     )
 endif()
 

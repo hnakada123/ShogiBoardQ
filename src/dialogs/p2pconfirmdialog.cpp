@@ -177,7 +177,7 @@ void P2pConfirmDialog::onTick()
 void P2pConfirmDialog::showRemaining()
 {
     if (!m_game || m_game->phase() != P2pGameCoordinator::Phase::Negotiating) return;
-    const qint64 seconds = m_game->reservationRemainingMs() / 1000;
+    const qint64 seconds = m_game->confirmationRemainingMs() / 1000;
     m_remaining->setText(tr("あと %1 秒で取り消されます。").arg(seconds));
 }
 

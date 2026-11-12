@@ -7,7 +7,6 @@
 #include <QDir>
 #include <QFile>
 #include <QFutureWatcher>
-#include <QSaveFile>
 #include <QStandardPaths>
 #include <QtConcurrent/QtConcurrentRun>
 
@@ -15,6 +14,7 @@
 
 #include "appidentity.h"
 #include "p2pcbor.h"
+#include "p2pownerfile.h"
 #include "p2pprotocol.h"
 
 #ifdef SBQ_HAVE_QTKEYCHAIN
@@ -158,27 +158,13 @@ QByteArray P2pIdentityStore::publicKey() const
     return readInfo(infoPath()).publicKey;
 }
 
-bool P2pIdentityStore::writeFileAtomically(const QString& path, const QByteArray& bytes)
-{
-    if (!QDir().mkpath(m_directory)) return false;
-    QFile::setPermissions(m_directory, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
-    QSaveFile file(path);
-    if (!file.open(QIODevice::WriteOnly)) return false;
-    file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
-    if (file.write(bytes) != bytes.size()) {
-        file.cancelWriting();
-        return false;
-    }
-    return file.commit();
-}
-
 bool P2pIdentityStore::writeInfo(Method method, const QByteArray& publicKey)
 {
     using P2p::CborValue;
     const QByteArray bytes = P2p::Cbor::encode(CborValue::array(
         {CborValue::text("SBQ-IDENTITY-INFO"), CborValue::uint(1), CborValue::uint(static_cast<quint64>(method)),
          CborValue::bytes(publicKey)}));
-    return writeFileAtomically(infoPath(), bytes);
+    return P2pOwnerFile::writeAtomically(infoPath(), bytes);
 }
 
 // ---------------------------------------------------------------- 鍵のファイル
@@ -344,7 +330,7 @@ void P2pIdentityStore::finishCreate(Method method, const std::shared_ptr<P2p::Se
         return;
     }
     if (method != Method::Keychain) {
-        if (!writeFileAtomically(keyFilePath(), fileBytes)) {
+        if (!P2pOwnerFile::writeAtomically(keyFilePath(), fileBytes)) {
             finish(Failure::Storage);
             return;
         }

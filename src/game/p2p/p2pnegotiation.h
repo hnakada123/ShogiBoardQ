@@ -83,7 +83,6 @@ public:
     const std::optional<OpponentHello>& opponent() const { return m_opponent; }
     /// 相手の開始署名を確かめたか（ここから相手のプレイヤーID を確かめた身元として扱う）
     bool opponentVerified() const { return !m_opponentStartSignature.isEmpty(); }
-    /// 申込側の開始署名を確かめた（募集側はここで募集を取り下げる）
 
     const std::optional<StartAgreement>& agreement() const { return m_agreement; }
     TimeControlTerms terms() const { return m_terms; }

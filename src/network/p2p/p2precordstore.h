@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "p2pevidence.h"
+#include "p2pframes.h"
 #include "p2psettlement.h"
 
 /**
@@ -44,7 +45,7 @@ private:
 
 /// 履歴に出す、証跡の外の情報（表示名は証跡に入れないのでここに置く）
 struct P2pHistoryInfo {
-    quint8 mySide = 1;             ///< 1=先手、2=後手
+    quint8 mySide = P2p::kSideBlack;   ///< kSideBlack・kSideWhite
     QString opponentDisplayName;   ///< 相手が名乗った表示名
     P2p::Settlement settlement = P2p::Settlement::None;   ///< 結果の確定のしかた（ファイルには settlementName の語で書く）
     quint64 endedAt = 0;           ///< 終わった時刻（UNIX秒。手元の時計）

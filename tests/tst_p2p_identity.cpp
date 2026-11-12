@@ -8,6 +8,7 @@
 
 #include "p2pcbor.h"
 #include "p2pidentitystore.h"
+#include "p2pownerfile.h"
 #include "p2pplayerprofile.h"
 #include "p2pplayerslot.h"
 
@@ -172,6 +173,24 @@ private slots:
         QCOMPARE(store.method(), P2pIdentityStore::Method::None);
         store.create(P2pIdentityStore::Method::Plain);
         QVERIFY(store.publicKey() != publicKey);
+    }
+
+    /// P2P対局の保存物は、所有者だけが読み書きできる権限で原子的に書く（監査 2026-11-12 R4。鍵・記録・既知の相手で共通）
+    void ownerFilesAreWrittenAtomicallyForTheOwnerOnly()
+    {
+        const QString dir = m_dir.filePath(QStringLiteral("owner/nested"));
+        const QString path = QDir(dir).filePath(QStringLiteral("file.bin"));
+        QVERIFY(P2pOwnerFile::writeAtomically(path, QByteArrayLiteral("first")));
+        QVERIFY(P2pOwnerFile::writeAtomically(path, QByteArrayLiteral("second")));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(file.readAll(), QByteArrayLiteral("second"));
+#ifdef Q_OS_UNIX
+        const QFileDevice::Permissions others =
+            QFileDevice::ReadGroup | QFileDevice::ReadOther | QFileDevice::WriteGroup | QFileDevice::WriteOther;
+        QCOMPARE(QFile::permissions(path) & others, QFileDevice::Permissions());
+        QCOMPARE(QFile::permissions(dir) & (others | QFileDevice::ExeGroup | QFileDevice::ExeOther), QFileDevice::Permissions());
+#endif
     }
 
     void passphraseStoreUnlocksOffTheGuiThread()

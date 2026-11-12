@@ -84,6 +84,8 @@ void P2pHistoryPanel::reload()
     m_table->setRowCount(0);
     if (!m_store) return;
     const QList<P2pRecordStore::Entry> entries = m_store->history();
+    // 証跡の検証は重いので、前に検証したときから変わった記録だけを検証し直す
+    QHash<QString, VerifiedFile> seen;
     for (const P2pRecordStore::Entry& entry : entries) {
         const int row = m_table->rowCount();
         m_table->insertRow(row);
@@ -92,7 +94,7 @@ void P2pHistoryPanel::reload()
         date->setData(Qt::UserRole, entry.evidencePath);
         date->setData(Qt::UserRole + 1, entry.gameId);
         m_table->setItem(row, Date, date);
-        const std::optional<P2p::EvidenceReport> report = verifyFile(entry.evidencePath);
+        const std::optional<P2p::EvidenceReport> report = verifiedReport(entry.evidencePath, seen);
         QString opponent = entry.info.opponentDisplayName;
         const P2pKnownPeer* known = nullptr;
         if (report && m_knownPeers) {
@@ -120,7 +122,22 @@ void P2pHistoryPanel::reload()
         }
         if (!selected.isEmpty() && entry.gameId == selected) m_table->selectRow(row);
     }
+    m_verified = std::move(seen);
     onSelectionChanged();
+}
+
+std::optional<P2p::EvidenceReport> P2pHistoryPanel::verifiedReport(const QString& path,
+                                                                   QHash<QString, VerifiedFile>& seen) const
+{
+    const QFileInfo file(path);
+    const auto it = m_verified.constFind(path);
+    if (it != m_verified.cend() && it->size == file.size() && it->modified == file.lastModified()) {
+        seen.insert(path, *it);
+        return it->report;
+    }
+    VerifiedFile verified{file.size(), file.lastModified(), verifyFile(path)};
+    seen.insert(path, verified);
+    return verified.report;
 }
 
 QString P2pHistoryPanel::selectedPath() const

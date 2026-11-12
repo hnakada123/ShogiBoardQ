@@ -11,6 +11,7 @@
 #include <initializer_list>
 #include <utility>
 
+#include "p2pframes.h"
 #include "p2pprotocol.h"
 
 namespace PeerIpc {
@@ -128,8 +129,8 @@ Check peerIdText()
     };
 }
 
-/// 64 KiB のフレームの base64 の長さ
-constexpr int kMaxFrameBase64 = ((64 * 1024 + 2) / 3) * 4;
+/// フレームの上限（P2p::kMaxFrameBytes）の base64 の長さ
+constexpr int kMaxFrameBase64 = static_cast<int>(((P2p::kMaxFrameBytes + 2) / 3) * 4);
 
 // メソッドの名前（protocol/ipc.md 3章。hello と shutdown は PeerProcess が送る）
 constexpr char kStart[] = "start";

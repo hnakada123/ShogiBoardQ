@@ -13094,90 +13094,90 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2phistorypanel.cpp" line="68"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="193"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="198"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="210"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="215"/>
         <source>記録を削除</source>
         <translation>Delete Record</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="101"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="103"/>
         <source>%1（手元の名前: %2）</source>
         <translation>%1 (local name: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="106"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="108"/>
         <source>名前は非表示</source>
         <translation>Name hidden</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="109"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="111"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="109"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="111"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="112"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="114"/>
         <source>検証に失敗</source>
         <translation>Verification failed</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="119"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="121"/>
         <source>読めません</source>
         <translation>Unreadable</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="148"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="166"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="165"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="183"/>
         <source>検証</source>
         <translation>Verify</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="148"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="165"/>
         <source>証跡ファイルを読めません。</source>
         <translation>Cannot read the evidence file.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="151"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="168"/>
         <source>はい</source>
         <translation>Yes</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="151"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="160"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="168"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="177"/>
         <source>いいえ</source>
         <translation>No</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="153"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="170"/>
         <source>対局ID: %1</source>
         <translation>Game ID: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="154"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="171"/>
         <source>先手のプレイヤーID: %1</source>
         <translation>Black&apos;s player ID: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="155"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="172"/>
         <source>後手のプレイヤーID: %1</source>
         <translation>White&apos;s player ID: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="156"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="173"/>
         <source>プレイヤー鍵による確定が正しい: %1</source>
         <translation>Confirmations with player keys are valid: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="163"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="180"/>
         <source>確定した結果が、棋譜から決まる結果と食い違っています。</source>
         <translation>The confirmed result conflicts with the result determined by the moves.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="182"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="199"/>
         <source>ShogiBoardQ の証跡 (*.sbqmatch)</source>
         <translation>ShogiBoardQ evidence (*.sbqmatch)</translation>
     </message>
@@ -13186,27 +13186,27 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Signatures match: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="157"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="174"/>
         <source>棋譜がルールに適合: %1</source>
         <translation>Moves follow the rules: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="158"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="175"/>
         <source>自己申告時間の計算が一致: %1</source>
         <translation>Self-reported time arithmetic matches: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="159"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="176"/>
         <source>結果が棋譜から決まる: %1</source>
         <translation>Result determined by the moves: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="161"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="178"/>
         <source>記録の区分: %1</source>
         <translation>Record status: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="162"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="179"/>
         <source>結果の識別子: %1</source>
         <translation>Result digest: %1</translation>
     </message>
@@ -13215,29 +13215,29 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">The signed result conflicts with the result determined by the moves.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="164"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="181"/>
         <source>問題: %1</source>
         <translation>Problem: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="165"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="182"/>
         <source>実際の思考時間・人間が指したこと・対局の日時は、この記録からは確かめられません。</source>
         <translation>Actual thinking time, whether humans played, and when the game was played cannot be verified from this record.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="174"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="181"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="186"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="191"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="198"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="203"/>
         <source>証跡を書き出す</source>
         <translation>Export Evidence</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="175"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="192"/>
         <source>証跡には、あなたと相手のプレイヤーIDが入っています。証跡を人に渡すと、2人のプレイヤーIDがその人に伝わります。書き出しますか？</source>
         <translation>The evidence contains your and your opponent&apos;s player IDs. Anyone you give it to will learn both IDs. Export it?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="177"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="194"/>
         <source>書き出す</source>
         <translation>Export</translation>
     </message>
@@ -13246,22 +13246,22 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">ShogiBoardQ-P2P evidence (*.sbqmatch)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="186"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="203"/>
         <source>書き出せませんでした。</source>
         <translation>Could not export.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="194"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="211"/>
         <source>この対局の証跡と記録を削除しますか？ 削除した記録は戻せません。</source>
         <translation>Delete the evidence and record of this game? Deleted records cannot be restored.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="194"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="211"/>
         <source>削除</source>
         <translation>Delete</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="198"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="215"/>
         <source>削除できないファイルがありました。</source>
         <translation>Some files could not be deleted.</translation>
     </message>

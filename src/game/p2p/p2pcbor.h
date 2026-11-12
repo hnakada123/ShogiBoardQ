@@ -84,6 +84,37 @@ bool isValidUtf8(QByteArrayView bytes);
 
 } // namespace Cbor
 
+/// 配列の値を、順序と型を確かめながら読む（1つでも外れれば ok() が false）
+class CborReader
+{
+public:
+    /// value が count 個の配列で、先頭が label の text、2番目が版 1 であることを確かめる（label が null なら見ない）
+    CborReader(const CborValue& value, const char* label, std::size_t count);
+
+    bool ok() const { return m_ok; }
+    void fail() { m_ok = false; }
+
+    quint64 uint(std::size_t index, quint64 maximum);
+    QByteArray bytes(std::size_t index, int exactLength);
+    QByteArray bytesUpTo(std::size_t index, int maxLength);
+    /// ASCII の印字できる文字だけの text（maxLength バイトまで）
+    QByteArray ascii(std::size_t index, int maxLength);
+    /// UTF-8 の text（maxBytes バイトまで）
+    QString utf8(std::size_t index, int maxBytes);
+    /// 配列（maxCount 要素まで）
+    const std::vector<CborValue>& array(std::size_t index, std::size_t maxCount);
+    /// 要素そのもの（型を問わない）
+    const CborValue& item(std::size_t index);
+    /// index の要素が label の text か
+    bool expectText(std::size_t index, const char* label);
+
+private:
+    const CborValue* at(std::size_t index);
+
+    const CborValue& m_value;
+    bool m_ok = true;
+};
+
 } // namespace P2p
 
 #endif // P2PCBOR_H

@@ -30,37 +30,6 @@ inline constexpr quint64 kStartWindowSeconds = 180;
 /// ゼロ32バイト（対局ID が決まる前の gameId・State0 の前状態ハッシュ）
 QByteArray zeroHash();
 
-/// 配列の値を、順序と型を確かめながら読む（1つでも外れれば ok() が false）
-class CborReader
-{
-public:
-    /// value が count 個の配列で、先頭が label の text、2番目が版 1 であることを確かめる（label が null なら見ない）
-    CborReader(const CborValue& value, const char* label, std::size_t count);
-
-    bool ok() const { return m_ok; }
-    void fail() { m_ok = false; }
-
-    quint64 uint(std::size_t index, quint64 maximum);
-    QByteArray bytes(std::size_t index, int exactLength);
-    QByteArray bytesUpTo(std::size_t index, int maxLength);
-    /// ASCII の印字できる文字だけの text（maxLength バイトまで）
-    QByteArray ascii(std::size_t index, int maxLength);
-    /// UTF-8 の text（maxBytes バイトまで）
-    QString utf8(std::size_t index, int maxBytes);
-    /// 配列（maxCount 要素まで）
-    const std::vector<CborValue>& array(std::size_t index, std::size_t maxCount);
-    /// 要素そのもの（型を問わない）
-    const CborValue& item(std::size_t index);
-    /// index の要素が label の text か
-    bool expectText(std::size_t index, const char* label);
-
-private:
-    const CborValue* at(std::size_t index);
-
-    const CborValue& m_value;
-    bool m_ok = true;
-};
-
 // ---------------------------------------------------------------- 条件
 
 /// v1 のルール（平手・512手・千日手は引き分け・連続王手の千日手は負け・入玉宣言なし・人間対人間）

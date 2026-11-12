@@ -618,6 +618,16 @@ private slots:
                                     .arg(header->sectionViewportPosition(last))
                                     .arg(header->sectionSize(last))
                                     .arg(history->viewport()->width())));
+
+        // 証跡を検証した結果は覚えておき、証跡が変わったときだけ検証し直す（監査 2026-11-12 S16）
+        constexpr int kCategoryColumn = 4;
+        QCOMPARE(history->item(0, kCategoryColumn)->text(), QStringLiteral("双方で確定"));
+        QFile evidence(history->item(0, 0)->data(Qt::UserRole).toString());
+        QVERIFY(evidence.open(QIODevice::Append));
+        evidence.write("x");
+        evidence.close();
+        window.reloadRecords();
+        QCOMPARE(history->item(0, kCategoryColumn)->text(), QStringLiteral("検証に失敗"));
     }
 
     /// 「対局したことのない相手の表示名を出さない」は、対局記録でも対局したことのない相手（「相手の管理」で

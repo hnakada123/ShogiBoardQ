@@ -3,138 +3,20 @@
 
 #include "p2pprotocol.h"
 
-#include <algorithm>
-
 namespace P2p {
 
 namespace {
-
-const CborValue& emptyValue()
-{
-    static const CborValue value;
-    return value;
-}
-
-const std::vector<CborValue>& emptyItems()
-{
-    static const std::vector<CborValue> items;
-    return items;
-}
 
 CborValue u(quint64 value) { return CborValue::uint(value); }
 CborValue b(const QByteArray& value) { return CborValue::bytes(value); }
 CborValue t(const char* value) { return CborValue::text(value); }
 CborValue t(const QByteArray& value) { return CborValue::text(value); }
 
-bool isPrintableAscii(const QByteArray& bytes)
-{
-    return std::all_of(bytes.cbegin(), bytes.cend(), [](char c) { return c >= 0x20 && c <= 0x7E; });
-}
-
 } // namespace
 
 QByteArray zeroHash()
 {
     return QByteArray(kHashSize, '\0');
-}
-
-// ---------------------------------------------------------------- CborReader
-
-CborReader::CborReader(const CborValue& value, const char* label, std::size_t count)
-    : m_value(value)
-{
-    if (!value.isArray() || value.items().size() != count) {
-        m_ok = false;
-        return;
-    }
-    if (label) {
-        if (count < 2 || !expectText(0, label) || uint(1, 1) != 1) m_ok = false;
-    }
-}
-
-const CborValue* CborReader::at(std::size_t index)
-{
-    if (!m_ok || !m_value.isArray() || index >= m_value.items().size()) {
-        m_ok = false;
-        return nullptr;
-    }
-    return &m_value.items()[index];
-}
-
-quint64 CborReader::uint(std::size_t index, quint64 maximum)
-{
-    const CborValue* v = at(index);
-    if (!v || !v->isUInt() || v->toUInt() > maximum) {
-        m_ok = false;
-        return 0;
-    }
-    return v->toUInt();
-}
-
-QByteArray CborReader::bytes(std::size_t index, int exactLength)
-{
-    const CborValue* v = at(index);
-    if (!v || !v->isBytes() || v->data().size() != exactLength) {
-        m_ok = false;
-        return {};
-    }
-    return v->data();
-}
-
-QByteArray CborReader::bytesUpTo(std::size_t index, int maxLength)
-{
-    const CborValue* v = at(index);
-    if (!v || !v->isBytes() || v->data().size() > maxLength) {
-        m_ok = false;
-        return {};
-    }
-    return v->data();
-}
-
-QByteArray CborReader::ascii(std::size_t index, int maxLength)
-{
-    const CborValue* v = at(index);
-    if (!v || !v->isText() || v->data().size() > maxLength || !isPrintableAscii(v->data())) {
-        m_ok = false;
-        return {};
-    }
-    return v->data();
-}
-
-QString CborReader::utf8(std::size_t index, int maxBytes)
-{
-    const CborValue* v = at(index);
-    if (!v || !v->isText() || v->data().size() > maxBytes) {
-        m_ok = false;
-        return {};
-    }
-    return v->toText();
-}
-
-const std::vector<CborValue>& CborReader::array(std::size_t index, std::size_t maxCount)
-{
-    const CborValue* v = at(index);
-    if (!v || !v->isArray() || v->items().size() > maxCount) {
-        m_ok = false;
-        return emptyItems();
-    }
-    return v->items();
-}
-
-const CborValue& CborReader::item(std::size_t index)
-{
-    const CborValue* v = at(index);
-    return v ? *v : emptyValue();
-}
-
-bool CborReader::expectText(std::size_t index, const char* label)
-{
-    const CborValue* v = at(index);
-    if (!v || !v->isText() || v->data() != QByteArray(label)) {
-        m_ok = false;
-        return false;
-    }
-    return true;
 }
 
 // ---------------------------------------------------------------- 条件

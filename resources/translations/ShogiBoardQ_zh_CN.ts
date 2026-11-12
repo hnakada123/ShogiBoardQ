@@ -11260,90 +11260,90 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
     <message>
         <location filename="../../src/dialogs/p2phistorypanel.cpp" line="68"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="193"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="198"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="210"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="215"/>
         <source>記録を削除</source>
         <translation>删除记录</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="101"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="103"/>
         <source>%1（手元の名前: %2）</source>
         <translation>%1（本地备注名：%2）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="106"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="108"/>
         <source>名前は非表示</source>
         <translation>名称已隐藏</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="109"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="111"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="109"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="111"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="112"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="114"/>
         <source>検証に失敗</source>
         <translation>验证失败</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="119"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="121"/>
         <source>読めません</source>
         <translation>无法读取</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="148"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="166"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="165"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="183"/>
         <source>検証</source>
         <translation>验证</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="148"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="165"/>
         <source>証跡ファイルを読めません。</source>
         <translation>无法读取凭证文件。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="151"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="168"/>
         <source>はい</source>
         <translation>是</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="151"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="160"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="168"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="177"/>
         <source>いいえ</source>
         <translation>否</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="153"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="170"/>
         <source>対局ID: %1</source>
         <translation>对局ID：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="154"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="171"/>
         <source>先手のプレイヤーID: %1</source>
         <translation>先手的玩家ID：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="155"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="172"/>
         <source>後手のプレイヤーID: %1</source>
         <translation>后手的玩家ID：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="156"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="173"/>
         <source>プレイヤー鍵による確定が正しい: %1</source>
         <translation>玩家密钥的确定正确：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="163"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="180"/>
         <source>確定した結果が、棋譜から決まる結果と食い違っています。</source>
         <translation>确定的结果与由棋谱决定的结果不一致。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="182"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="199"/>
         <source>ShogiBoardQ の証跡 (*.sbqmatch)</source>
         <translation>ShogiBoardQ 凭证 (*.sbqmatch)</translation>
     </message>
@@ -11352,27 +11352,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">签名一致：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="157"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="174"/>
         <source>棋譜がルールに適合: %1</source>
         <translation>棋谱符合规则：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="158"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="175"/>
         <source>自己申告時間の計算が一致: %1</source>
         <translation>自报用时的计算一致：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="159"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="176"/>
         <source>結果が棋譜から決まる: %1</source>
         <translation>结果由棋谱决定：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="161"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="178"/>
         <source>記録の区分: %1</source>
         <translation>记录类别：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="162"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="179"/>
         <source>結果の識別子: %1</source>
         <translation>结果标识：%1</translation>
     </message>
@@ -11381,29 +11381,29 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">签名的结果与由棋谱决定的结果不一致。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="164"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="181"/>
         <source>問題: %1</source>
         <translation>问题：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="165"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="182"/>
         <source>実際の思考時間・人間が指したこと・対局の日時は、この記録からは確かめられません。</source>
         <translation>无法从此记录确认实际思考时间、是否由人类下棋以及对局日期。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="174"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="181"/>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="186"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="191"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="198"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="203"/>
         <source>証跡を書き出す</source>
         <translation>导出凭证</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="175"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="192"/>
         <source>証跡には、あなたと相手のプレイヤーIDが入っています。証跡を人に渡すと、2人のプレイヤーIDがその人に伝わります。書き出しますか？</source>
         <translation>凭证中包含您和对手的玩家ID。把凭证交给他人，对方就会知道这两个玩家ID。要导出吗？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="177"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="194"/>
         <source>書き出す</source>
         <translation>导出</translation>
     </message>
@@ -11412,22 +11412,22 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">ShogiBoardQ-P2P 凭证 (*.sbqmatch)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="186"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="203"/>
         <source>書き出せませんでした。</source>
         <translation>无法导出。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="194"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="211"/>
         <source>この対局の証跡と記録を削除しますか？ 削除した記録は戻せません。</source>
         <translation>要删除此对局的凭证和记录吗？删除后无法恢复。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="194"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="211"/>
         <source>削除</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="198"/>
+        <location filename="../../src/dialogs/p2phistorypanel.cpp" line="215"/>
         <source>削除できないファイルがありました。</source>
         <translation>有文件无法删除。</translation>
     </message>
