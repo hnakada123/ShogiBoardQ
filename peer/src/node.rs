@@ -14,7 +14,7 @@ use libp2p::{Multiaddr, PeerId, Stream, StreamProtocol, Swarm};
 use sbq_protocol::frame::{self, FrameHeader, GAME_PROTOCOL};
 use sbq_protocol::hash::hex;
 use sbq_protocol::network::{self, NetworkSpec, Profile, LAN_PORT};
-use serde_json::{json, Value};
+use serde_json::json;
 use tokio::sync::mpsc;
 use tokio::task::AbortHandle;
 
@@ -125,7 +125,7 @@ pub enum Internal {
     },
     OutboundFailed {
         conn: u64,
-        reason: &'static str,
+        reason: ipc::CloseReason,
     },
     Inbound {
         peer: PeerId,
@@ -142,14 +142,14 @@ pub enum ConnState {
         writer: mpsc::Sender<Vec<u8>>,
         shared: Arc<ConnShared>,
         tasks: [AbortHandle; 2],
-        route: &'static str,
+        route: ipc::Route,
     },
 }
 
 pub struct Conn {
     pub peer: PeerId,
-    pub origin: &'static str,
-    pub direction: &'static str,
+    pub origin: ipc::Origin,
+    pub direction: ipc::Direction,
     pub state: ConnState,
 }
 
@@ -207,9 +207,8 @@ pub struct Node {
     /// 協力ノードの中継の予約
     pub reservations: reservations::Reservations,
     pub listen_addrs: Vec<Multiaddr>,
-    pub reachability: &'static str,
-    pub status_dirty: bool,
-    pub last_status: Option<Value>,
+    pub reachability: ipc::Reachability,
+    pub last_status: Option<ipc::NetworkStatus>,
     pub last_second: Instant,
     pub last_service_log: Instant,
     pub shutdown_at: Option<Instant>,
@@ -403,8 +402,7 @@ impl Node {
             bootstrap: HashMap::new(),
             reservations: reservations::Reservations::default(),
             listen_addrs: Vec::new(),
-            reachability: "unknown",
-            status_dirty: true,
+            reachability: ipc::Reachability::Unknown,
             last_status: None,
             last_second: Instant::now(),
             last_service_log: Instant::now(),
@@ -461,11 +459,11 @@ impl Node {
         self.conns.len()
     }
 
-    pub fn route_of(&self, peer: &PeerId) -> &'static str {
+    pub fn route_of(&self, peer: &PeerId) -> ipc::Route {
         match self.peer_conns.get(peer) {
-            Some(conns) if conns.values().any(|relayed| !relayed) => "direct",
-            Some(conns) if !conns.is_empty() => "relay",
-            _ => "direct",
+            Some(conns) if conns.values().any(|relayed| !relayed) => ipc::Route::Direct,
+            Some(conns) if !conns.is_empty() => ipc::Route::Relay,
+            _ => ipc::Route::Direct,
         }
     }
 
@@ -476,7 +474,7 @@ impl Node {
         peer: PeerId,
         addrs: Vec<Multiaddr>,
         token: Option<[u8; 32]>,
-        origin: &'static str,
+        origin: ipc::Origin,
     ) {
         let connected = self.swarm.is_connected(&peer);
         for a in &addrs {
@@ -496,7 +494,7 @@ impl Node {
             Conn {
                 peer,
                 origin,
-                direction: "outbound",
+                direction: ipc::Direction::Outbound,
                 state: ConnState::Connecting,
             },
         );
@@ -521,17 +519,17 @@ impl Node {
                     } else {
                         Internal::OutboundFailed {
                             conn,
-                            reason: "unreachable",
+                            reason: ipc::CloseReason::Unreachable,
                         }
                     }
                 }
                 Ok(Err(_)) => Internal::OutboundFailed {
                     conn,
-                    reason: "unreachable",
+                    reason: ipc::CloseReason::Unreachable,
                 },
                 Err(_) => Internal::OutboundFailed {
                     conn,
-                    reason: "timeout",
+                    reason: ipc::CloseReason::Timeout,
                 },
             };
             let _ = internal.send(event);
@@ -560,27 +558,24 @@ impl Node {
                 tasks: [reader_task.abort_handle(), writer_task.abort_handle()],
                 route,
             };
-            self.out.notify(
-                "connectionOpened",
-                json!({
-                    "connection": conn.to_string(),
-                    "peerId": peer.to_base58(),
-                    "peerIdBytes": B64.encode(peer.to_bytes()),
-                    "route": route,
-                    "direction": entry.direction,
-                    "origin": entry.origin,
-                }),
-            );
+            self.out.notify(ipc::Notification::ConnectionOpened {
+                connection: conn,
+                peer_id: &peer.to_base58(),
+                peer_id_bytes: &peer.to_bytes(),
+                route,
+                direction: entry.direction,
+                origin: entry.origin,
+            });
         }
     }
 
     /// 接続を閉じて connectionClosed を知らせる
-    pub fn close_conn(&mut self, conn: u64, reason: &str, notify: bool) {
+    pub fn close_conn(&mut self, conn: u64, reason: ipc::CloseReason, notify: bool) {
         if self.conns.remove(&conn).is_some() && notify {
-            self.out.notify(
-                "connectionClosed",
-                json!({ "connection": conn.to_string(), "reason": reason }),
-            );
+            self.out.notify(ipc::Notification::ConnectionClosed {
+                connection: conn,
+                reason,
+            });
         }
     }
 
@@ -609,8 +604,10 @@ impl Node {
                 let len = frame.len();
                 if self.conns.contains_key(&conn) {
                     self.out.notify_with_release(
-                        "frameReceived",
-                        json!({ "connection": conn.to_string(), "frame": B64.encode(&frame) }),
+                        ipc::Notification::FrameReceived {
+                            connection: conn,
+                            frame: &frame,
+                        },
                         Some(ipc::Release {
                             counter: shared.pending.clone(),
                             bytes: len,
@@ -650,7 +647,7 @@ impl Node {
             if peer != game_peer || header.frame_type == frame::TYPE_INVITE_TOKEN {
                 return;
             }
-            ("game", true)
+            (ipc::Origin::Game, true)
         } else if header.frame_type == frame::TYPE_INVITE_TOKEN {
             let Some(token) = frame::invite_token(&header) else {
                 return;
@@ -667,7 +664,7 @@ impl Node {
             if i < self.invites.len() {
                 self.invites.remove(i);
             }
-            ("invite", false)
+            (ipc::Origin::Invite, false)
         } else {
             // 有効な招待の合言葉を持たない相手のストリームは受け付けない
             return;
@@ -678,7 +675,7 @@ impl Node {
             Conn {
                 peer,
                 origin,
-                direction: "inbound",
+                direction: ipc::Direction::Inbound,
                 state: ConnState::Connecting,
             },
         );
@@ -691,9 +688,18 @@ impl Node {
             if header.frame_type == frame::TYPE_START_SIGNATURE {
                 shared.received_start_signature.store(true, Ordering::SeqCst);
             }
-            self.out.notify(
-                "frameReceived",
-                json!({ "connection": conn.to_string(), "frame": B64.encode(&first) }),
+            // 2つ目からのフレーム（game::reader_task）と同じく、書き出すまで受信キューに数える
+            let len = first.len();
+            shared.pending.fetch_add(len, Ordering::SeqCst);
+            self.out.notify_with_release(
+                ipc::Notification::FrameReceived {
+                    connection: conn,
+                    frame: &first,
+                },
+                Some(ipc::Release {
+                    counter: shared.pending.clone(),
+                    bytes: len,
+                }),
             );
         }
     }
@@ -727,23 +733,22 @@ impl Node {
     pub fn emit_status(&mut self) {
         let connected = self.peer_conns.len();
         let state = if connected > 0 || (self.bootstrap.is_empty() && !self.listen_addrs.is_empty()) {
-            "online"
+            ipc::NetworkState::Online
         } else if !self.bootstrap.is_empty() {
-            "connecting"
+            ipc::NetworkState::Connecting
         } else {
-            "offline"
+            ipc::NetworkState::Offline
         };
-        let status = json!({
-            "state": state,
-            "connectedPeers": connected,
-            "reachability": self.reachability,
-            "relayReservations": self.reservations.accepted_count(),
-        });
-        if self.last_status.as_ref() != Some(&status) {
-            self.out.notify("networkStatus", status.clone());
+        let status = ipc::NetworkStatus {
+            state,
+            connected_peers: connected,
+            reachability: self.reachability,
+            relay_reservations: self.reservations.accepted_count(),
+        };
+        if self.last_status != Some(status) {
+            self.out.notify(ipc::Notification::NetworkStatus(status));
             self.last_status = Some(status);
         }
-        self.status_dirty = false;
     }
 }
 

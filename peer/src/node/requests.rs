@@ -180,22 +180,22 @@ impl Node {
         if usable.is_empty() && !self.swarm.is_connected(&peer) {
             // 「直接接続を使わない」のときは、自分の協力ノードの中継を通る宛先が招待に無ければつながない
             let reason = if self.relay_only && had_addrs {
-                "no_relay_route"
+                ipc::CloseReason::NoRelayRoute
             } else {
-                "unreachable"
+                ipc::CloseReason::Unreachable
             };
             self.conns.insert(
                 conn,
                 super::Conn {
                     peer,
-                    origin: "invite",
-                    direction: "outbound",
+                    origin: ipc::Origin::Invite,
+                    direction: ipc::Direction::Outbound,
                     state: ConnState::Connecting,
                 },
             );
             let _ = self.internal.send(super::Internal::OutboundFailed { conn, reason });
         } else {
-            self.start_outbound(conn, peer, usable, Some(inv.token), "invite");
+            self.start_outbound(conn, peer, usable, Some(inv.token), ipc::Origin::Invite);
         }
         Ok(json!({ "connection": conn.to_string() }))
     }
@@ -220,7 +220,7 @@ impl Node {
         self.check_capacity()?;
         let addrs = self.addr_book.get(&peer).cloned().unwrap_or_default();
         let conn = self.alloc_conn();
-        self.start_outbound(conn, peer, addrs, None, "game");
+        self.start_outbound(conn, peer, addrs, None, ipc::Origin::Game);
         Ok(json!({ "connection": conn.to_string() }))
     }
 
@@ -263,7 +263,7 @@ impl Node {
         if !self.conns.contains_key(&conn) {
             return Err(("unknown_connection", "unknown connection".to_owned()));
         }
-        self.close_conn(conn, "closed", false);
+        self.close_conn(conn, ipc::CloseReason::Closed, false);
         Ok(json!({}))
     }
 }

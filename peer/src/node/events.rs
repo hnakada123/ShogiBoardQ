@@ -7,10 +7,10 @@ use libp2p::core::ConnectedPoint;
 use libp2p::multiaddr::Protocol;
 use libp2p::swarm::{DialError, SwarmEvent};
 use libp2p::{autonat, identify, ping, relay, Multiaddr, PeerId};
-use serde_json::json;
 
 use super::{ConnState, Node};
 use crate::addr;
+use crate::ipc;
 use crate::swarm::{supports_relay_hop, BehaviourEvent};
 
 /// 同じアドレス帯から受け付ける接続の上限
@@ -37,17 +37,13 @@ impl Node {
                 if self.policy.listen_is_external(self.service, &address) {
                     self.swarm.add_external_address(address);
                 }
-                self.status_dirty = true;
             }
             SwarmEvent::ListenerClosed { listener_id, .. } => {
                 // 中継の待受が閉じた（予約を断られた・協力ノードとの接続が切れた）。少し待って頼み直す
-                if self.reservations.closed(listener_id, Instant::now()) {
-                    self.status_dirty = true;
-                }
+                self.reservations.closed(listener_id, Instant::now());
             }
             SwarmEvent::ExpiredListenAddr { address, .. } => {
                 self.listen_addrs.retain(|a| a != &address);
-                self.status_dirty = true;
             }
             SwarmEvent::ConnectionEstablished {
                 peer_id,
@@ -69,7 +65,6 @@ impl Node {
                     .or_default()
                     .insert(connection_id, relayed);
                 self.update_routes(&peer_id);
-                self.status_dirty = true;
             }
             SwarmEvent::ConnectionClosed {
                 peer_id, connection_id, ..
@@ -82,7 +77,6 @@ impl Node {
                     }
                 }
                 self.update_routes(&peer_id);
-                self.status_dirty = true;
             }
             SwarmEvent::OutgoingConnectionError {
                 error: DialError::Transport(errors),
@@ -97,7 +91,6 @@ impl Node {
                 if !self.policy.advertisable(&address) {
                     self.swarm.remove_external_address(&address);
                 }
-                self.status_dirty = true;
             }
             SwarmEvent::Behaviour(event) => self.on_behaviour_event(event),
             _ => {}
@@ -131,10 +124,8 @@ impl Node {
             }
         }
         for id in changed {
-            self.out.notify(
-                "connectionRoute",
-                json!({ "connection": id.to_string(), "route": route }),
-            );
+            self.out
+                .notify(ipc::Notification::ConnectionRoute { connection: id, route });
         }
     }
 
@@ -153,15 +144,13 @@ impl Node {
             }
             BehaviourEvent::RelayClient(relay::client::Event::ReservationReqAccepted { relay_peer_id, .. }) => {
                 self.reservations.accepted(relay_peer_id);
-                self.status_dirty = true;
             }
             BehaviourEvent::Autonat(autonat::Event::StatusChanged { new, .. }) => {
                 self.reachability = match new {
-                    autonat::NatStatus::Public(_) => "public",
-                    autonat::NatStatus::Private => "private",
-                    autonat::NatStatus::Unknown => "unknown",
+                    autonat::NatStatus::Public(_) => ipc::Reachability::Public,
+                    autonat::NatStatus::Private => ipc::Reachability::Private,
+                    autonat::NatStatus::Unknown => ipc::Reachability::Unknown,
                 };
-                self.status_dirty = true;
             }
             _ => {}
         }

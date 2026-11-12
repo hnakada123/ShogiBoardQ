@@ -6,6 +6,8 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
+use base64::engine::general_purpose::STANDARD as B64;
+use base64::Engine;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -210,6 +212,147 @@ pub struct ConnectionParams {
     pub connection: String,
 }
 
+// ---------------------------------------------------------------- 通知（ipc.md 4章）
+
+/// 語の値（ipc.md の語はこの enum の as_str だけが決める）
+macro_rules! words {
+    ($(#[$doc:meta])* $name:ident { $($variant:ident => $word:literal),+ $(,)? }) => {
+        $(#[$doc])*
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub enum $name {
+            $($variant),+
+        }
+
+        impl $name {
+            pub fn as_str(self) -> &'static str {
+                match self {
+                    $($name::$variant => $word),+
+                }
+            }
+        }
+    };
+}
+
+words! {
+    /// 対局ストリームの経路
+    Route { Direct => "direct", Relay => "relay" }
+}
+
+words! {
+    /// 接続を開いた向き
+    Direction { Inbound => "inbound", Outbound => "outbound" }
+}
+
+words! {
+    /// 接続の由来（招待か、対局の相手のつなぎ直しか）
+    Origin { Invite => "invite", Game => "game" }
+}
+
+words! {
+    /// 接続が閉じた理由
+    CloseReason {
+        Closed => "closed",
+        Reset => "reset",
+        Timeout => "timeout",
+        Unreachable => "unreachable",
+        NoRelayRoute => "no_relay_route",
+        InvalidFrame => "invalid_frame",
+        RateLimited => "rate_limited",
+        Limit => "limit",
+    }
+}
+
+words! {
+    /// ネットワークの状態
+    NetworkState { Connecting => "connecting", Online => "online", Offline => "offline" }
+}
+
+words! {
+    /// インターネットから届くか（AutoNAT）
+    Reachability { Unknown => "unknown", Public => "public", Private => "private" }
+}
+
+/// networkStatus の中身（変わったときにだけ知らせるので比べられる）
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NetworkStatus {
+    pub state: NetworkState,
+    pub connected_peers: usize,
+    pub reachability: Reachability,
+    pub relay_reservations: usize,
+}
+
+/// 通知（名前とフィールドの名前はここだけ）
+pub enum Notification<'a> {
+    NetworkStatus(NetworkStatus),
+    ConnectionOpened {
+        connection: u64,
+        peer_id: &'a str,
+        peer_id_bytes: &'a [u8],
+        route: Route,
+        direction: Direction,
+        origin: Origin,
+    },
+    ConnectionRoute {
+        connection: u64,
+        route: Route,
+    },
+    FrameReceived {
+        connection: u64,
+        frame: &'a [u8],
+    },
+    ConnectionClosed {
+        connection: u64,
+        reason: CloseReason,
+    },
+}
+
+impl Notification<'_> {
+    fn name(&self) -> &'static str {
+        match self {
+            Notification::NetworkStatus(_) => "networkStatus",
+            Notification::ConnectionOpened { .. } => "connectionOpened",
+            Notification::ConnectionRoute { .. } => "connectionRoute",
+            Notification::FrameReceived { .. } => "frameReceived",
+            Notification::ConnectionClosed { .. } => "connectionClosed",
+        }
+    }
+
+    fn params(&self) -> Value {
+        match self {
+            Notification::NetworkStatus(s) => json!({
+                "state": s.state.as_str(),
+                "connectedPeers": s.connected_peers,
+                "reachability": s.reachability.as_str(),
+                "relayReservations": s.relay_reservations,
+            }),
+            Notification::ConnectionOpened {
+                connection,
+                peer_id,
+                peer_id_bytes,
+                route,
+                direction,
+                origin,
+            } => json!({
+                "connection": connection.to_string(),
+                "peerId": peer_id,
+                "peerIdBytes": B64.encode(peer_id_bytes),
+                "route": route.as_str(),
+                "direction": direction.as_str(),
+                "origin": origin.as_str(),
+            }),
+            Notification::ConnectionRoute { connection, route } => {
+                json!({ "connection": connection.to_string(), "route": route.as_str() })
+            }
+            Notification::FrameReceived { connection, frame } => {
+                json!({ "connection": connection.to_string(), "frame": B64.encode(frame) })
+            }
+            Notification::ConnectionClosed { connection, reason } => {
+                json!({ "connection": connection.to_string(), "reason": reason.as_str() })
+            }
+        }
+    }
+}
+
 /// 書き出しの後に戻す受信キューの量（接続ごとの上限の計算に使う）
 pub struct Release {
     pub counter: Arc<AtomicUsize>,
@@ -279,16 +422,17 @@ impl Out {
         self.send(&v, None);
     }
 
-    pub fn notify(&self, name: &str, params: Value) {
-        self.notify_with_release(name, params, None);
+    pub fn notify(&self, notification: Notification<'_>) {
+        self.notify_with_release(notification, None);
     }
 
-    pub fn notify_with_release(&self, name: &str, params: Value, release: Option<Release>) {
+    /// 書き出した後に release の量を受信キューから戻す（frameReceived）
+    pub fn notify_with_release(&self, notification: Notification<'_>, release: Option<Release>) {
         let v = json!({
             "protocolVersion": IPC_VERSION,
             "processGeneration": self.generation(),
-            "notification": name,
-            "params": params,
+            "notification": notification.name(),
+            "params": notification.params(),
         });
         self.send(&v, release);
     }
@@ -315,6 +459,76 @@ mod tests {
 
     fn req(json: &str) -> Vec<u8> {
         json.as_bytes().to_vec()
+    }
+
+    /// 通知の名前とフィールドは ipc.md 4章のとおり（対局・UI側の PeerIpc::checkNotification が検査する形）
+    #[test]
+    fn notifications_have_the_documented_names_and_fields() {
+        let closed = Notification::ConnectionClosed {
+            connection: 7,
+            reason: CloseReason::NoRelayRoute,
+        };
+        assert_eq!(closed.name(), "connectionClosed");
+        assert_eq!(
+            closed.params(),
+            json!({ "connection": "7", "reason": "no_relay_route" })
+        );
+        let frame = Notification::FrameReceived {
+            connection: 3,
+            frame: b"ab",
+        };
+        assert_eq!(frame.name(), "frameReceived");
+        assert_eq!(frame.params(), json!({ "connection": "3", "frame": "YWI=" }));
+        let opened = Notification::ConnectionOpened {
+            connection: 5,
+            peer_id: "12D3KooWabc",
+            peer_id_bytes: &[0, 1, 2],
+            route: Route::Relay,
+            direction: Direction::Outbound,
+            origin: Origin::Game,
+        };
+        assert_eq!(
+            opened.params(),
+            json!({ "connection": "5", "peerId": "12D3KooWabc", "peerIdBytes": "AAEC", "route": "relay",
+                    "direction": "outbound", "origin": "game" })
+        );
+        let status = Notification::NetworkStatus(NetworkStatus {
+            state: NetworkState::Online,
+            connected_peers: 2,
+            reachability: Reachability::Private,
+            relay_reservations: 1,
+        });
+        assert_eq!(status.name(), "networkStatus");
+        assert_eq!(
+            status.params(),
+            json!({ "state": "online", "connectedPeers": 2, "reachability": "private", "relayReservations": 1 })
+        );
+        let reasons: Vec<&str> = [
+            CloseReason::Closed,
+            CloseReason::Reset,
+            CloseReason::Timeout,
+            CloseReason::Unreachable,
+            CloseReason::NoRelayRoute,
+            CloseReason::InvalidFrame,
+            CloseReason::RateLimited,
+            CloseReason::Limit,
+        ]
+        .iter()
+        .map(|r| r.as_str())
+        .collect();
+        assert_eq!(
+            reasons,
+            [
+                "closed",
+                "reset",
+                "timeout",
+                "unreachable",
+                "no_relay_route",
+                "invalid_frame",
+                "rate_limited",
+                "limit"
+            ]
+        );
     }
 
     #[test]

@@ -12,6 +12,8 @@ use libp2p::Stream;
 use sbq_protocol::frame::{self, FrameHeader, MAX_FRAME_BYTES, TYPE_INVITE_TOKEN, TYPE_START_SIGNATURE};
 use tokio::sync::mpsc;
 
+use crate::ipc;
+
 /// 接続ごとの受信キューの上限（バイト）
 pub const MAX_PENDING_BYTES: usize = 256 * 1024;
 
@@ -110,7 +112,7 @@ pub enum ConnEvent {
     },
     Closed {
         conn: u64,
-        reason: &'static str,
+        reason: ipc::CloseReason,
     },
 }
 
@@ -125,17 +127,17 @@ pub async fn reader_task(
     let reason = loop {
         let (bytes, header) = match read_frame(&mut reader).await {
             Ok(v) => v,
-            Err(FrameReadError::Closed) => break "closed",
-            Err(FrameReadError::Io) => break "reset",
-            Err(FrameReadError::Invalid) => break "invalid_frame",
+            Err(FrameReadError::Closed) => break ipc::CloseReason::Closed,
+            Err(FrameReadError::Io) => break ipc::CloseReason::Reset,
+            Err(FrameReadError::Invalid) => break ipc::CloseReason::InvalidFrame,
         };
         let (rate, burst) = if shared.in_game() { (20, 40) } else { (5, 10) };
         if !limiter.allow(rate, burst) {
-            break "rate_limited";
+            break ipc::CloseReason::RateLimited;
         }
         if header.frame_type == TYPE_INVITE_TOKEN {
             // トークンは接続の最初にだけ送る。後から来たものは外枠の違反として閉じる
-            break "invalid_frame";
+            break ipc::CloseReason::InvalidFrame;
         }
         if header.frame_type == TYPE_START_SIGNATURE {
             shared.received_start_signature.store(true, Ordering::SeqCst);
@@ -144,7 +146,7 @@ pub async fn reader_task(
         let pending = shared.pending.fetch_add(len, Ordering::SeqCst).saturating_add(len);
         if pending > MAX_PENDING_BYTES {
             shared.pending.fetch_sub(len, Ordering::SeqCst);
-            break "limit";
+            break ipc::CloseReason::Limit;
         }
         if events
             .send(ConnEvent::Frame {
@@ -169,7 +171,10 @@ pub async fn writer_task(
 ) {
     while let Some(frame) = frames.recv().await {
         if write_frame(&mut writer, &frame).await.is_err() {
-            let _ = events.send(ConnEvent::Closed { conn, reason: "reset" });
+            let _ = events.send(ConnEvent::Closed {
+                conn,
+                reason: ipc::CloseReason::Reset,
+            });
             return;
         }
     }
