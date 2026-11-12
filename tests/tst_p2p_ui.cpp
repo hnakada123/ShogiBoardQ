@@ -25,6 +25,7 @@
 #include "p2pconfirmdialog.h"
 #include "p2pgamecoordinator.h"
 #include "p2pgameuicontroller.h"
+#include "p2phistorypanel.h"
 #include "p2pidentitydialog.h"
 #include "p2pidentitystore.h"
 #include "p2pknownpeers.h"
@@ -532,6 +533,48 @@ private slots:
                                     .arg(header->sectionViewportPosition(last))
                                     .arg(header->sectionSize(last))
                                     .arg(history->viewport()->width())));
+    }
+
+    /// 「対局したことのない相手の表示名を出さない」は、対局記録でも対局したことのない相手（「相手の管理」で
+    /// 記録を削除した相手）の名前だけを隠す。隠した名前はツールチップにも出さない
+    void recordsHideOnlyUnknownNames()
+    {
+        Seat applicant(QByteArray(38, 'f'));
+        Seat host(QByteArray(38, 'm'));
+        P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("hide-a")));
+        P2pRecordStore hostStore(m_dir.filePath(QStringLiteral("hide-h")));
+        QVERIFY(applicantStore.lock() && hostStore.lock());
+        P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("hide-a.cbor")));
+        P2pKnownPeers hostKnown(m_dir.filePath(QStringLiteral("hide-h.cbor")));
+        QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, &hostStore, &hostKnown));
+        Seat& black = applicant.game.match()->iAmBlack() ? applicant : host;
+        QTRY_VERIFY(black.game.canResign());
+        black.game.resign();
+        QTRY_VERIFY(applicant.game.phase() == P2pGameCoordinator::Phase::Finished
+                    && host.game.phase() == P2pGameCoordinator::Phase::Finished);
+        QTRY_COMPARE(hostStore.history().size(), 1);
+
+        P2pHistoryPanel panel(&hostStore, &hostKnown);
+        panel.reload();  // 表はタブを開いたときに作る
+        auto* table = panel.findChild<QTableWidget*>();
+        QVERIFY(table);
+        const auto opponentCell = [table]() { return table->item(0, 1); };
+        QCOMPARE(table->rowCount(), 1);
+        QCOMPARE(opponentCell()->text(), QStringLiteral("申し込む人"));
+
+        // 対局した相手の名前は、設定を有効にしても出す
+        panel.setHideUnknownNames(true);
+        QCOMPARE(opponentCell()->text(), QStringLiteral("申し込む人"));
+
+        // 「相手の管理」で記録を削除すると、対局したことのない相手として名前を隠す（ツールチップにも出さない）
+        hostKnown.remove(applicant.key.publicKey());
+        panel.reload();
+        QCOMPARE(opponentCell()->text(), QStringLiteral("名前は非表示"));
+        QVERIFY(!opponentCell()->toolTip().contains(QStringLiteral("申し込む人")));
+
+        // 設定を外せば出す
+        panel.setHideUnknownNames(false);
+        QCOMPARE(opponentCell()->text(), QStringLiteral("申し込む人"));
     }
 };
 

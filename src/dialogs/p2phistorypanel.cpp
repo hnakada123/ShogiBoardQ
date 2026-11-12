@@ -90,13 +90,17 @@ void P2pHistoryPanel::reload()
         m_table->setItem(row, Date, date);
         const std::optional<P2p::EvidenceReport> report = verifyFile(entry.evidencePath);
         QString opponent = entry.info.opponentDisplayName;
+        const P2pKnownPeer* known = nullptr;
         if (report && m_knownPeers) {
             const QByteArray key = entry.info.mySide == P2p::kSideBlack ? report->whitePlayerKey : report->blackPlayerKey;
-            const P2pKnownPeer* known = m_knownPeers->find(key);
+            known = m_knownPeers->find(key);
             if (known && !known->localName.isEmpty()) opponent = tr("%1（手元の名前: %2）").arg(opponent, known->localName);
         }
-        auto* opponentItem = new QTableWidgetItem(m_hideUnknownNames ? tr("名前は非表示") : opponent);
-        opponentItem->setToolTip(plainToolTip(opponent));
+        // 対局したことのない相手（「相手の管理」で記録を削除した相手・証跡を読めない対局）の表示名を出さない設定では、
+        // ツールチップにも出さない（条件確認画面と同じ規則）
+        const bool hideName = m_hideUnknownNames && !known;
+        auto* opponentItem = new QTableWidgetItem(hideName ? tr("名前は非表示") : opponent);
+        if (!hideName) opponentItem->setToolTip(plainToolTip(opponent));
         m_table->setItem(row, Opponent, opponentItem);
         m_table->setItem(row, Side, new QTableWidgetItem(entry.info.mySide == P2p::kSideBlack ? tr("先手") : tr("後手")));
         m_table->setItem(row, Ending, new QTableWidgetItem(P2pWindowText::localEndingText(entry.info.localEnding)));
