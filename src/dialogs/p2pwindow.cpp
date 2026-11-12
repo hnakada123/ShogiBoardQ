@@ -33,6 +33,7 @@
 #include "p2pidentitydialog.h"
 #include "p2pidentitystore.h"
 #include "p2ppeerspanel.h"
+#include "p2pplayerprofile.h"
 #include "p2pprotocolvalues.h"
 #include "p2pwindowtext.h"
 
@@ -57,7 +58,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     : QDialog(parent)
     , m_lobby(lobby)
     , m_game(game)
-    , m_player(lobby ? lobby->playerNumber() : 1)
+    , m_player(lobby && lobby->profile() ? lobby->profile()->playerNumber() : 1)
 {
     setObjectName(QStringLiteral("p2pWindow"));
     setWindowTitle(m_player > 1 ? tr("P2P対局（実験版）— %1人目").arg(m_player) : tr("P2P対局（実験版）"));
@@ -79,9 +80,10 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     m_tabs->addTab(createInviteTab(), tr("招待で接続"));
     m_gameTab = createGameTab();
     m_tabs->addTab(m_gameTab, tr("対局中"));
-    m_history = new P2pHistoryPanel(lobby ? lobby->records() : nullptr, lobby ? lobby->knownPeers() : nullptr, this);
+    const P2pPlayerProfile* profile = lobby ? lobby->profile() : nullptr;
+    m_history = new P2pHistoryPanel(profile ? profile->records() : nullptr, profile ? profile->knownPeers() : nullptr, this);
     m_tabs->addTab(m_history, tr("対局記録"));
-    m_peers = new P2pPeersPanel(lobby ? lobby->knownPeers() : nullptr, lobby ? lobby->identity() : nullptr, this);
+    m_peers = new P2pPeersPanel(profile ? profile->knownPeers() : nullptr, profile ? profile->identity() : nullptr, this);
     m_tabs->addTab(m_peers, tr("相手の管理"));
     m_tabs->addTab(createSettingsTab(), tr("設定"));
     layout->addWidget(m_tabs);
@@ -419,7 +421,7 @@ void P2pWindow::refresh()
     m_network->setEnabled(!running);
     m_connect->setEnabled(!busy);
 
-    P2pIdentityStore* identity = m_lobby->identity();
+    P2pIdentityStore* identity = m_lobby->profile() ? m_lobby->profile()->identity() : nullptr;
     const QByteArray key = identity ? identity->publicKey() : QByteArray();
     m_playerId->setText(key.isEmpty() ? tr("（まだ作っていません）") : P2pWindowText::playerIdText(key));
     m_routeInfo->setText(online ? routeText() : QString());
@@ -633,7 +635,7 @@ void P2pWindow::onConnectFailed(PeerIpc::CloseReason reason)
 
 void P2pWindow::onCopyPlayerId()
 {
-    if (m_lobby && m_lobby->identity()) {
-        QApplication::clipboard()->setText(QString::fromLatin1(m_lobby->identity()->publicKey().toHex()));
+    if (m_lobby && m_lobby->profile()) {
+        QApplication::clipboard()->setText(QString::fromLatin1(m_lobby->profile()->identity()->publicKey().toHex()));
     }
 }

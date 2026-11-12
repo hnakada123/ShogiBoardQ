@@ -4,23 +4,17 @@
 #include "p2plobbyservice.h"
 
 #include <QDateTime>
-#include <QDir>
 
 #include "logcategories.h"
 #include "p2pbuildinfo.h"
 #include "p2pidentitystore.h"
-#include "p2pknownpeers.h"
-#include "p2pplayerslot.h"
-#include "p2precordstore.h"
+#include "p2pplayerprofile.h"
 #include "peeripc.h"
 
-P2pLobbyService::P2pLobbyService(const Deps& deps, const QString& dataRoot, QObject* parent)
+P2pLobbyService::P2pLobbyService(const Deps& deps, P2pPlayerProfile* profile, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
-    , m_dataRoot(dataRoot)
-    , m_store(std::make_unique<P2pRecordStore>(dataRoot))
-    , m_knownPeers(std::make_unique<P2pKnownPeers>(QDir(dataRoot).filePath(QStringLiteral("peers.cbor"))))
-    , m_identity(new P2pIdentityStore(m_store->identityDirectory(), this))
+    , m_profile(profile)
 {
     if (m_deps.activity) {
         connect(m_deps.activity, &AppActivityState::revoked, this, &P2pLobbyService::onActivityRevoked);
@@ -32,19 +26,6 @@ P2pLobbyService::P2pLobbyService(const Deps& deps, const QString& dataRoot, QObj
 }
 
 P2pLobbyService::~P2pLobbyService() = default;
-
-P2pLobbyService* P2pLobbyService::acquire(const Deps& deps, const QString& dataDirectory, QObject* parent)
-{
-    for (int player = 1; player <= P2pPlayerSlot::kMaxPlayers; ++player) {
-        auto lobby = std::make_unique<P2pLobbyService>(deps, P2pPlayerSlot::storageDirectory(dataDirectory, player));
-        lobby->m_playerNumber = player;
-        // ほかのアプリが使っている番号は飛ばす
-        if (lobby->prepare() != StartFailure::None) continue;
-        lobby->setParent(parent);
-        return lobby.release();
-    }
-    return nullptr;
-}
 
 qint64 P2pLobbyService::buildExpiresAt()
 {
@@ -58,16 +39,6 @@ bool P2pLobbyService::isBuildExpired()
 
 // ---------------------------------------------------------------- 開始と終了
 
-P2pLobbyService::StartFailure P2pLobbyService::prepare()
-{
-    if (m_automationDisabled) return StartFailure::AutomationEnabled;
-    // p2p/ を使えるアプリは同時に1つ（実装仕様 9章）
-    if (!m_store->lock()) return StartFailure::Locked;
-    m_store->recoverJournals();
-    m_knownPeers->load();
-    return StartFailure::None;
-}
-
 P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName, const QStringList& bootstrap,
                                                      bool relayOnly)
 {
@@ -77,11 +48,9 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
     if (!network) return StartFailure::NetworkNotAllowed;
     // 期限を過ぎたビルドは、限定試験用と公開用のネットワークへ参加しない（ローカル検証用は使える）
     if (!network->local && isBuildExpired()) return StartFailure::BuildExpired;
-    if (!m_store->isLocked()) {
-        const StartFailure prepared = prepare();
-        if (prepared != StartFailure::None) return prepared;
-    }
-    if (!m_identity->isUnlocked()) return StartFailure::NoIdentity;
+    // 保存先を使えるアプリは同時に1つ（実装仕様 9章）
+    if (!m_profile || !m_profile->open()) return StartFailure::Locked;
+    if (!m_profile->identity()->isUnlocked()) return StartFailure::NoIdentity;
 
     m_networkName = networkName;
     m_bootstrap = bootstrap.mid(0, 16);
@@ -101,7 +70,7 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
     connect(m_peer, &PeerProcess::failed, this, &P2pLobbyService::onPeerFailed);
     connect(m_peer, &PeerProcess::stopped, this, &P2pLobbyService::onPeerStopped);
     if (m_deps.game) {
-        m_deps.game->setEnvironment(this, m_store.get(), m_knownPeers.get(), m_identity->key());
+        m_deps.game->setEnvironment(this, m_profile->records(), m_profile->knownPeers(), m_profile->identity()->key());
     }
     emit statusChanged();
     m_peer->start();
@@ -116,8 +85,7 @@ void P2pLobbyService::end()
     if (m_peer) m_peer->stop();
     m_status = Status::Off;
     m_lease.reset();
-    m_identity->lock();
-    m_store->unlock();
+    if (m_profile) m_profile->close();
     emit statusChanged();
 }
 

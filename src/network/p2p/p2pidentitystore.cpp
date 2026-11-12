@@ -99,7 +99,7 @@ QString P2pIdentityStore::keychainItemKey(const QString& directory, const QStrin
     const QString own = QDir::cleanPath(QDir(directory).absolutePath());
     if (!standardDataDirectory.isEmpty()) {
         // これまでの名前を使うのは、標準の場所の1人目の鍵だけ（P2pPlayerSlot::storageDirectory の p2p と、
-        // P2pRecordStore::identityDirectory の identity。2人目からの p2p-2/identity などは別の項目にする）
+        // P2pPlayerProfile::identityDirectory の identity。2人目からの p2p-2/identity などは別の項目にする）
         const QString standard =
             QDir::cleanPath(QDir(standardDataDirectory).absoluteFilePath(QStringLiteral("p2p/identity")));
         if (own == standard) return base;

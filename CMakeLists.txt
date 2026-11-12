@@ -1128,6 +1128,8 @@ if(ENABLE_P2P_PLAY)
         src/network/p2p/p2pknownpeers.h
         src/network/p2p/p2plobbyservice.cpp
         src/network/p2p/p2plobbyservice.h
+        src/network/p2p/p2pplayerprofile.cpp
+        src/network/p2p/p2pplayerprofile.h
         src/network/p2p/p2pplayerslot.h
         src/network/p2p/p2precordstore.cpp
         src/network/p2p/p2precordstore.h

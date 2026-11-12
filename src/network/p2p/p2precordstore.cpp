@@ -146,16 +146,6 @@ P2pRecordStore::P2pRecordStore(const QString& root)
 {
 }
 
-P2pRecordStore::~P2pRecordStore()
-{
-    unlock();
-}
-
-QString P2pRecordStore::identityDirectory() const
-{
-    return QDir(m_root).filePath(QStringLiteral("identity"));
-}
-
 QString P2pRecordStore::journalDirectory() const
 {
     return QDir(m_root).filePath(QStringLiteral("journal"));
@@ -172,28 +162,6 @@ bool P2pRecordStore::ensureDirectory(const QString& path) const
     QFile::setPermissions(m_root, kOwnerDir);
     QFile::setPermissions(path, kOwnerDir);
     return true;
-}
-
-bool P2pRecordStore::lock()
-{
-    if (isLocked()) return true;
-    if (!ensureDirectory(m_root)) return false;
-    m_lock = std::make_unique<QLockFile>(QDir(m_root).filePath(QStringLiteral("p2p.lock")));
-    // 前のアプリが異常終了して残したロックは、そのプロセスがもう無ければ取り直す
-    m_lock->setStaleLockTime(0);
-    if (!m_lock->tryLock(0)) {
-        m_lock.reset();
-        return false;
-    }
-    // 以前の版が残した既知ピアのキャッシュ（ほかの参加者の IP アドレスが入る）は、もう使わないので消す
-    QFile::remove(QDir(m_root).filePath(QStringLiteral("peers.cache")));
-    return true;
-}
-
-void P2pRecordStore::unlock()
-{
-    if (m_lock) m_lock->unlock();
-    m_lock.reset();
 }
 
 std::unique_ptr<P2pJournal> P2pRecordStore::createJournal(const QByteArray& gameId)

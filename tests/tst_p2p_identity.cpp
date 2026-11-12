@@ -8,8 +8,8 @@
 
 #include "p2pcbor.h"
 #include "p2pidentitystore.h"
+#include "p2pplayerprofile.h"
 #include "p2pplayerslot.h"
-#include "p2precordstore.h"
 
 using namespace P2p;
 
@@ -62,7 +62,7 @@ private slots:
         const QString standard = QStringLiteral("/home/u/.local/share/ShogiBoardQ");
         const QString base = QStringLiteral("player-key-v1");
         const auto identityOf = [](const QString& dataDirectory, int player) {
-            return P2pRecordStore(P2pPlayerSlot::storageDirectory(dataDirectory, player)).identityDirectory();
+            return P2pPlayerProfile::identityDirectory(P2pPlayerSlot::storageDirectory(dataDirectory, player));
         };
         // 標準の場所の1人目の鍵は、これまでと同じ名前（実際の保存先の組み立てと合っている）
         QCOMPARE(identityOf(standard, 1), standard + QStringLiteral("/p2p/identity"));

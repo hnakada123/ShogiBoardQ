@@ -32,6 +32,7 @@
 #include "p2pidentitystore.h"
 #include "p2pknownpeers.h"
 #include "p2plobbyservice.h"
+#include "p2pplayerprofile.h"
 #include "p2pplayerslot.h"
 #include "p2precordstore.h"
 #include "p2ptransport.h"
@@ -165,8 +166,9 @@ private slots:
         GameBoard board;
         ShogiClock clock;
         P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
-        P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, m_dir.filePath(QStringLiteral("w")));
-        QCOMPARE(lobby.prepare(), P2pLobbyService::StartFailure::None);
+        P2pPlayerProfile profile(m_dir.filePath(QStringLiteral("w")));
+        QVERIFY(profile.open());
+        P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, &profile);
         P2pWindow window(&lobby, &game);
         window.resize(820, 640);
         window.show();
@@ -248,40 +250,35 @@ private slots:
     /// （1人目・2人目・3人目…）。保存先はプレイヤーごとに別で、閉じたアプリの番号は次に開いたアプリが使う
     void appsOnOnePcBecomeSeparatePlayers()
     {
-        AppActivityState activity;
-        GameBoard board;
-        ShogiClock clock;
-        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
-        const P2pLobbyService::Deps deps{&activity, &game};
         const QString data = m_dir.filePath(QStringLiteral("players"));
 
-        std::unique_ptr<P2pLobbyService> first(P2pLobbyService::acquire(deps, data));
-        std::unique_ptr<P2pLobbyService> second(P2pLobbyService::acquire(deps, data));
-        std::unique_ptr<P2pLobbyService> third(P2pLobbyService::acquire(deps, data));
+        std::unique_ptr<P2pPlayerProfile> first(P2pPlayerProfile::acquire(data));
+        std::unique_ptr<P2pPlayerProfile> second(P2pPlayerProfile::acquire(data));
+        std::unique_ptr<P2pPlayerProfile> third(P2pPlayerProfile::acquire(data));
         QVERIFY(first && second && third);
         QCOMPARE(first->playerNumber(), 1);
         QCOMPARE(second->playerNumber(), 2);
         QCOMPARE(third->playerNumber(), 3);
         // 1人目の保存先はこれまでと同じ p2p。2人目からは別のフォルダで、鍵の場所も別
-        QCOMPARE(first->records()->identityDirectory(), data + QStringLiteral("/p2p/identity"));
-        QCOMPARE(second->records()->identityDirectory(), data + QStringLiteral("/p2p-2/identity"));
-        QCOMPARE(third->records()->identityDirectory(), data + QStringLiteral("/p2p-3/identity"));
-        QVERIFY(first->records()->isLocked() && second->records()->isLocked() && third->records()->isLocked());
+        QCOMPARE(P2pPlayerProfile::identityDirectory(first->root()), data + QStringLiteral("/p2p/identity"));
+        QCOMPARE(P2pPlayerProfile::identityDirectory(second->root()), data + QStringLiteral("/p2p-2/identity"));
+        QCOMPARE(P2pPlayerProfile::identityDirectory(third->root()), data + QStringLiteral("/p2p-3/identity"));
+        QVERIFY(first->isOpen() && second->isOpen() && third->isOpen());
 
         // 2人目のアプリを閉じると、次に開いたアプリが2人目になる（3人目は動いたまま）
         second.reset();
-        std::unique_ptr<P2pLobbyService> again(P2pLobbyService::acquire(deps, data));
+        std::unique_ptr<P2pPlayerProfile> again(P2pPlayerProfile::acquire(data));
         QVERIFY(again);
         QCOMPARE(again->playerNumber(), 2);
 
         // 同時に使えるのは kMaxPlayers 個まで
-        std::vector<std::unique_ptr<P2pLobbyService>> rest;
+        std::vector<std::unique_ptr<P2pPlayerProfile>> rest;
         for (int player = 4; player <= P2pPlayerSlot::kMaxPlayers; ++player) {
-            rest.emplace_back(P2pLobbyService::acquire(deps, data));
+            rest.emplace_back(P2pPlayerProfile::acquire(data));
             QVERIFY(rest.back());
             QCOMPARE(rest.back()->playerNumber(), player);
         }
-        QVERIFY(!P2pLobbyService::acquire(deps, data));
+        QVERIFY(!P2pPlayerProfile::acquire(data));
     }
 
     /// 1人目のウィンドウはこれまでどおり。2人目からは、題名と上の案内で何人目かが分かり、表示名も別に覚える
@@ -293,14 +290,16 @@ private slots:
         P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
         const P2pLobbyService::Deps deps{&activity, &game};
         const QString data = m_dir.filePath(QStringLiteral("titles"));
-        std::unique_ptr<P2pLobbyService> first(P2pLobbyService::acquire(deps, data));
-        std::unique_ptr<P2pLobbyService> second(P2pLobbyService::acquire(deps, data));
-        QVERIFY(first && second);
+        std::unique_ptr<P2pPlayerProfile> firstProfile(P2pPlayerProfile::acquire(data));
+        std::unique_ptr<P2pPlayerProfile> secondProfile(P2pPlayerProfile::acquire(data));
+        QVERIFY(firstProfile && secondProfile);
+        P2pLobbyService first(deps, firstProfile.get());
+        P2pLobbyService second(deps, secondProfile.get());
         NetworkSettings::p2pDisplayName(1).remove();
         NetworkSettings::p2pDisplayName(2).remove();
         {
-            P2pWindow one(first.get(), &game);
-            P2pWindow two(second.get(), &game);
+            P2pWindow one(&first, &game);
+            P2pWindow two(&second, &game);
             QCOMPARE(one.windowTitle(), QStringLiteral("P2P対局（実験版）"));
             QVERIFY(!one.findChild<QLabel*>(QStringLiteral("p2pPlayerNotice")));
             QCOMPARE(two.windowTitle(), QStringLiteral("P2P対局（実験版）— 2人目"));
@@ -323,7 +322,7 @@ private slots:
         }
         QCOMPARE(NetworkSettings::p2pDisplayName(1)(), QStringLiteral("一人目"));
         QCOMPARE(NetworkSettings::p2pDisplayName(2)(), QStringLiteral("二人目"));
-        P2pWindow reopened(second.get(), &game);
+        P2pWindow reopened(&second, &game);
         QCOMPARE(reopened.findChild<QLineEdit*>(QStringLiteral("p2pDisplayName"))->text(), QStringLiteral("二人目"));
     }
 
@@ -335,8 +334,9 @@ private slots:
         GameBoard board;
         ShogiClock clock;
         P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
-        P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, m_dir.filePath(QStringLiteral("clip")));
-        QCOMPARE(lobby.prepare(), P2pLobbyService::StartFailure::None);
+        P2pPlayerProfile profile(m_dir.filePath(QStringLiteral("clip")));
+        QVERIFY(profile.open());
+        P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, &profile);
         P2pWindow window(&lobby, &game);
         window.resize(NetworkSettings::p2pWindowSize.defaultValue());
         window.show();
@@ -461,7 +461,6 @@ private slots:
         Seat host(QByteArray(38, 'j'));
         P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("flip-a")));
         P2pRecordStore hostStore(m_dir.filePath(QStringLiteral("flip-h")));
-        QVERIFY(applicantStore.lock() && hostStore.lock());
         P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("flip-a.cbor")));
         P2pKnownPeers hostKnown(m_dir.filePath(QStringLiteral("flip-h.cbor")));
         // どちらの盤も反転していない状態から始める（後手の側は反転しなければならない）
@@ -481,7 +480,6 @@ private slots:
         Seat host(QByteArray(38, 'k'));
         P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("end-a")));
         P2pRecordStore hostStore(m_dir.filePath(QStringLiteral("end-h")));
-        QVERIFY(applicantStore.lock() && hostStore.lock());
         P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("end-a.cbor")));
         P2pKnownPeers hostKnown(m_dir.filePath(QStringLiteral("end-h.cbor")));
         QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, &hostStore, &hostKnown));
@@ -511,7 +509,6 @@ private slots:
         Seat host(QByteArray(38, 'm'));
         P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("offer-a")));
         P2pRecordStore hostStore(m_dir.filePath(QStringLiteral("offer-h")));
-        QVERIFY(applicantStore.lock() && hostStore.lock());
         P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("offer-a.cbor")));
         P2pKnownPeers hostKnown(m_dir.filePath(QStringLiteral("offer-h.cbor")));
         QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, &hostStore, &hostKnown));
@@ -557,10 +554,10 @@ private slots:
     {
         Seat applicant(QByteArray(38, 'd'));
         Seat host(QByteArray(38, 'k'));
-        P2pLobbyService lobby(P2pLobbyService::Deps{&host.activity, &host.game}, m_dir.filePath(QStringLiteral("records")));
-        QCOMPARE(lobby.prepare(), P2pLobbyService::StartFailure::None);
+        P2pPlayerProfile profile(m_dir.filePath(QStringLiteral("records")));
+        QVERIFY(profile.open());
+        P2pLobbyService lobby(P2pLobbyService::Deps{&host.activity, &host.game}, &profile);
         P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("records-a")));
-        QVERIFY(applicantStore.lock());
         P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("records-a.cbor")));
         P2pWindow window(&lobby, &host.game);
         window.resize(820, 640);
@@ -576,7 +573,7 @@ private slots:
         QCOMPARE(history->rowCount(), 0);
 
         // 1局指して投了で終える。対局が終わったら記録の表に1行、相手の表に1人が入る
-        QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, lobby.records(), lobby.knownPeers()));
+        QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, profile.records(), profile.knownPeers()));
         Seat& black = applicant.game.match()->iAmBlack() ? applicant : host;  // 投了できるのは手番の側
         QTRY_VERIFY(black.game.canResign());
         black.game.resign();
@@ -631,7 +628,6 @@ private slots:
         Seat host(QByteArray(38, 'm'));
         P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("hide-a")));
         P2pRecordStore hostStore(m_dir.filePath(QStringLiteral("hide-h")));
-        QVERIFY(applicantStore.lock() && hostStore.lock());
         P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("hide-a.cbor")));
         P2pKnownPeers hostKnown(m_dir.filePath(QStringLiteral("hide-h.cbor")));
         QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, &hostStore, &hostKnown));

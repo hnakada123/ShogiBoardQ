@@ -17,6 +17,7 @@
 #include "p2pidentitydialog.h"
 #include "p2pidentitystore.h"
 #include "p2plobbyservice.h"
+#include "p2pplayerprofile.h"
 #include "p2pplayerslot.h"
 #include "p2precordstore.h"
 #include "p2pwindow.h"
@@ -69,18 +70,19 @@ bool P2pGameUiController::ensureLobby()
     deps.game = m_deps.game;
     // 同じ PC でほかの ShogiBoardQ が P2P対局を使っていれば、空いている次の番号のプレイヤー（2人目・3人目…）に
     // なる。保存先（プレイヤー鍵・対局記録）はプレイヤーごとに別で、同じ PC の中で対局を試せる
-    m_lobby = P2pLobbyService::acquire(deps, AppPaths::dataDirectory(), this);
-    if (!m_lobby) {
+    m_profile = P2pPlayerProfile::acquire(AppPaths::dataDirectory(), this);
+    if (!m_profile) {
         NotificationPresenter::warning(
             m_deps.parentWidget, tr("P2P対局"),
             tr("このPCで同時に P2P対局を使える ShogiBoardQ は %1 個までです。ほかの ShogiBoardQ を閉じてから開いてください。")
                 .arg(P2pPlayerSlot::kMaxPlayers));
         return false;
     }
+    m_lobby = new P2pLobbyService(deps, m_profile, this);
     connect(m_lobby, &P2pLobbyService::peerFailed, this, &P2pGameUiController::onPeerFailed);
-    connect(m_lobby->identity(), &P2pIdentityStore::finished, this, &P2pGameUiController::onIdentityFinished);
+    connect(m_profile->identity(), &P2pIdentityStore::finished, this, &P2pGameUiController::onIdentityFinished);
     // p2p/ 全体の大きさが上限を超えていたら、古い記録を消すかを尋ねる（黙って消さない）
-    if (m_lobby->records()->totalBytes() > P2pRecordStore::kMaxTotalBytes) {
+    if (m_profile->records()->totalBytes() > P2pRecordStore::kMaxTotalBytes) {
         NotificationPresenter::warning(m_deps.parentWidget, tr("P2P対局"),
                                        tr("P2P対局の記録が 1 GiB を超えています。「対局記録」で古い記録を削除してください。"));
     }
@@ -122,7 +124,7 @@ void P2pGameUiController::openWindow()
 void P2pGameUiController::onStartRequested()
 {
     if (!m_lobby || !m_window) return;
-    P2pIdentityStore* identity = m_lobby->identity();
+    P2pIdentityStore* identity = m_profile->identity();
     if (identity->isUnlocked()) {
         beginNetwork();
         return;
@@ -150,7 +152,7 @@ void P2pGameUiController::onIdentityFinished(P2pIdentityStore::Failure failure)
 {
     if (!m_startAfterUnlock) return;
     m_startAfterUnlock = false;
-    if (failure != P2pIdentityStore::Failure::None || !m_lobby || !m_lobby->identity()->isUnlocked()) {
+    if (failure != P2pIdentityStore::Failure::None || !m_profile || !m_profile->identity()->isUnlocked()) {
         NotificationPresenter::warning(dialogParent(), tr("P2P対局"),
                                        tr("プレイヤー鍵を読み込めませんでした。「設定」でプレイヤー鍵を作り直せます。"));
         return;
@@ -193,8 +195,8 @@ void P2pGameUiController::onRecreateIdentity()
                                     tr("作り直す"), QMessageBox::Warning)) {
         return;
     }
-    m_lobby->identity()->remove();
-    P2pIdentityDialog dialog(P2pIdentityDialog::Mode::Create, m_lobby->identity(), dialogParent());
+    m_profile->identity()->remove();
+    P2pIdentityDialog dialog(P2pIdentityDialog::Mode::Create, m_profile->identity(), dialogParent());
     dialog.exec();
     if (m_window) m_window->refresh();
 }
@@ -243,7 +245,7 @@ void P2pGameUiController::onNegotiationChanged()
         return;
     }
     if (!m_lobby) return;
-    m_confirm = new P2pConfirmDialog(m_deps.game, m_lobby->knownPeers(), NetworkSettings::p2pHideUnknownNames(),
+    m_confirm = new P2pConfirmDialog(m_deps.game, m_profile->knownPeers(), NetworkSettings::p2pHideUnknownNames(),
                                      dialogParent());
     m_confirm->setAttribute(Qt::WA_DeleteOnClose);
     m_confirm->show();

@@ -12,6 +12,7 @@
 #include "p2pevidenceverifier.h"
 #include "p2pgamecoordinator.h"
 #include "p2pknownpeers.h"
+#include "p2pplayerprofile.h"
 #include "p2precordkinds.h"
 #include "p2precordstore.h"
 #include "p2ptransport.h"
@@ -76,7 +77,6 @@ public:
         transport.self = this;
         coordinator.setRecordSink(&sink);
         coordinator.setEnvironment(&transport, &store, &knownPeers, &playerKey);
-        QVERIFY(store.lock());
     }
 
     GameBoard board;
@@ -262,7 +262,6 @@ private slots:
         // 対局の途中でアプリが終わった: ジャーナルを証跡に直す（対局は続けない）
         const QString root = m_dir.filePath(QStringLiteral("recover"));
         P2pRecordStore store(root);
-        QVERIFY(store.lock());
         const SigningKey black = SigningKey::generate();
         const SigningKey white = SigningKey::generate();
         StartAgreement a;
@@ -293,9 +292,13 @@ private slots:
         QCOMPARE(history.size(), 1);
         QCOMPARE(history.first().info.settlement, Settlement::Interrupted);
         QCOMPARE(history.first().gameId, a.gameId());
-        // 2つ目のアプリはロックを取れない
-        P2pRecordStore second(root);
-        QVERIFY(!second.lock());
+        // 同じ保存先を使えるアプリは1つ（2つ目のアプリは開けない）
+        P2pPlayerProfile first(root);
+        QVERIFY(first.open());
+        P2pPlayerProfile second(root);
+        QVERIFY(!second.open());
+        first.close();
+        QVERIFY(second.open());
     }
 };
 

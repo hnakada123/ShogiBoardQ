@@ -20,6 +20,7 @@ class MainWindowAppearanceController;
 class P2pConfirmDialog;
 class P2pGameCoordinator;
 class P2pLobbyService;
+class P2pPlayerProfile;
 class P2pWindow;
 class QAction;
 class QMessageBox;
@@ -93,6 +94,7 @@ private:
     void closeOfferBox();
 
     Deps m_deps;
+    P2pPlayerProfile* m_profile = nullptr;      ///< 子オブジェクト（開いたときに、空いている番号のプレイヤーで作る）
     P2pLobbyService* m_lobby = nullptr;          ///< 子オブジェクト（開いたときに作る）
     QPointer<P2pWindow> m_window;
     QPointer<P2pConfirmDialog> m_confirm;

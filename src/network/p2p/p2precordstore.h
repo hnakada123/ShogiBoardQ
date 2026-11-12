@@ -2,12 +2,11 @@
 #define P2PRECORDSTORE_H
 
 /// @file p2precordstore.h
-/// @brief P2P対局の保存先（ロック・ジャーナル・証跡・履歴の情報・既知の相手。実装仕様 9章）
+/// @brief P2P対局の記録（ジャーナル・証跡・履歴の情報。実装仕様 9章）
 
 #include <QByteArray>
 #include <QFile>
 #include <QList>
-#include <QLockFile>
 #include <QString>
 
 #include <memory>
@@ -53,9 +52,10 @@ struct P2pHistoryInfo {
 };
 
 /**
- * @brief `AppPaths::dataDirectory()/p2p/` の保存物
+ * @brief プレイヤーの保存先（P2pPlayerProfile。`p2p/` など）の中の対局の記録
  *
- * 所有者だけが読み書きできる権限で作る。同時に使えるアプリは1つ（QLockFile）。通信プロセスにこの場所を渡さない。
+ * 所有者だけが読み書きできる権限で作る。保存先を使う権利（ロック）は P2pPlayerProfile が取る。通信プロセスにこの場所を
+ * 渡さない。
  */
 class P2pRecordStore
 {
@@ -72,15 +72,8 @@ public:
     };
 
     explicit P2pRecordStore(const QString& root);
-    ~P2pRecordStore();
 
     QString root() const { return m_root; }
-    QString identityDirectory() const;
-
-    /// p2p/ を使う権利を取る（取れなければ false。ほかのアプリが使っている）
-    bool lock();
-    void unlock();
-    bool isLocked() const { return m_lock && m_lock->isLocked(); }
 
     /// 新しい対局のジャーナル（gameId の16進のファイル名）
     std::unique_ptr<P2pJournal> createJournal(const QByteArray& gameId);
@@ -104,7 +97,6 @@ private:
     bool ensureDirectory(const QString& path) const;
 
     QString m_root;
-    std::unique_ptr<QLockFile> m_lock;
 };
 
 #endif // P2PRECORDSTORE_H

@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QList>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QStringList>
 
@@ -17,17 +18,15 @@
 #include "appactivitystate.h"
 #include "p2pframes.h"
 #include "p2pgamecoordinator.h"
+#include "p2pplayerprofile.h"
 #include "p2ptransport.h"
 #include "peerprocess.h"
 
-class P2pIdentityStore;
-class P2pKnownPeers;
-class P2pRecordStore;
-
 /**
- * @brief 「P2P対局」を使う間の部品の持ち主
+ * @brief 「P2P対局」の通信プロセスの窓口
  *
- * 通信プロセス・保存先（ロック）・プレイヤー鍵・既知の相手を持ち、招待を扱い、開いた接続を司令塔へ振り分ける。
+ * 通信プロセスを動かし、招待を扱い、開いた接続を司令塔へ振り分ける。保存先（対局の記録・既知の相手・プレイヤー鍵）は
+ * プレイヤーの保存先（P2pPlayerProfile）のものを使う。
  * 通信プロセスは「P2P対局」を始めてから終えるまでだけ動かす。使う間は動作状態を「P2P接続中」にする
  * （対局の間は司令塔が「P2P対局中」にする）。対局の相手は招待文字列で決める（不特定の相手との公開募集は持たない）。
  * 自分や相手のアドレス（IP）は通信プロセスだけが扱い、ここには届かない。
@@ -58,18 +57,11 @@ public:
     /// 招待文字列を読んだ結果（通信プロセスの解釈。対局・UI側は文字列を読まない）
     using InviteInfo = PeerIpc::InspectedInvite;
 
-    P2pLobbyService(const Deps& deps, const QString& dataRoot, QObject* parent = nullptr);
+    /// profile はこのアプリが使うプレイヤーの保存先（非所有。この部品より長く生きること）
+    P2pLobbyService(const Deps& deps, P2pPlayerProfile* profile, QObject* parent = nullptr);
     ~P2pLobbyService() override;
 
-    /// この PC で空いている最初の番号のプレイヤーとして使い始める（prepare 済みの部品を返す）。dataDirectory の下の
-    /// 保存先を1人目から順に試し、ほかのアプリが使っている番号は飛ばす（P2pPlayerSlot）。どれも使えなければ nullptr
-    static P2pLobbyService* acquire(const Deps& deps, const QString& dataDirectory, QObject* parent = nullptr);
-    /// この PC の何人目のプレイヤーか（1〜。acquire で決まる。保存先を直接渡して作ったときは 1）
-    int playerNumber() const { return m_playerNumber; }
-
-    P2pRecordStore* records() const { return m_store.get(); }
-    P2pKnownPeers* knownPeers() const { return m_knownPeers.get(); }
-    P2pIdentityStore* identity() const { return m_identity; }
+    P2pPlayerProfile* profile() const { return m_profile.data(); }
 
     /// 自動化 API を有効にして起動したときは使えなくする（P2P対局の部品を動かさない。実装仕様 10.2節）
     void disableForAutomation() { m_automationDisabled = true; }
@@ -80,11 +72,9 @@ public:
     /// 使用期限（UNIX秒。起点と日数は通信プロセスと同じ値を CMake が p2pbuildinfo.h に書く）
     static qint64 buildExpiresAt();
 
-    /// p2p/ のロックを取り、残ったジャーナルを証跡に直す（使い始める前に1回）
-    StartFailure prepare();
-    /// 通信プロセスを起動してネットワークに参加する（プレイヤー鍵は読み込み済みであること）
+    /// 通信プロセスを起動してネットワークに参加する（保存先を開いていなければ開く。プレイヤー鍵は読み込み済みであること）
     StartFailure begin(const QString& networkName, const QStringList& bootstrap, bool relayOnly);
-    /// 招待を無効にし、対局中なら中断を知らせて、通信プロセスを止める
+    /// 招待を無効にし、対局中なら中断を知らせて、通信プロセスを止める（保存先も閉じる）
     void end();
 
     Status status() const { return m_status; }
@@ -143,14 +133,10 @@ private:
     void rejectConnection(quint64 connection, P2p::ErrorCode code);
 
     Deps m_deps;
-    QString m_dataRoot;
-    std::unique_ptr<P2pRecordStore> m_store;
-    std::unique_ptr<P2pKnownPeers> m_knownPeers;
-    P2pIdentityStore* m_identity = nullptr;   ///< 子オブジェクト
+    QPointer<P2pPlayerProfile> m_profile;     ///< 非所有
     PeerProcess* m_peer = nullptr;            ///< 子オブジェクト（使う間だけ）
     ActivityLease m_lease;
     bool m_automationDisabled = false;
-    int m_playerNumber = 1;
 
     Status m_status = Status::Off;
     PeerProcess::Failure m_peerFailure = PeerProcess::Failure::None;

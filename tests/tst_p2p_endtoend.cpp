@@ -18,6 +18,7 @@
 #include "p2pgamecoordinator.h"
 #include "p2pidentitystore.h"
 #include "p2plobbyservice.h"
+#include "p2pplayerprofile.h"
 #include "p2precordstore.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
@@ -50,7 +51,8 @@ public:
 struct App {
     explicit App(const QString& root)
         : game(P2pGameCoordinator::Deps{&board, &clock, &activity})
-        , lobby(P2pLobbyService::Deps{&activity, &game}, root)
+        , profile(root)
+        , lobby(P2pLobbyService::Deps{&activity, &game}, &profile)
     {
         game.setRecordSink(&sink);
     }
@@ -60,6 +62,7 @@ struct App {
     AppActivityState activity;
     RecordingSink sink;
     P2pGameCoordinator game;
+    P2pPlayerProfile profile;
     P2pLobbyService lobby;
 };
 
@@ -74,9 +77,9 @@ private:
 
     static bool createIdentity(App& app)
     {
-        if (app.lobby.prepare() != P2pLobbyService::StartFailure::None) return false;
-        app.lobby.identity()->create(P2pIdentityStore::Method::Plain);
-        return app.lobby.identity()->isUnlocked();
+        if (!app.profile.open()) return false;
+        app.profile.identity()->create(P2pIdentityStore::Method::Plain);
+        return app.profile.identity()->isUnlocked();
     }
 
 private slots:
@@ -217,7 +220,7 @@ private slots:
                                      && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
 
         // 招待した側のジャーナルの場所にフォルダを置き、開始の件を書けなくする
-        const QString journal = QDir(host.lobby.records()->root())
+        const QString journal = QDir(host.profile.records()->root())
                                     .filePath(QStringLiteral("journal/%1.journal")
                                                   .arg(QString::fromLatin1(host.game.negotiation()->gameId().toHex())));
         QVERIFY(QDir().mkpath(journal));
