@@ -82,18 +82,53 @@
 
         <div class="screenshot-gallery">
 
-            <div class="guide-step">
+            <div class="guide-step" id="what-is-p2p">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">Play over a Direct Connection</span>
+                    <span class="guide-step-title">What Is P2P?</span>
                 </div>
-                <p class="guide-step-text">In a P2P game, your app and your opponent's app connect directly instead of going through a game server as in <a href="csa-game.html">CSA network play</a> (when a direct connection is not possible, the traffic goes through the relay of a cooperating node, but the node does not become a game server; see <a href="#relay-not-server">2</a>). You choose your opponent by sending an invitation. It is meant for playing people you know; there is no public list for finding strangers.</p>
-                <p class="guide-step-text">The start and the result of each game are confirmed automatically by both players' apps with a player key that this app creates (no action is needed). The public key of the player key is your player ID. No real name or external account is used. When the game ends, a game record (evidence) confirmed by both players is saved on both PCs, and anyone can verify it.</p>
+                <p class="guide-step-text">P2P stands for "peer to peer." A peer is an equal, and P2P is a way of communicating in which users' computers connect directly to each other as equals and exchange data.</p>
+                <p class="guide-step-text">Many internet services are built around a server instead (server-based). Every user's app connects to the server, and data reaches the other side through it. <a href="csa-game.html">CSA network play</a> works this way: both players' apps connect to a game server, and each move reaches the opponent through the server. A P2P game has no game server. The two apps connect directly, and each move is sent straight to the opponent's app.</p>
+                <div class="concept-diagram">
+                    <figure>
+                        <svg viewBox="0 0 400 270" role="img" aria-label="Diagram of CSA network play. Your app and your opponent's app both connect to a game server, and moves reach the opponent through the server."><defs><marker id="cd-arrow-server" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="cd-head" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="cd-server" x="90" y="16" width="220" height="66" rx="10"/><text class="cd-title" x="200" y="45">Game server</text><text class="cd-sub" x="200" y="67">Checks moves, clock, result</text><rect class="cd-app" x="16" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="91" y="200">Your app</text><rect class="cd-app" x="234" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="309" y="200">Opponent's app</text><path class="cd-link" d="M120.5,125 L93.8,163.9" marker-end="url(#cd-arrow-server)"/><path class="cd-link" d="M120.5,125 L147.2,86.1" marker-end="url(#cd-arrow-server)"/><path class="cd-link" d="M279.5,125 L306.2,163.9" marker-end="url(#cd-arrow-server)"/><path class="cd-link" d="M279.5,125 L252.8,86.1" marker-end="url(#cd-arrow-server)"/><text class="cd-label cd-end" x="108" y="129">Moves</text><text class="cd-label cd-start" x="292" y="129">Moves</text><text class="cd-note" x="200" y="254">Moves reach the opponent via the server</text></svg>
+                        <figcaption>CSA network play (server-based)</figcaption>
+                    </figure>
+                    <figure>
+                        <svg viewBox="0 0 400 270" role="img" aria-label="Diagram of a P2P game. There is no game server; your app and your opponent's app connect directly and exchange encrypted moves."><defs><marker id="cd-arrow-p2p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="cd-head" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="cd-none" x="90" y="16" width="220" height="66" rx="10"/><text class="cd-missing" x="200" y="54">No game server</text><rect class="cd-app" x="16" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="91" y="200">Your app</text><rect class="cd-app" x="234" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="309" y="200">Opponent's app</text><path class="cd-link" d="M200,195 L170,195" marker-end="url(#cd-arrow-p2p)"/><path class="cd-link" d="M200,195 L230,195" marker-end="url(#cd-arrow-p2p)"/><text class="cd-label" x="200" y="185">Moves</text><text class="cd-small" x="200" y="216">encrypted</text><text class="cd-note" x="200" y="254">Both apps check moves, clock and result</text></svg>
+                        <figcaption>P2P game (a cooperating node relays the traffic when a direct connection is not possible)</figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <div class="guide-step" id="how-it-works">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Why Games Work without a Server</span>
+                </div>
+                <p class="guide-step-text">In a server-based game, the server acts as the referee: it checks whether each move follows the rules, keeps the clock, and decides and announces the result. In a P2P game, the two apps take on the referee's job.</p>
+                <p class="guide-step-text">The two apps can do this because shogi has no chance, such as dice, and no information hidden from either player. From the same position, the same moves always lead to the same position, whichever app calculates it, and the same moves are legal next. So when each app keeps its own board and checks the opponent's moves by the same rules, the game can go on without trusting the opponent's app. Even if a modified app sends a move that breaks the rules, your app does not accept it and aborts the game.</p>
+                <p class="guide-step-text">In a P2P game, what a game needs is handled as follows.</p>
+                <table class="info-table info-table--label-wide">
+                    <thead>
+                        <tr><th scope="col">What a game needs</th><th scope="col">How a P2P game handles it</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Choosing an opponent</strong></td><td>The inviting player's app creates an invitation, which is given to the opponent. The invitation contains where to reach the inviting player's app, and the opponent's app connects there. The feature is meant for playing people you know; there is no public list for finding strangers.</td></tr>
+                        <tr><td><strong>Telling players apart</strong></td><td>The public key of the player key that this app creates is your player ID. Check whether an opponent is the same person by the player ID, not the display name. No real name or external account is used.</td></tr>
+                        <tr><td><strong>Delivering moves</strong></td><td>Moves are sent straight to the opponent's app over a connection encrypted between the two apps. Over the internet, home routers usually block connections that start from outside, so a cooperating node checks reachability and relays the traffic (not needed for opponents on the same PC or LAN). Even when relaying, the cooperating node only passes along traffic that stays encrypted (<a href="#relay-not-server">3</a>).</td></tr>
+                        <tr><td><strong>Whether a move is legal</strong></td><td>Both apps check it. A move you play appears on both boards only after the opponent's app has checked it.</td></tr>
+                        <tr><td><strong>Time control</strong></td><td>Each app reports its own time used, and the other app checks it against the time it measured.</td></tr>
+                        <tr><td><strong>Result</strong></td><td>When the game ends, both apps determine the result from the game record and compare them; if they match, the apps confirm the result automatically with their player keys. The start of the game is confirmed the same way (no action is needed for either).</td></tr>
+                        <tr><td><strong>Game record</strong></td><td>The game record (evidence) confirmed by both players is saved on both PCs. Anyone can verify it, and any change made after confirmation is caught by verification.</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">With no referee, some things cannot be prevented. For example, if the losing player's app does not confirm the result, no record confirmed by both players remains. Time used is self-reported, so small amounts of padding cannot be detected (<a href="#limits">What Cannot Be Prevented</a>).</p>
             </div>
 
             <div class="guide-step" id="relay-not-server">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-number">3</span>
                     <span class="guide-step-title">A Relay Does Not Make the Cooperating Node a Game Server</span>
                 </div>
                 <p class="guide-step-text">When a direct connection is not possible, the traffic travels from your app through the cooperating node to your opponent's app. The path looks like going through the server in CSA network play, but the cooperating node only passes along traffic that stays encrypted. Even through a relay, the other side of your game is your opponent's app, and both apps check the moves and confirm the result.</p>
@@ -116,7 +151,7 @@
 
             <div class="guide-step" id="one-game">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">One-on-One Games, One Game per App at a Time</span>
                 </div>
                 <p class="guide-step-text">A P2P game is a one-on-one game between two players, and one app can have only one game at a time. This is the same with or without a cooperating node. A cooperating node only checks reachability and relays traffic; it does not pair players or let one app play several games.</p>
@@ -134,7 +169,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <span class="guide-step-title">What the Experimental Build Offers</span>
                 </div>
                 <p class="guide-step-text">P2P games are an experimental feature and are not included in the distributed ShogiBoardQ. To use them, pass <code>-DENABLE_P2P_PLAY=ON</code> to CMake when you build from source (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a> for the build steps).</p>
@@ -149,7 +184,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <span class="guide-step-title">Game Rules</span>
                 </div>
                 <table class="info-table">

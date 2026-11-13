@@ -82,18 +82,53 @@
 
         <div class="screenshot-gallery">
 
-            <div class="guide-step">
+            <div class="guide-step" id="what-is-p2p">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">相手のパソコンと直接つないで指す</span>
+                    <span class="guide-step-title">P2P（ピア・ツー・ピア）とは</span>
                 </div>
-                <p class="guide-step-text">P2P対局では、<a href="csa-game.html">CSA通信対局</a>のような対局サーバーを使わず、自分と相手のアプリが直接つながって指します（直接つなげないときは協力ノードの中継を通りますが、協力ノードは対局サーバーにはなりません。<a href="#relay-not-server">2</a>）。対局の相手は、招待文字列を渡して決めます。知り合いどうしで指すための機能で、不特定の相手を探す公開の募集はありません。</p>
-                <p class="guide-step-text">対局の開始と結果は、このアプリが作るプレイヤー鍵で、双方のアプリが自動的に確定します（操作は要りません）。プレイヤー鍵の公開鍵が、あなたの「プレイヤーID」です。実名や外部サービスのアカウントは使いません。対局が終わると、双方で確定した対局記録（証跡）が双方の手元に保存され、だれでも検証できます。</p>
+                <p class="guide-step-text">P2Pは「Peer to Peer（ピア・ツー・ピア）」の略です。ピアは「対等な相手」という意味で、P2Pは、利用者のパソコンどうしが対等な立場で直接つながり、データをやり取りする通信のしかたです。</p>
+                <p class="guide-step-text">インターネットの多くのサービスは、サーバーを中心にした形（サーバー型）です。利用者のアプリはどれもサーバーにつなぎ、データはサーバーを経て相手に届きます。<a href="csa-game.html">CSA通信対局</a>もこの形で、2人のアプリがどちらも対局サーバーにつなぎ、指し手はサーバーを経て相手に届きます。P2P対局では対局サーバーを置かず、2人のアプリが直接つながって、指し手を相手のアプリへ送ります。</p>
+                <div class="concept-diagram">
+                    <figure>
+                        <svg viewBox="0 0 400 270" role="img" aria-label="CSA通信対局の図。あなたのアプリと相手のアプリがどちらも対局サーバーにつながり、指し手はサーバーを経て相手に届く。"><defs><marker id="cd-arrow-server" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="cd-head" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="cd-server" x="90" y="16" width="220" height="66" rx="10"/><text class="cd-title" x="200" y="45">対局サーバー</text><text class="cd-sub" x="200" y="67">指し手の判定・時計・勝敗</text><rect class="cd-app" x="16" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="91" y="200">あなたのアプリ</text><rect class="cd-app" x="234" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="309" y="200">相手のアプリ</text><path class="cd-link" d="M120.5,125 L93.8,163.9" marker-end="url(#cd-arrow-server)"/><path class="cd-link" d="M120.5,125 L147.2,86.1" marker-end="url(#cd-arrow-server)"/><path class="cd-link" d="M279.5,125 L306.2,163.9" marker-end="url(#cd-arrow-server)"/><path class="cd-link" d="M279.5,125 L252.8,86.1" marker-end="url(#cd-arrow-server)"/><text class="cd-label cd-end" x="108" y="129">指し手</text><text class="cd-label cd-start" x="292" y="129">指し手</text><text class="cd-note" x="200" y="254">指し手はサーバーを経て相手に届く</text></svg>
+                        <figcaption>CSA通信対局（サーバー型）</figcaption>
+                    </figure>
+                    <figure>
+                        <svg viewBox="0 0 400 270" role="img" aria-label="P2P対局の図。対局サーバーはなく、あなたのアプリと相手のアプリが直接つながって、暗号化した指し手を送り合う。"><defs><marker id="cd-arrow-p2p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="cd-head" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="cd-none" x="90" y="16" width="220" height="66" rx="10"/><text class="cd-missing" x="200" y="54">対局サーバーなし</text><rect class="cd-app" x="16" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="91" y="200">あなたのアプリ</text><rect class="cd-app" x="234" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="309" y="200">相手のアプリ</text><path class="cd-link" d="M200,195 L170,195" marker-end="url(#cd-arrow-p2p)"/><path class="cd-link" d="M200,195 L230,195" marker-end="url(#cd-arrow-p2p)"/><text class="cd-label" x="200" y="185">指し手</text><text class="cd-small" x="200" y="216">暗号化</text><text class="cd-note" x="200" y="254">判定・時計・勝敗は双方のアプリが受け持つ</text></svg>
+                        <figcaption>P2P対局（直接つなげないときは協力ノードが中継）</figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <div class="guide-step" id="how-it-works">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">サーバーがなくても対局できるわけ</span>
+                </div>
+                <p class="guide-step-text">サーバー型の対局では、サーバーが審判の役をしています。届いた指し手がルールに合うかを判定し、持ち時間を計り、勝ち負けを決めて知らせます。P2P対局では、この審判の役を2人のアプリが受け持ちます。</p>
+                <p class="guide-step-text">2人のアプリで審判ができるのは、将棋には、サイコロのような偶然も、相手に隠された情報もないからです。同じ局面から同じ手順で指せば、どちらのアプリで計算しても同じ局面になり、次に指せる手も同じに決まります。そのため、双方のアプリがそれぞれ自分の盤を持ち、相手の手を同じルールで確かめれば、相手のアプリを信用しなくても対局を進められます。作り変えたアプリがルールに合わない手を送ってきても、あなたのアプリは受け付けず、対局を中断します。</p>
+                <p class="guide-step-text">対局に要ることを、P2P対局では次のように受け持ちます。</p>
+                <table class="info-table info-table--label-wide">
+                    <thead>
+                        <tr><th scope="col">対局に要ること</th><th scope="col">P2P対局でのしかた</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>相手を決める</strong></td><td>招待する側のアプリが招待文字列を作り、相手に渡します。招待文字列には招待した側のアプリへの接続先が入っていて、受け取った相手のアプリがそこへつないできます。知り合いどうしで指すための機能で、不特定の相手を探す公開の募集はありません。</td></tr>
+                        <tr><td><strong>相手を見分ける</strong></td><td>このアプリが作るプレイヤー鍵の公開鍵が、あなたの「プレイヤーID」です。相手が同じ人かどうかは、表示名ではなくプレイヤーIDで確かめます。実名や外部サービスのアカウントは使いません。</td></tr>
+                        <tr><td><strong>指し手を届ける</strong></td><td>双方のアプリの間で暗号化した通信で、相手のアプリへ直接送ります。インターネット越しでは、家庭のルーターが外から始まる接続をふつうは通さないので、協力ノードが到達性の確認と中継を受け持ちます（同じPC・同じLANの相手なら要りません）。中継するときも、協力ノードは暗号化したままの通信を受け渡すだけです（<a href="#relay-not-server">3</a>）。</td></tr>
+                        <tr><td><strong>指し手がルールに合うか</strong></td><td>双方のアプリが確かめます。指した手は、相手のアプリが確かめてから双方の盤に指されます。</td></tr>
+                        <tr><td><strong>持ち時間</strong></td><td>双方のアプリが自分の消費時間を申告し、相手のアプリが測った時間と照らし合わせます。</td></tr>
+                        <tr><td><strong>勝ち負け</strong></td><td>終局すると、双方のアプリが棋譜から結果を決めて照らし合わせ、一致すればプレイヤー鍵で自動的に確定します。対局の開始も同じように確定します（どちらも操作は要りません）。</td></tr>
+                        <tr><td><strong>対局記録</strong></td><td>双方で確定した対局記録（証跡）を、双方の手元に保存します。証跡はだれでも検証でき、確定した後に書き換えると検証で見つかります。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">審判を置かないので、防げないこともあります。たとえば、負けた側のアプリが結果を確定しなければ、双方で確定した記録は残りません。消費時間は自己申告なので、わずかな水増しは見分けられません（<a href="#limits">防げないこと</a>）。</p>
             </div>
 
             <div class="guide-step" id="relay-not-server">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-number">3</span>
                     <span class="guide-step-title">中継しても協力ノードは対局サーバーにならない</span>
                 </div>
                 <p class="guide-step-text">直接つなげないときは、通信が自分のアプリから協力ノードを経て相手のアプリへ届きます。経路はCSA通信対局のサーバーを通るときと似ていますが、協力ノードは暗号化したままの通信を受け渡すだけです。中継を通っていても対局の相手は相手のアプリで、指し手の確認も結果の確定も双方のアプリが行います。</p>
@@ -116,7 +151,7 @@
 
             <div class="guide-step" id="one-game">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">対局は1対1、1つのアプリで一度に1局</span>
                 </div>
                 <p class="guide-step-text">P2P対局は2人で指す1対1の対局で、1つのアプリが同時に持てる対局は1つだけです。これは協力ノードを使っても使わなくても同じです。協力ノードは到達性の確認と中継をするだけで、対局の組み合わせを決めたり、1つのアプリで何局も指せるようにしたりはしません。</p>
@@ -134,7 +169,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <span class="guide-step-title">実験版で使えるもの</span>
                 </div>
                 <p class="guide-step-text">P2P対局は試験中の機能で、配布している ShogiBoardQ には入っていません。使うには、ソースからビルドするときに CMake で <code>-DENABLE_P2P_PLAY=ON</code> を付けます（libsodium と Rust が必要です。ビルドの手順は<a href="linux-build-and-release.html">Linux ビルド・リリース手順</a>）。</p>
@@ -149,7 +184,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <span class="guide-step-title">対局の決まり</span>
                 </div>
                 <table class="info-table">

@@ -82,18 +82,53 @@
 
         <div class="screenshot-gallery">
 
-            <div class="guide-step">
+            <div class="guide-step" id="what-is-p2p">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">與對手的電腦直接連線下棋</span>
+                    <span class="guide-step-title">什麼是P2P（點對點）</span>
                 </div>
-                <p class="guide-step-text">P2P對局不像<a href="csa-game.html">CSA網路對局</a>那樣經過對局伺服器，而是由自己和對手的應用程式直接連線下棋（無法直接連線時經過協作節點的中繼，但協作節點不會成為對局伺服器，見<a href="#relay-not-server">2</a>）。對局的對手透過交給對方邀請字串來決定。這是與熟人下棋的功能，沒有尋找不特定對手的公開招募。</p>
-                <p class="guide-step-text">對局的開始和結果由雙方的應用程式用本應用程式產生的玩家金鑰自動確定（無需操作）。玩家金鑰的公開金鑰就是您的「玩家ID」。不使用真實姓名或外部服務的帳號。對局結束後，雙方已確定的對局記錄（憑證）會保存在雙方的電腦中，任何人都可以驗證。</p>
+                <p class="guide-step-text">P2P 是「Peer to Peer」的縮寫。Peer 意為「對等的一方」，P2P 是使用者的電腦之間以對等的身分直接連線、交換資料的通訊方式。</p>
+                <p class="guide-step-text">網際網路上的許多服務以伺服器為中心（伺服器型）：使用者的應用程式都連線到伺服器，資料經過伺服器到達對方。<a href="csa-game.html">CSA網路對局</a>也是這種方式，雙方的應用程式都連線到對局伺服器，著手經過伺服器到達對手。P2P對局不設對局伺服器，雙方的應用程式直接連線，把著手直接傳送給對手的應用程式。</p>
+                <div class="concept-diagram">
+                    <figure>
+                        <svg viewBox="0 0 400 270" role="img" aria-label="CSA網路對局的示意圖。您的應用程式和對手的應用程式都連線到對局伺服器，著手經過伺服器到達對手。"><defs><marker id="cd-arrow-server" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="cd-head" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="cd-server" x="90" y="16" width="220" height="66" rx="10"/><text class="cd-title" x="200" y="45">對局伺服器</text><text class="cd-sub" x="200" y="67">判定著手、計時、勝負</text><rect class="cd-app" x="16" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="91" y="200">您的應用程式</text><rect class="cd-app" x="234" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="309" y="200">對手的應用程式</text><path class="cd-link" d="M120.5,125 L93.8,163.9" marker-end="url(#cd-arrow-server)"/><path class="cd-link" d="M120.5,125 L147.2,86.1" marker-end="url(#cd-arrow-server)"/><path class="cd-link" d="M279.5,125 L306.2,163.9" marker-end="url(#cd-arrow-server)"/><path class="cd-link" d="M279.5,125 L252.8,86.1" marker-end="url(#cd-arrow-server)"/><text class="cd-label cd-end" x="108" y="129">著手</text><text class="cd-label cd-start" x="292" y="129">著手</text><text class="cd-note" x="200" y="254">著手經過伺服器到達對手</text></svg>
+                        <figcaption>CSA網路對局（伺服器型）</figcaption>
+                    </figure>
+                    <figure>
+                        <svg viewBox="0 0 400 270" role="img" aria-label="P2P對局的示意圖。沒有對局伺服器，您的應用程式和對手的應用程式直接連線，互相傳送加密的著手。"><defs><marker id="cd-arrow-p2p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="cd-head" d="M0,0 L10,5 L0,10 z"/></marker></defs><rect class="cd-none" x="90" y="16" width="220" height="66" rx="10"/><text class="cd-missing" x="200" y="54">沒有對局伺服器</text><rect class="cd-app" x="16" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="91" y="200">您的應用程式</text><rect class="cd-app" x="234" y="168" width="150" height="54" rx="10"/><text class="cd-name" x="309" y="200">對手的應用程式</text><path class="cd-link" d="M200,195 L170,195" marker-end="url(#cd-arrow-p2p)"/><path class="cd-link" d="M200,195 L230,195" marker-end="url(#cd-arrow-p2p)"/><text class="cd-label" x="200" y="185">著手</text><text class="cd-small" x="200" y="216">加密</text><text class="cd-note" x="200" y="254">判定、計時、勝負由雙方的應用程式負責</text></svg>
+                        <figcaption>P2P對局（無法直接連線時由協作節點中繼）</figcaption>
+                    </figure>
+                </div>
+            </div>
+
+            <div class="guide-step" id="how-it-works">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">沒有伺服器也能對局的原因</span>
+                </div>
+                <p class="guide-step-text">在伺服器型的對局中，伺服器擔任裁判：判定收到的著手是否符合規則、計時、決定並通知勝負。P2P對局由雙方的應用程式承擔這個裁判的工作。</p>
+                <p class="guide-step-text">雙方的應用程式之所以能當裁判，是因為將棋既沒有擲骰子那樣的偶然因素，也沒有對對方隱藏的資訊。從同一局面按同樣的著手順序下棋，無論由哪一方的應用程式計算，都會得到同一局面，接下來可以下的著手也相同。因此，只要雙方的應用程式各自持有自己的棋盤，並按同樣的規則確認對方的著手，即使不信任對方的應用程式也能進行對局。即使改造過的應用程式送來不符合規則的著手，您的應用程式也不會接受，並會中斷對局。</p>
+                <p class="guide-step-text">P2P對局按如下方式完成對局所需的各項工作。</p>
+                <table class="info-table info-table--label-wide">
+                    <thead>
+                        <tr><th scope="col">對局所需的事項</th><th scope="col">P2P對局中的做法</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>決定對手</strong></td><td>邀請方的應用程式產生邀請字串，交給對方。邀請字串中包含邀請方應用程式的連線位址，收到的對方應用程式會連線到那裡。這是與熟人下棋的功能，沒有尋找不特定對手的公開招募。</td></tr>
+                        <tr><td><strong>識別對手</strong></td><td>本應用程式產生的玩家金鑰的公開金鑰就是您的「玩家ID」。對手是否為同一人，請用玩家ID而不是顯示名稱確認。不使用真實姓名或外部服務的帳號。</td></tr>
+                        <tr><td><strong>傳送著手</strong></td><td>透過在雙方應用程式之間加密的通訊，直接傳送給對手的應用程式。透過網際網路對局時，家用路由器通常不放行從外部發起的連線，因此由協作節點負責可達性確認和中繼（同一台電腦、同一區域網路的對手不需要）。即使中繼，協作節點也只是轉交保持加密狀態的通訊（<a href="#relay-not-server">3</a>）。</td></tr>
+                        <tr><td><strong>著手是否合法</strong></td><td>由雙方的應用程式確認。您下的著手要在對手的應用程式確認之後，才會下到雙方的棋盤上。</td></tr>
+                        <tr><td><strong>用時</strong></td><td>雙方的應用程式自報自己的用時，並與對方的應用程式測得的時間對照。</td></tr>
+                        <tr><td><strong>勝負</strong></td><td>終局後，雙方的應用程式根據棋譜決定結果並相互對照，一致時用玩家金鑰自動確定。對局的開始也同樣確定（兩者都無需操作）。</td></tr>
+                        <tr><td><strong>對局記錄</strong></td><td>雙方確定的對局記錄（憑證）儲存在雙方的電腦中。任何人都可以驗證憑證，確定後再改寫會在驗證時被發現。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">由於沒有裁判，也有無法防止的情況。例如，若輸方的應用程式不確定結果，就不會留下雙方確定的記錄。用時為自報，少量的虛報無法識別（<a href="#limits">無法防止的情況</a>）。</p>
             </div>
 
             <div class="guide-step" id="relay-not-server">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-number">3</span>
                     <span class="guide-step-title">經過中繼時，協作節點也不是對局伺服器</span>
                 </div>
                 <p class="guide-step-text">無法直接連線時，通訊從自己的應用程式經過協作節點到達對手的應用程式。路徑與CSA網路對局經過伺服器時相似，但協作節點只是轉交保持加密狀態的通訊。即使經過中繼，對局的另一方仍是對手的應用程式，著手的確認和結果的確定都由雙方的應用程式進行。</p>
@@ -116,7 +151,7 @@
 
             <div class="guide-step" id="one-game">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">一對一對局，一個應用程式一次一局</span>
                 </div>
                 <p class="guide-step-text">P2P對局是兩人下的一對一對局，一個應用程式同時只能有一局對局。無論是否使用協作節點都一樣。協作節點只負責可達性確認和中繼，不會安排對局的組合，也不會讓一個應用程式同時下多局。</p>
@@ -134,7 +169,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <span class="guide-step-title">實驗版可以使用的內容</span>
                 </div>
                 <p class="guide-step-text">P2P對局是實驗中的功能，不包含在發布的 ShogiBoardQ 中。要使用時，從原始碼建置時在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，建置步驟見<a href="linux-build-and-release.html">Linux 建置與發布步驟</a>）。</p>
@@ -149,7 +184,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <span class="guide-step-title">對局規則</span>
                 </div>
                 <table class="info-table">
