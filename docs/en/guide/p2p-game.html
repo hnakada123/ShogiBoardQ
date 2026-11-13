@@ -87,13 +87,36 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">Play over a Direct Connection</span>
                 </div>
-                <p class="guide-step-text">In a P2P game, your app and your opponent's app connect directly instead of going through a game server as in <a href="csa-game.html">CSA network play</a> (relays are used when a direct connection is not possible). You choose your opponent by sending an invitation. It is meant for playing people you know; there is no public list for finding strangers.</p>
+                <p class="guide-step-text">In a P2P game, your app and your opponent's app connect directly instead of going through a game server as in <a href="csa-game.html">CSA network play</a> (when a direct connection is not possible, the traffic goes through the relay of a cooperating node, but the node does not become a game server; see <a href="#relay-not-server">2</a>). You choose your opponent by sending an invitation. It is meant for playing people you know; there is no public list for finding strangers.</p>
                 <p class="guide-step-text">The start and the result of each game are confirmed automatically by both players' apps with a player key that this app creates (no action is needed). The public key of the player key is your player ID. No real name or external account is used. When the game ends, a game record (evidence) confirmed by both players is saved on both PCs, and anyone can verify it.</p>
+            </div>
+
+            <div class="guide-step" id="relay-not-server">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">A Relay Does Not Make the Cooperating Node a Game Server</span>
+                </div>
+                <p class="guide-step-text">When a direct connection is not possible, the traffic travels from your app through the cooperating node to your opponent's app. The path looks like going through the server in CSA network play, but the cooperating node only passes along traffic that stays encrypted. Even through a relay, the other side of your game is your opponent's app, and both apps check the moves and confirm the result.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Item</th><th scope="col">Game server (CSA network play)</th><th scope="col">Cooperating node (when relaying)</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Whether a move is legal</strong></td><td>The server judges it</td><td>Does not judge it. Each app checks it</td></tr>
+                        <tr><td><strong>Time control</strong></td><td>The server measures the time</td><td>Does not measure it. Each app reports its own time used, and the other app checks it against the time it measured</td></tr>
+                        <tr><td><strong>Result and game end</strong></td><td>The server decides and announces it</td><td>Does not decide it. Both apps determine it from the game record and confirm it with their player keys</td></tr>
+                        <tr><td><strong>Game record</strong></td><td>The server can keep a copy</td><td>Does not keep one. It is saved only by the two apps</td></tr>
+                        <tr><td><strong>Contents of the traffic</strong></td><td>The server receives each move and sends it on to the opponent</td><td>Cannot read them. Moves, player IDs and display names stay encrypted between the two apps</td></tr>
+                        <tr><td><strong>Pairing</strong></td><td>The server pairs the players</td><td>Does not pair players. Your opponent is decided by invitation</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">The operator of the cooperating node can see IP addresses and which IP addresses connected to each other (<a href="#visibility">What Opponents and the Network Can See</a>). The node can stop or delay the traffic it relays, but cannot alter it (altered traffic fails the encryption check, and the apps reject it). If the traffic stops, it is handled the same way as a dropped connection (<a href="#disconnect">When the Connection Drops</a>).</p>
+                <p class="guide-step-text">Even after connecting through a relay, the two apps try to switch to a direct connection. Once they switch, the traffic no longer goes through the cooperating node, and Route on the Game tab changes to direct. If either player uses Do not use direct connections, the apps do not switch, and the whole game goes through the relay.</p>
             </div>
 
             <div class="guide-step" id="one-game">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-number">3</span>
                     <span class="guide-step-title">One-on-One Games, One Game per App at a Time</span>
                 </div>
                 <p class="guide-step-text">A P2P game is a one-on-one game between two players, and one app can have only one game at a time. This is the same with or without a cooperating node. A cooperating node only checks reachability and relays traffic; it does not pair players or let one app play several games.</p>
@@ -111,7 +134,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">What the Experimental Build Offers</span>
                 </div>
                 <p class="guide-step-text">P2P games are an experimental feature and are not included in the distributed ShogiBoardQ. To use them, pass <code>-DENABLE_P2P_PLAY=ON</code> to CMake when you build from source (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a> for the build steps).</p>
@@ -126,7 +149,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <span class="guide-step-title">Game Rules</span>
                 </div>
                 <table class="info-table">
@@ -576,7 +599,7 @@
                 <p class="guide-step-text">When the game ends by resignation, checkmate, time loss, and so on, both apps compare the result (winner, how it ended, and the move number) and, if they match, confirm it automatically with the player keys. No action is needed (Confirming the result… is shown on the Game tab meanwhile). When both confirmations are in, the record becomes Confirmed by both. If the opponent's confirmation does not arrive within 30 seconds, it is saved as Without opponent's confirmation.</p>
             </div>
 
-            <div class="guide-step">
+            <div class="guide-step" id="disconnect">
                 <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">When the Connection Drops</span>
@@ -699,7 +722,7 @@
                 <p class="guide-step-text">Do not use recorded wins as the basis for an official rating or playing strength.</p>
             </div>
 
-            <div class="guide-step">
+            <div class="guide-step" id="visibility">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">What Opponents and the Network Can See</span>

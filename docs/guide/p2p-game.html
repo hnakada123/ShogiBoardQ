@@ -87,13 +87,36 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">相手のパソコンと直接つないで指す</span>
                 </div>
-                <p class="guide-step-text">P2P対局では、<a href="csa-game.html">CSA通信対局</a>のような対局サーバーを使わず、自分と相手のアプリが直接つながって指します（直接つなげないときは中継を使います）。対局の相手は、招待文字列を渡して決めます。知り合いどうしで指すための機能で、不特定の相手を探す公開の募集はありません。</p>
+                <p class="guide-step-text">P2P対局では、<a href="csa-game.html">CSA通信対局</a>のような対局サーバーを使わず、自分と相手のアプリが直接つながって指します（直接つなげないときは協力ノードの中継を通りますが、協力ノードは対局サーバーにはなりません。<a href="#relay-not-server">2</a>）。対局の相手は、招待文字列を渡して決めます。知り合いどうしで指すための機能で、不特定の相手を探す公開の募集はありません。</p>
                 <p class="guide-step-text">対局の開始と結果は、このアプリが作るプレイヤー鍵で、双方のアプリが自動的に確定します（操作は要りません）。プレイヤー鍵の公開鍵が、あなたの「プレイヤーID」です。実名や外部サービスのアカウントは使いません。対局が終わると、双方で確定した対局記録（証跡）が双方の手元に保存され、だれでも検証できます。</p>
+            </div>
+
+            <div class="guide-step" id="relay-not-server">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">中継しても協力ノードは対局サーバーにならない</span>
+                </div>
+                <p class="guide-step-text">直接つなげないときは、通信が自分のアプリから協力ノードを経て相手のアプリへ届きます。経路はCSA通信対局のサーバーを通るときと似ていますが、協力ノードは暗号化したままの通信を受け渡すだけです。中継を通っていても対局の相手は相手のアプリで、指し手の確認も結果の確定も双方のアプリが行います。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">項目</th><th scope="col">CSA通信対局の対局サーバー</th><th scope="col">P2P対局の協力ノード（中継のとき）</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>指し手が合法か</strong></td><td>サーバーが判定します</td><td>判定しません。双方のアプリがそれぞれ確かめます</td></tr>
+                        <tr><td><strong>持ち時間</strong></td><td>サーバーが計ります</td><td>計りません。双方のアプリが自分の消費時間を申告し、相手のアプリが測った時間と照らし合わせます</td></tr>
+                        <tr><td><strong>勝敗・終局</strong></td><td>サーバーが決めて知らせます</td><td>決めません。双方のアプリが棋譜から決め、プレイヤー鍵で確定します</td></tr>
+                        <tr><td><strong>対局記録</strong></td><td>サーバーにも残せます</td><td>残しません。双方のアプリにだけ保存します</td></tr>
+                        <tr><td><strong>通信の中身</strong></td><td>サーバーが指し手を受け取り、相手へ送ります</td><td>読めません。指し手・プレイヤーID・表示名は、双方のアプリの間で暗号化したまま通します</td></tr>
+                        <tr><td><strong>対局の組み合わせ</strong></td><td>サーバーが組み合わせます</td><td>組み合わせません。相手は招待で決まります</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">協力ノードの運営者に見えるのは、IP アドレスと、どの IP どうしがつないだかです（<a href="#visibility">相手やネットワークに見える情報</a>）。協力ノードは中継する通信を止めたり遅らせたりはできますが、中身は書き換えられません（書き換えた通信は暗号の検査で見つかり、アプリが受け付けません）。通信が止まったときは、回線が切れたときと同じ扱いになります（<a href="#disconnect">回線が切れたとき</a>）。</p>
+                <p class="guide-step-text">中継でつながった後も、双方のアプリは直接の接続への切り替えを試します。切り替わると協力ノードを通らなくなり、「対局中」タブの「経路」が「直接」に変わります。どちらかが「直接接続を使わない」にしているときは切り替えず、対局の間ずっと中継を通ります。</p>
             </div>
 
             <div class="guide-step" id="one-game">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-number">3</span>
                     <span class="guide-step-title">対局は1対1、1つのアプリで一度に1局</span>
                 </div>
                 <p class="guide-step-text">P2P対局は2人で指す1対1の対局で、1つのアプリが同時に持てる対局は1つだけです。これは協力ノードを使っても使わなくても同じです。協力ノードは到達性の確認と中継をするだけで、対局の組み合わせを決めたり、1つのアプリで何局も指せるようにしたりはしません。</p>
@@ -111,7 +134,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">実験版で使えるもの</span>
                 </div>
                 <p class="guide-step-text">P2P対局は試験中の機能で、配布している ShogiBoardQ には入っていません。使うには、ソースからビルドするときに CMake で <code>-DENABLE_P2P_PLAY=ON</code> を付けます（libsodium と Rust が必要です。ビルドの手順は<a href="linux-build-and-release.html">Linux ビルド・リリース手順</a>）。</p>
@@ -126,7 +149,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <span class="guide-step-title">対局の決まり</span>
                 </div>
                 <table class="info-table">
@@ -576,7 +599,7 @@
                 <p class="guide-step-text">投了・詰み・時間切れなどで終局すると、双方のアプリが結果（勝ち負け・終わり方・手数）を照らし合わせ、一致すればプレイヤー鍵で自動的に確定します。操作は要りません（その間、「対局中」タブに「結果を確定しています…」と出ます）。双方の確定がそろうと「双方で確定」の記録になります。相手の確定が30秒たっても届かなければ「相手の確定なし」として保存します。</p>
             </div>
 
-            <div class="guide-step">
+            <div class="guide-step" id="disconnect">
                 <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">回線が切れたとき</span>
@@ -699,7 +722,7 @@
                 <p class="guide-step-text">記録した勝ち数を、公式のレーティングや棋力の根拠にしないでください。</p>
             </div>
 
-            <div class="guide-step">
+            <div class="guide-step" id="visibility">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">相手やネットワークに見える情報</span>

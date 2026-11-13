@@ -104,7 +104,9 @@
                 <ul class="guide-step-text">
                     <li><strong>Does</strong>: Only the reachability check and the relay.</li>
                     <li><strong>Does not</strong>: It does not judge moves or results, and does not store game records. Relayed traffic is encrypted between the two apps, so the node cannot read its contents (moves, player IDs, display names) either.</li>
+                    <li><strong>Not a game server</strong>: Even through a relay, the other side of your game is your opponent's app; the cooperating node does not play the role of the server in CSA network play. For a comparison table, see <a href="p2p-game.html#relay-not-server">A Relay Does Not Make the Cooperating Node a Game Server</a>.</li>
                     <li><strong>What the operator can see</strong>: The IP addresses of the users and which IP addresses connected to each other. The cooperating node program does not write source IP addresses to its log, but the operator can find them by examining the traffic. The reachability check only asks the node to test, one at a time, the addresses it saw; the users' LAN addresses are not sent.</li>
+                    <li><strong>Stopping or delaying traffic</strong>: The cooperating node can stop or delay the traffic it relays, but cannot alter it (altered traffic fails the encryption check, and the apps reject it). If the traffic stops, it is handled the same way as a dropped connection (<a href="p2p-game.html#disconnect">When the Connection Drops</a>).</li>
                 </ul>
             </div>
 

@@ -87,13 +87,36 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">与对手的电脑直接连接下棋</span>
                 </div>
-                <p class="guide-step-text">P2P对局不像<a href="csa-game.html">CSA网络对局</a>那样经过对局服务器，而是由自己和对手的应用直接连接下棋（无法直接连接时使用中继）。对局的对手通过交给对方邀请字符串来决定。这是与熟人下棋的功能，没有寻找不特定对手的公开招募。</p>
+                <p class="guide-step-text">P2P对局不像<a href="csa-game.html">CSA网络对局</a>那样经过对局服务器，而是由自己和对手的应用直接连接下棋（无法直接连接时经过协作节点的中继，但协作节点不会成为对局服务器，见<a href="#relay-not-server">2</a>）。对局的对手通过交给对方邀请字符串来决定。这是与熟人下棋的功能，没有寻找不特定对手的公开招募。</p>
                 <p class="guide-step-text">对局的开始和结果由双方的应用用本应用生成的玩家密钥自动确定（无需操作）。玩家密钥的公钥就是您的“玩家ID”。不使用真实姓名或外部服务的账号。对局结束后，双方已确定的对局记录（凭证）会保存在双方的电脑中，任何人都可以验证。</p>
+            </div>
+
+            <div class="guide-step" id="relay-not-server">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">经过中继时，协作节点也不是对局服务器</span>
+                </div>
+                <p class="guide-step-text">无法直接连接时，通信从自己的应用经过协作节点到达对手的应用。路径与CSA网络对局经过服务器时相似，但协作节点只是转交保持加密状态的通信。即使经过中继，对局的另一方仍是对手的应用，着手的确认和结果的确定都由双方的应用进行。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">项目</th><th scope="col">CSA网络对局的对局服务器</th><th scope="col">P2P对局的协作节点（中继时）</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>着手是否合法</strong></td><td>由服务器判定</td><td>不判定。由双方的应用各自确认</td></tr>
+                        <tr><td><strong>用时</strong></td><td>由服务器计时</td><td>不计时。用时由双方的应用自报，并与对方的应用测得的时间对照</td></tr>
+                        <tr><td><strong>胜负与终局</strong></td><td>由服务器决定并通知</td><td>不决定。由双方的应用根据棋谱决定，并用玩家密钥确定</td></tr>
+                        <tr><td><strong>对局记录</strong></td><td>服务器也可以保存</td><td>不保存。只保存在双方的应用中</td></tr>
+                        <tr><td><strong>通信内容</strong></td><td>服务器接收着手并转发给对手</td><td>读不到。着手、玩家ID、显示名在双方的应用之间保持加密传送</td></tr>
+                        <tr><td><strong>对局的配对</strong></td><td>由服务器配对</td><td>不配对。对手由邀请决定</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">协作节点的运营者能看到的是 IP 地址，以及哪些 IP 地址之间建立了连接（<a href="#visibility">对手和网络可以看到的信息</a>）。协作节点可以中断或延迟它中继的通信，但无法改写内容（改写过的通信会在加密的检查中被发现，应用不会接受）。通信中断时，与线路断开时一样处理（<a href="#disconnect">线路断开时</a>）。</p>
+                <p class="guide-step-text">经过中继连接后，双方的应用仍会尝试切换为直接连接。切换后通信不再经过协作节点，“对局中”标签页的“路径”会变为“直接”。任意一方选择了“不使用直接连接”时不会切换，整局都经过中继。</p>
             </div>
 
             <div class="guide-step" id="one-game">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-number">3</span>
                     <span class="guide-step-title">一对一对局，一个应用一次一局</span>
                 </div>
                 <p class="guide-step-text">P2P对局是两人下的一对一对局，一个应用同时只能有一局对局。无论是否使用协作节点都一样。协作节点只负责可达性确认和中继，不会安排对局的组合，也不会让一个应用同时下多局。</p>
@@ -111,7 +134,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">实验版可以使用的内容</span>
                 </div>
                 <p class="guide-step-text">P2P对局是实验中的功能，不包含在发布的 ShogiBoardQ 中。要使用时，从源代码构建时在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，构建步骤见<a href="linux-build-and-release.html">Linux 构建与发布步骤</a>）。</p>
@@ -126,7 +149,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <span class="guide-step-title">对局规则</span>
                 </div>
                 <table class="info-table">
@@ -576,7 +599,7 @@
                 <p class="guide-step-text">因认输、将死、超时负等终局后，双方的应用会对照结果（胜负、结束方式和手数），一致时自动用玩家密钥确定。无需操作（期间“对局中”标签页显示“正在确定结果…”）。双方都确定后，记录成为“双方已确定”。若 30 秒内没有收到对手的确定，则保存为“无对手确定”。</p>
             </div>
 
-            <div class="guide-step">
+            <div class="guide-step" id="disconnect">
                 <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">线路断开时</span>
@@ -699,7 +722,7 @@
                 <p class="guide-step-text">请不要把记录的胜局数作为正式等级分或棋力的依据。</p>
             </div>
 
-            <div class="guide-step">
+            <div class="guide-step" id="visibility">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">对手和网络可以看到的信息</span>

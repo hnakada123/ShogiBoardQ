@@ -87,13 +87,36 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">與對手的電腦直接連線下棋</span>
                 </div>
-                <p class="guide-step-text">P2P對局不像<a href="csa-game.html">CSA網路對局</a>那樣經過對局伺服器，而是由自己和對手的應用程式直接連線下棋（無法直接連線時使用中繼）。對局的對手透過交給對方邀請字串來決定。這是與熟人下棋的功能，沒有尋找不特定對手的公開招募。</p>
+                <p class="guide-step-text">P2P對局不像<a href="csa-game.html">CSA網路對局</a>那樣經過對局伺服器，而是由自己和對手的應用程式直接連線下棋（無法直接連線時經過協作節點的中繼，但協作節點不會成為對局伺服器，見<a href="#relay-not-server">2</a>）。對局的對手透過交給對方邀請字串來決定。這是與熟人下棋的功能，沒有尋找不特定對手的公開招募。</p>
                 <p class="guide-step-text">對局的開始和結果由雙方的應用程式用本應用程式產生的玩家金鑰自動確定（無需操作）。玩家金鑰的公開金鑰就是您的「玩家ID」。不使用真實姓名或外部服務的帳號。對局結束後，雙方已確定的對局記錄（憑證）會保存在雙方的電腦中，任何人都可以驗證。</p>
+            </div>
+
+            <div class="guide-step" id="relay-not-server">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">經過中繼時，協作節點也不是對局伺服器</span>
+                </div>
+                <p class="guide-step-text">無法直接連線時，通訊從自己的應用程式經過協作節點到達對手的應用程式。路徑與CSA網路對局經過伺服器時相似，但協作節點只是轉交保持加密狀態的通訊。即使經過中繼，對局的另一方仍是對手的應用程式，著手的確認和結果的確定都由雙方的應用程式進行。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">項目</th><th scope="col">CSA網路對局的對局伺服器</th><th scope="col">P2P對局的協作節點（中繼時）</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>著手是否合法</strong></td><td>由伺服器判定</td><td>不判定。由雙方的應用程式各自確認</td></tr>
+                        <tr><td><strong>用時</strong></td><td>由伺服器計時</td><td>不計時。用時由雙方的應用程式自報，並與對方的應用程式測得的時間對照</td></tr>
+                        <tr><td><strong>勝負與終局</strong></td><td>由伺服器決定並通知</td><td>不決定。由雙方的應用程式根據棋譜決定，並用玩家金鑰確定</td></tr>
+                        <tr><td><strong>對局記錄</strong></td><td>伺服器也可以儲存</td><td>不儲存。只儲存在雙方的應用程式中</td></tr>
+                        <tr><td><strong>通訊內容</strong></td><td>伺服器接收著手並轉送給對手</td><td>讀不到。著手、玩家ID、顯示名稱在雙方的應用程式之間保持加密傳送</td></tr>
+                        <tr><td><strong>對局的配對</strong></td><td>由伺服器配對</td><td>不配對。對手由邀請決定</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">協作節點的營運者能看到的是 IP 位址，以及哪些 IP 位址之間建立了連線（<a href="#visibility">對手和網路可以看到的資訊</a>）。協作節點可以中斷或延遲它中繼的通訊，但無法改寫內容（改寫過的通訊會在加密的檢查中被發現，應用程式不會接受）。通訊中斷時，與線路中斷時一樣處理（<a href="#disconnect">線路中斷時</a>）。</p>
+                <p class="guide-step-text">經過中繼連線後，雙方的應用程式仍會嘗試切換為直接連線。切換後通訊不再經過協作節點，「對局中」分頁的「路徑」會變為「直接」。任一方選擇了「不使用直接連線」時不會切換，整局都經過中繼。</p>
             </div>
 
             <div class="guide-step" id="one-game">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-number">3</span>
                     <span class="guide-step-title">一對一對局，一個應用程式一次一局</span>
                 </div>
                 <p class="guide-step-text">P2P對局是兩人下的一對一對局，一個應用程式同時只能有一局對局。無論是否使用協作節點都一樣。協作節點只負責可達性確認和中繼，不會安排對局的組合，也不會讓一個應用程式同時下多局。</p>
@@ -111,7 +134,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">實驗版可以使用的內容</span>
                 </div>
                 <p class="guide-step-text">P2P對局是實驗中的功能，不包含在發布的 ShogiBoardQ 中。要使用時，從原始碼建置時在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，建置步驟見<a href="linux-build-and-release.html">Linux 建置與發布步驟</a>）。</p>
@@ -126,7 +149,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <span class="guide-step-title">對局規則</span>
                 </div>
                 <table class="info-table">
@@ -576,7 +599,7 @@
                 <p class="guide-step-text">因認輸、將死、超時負等終局後，雙方的應用程式會對照結果（勝負、結束方式和手數），一致時自動用玩家金鑰確定。無需操作（期間「對局中」分頁顯示「正在確定結果…」）。雙方都確定後，記錄成為「雙方已確定」。若 30 秒內沒有收到對手的確定，則儲存為「無對手確定」。</p>
             </div>
 
-            <div class="guide-step">
+            <div class="guide-step" id="disconnect">
                 <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">線路中斷時</span>
@@ -699,7 +722,7 @@
                 <p class="guide-step-text">請不要把記錄的勝局數作為正式等級分或棋力的依據。</p>
             </div>
 
-            <div class="guide-step">
+            <div class="guide-step" id="visibility">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">對手和網路可以看到的資訊</span>
