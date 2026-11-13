@@ -104,6 +104,35 @@ private slots:
     }
 
     /// Rust の実装と同じ入力に同じ結果を返す（protocol/testvectors/cbor.txt）
+    /// 1回の読み取りで作る値の総数に上限がある。細工した証跡で、入力の何十倍ものメモリを使わせない（監査 2026-11-13 P16）
+    void cborLimitsTotalValues()
+    {
+        const auto zeros = [](quint32 count) {
+            QByteArray bytes;
+            bytes.append(char(0x9a));
+            for (int shift = 24; shift >= 0; shift -= 8) bytes.append(char((count >> shift) & 0xffu));
+            bytes.append(QByteArray(static_cast<qsizetype>(count), '\0'));
+            return bytes;
+        };
+        // 配列と要素で、ちょうど上限の数
+        const auto limit = static_cast<quint32>(Cbor::kMaxValues);
+        QVERIFY(Cbor::decode(zeros(limit - 1)));
+        QString error;
+        QVERIFY(!Cbor::decode(zeros(limit), &error));
+        QCOMPARE(error, QStringLiteral("too many values"));
+        // 入れ子の各段が、残りの長さを要素数に名乗る（読めずに終わる。確保は名乗った数に比例しない）
+        constexpr int kLevels = 15;
+        constexpr int kTail = 4096;
+        QByteArray nested;
+        for (int i = 0; i < kLevels; ++i) {
+            const auto claimed = static_cast<quint32>(5 * (kLevels - i - 1) + kTail);
+            nested.append(char(0x9a));
+            for (int shift = 24; shift >= 0; shift -= 8) nested.append(char((claimed >> shift) & 0xffu));
+        }
+        nested.append(QByteArray(kTail, '\0'));
+        QVERIFY(!Cbor::decode(nested));
+    }
+
     void cborSharedVectors()
     {
         const QList<QByteArray> lines = P2pTest::readVectorLines(QStringLiteral("cbor.txt"));
@@ -572,6 +601,35 @@ private slots:
         report = EvidenceVerifier::verify(draw.encode());
         QVERIFY(report.resultConflictsWithRecord);
         QVERIFY(!report.isValid());
+        // 双方の署名がそろっていても「双方が確定した記録」とは区分しない（棋譜から決まる記録として示す）
+        QCOMPARE(report.category, EvidenceReport::Category::DeterminedByRecord);
+    }
+
+    /// 知らないネットワークの証跡は、このビルドではその規則を確かめられないので有効と言わない（監査 2026-11-13 I-u）
+    void evidenceOfUnknownNetworkIsNotValid()
+    {
+        const P2pTest::Player black;
+        const P2pTest::Player white;
+        const TimeControlTerms terms{60'000, 10'000};
+        Evidence e;
+        e.agreement = P2pTest::makeAgreement(black, white, terms);
+        e.agreement.networkId = networkId("sbq-unknown-9");
+        e.timeControl = terms;
+        e.blackStartSignature = black.playerKey.sign(e.agreement.toCbor());
+        e.whiteStartSignature = white.playerKey.sign(e.agreement.toCbor());
+        e.states = P2pTest::playMoves(e.gameId(), terms, {QStringLiteral("7g7f")}, black, white);
+        EvidenceReport report = EvidenceVerifier::verify(e.encode());
+        QVERIFY(!report.networkKnown);
+        QVERIFY(!report.isValid());
+        QCOMPARE(report.error, QStringLiteral("unknown network"));
+        // 知っているネットワークなら、同じ手順は有効
+        e.agreement.networkId = networkId("sbq-local-1");
+        e.blackStartSignature = black.playerKey.sign(e.agreement.toCbor());
+        e.whiteStartSignature = white.playerKey.sign(e.agreement.toCbor());
+        e.states = P2pTest::playMoves(e.gameId(), terms, {QStringLiteral("7g7f")}, black, white);
+        report = EvidenceVerifier::verify(e.encode());
+        QVERIFY2(report.isValid(), qPrintable(report.error));
+        QVERIFY(report.networkKnown);
     }
 
     void evidenceRejectsTampering()

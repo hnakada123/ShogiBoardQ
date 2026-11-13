@@ -181,6 +181,108 @@ public:
     }
 };
 
+/// 自分の対局1つと、相手の鍵。相手のフレームは試験で作る（改造したクライアントに見立てる）
+class LoneMatch
+{
+public:
+    explicit LoneMatch(bool iAmBlack)
+    {
+        const P2pTest::Player& black = iAmBlack ? me : opponent;
+        const P2pTest::Player& white = iAmBlack ? opponent : me;
+        setup.agreement = P2pTest::makeAgreement(black, white, terms);
+        setup.terms = terms;
+        setup.iAmBlack = iAmBlack;
+        setup.blackStartSignature = black.playerKey.sign(setup.agreement.toCbor());
+        setup.whiteStartSignature = white.playerKey.sign(setup.agreement.toCbor());
+        setup.myConnectionRandom = Crypto::randomBytes(32);
+        setup.opponentConnectionRandom = Crypto::randomBytes(32);
+        gameId = setup.agreement.gameId();
+        connection = connectionId(gameId, iAmBlack ? setup.myConnectionRandom : setup.opponentConnectionRandom,
+                                  iAmBlack ? setup.opponentConnectionRandom : setup.myConnectionRandom);
+        match = std::make_unique<Match>(setup, std::move(me.sessionKey), &me.playerKey, [this]() { return clockMs; },
+                                        [this](const CborValue& record) {
+                                            journal.push_back(record);
+                                            return true;
+                                        });
+    }
+    LoneMatch(const LoneMatch&) = delete;
+    LoneMatch& operator=(const LoneMatch&) = delete;
+
+    void deliver(FrameType type, const CborValue& payload)
+    {
+        Frame f;
+        f.type = type;
+        f.requestId = m_requestId++;
+        f.gameId = gameId;
+        f.payload = payload;
+        match->receive(f);
+    }
+    QByteArray approval(const GameState& state) const
+    {
+        return opponent.sessionKey.sign(stateApproval(gameId, state.ply, state.hash()));
+    }
+    /// 相手が状態を提案する（State0 は先手の相手が提案する）
+    void propose(const GameState& state) { deliver(FrameType::StatePropose, StateProposePayload{state, approval(state)}.toCbor()); }
+    /// 相手が自分の提案を承認する
+    void accept(const GameState& state)
+    {
+        deliver(FrameType::StateAccept, StateAcceptPayload{state.ply, state.hash(), approval(state)}.toCbor());
+    }
+    /// 相手が制御メッセージを送る（番号は1から順に）
+    void control(ControlKind kind, const CborValue& body)
+    {
+        ControlPayload payload;
+        payload.body = body;
+        payload.control.gameId = gameId;
+        payload.control.connectionId = connection;
+        payload.control.sequence = ++m_controlSequence;
+        payload.control.kind = kind;
+        payload.control.bodyHash = Cbor::hash(body);
+        payload.signature = opponent.sessionKey.sign(payload.control.toCbor());
+        deliver(FrameType::Control, payload.toCbor());
+    }
+    /// 今の最新の状態を指す結果
+    FinalResult resultFor(Outcome outcome, Cause cause) const
+    {
+        std::vector<GameState> states;
+        for (const SignedState& s : match->confirmedStates()) states.push_back(s.state);
+        FinalResult r;
+        r.gameId = gameId;
+        r.finalStateHash = states.back().hash();
+        r.transcriptHash = transcriptHash(gameId, states);
+        r.ply = states.back().ply;
+        r.outcome = outcome;
+        r.cause = cause;
+        return r;
+    }
+    /// 自分が送ったフレームに、RESULT_DECLINE があり、RESULT_SIGNATURE がないか
+    bool declinedWithoutSigning()
+    {
+        bool declined = false;
+        for (const Frame& f : match->takeOutgoing()) {
+            if (f.type == FrameType::ResultSignature) return false;
+            const std::optional<ControlPayload> sent =
+                f.type == FrameType::Control ? ControlPayload::fromCbor(f.payload) : std::nullopt;
+            if (sent && sent->control.kind == ControlKind::ResultDecline) declined = true;
+        }
+        return declined;
+    }
+
+    TimeControlTerms terms{60'000, 10'000};
+    P2pTest::Player me;
+    P2pTest::Player opponent;
+    MatchSetup setup;
+    QByteArray gameId;
+    QByteArray connection;
+    qint64 clockMs = 10'000'000;   ///< アプリを起動してから長く経った値（持ち時間＋秒読みの何倍も）
+    std::vector<CborValue> journal;
+    std::unique_ptr<Match> match;
+
+private:
+    quint64 m_requestId = 1;
+    quint64 m_controlSequence = 0;
+};
+
 } // namespace
 
 class TestP2pMatch : public QObject
@@ -194,7 +296,11 @@ private slots:
     void matchTimerKeepsTurnsAndDisconnections()
     {
         MatchTimer timer;
+        // 手番が始まる前の時間は消費時間に数えない（監査 2026-11-13 P1）
+        QVERIFY(!timer.myTurnStarted());
+        QCOMPARE(timer.mySpentMs(900'000), qint64(0));
         timer.startMyTurn(1000);
+        QVERIFY(timer.myTurnStarted());
         QCOMPARE(timer.mySpentMs(3500), qint64(2500));
         QCOMPARE(timer.mySpentMs(500), qint64(0));   // 負にしない
 
@@ -530,6 +636,15 @@ private slots:
         QCOMPARE(black.match->lastState().ply, quint32(1));
         QVERIFY(!black.match->hasPendingMove());
         QCOMPARE(black.match->phase(), Match::Phase::Playing);
+        // 照合の後の SYNC_REQUEST には応えない（全状態を何度でも送り返さない。監査 2026-11-13 P17）
+        Frame again;
+        again.type = FrameType::SyncRequest;
+        again.requestId = 999;
+        again.gameId = white.match->gameId();
+        again.payload = SyncRequestPayload{1, white.match->confirmedStates().front().state.hash()}.toCbor();
+        white.match->receive(again);
+        for (const Frame& f : white.match->takeOutgoing()) QVERIFY(f.type != FrameType::SyncChunk);
+        QCOMPARE(white.match->phase(), Match::Phase::Playing);
     }
 
     void reconnectTimeoutLeavesUnconfirmedRecord()
@@ -584,6 +699,88 @@ private slots:
             QCOMPARE(white.match->settlement(), Settlement::Error);
             QCOMPARE(white.match->endingError(), std::optional<ErrorCode>(ErrorCode::InvalidMove));
         }
+    }
+
+    /// 開始の手続きの途中（先手が READY を待つ間）に後手が「先手の時間切れ」を提案しても、先手は同意しない。
+    /// 以前は、READY の前の消費時間を時計の起点（0）から数え、アプリを起動して持ち時間より長く経っていると、
+    /// 0手目の時間切れ負けに署名していた（監査 2026-11-13 P1）
+    void resultProposalBeforeReadyIsDeclined()
+    {
+        LoneMatch lone(true);
+        Match& match = *lone.match;
+        match.begin();
+        QVERIFY(!match.takeOutgoing().empty());   // State0 の提案
+
+        // 後手（改造したクライアント）が State0 を承認する。READY は送らない
+        const GameState state0 = GameRules::initialState(lone.gameId, lone.terms);
+        lone.accept(state0);
+        QCOMPARE(match.phase(), Match::Phase::Opening);
+        QCOMPARE(match.confirmedStates().size(), size_t(1));
+
+        // READY の代わりに、0手目の「先手の時間切れ」を提案する
+        lone.control(ControlKind::ResultPropose, lone.resultFor(Outcome::WhiteWins, Cause::Timeout).toCbor());
+
+        // 同意も署名もせず、断る
+        QVERIFY(!match.agreedResult());
+        for (const MatchEvent& e : match.takeEvents()) QVERIFY(e.type != MatchEvent::Type::ResultAgreed);
+        QVERIFY(lone.declinedWithoutSigning());
+        QCOMPARE(match.phase(), Match::Phase::Opening);
+    }
+
+    /// 千日手（棋譜から決まる終局）に達した局面では、相手の投了の申し出に同意しない。以前は棋譜を見ずに同意して署名し、
+    /// 自分の証跡が「署名した結果が棋譜と食い違う」として検証に通らなくなっていた（監査 2026-11-13 P7）
+    void resultConflictingWithRecordIsDeclined()
+    {
+        LoneMatch lone(false);   // 自分は後手、相手（改造したクライアント）は先手
+        Match& match = *lone.match;
+        lone.clockMs = 1'000'000;
+        match.begin();
+        GameState state = GameRules::initialState(lone.gameId, lone.terms);
+        lone.propose(state);
+        QCOMPARE(match.phase(), Match::Phase::Playing);
+        const QStringList moves = P2pTest::repetitionMoves();
+        for (int i = 0; i < moves.size(); ++i) {
+            lone.clockMs += 1000;
+            const UsiMove move = UsiMove::fromString(moves.at(i));
+            const bool myMove = i % 2 == 1;
+            if (myMove) QCOMPARE(match.playMove(move), Match::MoveError::None);
+            const std::optional<GameState> next = GameRules::nextState(state, move, 1000, lone.terms);
+            QVERIFY(next);
+            state = *next;
+            if (myMove) lone.accept(state);
+            else lone.propose(state);
+            QCOMPARE(match.lastState().ply, quint32(i + 1));
+        }
+        (void)match.takeOutgoing();
+        (void)match.takeEvents();
+        // 千日手なので、自分の合意の申し出もできない
+        QVERIFY(!match.offer(Cause::AgreedAbort));
+
+        // 相手（先手）が自分の投了を申し出る
+        lone.control(ControlKind::ResultPropose, lone.resultFor(Outcome::WhiteWins, Cause::Resign).toCbor());
+        QVERIFY(!match.agreedResult());
+        QVERIFY(lone.declinedWithoutSigning());
+    }
+
+    /// 形の合わない制御メッセージはジャーナルに書かない。bodyHash が合えば body は任意の配列なので、大きな body で
+    /// ジャーナルの上限を使わせない（監査 2026-11-13 P18）
+    void malformedControlIsNotJournaled()
+    {
+        LoneMatch lone(true);
+        Match& match = *lone.match;
+        match.begin();
+        const GameState state0 = GameRules::initialState(lone.gameId, lone.terms);
+        lone.accept(state0);
+        lone.control(ControlKind::Ready, ControlBody::ready(state0.hash()));
+        QCOMPARE(match.phase(), Match::Phase::Playing);
+        const size_t before = lone.journal.size();
+        // 断りの body は [bodyHash] だが、大きな bytes を入れる
+        lone.control(ControlKind::ResultDecline, CborValue::array({CborValue::bytes(QByteArray(60'000, 'x'))}));
+        QCOMPARE(lone.journal.size(), before);
+        QCOMPARE(match.phase(), Match::Phase::Playing);
+        // 形の合う制御メッセージは書く
+        lone.control(ControlKind::ResultDecline, ControlBody::decline(QByteArray(32, 'h')));
+        QCOMPARE(lone.journal.size(), before + 1);
     }
 
     /// 承認済みの手に対する承認の再送は、自分に未承認の手があっても無視する。

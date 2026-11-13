@@ -61,6 +61,9 @@ namespace Cbor {
 
 /// 入れ子の上限（最上位の値を1段目と数える）
 inline constexpr int kMaxDepth = 16;
+/// 1回の読み取りで作る値の総数の上限（配列の要素を含む）。正しい証跡（8 MiB まで）の値はこれよりずっと少ない。
+/// 細工した証跡で、値の表現（1つ数十バイト）のために入力の何十倍ものメモリを使わせない（監査 2026-11-13 P16）
+inline constexpr quint64 kMaxValues = quint64(1) << 20;
 
 /// 決定的CBORに符号化する
 QByteArray encode(const CborValue& value);

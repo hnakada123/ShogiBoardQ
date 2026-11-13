@@ -110,6 +110,7 @@ public:
     std::optional<CborValue> readValue(int depth)
     {
         if (depth > kMaxDepth) return fail(QStringLiteral("nesting too deep"));
+        if (++m_values > kMaxValues) return fail(QStringLiteral("too many values"));
         quint8 major = 0;
         quint64 argument = 0;
         if (!readHead(major, argument)) return std::nullopt;
@@ -130,7 +131,9 @@ public:
             // 要素はどれも1バイト以上なので、残りより多い要素数は読めない（先に確かめてから確保する）
             if (argument > static_cast<quint64>(remaining())) return fail(QStringLiteral("array exceeds input"));
             std::vector<CborValue> items;
-            items.reserve(static_cast<std::size_t>(argument));
+            // 名乗った要素数のまま確保しない（入れ子の各段が残りの長さを名乗ると、確保が入力の何十倍にもなる）。
+            // 読めた分だけ伸ばす
+            items.reserve(static_cast<std::size_t>(qMin<quint64>(argument, kReserveLimit)));
             for (quint64 i = 0; i < argument; ++i) {
                 std::optional<CborValue> item = readValue(depth + 1);
                 if (!item) return std::nullopt;
@@ -193,7 +196,11 @@ private:
     }
 
     QByteArrayView m_bytes;
+    /// 先に確保する配列の要素数の上限
+    static constexpr quint64 kReserveLimit = 64;
+
     qsizetype m_pos = 0;
+    quint64 m_values = 0;   ///< 読んだ値の数（kMaxValues まで）
     QString m_error;
 };
 

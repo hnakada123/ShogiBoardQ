@@ -34,6 +34,7 @@ struct EvidenceReport {
     QByteArray gameId;
     QByteArray networkId;
     QString networkName;               ///< このビルドが知るネットワークならその名前
+    bool networkKnown = false;         ///< このビルドが知るネットワーク（知らなければ条件を確かめられないので無効）
     QByteArray blackPlayerKey;
     QByteArray whitePlayerKey;
     TimeControlTerms timeControl;
@@ -42,7 +43,7 @@ struct EvidenceReport {
     bool blackStartSigned = false;     ///< 先手の開始署名が正しい
     bool whiteStartSigned = false;
 
-    int stateCount = 0;                ///< 証跡にある状態の数
+    int stateCount = 0;                ///< 証跡にある状態の数（0 は開始局面の承認の前に終わった対局。結果未確定の記録）
     int lastMutualPly = -1;            ///< 両方の承認がそろった最後の手数（State0 もなければ -1）
     bool signaturesValid = false;      ///< 状態の承認の署名がすべて正しい（空の欄は除く）
     bool recordLegal = false;          ///< 両署名付きの手順が連続し、合法手だけからなる
@@ -62,7 +63,7 @@ struct EvidenceReport {
     /// すべての検査に通ったか（区分は別。結果未確定でも、ここまでの記録は正しいことがある）
     bool isValid() const
     {
-        return formatValid && conditionsMatch && blackStartSigned && whiteStartSigned && signaturesValid
+        return formatValid && networkKnown && conditionsMatch && blackStartSigned && whiteStartSigned && signaturesValid
             && recordLegal && clockArithmeticValid && !resultConflictsWithRecord
             && (!result || resultMatchesRecord);
     }

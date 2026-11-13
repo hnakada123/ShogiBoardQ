@@ -108,6 +108,10 @@ EvidenceReport verify(const Evidence& e)
     for (const NetworkInfo& info : allowedNetworks()) {
         if (networkId(QByteArray(info.name)) == report.networkId) report.networkName = QString::fromLatin1(info.name);
     }
+    // 知らないネットワークの記録は、このビルドではそのネットワークの規則を確かめられないので、有効と言わない
+    // （監査 2026-11-13 I-u）
+    report.networkKnown = !report.networkName.isEmpty();
+    if (!report.networkKnown) setError(report, QStringLiteral("unknown network"));
     report.blackPlayerKey = e.agreement.blackPlayerKey;
     report.whitePlayerKey = e.agreement.whitePlayerKey;
     report.timeControl = e.timeControl;
@@ -156,8 +160,10 @@ EvidenceReport verify(const Evidence& e)
     }
 
     const bool startOk = report.conditionsMatch && report.blackStartSigned && report.whiteStartSigned;
+    // 双方の署名がそろっていても、棋譜から決まる結果と食い違う結果は「双方が確定した」記録にしない（区分と valid を
+    // そろえる。監査 2026-11-13）
     if (startOk && recordOk && e.result && report.resultMatchesRecord && report.blackResultSigned
-        && report.whiteResultSigned) {
+        && report.whiteResultSigned && !report.resultConflictsWithRecord) {
         report.category = EvidenceReport::Category::MutuallySigned;
     } else if (startOk && recordOk && report.terminal) {
         report.category = EvidenceReport::Category::DeterminedByRecord;

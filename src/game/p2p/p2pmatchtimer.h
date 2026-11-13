@@ -20,9 +20,15 @@ class MatchTimer
 {
 public:
     /// 自分の手番が始まった
-    void startMyTurn(qint64 now) { m_myTurnStart = now; }
-    /// 自分の手番の消費時間（負にしない）
-    qint64 mySpentMs(qint64 now) const { return qMax<qint64>(0, now - m_myTurnStart); }
+    void startMyTurn(qint64 now)
+    {
+        m_myTurnStart = now;
+        m_myTurnStarted = true;
+    }
+    /// 自分の手番が始まっているか（先手の初手は READY を受けた時点から。それより前の時間を消費時間に数えない）
+    bool myTurnStarted() const { return m_myTurnStarted; }
+    /// 自分の手番の消費時間（負にしない。手番が始まる前は 0）
+    qint64 mySpentMs(qint64 now) const { return m_myTurnStarted ? qMax<qint64>(0, now - m_myTurnStart) : 0; }
 
     /// 相手の手番の観測を始める
     void startObserving(qint64 now)
@@ -57,6 +63,7 @@ public:
 
 private:
     qint64 m_myTurnStart = 0;
+    bool m_myTurnStarted = false;
     qint64 m_observeStart = 0;
     qint64 m_disconnectedAtObserveStart = 0;
     qint64 m_disconnectedTotal = 0;    ///< 終わった切断の時間の合計

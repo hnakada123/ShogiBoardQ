@@ -156,6 +156,12 @@ private:
     void handleSyncChunk(const SyncChunkPayload& chunk);
     void finishResume();
     FinalResult resultFor(Outcome outcome, Cause cause) const;
+    /// 制御メッセージの中身の形が、種類に合うか
+    static bool hasKnownShape(ControlKind kind, const CborValue& body);
+    /// 確定した手順の状態の列
+    std::vector<GameState> confirmedGameStates() const;
+    /// 確定した手順から棋譜で決まる終局（詰み・千日手・512手など。決まっていなければ nullopt）
+    std::optional<GameRules::Terminal> terminalOfRecord() const;
     bool proposeResult(Outcome outcome, Cause cause);
     void agree(const FinalResult& result);
     bool resultIsCurrent(const FinalResult& result) const;

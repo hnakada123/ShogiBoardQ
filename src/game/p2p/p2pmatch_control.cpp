@@ -38,8 +38,12 @@ void Match::handleControl(const ControlPayload& payload)
     }
     m_controlIn = c.sequence;
     if (++m_controlCount > 4096) return failWithError(ErrorCode::LimitExceeded, 0);
-    if (c.kind != ControlKind::Ready && c.kind != ControlKind::Resume) {
-        persist(RecordKinds::control(false, payload.toCbor()));
+    // ジャーナルに残すのは、中身の形が合う制御メッセージだけ（bodyHash が合えば body は任意の配列なので、形を確かめずに
+    // 書くと、相手が大きな body でジャーナルの上限を使わせられる）。書けなければ続けない（実装仕様4章 STORAGE_ERROR。
+    // 監査 2026-11-13 P18）
+    if (c.kind != ControlKind::Ready && c.kind != ControlKind::Resume && hasKnownShape(c.kind, payload.body)
+        && !persist(RecordKinds::control(false, payload.toCbor()))) {
+        return failWithError(ErrorCode::StorageError, lastState().ply);
     }
     // 再接続中は、RESUME を確かめるまでほかの制御を受け付けない
     if (m_phase == Phase::Reconnecting && c.kind != ControlKind::Resume) return;
@@ -73,6 +77,19 @@ void Match::handleControl(const ControlPayload& payload)
     }
 }
 
+bool Match::hasKnownShape(ControlKind kind, const CborValue& body)
+{
+    switch (kind) {
+    case ControlKind::Ready: return ControlBody::parseReady(body).has_value();
+    case ControlKind::Resume: return ControlBody::parseResume(body).has_value();
+    case ControlKind::ResultPropose: return FinalResult::fromCbor(body).has_value();
+    case ControlKind::Abort: return ControlBody::parseAbort(body).has_value();
+    case ControlKind::Error: return ControlBody::parseError(body).has_value();
+    case ControlKind::ResultDecline: return ControlBody::parseDecline(body).has_value();
+    }
+    return false;
+}
+
 void Match::handleReady(const CborValue& body)
 {
     const std::optional<QByteArray> state0Hash = ControlBody::parseReady(body);
@@ -89,11 +106,22 @@ void Match::handleReady(const CborValue& body)
 
 // ---------------------------------------------------------------- 結果
 
-FinalResult Match::resultFor(Outcome outcome, Cause cause) const
+std::vector<GameState> Match::confirmedGameStates() const
 {
     std::vector<GameState> states;
     states.reserve(m_confirmed.size());
     for (const SignedState& s : m_confirmed) states.push_back(s.state);
+    return states;
+}
+
+std::optional<GameRules::Terminal> Match::terminalOfRecord() const
+{
+    return GameRules::judge(confirmedGameStates());
+}
+
+FinalResult Match::resultFor(Outcome outcome, Cause cause) const
+{
+    const std::vector<GameState> states = confirmedGameStates();
     FinalResult r;
     r.gameId = m_gameId;
     r.finalStateHash = lastState().hash();
@@ -115,6 +143,12 @@ bool Match::proposeResult(Outcome outcome, Cause cause)
     if (m_phase != Phase::Playing || m_agreedResult || m_confirmed.empty() || !m_readyDone) return false;
     // 自分の未確認の着手がある間は提案しない
     if (m_pending) return false;
+    // 棋譜から終局が決まっていれば、その結果のほかは提案しない（投了・時間切れ・合意の申し出で、棋譜と食い違う結果に
+    // 署名しない。監査 2026-11-13 P7）
+    if (const std::optional<GameRules::Terminal> terminal = terminalOfRecord();
+        terminal && (terminal->outcome != outcome || terminal->cause != cause)) {
+        return false;
+    }
     const FinalResult result = resultFor(outcome, cause);
     if (m_myProposal && *m_myProposal == result) return true;
     const CborValue body = result.toCbor();
@@ -169,6 +203,12 @@ void Match::answerOffer(bool accept)
 void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHash)
 {
     if (m_agreedResult) return;   // 結果の一致の後は、別の結果に同意しない
+    // 結果の提案を受けるのは、READY を交わして対局が始まった後だけ。開始の手続きの途中の提案（先手が READY を待つ
+    // 間の「先手の時間切れ」など）には同意しない
+    if (m_phase != Phase::Playing || !m_readyDone) {
+        sendControl(ControlKind::ResultDecline, ControlBody::decline(bodyHash));
+        return;
+    }
     const std::optional<FinalResult> result = FinalResult::fromCbor(body);
     if (!result || m_confirmed.empty() || !resultIsCurrent(*result)) {
         // 古い手数の提案・形の合わない提案には同意しない（対局は続く）
@@ -183,8 +223,12 @@ void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHas
     const bool opponentToMove = !isMyTurn();
     const Outcome iWin = GameRules::winnerOutcome(m_setup.iAmBlack ? Turn::Black : Turn::White);
     const auto decline = [this, &bodyHash]() { sendControl(ControlKind::ResultDecline, ControlBody::decline(bodyHash)); };
+    // 棋譜から終局（詰み・千日手・512手など）が決まった局面では、投了・時間切れ・合意の申し出に同意しない（利用者にも
+    // 尋ねない）。同意すると、署名した結果が棋譜と食い違い、証跡の検証に通らなくなる（監査 2026-11-13 P7）
+    const std::optional<GameRules::Terminal> terminal = terminalOfRecord();
     switch (result->cause) {
     case Cause::Resign:
+        if (terminal) return decline();
         // 投了の提案は負ける側（相手）だけ、相手の手番に限る
         if (result->outcome != iWin || !opponentToMove) return decline();
         m_myProposal = *result;
@@ -196,9 +240,6 @@ void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHas
     case Cause::Repetition:
     case Cause::PerpetualCheck:
     case Cause::MaxPly: {
-        std::vector<GameState> states;
-        for (const SignedState& s : m_confirmed) states.push_back(s.state);
-        const std::optional<GameRules::Terminal> terminal = GameRules::judge(states);
         if (!terminal) return decline();
         // 判定の食い違いは実装の不一致。同意せずに中断し、証跡を残す
         if (terminal->outcome != result->outcome || terminal->cause != result->cause) {
@@ -209,6 +250,7 @@ void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHas
         return;
     }
     case Cause::Timeout: {
+        if (terminal) return decline();
         if (result->outcome == iWin) {
             // 相手が自分の時間切れを申告した
             if (!opponentToMove) return decline();
@@ -216,7 +258,8 @@ void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHas
             // 相手が自分の時間切れを主張した: 自分の時計で確かめる
             const quint64 remaining = m_setup.iAmBlack ? lastState().blackMainMs : lastState().whiteMainMs;
             const auto elapsed = static_cast<quint64>(m_timer.mySpentMs(now()));
-            if (!isMyTurn() || m_pending || GameRules::canMoveWithin(remaining, m_setup.terms.byoyomiMs, elapsed)) {
+            if (!isMyTurn() || m_pending || !m_timer.myTurnStarted()
+                || GameRules::canMoveWithin(remaining, m_setup.terms.byoyomiMs, elapsed)) {
                 return decline();
             }
         }
@@ -228,6 +271,7 @@ void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHas
     }
     case Cause::AgreedDraw:
     case Cause::AgreedAbort: {
+        if (terminal) return decline();
         // 利用者に尋ねる（答えるまでに手数が進めば無効）
         m_pendingOffer = *result;
         m_pendingOfferHash = bodyHash;
@@ -239,7 +283,8 @@ void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHas
 
 void Match::agree(const FinalResult& result)
 {
-    if (m_agreedResult) return;
+    // 結果に署名するのは、対局が始まった後に1回だけ（呼ぶ側も確かめている）
+    if (m_agreedResult || m_phase != Phase::Playing || !m_readyDone) return;
     // 1. gameId -> resultDigest を永続化する（以後、この対局で別の結果に署名しない）
     if (!persist(RecordKinds::resultDigest(result))) return failWithError(ErrorCode::StorageError, result.ply);
     m_agreedResult = result;
@@ -362,6 +407,9 @@ void Match::handleResume(const CborValue& body)
 
 void Match::handleSyncRequest(const SyncRequestPayload& request)
 {
+    // 応えるのは、再接続の照合で相手の要求を待っている間の1回だけ（照合の後も何度でも全状態を送り返して、中継の量の
+    // 上限を使わせない。監査 2026-11-13 P17）。それ以外の要求は無視する
+    if (m_phase != Phase::Reconnecting || !m_syncing) return;
     if (!m_resumeReceived || request.fromPly == 0 || request.fromPly > lastState().ply
         || m_confirmed[request.fromPly - 1].state.hash() != request.previousStateHash) {
         return failWithError(ErrorCode::StateConflict, request.fromPly);

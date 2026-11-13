@@ -54,7 +54,10 @@ QString causeName(P2p::Cause cause)
 QJsonObject toJson(const P2p::EvidenceReport& report)
 {
     QJsonObject checks;
+    checks[QStringLiteral("known_network")] = report.networkKnown;
     checks[QStringLiteral("conditions_match")] = report.conditionsMatch;
+    // 開始局面の承認の前に終わった対局（状態が0件）は、手順のない結果未確定の記録
+    checks[QStringLiteral("has_record")] = report.stateCount > 0;
     checks[QStringLiteral("start_signatures")] = report.blackStartSigned && report.whiteStartSigned;
     checks[QStringLiteral("signatures")] = report.signaturesValid;
     checks[QStringLiteral("record_legal")] = report.recordLegal;

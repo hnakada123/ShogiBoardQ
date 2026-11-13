@@ -366,10 +366,7 @@ void Match::commit(const SignedState& state)
 
 void Match::checkTerminal()
 {
-    std::vector<GameState> states;
-    states.reserve(m_confirmed.size());
-    for (const SignedState& s : m_confirmed) states.push_back(s.state);
-    const std::optional<GameRules::Terminal> terminal = GameRules::judge(states);
+    const std::optional<GameRules::Terminal> terminal = terminalOfRecord();
     // 棋譜から決まる終局は、どちらの側も提案する（同じ提案を交わした時点で一致）
     if (terminal) proposeResult(terminal->outcome, terminal->cause);
 }
