@@ -149,9 +149,33 @@
                 <p class="guide-step-text">中継でつながった後も、双方のアプリは直接の接続への切り替えを試します。切り替わると協力ノードを通らなくなり、「対局中」タブの「経路」が「直接」に変わります。どちらかが「直接接続を使わない」にしているときは切り替えず、対局の間ずっと中継を通ります。</p>
             </div>
 
-            <div class="guide-step" id="one-game">
+            <div class="guide-step" id="protocol">
                 <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">通信の取り決め（プロトコル）</span>
+                </div>
+                <p class="guide-step-text">P2P対局の双方のアプリは、P2P対局のために作った独自の取り決め（プロトコル）でやり取りします。CSA通信対局で使うCSAプロトコルとも、エンジンとの通信に使うUSIプロトコルとも別のもので、P2P対局からCSA通信対局のサーバーにはつながりません。別のソフトウェアも、この取り決めに従えば ShogiBoardQ と対局できます（<a href="#spec">証跡の形と通信の取り決め</a>）。</p>
+                <table class="info-table info-table--label-wide">
+                    <thead>
+                        <tr><th scope="col">プロトコル</th><th scope="col">使う場面</th><th scope="col">P2P対局では</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>CSAプロトコル</strong></td><td>CSA通信対局で、アプリと対局サーバーの間（サーバーが指し手の判定・時計・勝敗を受け持つ前提）</td><td>使いません。P2P対局には、審判をするサーバーがないためです</td></tr>
+                        <tr><td><strong>USIプロトコル</strong></td><td>同じPCの中で、このアプリとエンジンの間</td><td>通信には使いません。指し手の書き方（7g7f、P*5e など）と局面の書き方（SFEN）だけを借りています</td></tr>
+                        <tr><td><strong>P2P対局の取り決め</strong></td><td>P2P対局で、双方のアプリの間</td><td>これを使います</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">P2P対局の取り決めは、次の3つの層でできています。</p>
+                <ul class="guide-step-text">
+                    <li><strong>通信の土台</strong>：P2P通信のためのライブラリ libp2p を使います。暗号化、協力ノードによる中継、中継から直接の接続への切り替えを受け持ちます。</li>
+                    <li><strong>対局のやり取り</strong>：libp2p では、1本の接続の中に、用途ごとに名前を付けた通信の流れ（ストリーム）を開けます。対局には <code>/shogiboardq/game/1.0.0</code> という名前のストリームを1本開き、開始の交渉・指し手・結果を送り合います（末尾の 1.0.0 は取り決めの版です）。1回分のデータは、4バイトの長さと、決まった形の CBOR（JSON に似た、バイト列で表すデータの形）です。</li>
+                    <li><strong>1手ごとに送るもの</strong>：対局ID・手数・指し手（USIの書き方）・指した後の局面（SFEN）・消費時間・残り時間と、1つ前の局面とのつながりを確かめる値（ハッシュ）です。双方のアプリが確かめた局面がつながって、対局記録（証跡）になります。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step" id="one-game">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
                     <span class="guide-step-title">対局は1対1、1つのアプリで一度に1局</span>
                 </div>
                 <p class="guide-step-text">P2P対局は2人で指す1対1の対局で、1つのアプリが同時に持てる対局は1つだけです。これは協力ノードを使っても使わなくても同じです。協力ノードは到達性の確認と中継をするだけで、対局の組み合わせを決めたり、1つのアプリで何局も指せるようにしたりはしません。</p>
@@ -169,7 +193,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <span class="guide-step-title">実験版で使えるもの</span>
                 </div>
                 <p class="guide-step-text">P2P対局は試験中の機能で、配布している ShogiBoardQ には入っていません。使うには、ソースからビルドするときに CMake で <code>-DENABLE_P2P_PLAY=ON</code> を付けます（libsodium と Rust が必要です。ビルドの手順は<a href="linux-build-and-release.html">Linux ビルド・リリース手順</a>）。</p>
@@ -184,7 +208,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-number">7</span>
                     <span class="guide-step-title">対局の決まり</span>
                 </div>
                 <table class="info-table">

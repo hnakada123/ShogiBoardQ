@@ -149,9 +149,33 @@
                 <p class="guide-step-text">Even after connecting through a relay, the two apps try to switch to a direct connection. Once they switch, the traffic no longer goes through the cooperating node, and Route on the Game tab changes to direct. If either player uses Do not use direct connections, the apps do not switch, and the whole game goes through the relay.</p>
             </div>
 
-            <div class="guide-step" id="one-game">
+            <div class="guide-step" id="protocol">
                 <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">The Communication Protocol</span>
+                </div>
+                <p class="guide-step-text">The two apps in a P2P game communicate using a protocol made for P2P games. It is different from both the CSA protocol used in CSA network play and the USI protocol used to talk to engines, so a P2P game cannot connect to a CSA game server. Other software can play against ShogiBoardQ if it follows this protocol (<a href="#spec">Evidence Format and Protocol Specification</a>).</p>
+                <table class="info-table info-table--label-wide">
+                    <thead>
+                        <tr><th scope="col">Protocol</th><th scope="col">Where it is used</th><th scope="col">In P2P games</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>CSA protocol</strong></td><td>In CSA network play, between an app and the game server (it assumes that the server judges moves, keeps the clock and decides the result)</td><td>Not used, because a P2P game has no server to act as the referee</td></tr>
+                        <tr><td><strong>USI protocol</strong></td><td>On the same PC, between this app and an engine</td><td>Not used for communication. Only the way of writing moves (7g7f, P*5e and so on) and positions (SFEN) is borrowed</td></tr>
+                        <tr><td><strong>P2P game protocol</strong></td><td>In P2P games, between the two apps</td><td>This is the protocol used</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">The P2P game protocol has three layers.</p>
+                <ul class="guide-step-text">
+                    <li><strong>Foundation</strong>: libp2p, a networking library for P2P communication. It handles encryption, relaying through a cooperating node, and switching from a relay to a direct connection.</li>
+                    <li><strong>Game messages</strong>: libp2p can open several flows of communication (streams) inside one connection, each named for its purpose. For a game, the apps open one stream named <code>/shogiboardq/game/1.0.0</code> and exchange the start negotiation, moves and the result over it (the 1.0.0 at the end is the protocol version). Each message is a 4-byte length followed by CBOR data in a fixed form (CBOR is a data format similar to JSON, written as bytes).</li>
+                    <li><strong>What each move carries</strong>: The game ID, the move number, the move (in USI notation), the position after the move (SFEN), the time used, the remaining time, and a value (hash) that links it to the previous position. The positions checked by both apps link together into the game record (evidence).</li>
+                </ul>
+            </div>
+
+            <div class="guide-step" id="one-game">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
                     <span class="guide-step-title">One-on-One Games, One Game per App at a Time</span>
                 </div>
                 <p class="guide-step-text">A P2P game is a one-on-one game between two players, and one app can have only one game at a time. This is the same with or without a cooperating node. A cooperating node only checks reachability and relays traffic; it does not pair players or let one app play several games.</p>
@@ -169,7 +193,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <span class="guide-step-title">What the Experimental Build Offers</span>
                 </div>
                 <p class="guide-step-text">P2P games are an experimental feature and are not included in the distributed ShogiBoardQ. To use them, pass <code>-DENABLE_P2P_PLAY=ON</code> to CMake when you build from source (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a> for the build steps).</p>
@@ -184,7 +208,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-number">7</span>
                     <span class="guide-step-title">Game Rules</span>
                 </div>
                 <table class="info-table">

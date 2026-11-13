@@ -149,9 +149,33 @@
                 <p class="guide-step-text">经过中继连接后，双方的应用仍会尝试切换为直接连接。切换后通信不再经过协作节点，“对局中”标签页的“路径”会变为“直接”。任意一方选择了“不使用直接连接”时不会切换，整局都经过中继。</p>
             </div>
 
-            <div class="guide-step" id="one-game">
+            <div class="guide-step" id="protocol">
                 <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">通信约定（协议）</span>
+                </div>
+                <p class="guide-step-text">P2P对局中，双方的应用使用为P2P对局制定的专用约定（协议）通信。它既不是CSA网络对局使用的CSA协议，也不是与引擎通信使用的USI协议，因此P2P对局无法连接CSA网络对局的服务器。其他软件只要遵循这个约定，也可以与 ShogiBoardQ 对局（<a href="#spec">凭证的格式与通信约定</a>）。</p>
+                <table class="info-table info-table--label-wide">
+                    <thead>
+                        <tr><th scope="col">协议</th><th scope="col">使用场合</th><th scope="col">在P2P对局中</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>CSA协议</strong></td><td>CSA网络对局中，应用与对局服务器之间（以服务器判定着手、计时、决定胜负为前提）</td><td>不使用。因为P2P对局没有担任裁判的服务器</td></tr>
+                        <tr><td><strong>USI协议</strong></td><td>同一台电脑中，本应用与引擎之间</td><td>不用于通信。只借用着手的写法（7g7f、P*5e 等）和局面的写法（SFEN）</td></tr>
+                        <tr><td><strong>P2P对局的约定</strong></td><td>P2P对局中，双方的应用之间</td><td>使用这个约定</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">P2P对局的约定由以下三层组成。</p>
+                <ul class="guide-step-text">
+                    <li><strong>通信的基础</strong>：使用用于P2P通信的程序库 libp2p。它负责加密、经协作节点的中继，以及从中继切换为直接连接。</li>
+                    <li><strong>对局的往来</strong>：libp2p 可以在一条连接中，按用途打开多个带名称的通信流（stream）。对局时打开一条名为 <code>/shogiboardq/game/1.0.0</code> 的流，用来交换开始的协商、着手和结果（末尾的 1.0.0 是约定的版本）。每条数据由4字节的长度和固定格式的 CBOR（类似 JSON、以字节序列表示的数据格式）组成。</li>
+                    <li><strong>每一步发送的内容</strong>：对局ID、手数、着手（USI写法）、着手后的局面（SFEN）、用时、剩余时间，以及确认与上一个局面相连的值（哈希）。双方的应用确认过的局面连在一起，就成为对局记录（凭证）。</li>
+                </ul>
+            </div>
+
+            <div class="guide-step" id="one-game">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
                     <span class="guide-step-title">一对一对局，一个应用一次一局</span>
                 </div>
                 <p class="guide-step-text">P2P对局是两人下的一对一对局，一个应用同时只能有一局对局。无论是否使用协作节点都一样。协作节点只负责可达性确认和中继，不会安排对局的组合，也不会让一个应用同时下多局。</p>
@@ -169,7 +193,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <span class="guide-step-title">实验版可以使用的内容</span>
                 </div>
                 <p class="guide-step-text">P2P对局是实验中的功能，不包含在发布的 ShogiBoardQ 中。要使用时，从源代码构建时在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，构建步骤见<a href="linux-build-and-release.html">Linux 构建与发布步骤</a>）。</p>
@@ -184,7 +208,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-number">7</span>
                     <span class="guide-step-title">对局规则</span>
                 </div>
                 <table class="info-table">
