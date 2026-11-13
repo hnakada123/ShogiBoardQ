@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Windows Build and Release - ShogiBoardQ</title>
-    <meta name="description" content="Build with MSVC, package the Qt runtime, and publish a ZIP. Covers development tools, Qt, packaging, and troubleshooting.">
+    <meta name="description" content="Build ShogiBoardQ on Windows with MSVC and Qt 6, package the Qt and MSVC runtime DLLs, Hayanagi, and the tsume shogi collections into a ZIP, and publish it on GitHub Releases. Covers setup, the build script, manual packaging steps, code signing, and troubleshooting.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/windows-build-and-release.html">
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/windows-build-and-release.html">
@@ -65,98 +65,531 @@
 </section>
 <div class="section">
 <article class="section-inner build-document" aria-label="Windows Build and Release instructions">
+<p>The Windows ZIP contains the application (<code>ShogiBoardQ.exe</code> and <code>shogiboardq-cli.exe</code>), the runtime DLLs, the translations, six tsume shogi collection files, the Hayanagi executable with its opening book, and the root LICENSE. It does not contain README files. <code>Hayanagi/source/</code> and an external <code>licenses/</code> folder will not be included in future Windows releases either. The license display built into the application is used as it is.</p>
+<p>Attach only the runnable ZIP to a release; do not attach the Qt sources or related documents separately. For how the license documents inside the application are prepared, see the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">policy on Qt documents and release attachments (Japanese)</a>.</p>
 <section id="contents" class="level2">
 <h2>Contents</h2>
-<ol>
-    <li><a href="#setup">Requirements and setup</a></li>
-    <li><a href="#build">Get the source and build</a></li>
-    <li><a href="#qt-sources">License notices</a></li>
-    <li><a href="#package">Create a ZIP package</a></li>
-    <li><a href="#signing">Code signing</a></li>
-    <li><a href="#release">Publish on GitHub Releases</a></li>
-    <li><a href="#troubleshooting">Troubleshooting</a></li>
+<ol type="1">
+<li><a href="#requirements">Requirements</a></li>
+<li><a href="#setup">Setting up the development environment</a></li>
+<li><a href="#build">Building</a></li>
+<li><a href="#package">Creating the distribution package</a></li>
+<li><a href="#release">Publishing on GitHub Releases</a></li>
+<li><a href="#signing">Code signing (optional)</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
 </ol>
 </section>
+<section id="requirements" class="level2">
+<h2>1. Requirements</h2>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr><th>Item</th><th>Version</th></tr>
+</thead>
+<tbody>
+<tr><td>Windows</td><td>10 / 11 (64-bit)</td></tr>
+<tr><td>Visual Studio</td><td>2019 or 2022 (Desktop development with C++ workload)</td></tr>
+<tr><td>CMake</td><td>3.16 or later</td></tr>
+<tr><td>Qt</td><td>6.7 or later (Widgets, Charts, Network, Concurrent, Multimedia, Sql, LinguistTools)</td></tr>
+<tr><td>C++</td><td>A compiler with C++17 support (MSVC 2019 or later)</td></tr>
+</tbody>
+</table>
+</div>
+</section>
 <section id="setup" class="level2">
-<h2>Requirements and setup</h2>
-<p>Install Visual Studio 2022 with the Desktop development with C++ workload, Git, CMake 3.16 or later, Ninja, and Python 3. Use Developer PowerShell for VS 2022 with the x64 toolchain enabled.</p>
-<p>Install a Qt 6.7 or later MSVC desktop kit matching your compiler architecture. Required modules are Widgets, Charts, Network, Concurrent, Multimedia, Sql, and LinguistTools. Include Qt Charts, Qt Multimedia, Qt SVG, and the SQLite plugin in your Qt installation.</p>
-<p>The examples use the official Qt 6.7.3 MSVC 2022 64-bit SDK. Set these paths to your installed kit:</p>
-<pre><code>$env:CMAKE_PREFIX_PATH = "C:\Qt\6.7.3\msvc2022_64"
-$env:PATH = "C:\Qt\6.7.3\msvc2022_64\bin;" + $env:PATH
-cmake --version
-cl
-windeployqt --version
-python --version</code></pre>
-<p>Keep the compiler, Qt DLLs, and application on the same architecture. The packaging script uses the Visual C++ runtime supplied by the Visual Studio developer environment.</p>
+<h2>2. Setting up the development environment</h2>
+<section id="setup-vs" class="level3">
+<h3>2.1 Installing Visual Studio</h3>
+<p>Install <a href="https://visualstudio.microsoft.com/">Visual Studio</a> and select the following workload:</p>
+<ul>
+<li><strong>Desktop development with C++</strong></li>
+</ul>
+<p>This includes the MSVC compiler, CMake, and Ninja.</p>
+<blockquote>
+<p>The <strong>Community Edition</strong> is free for individual and open-source development.</p>
+</blockquote>
+</section>
+<section id="setup-qt" class="level3">
+<h3>2.2 Installing Qt 6</h3>
+<section id="setup-qt-installer" class="level4">
+<h4>Method A: Qt Online Installer (recommended)</h4>
+<p>Download the installer from the <a href="https://www.qt.io/download-qt-installer">official Qt site</a> and select the following components:</p>
+<ul>
+<li>Qt 6.x &gt; MSVC 2019/2022 64-bit</li>
+<li>Qt 6.x &gt; Qt Charts</li>
+<li>Qt 6.x &gt; Qt Multimedia</li>
+<li>Developer and Designer Tools &gt; CMake</li>
+<li>Developer and Designer Tools &gt; Ninja</li>
+</ul>
+<p>After installing, set the Qt paths in environment variables:</p>
+<pre class="powershell"><code># Add to the user environment variables (change the Qt installation path to match your environment)
+# Example: C:\Qt\6.12.0\msvc2022_64
+[Environment]::SetEnvironmentVariable(&quot;Qt6_DIR&quot;, &quot;C:\Qt\6.12.0\msvc2022_64\lib\cmake\Qt6&quot;, &quot;User&quot;)
+[Environment]::SetEnvironmentVariable(&quot;PATH&quot;, &quot;C:\Qt\6.12.0\msvc2022_64\bin;$env:PATH&quot;, &quot;User&quot;)</code></pre>
+</section>
+<section id="setup-qt-aqt" class="level4">
+<h4>Method B: aqtinstall (for CI and the command line)</h4>
+<pre class="powershell"><code>pip install aqtinstall
+aqt install-qt windows desktop 6.12.0 win64_msvc2022_64 -m qtcharts qtmultimedia</code></pre>
+</section>
+</section>
+<section id="setup-ninja" class="level3">
+<h3>2.3 Installing Ninja (recommended)</h3>
+<p>Use the Ninja included with Visual Studio, or install it separately:</p>
+<pre class="powershell"><code>winget install Ninja-build.Ninja</code></pre>
+</section>
+<section id="setup-check" class="level3">
+<h3>2.4 Checking the installation</h3>
+<p>Check in <strong>Developer PowerShell for VS 2022</strong> (started from the Start menu):</p>
+<pre class="powershell"><code>cmake --version       # 3.16 or later
+cl                    # MSVC compiler
+ninja --version       # Ninja
+windeployqt --version # Qt deployment tool</code></pre>
+</section>
 </section>
 <section id="build" class="level2">
-<h2>Get the source and build</h2>
-<p>Clone the repository with its Hayanagi submodule. An ordinary clone without submodules is incomplete.</p>
-<pre><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+<h2>3. Building</h2>
+<p>The Hayanagi engine for regular games is a submodule, so clone with <code>--recurse-submodules</code> (without it, CMake stops):</p>
+<pre class="powershell"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
 cd ShogiBoardQ</code></pre>
 <blockquote>
-<p><strong>If you cloned the repository before its history was rewritten on 2026-11-09, do not run <code>git pull</code>.</strong> It stops with an error or produces a large number of conflicts. Clone again into a different folder with the command above. Before deleting the old folder, move any unpushed commits and local settings. To see which history a clone has, run <code>git log -1 --format=%h 2026.11.04</code>. Output starting with <code>376e4362</code>, or an error that <code>2026.11.04</code> cannot be found, means the old history, and <code>aa9bcc4b</code> means the new one. To keep your build folder, you can instead run <code>git fetch origin --tags --force</code> and then <code>git reset --hard origin/main</code>. This discards uncommitted changes and unpushed commits.</p>
+<p><strong>If you cloned the repository before its history was rewritten on 2026-11-09, do not run <code>git pull</code>.</strong> It stops with an error or produces a large number of conflicts. Clone again into a different folder with the command above. Before deleting the old folder, move any unpushed commits and local settings. To see which history a clone has, run <code>git log -1 --format=%h 2026.11.04</code>. Output starting with <code>376e4362</code>, or an error that <code>2026.11.04</code> cannot be found, means the old history, and output starting with <code>aa9bcc4b</code> means the new one. To keep your build folder, you can instead run <code>git fetch origin --tags --force</code> and then <code>git reset --hard origin/main</code>. This discards uncommitted changes and unpushed commits.</p>
 </blockquote>
-<p>For an existing checkout, initialize the recorded submodule version with <code>git submodule update --init --recursive</code>.</p>
-<pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
-.\build\ShogiBoardQ.exe</code></pre>
-<p>These commands build for local development. If you use the Visual Studio generator instead of Ninja, select Release when building and use the executable in <code>build\Release</code>. Start with a separate build directory when changing generators.</p>
-<p>To enable and run the test suite:</p>
-<pre><code>cmake -B build -S . -DBUILD_TESTING=ON
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure</code></pre>
-</section>
-<section id="qt-sources" class="level2">
-<h2>License notices</h2>
-<p>The Windows ZIP does not contain an external <code>licenses/</code> folder, Qt source archives, or <code>Hayanagi/source/</code>. Building it does not require downloading the Qt sources or running <code>scripts/qt_licenses.py</code>; those steps prepare the license documents bundled in the Linux and macOS packages.</p>
-<p>Windows users get the license information from the application and the ZIP:</p>
-<ul>
-<li><strong>About dialog:</strong> shows the Qt version in use and at build time, the Qt copyright notice, the GPL and LGPL texts, and how to obtain the corresponding sources. These documents (<code>resources/licenses/</code>, such as <code>NOTICE.md</code> and <code>SOURCE_CODE.md</code>) are built into the executable and shown in the UI language, so they can be read offline.</li>
-<li><strong><code>LICENSE</code>:</strong> the GPL-3.0 license of ShogiBoardQ, placed at the root of the ZIP.</li>
-</ul>
-<p>Attach only the runnable ZIP to a GitHub Release. Do not attach Qt source archives or source/build metadata separately. The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt distribution notes (Japanese)</a> describe the packaging policy for each platform.</p>
-</section>
-<section id="package" class="level2">
-<h2>Create a ZIP package</h2>
-<p>Run the distribution script from Developer PowerShell:</p>
-<pre><code>.\scripts\build-windows.ps1</code></pre>
-<p>The script builds Release, uses <code>windeployqt</code>, copies all four application translations (ja_JP, en, zh_CN, zh_TW) and the Visual C++ runtime, and checks the Qt DLLs and SQLite plugin. It produces <code>deploy\</code> and <code>ShogiBoardQ-windows.zip</code> in the repository root.</p>
-<p>The ZIP contains:</p>
-<ul>
-<li><code>ShogiBoardQ.exe</code> and <code>shogiboardq-cli.exe</code> (the command-line tool used by the MCP server), with the Qt DLLs and plugins. <code>platforms\qoffscreen.dll</code> is added for the CLI's board rendering, because <code>windeployqt</code> does not copy it.</li>
-<li><code>Hayanagi\hayanagi.exe</code>, the USI engine for normal games, with its opening book <code>Hayanagi\book\hayanagi_book.db</code> (the copy the build places in <code>build\Hayanagi\book\</code>) and only the three runtime DLLs it loads (<code>vcruntime140.dll</code>, <code>vcruntime140_1.dll</code>, <code>msvcp140.dll</code>).</li>
-<li>The six tsume collections in <code>data\tsumeshogi\</code> (3 to 13 moves, one file each). The script stops if <code>data/tsumeshogi/</code> holds more than one file for the same number of moves.</li>
-<li>The root <code>LICENSE</code>. README files, <code>Hayanagi/source/</code>, and an external <code>licenses/</code> folder are not included.</li>
-</ul>
-<p>Use <code>-SkipZip</code> to prepare only the deploy folder or <code>-Help</code> to show the options. <code>-BuildDir</code>, <code>-DeployDir</code>, and <code>-ZipPath</code> change the build directory, deploy folder, and ZIP path (defaults: <code>build</code>, <code>deploy</code>, <code>ShogiBoardQ-windows.zip</code>), for example to build each release in its own folder:</p>
-<pre><code>.\scripts\build-windows.ps1 -BuildDir build\msvc-release-2026.10.07 `
+<p>In an existing checkout, run <code>git submodule update --init --recursive</code> to fetch the recorded Hayanagi version.</p>
+<section id="build-script" class="level3">
+<h3>Build script (recommended)</h3>
+<p><code>scripts/build-windows.ps1</code> runs everything from the Release build to creating the ZIP in one step.</p>
+<blockquote>
+<p><strong>Important</strong>: run it from Developer PowerShell for VS 2022 (the MSVC environment variables are required).</p>
+</blockquote>
+<pre class="powershell"><code># Normal build + ZIP
+.\scripts\build-windows.ps1
+
+# Clean build, no ZIP
+.\scripts\build-windows.ps1 -Clean -SkipZip
+
+# Build into per-version directories (for a release)
+.\scripts\build-windows.ps1 -BuildDir build\msvc-release-2026.10.07 `
     -DeployDir build\releases\2026.10.07-windows\deploy `
     -ZipPath build\releases\2026.10.07-windows\ShogiBoardQ-windows.zip</code></pre>
-<p>Extract the ZIP into an empty folder on a Windows machine without the development SDK and run <code>ShogiBoardQ.exe</code>. Check language switching, pieces, sound, and tsume progress. Also run <code>shogiboardq-cli.exe version</code>, and check that <code>cmd /c "cd Hayanagi &amp;&amp; (echo usi&amp; echo isready&amp; echo quit) | .\hayanagi.exe"</code> answers with <code>id name Hayanagi</code> and <code>info string book loaded</code>. Hayanagi reads the book from <code>book\</code> in its working directory; ShogiBoardQ starts each engine in the engine's own folder, so the book is used as extracted. Distribute the complete folder; the executable alone does not contain Qt.</p>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-Clean</code></td><td>Delete the build and deploy directories before building</td></tr>
+<tr><td><code>-SkipZip</code></td><td>Skip creating the ZIP (only the deploy folder is produced)</td></tr>
+<tr><td><code>-BuildDir</code></td><td>Build directory (default: <code>build</code>)</td></tr>
+<tr><td><code>-DeployDir</code></td><td>Distribution directory (default: <code>deploy</code>)</td></tr>
+<tr><td><code>-ZipPath</code></td><td>ZIP file to create (default: <code>ShogiBoardQ-windows.zip</code>)</td></tr>
+<tr><td><code>-Help</code></td><td>Show help</td></tr>
+</tbody>
+</table>
+</div>
+<p>The script performs the following steps automatically:</p>
+<ol type="1">
+<li>Checks that the required tools exist (cmake, ninja, cl, windeployqt, and the location of the MSVC runtime DLLs)</li>
+<li>CMake configure + build (ShogiBoardQ, shogiboardq-cli, and Hayanagi)</li>
+<li>Checks the build outputs (.exe, .qm translation files, hayanagi.exe and its opening book, and one collection file per move count)</li>
+<li>Creates the deploy directory + places the collections, Hayanagi (including its opening book), and LICENSE + deploys the DLLs with windeployqt + adds <code>qoffscreen.dll</code> + copies the MSVC runtime DLLs + verifies the result</li>
+<li>Creates the ZIP file</li>
+</ol>
+<blockquote>
+<p>If Qt is not on your <code>PATH</code>, specify its location before running the script (example: Qt 6.12.0):</p>
+<pre class="powershell"><code>$env:PATH = &quot;C:\Qt\6.12.0\msvc2022_64\bin;C:\Qt\Tools\Ninja;$env:PATH&quot;
+$env:CMAKE_PREFIX_PATH = &quot;C:\Qt\6.12.0\msvc2022_64&quot;</code></pre>
+</blockquote>
+<blockquote>
+<p><strong>If you get an execution policy error:</strong></p>
+<pre class="powershell"><code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></pre>
+</blockquote>
+<p>The rest of this guide describes how to run the individual commands by hand.</p>
 </section>
-<section id="signing" class="level2">
-<h2>Code signing</h2>
-<p>If you sign your Windows release, sign the executables in the deploy folder (<code>ShogiBoardQ.exe</code>, <code>shogiboardq-cli.exe</code>, and <code>Hayanagi\hayanagi.exe</code>) before creating the final ZIP. The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release workflow</a> uses SignTool from the Windows SDK with a certificate supplied through repository secrets, signs and verifies every executable, then packages the signed files.</p>
-<p>Configure the workflow's Windows certificate, password, and timestamp settings in repository secrets. Keep certificates and passwords out of source control. Test the final signed archive, not only the executable in the build directory.</p>
+<section id="build-release" class="level3">
+<h3>3.1 Release build</h3>
+<p>Run in Developer PowerShell for VS 2022:</p>
+<pre class="powershell"><code>cd C:\path\to\ShogiBoardQ
+
+# Configure (Release build, Ninja)
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+# Build
+ninja -C build</code></pre>
+<p>Without Ninja (using the Visual Studio generator):</p>
+<pre class="powershell"><code># Configure
+cmake -B build -S .
+
+# Release build
+cmake --build build --config Release</code></pre>
+<p>To run the tests:</p>
+<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+ninja -C build
+ctest --test-dir build --output-on-failure</code></pre>
+</section>
+<section id="build-check" class="level3">
+<h3>3.2 Checking the build outputs</h3>
+<pre class="powershell"><code># Check that the exe was generated
+# With Ninja:
+dir build\ShogiBoardQ.exe
+
+# With the Visual Studio generator:
+dir build\Release\ShogiBoardQ.exe
+
+# Check the translation files
+dir build\*.qm           # Ninja
+dir build\Release\*.qm   # VS generator</code></pre>
+</section>
+<section id="build-run" class="level3">
+<h3>3.3 Running the application</h3>
+<pre class="powershell"><code># Start the built application (in an environment where the Qt DLLs are on PATH)
+.\build\ShogiBoardQ.exe</code></pre>
+</section>
+</section>
+<section id="package" class="level2">
+<h2>4. Creating the distribution package</h2>
+<blockquote>
+<p><strong>Note:</strong> if you use <code>scripts/build-windows.ps1</code>, the steps in this section are performed automatically.</p>
+</blockquote>
+<section id="package-deploy" class="level3">
+<h3>4.1 Creating the deploy directory</h3>
+<p>Copy the exe files, the translation files, the tsume shogi collections, Hayanagi with its opening book, and LICENSE to the distribution directory:</p>
+<pre class="powershell"><code>mkdir deploy, deploy\Hayanagi\book, deploy\data\tsumeshogi
+copy build\ShogiBoardQ.exe deploy\
+copy build\shogiboardq-cli.exe deploy\
+copy build\*.qm deploy\
+copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
+copy build\Hayanagi\book\hayanagi_book.db deploy\Hayanagi\book\
+copy data\tsumeshogi\tsume_*ply_*.txt deploy\data\tsumeshogi\
+copy LICENSE deploy\</code></pre>
+<p>The tsume shogi collections are included as one file each for 3, 5, 7, 9, 11, and 13 moves to mate, six files in total (make sure no older version for the same move count remains in <code>data/tsumeshogi/</code>; the script stops if there is more than one). README files (in the root, <code>Hayanagi/</code>, and <code>data/tsumeshogi/</code>) are not included. Hayanagi's opening book <code>hayanagi_book.db</code>, which the build copies to <code>build/Hayanagi/book/</code>, goes to <code>Hayanagi/book/</code>. Hayanagi reads the book from <code>book/</code> in its working directory, and ShogiBoardQ starts each engine with the engine's own directory as the working directory, so the book is used with the ZIP extracted as it is. Do not copy the whole source tree or build folder, and check before publishing that the ZIP contains neither <code>Hayanagi/source/</code> nor <code>licenses/</code>. The <code>build/licenses/</code> folder that a normal build generates is not copied into the Windows ZIP either.</p>
+</section>
+<section id="package-windeployqt" class="level3">
+<h3>4.2 Deploying the Qt DLLs with windeployqt</h3>
+<pre class="powershell"><code>windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe
+
+# shogiboardq-cli renders boards with the offscreen platform. windeployqt does not copy it, so add it
+copy C:\Qt\6.12.0\msvc2022_64\plugins\platforms\qoffscreen.dll deploy\platforms\</code></pre>
+<p>What <code>windeployqt</code> does automatically:</p>
+<ol type="1">
+<li>Copies the Qt DLLs the application depends on (Qt6Core, Qt6Gui, Qt6Widgets, Qt6Charts, Qt6Network, Qt6Multimedia, and so on)</li>
+<li>Copies the Qt plugins (platforms/qwindows.dll, imageformats/, and so on)</li>
+</ol>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--release</code></td><td>Deploy the DLLs for a Release build</td></tr>
+<tr><td><code>--no-translations</code></td><td>Exclude Qt's translation files (the application's own .qm files were already copied by hand)</td></tr>
+<tr><td><code>--no-system-d3d-compiler</code></td><td>Exclude d3dcompiler_47.dll (normally not needed)</td></tr>
+<tr><td><code>--no-opengl-sw</code></td><td>Exclude software OpenGL</td></tr>
+<tr><td><code>--no-compiler-runtime</code></td><td>Do not bundle <code>vc_redist.x64.exe</code> (the runtime DLLs are copied directly in the next step)</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="package-runtime" class="level3">
+<h3>4.2.1 Copying the MSVC runtime DLLs</h3>
+<p>So that the application starts even on a PC without the Visual C++ Redistributable, bundle the MSVC runtime DLLs (<code>vcruntime140.dll</code>, <code>msvcp140.dll</code>, and so on) in the same directory as the exe. In Developer PowerShell for VS, the <code>VCToolsRedistDir</code> environment variable points to where the runtime is located:</p>
+<pre class="powershell"><code>copy &quot;$env:VCToolsRedistDir\x64\Microsoft.VC*.CRT\*.dll&quot; deploy\</code></pre>
+<p><code>Hayanagi\hayanagi.exe</code> looks for DLLs only in its own directory, so also place just the three it loads (<code>vcruntime140.dll</code>, <code>vcruntime140_1.dll</code>, and <code>msvcp140.dll</code>) in <code>Hayanagi\</code>:</p>
+<pre class="powershell"><code>foreach ($dll in &quot;vcruntime140.dll&quot;, &quot;vcruntime140_1.dll&quot;, &quot;msvcp140.dll&quot;) {
+    copy &quot;$env:VCToolsRedistDir\x64\Microsoft.VC*.CRT\$dll&quot; deploy\Hayanagi\
+}</code></pre>
+<blockquote>
+<p>By default windeployqt bundles <code>vc_redist.x64.exe</code> (about 18 MB) instead of the DLLs, but the runtime is not installed unless the user runs it by hand, so the DLLs are bundled directly.</p>
+</blockquote>
+</section>
+<section id="package-verify" class="level3">
+<h3>4.3 Checking the deployment</h3>
+<pre class="powershell"><code># Check the directory structure
+tree /F deploy
+
+# Check the required DLLs
+dir deploy\Qt6Core.dll
+dir deploy\Qt6Gui.dll
+dir deploy\Qt6Widgets.dll
+dir deploy\Qt6Charts.dll
+dir deploy\Qt6Network.dll
+
+# Check the MSVC runtime DLLs
+dir deploy\vcruntime140.dll
+dir deploy\vcruntime140_1.dll
+dir deploy\msvcp140.dll
+
+# Check the platforms plugins
+dir deploy\platforms\qwindows.dll
+dir deploy\platforms\qoffscreen.dll
+
+# SQLite driver (used to save the tsume shogi solving history)
+dir deploy\sqldrivers\qsqlite.dll
+
+# Hayanagi, its opening book, and the collections (6 files)
+dir deploy\Hayanagi
+dir deploy\Hayanagi\book\hayanagi_book.db
+dir deploy\data\tsumeshogi</code></pre>
+<p>Directory structure after deployment:</p>
+<pre><code>deploy/
+├── ShogiBoardQ.exe                ← Executable
+├── shogiboardq-cli.exe            ← CLI (called by the MCP server)
+├── LICENSE                        ← License
+├── ShogiBoardQ_ja_JP.qm           ← Japanese translation
+├── ShogiBoardQ_en.qm              ← English translation
+├── ShogiBoardQ_zh_CN.qm           ← Chinese (Simplified) translation
+├── ShogiBoardQ_zh_TW.qm           ← Chinese (Traditional) translation
+├── Qt6Core.dll                    ← Qt Core
+├── Qt6Gui.dll                     ← Qt GUI
+├── Qt6Widgets.dll                 ← Qt Widgets
+├── Qt6Charts.dll                  ← Qt Charts
+├── Qt6Network.dll                 ← Qt Network
+├── Qt6Multimedia.dll              ← Qt Multimedia (piece sounds)
+├── Qt6OpenGL.dll                  ← Qt OpenGL (required by Charts)
+├── Qt6OpenGLWidgets.dll           ← Qt OpenGL Widgets
+├── Qt6Svg.dll                     ← Qt SVG (for icons)
+├── Qt6Sql.dll                     ← Qt SQL (solving history)
+├── avcodec-61.dll etc.            ← FFmpeg (piece sound playback)
+├── vcruntime140.dll               ← MSVC runtime
+├── vcruntime140_1.dll
+├── msvcp140.dll
+├── ...                            ← Other MSVC runtime DLLs (concrt140.dll and so on)
+├── Hayanagi/
+│   ├── hayanagi.exe               ← USI engine for regular games
+│   ├── vcruntime140.dll           ← MSVC runtime for Hayanagi (only these three)
+│   ├── vcruntime140_1.dll
+│   ├── msvcp140.dll
+│   └── book/hayanagi_book.db      ← Hayanagi opening book
+├── data/tsumeshogi/
+│   ├── tsume_3ply_1000_*.txt      ← Tsume shogi collections (3 to 13 moves, 1,000 puzzles each)
+│   ├── ...
+│   └── tsume_13ply_1000_*.txt
+├── platforms/
+│   ├── qwindows.dll               ← Windows platform plugin
+│   └── qoffscreen.dll             ← For board rendering by shogiboardq-cli
+├── sqldrivers/
+│   ├── qsqlite.dll                ← SQLite (tsume shogi solving history)
+│   └── ...
+├── multimedia/
+│   ├── ffmpegmediaplugin.dll      ← Piece sound playback
+│   └── windowsmediaplugin.dll
+├── imageformats/
+│   ├── qsvg.dll                   ← SVG support
+│   ├── qico.dll                   ← ICO support
+│   └── ...
+├── styles/
+│   └── qmodernwindowsstyle.dll    ← Windows style
+├── tls/
+│   └── qschannelbackend.dll       ← TLS (for CSA network play)
+└── networkinformation/
+    └── qnetworklistmanager.dll    ← Network information</code></pre>
+<blockquote>
+<p>Because the MSVC runtime DLLs are bundled, users do not need to install the <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist">Visual C++ Redistributable</a>.</p>
+</blockquote>
+</section>
+<section id="package-test" class="level3">
+<h3>4.4 Testing</h3>
+<p>Start the application directly from the deploy folder to test it:</p>
+<pre class="powershell"><code>.\deploy\ShogiBoardQ.exe
+
+# CLI (version and creating a board image)
+.\deploy\shogiboardq-cli.exe version
+.\deploy\shogiboardq-cli.exe render-board --sfen startpos --output board.png --overwrite
+
+# Hayanagi (started in the Hayanagi folder, as ShogiBoardQ does; it should answer with
+# id name Hayanagi … and info string book loaded)
+cmd /c &quot;cd deploy\Hayanagi &amp;&amp; (echo usi&amp; echo isready&amp; echo quit) | .\hayanagi.exe&quot;</code></pre>
+<blockquote>
+<p><strong>Important</strong>: test in an environment where Qt's bin directory is <strong>not</strong> on PATH. If Qt is on PATH, the system's DLLs are used instead of those in the deploy folder, and missing files in the deployment go undetected.</p>
+</blockquote>
+</section>
+<section id="package-zip" class="level3">
+<h3>4.5 Creating the ZIP file</h3>
+<pre class="powershell"><code>Compress-Archive -Path deploy\* -DestinationPath ShogiBoardQ-windows.zip</code></pre>
+</section>
 </section>
 <section id="release" class="level2">
-<h2>Publish on GitHub Releases</h2>
-<p>The repository includes a <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release workflow</a> that builds all three platforms, prepares bundled license documents, and uploads only the Linux, macOS, and Windows ZIPs. Checksums and the SBOM remain in the CI artifact <code>release-verification</code>; Qt sources, source guides, build metadata, and CI logs are not release attachments.</p>
-<p>The release version is the release date (<code>YYYY.MM.DD</code>, for example <code>2026.10.07</code>). Update <code>APP_VERSION</code> in <code>CMakeLists.txt</code> only on the day of a release: commit the change before building the packages, build them from that commit, and tag that commit with the same version, without a leading <code>v</code>. Use the version in the release name as well. For a second release on the same day, add a fourth number, as in <code>2026.10.07.1</code>. See <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/versioning.md">Versioning and releases (Japanese)</a>.</p>
-<p>The workflow starts automatically only for tags beginning with <code>v</code>, so pushing a release tag does not start it. Maintainers with push access can run it from the Actions tab: enter a tag or branch, and leave Publish off (the default) to only build and verify the packages, or turn it on to attach them to the release for that tag, replacing its existing files. Its Windows job attaches <code>ShogiBoardQ-windows.zip</code>, the same name as a manual release. Releases are still created by hand because the workflow's Linux job cannot create the Linux package yet (see the <a href="linux-build-and-release.html">Linux build guide</a>).</p>
-<p>For a manual release, open the repository's Releases page and create a release for the intended tag. Attach only the tested ZIP. Select the package by its exact filename instead of uploading the entire working directory. The license information is built into the application, with <code>LICENSE</code> in the ZIP.</p>
+<h2>5. Publishing on GitHub Releases</h2>
+<section id="release-tag" class="level3">
+<h3>5.1 Creating the tag</h3>
+<p>Update the version only on the day of a release, to that date (<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/versioning.md">Versioning and releases (Japanese)</a>). Before building the packages, change <code>APP_VERSION</code> in <code>CMakeLists.txt</code> and commit it, build the packages from that commit, and then tag the same commit with the same version. Do not put a leading <code>v</code> on the tag.</p>
+<pre class="powershell"><code>git tag -a 2026.10.07 -m &quot;ShogiBoardQ 2026.10.07&quot;
+git push origin main 2026.10.07</code></pre>
+</section>
+<section id="release-gh" class="level3">
+<h3>5.2 Creating the release with GitHub CLI</h3>
+<p>Use <a href="https://cli.github.com/">GitHub CLI (gh)</a>:</p>
+<pre class="powershell"><code># Install
+winget install GitHub.cli
+
+# Log in (first time only)
+gh auth login</code></pre>
+<p>Create the release and upload the asset:</p>
+<pre class="powershell"><code>gh release create 2026.10.07 `
+  --title &quot;ShogiBoardQ 2026.10.07&quot; `
+  --notes-file RELEASE_NOTES.md `
+  ShogiBoardQ-windows.zip</code></pre>
+<blockquote>
+<p>To publish the macOS ZIP at the same time, add it as an asset:</p>
+<pre class="powershell"><code>gh release create 2026.10.07 `
+  --title &quot;ShogiBoardQ 2026.10.07&quot; `
+  --notes-file RELEASE_NOTES.md `
+  ShogiBoardQ-windows.zip `
+  ShogiBoardQ-macos.zip</code></pre>
+</blockquote>
+<section id="release-notes-auto" class="level4">
+<h4>Generating release notes automatically</h4>
+<p>If you do not prepare a release notes file, GitHub generates the notes:</p>
+<pre class="powershell"><code>gh release create 2026.10.07 `
+  --title &quot;ShogiBoardQ 2026.10.07&quot; `
+  --generate-notes `
+  ShogiBoardQ-windows.zip</code></pre>
+</section>
+</section>
+<section id="release-web" class="level3">
+<h3>5.3 Creating the release from the web UI (alternative)</h3>
+<ol type="1">
+<li>GitHub repository → <strong>Releases</strong> → <strong>Draft a new release</strong></li>
+<li><strong>Choose a tag</strong> → enter a new tag (example: <code>2026.10.07</code>) and create it</li>
+<li>Enter the <strong>Release title</strong> (example: <code>ShogiBoardQ 2026.10.07</code>)</li>
+<li>Write the release notes in <strong>Description</strong></li>
+<li>Drag and drop <code>ShogiBoardQ-windows.zip</code> onto <strong>Attach binaries</strong></li>
+<li>Click <strong>Publish release</strong></li>
+</ol>
+</section>
+<section id="release-notes" class="level3">
+<h3>5.4 Writing release notes (template)</h3>
+<pre class="markdown"><code>## ShogiBoardQ 2026.10.07
+
+### Download
+
+| OS | File |
+|---|---|
+| Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+| macOS | `ShogiBoardQ-macos.zip` |
+| Linux | `ShogiBoardQ-linux.zip` |
+
+### Running on Windows
+
+1. Extract the ZIP file
+2. Double-click `ShogiBoardQ.exe`
+
+&gt; If "Windows protected your PC" appears the first time you start the application,
+&gt; click "More info" → "Run anyway".
+
+### Changes
+
+- ...</code></pre>
+</section>
+</section>
+<section id="signing" class="level2">
+<h2>6. Code signing (optional)</h2>
+<p>The application runs without a signature, but a SmartScreen warning appears the first time it is started.</p>
+<section id="signing-cert" class="level3">
+<h3>6.1 Obtaining a code signing certificate</h3>
+<p>An EV (Extended Validation) code signing certificate is recommended for code signing. For individual developers, an OV (Organization Validation) certificate is also an option.</p>
+<p>Main providers:</p>
+<ul>
+<li><a href="https://signpath.org/">SignPath Foundation</a> (free, for open-source projects)</li>
+<li>DigiCert</li>
+<li>Sectigo</li>
+<li>GlobalSign</li>
+</ul>
+</section>
+<section id="signing-signtool" class="level3">
+<h3>6.2 Signing with signtool</h3>
+<pre class="powershell"><code># Use signtool, included in the Windows SDK
+signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
+  /f &quot;certificate.pfx&quot; /p &quot;password&quot; `
+  deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe deploy\Hayanagi\hayanagi.exe</code></pre>
+<p>Sign before creating the ZIP. When using the script, build up to the deploy folder with <code>-SkipZip</code>, sign, and then create the ZIP (the steps in <a href="#package-zip">4.5</a>).</p>
+</section>
+<section id="signing-unsigned" class="level3">
+<h3>6.3 Distributing without a signature</h3>
+<p>Give users the following instructions:</p>
+<ol type="1">
+<li>After downloading, right-click the ZIP → Properties → check “Unblock” → OK</li>
+<li>Extract it, then run <code>ShogiBoardQ.exe</code></li>
+<li>If a SmartScreen warning appears, click “More info” → “Run anyway”</li>
+</ol>
+</section>
 </section>
 <section id="troubleshooting" class="level2">
-<h2>Troubleshooting</h2>
+<h2>7. Troubleshooting</h2>
+<section id="trouble-qt" class="level3">
+<h3>Qt is not found</h3>
+<pre><code>CMake Error: Could not find a package configuration file provided by &quot;Qt6&quot;</code></pre>
+<p>Specify the Qt installation path explicitly:</p>
+<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release `
+  -DCMAKE_PREFIX_PATH=&quot;C:\Qt\6.12.0\msvc2022_64&quot;</code></pre>
+</section>
+<section id="trouble-cl" class="level3">
+<h3>cl.exe is not found</h3>
+<p>If you are not using Developer PowerShell for VS 2022:</p>
+<p>Start <strong>Developer PowerShell for VS 2022</strong> from the Start menu. Calling <code>vcvarsall.bat</code> from a regular PowerShell does not leave the environment variables it sets in PowerShell. To load the MSVC environment into the PowerShell you already have open, run the script included with Visual Studio:</p>
+<pre class="powershell"><code># For Visual Studio 2022 Community
+&amp; &quot;C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1&quot; -Arch amd64 -SkipAutomaticLocation</code></pre>
+</section>
+<section id="trouble-windeployqt" class="level3">
+<h3>windeployqt is not found</h3>
+<pre class="powershell"><code># Check the Qt installation path and add it to PATH
+$env:PATH = &quot;C:\Qt\6.12.0\msvc2022_64\bin;$env:PATH&quot;
+
+# Check
+windeployqt --version</code></pre>
+</section>
+<section id="trouble-dll" class="level3">
+<h3>The application does not start (DLL error)</h3>
+<pre><code>Errors such as &quot;Qt6Core.dll was not found&quot;</code></pre>
+<ol type="1">
+<li><p>Run <code>windeployqt</code> again</p></li>
+<li><p>Check that all required DLLs exist in the deploy directory:</p>
+<pre class="powershell"><code>dir deploy\Qt6Core.dll
+dir deploy\Qt6Gui.dll
+dir deploy\Qt6Widgets.dll
+dir deploy\Qt6Charts.dll
+dir deploy\Qt6Network.dll
+dir deploy\platforms\qwindows.dll</code></pre></li>
+<li><p>If the MSVC runtime is missing:</p>
 <ul>
-<li><strong>The compiler or Windows SDK cannot be found:</strong> open Developer PowerShell and confirm that the Desktop development with C++ workload is installed.</li>
-<li><strong>Qt6Config.cmake or Qt Charts is missing:</strong> check the kit path and install the required modules. Do not mix MinGW and MSVC Qt libraries.</li>
-<li><strong>Hayanagi source files are missing:</strong> run <code>git submodule update --init --recursive</code>.</li>
-<li><strong>windeployqt is not found:</strong> add the selected Qt kit's <code>bin</code> directory to <code>PATH</code>.</li>
-<li><strong>A DLL or plugin is missing on another PC:</strong> distribute the entire deploy folder and inspect the packaging log. Check <code>sqldrivers\qsqlite.dll</code> if puzzle history is unavailable.</li>
-<li><strong>PowerShell blocks the script:</strong> review your execution policy and the script before enabling it under your system's policy.</li></ul>
+<li>Copy the MSVC runtime DLLs into deploy again by following <a href="#package-runtime">4.2.1</a> (when they are bundled, the Visual C++ Redistributable does not need to be installed)</li>
+</ul></li>
+</ol>
+</section>
+<section id="trouble-charts" class="level3">
+<h3>The Qt Charts DLLs are not deployed</h3>
+<p>If windeployqt cannot detect Qt Charts, copy the DLLs by hand:</p>
+<pre class="powershell"><code>copy &quot;C:\Qt\6.12.0\msvc2022_64\bin\Qt6Charts.dll&quot; deploy\
+copy &quot;C:\Qt\6.12.0\msvc2022_64\bin\Qt6OpenGL.dll&quot; deploy\
+copy &quot;C:\Qt\6.12.0\msvc2022_64\bin\Qt6OpenGLWidgets.dll&quot; deploy\</code></pre>
+</section>
+<section id="trouble-translations" class="level3">
+<h3>Translations are not loaded</h3>
+<p>Check that the <code>.qm</code> files exist in the same directory as the exe:</p>
+<pre class="powershell"><code>dir deploy\*.qm</code></pre>
+<p>If they do not, copy them by hand from the build directory:</p>
+<pre class="powershell"><code>copy build\ShogiBoardQ_ja_JP.qm deploy\
+copy build\ShogiBoardQ_en.qm deploy\
+copy build\ShogiBoardQ_zh_CN.qm deploy\
+copy build\ShogiBoardQ_zh_TW.qm deploy\</code></pre>
+</section>
+<section id="trouble-policy" class="level3">
+<h3>Execution policy error (PowerShell scripts)</h3>
+<pre><code>... cannot be loaded because running scripts is disabled on this system.</code></pre>
+<pre class="powershell"><code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></pre>
+</section>
+<section id="trouble-smartscreen" class="level3">
+<h3>SmartScreen warning (unsigned)</h3>
+<p>Instructions for users:</p>
+<ol type="1">
+<li>Right-click the ZIP → Properties → check <strong>Unblock</strong> → OK</li>
+<li>Extract the ZIP before running the application</li>
+<li>“Windows protected your PC” → <strong>More info</strong> → <strong>Run anyway</strong></li>
+</ol>
+<blockquote>
+<p>As the number of downloads grows, SmartScreen's trust in the file increases and the warning appears less often.</p>
+</blockquote>
+</section>
 </section>
 </article>
 </div>

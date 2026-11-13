@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>macOS Build and Release - ShogiBoardQ</title>
-    <meta name="description" content="Build a macOS app, create a DMG, and prepare a signed release. Covers development tools, Qt, packaging, and troubleshooting.">
+    <meta name="description" content="Build ShogiBoardQ on macOS and publish it as a DMG on GitHub Releases. Covers setting up the development environment, building, creating the app bundle and DMG, code signing and notarization, and troubleshooting.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/macos-build-and-release.html">
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/macos-build-and-release.html">
@@ -65,132 +65,698 @@
 </section>
 <div class="section">
 <article class="section-inner build-document" aria-label="macOS Build and Release instructions">
+<p>Only the distribution ZIP (<code>ShogiBoardQ-macos.zip</code>) is attached to a release; the Qt source and related documents are not attached separately. For preparing the license documents inside the app, see the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt distribution notes (Japanese)</a>.</p>
+<p>The DMG contains only the files needed to run ShogiBoardQ (minimal configuration). As in the Linux package, the Hayanagi USI engine for regular games and the tsume shogi collections are kept outside the DMG and go into the distribution ZIP together with the DMG (<a href="#dmg-zip">5.2</a>). The UI is available in four languages, Japanese, English, and Chinese (Simplified and Traditional), and the four translation files are bundled.</p>
 <section id="contents" class="level2">
 <h2>Contents</h2>
-<ol>
-    <li><a href="#setup">Requirements and setup</a></li>
-    <li><a href="#build">Get the source and build</a></li>
-    <li><a href="#qt-sources">Prepare Qt notices</a></li>
-    <li><a href="#package">Create a DMG package</a></li>
-    <li><a href="#signing">Code signing and notarization</a></li>
-    <li><a href="#release">Publish on GitHub Releases</a></li>
-    <li><a href="#troubleshooting">Troubleshooting</a></li>
+<ol type="1">
+<li><a href="#requirements">Requirements</a></li>
+<li><a href="#setup">Setting up the development environment</a></li>
+<li><a href="#build">Building</a></li>
+<li><a href="#bundle">Creating the app bundle</a></li>
+<li><a href="#dmg">Creating the DMG file</a></li>
+<li><a href="#signing">Code signing and notarization</a></li>
+<li><a href="#release">Publishing on GitHub Releases</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
 </ol>
 </section>
+<section id="requirements" class="level2">
+<h2>1. Requirements</h2>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr>
+<th>Item</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>macOS</td>
+<td>A version supported by the Qt you use. An app made with the distribution script runs on macOS 26 or later by default (you can change this with <code>--deployment-target</code>)</td>
+</tr>
+<tr>
+<td>Xcode</td>
+<td>A version supported by the Qt you use (including the Command Line Tools)</td>
+</tr>
+<tr>
+<td>CMake</td>
+<td>3.16 or later</td>
+</tr>
+<tr>
+<td>Qt</td>
+<td>6.7 or later (Widgets, Charts, Network, Concurrent, Multimedia, Sql, LinguistTools)</td>
+</tr>
+<tr>
+<td>C++</td>
+<td>A compiler with C++17 support</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
 <section id="setup" class="level2">
-<h2>Requirements and setup</h2>
-<p>Install Xcode Command Line Tools, Git, CMake 3.16 or later, Ninja, Python 3, and a Qt 6.7 or later macOS SDK. The packaging script also needs <code>macdeployqt</code>, <code>codesign</code>, <code>vtool</code>, and <code>create-dmg</code>.</p>
-<pre><code>xcode-select --install
-brew install cmake ninja create-dmg python</code></pre>
-<p>Install Qt with the Qt Online Installer, including Charts, Multimedia, and developer tools. ShogiBoardQ requires Widgets, Charts, Network, Concurrent, Multimedia, Sql, and LinguistTools; packaging also needs the SVG and SQLite plugins. Homebrew Qt is an alternative when it provides all required modules, but its corresponding sources and any patches must match that build when distributing it.</p>
-<p>These examples use the official Qt 6.7.3 macOS SDK. Adjust the paths for your installation:</p>
-<pre><code>export CMAKE_PREFIX_PATH="$HOME/Qt/6.7.3/macos"
-export PATH="$HOME/Qt/6.7.3/macos/bin:$PATH"
-macdeployqt -help</code></pre>
+<h2>2. Setting up the development environment</h2>
+<section id="setup-xcode" class="level3">
+<h3>2.1 Xcode Command Line Tools</h3>
+<pre class="bash"><code>xcode-select --install</code></pre>
+</section>
+<section id="setup-homebrew" class="level3">
+<h3>2.2 Installing the required tools with Homebrew</h3>
+<pre class="bash"><code>brew install cmake ninja create-dmg</code></pre>
+<p>The distribution script uses <code>create-dmg</code> to create the DMG (you do not need it with <code>--skip-dmg</code>).</p>
+</section>
+<section id="setup-qt" class="level3">
+<h3>2.3 Installing Qt 6</h3>
+<section id="setup-qt-installer" class="level4">
+<h4>Method A: Qt Online Installer (recommended)</h4>
+<p>Download the installer from the <a href="https://www.qt.io/download-qt-installer">official Qt site</a> and select the following components:</p>
+<ul>
+<li>Qt 6.x &gt; macOS</li>
+<li>Qt 6.x &gt; Qt Charts</li>
+<li>Qt 6.x &gt; Qt Multimedia</li>
+<li>Developer and Designer Tools &gt; CMake</li>
+</ul>
+<p>After installing, set the Qt paths in environment variables:</p>
+<pre class="bash"><code># Add to ~/.zshrc (adjust the Qt installation path to your environment)
+export Qt6_DIR=&quot;$HOME/Qt/6.x.x/macos/lib/cmake/Qt6&quot;
+export PATH=&quot;$HOME/Qt/6.x.x/macos/bin:$PATH&quot;</code></pre>
+</section>
+<section id="setup-qt-homebrew" class="level4">
+<h4>Method B: Homebrew</h4>
+<pre class="bash"><code>brew install qt@6</code></pre>
+<p>With Homebrew, CMake finds Qt automatically, so in most cases no environment variables need to be set.</p>
+</section>
+</section>
+<section id="setup-check" class="level3">
+<h3>2.4 Checking the installation</h3>
+<pre class="bash"><code>cmake --version       # 3.16 or later
+qmake --version       # Qt 6.x
+clang++ --version     # Apple Clang</code></pre>
+</section>
 </section>
 <section id="build" class="level2">
-<h2>Get the source and build</h2>
-<p>Clone the repository with its Hayanagi submodule. An ordinary clone without submodules is incomplete.</p>
-<pre><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+<h2>3. Building</h2>
+<p>The Hayanagi engine for regular games is a submodule, so clone with <code>--recurse-submodules</code> (without it, CMake stops):</p>
+<pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
 cd ShogiBoardQ</code></pre>
 <blockquote>
-<p><strong>If you cloned the repository before its history was rewritten on 2026-11-09, do not run <code>git pull</code>.</strong> It stops with an error or produces a large number of conflicts. Clone again into a different folder with the command above. Before deleting the old folder, move any unpushed commits and local settings. To see which history a clone has, run <code>git log -1 --format=%h 2026.11.04</code>. Output starting with <code>376e4362</code>, or an error that <code>2026.11.04</code> cannot be found, means the old history, and <code>aa9bcc4b</code> means the new one. To keep your build folder, you can instead run <code>git fetch origin --tags --force</code> and then <code>git reset --hard origin/main</code>. This discards uncommitted changes and unpushed commits.</p>
+<p><strong>If you cloned the repository before its history was rewritten on 2026-11-09, do not run <code>git pull</code>.</strong> It stops with an error or produces a large number of conflicts. Clone again into a different folder with the command above. Before deleting the old folder, move any unpushed commits and local settings. To see which history a clone has, run <code>git log -1 --format=%h 2026.11.04</code>. Output starting with <code>376e4362</code>, or an error that <code>2026.11.04</code> cannot be found, means the old history, and output starting with <code>aa9bcc4b</code> means the new one. To keep your build folder, you can instead run <code>git fetch origin --tags --force</code> and then <code>git reset --hard origin/main</code>. This discards uncommitted changes and unpushed commits.</p>
 </blockquote>
-<p>For an existing checkout, initialize the recorded submodule version with <code>git submodule update --init --recursive</code>.</p>
-<pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
-open build/ShogiBoardQ.app</code></pre>
-<p>For a universal binary, both Qt and the other libraries must provide arm64 and x86_64. The packaging script accepts <code>--universal</code> to build both architectures.</p>
-<p>Choose a deployment target compatible with your SDK and Qt build. The script accepts <code>--deployment-target VERSION</code>, otherwise uses <code>MACOSX_DEPLOYMENT_TARGET</code>, and currently defaults to 26.0 if neither is set. Lowering that value alone does not make dependencies built for a newer macOS compatible with older systems.</p>
-<p>To enable and run the test suite:</p>
-<pre><code>cmake -B build -S . -DBUILD_TESTING=ON
-cmake --build build --parallel
+<p>In an existing checkout, run <code>git submodule update --init --recursive</code> to fetch the recorded Hayanagi version.</p>
+<section id="build-script" class="level3">
+<h3>Build script (recommended)</h3>
+<p><code>scripts/build-macos.sh</code> runs everything from the Release build through code signing and DMG creation in one go:</p>
+<pre class="bash"><code># Normal build + DMG creation
+./scripts/build-macos.sh
+
+# Build as a Universal Binary (arm64 + x86_64)
+./scripts/build-macos.sh --universal
+
+# Clean build, no DMG
+./scripts/build-macos.sh --clean --skip-dmg
+
+# Test DMG when the Qt license documents are not prepared (not for distribution)
+./scripts/build-macos.sh --clean --skip-qt-licenses
+
+# Sign with a Developer ID (the default is ad hoc signing)
+./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot;
+
+# Sign with a Developer ID, notarize the DMG, and then create the ZIP
+export APPLE_ID=&quot;your@email.com&quot; APPLE_TEAM_ID=&quot;TEAMID&quot; APPLE_APP_PASSWORD=&quot;app-specific-password&quot;
+./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot; --notarize</code></pre>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--universal</code></td>
+<td>Build a Universal Binary (arm64 + x86_64)</td>
+</tr>
+<tr>
+<td><code>--deployment-target VER</code></td>
+<td>Minimum supported macOS version (default: the <code>MACOSX_DEPLOYMENT_TARGET</code> environment variable, or <code>26.0</code> if it is not set)</td>
+</tr>
+<tr>
+<td><code>--sign-identity ID</code></td>
+<td>Code signing identity (default: <code>-</code> = ad hoc signing). With a Developer ID, the script signs with Hardened Runtime and a timestamp, and also signs the DMG</td>
+</tr>
+<tr>
+<td><code>--notarize</code></td>
+<td>Submit the DMG to Apple for notarization, staple the result, and then create the distribution ZIP. Pass a Developer ID with <code>--sign-identity</code> and set the environment variables <code>APPLE_ID</code>, <code>APPLE_TEAM_ID</code>, and <code>APPLE_APP_PASSWORD</code> (an app-specific password)</td>
+</tr>
+<tr>
+<td><code>--skip-dmg</code></td>
+<td>Skip creating the DMG and the distribution ZIP (produce only the .app bundle)</td>
+</tr>
+<tr>
+<td><code>--skip-qt-licenses</code></td>
+<td>Skip adding the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt documents</a> and keep only the short documents bundled by the build (<code>Contents/MacOS/licenses</code>). Do not use it for distribution</td>
+</tr>
+<tr>
+<td><code>--clean</code></td>
+<td>Delete the build directory before building</td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>Show help</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The script performs these steps automatically:</p>
+<ol type="1">
+<li>Check that the required tools exist (cmake, ninja, macdeployqt, codesign, vtool, python3, create-dmg)</li>
+<li>Configure CMake (with <code>CMAKE_OSX_DEPLOYMENT_TARGET</code>) and build with Ninja</li>
+<li>Check the build outputs (the .app, the minimum macOS version of the executable, and the .qm translation files)</li>
+<li>Bundle the frameworks with macdeployqt</li>
+<li>Remove unused Qt parts and thin the Qt binaries to arm64 (<a href="#bundle-prune">4.4</a>; not thinned with <code>--universal</code>), then verify</li>
+<li>Add the Qt license documents (skipped with <code>--skip-qt-licenses</code>)</li>
+<li>Sign the whole bundle and verify it with <code>codesign --verify --deep --strict</code></li>
+<li>Create the DMG with create-dmg (with a Developer ID, the DMG is signed as well)</li>
+<li>With <code>--notarize</code>, notarize and staple the DMG, then verify</li>
+<li>Create the distribution ZIP (<code>ShogiBoardQ-macos.zip</code>) containing the DMG, Hayanagi, and the tsume shogi collections (<a href="#dmg-zip">5.2</a>)</li>
+</ol>
+<blockquote>
+<p><strong>About the minimum macOS version:</strong> if no deployment target is given, the macOS version of the build host becomes the minimum supported version (for example, an app built on macOS 27 does not start on macOS 26). The script passes <code>26.0</code> by default and stops if the <code>minos</code> of the built executable does not match.</p>
+<p><strong>About code signing:</strong> macdeployqt rewrites the binaries, so the bundle is left with only linker signatures afterwards and does not pass strict signature verification. The script re-signs the whole bundle after macdeployqt and then creates the DMG.</p>
+<p><strong>About the ERROR messages from macdeployqt:</strong> it prints <code>.qm: is not an object file</code> (otool was run on a translation file), messages that dependencies of the ODBC / PostgreSQL / Mimer SQL drivers cannot be found, and a signing error from macdeployqt itself. All of them are harmless. Those drivers are removed in the next step, and the script redoes the signing and verifies it strictly.</p>
+</blockquote>
+<p>The sections below describe how to run the individual commands by hand.</p>
+</section>
+<section id="build-release" class="level3">
+<h3>3.1 Release build</h3>
+<pre class="bash"><code>cd /path/to/ShogiBoardQ
+
+# Configure (Release build)
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+
+# Build (in parallel)
+cmake --build build --config Release -- -j$(sysctl -n hw.ncpu)</code></pre>
+<p>With Ninja (faster):</p>
+<pre class="bash"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+ninja -C build</code></pre>
+<p>To run the tests:</p>
+<pre class="bash"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+ninja -C build
 ctest --test-dir build --output-on-failure</code></pre>
-<h3 id="build-p2p">Building with P2P games (experimental)</h3>
-<p><a href="p2p-game.html">P2P games</a> (<code>ENABLE_P2P_PLAY</code>, off by default) are not part of the distributed package, and <code>scripts/build-macos.sh</code> does not enable them. To try them, install Rust (1.85 or later; cargo builds the communication process <code>shogiboardq-peer</code>) and libsodium (1.0.18 or later; found through pkg-config), then build:</p>
-<pre><code>brew install rust libsodium pkg-config
+</section>
+<section id="build-check" class="level3">
+<h3>3.2 Checking the build outputs</h3>
+<pre class="bash"><code># Check that the .app bundle has been created
+ls -la build/ShogiBoardQ.app/
+
+# Check the structure inside the bundle
+find build/ShogiBoardQ.app -type f | head -20</code></pre>
+<p>Bundle structure after the build:</p>
+<pre><code>ShogiBoardQ.app/
+├── Contents/
+│   ├── Info.plist
+│   ├── MacOS/
+│   │   ├── ShogiBoardQ              ← executable
+│   │   ├── ShogiBoardQ_ja_JP.qm     ← Japanese translation
+│   │   ├── ShogiBoardQ_en.qm        ← English translation
+│   │   ├── ShogiBoardQ_zh_CN.qm     ← Chinese (Simplified) translation
+│   │   ├── ShogiBoardQ_zh_TW.qm     ← Chinese (Traditional) translation
+│   │   └── licenses/                ← license documents (short version)
+│   └── Resources/
+│       └── shogiboardq.icns          ← app icon</code></pre>
+</section>
+<section id="build-run" class="level3">
+<h3>3.3 Running the app</h3>
+<pre class="bash"><code># Start the built app
+open build/ShogiBoardQ.app</code></pre>
+</section>
+<section id="build-p2p" class="level3">
+<h3>3.4 Building with P2P games (experimental)</h3>
+<p><a href="p2p-game.html">P2P games</a> (<code>ENABLE_P2P_PLAY</code>, off by default) are not part of the distributed package (<code>scripts/build-macos.sh</code> does not enable them). To try them, prepare the following two items and build.</p>
+<ul>
+<li><strong>Rust</strong> (1.85 or later). cargo builds the communication process <code>shogiboardq-peer</code></li>
+<li><strong>libsodium</strong> (1.0.18 or later). It is found through pkg-config</li>
+</ul>
+<pre class="bash"><code>brew install rust libsodium pkg-config
 
 cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON \
     -DCMAKE_PREFIX_PATH=&quot;$HOME/Qt/6.x.x/macos&quot;
 ninja -C build
 ctest --test-dir build -R tst_p2p --output-on-failure
 cargo test --locked --workspace</code></pre>
-<p>The communication process is built inside the app bundle (<code>ShogiBoardQ.app/Contents/MacOS/shogiboardq-peer</code>) and the app starts it from there. These points differ from Linux and Windows:</p>
+<p>The communication process is built inside the app bundle (<code>ShogiBoardQ.app/Contents/MacOS/shogiboardq-peer</code>) and the app starts it from there. These points differ from Linux and Windows.</p>
 <ul>
-<li>The communication process puts itself into a sandbox (Seatbelt) right after it starts. Reading and writing files, starting programs, connecting to Unix domain sockets and similar operations are denied, and the denials appear in the Console app log (sender <code>Sandbox</code>).</li>
-<li>When the local network (same computer, same LAN) is not used, the app starts the process with <code>--no-loopback</code>, and the sandbox also blocks outgoing connections to this Mac itself.</li>
-<li>A debugger (lldb) cannot attach to the communication process.</li>
-<li>If <code>CMAKE_OSX_DEPLOYMENT_TARGET</code> is set, the communication process is built for the same minimum macOS version. Universal binaries are not supported; the process is built only for the architecture of the Mac that builds it.</li>
-<li>libsodium is linked as Homebrew's dynamic library (<code>/opt/homebrew/opt/libsodium</code>). To make a bundle that runs on another Mac, bundle it with macdeployqt.</li>
-<li>Storing the player key in the Keychain needs QtKeychain (optional; it must be built with the same Qt as the app. Homebrew's <code>qtkeychain</code> is built for Homebrew's Qt, so do not mix it with Qt from the Qt Online Installer). Without it, the key is kept in a file encrypted with a passphrase.</li>
-<li>A cooperating node (<code>shogiboardq-peer --service</code>) can also be run.</li>
+<li>The communication process puts itself into a sandbox (Seatbelt) right after it starts. Reading and writing files, starting programs, connecting to Unix domain sockets and similar operations are denied, and the denials appear in the Console app log (sender <code>Sandbox</code>)</li>
+<li>When the local network (same computer, same LAN) is not used, the app starts the process with <code>--no-loopback</code>, and the sandbox also blocks outgoing connections to this Mac itself</li>
+<li>A debugger (lldb) cannot attach to the communication process</li>
+<li>If <code>CMAKE_OSX_DEPLOYMENT_TARGET</code> is set, the communication process is built for the same minimum macOS version. Universal Binaries are not supported (the communication process is built only for the architecture of the Mac that builds it)</li>
+<li>libsodium is linked as Homebrew's dynamic library (<code>/opt/homebrew/opt/libsodium</code>). To make a bundle that can be taken to another Mac, bundle it with macdeployqt</li>
+<li>Storing the player key in the Keychain needs QtKeychain (optional; it must be built with the same Qt as the app. Homebrew's <code>qtkeychain</code> is built for Homebrew's Qt, so do not mix it with Qt from the Qt Online Installer). Without it, the key is kept in a file encrypted with a passphrase</li>
+<li>A cooperating node (<code>shogiboardq-peer --service</code>) can also be run</li>
 </ul>
 </section>
-<section id="qt-sources" class="level2">
-<h2>Prepare bundled Qt notices</h2>
-<p>A normal local CMake build does not download Qt sources. The distribution scripts additionally require prepared license documents for the exact Qt build they deploy. They include those documents and source information in the package and stop if validation fails.</p>
-<p>For the unmodified official Qt 6.7.3 SDK, run the following from the repository root. These commands use the version and SHA-256 recorded in the release workflow. For a different Qt build, use its matching full source archive, checksum, and provenance instead.</p>
-<pre><code>python3 scripts/qt_licenses.py fetch --version 6.7.3 --sha256 a3f1d257cbb14c6536585ffccf7c203ce7017418e1a0c2ed7c316c20c729c801 --output build/qt-sources
-python3 scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-sources/qt-everywhere-src-6.7.3.tar.xz --sha256 a3f1d257cbb14c6536585ffccf7c203ce7017418e1a0c2ed7c316c20c729c801 --source-url https://download.qt.io/archive/qt/6.7/6.7.3/single/qt-everywhere-src-6.7.3.tar.xz --provenance "Official Qt 6.7.3 SDK, unmodified; build scripts in source archive" --output build/qt-licenses</code></pre>
-<p>Download the Qt source archive locally to extract license notices; it is build input and is not a release attachment. The preparation command does not overwrite an existing output directory. A clean build deletes <code>build</code>; if using the script's clean option, prepare the sources and notices outside that directory and set <code>SHOGIBOARDQ_QT_LICENSE_DIR</code> to the notices directory.</p>
-<p>Attach only runnable product packages to a GitHub Release. Keep license texts and source acquisition information inside the application package. Record the Qt source URL and, for patched builds, the supplier’s patches and build instructions in <code>QT-SOURCE.json</code>. Do not attach Qt source archives or source/build metadata separately. The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt distribution notes (Japanese)</a> describe the packaging policy and source manifests.</p>
 </section>
-<section id="package" class="level2">
-<h2>Create a DMG package</h2>
-<p>After preparing the <a href="#qt-sources">Qt notices and source archive</a>, run:</p>
-<pre><code>./scripts/build-macos.sh</code></pre>
-<p>The script builds <code>build/ShogiBoardQ.app</code>, deploys Qt frameworks and plugins with <code>macdeployqt</code>, copies all four application translations (ja_JP, en, zh_CN, zh_TW) and license documents, signs the app, and creates <code>ShogiBoardQ.dmg</code> in the repository root. It checks the bundled SQLite plugin used for puzzle history.</p>
-<p>The DMG contains only the files needed to run ShogiBoardQ. Translations of the standard Qt dialogs are embedded in the executable. As in the Linux package, the Hayanagi USI engine for normal games and the tsume shogi collections are kept outside the DMG.</p>
-<p>After the DMG, the script creates <code>ShogiBoardQ-macos.zip</code> in the repository root. It contains a <code>ShogiBoardQ-macos</code> folder with <code>ShogiBoardQ.dmg</code>, <code>README.md</code> (from <code>resources/platform/README-macos.md</code>), <code>LICENSE</code>, <code>Hayanagi/hayanagi</code> with its opening book <code>Hayanagi/book/hayanagi_book.db</code> and its README, and the six collections (3- to 13-move mates) with their README in <code>data/tsumeshogi/</code>. The script stops if more than one collection exists for a mate length. It strips <code>hayanagi</code> and signs it again with the same identity as the app. The book is the copy the build places in <code>build/Hayanagi/book/</code>; Hayanagi reads it from <code>book/</code> in its working directory, and ShogiBoardQ starts each engine in the engine's own folder, so the book is used as extracted. Because downloaded files are quarantined, the README tells users to run <code>xattr -d com.apple.quarantine Hayanagi/hayanagi</code> before registering the engine.</p>
-<p>After <code>macdeployqt</code>, the script removes Qt parts the application does not use, then checks that every framework still referenced is present in the bundle:</p>
+<section id="bundle" class="level2">
+<h2>4. Creating the app bundle</h2>
+<blockquote>
+<p><strong>Note:</strong> if you use <code>scripts/build-macos.sh</code>, the steps in this chapter run automatically and you do not need to run them by hand.</p>
+</blockquote>
+<section id="bundle-macdeployqt" class="level3">
+<h3>4.1 Bundling the Qt frameworks with macdeployqt</h3>
+<p>A build alone does not put Qt's dynamic libraries into the bundle. Use <code>macdeployqt</code> to copy the required Qt frameworks and plugins into the bundle.</p>
+<pre class="bash"><code>macdeployqt build/ShogiBoardQ.app -verbose=2</code></pre>
+<p><code>macdeployqt</code> does the following automatically:</p>
+<ol type="1">
+<li>Copies the Qt frameworks the app depends on (QtWidgets, QtCharts, QtNetwork, QtMultimedia, QtGui, QtCore, and so on) to <code>Contents/Frameworks/</code></li>
+<li>Copies the Qt plugins (platforms/cocoa, imageformats/svg, and so on) to <code>Contents/PlugIns/</code></li>
+<li>Rewrites the <code>@rpath</code> of the libraries (<code>install_name_tool</code>)</li>
+<li>Generates <code>qt.conf</code> in <code>Contents/Resources/</code></li>
+</ol>
+</section>
+<section id="bundle-verify" class="level3">
+<h3>4.2 Checking the structure after bundling</h3>
+<pre class="bash"><code># Check that the frameworks are bundled correctly
+ls build/ShogiBoardQ.app/Contents/Frameworks/
+
+# Check that the plugins are included
+ls build/ShogiBoardQ.app/Contents/PlugIns/
+
+# Check that no external paths remain in the dependencies
+otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
+<p>If the <code>otool</code> output still shows paths under <code>/usr/local/</code> or <code>/opt/homebrew/</code>, the bundle is incomplete.</p>
+</section>
+<section id="bundle-translations" class="level3">
+<h3>4.3 Checking the translation files</h3>
+<p>A CMake post-build step places the <code>.qm</code> files in <code>Contents/MacOS/</code>. Check that the files are still there after running <code>macdeployqt</code>:</p>
+<pre class="bash"><code>ls build/ShogiBoardQ.app/Contents/MacOS/*.qm   # 4 files (ja_JP / en / zh_CN / zh_TW)</code></pre>
+<p>The translations of the standard Qt dialogs (<code>qtbase_ja</code> / <code>qtbase_zh_CN</code> / <code>qtbase_zh_TW</code>) are embedded in the executable's resources, so no separate files are needed.</p>
+</section>
+<section id="bundle-prune" class="level3">
+<h3>4.4 Removing unused Qt parts (minimal configuration)</h3>
+<p>macdeployqt deploys every Qt plugin of each kind and, through the virtual keyboard plugin, pulls in Qt Quick / QML as well (about 187 MB). Remove what ShogiBoardQ does not use and, for an Apple Silicon-only distribution, also strip the x86_64 part of Qt (about 89 MB; the DMG is about 50 MB).</p>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>What to remove</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PlugIns/platforminputcontexts/</code>, <code>QtQml*</code> / <code>QtQuick</code> / <code>QtVirtualKeyboard*</code></td>
+<td>The virtual keyboard and QML are not used</td>
+</tr>
+<tr>
+<td>Everything in <code>PlugIns/tls/</code> except SecureTransport, <code>PlugIns/networkinformation/</code></td>
+<td>The “TLS (encrypted)” connection in CSA network play uses the SecureTransport backend, which relies on the macOS Security framework (the OpenSSL backend would need libssl in the bundle). Network information is not used</td>
+</tr>
+<tr>
+<td><code>PlugIns/multimedia/libffmpegmediaplugin.dylib</code>, <code>libav*</code> / <code>libsw*</code></td>
+<td>Piece sounds are played with the native macOS darwin backend</td>
+</tr>
+<tr>
+<td>Everything in <code>PlugIns/sqldrivers/</code> except SQLite</td>
+<td>Only SQLite is used</td>
+</tr>
+<tr>
+<td>gif / wbmp / macheif / icns / tga / macjp2 in <code>PlugIns/imageformats/</code></td>
+<td>Only SVG / ICO (icons) and JPEG / TIFF / WebP (board image export) are used</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="bash"><code>C=build/ShogiBoardQ.app/Contents
+rm -rf $C/PlugIns/platforminputcontexts $C/PlugIns/networkinformation \
+  $C/PlugIns/multimedia/libffmpegmediaplugin.dylib $C/Frameworks/libav*.dylib $C/Frameworks/libsw*.dylib \
+  $C/Frameworks/QtQml*.framework $C/Frameworks/QtQuick.framework $C/Frameworks/QtVirtualKeyboard*.framework
+find $C/PlugIns/tls -name &#39;*.dylib&#39; ! -name libqsecuretransportbackend.dylib -delete
+find $C/PlugIns/sqldrivers -name &#39;*.dylib&#39; ! -name libqsqlite.dylib -delete
+for p in gif wbmp macheif icns tga macjp2; do rm -f $C/PlugIns/imageformats/libq$p.dylib; done
+
+# Thin Qt to arm64 only (do not do this when distributing a Universal Binary)
+find $C -type f \( -perm +111 -o -name &#39;*.dylib&#39; \) | while read -r f; do
+  if lipo -archs &quot;$f&quot; 2&gt;/dev/null | grep -q x86_64; then
+    lipo &quot;$f&quot; -thin arm64 -output &quot;$f.thin&quot; &amp;&amp; chmod &quot;$(stat -f %Lp &quot;$f&quot;)&quot; &quot;$f.thin&quot; &amp;&amp; mv &quot;$f.thin&quot; &quot;$f&quot;
+  fi
+done</code></pre>
+<p>What remains is 12 Qt frameworks (Charts, Concurrent, Core, DBus, Gui, Multimedia, Network, OpenGL, OpenGLWidgets, Sql, Svg, Widgets) and 10 plugins (cocoa, macstyle, svgicon, darwin multimedia, sqlite, securetransport, ico / jpeg / tiff / webp). After removing files, re-sign the whole bundle (<a href="#signing-manual">6.4</a>; for ad hoc signing, <code>codesign --force --deep --sign - build/ShogiBoardQ.app</code>).</p>
+<p>After starting the app, check that every loaded library comes from inside the bundle:</p>
+<pre class="bash"><code>open build/ShogiBoardQ.app
+lsof -p &quot;$(pgrep -x ShogiBoardQ)&quot; | grep -E &#39;/Qt/|homebrew&#39;   # should print nothing</code></pre>
+</section>
+</section>
+<section id="dmg" class="level2">
+<h2>5. Creating the DMG file</h2>
+<blockquote>
+<p><strong>Note:</strong> if you use <code>scripts/build-macos.sh</code>, the DMG is created automatically with Method B (create-dmg) and you do not need to run these steps by hand. The <code>--skip-dmg</code> option skips the creation of the DMG and the distribution ZIP (only the .app bundle is created).</p>
+<p>When creating the DMG by hand, also finish the removal and signing in <a href="#bundle-prune">4.4</a> before putting the app into the DMG. With Method A, macdeployqt creates the DMG directly, so the result is not the minimal configuration.</p>
+</blockquote>
+<section id="dmg-macdeployqt" class="level3">
+<h3>Method A: the -dmg option of macdeployqt (simple)</h3>
+<pre class="bash"><code>macdeployqt build/ShogiBoardQ.app -dmg</code></pre>
+<p>This creates <code>build/ShogiBoardQ.dmg</code>. It is simple, but the DMG has no background image and no link to the Applications folder.</p>
+</section>
+<section id="dmg-create-dmg" class="level3">
+<h3>Method B: create-dmg (recommended - custom DMG)</h3>
+<p>This creates a good-looking DMG from which users can drag and drop the app onto the Applications folder.</p>
+<section id="dmg-create-dmg-install" class="level4">
+<h4>Installation</h4>
+<pre class="bash"><code>brew install create-dmg</code></pre>
+</section>
+<section id="dmg-create-dmg-run" class="level4">
+<h4>Creating the DMG</h4>
+<pre class="bash"><code># Create the bundle with macdeployqt (without -dmg)
+macdeployqt build/ShogiBoardQ.app
+
+# Create the DMG
+create-dmg \
+  --volname &quot;ShogiBoardQ&quot; \
+  --volicon &quot;resources/icons/shogiboardq.icns&quot; \
+  --window-pos 200 120 \
+  --window-size 600 400 \
+  --icon-size 100 \
+  --icon &quot;ShogiBoardQ.app&quot; 150 190 \
+  --hide-extension &quot;ShogiBoardQ.app&quot; \
+  --app-drop-link 450 190 \
+  &quot;ShogiBoardQ.dmg&quot; \
+  &quot;build/ShogiBoardQ.app&quot;</code></pre>
+</section>
+<section id="dmg-create-dmg-options" class="level4">
+<h4>Options</h4>
+<div class="table-scroll">
+<table class="info-table info-table--labels">
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--volname</code></td>
+<td>Volume name when mounted</td>
+</tr>
+<tr>
+<td><code>--volicon</code></td>
+<td>Volume icon</td>
+</tr>
+<tr>
+<td><code>--window-pos</code></td>
+<td>Position of the DMG window (x y)</td>
+</tr>
+<tr>
+<td><code>--window-size</code></td>
+<td>Size of the DMG window (width height)</td>
+</tr>
+<tr>
+<td><code>--icon-size</code></td>
+<td>Icon size (px)</td>
+</tr>
+<tr>
+<td><code>--icon</code></td>
+<td>Position of the app icon (name x y)</td>
+</tr>
+<tr>
+<td><code>--hide-extension</code></td>
+<td>Hide the .app extension</td>
+</tr>
+<tr>
+<td><code>--app-drop-link</code></td>
+<td>Position of the link to the Applications folder (x y)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="dmg-hdiutil" class="level3">
+<h3>Method C: hdiutil (manual - full control)</h3>
+<pre class="bash"><code># Create a temporary directory
+mkdir -p dmg_staging
+cp -R build/ShogiBoardQ.app dmg_staging/
+ln -s /Applications dmg_staging/Applications
+
+# Create the DMG
+hdiutil create -volname &quot;ShogiBoardQ&quot; \
+  -srcfolder dmg_staging \
+  -ov -format UDZO \
+  &quot;ShogiBoardQ.dmg&quot;
+
+# Clean up
+rm -rf dmg_staging</code></pre>
+</section>
+<section id="dmg-verify" class="level3">
+<h3>5.1 Verifying the DMG</h3>
+<pre class="bash"><code># Mount it and check that the app runs
+hdiutil attach ShogiBoardQ.dmg
+open /Volumes/ShogiBoardQ/ShogiBoardQ.app
+
+# Unmount
+hdiutil detach /Volumes/ShogiBoardQ</code></pre>
+</section>
+<section id="dmg-zip" class="level3">
+<h3>5.2 Distribution ZIP</h3>
+<p>After the DMG, the script creates <code>ShogiBoardQ-macos.zip</code> in the repository root. Its layout follows the Linux ZIP.</p>
+<pre><code>ShogiBoardQ-macos/
+├── ShogiBoardQ.dmg
+├── README.md                      ← resources/platform/README-macos.md
+├── LICENSE
+├── Hayanagi/
+│   ├── hayanagi                   ← USI engine for regular games (arm64; same minimum macOS as the app)
+│   ├── book/hayanagi_book.db      ← Hayanagi opening book
+│   └── README.md
+└── data/tsumeshogi/
+    ├── tsume_{3,5,7,9,11,13}ply_1000_YYYYMMDD.txt
+    └── README.md</code></pre>
 <ul>
-<li>Virtual keyboard, QML, and Qt Quick (<code>platforminputcontexts</code>, <code>QtQml*</code>, <code>QtQuick</code>, <code>QtVirtualKeyboard*</code>)</li>
-<li>TLS backends other than SecureTransport, and the network information plugin. The “TLS (encrypted)” connection for CSA play uses the SecureTransport backend, which relies on the macOS Security framework; the OpenSSL backend would need libssl in the bundle</li>
-<li>The FFmpeg multimedia backend and its <code>libav*</code> / <code>libsw*</code> libraries (piece sounds use the native darwin backend)</li>
-<li>SQL drivers other than SQLite</li>
-<li>Image format plugins other than SVG and ICO (icons) and JPEG, TIFF, and WebP (board image export)</li>
+<li>There must be exactly one collection file per move count. The script stops if an older version or the like remains.</li>
+<li><code>hayanagi</code> is <code>build/Hayanagi/hayanagi</code> after <code>strip -x</code>, signed again with the same identity as the app (ad hoc by default).</li>
+<li>The opening book <code>hayanagi_book.db</code>, which the build copies to <code>build/Hayanagi/book/</code>, goes to <code>Hayanagi/book/</code>. Hayanagi reads the book from <code>book/</code> in its working directory, and ShogiBoardQ starts an engine with the engine's own directory as the working directory, so the book is used as extracted.</li>
+<li>A downloaded <code>hayanagi</code> carries the quarantine attribute, so the README tells users to run <code>xattr -d com.apple.quarantine Hayanagi/hayanagi</code>.</li>
 </ul>
-<p>Unless <code>--universal</code> is given, it also strips the x86_64 slices from Qt, so the app is arm64 only. This reduces the bundle from about 187 MB to about 89 MB and the DMG to about 50 MB. Expect harmless <code>macdeployqt</code> errors about <code>.qm</code> files not being object files, missing ODBC, PostgreSQL, or Mimer driver dependencies, and its own signing step; the script removes those drivers, re-signs the bundle, and verifies it strictly.</p>
-<p>Use <code>--skip-dmg</code> to produce only the deployed app bundle without the DMG and ZIP, <code>--universal</code> for both CPU architectures, or <code>--help</code> for all options. Preparing a deployed app still requires the <a href="#qt-sources">Qt notices</a>. For a test DMG without them, <code>--skip-qt-licenses</code> keeps only the short license documents bundled by the build in <code>Contents/MacOS/licenses</code>; do not use it for a release.</p>
-<p>Mount the DMG, copy the app to Applications, and test it on a machine without the Qt SDK. Check language switching, pieces, sound, board image export, and saving tsume puzzle progress. For a universal release, test both architectures. To confirm that nothing loads from the Qt SDK or Homebrew, run <code>lsof -p "$(pgrep -x ShogiBoardQ)" | grep -E '/Qt/|homebrew'</code> while the app is running; it should print nothing.</p>
+<pre class="bash"><code>unzip -l ShogiBoardQ-macos.zip
+# Hayanagi answers and reads the book (started in Hayanagi/, as ShogiBoardQ does)
+(cd build/ShogiBoardQ-macos/Hayanagi &amp;&amp; (printf &#39;usi\nisready\nposition startpos\ngo movetime 300\n&#39;; sleep 1.5; echo quit) | ./hayanagi | grep -E &#39;book|usiok|readyok|bestmove&#39;)</code></pre>
+</section>
 </section>
 <section id="signing" class="level2">
-<h2>Code signing and notarization</h2>
-<p>The script uses ad hoc signing by default. A Developer ID release requires the <a href="https://developer.apple.com/programs/">Apple Developer Program</a>. Import your Developer ID Application certificate into the keychain and pass its identity to the script. To notarize as well, set your Apple Account email, team ID, and an <a href="https://appleid.apple.com/account/manage">app-specific password</a> (not your Apple Account password) in the environment and add <code>--notarize</code>:</p>
-<pre><code>export APPLE_ID="your@email.com" APPLE_TEAM_ID="TEAMID" APPLE_APP_PASSWORD="app-specific-password"
-./scripts/build-macos.sh --sign-identity "Developer ID Application: Your Name (TEAMID)" --notarize</code></pre>
-<p>A Developer ID signs the app and <code>Hayanagi/hayanagi</code> with Hardened Runtime and a secure timestamp, and also signs the DMG. With <code>--notarize</code>, the script submits the DMG with <code>xcrun notarytool</code>, staples the ticket, and only then creates <code>ShogiBoardQ-macos.zip</code>, so the ZIP contains the stapled DMG. If Apple rejects the submission, the script prints the submission ID and stops; run <code>xcrun notarytool log</code> with that ID and the same credentials to see why. Confirm that notarization succeeded and test the final downloaded package before publishing a signed release.</p>
-<p>The <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release workflow</a> does the same when its signing secrets are configured: it imports the certificate before the build, passes the identity to the script, and adds <code>--notarize</code> when the notarization secrets are also set.</p>
-<p>Without notarization, Gatekeeper blocks the downloaded app the first time it is opened. Since macOS 15, Control-clicking the app and choosing Open no longer bypasses this. Tell users to try opening the app, close the warning, then open System Settings &gt; Privacy &amp; Security and click Open Anyway. If Open Anyway does not appear, they can remove the quarantine attribute in Terminal with <code>xattr -cr /Applications/ShogiBoardQ.app</code>.</p>
+<h2>6. Code signing and notarization</h2>
+<p>For distribution, code signing and notarization are required to pass Apple's Gatekeeper. The app also works without notarization, but the first time a downloaded app is opened, a Gatekeeper warning appears and the user has to allow it (<a href="#signing-unnotarized">6.6</a>).</p>
+<section id="signing-program" class="level3">
+<h3>6.1 Joining the Apple Developer Program</h3>
+<p>Code signing and notarization require membership in the <a href="https://developer.apple.com/programs/">Apple Developer Program</a> ($99 per year).</p>
+</section>
+<section id="signing-cert" class="level3">
+<h3>6.2 Getting the signing certificates</h3>
+<p>Create the following certificates from Xcode &gt; Settings &gt; Accounts:</p>
+<ul>
+<li><strong>Developer ID Application</strong> — for signing the app itself</li>
+<li><strong>Developer ID Installer</strong> — for signing a pkg (optional; a DMG is signed with Developer ID Application)</li>
+</ul>
+</section>
+<section id="signing-macdeployqt" class="level3">
+<h3>6.3 Creating a signed bundle with macdeployqt</h3>
+<pre class="bash"><code>macdeployqt build/ShogiBoardQ.app \
+  -sign-for-notarization=&quot;Developer ID Application: Your Name (TEAMID)&quot;</code></pre>
+<p>With this option, <code>macdeployqt</code>:</p>
+<ol type="1">
+<li>Bundles the Qt frameworks and plugins</li>
+<li>Signs all frameworks, plugins, and the executable</li>
+<li>Enables <code>--options=runtime</code> (Hardened Runtime)</li>
+</ol>
+</section>
+<section id="signing-manual" class="level3">
+<h3>6.4 Signing by hand</h3>
+<p>If you do not use the signing option of <code>macdeployqt</code>:</p>
+<pre class="bash"><code># Sign all binaries in the bundle recursively
+codesign --deep --force --verify --verbose \
+  --sign &quot;Developer ID Application: Your Name (TEAMID)&quot; \
+  --options runtime --timestamp \
+  build/ShogiBoardQ.app
+
+# Verify the signature
+codesign --verify --deep --strict --verbose=2 build/ShogiBoardQ.app</code></pre>
+<p>Notarization requires a signature with a timestamp (<code>--timestamp</code>) and Hardened Runtime (<code>--options runtime</code>).</p>
+</section>
+<section id="signing-notarize" class="level3">
+<h3>6.5 Notarization</h3>
+<p>With the script, pass a Developer ID to <code>--sign-identity</code> and add <code>--notarize</code>; the script submits the DMG for notarization, staples it, and then creates the distribution ZIP (<a href="#build-script">3. Building</a>). If notarization does not pass, the script prints the submission ID and stops. The steps below are for doing it by hand.</p>
+<pre class="bash"><code># Create the DMG (from the signed bundle)
+# ... (create the DMG with one of the methods in chapter 5)
+
+# Submit for notarization
+xcrun notarytool submit ShogiBoardQ.dmg \
+  --apple-id &quot;your@email.com&quot; \
+  --team-id &quot;TEAMID&quot; \
+  --password &quot;app-specific-password&quot; \
+  --wait
+
+# Staple (embed the notarization result in the DMG)
+xcrun stapler staple ShogiBoardQ.dmg
+
+# Verify the staple
+xcrun stapler validate ShogiBoardQ.dmg</code></pre>
+<blockquote>
+<p><strong>Note</strong>: for <code>--password</code>, use an <a href="https://appleid.apple.com/account/manage">app-specific password</a>, not your Apple ID password.</p>
+</blockquote>
+</section>
+<section id="signing-unnotarized" class="level3">
+<h3>6.6 Distributing without notarization</h3>
+<p>Without notarization, Gatekeeper blocks the downloaded app the first time it is opened. Since macOS 15, Control-clicking (right-clicking) the app in Finder and choosing Open no longer opens it, so give users the following steps:</p>
+<ol type="1">
+<li>Open the app, and close the warning when it appears</li>
+<li>Open System Settings &gt; Privacy &amp; Security, click Open Anyway, and follow the prompts to allow the app</li>
+</ol>
+<p>Alternatively, remove the Gatekeeper quarantine attribute in Terminal (use this method too if Open Anyway does not appear):</p>
+<pre class="bash"><code>xattr -cr /Applications/ShogiBoardQ.app</code></pre>
+</section>
 </section>
 <section id="release" class="level2">
-<h2>Publish on GitHub Releases</h2>
-<p>The release version is the release date (<code>YYYY.MM.DD</code>, for example <code>2026.10.07</code>). Update <code>APP_VERSION</code> in <code>CMakeLists.txt</code> only on the day of a release: commit the change before building the packages, build them from that commit, and tag that commit with the same version, without a leading <code>v</code>. Use the version in the release name as well. For a second release on the same day, add a fourth number, as in <code>2026.10.07.1</code>. See <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/versioning.md">Versioning and releases (Japanese)</a>.</p>
-<p>Releases are created by hand. Build the package with the script, test it, and attach only <code>ShogiBoardQ-macos.zip</code>; the other platforms add <code>ShogiBoardQ-linux.zip</code> and <code>ShogiBoardQ-windows.zip</code> to the same release. Select the package by its exact filename instead of uploading the entire working directory. License documents remain inside the application package; Qt sources and build metadata are not release attachments.</p>
-<pre><code>git tag -a 2026.10.07 -m "ShogiBoardQ 2026.10.07"
-git push origin main 2026.10.07
-gh release create 2026.10.07 \
-  --title "ShogiBoardQ 2026.10.07" \
-  --notes-file RELEASE_NOTES.md \
-  ShogiBoardQ-macos.zip
+<h2>7. Publishing on GitHub Releases</h2>
+<section id="release-tag" class="level3">
+<h3>7.1 Creating the tag</h3>
+<p>Update the version only on the day of a release, to that date (<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/versioning.md">Versioning and releases (Japanese)</a>). Before building the packages, change <code>APP_VERSION</code> in <code>CMakeLists.txt</code> and commit it, build the packages from that commit, and then tag the same commit with the same version. Do not put a <code>v</code> in front of the tag.</p>
+<pre class="bash"><code>git tag -a 2026.10.07 -m &quot;ShogiBoardQ 2026.10.07&quot;
+git push origin main 2026.10.07</code></pre>
+</section>
+<section id="release-gh" class="level3">
+<h3>7.2 Creating the release with GitHub CLI</h3>
+<p>Use <a href="https://cli.github.com/">GitHub CLI (gh)</a>:</p>
+<pre class="bash"><code># Install
+brew install gh
 
-# If the release already exists (for example, created from Windows)
-gh release upload 2026.10.07 ShogiBoardQ-macos.zip</code></pre>
-<p>The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release.yml</a> builds all three operating systems for tags beginning with <code>v</code> or when run manually, so pushing a date tag does not start it. A manual run attaches the packages to a release only when Publish is turned on; by default it only builds and verifies them. Its macOS job attaches the same <code>ShogiBoardQ-macos.zip</code> that the script builds. Releases are still created by hand because the workflow's Linux job cannot create the Linux package yet (see the <a href="linux-build-and-release.html">Linux build guide</a>).</p>
+# Log in (first time only)
+gh auth login</code></pre>
+<p>Create the release and upload the asset:</p>
+<pre class="bash"><code>gh release create 2026.10.07 \
+  --title &quot;ShogiBoardQ 2026.10.07&quot; \
+  --notes-file RELEASE_NOTES.md \
+  ShogiBoardQ-macos.zip</code></pre>
+<blockquote>
+<p>To publish the Windows ZIP at the same time, add it as another asset:</p>
+<pre class="bash"><code>gh release create 2026.10.07 \
+  --title &quot;ShogiBoardQ 2026.10.07&quot; \
+  --notes-file RELEASE_NOTES.md \
+  ShogiBoardQ-macos.zip \
+  ShogiBoardQ-windows.zip</code></pre>
+</blockquote>
+<section id="release-notes-auto" class="level4">
+<h4>Generating the release notes automatically</h4>
+<p>If you do not prepare a release notes file, GitHub generates the notes:</p>
+<pre class="bash"><code>gh release create 2026.10.07 \
+  --title &quot;ShogiBoardQ 2026.10.07&quot; \
+  --generate-notes \
+  ShogiBoardQ-macos.zip</code></pre>
+</section>
+<section id="release-upload" class="level4">
+<h4>Adding an asset to an existing release</h4>
+<p>If the release has already been created on the Windows side, add the macOS ZIP:</p>
+<pre class="bash"><code>gh release upload 2026.10.07 ShogiBoardQ-macos.zip</code></pre>
+</section>
+</section>
+<section id="release-web" class="level3">
+<h3>7.3 Creating the release from the web UI (alternative)</h3>
+<ol type="1">
+<li>GitHub repository → <strong>Releases</strong> → <strong>Draft a new release</strong></li>
+<li><strong>Choose a tag</strong> → type a new tag (for example <code>2026.10.07</code>) and create it</li>
+<li>Enter the <strong>Release title</strong> (for example <code>ShogiBoardQ 2026.10.07</code>)</li>
+<li>Write the release notes in <strong>Description</strong></li>
+<li>Drag and drop <code>ShogiBoardQ-macos.zip</code> onto <strong>Attach binaries</strong></li>
+<li>Click <strong>Publish release</strong></li>
+</ol>
+</section>
+<section id="release-notes" class="level3">
+<h3>7.4 Writing the release notes (template)</h3>
+<pre class="markdown"><code>## ShogiBoardQ 2026.10.07
+
+### Downloads
+
+| OS | File |
+|---|---|
+| macOS | `ShogiBoardQ-macos.zip` |
+| Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+| Linux | `ShogiBoardQ-linux.zip` |
+
+### Running on macOS
+
+1. Extract the ZIP and open `ShogiBoardQ.dmg`
+2. Drag and drop ShogiBoardQ.app onto the Applications folder
+3. Start it from Applications
+
+&gt; The app is not notarized by Apple, so a warning appears the first time and it does not open.
+&gt; Click Open Anyway in System Settings &gt; Privacy &amp; Security to start it.
+
+### Changes
+
+- ...</code></pre>
+</section>
 </section>
 <section id="troubleshooting" class="level2">
-<h2>Troubleshooting</h2>
+<h2>8. Troubleshooting</h2>
+<section id="trouble-qt" class="level3">
+<h3>Qt is not found</h3>
+<pre><code>CMake Error: Could not find a package configuration file provided by &quot;Qt6&quot;</code></pre>
+<p>Pass the Qt installation path explicitly:</p>
+<pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH=&quot;$HOME/Qt/6.x.x/macos&quot;</code></pre>
+</section>
+<section id="trouble-macdeployqt" class="level3">
+<h3>macdeployqt is not found</h3>
+<pre class="bash"><code># Check the Qt installation path
+which macdeployqt
+
+# If it is not found, add it to PATH
+export PATH=&quot;$HOME/Qt/6.x.x/macos/bin:$PATH&quot;
+
+# With Homebrew
+export PATH=&quot;$(brew --prefix qt@6)/bin:$PATH&quot;</code></pre>
+</section>
+<section id="trouble-charts" class="level3">
+<h3>Qt Charts is not bundled by macdeployqt</h3>
+<p><code>macdeployqt</code> sometimes fails to detect Qt Charts automatically. In that case it has to be copied by hand:</p>
+<pre class="bash"><code># Check whether it is missing from the bundle
+otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ | grep Charts
+
+# Copy it by hand (if needed)
+cp -R &quot;$HOME/Qt/6.x.x/macos/lib/QtCharts.framework&quot; \
+  build/ShogiBoardQ.app/Contents/Frameworks/
+
+# Fix the reference path with install_name_tool
+install_name_tool -change \
+  @rpath/QtCharts.framework/Versions/A/QtCharts \
+  @executable_path/../Frameworks/QtCharts.framework/Versions/A/QtCharts \
+  build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
+</section>
+<section id="trouble-gatekeeper" class="level3">
+<h3>The app does not open the first time (without notarization)</h3>
+<p>Tell the users of the package to do one of the following:</p>
 <ul>
-<li><strong>Qt6Config.cmake or Qt Charts is missing:</strong> check the kit path and install all required modules. Use a fresh build directory after switching Qt kits.</li>
-<li><strong>Hayanagi source files are missing:</strong> run <code>git submodule update --init --recursive</code>.</li>
-<li><strong>macdeployqt is not found:</strong> add the Qt kit's <code>bin</code> directory to <code>PATH</code>. For missing <code>codesign</code> or <code>vtool</code>, check your Xcode tools setup.</li>
-<li><strong>A framework cannot load on another Mac:</strong> inspect the deployment log and app bundle. Test the deployed app from the DMG, not an app that relies on the developer SDK.</li>
-<li><strong>One architecture fails to link:</strong> verify that Qt and all dependencies contain both architectures before using <code>--universal</code>.</li>
-<li><strong>Puzzle history cannot be saved:</strong> check <code>Contents/PlugIns/sqldrivers/libqsqlite.dylib</code> in the app.</li>
-<li><strong>The script reports that a removed framework is still referenced:</strong> a new Qt version or feature now depends on it. Keep that framework in the pruning step of <code>scripts/build-macos.sh</code>.</li>
-<li><strong>Signing or notarization fails:</strong> inspect the identity, entitlements, and notarization log. Re-sign after modifying the app bundle.</li>
-<li><strong>Qt notice validation fails:</strong> prepare notices and sources matching the deployed Qt, including any package-manager patches.</li>
+<li>Click Open Anyway in System Settings &gt; Privacy &amp; Security (first time only; since macOS 15, Control-clicking (right-clicking) the app in Finder and choosing Open no longer opens it)</li>
+<li>Run <code>xattr -cr /Applications/ShogiBoardQ.app</code> in Terminal</li>
 </ul>
+</section>
+<section id="trouble-translations" class="level3">
+<h3>Translations are not loaded</h3>
+<p>Check that the <code>.qm</code> files exist in the bundle:</p>
+<pre class="bash"><code>find build/ShogiBoardQ.app -name &quot;*.qm&quot;</code></pre>
+<p>If there are no <code>.qm</code> files in <code>Contents/MacOS/</code>, copy them by hand:</p>
+<pre class="bash"><code>cp build/ShogiBoardQ_{ja_JP,en,zh_CN,zh_TW}.qm build/ShogiBoardQ.app/Contents/MacOS/</code></pre>
+</section>
+<section id="trouble-universal" class="level3">
+<h3>Creating a Universal Binary (Intel + Apple Silicon)</h3>
+<p>With the distribution script, you can build one with <code>./scripts/build-macos.sh --universal</code> (the Qt binaries are not thinned to arm64 (<a href="#bundle-prune">4.4</a>)).</p>
+<p>To create a binary that supports both architectures:</p>
+<pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_OSX_ARCHITECTURES=&quot;arm64;x86_64&quot;
+
+cmake --build build --config Release</code></pre>
+<blockquote>
+<p><strong>Note</strong>: the installed Qt itself must also be a Universal Binary build.</p>
+</blockquote>
+</section>
 </section>
 </article>
 </div>

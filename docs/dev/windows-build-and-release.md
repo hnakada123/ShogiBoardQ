@@ -30,7 +30,7 @@ Release の添付は実行用 ZIP と、同じファイルを包んだインス�
 | Windows | 10 / 11（64-bit） |
 | Visual Studio | 2019 または 2022（C++ デスクトップ開発ワークロード） |
 | CMake | 3.16 以上 |
-| Qt | 6.x（Widgets, Charts, Network, Multimedia, LinguistTools） |
+| Qt | 6.7 以上（Widgets, Charts, Network, Concurrent, Multimedia, Sql, LinguistTools） |
 | C++ | C++17 対応コンパイラ（MSVC 2019 以降） |
 
 ---
@@ -62,17 +62,17 @@ Release の添付は実行用 ZIP と、同じファイルを包んだインス�
 インストール後、Qt のパスを環境変数に設定：
 
 ```powershell
-# システム環境変数に追加（Qt のインストールパスは環境に合わせて変更）
-# 例: C:\Qt\6.8.3\msvc2022_64
-[Environment]::SetEnvironmentVariable("Qt6_DIR", "C:\Qt\6.8.3\msvc2022_64\lib\cmake\Qt6", "User")
-[Environment]::SetEnvironmentVariable("PATH", "C:\Qt\6.8.3\msvc2022_64\bin;$env:PATH", "User")
+# ユーザー環境変数に追加（Qt のインストールパスは環境に合わせて変更）
+# 例: C:\Qt\6.12.0\msvc2022_64
+[Environment]::SetEnvironmentVariable("Qt6_DIR", "C:\Qt\6.12.0\msvc2022_64\lib\cmake\Qt6", "User")
+[Environment]::SetEnvironmentVariable("PATH", "C:\Qt\6.12.0\msvc2022_64\bin;$env:PATH", "User")
 ```
 
 #### 方法B: aqtinstall（CI/コマンドライン向け）
 
 ```powershell
 pip install aqtinstall
-aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 -m qtcharts
+aqt install-qt windows desktop 6.12.0 win64_msvc2022_64 -m qtcharts qtmultimedia
 ```
 
 ### 2.3 Ninja のインストール（推奨）
@@ -98,7 +98,16 @@ windeployqt --version # Qt デプロイツール
 
 ## 3. ビルド
 
-> **2026-11-09 の履歴の書き換えより前に clone したリポジトリでは、`git pull` をしない。** エラーで止まるか、大量のコンフリクトになる。`git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git` で別のフォルダに clone し直す。古いフォルダを消す前に、push していないコミットや手元の設定を移す。どちらのリポジトリかは `git log -1 --format=%h 2026.11.04` で確かめられる。`376e4362` で始まるか、`2026.11.04` が見つからないエラーになれば古いリポジトリ、`aa9bcc4b` で始まれば新しいリポジトリである。ビルドのフォルダを残すときは、`git fetch origin --tags --force` の後に `git reset --hard origin/main` を実行しても直せる。未コミットの変更と push していないコミットは消える。
+通常対局用の Hayanagi はサブモジュールなので、`--recurse-submodules` を付けて取得する（付けないと CMake が止まる）：
+
+```powershell
+git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ
+```
+
+> **2026-11-09 の履歴の書き換えより前に clone したリポジトリでは、`git pull` をしない。** エラーで止まるか、大量のコンフリクトになる。上のコマンドで別のフォルダに clone し直す。古いフォルダを消す前に、push していないコミットや手元の設定を移す。どちらのリポジトリかは `git log -1 --format=%h 2026.11.04` で確かめられる。`376e4362` で始まるか、`2026.11.04` が見つからないエラーになれば古いリポジトリ、`aa9bcc4b` で始まれば新しいリポジトリである。ビルドのフォルダを残すときは、`git fetch origin --tags --force` の後に `git reset --hard origin/main` を実行しても直せる。未コミットの変更と push していないコミットは消える。
+
+取得済みのリポジトリでは `git submodule update --init --recursive` で記録された版の Hayanagi を取得する。
 
 ### ビルドスクリプト（推奨）
 
@@ -172,6 +181,14 @@ cmake -B build -S .
 
 # Release ビルド
 cmake --build build --config Release
+```
+
+テストを実行する場合：
+
+```powershell
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+ninja -C build
+ctest --test-dir build --output-on-failure
 ```
 
 ### 3.2 ビルド成果物の確認
@@ -466,13 +483,13 @@ gh release create 2026.10.07 `
   ShogiBoardQ-windows.zip
 ```
 
-> macOS の DMG も同時に公開する場合は、アセットを追加：
+> macOS の ZIP も同時に公開する場合は、アセットを追加：
 > ```powershell
 > gh release create 2026.10.07 `
 >   --title "ShogiBoardQ 2026.10.07" `
 >   --notes-file RELEASE_NOTES.md `
 >   ShogiBoardQ-windows.zip `
->   ShogiBoardQ.dmg
+>   ShogiBoardQ-macos.zip
 > ```
 
 #### リリースノートの自動生成
@@ -505,7 +522,8 @@ gh release create 2026.10.07 `
 | OS | ファイル |
 |---|---|
 | Windows (64-bit) | `ShogiBoardQ-windows.zip` |
-| macOS | `ShogiBoardQ.dmg` |
+| macOS | `ShogiBoardQ-macos.zip` |
+| Linux | `ShogiBoardQ-linux.zip` |
 
 ### Windows での起動方法
 
@@ -543,8 +561,10 @@ gh release create 2026.10.07 `
 # Windows SDK に含まれる signtool を使用
 signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
   /f "certificate.pfx" /p "password" `
-  deploy\ShogiBoardQ.exe
+  deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe deploy\Hayanagi\hayanagi.exe
 ```
+
+署名は ZIP を作る前に行う。スクリプトを使うときは、`-SkipZip` で deploy フォルダまで作り、署名してから ZIP にする（[4.5](#45-zip-ファイルの作成) の手順）。
 
 ### 6.3 署名なしで配布する場合
 
@@ -568,26 +588,25 @@ Qt のインストールパスを明示的に指定する：
 
 ```powershell
 cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release `
-  -DCMAKE_PREFIX_PATH="C:\Qt\6.8.3\msvc2022_64"
+  -DCMAKE_PREFIX_PATH="C:\Qt\6.12.0\msvc2022_64"
 ```
 
 ### cl.exe が見つからない
 
 Developer PowerShell for VS 2022 を使用していない場合：
 
-```powershell
-# 手動で MSVC 環境をセットアップ
-# Visual Studio 2022 の場合
-& "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-```
+スタートメニューから **Developer PowerShell for VS 2022** を起動する。通常の PowerShell から `vcvarsall.bat` を呼んでも、設定された環境変数は PowerShell に残らない。今開いている PowerShell に MSVC の環境を入れるには、Visual Studio に含まれるスクリプトを実行する：
 
-または、スタートメニューから **Developer PowerShell for VS 2022** を起動する。
+```powershell
+# Visual Studio 2022 Community の場合
+& "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1" -Arch amd64 -SkipAutomaticLocation
+```
 
 ### windeployqt が見つからない
 
 ```powershell
 # Qt のインストールパスを確認し、PATH に追加
-$env:PATH = "C:\Qt\6.8.3\msvc2022_64\bin;$env:PATH"
+$env:PATH = "C:\Qt\6.12.0\msvc2022_64\bin;$env:PATH"
 
 # 確認
 windeployqt --version
@@ -611,16 +630,16 @@ windeployqt --version
    ```
 
 3. MSVC ランタイムが不足している場合：
-   - [Visual C++ 再頒布可能パッケージ](https://learn.microsoft.com/ja-jp/cpp/windows/latest-supported-vc-redist)をインストール
+   - [4.2.1](#421-msvc-ランタイム-dll-のコピー) の手順で MSVC ランタイム DLL を deploy にコピーし直す（同梱していれば、Visual C++ 再頒布可能パッケージのインストールは不要）
 
 ### Qt Charts の DLL がデプロイされない
 
 windeployqt が Qt Charts を検出できない場合、手動でコピー：
 
 ```powershell
-copy "C:\Qt\6.8.3\msvc2022_64\bin\Qt6Charts.dll" deploy\
-copy "C:\Qt\6.8.3\msvc2022_64\bin\Qt6OpenGL.dll" deploy\
-copy "C:\Qt\6.8.3\msvc2022_64\bin\Qt6OpenGLWidgets.dll" deploy\
+copy "C:\Qt\6.12.0\msvc2022_64\bin\Qt6Charts.dll" deploy\
+copy "C:\Qt\6.12.0\msvc2022_64\bin\Qt6OpenGL.dll" deploy\
+copy "C:\Qt\6.12.0\msvc2022_64\bin\Qt6OpenGLWidgets.dll" deploy\
 ```
 
 ### 翻訳が読み込まれない

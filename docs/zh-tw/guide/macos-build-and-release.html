@@ -91,8 +91,8 @@
 <tr><th>項目</th><th>版本</th></tr>
 </thead>
 <tbody>
-<tr><td>macOS</td><td>建議 12 (Monterey) 以上</td></tr>
-<tr><td>Xcode</td><td>14 以上（含 Command Line Tools）</td></tr>
+<tr><td>macOS</td><td>所用 Qt 支援的版本。以發行指令碼製作的應用程式，預設可在 macOS 26 以上執行（可用 <code>--deployment-target</code> 變更）</td></tr>
+<tr><td>Xcode</td><td>所用 Qt 支援的版本（含 Command Line Tools）</td></tr>
 <tr><td>CMake</td><td>3.16 以上</td></tr>
 <tr><td>Qt</td><td>6.7 以上（Widgets、Charts、Network、Concurrent、Multimedia、Sql、LinguistTools）</td></tr>
 <tr><td>C++</td><td>支援 C++17 的編譯器</td></tr>
@@ -108,7 +108,8 @@
 </section>
 <section id="setup-homebrew" class="level3">
 <h3>2.2 以 Homebrew 安裝相依工具</h3>
-<pre class="bash"><code>brew install cmake ninja</code></pre>
+<pre class="bash"><code>brew install cmake ninja create-dmg</code></pre>
+<p><code>create-dmg</code> 是發行指令碼製作 DMG 時使用的工具（使用 <code>--skip-dmg</code> 時不需要）。</p>
 </section>
 <section id="setup-qt" class="level3">
 <h3>2.3 安裝 Qt 6</h3>
@@ -218,6 +219,10 @@ cmake --build build --config Release -- -j$(sysctl -n hw.ncpu)</code></pre>
 <p>使用 Ninja 時（更快）：</p>
 <pre class="bash"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
 ninja -C build</code></pre>
+<p>執行測試時：</p>
+<pre class="bash"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+ninja -C build
+ctest --test-dir build --output-on-failure</code></pre>
 </section>
 <section id="build-check" class="level3">
 <h3>3.2 確認建置產物</h3>
@@ -346,7 +351,7 @@ lsof -p &quot;$(pgrep -x ShogiBoardQ)&quot; | grep -E &#39;/Qt/|homebrew&#39;   
 <section id="dmg" class="level2">
 <h2>5. 製作 DMG 檔案</h2>
 <blockquote>
-<p><strong>註：</strong>使用 <code>scripts/build-macos.sh</code> 時，會以方法 B（create-dmg）自動製作，不需要手動執行。也可以用 <code>--skip-dmg</code> 選項只略過 DMG 的製作。</p>
+<p><strong>註：</strong>使用 <code>scripts/build-macos.sh</code> 時，會以方法 B（create-dmg）自動製作，不需要手動執行。也可以用 <code>--skip-dmg</code> 選項略過 DMG 與發行用 ZIP 的製作（只產生 .app 套件）。</p>
 <p>手動製作時，也要在放入 DMG 之前完成 <a href="#bundle-prune">4.4</a> 的刪除與簽章。方法 A 由 macdeployqt 直接製作 DMG，因此不是最小組態。</p>
 </blockquote>
 <section id="dmg-macdeployqt" class="level3">
@@ -462,7 +467,7 @@ hdiutil detach /Volumes/ShogiBoardQ</code></pre>
 <p>在 Xcode &gt; Settings &gt; Accounts 中建立以下憑證：</p>
 <ul>
 <li><strong>Developer ID Application</strong> — 用於對應用程式本身簽章</li>
-<li><strong>Developer ID Installer</strong> — 用於對 DMG / pkg 簽章（選用）</li>
+<li><strong>Developer ID Installer</strong> — 用於對 pkg 簽章（選用。DMG 以 Developer ID Application 簽章）</li>
 </ul>
 </section>
 <section id="signing-macdeployqt" class="level3">
@@ -482,11 +487,12 @@ hdiutil detach /Volumes/ShogiBoardQ</code></pre>
 <pre class="bash"><code># 遞迴地對套件內的所有二進位檔簽章
 codesign --deep --force --verify --verbose \
   --sign &quot;Developer ID Application: Your Name (TEAMID)&quot; \
-  --options runtime \
+  --options runtime --timestamp \
   build/ShogiBoardQ.app
 
 # 驗證簽章
 codesign --verify --deep --strict --verbose=2 build/ShogiBoardQ.app</code></pre>
+<p>公證需要附時間戳記的簽章（<code>--timestamp</code>）與強化執行階段（Hardened Runtime，<code>--options runtime</code>）。</p>
 </section>
 <section id="signing-notarize" class="level3">
 <h3>6.5 公證（Notarization）</h3>
@@ -585,6 +591,7 @@ gh auth login</code></pre>
 |---|---|
 | macOS | `ShogiBoardQ-macos.zip` |
 | Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+| Linux | `ShogiBoardQ-linux.zip` |
 
 ### 在 macOS 上啟動
 
@@ -653,6 +660,7 @@ install_name_tool -change \
 </section>
 <section id="trouble-universal" class="level3">
 <h3>製作通用二進位檔（Intel + Apple 晶片）</h3>
+<p>使用發行指令碼時，可以用 <code>./scripts/build-macos.sh --universal</code> 建置（不會將 Qt 精簡為 arm64（<a href="#bundle-prune">4.4</a>））。</p>
 <p>製作同時支援兩種架構的二進位檔時：</p>
 <pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES=&quot;arm64;x86_64&quot;

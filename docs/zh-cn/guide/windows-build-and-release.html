@@ -93,7 +93,7 @@
 <tr><td>Windows</td><td>10 / 11（64 位）</td></tr>
 <tr><td>Visual Studio</td><td>2019 或 2022（“使用 C++ 的桌面开发”工作负载）</td></tr>
 <tr><td>CMake</td><td>3.16 以上</td></tr>
-<tr><td>Qt</td><td>6.x（Widgets、Charts、Network、Multimedia、LinguistTools）</td></tr>
+<tr><td>Qt</td><td>6.7 以上（Widgets、Charts、Network、Concurrent、Multimedia、Sql、LinguistTools）</td></tr>
 <tr><td>C++</td><td>支持 C++17 的编译器（MSVC 2019 以上）</td></tr>
 </tbody>
 </table>
@@ -126,14 +126,14 @@
 </ul>
 <p>安装后，将 Qt 的路径设置到环境变量中：</p>
 <pre class="powershell"><code># 添加到用户环境变量（Qt 的安装路径请根据实际环境修改）
-# 例：C:\Qt\6.8.3\msvc2022_64
-[Environment]::SetEnvironmentVariable(&quot;Qt6_DIR&quot;, &quot;C:\Qt\6.8.3\msvc2022_64\lib\cmake\Qt6&quot;, &quot;User&quot;)
-[Environment]::SetEnvironmentVariable(&quot;PATH&quot;, &quot;C:\Qt\6.8.3\msvc2022_64\bin;$env:PATH&quot;, &quot;User&quot;)</code></pre>
+# 例：C:\Qt\6.12.0\msvc2022_64
+[Environment]::SetEnvironmentVariable(&quot;Qt6_DIR&quot;, &quot;C:\Qt\6.12.0\msvc2022_64\lib\cmake\Qt6&quot;, &quot;User&quot;)
+[Environment]::SetEnvironmentVariable(&quot;PATH&quot;, &quot;C:\Qt\6.12.0\msvc2022_64\bin;$env:PATH&quot;, &quot;User&quot;)</code></pre>
 </section>
 <section id="setup-qt-aqt" class="level4">
 <h4>方法 B：aqtinstall（适用于 CI / 命令行）</h4>
 <pre class="powershell"><code>pip install aqtinstall
-aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 -m qtcharts</code></pre>
+aqt install-qt windows desktop 6.12.0 win64_msvc2022_64 -m qtcharts qtmultimedia</code></pre>
 </section>
 </section>
 <section id="setup-ninja" class="level3">
@@ -152,9 +152,13 @@ windeployqt --version # Qt 部署工具</code></pre>
 </section>
 <section id="build" class="level2">
 <h2>3. 构建</h2>
+<p>用于普通对局的 Hayanagi 是子模块，因此获取时要加上 <code>--recurse-submodules</code>（不加时 CMake 会停止）：</p>
+<pre class="powershell"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ</code></pre>
 <blockquote>
-<p><strong>如果在 2026-11-09 改写历史之前克隆了仓库，请不要运行 <code>git pull</code>。</strong>运行后会因错误而停止，或产生大量冲突。请用 <code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git</code> 重新克隆到另一个文件夹。删除旧文件夹之前，请先转移尚未推送的提交和本地设置。可以用 <code>git log -1 --format=%h 2026.11.04</code> 确认是哪种仓库。输出以 <code>376e4362</code> 开头，或提示找不到 <code>2026.11.04</code> 的错误时是旧仓库，以 <code>aa9bcc4b</code> 开头的是新仓库。如果想保留构建文件夹，也可以先运行 <code>git fetch origin --tags --force</code>，再运行 <code>git reset --hard origin/main</code> 来修复。未提交的更改和尚未推送的提交会丢失。</p>
+<p><strong>如果在 2026-11-09 改写历史之前克隆了仓库，请不要运行 <code>git pull</code>。</strong>运行后会因错误而停止，或产生大量冲突。请用上面的命令重新克隆到另一个文件夹。删除旧文件夹之前，请先转移尚未推送的提交和本地设置。可以用 <code>git log -1 --format=%h 2026.11.04</code> 确认是哪种仓库。输出以 <code>376e4362</code> 开头，或提示找不到 <code>2026.11.04</code> 的错误时是旧仓库，以 <code>aa9bcc4b</code> 开头的是新仓库。如果想保留构建文件夹，也可以先运行 <code>git fetch origin --tags --force</code>，再运行 <code>git reset --hard origin/main</code> 来修复。未提交的更改和尚未推送的提交会丢失。</p>
 </blockquote>
+<p>对于已获取的仓库，运行 <code>git submodule update --init --recursive</code> 获取所记录版本的 Hayanagi。</p>
 <section id="build-script" class="level3">
 <h3>构建脚本（推荐）</h3>
 <p>使用 <code>scripts/build-windows.ps1</code>，可以一次完成从 Release 构建到制作 ZIP 的全部步骤。</p>
@@ -221,6 +225,10 @@ cmake -B build -S .
 
 # Release 构建
 cmake --build build --config Release</code></pre>
+<p>运行测试时：</p>
+<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+ninja -C build
+ctest --test-dir build --output-on-failure</code></pre>
 </section>
 <section id="build-check" class="level3">
 <h3>3.2 确认构建产物</h3>
@@ -425,12 +433,12 @@ gh auth login</code></pre>
   --notes-file RELEASE_NOTES.md `
   ShogiBoardQ-windows.zip</code></pre>
 <blockquote>
-<p>同时发布 macOS 的 DMG 时，添加附件：</p>
+<p>同时发布 macOS 的 ZIP 时，添加附件：</p>
 <pre class="powershell"><code>gh release create 2026.10.07 `
   --title &quot;ShogiBoardQ 2026.10.07&quot; `
   --notes-file RELEASE_NOTES.md `
   ShogiBoardQ-windows.zip `
-  ShogiBoardQ.dmg</code></pre>
+  ShogiBoardQ-macos.zip</code></pre>
 </blockquote>
 <section id="release-notes-auto" class="level4">
 <h4>自动生成发布说明</h4>
@@ -461,7 +469,8 @@ gh auth login</code></pre>
 | OS | 文件 |
 |---|---|
 | Windows (64-bit) | `ShogiBoardQ-windows.zip` |
-| macOS | `ShogiBoardQ.dmg` |
+| macOS | `ShogiBoardQ-macos.zip` |
+| Linux | `ShogiBoardQ-linux.zip` |
 
 ### 在 Windows 上启动
 
@@ -495,7 +504,8 @@ gh auth login</code></pre>
 <pre class="powershell"><code># 使用 Windows SDK 中的 signtool
 signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
   /f &quot;certificate.pfx&quot; /p &quot;password&quot; `
-  deploy\ShogiBoardQ.exe</code></pre>
+  deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe deploy\Hayanagi\hayanagi.exe</code></pre>
+<p>签名要在制作 ZIP 之前进行。使用脚本时，先用 <code>-SkipZip</code> 生成到 deploy 文件夹为止，签名后再制作 ZIP（<a href="#package-zip">4.5</a> 的步骤）。</p>
 </section>
 <section id="signing-unsigned" class="level3">
 <h3>6.3 不签名发布时</h3>
@@ -514,20 +524,19 @@ signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
 <pre><code>CMake Error: Could not find a package configuration file provided by &quot;Qt6&quot;</code></pre>
 <p>明确指定 Qt 的安装路径：</p>
 <pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release `
-  -DCMAKE_PREFIX_PATH=&quot;C:\Qt\6.8.3\msvc2022_64&quot;</code></pre>
+  -DCMAKE_PREFIX_PATH=&quot;C:\Qt\6.12.0\msvc2022_64&quot;</code></pre>
 </section>
 <section id="trouble-cl" class="level3">
 <h3>找不到 cl.exe</h3>
 <p>没有使用 Developer PowerShell for VS 2022 时：</p>
-<pre class="powershell"><code># 手动设置 MSVC 环境
-# Visual Studio 2022 的情况
-&amp; &quot;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat&quot; x64</code></pre>
-<p>或者从开始菜单启动 <strong>Developer PowerShell for VS 2022</strong>。</p>
+<p>从开始菜单启动 <strong>Developer PowerShell for VS 2022</strong>。在普通的 PowerShell 中调用 <code>vcvarsall.bat</code>，所设置的环境变量也不会留在 PowerShell 中。要在当前打开的 PowerShell 中载入 MSVC 的环境，请运行 Visual Studio 附带的脚本：</p>
+<pre class="powershell"><code># Visual Studio 2022 Community 的情况
+&amp; &quot;C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Launch-VsDevShell.ps1&quot; -Arch amd64 -SkipAutomaticLocation</code></pre>
 </section>
 <section id="trouble-windeployqt" class="level3">
 <h3>找不到 windeployqt</h3>
 <pre class="powershell"><code># 确认 Qt 的安装路径，并添加到 PATH
-$env:PATH = &quot;C:\Qt\6.8.3\msvc2022_64\bin;$env:PATH&quot;
+$env:PATH = &quot;C:\Qt\6.12.0\msvc2022_64\bin;$env:PATH&quot;
 
 # 确认
 windeployqt --version</code></pre>
@@ -546,16 +555,16 @@ dir deploy\Qt6Network.dll
 dir deploy\platforms\qwindows.dll</code></pre></li>
 <li><p>缺少 MSVC 运行库时：</p>
 <ul>
-<li>安装 <a href="https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist">Visual C++ 可再发行组件包</a></li>
+<li>按 <a href="#package-runtime">4.2.1</a> 的步骤重新将 MSVC 运行库 DLL 复制到 deploy（已附带时，无需安装 Visual C++ 可再发行组件包）</li>
 </ul></li>
 </ol>
 </section>
 <section id="trouble-charts" class="level3">
 <h3>Qt Charts 的 DLL 没有被部署</h3>
 <p>windeployqt 无法检测到 Qt Charts 时，手动复制：</p>
-<pre class="powershell"><code>copy &quot;C:\Qt\6.8.3\msvc2022_64\bin\Qt6Charts.dll&quot; deploy\
-copy &quot;C:\Qt\6.8.3\msvc2022_64\bin\Qt6OpenGL.dll&quot; deploy\
-copy &quot;C:\Qt\6.8.3\msvc2022_64\bin\Qt6OpenGLWidgets.dll&quot; deploy\</code></pre>
+<pre class="powershell"><code>copy &quot;C:\Qt\6.12.0\msvc2022_64\bin\Qt6Charts.dll&quot; deploy\
+copy &quot;C:\Qt\6.12.0\msvc2022_64\bin\Qt6OpenGL.dll&quot; deploy\
+copy &quot;C:\Qt\6.12.0\msvc2022_64\bin\Qt6OpenGLWidgets.dll&quot; deploy\</code></pre>
 </section>
 <section id="trouble-translations" class="level3">
 <h3>无法加载翻译</h3>

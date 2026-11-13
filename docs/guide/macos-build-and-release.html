@@ -97,11 +97,11 @@
 <tbody>
 <tr>
 <td>macOS</td>
-<td>12 (Monterey) 以降推奨</td>
+<td>使う Qt が対応する版。配布スクリプトで作るアプリは、既定では macOS 26 以降で動く（<code>--deployment-target</code> で変えられる）</td>
 </tr>
 <tr>
 <td>Xcode</td>
-<td>14 以降（Command Line Tools 含む）</td>
+<td>使う Qt が対応する版（Command Line Tools 含む）</td>
 </tr>
 <tr>
 <td>CMake</td>
@@ -127,7 +127,8 @@
 </section>
 <section id="22-homebrew-で依存ツールをインストール" class="level3">
 <h3>2.2 Homebrew で依存ツールをインストール</h3>
-<pre class="bash"><code>brew install cmake ninja</code></pre>
+<pre class="bash"><code>brew install cmake ninja create-dmg</code></pre>
+<p><code>create-dmg</code> は、配布スクリプトが DMG を作るのに使う（<code>--skip-dmg</code> なら要らない）。</p>
 </section>
 <section id="23-qt-6-のインストール" class="level3">
 <h3>2.3 Qt 6 のインストール</h3>
@@ -264,6 +265,10 @@ cmake --build build --config Release -- -j$(sysctl -n hw.ncpu)</code></pre>
 <p>Ninja を使う場合（より高速）：</p>
 <pre class="bash"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
 ninja -C build</code></pre>
+<p>テストを実行する場合：</p>
+<pre class="bash"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+ninja -C build
+ctest --test-dir build --output-on-failure</code></pre>
 </section>
 <section id="32-ビルド成果物の確認" class="level3">
 <h3>3.2 ビルド成果物の確認</h3>
@@ -410,7 +415,7 @@ lsof -p &quot;$(pgrep -x ShogiBoardQ)&quot; | grep -E &#39;/Qt/|homebrew&#39;   
 <section id="5-dmg-ファイルの作成" class="level2">
 <h2>5. DMG ファイルの作成</h2>
 <blockquote>
-<p><strong>Note:</strong> <code>scripts/build-macos.sh</code> を使用した場合、方法B (create-dmg) で自動作成されるため手動での実行は不要。<code>--skip-dmg</code> オプションで DMG 作成のみスキップすることも可能。</p>
+<p><strong>Note:</strong> <code>scripts/build-macos.sh</code> を使用した場合、方法B (create-dmg) で自動作成されるため手動での実行は不要。<code>--skip-dmg</code> オプションで DMG と配布 ZIP の作成をスキップすることも可能（.app バンドルだけを作る）。</p>
 <p>手動で作成する場合も、DMG に入れる前に <a href="#44-未使用の-qt-部品の削除最小構成">4.4</a> の削除と署名を済ませる。方法A は macdeployqt が DMG を直接作るため、最小構成にはならない。</p>
 </blockquote>
 <section id="方法a-macdeployqt-の--dmg-オプション簡易" class="level3">
@@ -553,7 +558,7 @@ hdiutil detach /Volumes/ShogiBoardQ</code></pre>
 <p>Xcode &gt; Settings &gt; Accounts から以下の証明書を作成：</p>
 <ul>
 <li><strong>Developer ID Application</strong> — アプリ本体の署名用</li>
-<li><strong>Developer ID Installer</strong> — DMG / pkg の署名用（オプション）</li>
+<li><strong>Developer ID Installer</strong> — pkg の署名用（オプション。DMG は Developer ID Application で署名する）</li>
 </ul>
 </section>
 <section id="63-macdeployqt-でコード署名付きバンドル" class="level3">
@@ -573,11 +578,12 @@ hdiutil detach /Volumes/ShogiBoardQ</code></pre>
 <pre class="bash"><code># バンドル内の全バイナリに再帰的に署名
 codesign --deep --force --verify --verbose \
   --sign &quot;Developer ID Application: Your Name (TEAMID)&quot; \
-  --options runtime \
+  --options runtime --timestamp \
   build/ShogiBoardQ.app
 
 # 署名の検証
 codesign --verify --deep --strict --verbose=2 build/ShogiBoardQ.app</code></pre>
+<p>公証には、タイムスタンプ付きの署名（<code>--timestamp</code>）と Hardened Runtime（<code>--options runtime</code>）が要る。</p>
 </section>
 <section id="65-公証-notarization" class="level3">
 <h3>6.5 公証 (Notarization)</h3>
@@ -676,6 +682,7 @@ gh auth login</code></pre>
 |---|---|
 | macOS | `ShogiBoardQ-macos.zip` |
 | Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+| Linux | `ShogiBoardQ-linux.zip` |
 
 ### macOS での起動方法
 
@@ -744,6 +751,7 @@ install_name_tool -change \
 </section>
 <section id="universal-binary-intel--apple-silicon-の作成" class="level3">
 <h3>Universal Binary (Intel + Apple Silicon) の作成</h3>
+<p>配布スクリプトでは <code>./scripts/build-macos.sh --universal</code> でビルドできる（Qt の arm64 化（<a href="#44-未使用の-qt-部品の削除最小構成">4.4</a>）は行わない）。</p>
 <p>両アーキテクチャに対応したバイナリを作成する場合：</p>
 <pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES=&quot;arm64;x86_64&quot;

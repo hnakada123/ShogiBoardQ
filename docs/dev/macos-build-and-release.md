@@ -29,8 +29,8 @@ UI 言語は日本語・英語・中国語（簡体字・繁体字）の 4 言�
 
 | 項目 | バージョン |
 |---|---|
-| macOS | 12 (Monterey) 以降推奨 |
-| Xcode | 14 以降（Command Line Tools 含む） |
+| macOS | 使う Qt が対応する版。配布スクリプトで作るアプリは、既定では macOS 26 以降で動く（`--deployment-target` で変えられる） |
+| Xcode | 使う Qt が対応する版（Command Line Tools 含む） |
 | CMake | 3.16 以上 |
 | Qt | 6.7 以上（Widgets, Charts, Network, Concurrent, Multimedia, Sql, LinguistTools） |
 | C++ | C++17 対応コンパイラ |
@@ -48,8 +48,10 @@ xcode-select --install
 ### 2.2 Homebrew で依存ツールをインストール
 
 ```bash
-brew install cmake ninja
+brew install cmake ninja create-dmg
 ```
+
+`create-dmg` は、配布スクリプトが DMG を作るのに使う（`--skip-dmg` なら要らない）。
 
 ### 2.3 Qt 6 のインストール
 
@@ -175,6 +177,14 @@ Ninja を使う場合（より高速）：
 ```bash
 cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
 ninja -C build
+```
+
+テストを実行する場合：
+
+```bash
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+ninja -C build
+ctest --test-dir build --output-on-failure
 ```
 
 ### 3.2 ビルド成果物の確認
@@ -330,7 +340,7 @@ lsof -p "$(pgrep -x ShogiBoardQ)" | grep -E '/Qt/|homebrew'   # 何も表示さ�
 
 ## 5. DMG ファイルの作成
 
-> **Note:** `scripts/build-macos.sh` を使用した場合、方法B (create-dmg) で自動作成されるため手動での実行は不要。`--skip-dmg` オプションで DMG 作成のみスキップすることも可能。
+> **Note:** `scripts/build-macos.sh` を使用した場合、方法B (create-dmg) で自動作成されるため手動での実行は不要。`--skip-dmg` オプションで DMG と配布 ZIP の作成をスキップすることも可能（.app バンドルだけを作る）。
 >
 > 手動で作成する場合も、DMG に入れる前に [4.4](#44-未使用の-qt-部品の削除最小構成) の削除と署名を済ませる。方法A は macdeployqt が DMG を直接作るため、最小構成にはならない。
 
@@ -459,7 +469,7 @@ unzip -l ShogiBoardQ-macos.zip
 Xcode > Settings > Accounts から以下の証明書を作成：
 
 - **Developer ID Application** — アプリ本体の署名用
-- **Developer ID Installer** — DMG / pkg の署名用（オプション）
+- **Developer ID Installer** — pkg の署名用（オプション。DMG は Developer ID Application で署名する）
 
 ### 6.3 macdeployqt でコード署名付きバンドル
 
@@ -481,12 +491,14 @@ macdeployqt build/ShogiBoardQ.app \
 # バンドル内の全バイナリに再帰的に署名
 codesign --deep --force --verify --verbose \
   --sign "Developer ID Application: Your Name (TEAMID)" \
-  --options runtime \
+  --options runtime --timestamp \
   build/ShogiBoardQ.app
 
 # 署名の検証
 codesign --verify --deep --strict --verbose=2 build/ShogiBoardQ.app
 ```
+
+公証には、タイムスタンプ付きの署名（`--timestamp`）と Hardened Runtime（`--options runtime`）が要る。
 
 ### 6.5 公証 (Notarization)
 
@@ -607,6 +619,7 @@ gh release upload 2026.10.07 ShogiBoardQ-macos.zip
 |---|---|
 | macOS | `ShogiBoardQ-macos.zip` |
 | Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+| Linux | `ShogiBoardQ-linux.zip` |
 
 ### macOS での起動方法
 
@@ -693,6 +706,8 @@ cp build/ShogiBoardQ_{ja_JP,en,zh_CN,zh_TW}.qm build/ShogiBoardQ.app/Contents/Ma
 ```
 
 ### Universal Binary (Intel + Apple Silicon) の作成
+
+配布スクリプトでは `./scripts/build-macos.sh --universal` でビルドできる（Qt の arm64 化（[4.4](#44-未使用の-qt-部品の削除最小構成)）は行わない）。
 
 両アーキテクチャに対応したバイナリを作成する場合：
 
