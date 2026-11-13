@@ -40,6 +40,8 @@ private slots:
     void updateState();
 
 private:
+    /// 入力欄の文字を、共有している領域ごとその場で消してから空にする
+    static void wipeText(QLineEdit* edit);
     QString failureText(P2pIdentityStore::Failure failure) const;
 
     Mode m_mode;

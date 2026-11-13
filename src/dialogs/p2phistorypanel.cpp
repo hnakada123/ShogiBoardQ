@@ -12,6 +12,7 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QPushButton>
+#include <QSaveFile>
 #include <QTableWidget>
 #include <QVBoxLayout>
 
@@ -187,10 +188,10 @@ void P2pHistoryPanel::onExport()
 {
     const QString source = selectedPath();
     if (source.isEmpty()) return;
-    // 証跡には双方のプレイヤーID が入る。人に渡すと、自分と相手の ID がその人に伝わる
+    // 証跡には双方のプレイヤーID と、対局を始めたおおよその日時が入る。人に渡すと、それがその人に伝わる
     if (!DialogUtils::confirmAction(this, tr("証跡を書き出す"),
-                                    tr("証跡には、あなたと相手のプレイヤーIDが入っています。証跡を人に渡すと、2人のプレイヤーIDが"
-                                       "その人に伝わります。書き出しますか？"),
+                                    tr("証跡には、あなたと相手のプレイヤーIDと、対局を始めたおおよその日時が入っています。証跡を人に"
+                                       "渡すと、それがその人に伝わります。書き出しますか？"),
                                     tr("書き出す"))) {
         return;
     }
@@ -199,8 +200,15 @@ void P2pHistoryPanel::onExport()
                                                         tr("ShogiBoardQ の証跡 (*.sbqmatch)"));
     if (target.isEmpty()) return;
     NetworkSettings::p2pExportDirectory.set(QFileInfo(target).absolutePath());
-    if (QFile::exists(target)) QFile::remove(target);
-    if (!QFile::copy(source, target)) DialogUtils::warning(this, tr("証跡を書き出す"), tr("書き出せませんでした。"));
+    // 書き出し先が元の証跡そのものなら、何もしない（消してから写すと、証跡を失う）
+    const QFileInfo targetInfo(target);
+    if (targetInfo.exists() && targetInfo.canonicalFilePath() == QFileInfo(source).canonicalFilePath()) return;
+    // 一時ファイルに書いてから置き換える（失敗しても、書き出し先にあったファイルを壊さない）
+    QFile in(source);
+    QSaveFile out(target);
+    const bool ok = in.open(QIODevice::ReadOnly) && out.open(QIODevice::WriteOnly)
+        && out.write(in.readAll()) == in.size() && out.commit();
+    if (!ok) DialogUtils::warning(this, tr("証跡を書き出す"), tr("書き出せませんでした。"));
 }
 
 void P2pHistoryPanel::onRemove()

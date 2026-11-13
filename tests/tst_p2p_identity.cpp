@@ -172,7 +172,25 @@ private slots:
         store.remove();
         QCOMPARE(store.method(), P2pIdentityStore::Method::None);
         store.create(P2pIdentityStore::Method::Plain);
-        QVERIFY(store.publicKey() != publicKey);
+        const QByteArray secondKey = store.publicKey();
+        QVERIFY(secondKey != publicKey);
+        // 消さずに作り直しても、古い鍵のファイルは残さない（退けた名前のファイルも消す。監査 2026-11-13）
+        const QString keyFile = QDir(dir).filePath(QStringLiteral("player.key"));
+        QFile before(keyFile);
+        QVERIFY(before.open(QIODevice::ReadOnly));
+        const QByteArray oldBytes = before.readAll();
+        before.close();
+        store.create(P2pIdentityStore::Method::Plain);
+        QVERIFY(store.publicKey() != secondKey);
+        QVERIFY(!QFile::exists(keyFile + QStringLiteral(".previous")));
+        QFile after(keyFile);
+        QVERIFY(after.open(QIODevice::ReadOnly));
+        QVERIFY(after.readAll() != oldBytes);
+        // 作り直した鍵を読み込める（合言葉なしの形を値の木を通さずに読む）
+        store.lock();
+        store.unlock();
+        QTRY_VERIFY(store.isUnlocked());
+        QVERIFY(store.publicKey() != secondKey);
     }
 
     /// P2P対局の保存物は、所有者だけが読み書きできる権限で原子的に書く（監査 2026-11-12 R4。鍵・記録・既知の相手で共通）
@@ -190,6 +208,43 @@ private slots:
             QFileDevice::ReadGroup | QFileDevice::ReadOther | QFileDevice::WriteGroup | QFileDevice::WriteOther;
         QCOMPARE(QFile::permissions(path) & others, QFileDevice::Permissions());
         QCOMPARE(QFile::permissions(dir) & (others | QFileDevice::ExeGroup | QFileDevice::ExeOther), QFileDevice::Permissions());
+#endif
+    }
+
+    /// 実験版（アプリ名 ShogiBoardQ-P2P）が残した既知ピアのキャッシュ（ほかの参加者の IP が入る）も消す。
+    /// 鍵と記録は利用者のものなので残す（監査 2026-11-13 I-l）
+    void legacyPeerCacheIsRemoved()
+    {
+        const QString base = m_dir.filePath(QStringLiteral("legacy"));
+        const QString root = QDir(base).filePath(QStringLiteral("ShogiBoardQ/p2p"));
+        const QString legacy = QDir(base).filePath(QStringLiteral("ShogiBoardQ-P2P/p2p"));
+        QVERIFY(QDir().mkpath(legacy));
+        for (const char* name : {"peers.cache", "player.key"}) {
+            QFile file(QDir(legacy).filePath(QString::fromLatin1(name)));
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("x");
+        }
+        P2pPlayerProfile profile(root);
+        QVERIFY(profile.open());
+        QVERIFY(!QFile::exists(QDir(legacy).filePath(QStringLiteral("peers.cache"))));
+        QVERIFY(QFile::exists(QDir(legacy).filePath(QStringLiteral("player.key"))));
+        profile.close();
+    }
+
+    /// ほかの利用者が読み書きできるフォルダ（権限を狭められないもの）は、鍵と記録の置き場所にしない（監査 2026-11-13）
+    void ownerDirectoryRefusesSymlinks()
+    {
+#ifdef Q_OS_UNIX
+        const QString real = m_dir.filePath(QStringLiteral("real-dir"));
+        QVERIFY(QDir().mkpath(real));
+        const QString link = m_dir.filePath(QStringLiteral("linked-dir"));
+        QVERIFY(QFile::link(real, link));
+        QVERIFY(!P2pOwnerFile::ensureDirectory(link));
+        QVERIFY(P2pOwnerFile::ensureDirectory(real));
+        const QFileDevice::Permissions perms = QFile::permissions(real);
+        QVERIFY(!(perms & (QFileDevice::ReadOther | QFileDevice::WriteOther | QFileDevice::ReadGroup)));
+#else
+        QSKIP("owner checks are Unix only");
 #endif
     }
 

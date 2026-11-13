@@ -62,6 +62,37 @@ void wipe(QByteArray& bytes)
     bytes.clear();
 }
 
+/// ほかと共有している領域ごと、その場で消す（QtKeychain のジョブは渡した・読んだ種と同じ領域を持つ。data() で
+/// 切り離して消すと、ジョブの持つ写しが残る。監査 2026-11-13 I-g）
+void wipeShared(QByteArray& bytes)
+{
+    if (!bytes.isEmpty()) sodium_memzero(const_cast<char*>(bytes.constData()), static_cast<size_t>(bytes.size()));
+    bytes.clear();
+}
+
+/// 古い鍵のファイルの中身を 0 で上書きしてから消す（作り直し・削除の後に、ディスクに古い種を残さない。SSD や
+/// コピーオンライトのファイルシステムでは元の場所が上書きされる保証はないが、少なくともファイルとしては残さない）
+void scrubAndRemove(const QString& path)
+{
+    QFile file(path);
+    if (file.exists() && file.open(QIODevice::ReadWrite)) {
+        const qint64 size = qMin<qint64>(file.size(), 64 * 1024);
+        file.write(QByteArray(static_cast<qsizetype>(size), '\0'));
+        file.flush();
+        file.close();
+    }
+    QFile::remove(path);
+}
+
+/// 合言葉なしの鍵のファイルの形（種のところを 0 にしたもの）。決定的 CBOR なので、ファイルはこれの末尾の
+/// kSeedSize バイトだけが違う。種を値の木（CborValue）に入れずに読み書きし、消せない写しを残さない
+QByteArray plainKeyFileTemplate(int seedSize)
+{
+    using P2p::CborValue;
+    return P2p::Cbor::encode(CborValue::array({CborValue::text("SBQ-IDENTITY"), CborValue::uint(1), CborValue::uint(0),
+                                               CborValue::bytes(QByteArray(seedSize, '\0'))}));
+}
+
 /// 作る処理の結果（ワーカーから値で返す）
 struct CreateResult {
     std::shared_ptr<P2p::SecureBytes> seed;
@@ -175,10 +206,8 @@ QByteArray P2pIdentityStore::encryptFile(const P2p::SecureBytes& seed, const QSt
     using P2p::CborValue;
     if (!P2p::Crypto::initialize() || !seed.isValid() || seed.size() != kSeedSize) return {};
     if (passphrase.isEmpty()) {
-        QByteArray raw(reinterpret_cast<const char*>(seed.data()), kSeedSize);
-        QByteArray out = P2p::Cbor::encode(CborValue::array(
-            {CborValue::text("SBQ-IDENTITY"), CborValue::uint(1), CborValue::uint(0), CborValue::bytes(raw)}));
-        wipe(raw);
+        QByteArray out = plainKeyFileTemplate(kSeedSize);
+        std::copy(seed.data(), seed.data() + kSeedSize, out.end() - kSeedSize);
         return out;
     }
     const QByteArray salt = P2p::Crypto::randomBytes(kSaltSize);
@@ -210,22 +239,24 @@ std::shared_ptr<P2p::SecureBytes> P2pIdentityStore::decryptFile(const QByteArray
     };
     if (!P2p::Crypto::initialize()) return fail(Failure::Crypto);
     if (fileBytes.size() > kMaxKeyFileBytes) return fail(Failure::CorruptFile);
+    // 合言葉なし: 決まった形の末尾が種（値の木に入れない）
+    const QByteArray plain = plainKeyFileTemplate(kSeedSize);
+    if (fileBytes.size() == plain.size()
+        && QByteArrayView(fileBytes).first(plain.size() - kSeedSize) == QByteArrayView(plain).first(plain.size() - kSeedSize)) {
+        auto seed = std::make_shared<P2p::SecureBytes>(kSeedSize);
+        if (!seed->isValid()) return fail(Failure::Crypto);
+        std::copy(fileBytes.cend() - kSeedSize, fileBytes.cend(), seed->data());
+        if (failure) *failure = Failure::None;
+        return seed;
+    }
     const std::optional<P2p::CborValue> value = P2p::Cbor::decode(fileBytes);
     if (!value || !value->isArray() || value->items().size() < 3) return fail(Failure::CorruptFile);
     const quint64 scheme = value->items()[2].isUInt() ? value->items()[2].toUInt() : 99;
     auto seed = std::make_shared<P2p::SecureBytes>(kSeedSize);
     if (!seed->isValid()) return fail(Failure::Crypto);
 
-    if (scheme == 0) {
-        P2p::CborReader r(*value, "SBQ-IDENTITY", 4);
-        r.uint(2, 0);
-        QByteArray raw = r.bytes(3, kSeedSize);
-        if (!r.ok()) return fail(Failure::CorruptFile);
-        std::copy(raw.cbegin(), raw.cend(), seed->data());
-        wipe(raw);
-        if (failure) *failure = Failure::None;
-        return seed;
-    }
+    // 合言葉なしの形は上で読んだ（ここに来るのは形の合わないファイル）
+    if (scheme == 0) return fail(Failure::CorruptFile);
 
     P2p::CborReader r(*value, "SBQ-IDENTITY", 8);
     r.uint(2, 1);
@@ -294,7 +325,9 @@ void P2pIdentityStore::create(Method method, const QString& passphrase)
         return;
     }
     if (method == Method::Plain) {
-        finishCreate(method, seed, encryptFile(*seed, QString(), 0, 0), Failure::None);
+        QByteArray fileBytes = encryptFile(*seed, QString(), 0, 0);
+        finishCreate(method, seed, fileBytes, Failure::None);
+        wipe(fileBytes);   // 合言葉なしのファイルの中身は種そのもの
         return;
     }
     // パスフレーズからの鍵の導出は時間とメモリを使うので、GUI スレッドの外で行う
@@ -329,14 +362,17 @@ void P2pIdentityStore::finishCreate(Method method, const std::shared_ptr<P2p::Se
         finish(Failure::Crypto);
         return;
     }
-    if (method != Method::Keychain) {
-        if (!P2pOwnerFile::writeAtomically(keyFilePath(), fileBytes)) {
-            finish(Failure::Storage);
-            return;
-        }
-    } else {
-        QFile::remove(keyFilePath());
+    // 前の鍵のファイルは、別名に退けてから新しいものを書き、書けたら中身を消して削除する（置き換えは名前を付け替える
+    // だけで、古い中身を上書きしない）。書けなければ元に戻す
+    const QString previous = keyFilePath() + QStringLiteral(".previous");
+    scrubAndRemove(previous);
+    const bool hadPrevious = QFile::exists(keyFilePath()) && QFile::rename(keyFilePath(), previous);
+    if (method != Method::Keychain && !P2pOwnerFile::writeAtomically(keyFilePath(), fileBytes)) {
+        if (hadPrevious) QFile::rename(previous, keyFilePath());
+        finish(Failure::Storage);
+        return;
     }
+    if (hadPrevious) scrubAndRemove(previous);
     if (!writeInfo(method, key.publicKey())) {
         finish(Failure::Storage);
         return;
@@ -366,12 +402,15 @@ void P2pIdentityStore::unlock(const QString& passphrase)
         finish(Failure::Storage);
         return;
     }
-    const QByteArray bytes = file.read(kMaxKeyFileBytes + 1);
+    QByteArray bytes = file.read(kMaxKeyFileBytes + 1);
+    file.close();
     auto* watcher = new QFutureWatcher<UnlockResult>(this);
     connect(watcher, &QFutureWatcherBase::finished, this, &P2pIdentityStore::onUnlockFinished);
-    watcher->setFuture(QtConcurrent::run([bytes, passphrase]() {
+    // 読んだファイル（合言葉なしなら種そのもの）はワーカーへ移し、読み終えたら消す（ほかに持ち主がいないので消せる）
+    watcher->setFuture(QtConcurrent::run([bytes = std::move(bytes), passphrase]() mutable {
         UnlockResult result;
         result.seed = decryptFile(bytes, passphrase, &result.failure);
+        wipe(bytes);
         return result;
     }));
 }
@@ -404,7 +443,7 @@ void P2pIdentityStore::remove()
 {
     lock();
     if (readInfo(infoPath()).method == Method::Keychain) deleteFromKeychain();
-    QFile::remove(keyFilePath());
+    scrubAndRemove(keyFilePath());
     QFile::remove(infoPath());
 }
 
@@ -419,15 +458,16 @@ void P2pIdentityStore::storeInKeychain(const std::shared_ptr<P2p::SecureBytes>& 
     job->setAutoDelete(true);
     job->setInsecureFallback(false);
     job->setKey(keychainItemKey());
-    QByteArray raw(reinterpret_cast<const char*>(seed->data()), kSeedSize);
-    job->setBinaryData(raw);
-    wipe(raw);
+    // ジョブは同じ領域を共有して持つ。書き終えたら（onKeychainWriteFinished）その場で消す
+    m_pendingRaw = QByteArray(reinterpret_cast<const char*>(seed->data()), kSeedSize);
+    job->setBinaryData(m_pendingRaw);
     connect(job, &QKeychain::Job::finished, this, &P2pIdentityStore::onKeychainWriteFinished);
     job->start();
 }
 
 void P2pIdentityStore::onKeychainWriteFinished(QKeychain::Job* job)
 {
+    wipeShared(m_pendingRaw);
     const std::shared_ptr<P2p::SecureBytes> seed = std::move(m_pendingSeed);
     if (job->error() != QKeychain::NoError || !seed) {
         finish(Failure::KeychainUnavailable);
@@ -449,20 +489,21 @@ void P2pIdentityStore::readFromKeychain()
 void P2pIdentityStore::onKeychainReadFinished(QKeychain::Job* job)
 {
     auto* read = static_cast<QKeychain::ReadPasswordJob*>(job);
+    // ジョブの持つ種と同じ領域を共有する。その場で消す（wipeShared）と、ジョブの写しも消える
     QByteArray raw = read->binaryData();
     if (job->error() != QKeychain::NoError || raw.size() != kSeedSize) {
-        wipe(raw);
+        wipeShared(raw);
         finish(job->error() == QKeychain::NoError ? Failure::CorruptFile : Failure::KeychainUnavailable);
         return;
     }
     P2p::SecureBytes seed(kSeedSize);
     if (!seed.isValid()) {
-        wipe(raw);
+        wipeShared(raw);
         finish(Failure::Crypto);
         return;
     }
     std::copy(raw.cbegin(), raw.cend(), seed.data());
-    wipe(raw);
+    wipeShared(raw);
     adoptSeed(seed);
     if (!isUnlocked() || m_key->publicKey() != readInfo(infoPath()).publicKey) {
         m_key.reset();

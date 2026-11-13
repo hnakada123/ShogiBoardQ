@@ -13,7 +13,8 @@
  */
 namespace P2pOwnerFile {
 
-/// フォルダを作り（あれば何もしない）、所有者だけが使える権限にする
+/// フォルダを作り（あれば何もしない）、所有者だけが使える権限にする。権限を設定できない・ほかの利用者のフォルダ・
+/// シンボリックリンク（Unix）なら false（鍵と記録を、ほかの利用者が触れる場所に置かない）
 bool ensureDirectory(const QString& path);
 /// 所有者だけが読み書きできる権限で、原子的に書く（書き終えてから置き換える）。置くフォルダも作る
 bool writeAtomically(const QString& path, const QByteArray& bytes);

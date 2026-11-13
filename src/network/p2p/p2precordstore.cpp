@@ -88,8 +88,12 @@ std::optional<P2pHistoryInfo> parseInfo(const QByteArray& bytes)
 bool P2pJournal::open(const QString& path)
 {
     m_file.setFileName(path);
-    if (!m_file.open(QIODevice::WriteOnly | QIODevice::Append)) return false;
-    m_file.setPermissions(kOwnerFile);
+    // 作るときから所有者だけの権限にする（作った後に狭めると、その間はほかの利用者が開けうる）
+    if (!m_file.open(QIODevice::WriteOnly | QIODevice::Append, kOwnerFile)) return false;
+    if (!m_file.setPermissions(kOwnerFile)) {
+        m_file.close();
+        return false;
+    }
     return true;
 }
 

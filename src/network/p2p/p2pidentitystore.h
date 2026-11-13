@@ -128,6 +128,7 @@ private:
     QString m_directory;
     std::unique_ptr<P2p::SigningKey> m_key;
     std::shared_ptr<P2p::SecureBytes> m_pendingSeed;   ///< 保管庫へ書いている間の種
+    QByteArray m_pendingRaw;   ///< 鍵の保管庫のジョブに渡した種（ジョブと領域を共有する。書き終えたらその場で消す）
     bool m_busy = false;
 };
 

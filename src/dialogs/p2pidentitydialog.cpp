@@ -12,6 +12,8 @@
 #include <QRadioButton>
 #include <QVBoxLayout>
 
+#include <algorithm>
+
 #include "dialogfontscale.h"
 #include "networksettings.h"
 
@@ -135,12 +137,24 @@ void P2pIdentityDialog::accept()
     }
 }
 
+void P2pIdentityDialog::wipeText(QLineEdit* edit)
+{
+    const QString text = edit->text();
+    if (!text.isEmpty()) {
+        auto* chars = const_cast<QChar*>(text.constData());
+        std::fill(chars, chars + text.size(), QChar(u'\0'));
+    }
+    edit->clear();
+}
+
 void P2pIdentityDialog::onStoreFinished(P2pIdentityStore::Failure failure)
 {
     if (!m_working) return;
     m_working = false;
-    m_passphrase->clear();
-    if (m_confirm) m_confirm->clear();
+    // 鍵の導出が終わってから、入力欄のパスフレーズを、共有している領域ごとその場で消してから空にする
+    // （text() の写しを切り離して消すと、入力欄と鍵の処理に渡した文字列が残る。監査 2026-11-13 I-g）
+    wipeText(m_passphrase);
+    if (m_confirm) wipeText(m_confirm);
     if (failure == P2pIdentityStore::Failure::None) {
         QDialog::accept();
         return;
