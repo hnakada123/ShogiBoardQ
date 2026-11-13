@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P2P對局相容實作規格書（協定 v1） - ShogiBoardQ</title>
+<meta name="description" content="規定通訊層、邀請字串、訊框、開始前的協商、對局中的步驟、重新連線，以及對局記錄（憑證）的格式與驗證。">
+<link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/dev/p2p-interop-spec.html">
+<style>
+:root {
+  --bg: #fbfaf7; --fg: #23261f; --muted: #5f655a; --line: #d9d6cc; --accent: #3f6b4f;
+  --code-bg: #f0eee6; --head-bg: #4d6650; --head-fg: #ffffff; --stripe: #f4f3ec; --note-bg: #eef3ea;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171a17; --fg: #e6e8e1; --muted: #a3a99d; --line: #3a4039; --accent: #9cc7a8;
+    --code-bg: #222722; --head-bg: #34473a; --head-fg: #f2f4ee; --stripe: #1d211d; --note-bg: #1f2a22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 1rem; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Noto Sans JP", system-ui, sans-serif;
+  line-height: 1.8; font-size: 16px; -webkit-text-size-adjust: 100%;
+}
+main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+header.doc h1 { font-size: 1.9rem; line-height: 1.35; margin: 0 0 .4rem; }
+header.doc p { margin: .2rem 0; color: var(--muted); }
+header.doc .lead { color: var(--fg); margin-top: 1rem; }
+nav.langs { margin: 0 0 1rem; font-size: .93rem; }
+nav.langs a, nav.langs span { margin-right: 1rem; }
+nav.langs span { font-weight: 700; }
+nav.toc { border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1.2rem; margin: 2rem 0; background: var(--stripe); }
+nav.toc summary { cursor: pointer; font-weight: 700; }
+nav.toc ol { margin: .6rem 0 0; padding-left: 0; list-style: none; columns: 2 18rem; column-gap: 2rem; }
+nav.toc ol > li { break-inside: avoid; margin-bottom: .5rem; font-weight: 600; }
+nav.toc ul { list-style: none; margin: .1rem 0 0; padding-left: 1rem; font-weight: 400; font-size: .93rem; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+h2 { font-size: 1.5rem; margin: 3.2rem 0 1rem; padding-bottom: .35rem; border-bottom: 2px solid var(--accent); line-height: 1.4; }
+h3 { font-size: 1.15rem; margin: 2.2rem 0 .6rem; line-height: 1.5; }
+p { margin: .7rem 0; }
+ul, ol { padding-left: 1.5rem; margin: .6rem 0; }
+li { margin: .25rem 0; }
+code { font-family: "Noto Sans Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .9em;
+  background: var(--code-bg); padding: .08em .3em; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: .9rem 1rem;
+  overflow-x: auto; line-height: 1.55; margin: .9rem 0; }
+pre code { background: none; padding: 0; font-size: .86rem; overflow-wrap: normal; white-space: pre; }
+pre.vec code { white-space: pre-wrap; overflow-wrap: anywhere; }
+p.vec-title { margin: 1.1rem 0 .2rem; font-weight: 600; font-size: .95rem; }
+pre.vec { margin-top: .2rem; }
+.table-wrap { overflow-x: auto; margin: .9rem 0; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: .94rem; }
+th, td { padding: .55rem .75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+thead th { background: var(--head-bg); color: var(--head-fg); font-weight: 600; white-space: nowrap; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+tbody tr:last-child td { border-bottom: none; }
+td:first-child { font-weight: 600; }
+#history td:first-child { white-space: nowrap; }
+#history thead th { white-space: normal; }
+#history thead th:nth-child(2), #history thead th:nth-child(3) { min-width: 6.5em; }
+#history td:last-child { min-width: 13rem; }
+p.note { background: var(--note-bg); border-left: 4px solid var(--accent); padding: .6rem .9rem; border-radius: 0 6px 6px 0; }
+footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+@media (max-width: 40rem) {
+  main { padding: 1.2rem 1rem 3rem; }
+  header.doc h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.3rem; }
+  th, td { padding: .5rem .55rem; }
+}
+@media print {
+  nav.toc { break-after: page; }
+  pre, .table-wrap { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<main>
+<header class="doc">
+<nav class="langs" aria-label="語言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><span aria-current="page">繁體中文</span></nav>
+<h1>P2P對局相容實作規格書</h1>
+<p>ShogiBoardQ（將棋盤Q。啟用P2P對局的建置）／協定版本 1／文件版本 2026-11-13（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
+<p class="lead">規定通訊層、邀請字串、訊框、開始前的協商、對局中的步驟、重新連線，以及對局記錄（憑證）的格式與驗證。</p>
+</header>
+<nav class="toc" aria-label="目錄">
+<details open>
+<summary>目錄</summary>
+<ol>
+<li><a href="#sec-1">1. 關於本文件</a>
+<ul>
+<li><a href="#sec-1-1">1.1 目的與適用範圍</a></li>
+<li><a href="#sec-1-2">1.2 用語</a></li>
+<li><a href="#sec-1-3">1.3 整體流程</a></li>
+<li><a href="#sec-1-4">1.4 無法防止的情況</a></li>
+<li><a href="#sec-1-5">1.5 版本</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2. 記法與共通規則</a>
+<ul>
+<li><a href="#sec-2-1">2.1 值的寫法</a></li>
+<li><a href="#sec-2-2">2.2 確定性CBOR</a></li>
+<li><a href="#sec-2-3">2.3 雜湊</a></li>
+<li><a href="#sec-2-4">2.4 簽章</a></li>
+<li><a href="#sec-2-5">2.5 字串的限制</a></li>
+</ul>
+</li>
+<li><a href="#sec-3">3. 網路與識別碼</a>
+<ul>
+<li><a href="#sec-3-1">3.1 網路</a></li>
+<li><a href="#sec-3-2">3.2 PeerId</a></li>
+<li><a href="#sec-3-3">3.3 玩家金鑰與玩家ID</a></li>
+<li><a href="#sec-3-4">3.4 單局金鑰</a></li>
+<li><a href="#sec-3-5">3.5 確認碼</a></li>
+<li><a href="#sec-3-6">3.6 顯示名稱</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. 通訊層（libp2p）</a>
+<ul>
+<li><a href="#sec-4-1">4.1 使用的協定</a></li>
+<li><a href="#sec-4-2">4.2 監聽</a></li>
+<li><a href="#sec-4-3">4.3 Identify</a></li>
+<li><a href="#sec-4-4">4.4 協作節點與中繼</a></li>
+<li><a href="#sec-4-5">4.5 目的位址的規則</a></li>
+<li><a href="#sec-4-6">4.6 不使用直接連線的設定</a></li>
+<li><a href="#sec-4-7">4.7 上限</a></li>
+</ul>
+</li>
+<li><a href="#sec-5">5. 邀請字串</a>
+<ul>
+<li><a href="#sec-5-1">5.1 格式</a></li>
+<li><a href="#sec-5-2">5.2 產生方</a></li>
+<li><a href="#sec-5-3">5.3 讀取方</a></li>
+</ul>
+</li>
+<li><a href="#sec-6">6. 對局串流與訊框</a>
+<ul>
+<li><a href="#sec-6-1">6.1 串流</a></li>
+<li><a href="#sec-6-2">6.2 訊框的外框</a></li>
+<li><a href="#sec-6-3">6.3 開啟串流的步驟與 INVITE_TOKEN</a></li>
+<li><a href="#sec-6-4">6.4 頻率與大小的上限</a></li>
+</ul>
+</li>
+<li><a href="#sec-7">7. 作為簽章與雜湊對象的值</a>
+<ul>
+<li><a href="#sec-7-1">7.1 條件</a></li>
+<li><a href="#sec-7-2">7.2 狀態（State）</a></li>
+<li><a href="#sec-7-3">7.3 著手與局面的寫法</a></li>
+<li><a href="#sec-7-4">7.4 開始協議與對局ID</a></li>
+<li><a href="#sec-7-5">7.5 認可、控制、結果</a></li>
+</ul>
+</li>
+<li><a href="#sec-8">8. 開始前的步驟</a>
+<ul>
+<li><a href="#sec-8-1">8.1 流程</a></li>
+<li><a href="#sec-8-2">8.2 HELLO（開始前）</a></li>
+<li><a href="#sec-8-3">8.3 START_AGREEMENT</a></li>
+<li><a href="#sec-8-4">8.4 先後手的決定方式</a></li>
+<li><a href="#sec-8-5">8.5 START_SIGNATURE</a></li>
+<li><a href="#sec-8-6">8.6 期限</a></li>
+<li><a href="#sec-8-7">8.7 REJECT</a></li>
+</ul>
+</li>
+<li><a href="#sec-9">9. 對局中的步驟</a>
+<ul>
+<li><a href="#sec-9-1">9.1 開始（State0 與 READY）</a></li>
+<li><a href="#sec-9-2">9.2 著手的提議（STATE_PROPOSE）</a></li>
+<li><a href="#sec-9-3">9.3 認可（STATE_ACCEPT）</a></li>
+<li><a href="#sec-9-4">9.4 時間規則</a></li>
+<li><a href="#sec-9-5">9.5 控制訊息（CONTROL）</a></li>
+<li><a href="#sec-9-6">9.6 著手的合法性</a></li>
+<li><a href="#sec-9-7">9.7 檢查失敗（ERROR）</a></li>
+</ul>
+</li>
+<li><a href="#sec-10">10. 終局與結果的確定</a>
+<ul>
+<li><a href="#sec-10-1">10.1 結果與原因</a></li>
+<li><a href="#sec-10-2">10.2 結果的提議與一致</a></li>
+<li><a href="#sec-10-3">10.3 由棋譜決定的終局</a></li>
+<li><a href="#sec-10-4">10.4 對結果的簽章（RESULT_SIGNATURE）</a></li>
+<li><a href="#sec-10-5">10.5 退出對局（ABORT）</a></li>
+</ul>
+</li>
+<li><a href="#sec-11">11. 重新連線</a>
+<ul>
+<li><a href="#sec-11-1">11.1 重新連線方與接受方</a></li>
+<li><a href="#sec-11-2">11.2 HELLO（重新連線）</a></li>
+<li><a href="#sec-11-3">11.3 RESUME</a></li>
+<li><a href="#sec-11-4">11.4 SYNC_REQUEST 與 SYNC_CHUNK</a></li>
+<li><a href="#sec-11-5">11.5 核對之後</a></li>
+<li><a href="#sec-11-6">11.6 斷線的上限</a></li>
+</ul>
+</li>
+<li><a href="#sec-12">12. 錯誤編號</a>
+</li>
+<li><a href="#sec-13">13. 對局記錄（憑證）</a>
+<ul>
+<li><a href="#sec-13-1">13.1 格式</a></li>
+<li><a href="#sec-13-2">13.2 驗證步驟</a></li>
+<li><a href="#sec-13-3">13.3 記錄類別</a></li>
+</ul>
+</li>
+<li><a href="#sec-14">14. 常數一覽</a>
+</li>
+<li><a href="#sec-15">15. 符合性的檢查方法</a>
+<ul>
+<li><a href="#sec-15-1">15.1 測試輸入</a></li>
+<li><a href="#sec-15-2">15.2 檢查的順序</a></li>
+</ul>
+</li>
+<li><a href="#sec-A">附錄 A. 測試用的值</a>
+<ul>
+<li><a href="#sec-A-1">A.1 條件的雜湊</a></li>
+<li><a href="#sec-A-2">A.2 先後手的亂數、連線、確認碼</a></li>
+<li><a href="#sec-A-3">A.3 狀態與結果（gameId = aa…，基本 600,000 ms、讀秒 30,000 ms）</a></li>
+<li><a href="#sec-A-4">A.4 簽章與訊框</a></li>
+</ul>
+</li>
+<li><a href="#sec-B">附錄 B. 變更履歷</a></li>
+</ol>
+</details>
+</nav>
+<section id="overview">
+<h2 id="sec-1">1. 關於本文件</h2>
+
+<h3 id="sec-1-1">1.1 目的與適用範圍</h3>
+<p>本文件是一份規格書，用於另行實作能與 ShogiBoardQ（將棋盤Q。啟用P2P對局的建置）的「P2P對局」互相對局的軟體。本文件規定在網路上傳輸的位元組序列、步驟、檢查、時間規則，以及對局記錄（憑證）的檔案格式。依照本文件製作的實作之間，可以交付邀請字串來連線、對局，並留下雙方已確定的對局記錄。</p>
+<p>適用對象為協定版本 1（訊框的 <code>version</code> 為 1，各值的版本為 1）。以下事項不在適用範圍內，各實作可以自由決定。</p>
+<ul>
+<li>畫面與操作、設定的儲存、玩家金鑰的保管方式（作業系統的金鑰庫、加密的檔案等）</li>
+<li>負責通訊的部分與負責對局、畫面的部分如何劃分（ShogiBoardQ 將其分為不同的程序，以 JSON 的 IPC 連接，但這與相容性無關）</li>
+<li>權限限制（沙箱）等實作內部的安全措施</li>
+</ul>
+
+<h3 id="sec-1-2">1.2 用語</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>寫法</th><th>意義</th></tr></thead>
+<tbody>
+<tr><td>必須～／～（直述句）</td><td>為了相容性與安全，一定要遵守（MUST）</td></tr>
+<tr><td>不得～</td><td>一定要避免（MUST NOT）</td></tr>
+<tr><td>應當～（宜～）</td><td>若無特別理由就遵循（SHOULD）</td></tr>
+<tr><td>可以～</td><td>由實作選擇（MAY）</td></tr>
+</tbody>
+</table></div>
+<p>本文件中寫明要「拒絕」「拒收」的輸入，實作收到時不得將其當作正確的輸入處理。如何告知（傳送 REJECT、關閉串流、默默丟棄）寫在各節中。</p>
+
+<h3 id="sec-1-3">1.3 整體流程</h3>
+<p>設對局者為 2 人，發出邀請的一方稱為<strong>邀請方</strong>（協定中稱為「募集方」，<code>role</code> = 2），接受邀請並連線的一方稱為<strong>申請方</strong>（<code>role</code> = 1）。</p>
+<ol>
+<li><strong>連線</strong>：雙方啟動 libp2p 節點（<a href="#sec-4">第 4 章</a>）。透過網際網路時，也連線到使用者指定的協作節點（負責中繼與可達性確認的節點）。</li>
+<li><strong>邀請</strong>：邀請方產生邀請字串，由使用者透過其他途徑（訊息等）交給對手（<a href="#sec-5">第 5 章</a>）。</li>
+<li><strong>串流</strong>：申請方連線到邀請字串中的目的位址，開啟對局串流，最先傳送邀請的通關密語（INVITE_TOKEN）（<a href="#sec-6">第 6 章</a>）。</li>
+<li><strong>開始前的協商</strong>：交換 HELLO，決定條件與先後手，雙方用玩家金鑰對開始協議（StartAgreement）簽章（<a href="#sec-8">第 8 章</a>）。</li>
+<li><strong>對局</strong>：每走一步，由走棋方提議狀態（State），對方檢查後認可。雙方都用單局金鑰簽章（<a href="#sec-9">第 9 章</a>）。</li>
+<li><strong>終局</strong>：核對結果（FinalResult），雙方用玩家金鑰簽章（<a href="#sec-10">第 10 章</a>）。</li>
+<li><strong>記錄</strong>：雙方各自把開始協議、全部著手與簽章儲存到一個檔案（憑證）中。任何人都可以驗證（<a href="#sec-13">第 13 章</a>）。</li>
+</ol>
+<p>沒有對局伺服器。對局的正確性，是靠不信任對手的應用程式、自行檢查收到的值來維持。線路中斷時，可以重新連線回到同一局（<a href="#sec-11">第 11 章</a>）。</p>
+
+<h3 id="sec-1-4">1.4 無法防止的情況</h3>
+<p>本協定無法防止以下情況。相容實作應當向使用者如此說明。</p>
+<ul>
+<li>顯示名稱為自稱。辨別對手的依據只有玩家金鑰的公開金鑰（玩家ID）與確認碼（<a href="#sec-3-5">第 3.5 節</a>）。</li>
+<li>輸方若不對結果簽章，就不會留下雙方都簽章的記錄。</li>
+<li>消耗時間為自報。無法識別每步最多 10 秒的虛報，以及利用斷線拖延時間（每局合計最多 10 分鐘）。</li>
+<li>無法識別由引擎下的對局或串通的對局。</li>
+<li>直接連線時，對手查看通訊就能得知 IP 位址（可用只使用中繼的設定避免。<a href="#sec-4-6">第 4.6 節</a>）。</li>
+</ul>
+
+<h3 id="sec-1-5">1.5 版本</h3>
+<p>本文件有兩種版本。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>版本</th><th>表示的內容</th><th>何時升版</th></tr></thead>
+<tbody>
+<tr><td>協定版本</td><td>通訊的相容性。出現在訊框的 <code>version</code>（<a href="#sec-6-2">第 6.2 節</a>）與 HELLO 中支援的版本清單（<a href="#sec-8-2">第 8.2 節</a>）中。目前為 1</td><td>做了導致無法與舊版本實作對局的變更時（實驗版期間的例外寫在下面）</td></tr>
+<tr><td>文件版本</td><td>本文件的內容。以修改當天的日期（YYYY-MM-DD）表示，同一天第二次以後的修改在末尾加上 <code>.1</code>、<code>.2</code></td><td>每次修改本文件時（即使只是修潤文字）</td></tr>
+</tbody>
+</table></div>
+<p>各版本的變更寫在<a href="#sec-B">附錄 B</a>。「相容實作是否需要修改」為「需要」的變更，是修改了規則（必須做的事、不得做的事、值、上限）的變更；依照更早版本製作的實作若不修改，可能會與 ShogiBoardQ 不一致。「不需要」是只修潤文字，或只補充 ShogiBoardQ 行為說明的變更。相容實作應當記錄自己所依循的文件版本，並檢查其後標為「需要」的變更。</p>
+<p class="note">P2P對局是實驗版，可以加入的網路只有本機驗證用和限定測試用兩種（<a href="#sec-3-1">第 3.1 節</a>）。在此期間，即使是不相容的變更，也可能不升協定版本而直接修改版本 1 的規則（在附錄 B 中記為「需要」）。設立公開用的網路之後，不相容的變更會升協定版本。</p>
+<p>本文件以日文撰寫，並提供英文、簡體中文、繁體中文的譯本（開頭的語言連結）。譯本是翻譯日文版同一文件版本的內容，與日文版不一致時，以日文版為準。日文版修改後，譯本也會以同一版本修改。</p>
+</section>
+<section id="notation">
+<h2 id="sec-2">2. 記法與共通規則</h2>
+
+<h3 id="sec-2-1">2.1 值的寫法</h3>
+<p>本文件中，CBOR 的值寫法如下。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>寫法</th><th>意義</th></tr></thead>
+<tbody>
+<tr><td><code>uint</code></td><td>無號整數（0〜2<sup>64</sup>−1）</td></tr>
+<tr><td><code>bstr</code>、<code>bstr(32)</code></td><td>byte string。括號中的數字是長度（位元組）</td></tr>
+<tr><td><code>tstr</code></td><td>text string（UTF-8）</td></tr>
+<tr><td><code>[a, b, ...]</code></td><td>陣列。元素的數量與順序固定，不得加入未寫出的元素</td></tr>
+<tr><td><code>"SBQ-..."</code></td><td>該字串本身的 tstr（表示值的種類的標籤）</td></tr>
+<tr><td><code>zero32</code></td><td>由 32 個零位元組構成的 bstr</td></tr>
+</tbody>
+</table></div>
+<p>真假值以 uint 的 0／1 表示。時刻為 UNIX 秒（uint），時間長度為毫秒（uint）。十六進位表示使用小寫。</p>
+
+<h3 id="sec-2-2">2.2 確定性CBOR</h3>
+<p>用於簽章、雜湊、訊框、邀請字串、憑證的 CBOR，只使用 RFC 8949 的 core deterministic encoding 中的以下部分。<strong>讀取方必須拒收此處未列出的一切內容。</strong></p>
+<ul>
+<li>可用的型別只有 4 種：無號整數（major type 0）、byte string（2）、text string（3）、陣列（4）。不使用負整數、map、標籤（tag）、浮點數、簡單值（true／false／null／undefined）。</li>
+<li>長度與整數以最短形式書寫（0〜23 寫在開頭位元組中，24〜255 用後續 1 個位元組，256〜65535 用 2 個位元組，65536〜2<sup>32</sup>−1 用 4 個位元組，更大的用 8 個位元組）。拒收非最短的形式。</li>
+<li>拒收不定長度（additional information 31）與保留值（28〜30）。</li>
+<li>text string 必須是正確的 UTF-8（拒收過長形式、代理字元、超過 U+10FFFF 的值）。</li>
+<li>巢狀最多 16 層。最上層的值算第 1 層，陣列中的值即使不是陣列也算深一層（把陣列巢狀 16 重、在最內側放 1 個值時為 17 層，予以拒收）。</li>
+<li>輸入只能有 1 個值，後面若有多餘的位元組則拒收。</li>
+<li>讀取長度後，先檢查該長度是否在剩餘輸入的範圍內，再配置空間。</li>
+</ul>
+<p>遵守此規則時，一個值對應的位元組序列只有一種。把讀完的值重新編碼得到的位元組序列，與原本的位元組序列一致。以下 <code>CBOR(x)</code> 表示值 x 的這個位元組序列。</p>
+
+<h3 id="sec-2-3">2.3 雜湊</h3>
+<p>雜湊函式 <code>H</code> 為 SHA-256（輸出 32 位元組）。<code>H(CBOR(x))</code> 表示值 x 的確定性CBOR位元組序列的 SHA-256。本文件中名稱為「〜Hash」的值，除非另有說明，皆為 <code>H(CBOR(值))</code>。</p>
+
+<h3 id="sec-2-4">2.4 簽章</h3>
+<p>簽章使用 Ed25519（RFC 8032），公開金鑰 32 位元組，簽章 64 位元組。簽章的對象是值的確定性CBOR位元組序列本身（<code>CBOR(值)</code>），不加入前綴或上下文字串。值開頭的標籤（<code>"SBQ-START"</code> 等）負責區分簽章的用途。</p>
+<p>只有同時通過以下兩項檢查時，驗證才算「正確」。</p>
+<ol>
+<li><strong>公開金鑰的檢查</strong>：公開金鑰是能通過 libsodium 的 <code>crypto_core_ed25519_is_valid_point</code> 的點（為正規編碼、位於曲線上、屬於質數階子群，且不是小階點）。</li>
+<li><strong>簽章的檢查</strong>：結果與 libsodium 的 <code>crypto_sign_verify_detached</code> 相同（包含 libsodium 預設的檢查，即拒收非正規形式的簽章）。</li>
+</ol>
+<p>第 1 項檢查在每次驗證簽章時進行（也適用於 HELLO 中收到的公開金鑰，以及憑證的驗證）。只進行第 2 項的實作，會與 ShogiBoardQ 不同，接受由不屬於質數階子群的公開金鑰產生的簽章。私密金鑰依 RFC 8032 從 32 位元組的種子（seed）導出。</p>
+
+<h3 id="sec-2-5">2.5 字串的限制</h3>
+<p>寫為「ASCII 的 tstr」的值，必須只包含 0x20〜0x7E 的字元。長度上限寫在各節中。拒收超過上限的值，以及含有範圍外字元的值。</p>
+</section>
+<section id="identity">
+<h2 id="sec-3">3. 網路與識別碼</h2>
+
+<h3 id="sec-3-1">3.1 網路</h3>
+<p>只有選擇了相同 <code>networkName</code> 的實作之間才能對局。網路以由名稱決定的 32 位元組值 <code>networkId</code> 區分。</p>
+<pre><code>networkId = H(CBOR(["SBQ-NETWORK", 1, networkName]))     ; networkName 為 ASCII 的 tstr（1〜32 位元組）</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>networkName</th><th>用途</th><th>networkId（十六進位）</th></tr></thead>
+<tbody>
+<tr><td><code>sbq-local-1</code></td><td>本機驗證用。只在同一電腦、同一區域網路內連線（<a href="#sec-4-5">第 4.5 節</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>限定測試用。與網際網路上的對手連線</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
+</tbody>
+</table></div>
+<p>實作必須持有可加入的 networkName 清單，並拒絕其他名稱。ShogiBoardQ 在建置後超過 180 天就不再加入 <code>sbq-limited-1</code>（實驗版的使用期限。相容實作不需要有相同的期限）。</p>
+<p>libp2p 層並未設有區分網路的機制（private network 的金鑰等）。網路的不同，透過邀請字串（<a href="#sec-5">第 5 章</a>）與 HELLO（<a href="#sec-8-2">第 8.2 節</a>）中的 networkId 檢查。</p>
+
+<h3 id="sec-3-2">3.2 PeerId</h3>
+<p>libp2p 節點的金鑰必須是 Ed25519。PeerId 的二進位表示，是直接放入 Ed25519 公開金鑰的 identity multihash，共 38 位元組。</p>
+<pre><code>peerId = 00 24 08 01 12 20 || 公開金鑰（32 位元組）</code></pre>
+<p>不是此形式的 PeerId（RSA 金鑰、SHA-256 的 multihash 等），無論出現在邀請字串或 HELLO 中都予以拒絕。文字表示為 base58（<code>12D3KooW…</code>）。</p>
+<p>PeerId 可以在每次啟動節點時重新產生（ShogiBoardQ 每次連線都產生新的金鑰）。但是，一局之中必須持續使用相同的 PeerId。因為開始協議中含有 PeerId 的雜湊，而且重新連線只接受來自相同 PeerId 的連線（<a href="#sec-11">第 11 章</a>）。</p>
+
+<h3 id="sec-3-3">3.3 玩家金鑰與玩家ID</h3>
+<p>每位使用者持有 1 把長期使用的 Ed25519 金鑰。這稱為<strong>玩家金鑰</strong>，其公開金鑰（32 位元組）稱為<strong>玩家ID</strong>。玩家金鑰只用於對開始協議（StartAgreement）和結果（FinalResult）簽章。它必須是與 PeerId 金鑰不同的金鑰。</p>
+<p>在畫面上，玩家ID 以小寫十六進位 64 位數顯示，每 8 位以空格分隔（例：<code>cf3b0b03 a6e888db …</code>）。不得只讓使用者依據省略過的顯示來判斷對手是否為同一個人。</p>
+
+<h3 id="sec-3-4">3.4 單局金鑰</h3>
+<p>每次協商都產生新的 Ed25519 金鑰。這稱為<strong>單局金鑰</strong>，用於對對局中狀態的認可（StateApproval）與控制訊息（Control）簽章。對局結束後丟棄，不儲存。它必須與玩家金鑰及對手的任何金鑰都不同。</p>
+
+<h3 id="sec-3-5">3.5 確認碼</h3>
+<p>從兩人的玩家ID 產生確認碼，雙方的畫面上會顯示相同的數字。使用者透過電話或當面等其他途徑比對數字，確認對手的玩家ID 是否屬於本人。</p>
+<pre><code>digest = H(CBOR(["SBQ-VERIFY", 1, keyLow, keyHigh]))    ; 兩把公開金鑰依位元組序列的字典序（無號）排列，較小者在前
+第 g 組（0〜5）= 把 digest[5g .. 5g+4] 的 5 個位元組當作大端序整數讀取，除以 100000 的餘數以 5 位數（補零）書寫</code></pre>
+<p>確認碼是 6 組這樣的 5 位數字（共 30 位）。</p>
+
+<h3 id="sec-3-6">3.6 顯示名稱</h3>
+<p>顯示名稱是顯示在對手畫面上的自稱名稱，在 HELLO 中傳送。它必須滿足以下所有規則，接收方要<strong>直接以收到的位元組序列</strong>判定（不得先去除開頭的 BOM 等再判定）。</p>
+<ul>
+<li>以 UTF-8 計為 96 位元組以下，1〜32 個字元（碼位）</li>
+<li>開頭和結尾不是空格（U+0020）</li>
+<li>所有字元都在下表的範圍內（包含兩端）</li>
+</ul>
+<div class="table-wrap"><table>
+<thead><tr><th>範圍（十六進位）</th><th>內容</th></tr></thead>
+<tbody>
+<tr><td><code>0020..007E</code></td><td>ASCII 的可列印字元（包含空格）</td></tr>
+<tr><td><code>3001..3003</code></td><td>、。〃</td></tr>
+<tr><td><code>3005..3007</code></td><td>々〆〇</td></tr>
+<tr><td><code>3041..3096</code></td><td>平假名（不含結合用的濁音符號、半濁音符號 U+3099、U+309A）</td></tr>
+<tr><td><code>309B..309E</code></td><td>&#x309B;&#x309C;&#x309D;&#x309E;</td></tr>
+<tr><td><code>30A1..30FE</code></td><td>片假名（包含 &#x30FB;&#x30FC;&#x30FD;&#x30FE;）</td></tr>
+<tr><td><code>4E00..9FFF</code></td><td>CJK 統一表意文字</td></tr>
+<tr><td><code>FF01..FF5E</code></td><td>全形英數字與符號</td></tr>
+</tbody>
+</table></div>
+<p>此表只選用不含結合字元、經 NFC 正規化後形狀不變的字元。實作只能依此表判定，不得使用作業系統或程式語言的 Unicode 表（因為結果會因實作而異）。顯示名稱不放入對局記錄（憑證）中。</p>
+</section>
+<section id="transport">
+<h2 id="sec-4">4. 通訊層（libp2p）</h2>
+
+<h3 id="sec-4-1">4.1 使用的協定</h3>
+<p>通訊使用 libp2p。ShogiBoardQ 以 rust-libp2p 0.56 製作，相容實作必須能以下列協定互相連線。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>層</th><th>協定</th><th>備註</th></tr></thead>
+<tbody>
+<tr><td>傳輸</td><td>QUIC v1（multiaddr 為 <code>/ip4/…/udp/&lt;port&gt;/quic-v1</code>）</td><td>只要能以其中一種連線即可。應當兩種都支援</td></tr>
+<tr><td>傳輸</td><td>TCP（<code>/ip4/…/tcp/&lt;port&gt;</code>）＋ multistream-select 1.0 ＋ Noise（<code>/noise</code>）＋ Yamux（<code>/yamux/1.0.0</code>）</td><td>經由中繼的連線也使用此 Noise 與 Yamux</td></tr>
+<tr><td>識別</td><td>Identify（<code>/ipfs/id/1.0.0</code>）</td><td>第 4.3 節</td></tr>
+<tr><td>存活檢測</td><td>Ping（<code>/ipfs/ping/1.0.0</code>）</td><td><strong>必須</strong>。每 10 秒傳送一次，30 秒沒有回應就關閉連線。與不支援 Ping 的對象的連線，立即關閉</td></tr>
+<tr><td>中繼</td><td>Circuit Relay v2（<code>/libp2p/circuit/relay/0.2.0/hop</code>、<code>/stop</code>）</td><td>第 4.4 節。用於 <code>sbq-limited-1</code></td></tr>
+<tr><td>切換為直接連線</td><td>DCUtR（<code>/libp2p/dcutr</code>）</td><td>可以省略。在只使用中繼的設定下不得進行</td></tr>
+<tr><td>可達性確認</td><td>AutoNAT v2（<code>/libp2p/autonat/2/dial-request</code>、<code>/libp2p/autonat/2/dial-back</code>）</td><td>可以省略。在只使用中繼的設定下不得進行。請對方確認的，只限於對方觀測到的自身位址候選中、網際網路上的直接位址。不使用會把監聽位址（包括私人、loopback、link-local 位址）傳給對方的 AutoNAT v1（<code>/libp2p/autonat/1.0.0</code>）。ShogiBoardQ 的協作節點會回應 v2 的確認，一般玩家則不回應</td></tr>
+<tr><td>對局</td><td><code>/shogiboardq/game/1.0.0</code></td><td>第 6 章以後。本文件的主體</td></tr>
+</tbody>
+</table></div>
+<p>不使用 mDNS、Kademlia（DHT）、GossipSub。沒有自動尋找對手的機制，主動發起連線的對象只有使用者指定的協作節點，以及邀請、對局的對手。</p>
+
+<h3 id="sec-4-2">4.2 監聽</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>網路</th><th>監聽</th></tr></thead>
+<tbody>
+<tr><td><code>sbq-local-1</code></td><td>IPv4 的所有介面。TCP 與 UDP（QUIC）的 <strong>48210 號</strong>連接埠。若已被使用則改用空閒的連接埠。不在 IPv6 上監聽</td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>IPv4 與 IPv6 的所有介面。TCP 與 UDP（QUIC）的空閒連接埠</td></tr>
+</tbody>
+</table></div>
+<p>連接埠號碼會放入邀請字串的目的位址中，因此即使相容實作在其他連接埠監聽也能連線。48210 號是預設值，目的是讓使用者能決定要在防火牆中允許哪個連接埠。</p>
+<p>不得在其他程序正在監聽的連接埠上監聽。libp2p 的 TCP 監聽以允許多個程序共用同一連接埠的設定（<code>SO_REUSEPORT</code>）開啟，因此即使連接埠已被使用也能開啟，到達的連線會被分配給兩個程序（同一電腦上的第二個應用程式，或其他實作）。ShogiBoardQ 會先以不共用的監聽方式試開 TCP 的 48210 號，確認未被使用後再開啟。在確認到開啟之間，若同時啟動的程序也做同樣的事，雙方都會開啟成功，因此先開啟 UDP（QUIC。不加共用的設定），只有成功開啟 48210 號 UDP 的程序，才在 TCP 也使用 48210 號。</p>
+
+<h3 id="sec-4-3">4.3 Identify</h3>
+<p>Identify 的 <code>protocolVersion</code> 設為 <code>/shogiboardq/1.0.0</code>，<code>agentVersion</code> 設為實作的名稱與版本（ShogiBoardQ 為 <code>shogiboardq-peer/&lt;版本&gt;</code>）。不得因對方的這些值而拒絕連線（網路的不同以 networkId 檢查）。</p>
+<p>在 Identify 中發布的自身位址（listenAddrs）中，不得直接放入監聽位址。可以放入的只有已確認或已決定對方實際能到達的位址（在 <code>sbq-limited-1</code> 中，是經可達性確認驗證過的網際網路上的位址，以及經由中繼的位址。協作節點也可以放入網際網路上的監聽位址。第 4.4 節）。在 <code>sbq-local-1</code> 中不放入（Identify 也會送達沒有邀請的對象，因此不把電腦的私人位址清單發給只是連上監聽連接埠的區域網路裝置。給對方的目的位址以邀請字串傳遞）。不以 Identify 的 push 通知監聽位址的變更。</p>
+
+<h3 id="sec-4-4">4.4 協作節點與中繼</h3>
+<p>透過網際網路（<code>sbq-limited-1</code>）時，由使用者指定<strong>協作節點</strong>的位址（<code>/ip4/…/tcp/…/p2p/&lt;PeerId&gt;</code> 形式。最多 16 個）。協作節點是支援 Circuit Relay v2 的 hop 與 Identify、Ping（以及 AutoNAT 的回應）的 libp2p 節點，不讀取對局訊框的內容。只要是標準的 Circuit Relay v2 中繼節點，就可以作為協作節點使用。</p>
+<ul>
+<li>實作不論自身的可達性如何，都向 Identify 的 protocols 中有中繼 hop 的協作節點預約中繼（最多 2 個）。預約被拒絕時，或與協作節點的連線中斷而失去預約時，應當稍候再重新請求（ShogiBoardQ 為 30 秒後）。若不重新請求，在重新連線之前，邀請字串中不會有經由中繼的目的位址。</li>
+<li>經由中繼的自身位址為 <code>&lt;協作節點的位址&gt;/p2p/&lt;協作節點的 PeerId&gt;/p2p-circuit</code> 形式，由使用者指定的協作節點位址產生，並放入邀請字串（指定了相同協作節點的對手可以直接使用）。</li>
+<li>協作節點必須在預約的回應中傳回自身的位址。沒有位址的回應，libp2p 的實作（ShogiBoardQ 使用的 rust-libp2p 等）會當作預約失敗處理。剛啟動的中繼節點在可達性確認（AutoNAT）完成之前沒有自身的位址，可能使這段期間的預約全部失敗。協作節點在網際網路上的位址開始監聽後，應當不等確認就把它當作自身的位址（ShogiBoardQ 的協作節點就是這麼做的）。</li>
+<li>經由中繼的目的位址，也對開頭的 IP 位址（協作節點的位址）套用第 4.5 節的規則。</li>
+<li>ShogiBoardQ 的協作節點（<code>shogiboardq-peer --service --relay</code>）每條中繼在達到 30 分鐘或 8 MiB 時切斷。切斷後，對局以重新連線的步驟（<a href="#sec-11">第 11 章</a>）重新連線。</li>
+</ul>
+
+<h3 id="sec-4-5">4.5 目的位址的規則</h3>
+<p>可以連線的目的位址，以及可以作為自身位址發布的位址，依網路而定。IP 位址分類如下。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>分類</th><th>範圍</th></tr></thead>
+<tbody>
+<tr><td>loopback</td><td>127.0.0.0/8、::1（比下面的「不使用」先判定）</td></tr>
+<tr><td>私人</td><td>10.0.0.0/8、172.16.0.0/12、192.168.0.0/16、fc00::/7（ULA）</td></tr>
+<tr><td>不使用</td><td>0.0.0.0/8、169.254.0.0/16、100.64.0.0/10、224.0.0.0/4、240.0.0.0/4（包含 255.255.255.255）、192.0.0.0/24、192.0.2.0/24、198.51.100.0/24、203.0.113.0/24、198.18.0.0/15、192.88.99.0/24、::、嵌入 IPv4 的 IPv6（::/96、::ffff:0:0/96）、100::/64、fe80::/10、fec0::/10、ff00::/8、2001::/32（Teredo）、2001:db8::/32、64:ff9b::/32、所嵌入的 IPv4 不是網際網路上位址的 6to4（2002::/16）</td></tr>
+<tr><td>網際網路</td><td>不屬於以上任何一類的位址</td></tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>網路</th><th>可以連線的目的位址</th><th>接受的連線來源</th></tr></thead>
+<tbody>
+<tr><td><code>sbq-local-1</code></td><td>loopback、私人、經由中繼。不連線到網際網路上的位址</td><td>只有 loopback 與私人位址。來自其他來源的連線，在建立為連線之前就關閉（TCP 是在開始 Noise 交握之前）。經由中繼的連線沒有來源 IP，因此在這裡不拒絕</td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>網際網路上的位址與經由中繼。私人位址只限於邀請字串中的目的位址，且使用者已針對該邀請允許時。不連線到 loopback 與「不使用」的位址</td><td>不限制</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>可以作為目的位址使用的只有以下形式：<code>/ip4|ip6/…/tcp/&lt;port&gt;</code>、<code>/ip4|ip6/…/udp/&lt;port&gt;/quic-v1</code>（允許末尾的 <code>/p2p/&lt;PeerId&gt;</code>），以及經由中繼的 <code>[直接的形式]/p2p/&lt;中繼&gt;/p2p-circuit[/p2p/&lt;目的地&gt;]</code>、<code>/p2p/&lt;中繼&gt;/p2p-circuit[/p2p/&lt;目的地&gt;]</code>。丟棄重疊兩個 IP 的目的位址、含有未知元件的目的位址，以及巢狀的中繼（在這些形式中，開頭的 IP 是唯一的 IP。libp2p 的 TCP 會連線到最後的 IP，因此只檢查開頭就可能繞過規則）。v1 不使用 DNS 名稱的目的位址（<code>/dns</code>、<code>/dns4</code>、<code>/dns6</code>、<code>/dnsaddr</code>）。不得放入邀請字串，若有則丟棄。</li>
+<li>每個對等節點的目的位址最多 8 個。同時嘗試的連線最多 8 個，失敗的目的位址 60 秒內不重試。</li>
+<li>在 <code>sbq-limited-1</code> 中，從自己發布的位址（邀請、Identify）中排除私人位址。</li>
+</ul>
+
+<h3 id="sec-4-6">4.6 不使用直接連線的設定</h3>
+<p>這是不讓對局對手看到自己 IP 位址的設定（是否實作可自行決定）。實作此設定時，必須遵守以下事項。</p>
+<ul>
+<li>直接連線的目的位址，只限於使用者指定的協作節點的目的位址（以及該節點在 Identify 中自報的其他目的位址）。對其他目的位址的直接連線，無論從哪個途徑發起都予以拒絕。</li>
+<li>經由中繼的目的位址，只在中繼是指定的協作節點時使用（未指定的中繼會看到自己的 IP）。</li>
+<li>作為自身位址發布的只限於經由中繼的位址（邀請、Identify）。</li>
+<li>不進行 AutoNAT 與 DCUtR。因為兩者都會把自身位址的候選交給對方。</li>
+</ul>
+<p>對手以此設定發出邀請時，只要照常連線到邀請字串中經由中繼的目的位址即可，協定上沒有差異。</p>
+<p>使用此設定的一方作為<strong>申請方</strong>時，只連線到邀請字串的目的位址中，以自己指定的協作節點為中繼的位址。因此，邀請方需要向<strong>與申請方所指定相同的協作節點</strong>預約中繼，並把經由該中繼的位址放入邀請字串（雙方指定相同的協作節點）。沒有可用的目的位址時，申請方不發起連線。</p>
+
+<h3 id="sec-4-7">4.7 上限</h3>
+<p>ShogiBoardQ 會關閉或不接受超過以下上限的連線。相容實作必須在此範圍內運作。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>上限</th></tr></thead>
+<tbody>
+<tr><td>已建立連線的總數</td><td>32（建立前的連入與連出各 8 個。來自同一來源 IP、尚未建立的連入為 3 個）</td></tr>
+<tr><td>建立連線（加密交握與多工協商）</td><td>20 秒</td></tr>
+<tr><td>每個對等節點的連線</td><td>4</td></tr>
+<tr><td>從同一位址區段（IPv4 為 /24，IPv6 為 /48。在 <code>sbq-local-1</code> 中為每個來源 IP）接受的連線</td><td>8</td></tr>
+<tr><td>對局串流（開始前與對局中的合計）</td><td>8</td></tr>
+<tr><td>已到達、正在等待第一個訊框的對局串流</td><td>全體 16 條，每個對等節點 1 條。第一個訊框要在 5 秒內傳送（延遲則關閉）。對局中，對局對手以外的串流不讀取就關閉</td></tr>
+<tr><td>每條連線的 Yamux 串流</td><td>64</td></tr>
+<tr><td>保持沒有串流的連線的時間</td><td>120 秒</td></tr>
+</tbody>
+</table></div>
+</section>
+<section id="invite">
+<h2 id="sec-5">5. 邀請字串</h2>
+<p>對局的對手由邀請字串決定。邀請字串由邀請方產生，再由使用者透過其他途徑交給對手。邀請字串中包含連線到邀請方的位址，以及只能使用一次的通關密語（token）。</p>
+
+<h3 id="sec-5-1">5.1 格式</h3>
+<pre><code>invite = "sbqinv1." + base64url(body) + "." + hex(H(body)[0..4])
+body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt])</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型別</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>networkId</td><td>bstr(32)</td><td><a href="#sec-3-1">第 3.1 節</a></td></tr>
+<tr><td>peerId</td><td>bstr(38)</td><td>邀請方 PeerId 的二進位表示（只限<a href="#sec-3-2">第 3.2 節</a>的形式）</td></tr>
+<tr><td>addr</td><td>bstr</td><td>可達候選位址的 multiaddr 二進位表示。不加末尾的 <code>/p2p/&lt;邀請方&gt;</code>（保留經由中繼的位址中的 <code>/p2p/&lt;協作節點&gt;</code>）。0〜8 個，每個 1〜100 位元組</td></tr>
+<tr><td>token</td><td>bstr(32)</td><td>以密碼學用的亂數產生器產生</td></tr>
+<tr><td>expiresAt</td><td>uint</td><td>有效期限（UNIX 秒）。產生後 600 秒</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>base64url 使用 RFC 4648 的 URL 用字元，不加 <code>=</code>。</li>
+<li>末尾的檢查值是 body 的 SHA-256 前 4 個位元組的小寫十六進位（8 個字元）。用於發現打錯或缺漏，並非秘密。</li>
+<li>整個字串必須在 1024 位元組以下。</li>
+</ul>
+
+<h3 id="sec-5-2">5.2 產生方</h3>
+<ul>
+<li>可達候選中只放入對手實際能使用的位址（<a href="#sec-4-5">第 4.5 節</a>、<a href="#sec-4-6">第 4.6 節</a>）。在 <code>sbq-local-1</code> 中，先放入同一區域網路的對手使用的私人位址，最後放入只能在同一台電腦上使用的 loopback。</li>
+<li>同時有效的邀請最多 4 個，產生第 5 個時，使最舊的一個失效。</li>
+<li>邀請只能使用一次。接受了通關密語相符的串流後，就把該邀請標為已使用（<a href="#sec-6-3">第 6.3 節</a>）。</li>
+<li>不得把 token 輸出到記錄檔等處。要引導使用者透過只有對手能收到的途徑交付邀請字串（因為其中含有連線位址）。</li>
+</ul>
+
+<h3 id="sec-5-3">5.3 讀取方</h3>
+<p>讀取前，只去除前後的空白（ASCII 的空格、Tab、CR、LF）。然後檢查以下所有項目，只要有一項不符就不使用。</p>
+<ol>
+<li>整體在 1024 位元組以下，前綴為 <code>sbqinv1.</code>，其餘部分以 <code>.</code> 恰好分成兩部分。</li>
+<li>前一部分能作為 base64url 讀取，後一部分與 body 的 SHA-256 前 4 個位元組的小寫十六進位一致。</li>
+<li>body 是確定性CBOR，是 7 個元素的陣列，且標籤、版本、各項目的型別與長度符合第 5.1 節。</li>
+<li>networkId 與自己目前加入的網路一致。</li>
+<li>expiresAt 晚於目前時刻，且在從現在起 660 秒（600 秒＋時鐘誤差 60 秒）以內。</li>
+<li>peerId 不是自己的 PeerId。</li>
+</ol>
+<p>可達候選<strong>必須全部都能作為 multiaddr 的二進位表示讀取</strong>。只要有 1 個無法讀取（含有未知的協定編號等），就不使用整個邀請字串。產生方只使用廣泛使用的協定（<code>ip4</code>、<code>ip6</code>、<code>tcp</code>、<code>udp</code>、<code>quic-v1</code>、<code>p2p</code>、<code>p2p-circuit</code>）書寫。</p>
+<p>在能讀取的可達候選中，只使用目前網路下可以連線的目的位址（<a href="#sec-4-5">第 4.5 節</a>），其他的丟棄。若沒有任何可用的目的位址，就不連線。</p>
+</section>
+<section id="stream">
+<h2 id="sec-6">6. 對局串流與訊框</h2>
+
+<h3 id="sec-6-1">6.1 串流</h3>
+<p>協商與對局的往來，在 libp2p 協定 <code>/shogiboardq/game/1.0.0</code> 的一條串流上進行。本文件中寫「連線」時，除非另有說明，皆指這條串流。串流被關閉或重設稱為「斷線」。</p>
+<p>串流中反覆傳送<strong>4 位元組大端序的長度</strong>，以及該長度的<strong>訊框</strong>（確定性CBOR）。長度必須為 1〜65536（64 KiB）。接收方先檢查長度，再配置空間。</p>
+
+<h3 id="sec-6-2">6.2 訊框的外框</h3>
+<pre><code>Frame = [version, type, requestId, gameId, payload]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型別</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>version</td><td>uint</td><td>1</td></tr>
+<tr><td>type</td><td>uint</td><td>1〜11（下表）</td></tr>
+<tr><td>requestId</td><td>uint</td><td>傳送方賦予的編號（0〜2<sup>64</sup>−1）。接收方不看這個值。ShogiBoardQ 以協商的第一個訊框為 1，每傳送一次就加 1（重新連線後也接續計數）。只有 INVITE_TOKEN 固定為 0</td></tr>
+<tr><td>gameId</td><td>bstr(32)</td><td>對局ID（<a href="#sec-7-4">第 7.4 節</a>）。對局ID 決定之前的訊框為 zero32</td></tr>
+<tr><td>payload</td><td>陣列</td><td>內容依種類而定</td></tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>type</th><th>名稱</th><th>使用情境</th><th>節</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>HELLO</td><td>開始前的身分宣告／重新連線的身分宣告</td><td><a href="#sec-8-2">8.2</a>、<a href="#sec-11-2">11.2</a></td></tr>
+<tr><td>2</td><td>START_AGREEMENT</td><td>出示開始協議</td><td><a href="#sec-8-3">8.3</a></td></tr>
+<tr><td>3</td><td>START_SIGNATURE</td><td>對開始協議的簽章</td><td><a href="#sec-8-5">8.5</a></td></tr>
+<tr><td>4</td><td>STATE_PROPOSE</td><td>狀態（著手）的提議</td><td><a href="#sec-9-2">9.2</a></td></tr>
+<tr><td>5</td><td>STATE_ACCEPT</td><td>狀態的認可</td><td><a href="#sec-9-3">9.3</a></td></tr>
+<tr><td>6</td><td>CONTROL</td><td>控制（準備完成、恢復、結果的提議、中斷、錯誤）</td><td><a href="#sec-9-5">9.5</a></td></tr>
+<tr><td>7</td><td>SYNC_REQUEST</td><td>重新連線後請求狀態</td><td><a href="#sec-11-4">11.4</a></td></tr>
+<tr><td>8</td><td>SYNC_CHUNK</td><td>重新連線後傳送狀態</td><td><a href="#sec-11-4">11.4</a></td></tr>
+<tr><td>9</td><td>RESULT_SIGNATURE</td><td>對結果的簽章</td><td><a href="#sec-10-4">10.4</a></td></tr>
+<tr><td>10</td><td>REJECT</td><td>開始前的拒絕、取消</td><td><a href="#sec-8-7">8.7</a></td></tr>
+<tr><td>11</td><td>INVITE_TOKEN</td><td>邀請的通關密語（只在串流的最開頭）</td><td><a href="#sec-6-3">6.3</a></td></tr>
+</tbody>
+</table></div>
+<p>收到不符合外框規則（長度、確定性CBOR、5 個元素的陣列、version、type 的範圍、gameId 的長度、payload 為陣列）的訊框時，必須關閉串流。</p>
+
+<h3 id="sec-6-3">6.3 開啟串流的步驟與 INVITE_TOKEN</h3>
+<pre><code>INVITE_TOKEN = [1, 11, 0, zero32, [token]]   ; token 為 bstr(32)</code></pre>
+<p><strong>申請方</strong>（收到邀請字串的一方）依下列步驟進行。</p>
+<ol>
+<li>連線到邀請字串中的 peerId 與目的位址，開啟 <code>/shogiboardq/game/1.0.0</code> 的串流（ShogiBoardQ 在 30 秒後放棄）。</li>
+<li>開啟後<strong>立即</strong>把 INVITE_TOKEN 作為第一個訊框傳送（requestId 為 0）。</li>
+<li>接著傳送 HELLO（<a href="#sec-8-2">第 8.2 節</a>）。</li>
+</ol>
+<p><strong>邀請方</strong>對到達的串流，最多等待第一個訊框 5 秒，並依下列方式決定。</p>
+<ul>
+<li>第一個訊框是 INVITE_TOKEN，且其 token 與某個尚未使用、在有效期限內的邀請的 token 一致時，把該邀請標為已使用，並接受串流。比對以處理時間與內容無關的比較方式，對所有邀請進行。</li>
+<li>其他情況（未在時限內到達、不是 INVITE_TOKEN、token 不一致），不回傳任何東西就關閉串流。</li>
+</ul>
+<p>INVITE_TOKEN 的 requestId 必須為 0，gameId 必須為 zero32。不得在串流開頭以外的位置傳送 INVITE_TOKEN（收到時視為違反外框規則而關閉）。對局中接受的串流寫在<a href="#sec-11-1">第 11.1 節</a>。</p>
+
+<h3 id="sec-6-4">6.4 頻率與大小的上限</h3>
+<p>ShogiBoardQ 會關閉超過以下上限的串流。相容實作必須在此範圍內傳送。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>上限</th></tr></thead>
+<tbody>
+<tr><td>每個訊框</td><td>65536 位元組</td></tr>
+<tr><td>訊框頻率（到雙方都傳送 START_SIGNATURE 為止）</td><td>每秒 5 個（突發 10 個）</td></tr>
+<tr><td>訊框頻率（之後。<strong>只限已交換 START_SIGNATURE 的串流</strong>）</td><td>每秒 20 個（突發 40 個）</td></tr>
+<tr><td>訊框頻率（重新連線時開啟的串流）</td><td>維持每秒 5 個（突發 10 個）</td></tr>
+<tr><td>等待處理的接收資料量</td><td>256 KiB</td></tr>
+</tbody>
+</table></div>
+<p>頻率以每條串流的權杖桶（token bucket。每收到 1 個就減 1，隨時間恢復到上限）計算。重新連線時開啟的串流不交換 START_SIGNATURE，因此上限維持每秒 5 個（ShogiBoardQ 目前的行為）。重新連線的核對（<a href="#sec-11">第 11 章</a>）以及緊接其後的重新傳送，必須控制在此範圍內。</p>
+</section>
+<section id="values">
+<h2 id="sec-7">7. 作為簽章與雜湊對象的值</h2>
+<p>這裡列出的值，其確定性CBOR位元組序列直接作為簽章與雜湊的對象。元素的順序、型別、標籤只要改變一處，簽章就會不符。</p>
+
+<h3 id="sec-7-1">7.1 條件</h3>
+<pre><code>Rules         = ["SBQ-RULES", 1, initialSfen, 512, "fourfold-draw", "perpetual-check-loss",
+                 "no-declaration", "human", "human"]
+TimeControl   = ["SBQ-TIME", 1, mainMs, byoyomiMs, 0, 0]
+NetworkPolicy = ["SBQ-NET", 1, 10000, 30000, 120000, 5000, 86400000, 10000, 600000]</code></pre>
+<ul>
+<li><strong>Rules</strong>：v1 可用的值只有一個。<code>initialSfen</code> 是平手的初始局面 <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>。其意義為：平手、512 手和棋、千日手為和棋、連續王手千日手由王手方判負、沒有入玉宣言、人與人對局。</li>
+<li><strong>TimeControl</strong>：<code>mainMs</code> 為基本用時（0〜86,400,000），<code>byoyomiMs</code> 為讀秒（0〜600,000）。兩者皆為 0 時拒收。後面的 2 個 0 為保留欄位（加秒、延遲。v1 中只能為 0）。</li>
+<li><strong>NetworkPolicy</strong>：v1 可用的值只有一個。依序為：ping 間隔 10 秒、著手的確認未到達即視為斷線的時間 30 秒、等待重新連線的時間 120 秒、重送間隔 5 秒、每局實際時間的上限 24 小時、消耗時間的容許誤差 10 秒、每局斷線時間合計的上限 600 秒。</li>
+</ul>
+<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7
+timeControlHash   = H(CBOR(TimeControl))
+networkPolicyHash = H(CBOR(NetworkPolicy))</code></pre>
+<p>Rules、NetworkPolicy 只在收到的值與上面的值完全一致時才接受。</p>
+
+<h3 id="sec-7-2">7.2 狀態（State）</h3>
+<pre><code>State      = ["SBQ-STATE", 1, gameId, ply, previousStateHash, moveUsi, sfen, spentMs, blackMainMs, whiteMainMs]
+Transcript = ["SBQ-TRANSCRIPT", 1, gameId, [State0, State1, ...]]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型別</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>gameId</td><td>bstr(32)</td><td>對局ID</td></tr>
+<tr><td>ply</td><td>uint</td><td>手數（0〜512）。State0 為 0</td></tr>
+<tr><td>previousStateHash</td><td>bstr(32)</td><td>前一個 State 的 <code>H(CBOR(State))</code>。State0 為 zero32</td></tr>
+<tr><td>moveUsi</td><td>ASCII 的 tstr</td><td>到達此狀態的著手（USI 格式。第 7.3 節）。State0 為空字串，其他為 4〜5 個字元</td></tr>
+<tr><td>sfen</td><td>ASCII 的 tstr</td><td>走棋後的局面（第 7.3 節的形式）。1〜256 位元組</td></tr>
+<tr><td>spentMs</td><td>uint</td><td>這一手使用的時間（自報。0〜86,400,000＋600,000）。State0 為 0</td></tr>
+<tr><td>blackMainMs、whiteMainMs</td><td>uint</td><td>走完這一手後，先手、後手基本用時的剩餘（0〜86,400,000）</td></tr>
+</tbody>
+</table></div>
+<p>State0（初始局面）為下列值，雙方能計算出相同的值。</p>
+<pre><code>State0 = ["SBQ-STATE", 1, gameId, 0, zero32, "", initialSfen, 0, mainMs, mainMs]</code></pre>
+<p>輪到哪一方走棋由 ply 決定。<code>ply</code> 為偶數的 State 之後由先手走，奇數之後由後手走。</p>
+
+<h3 id="sec-7-3">7.3 著手與局面的寫法</h3>
+<p>為了讓不同的實作得到相同的位元組序列，著手與局面的字串只使用以下形式。收到的字串不是此形式時拒收。</p>
+<ul>
+<li><strong>著手（moveUsi）</strong>：USI 的形式。棋盤上的著手為 <code>&lt;起點&gt;&lt;終點&gt;</code>（例 <code>7g7f</code>），成時在末尾加 <code>+</code>（例 <code>8h2b+</code>）。打入為 <code>&lt;棋子&gt;*&lt;終點&gt;</code>，棋子為大寫的 <code>P L N S G B R</code>（例 <code>P*5e</code>）。筋為 <code>1</code>〜<code>9</code>，段為 <code>a</code>〜<code>i</code>。前後不加空格。</li>
+<li><strong>局面（sfen）</strong>：<code>&lt;棋盤&gt; &lt;走棋方&gt; &lt;持駒&gt; &lt;手數&gt;</code> 以 1 個空格分隔。
+  <ul>
+  <li>棋盤依 USI 的 SFEN（從第 1 段到第 9 段，每段從 9 筋到 1 筋。空格子以數字表示，成駒前置 <code>+</code>，先手為大寫、後手為小寫）。</li>
+  <li>走棋方為下一步要走的一方（先手 <code>b</code>、後手 <code>w</code>）。</li>
+  <li>持駒依先手的 <code>R B G S N L P</code>、接著後手的 <code>r b g s n l p</code> 的順序，只寫出持有的棋子。2 枚以上時在前面加上枚數（例 <code>2P</code>）。雙方都沒有持駒時為 <code>-</code>。</li>
+  <li>手數欄為 <code>ply + 1</code>（State0 為 1）。</li>
+  </ul>
+</li>
+</ul>
+
+<h3 id="sec-7-4">7.4 開始協議與對局ID</h3>
+<pre><code>StartAgreement = ["SBQ-START", 1, networkId, blackNonce, whiteNonce, blackPlayerKey, whitePlayerKey,
+                  blackSessionKey, whiteSessionKey, blackPeerIdHash, whitePeerIdHash,
+                  rulesHash, timeControlHash, networkPolicyHash, startBefore]
+gameId = H(CBOR(StartAgreement))</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型別</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>networkId</td><td>bstr(32)</td><td><a href="#sec-3-1">第 3.1 節</a></td></tr>
+<tr><td>blackNonce、whiteNonce</td><td>bstr(32)</td><td>決定先後手的亂數（<a href="#sec-8-4">第 8.4 節</a>）。分別屬於成為先手的一方、成為後手的一方</td></tr>
+<tr><td>blackPlayerKey、whitePlayerKey</td><td>bstr(32)</td><td>玩家金鑰的公開金鑰</td></tr>
+<tr><td>blackSessionKey、whiteSessionKey</td><td>bstr(32)</td><td>單局金鑰的公開金鑰</td></tr>
+<tr><td>blackPeerIdHash、whitePeerIdHash</td><td>bstr(32)</td><td>PeerId 二進位表示（<a href="#sec-3-2">第 3.2 節</a>）的 SHA-256（不以 CBOR 包裝，直接對位元組序列取雜湊）</td></tr>
+<tr><td>rulesHash、timeControlHash、networkPolicyHash</td><td>bstr(32)</td><td>第 7.1 節</td></tr>
+<tr><td>startBefore</td><td>uint</td><td>開始的期限（UNIX 秒）。由申請方設為產生時刻的 180 秒後</td></tr>
+</tbody>
+</table></div>
+<p>4 把公開金鑰必須全部不同，2 個 PeerIdHash 必須不同，2 個 nonce 必須不同。不符合的 StartAgreement 予以拒收。</p>
+
+<h3 id="sec-7-5">7.5 認可、控制、結果</h3>
+<pre><code>StateApproval = ["SBQ-APPROVE", 1, gameId, ply, stateHash]            ; stateHash = H(CBOR(State))
+Control       = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]
+FinalResult   = ["SBQ-RESULT", 1, gameId, finalStateHash, transcriptHash, ply, outcome, cause]
+
+connectionId   = H(CBOR(["SBQ-CONN", 1, gameId, blackRandom, whiteRandom]))
+transcriptHash = H(CBOR(Transcript))     ; 從 State0 到 ply、雙方都已認可的 State
+resultDigest   = H(CBOR(FinalResult))    ; 結果的識別碼</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>值</th><th>簽章的金鑰</th><th>意義</th></tr></thead>
+<tbody>
+<tr><td>StartAgreement</td><td>玩家金鑰</td><td>同意以此條件、此對手、此先後手開始對局</td></tr>
+<tr><td>StateApproval</td><td>單局金鑰</td><td>認可該手數的 State 為正確（走棋方作為自己的著手，對方作為收到的著手）</td></tr>
+<tr><td>Control</td><td>單局金鑰</td><td>表示控制訊息（<a href="#sec-9-5">第 9.5 節</a>）是自己發出的</td></tr>
+<tr><td>FinalResult</td><td>玩家金鑰</td><td>同意該結果</td></tr>
+</tbody>
+</table></div>
+<p>FinalResult 的 <code>ply</code> 為 0〜512，<code>finalStateHash</code> 是最後一個 State 的雜湊。<code>outcome</code> 與 <code>cause</code> 的值以及允許的組合寫在<a href="#sec-10-1">第 10.1 節</a>。組合不符的 FinalResult 予以拒收。</p>
+<p>Control 的 <code>sequence</code> 為 1 以上，<code>kind</code> 為 1〜6。<code>connectionId</code> 是每條連線（串流）都會改變的值，<code>blackRandom</code>、<code>whiteRandom</code> 是先手、後手為該連線提出的 32 位元組亂數（第一次連線時為開始前 HELLO 的 <code>connectionRandom</code>，重新連線時為重新連線 HELLO 中的值）。</p>
+</section>
+<section id="start">
+<h2 id="sec-8">8. 開始前的步驟</h2>
+
+<h3 id="sec-8-1">8.1 流程</h3>
+<p>設申請方為 A，邀請方為 B。所有訊框都在同一條串流中傳送。</p>
+<pre><code>A（申請方）                                    B（邀請方）
+  ── INVITE_TOKEN ─────────────────────────→   比對通關密語（第 6.3 節）
+  ── HELLO（role 1, commitA）──────────────→   檢查。拒絕時傳送 REJECT
+  ←───────── HELLO（role 2, nonceB, 條件）──
+  決定先後手，產生 StartAgreement
+  ── START_AGREEMENT ──────────────────────→   檢查（第 8.3 節）
+            ［雙方的使用者在條件確認畫面確認對手與條件］
+  使用者按下「開始」
+  ── START_SIGNATURE（A 的簽章）───────────→   檢查簽章
+                                               使用者按下「開始」
+  ←─────────── START_SIGNATURE（B 的簽章）──
+  檢查簽章
+            ［雙方的簽章已齊備＝對局開始。前往第 9.1 節］</code></pre>
+<ul>
+<li>A 在送出自己的 START_SIGNATURE 之前，不接受 B 的 START_SIGNATURE。</li>
+<li>B 在檢查 A 的 START_SIGNATURE 之前，不得傳送自己的 START_SIGNATURE。若 B 的使用者先按下了「開始」，就在檢查完 A 的簽章時傳送。</li>
+<li>雙方在使用者按下「開始」之前，都不得用玩家金鑰簽章。</li>
+</ul>
+
+<h3 id="sec-8-2">8.2 HELLO（開始前）</h3>
+<pre><code>Frame   = [1, 1, requestId, zero32, payload]
+payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型別</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>role</td><td>uint</td><td>1＝申請方，2＝邀請方</td></tr>
+<tr><td>networkId</td><td>bstr(32)</td><td>自己的網路。與對方不同時 REJECT（WRONG_NETWORK）</td></tr>
+<tr><td>（支援的版本）</td><td>uint 的陣列</td><td>支援的協定版本清單（最多 8 個）。v1 為 <code>[1]</code>。不含 1 時拒收</td></tr>
+<tr><td>peerId</td><td>bstr</td><td>自己 PeerId 的二進位表示（1〜64 位元組）。接收方檢查它與串流對方的 PeerId 一致</td></tr>
+<tr><td>connectionRandom</td><td>bstr(32)</td><td>用於此連線的亂數。用於第一個 connectionId（<a href="#sec-7-5">第 7.5 節</a>）</td></tr>
+<tr><td>playerKey</td><td>bstr(32)</td><td>玩家金鑰的公開金鑰（自報值。在檢查開始簽章之前，不當作身分處理）</td></tr>
+<tr><td>sessionKey</td><td>bstr(32)</td><td>為這局對局產生的單局金鑰的公開金鑰</td></tr>
+<tr><td>displayName</td><td>tstr</td><td>顯示名稱（<a href="#sec-3-6">第 3.6 節</a>的規則。96 位元組以下）</td></tr>
+<tr><td>sidePreference</td><td>uint</td><td>先後手的希望。0＝不指定，1＝先手，2＝後手</td></tr>
+<tr><td>offerId</td><td>bstr(32)</td><td>保留欄位。一律放入 zero32。不是 zero32 時拒絕（邀請方回傳 EXPIRED，申請方回傳 CONDITION_MISMATCH）</td></tr>
+<tr><td>coin</td><td>bstr(32)</td><td>申請方為 <code>commitA</code>，邀請方為 <code>nonceB</code>（<a href="#sec-8-4">第 8.4 節</a>）</td></tr>
+<tr><td>conditions</td><td>陣列</td><td>申請方為空陣列 <code>[]</code>。邀請方為 <code>[Rules, TimeControl, NetworkPolicy]</code>（<a href="#sec-7-1">第 7.1 節</a>）</td></tr>
+</tbody>
+</table></div>
+<p>接收方除了格式之外，還要檢查以下項目，不符時傳送 REJECT（CONDITION_MISMATCH。寫明其他編號的則用該編號）。</p>
+<ul>
+<li>role 符合預期（邀請方收到的是 1，申請方收到的是 2），且 role 與有無 conditions 相符。</li>
+<li>playerKey、sessionKey 是可作為 Ed25519 公開金鑰使用的點（<a href="#sec-2-4">第 2.4 節</a>）。</li>
+<li>playerKey、sessionKey、connectionRandom 與自己的值不同。申請方還要檢查對方的 coin（nonceB）與自己的 nonceA 不同。</li>
+<li>邀請方：申請時自報的 playerKey 不是使用者已封鎖的對手（對已封鎖的對手，不告知原因而回傳 BUSY）。雙方的 sidePreference 可以相容（第 8.4 節）。</li>
+</ul>
+<p>即使在比對通關密語之後，若使用者在此期間取消了邀請，邀請方就傳送 REJECT（EXPIRED）並關閉串流。已經在與其他對手協商時，不回傳 HELLO，而是傳送 REJECT（BUSY）並關閉串流（對局中，不接受對局對手以外的串流。<a href="#sec-11-1">第 11.1 節</a>）。拒絕時，不回傳 HELLO 而回傳 REJECT，不讓對方知道自己的公開金鑰。</p>
+
+<h3 id="sec-8-3">8.3 START_AGREEMENT</h3>
+<pre><code>Frame   = [1, 2, requestId, zero32, payload]
+payload = [StartAgreement, Rules, TimeControl, NetworkPolicy]</code></pre>
+<p>申請方透過邀請方的 HELLO 才首次得知條件（用時），決定先後手後產生 START_AGREEMENT。<code>startBefore</code> 設為目前時刻的 180 秒後。邀請方檢查以下所有項目，不符時傳送 REJECT（未寫明編號的為 CONDITION_MISMATCH）。</p>
+<ul>
+<li>Rules、NetworkPolicy 為 v1 的值，TimeControl 與自己在 HELLO 中出示的相同。3 個雜湊與 StartAgreement 中的值一致。</li>
+<li>networkId 是自己的網路。</li>
+<li>自己的 playerKey、sessionKey、nonce（nonceB）、PeerIdHash 正確地放在同一方（先手或後手）。對方的 playerKey、sessionKey、PeerIdHash 與對方的 HELLO、串流的對方一致，並放在相反的一方。</li>
+<li>對於對方那一方的 nonce（nonceA），<code>H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code> 與對方 HELLO 中的 coin（commitA）一致。</li>
+<li>先後手符合第 8.4 節的決定方式。</li>
+<li><code>startBefore</code> 晚於目前時刻，且在從現在起 210 秒（180 秒＋時鐘誤差 30 秒）以內。不符時 REJECT（EXPIRED）。</li>
+<li>4 把公開金鑰、2 個 PeerIdHash、2 個 nonce 各自不同（<a href="#sec-7-4">第 7.4 節</a>）。</li>
+</ul>
+
+<h3 id="sec-8-4">8.4 先後手的決定方式</h3>
+<p>先後手由雙方的希望（sidePreference）與雙方提出的亂數決定。</p>
+<ol>
+<li>雙方都希望特定的先後手，且希望相同（都希望先手，或都希望後手）時，無法相容，因此 REJECT（CONDITION_MISMATCH）。</li>
+<li>申請方希望先手，或邀請方希望後手時，申請方為先手。</li>
+<li>申請方希望後手，或邀請方希望先手時，申請方為後手。</li>
+<li>雙方都「不指定」時，以亂數決定。<code>coinHash = H(CBOR(["SBQ-COIN", 1, nonceA, nonceB]))</code> 最後一個位元組的最低位元為 0 時申請方為先手，為 1 時申請方為後手。</li>
+</ol>
+<p>為了不讓任何一方在看到結果後才選擇自己的值，亂數依下列順序提出。申請方產生 32 位元組的亂數 <code>nonceA</code>，在 HELLO 中只出示 <code>commitA = H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code>。邀請方在 HELLO 中直接出示 <code>nonceB</code>。申請方在 START_AGREEMENT 中（自己那一方的 nonce 欄）公開 <code>nonceA</code>。即使先後手由希望決定，也同樣進行此步驟（nonce 也負責使對局ID 唯一）。</p>
+<p class="note">在 ShogiBoardQ 的畫面上，只有邀請方能提出先後手的希望（申請方一律傳送 0）。即使相容實作在作為申請方時傳送希望，也會依上述規則處理。</p>
+
+<h3 id="sec-8-5">8.5 START_SIGNATURE</h3>
+<pre><code>Frame   = [1, 3, requestId, gameId, payload]
+payload = [side, signature]        ; side 為 1＝先手、2＝後手。signature 為 bstr(64)</code></pre>
+<p><code>signature</code> 是以自己的玩家金鑰對 <code>CBOR(StartAgreement)</code> 所做的簽章。<code>side</code> 是自己的一方。接收方檢查 <code>side</code> 是對方的一方、簽章以 StartAgreement 中對方的 playerKey 驗證正確，以及目前時刻早於 <code>startBefore</code>。不符時 REJECT（INVALID_SIGNATURE，過期時為 EXPIRED）。</p>
+<p>從檢查完對方的開始簽章時起，可以把對方的 playerKey 當作「已驗證的身分」處理。在那之前，在畫面上把它顯示為只是對方自報的值。</p>
+<p><strong>START_SIGNATURE 只傳送一次。</strong>不得重新傳送。在開始前收到第二個的一方，以 REJECT（INVALID_SIGNATURE）結束協商；在開始後收到的一方，以錯誤（CONDITION_MISMATCH）停止對局。</p>
+<p>雙方的開始簽章（先手、後手的簽章）放入對局記錄（憑證）中。</p>
+
+<h3 id="sec-8-6">8.6 期限</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>期限</th><th>長度</th><th>超過時</th></tr></thead>
+<tbody>
+<tr><td>從開始協商到雙方的開始簽章齊備</td><td>60 秒</td><td>傳送 REJECT（CANCELLED）並取消</td></tr>
+<tr><td>StartAgreement 的 <code>startBefore</code></td><td>產生後 180 秒</td><td>此後不簽章，也不接受簽章（EXPIRED）</td></tr>
+<tr><td>從雙方的開始簽章齊備到完成 State0 的認可與 READY</td><td>30 秒</td><td>不開始對局就結束（<a href="#sec-9-1">第 9.1 節</a>）</td></tr>
+</tbody>
+</table></div>
+<p>協商從「接受／開啟串流」的時點開始。開始前串流中斷時，取消協商（不重新連線。需要新的邀請字串）。</p>
+
+<h3 id="sec-8-7">8.7 REJECT</h3>
+<pre><code>Frame   = [1, 10, requestId, zero32, payload]
+payload = [errorCode]              ; errorCode 為第 12 章的表</code></pre>
+<p>在開始前（到雙方的開始簽章齊備為止）拒絕對方或取消時傳送。gameId 欄設為 zero32。接收方結束協商。使用者在條件確認畫面取消時，傳送 CANCELLED（12）。</p>
+<p>雙方的開始簽章齊備後，不得傳送 REJECT（對局中的錯誤以 CONTROL 傳達）。開始後到達的 REJECT，若 gameId 為對局ID 則忽略；若為 zero32，則視為「對局ID 不同的訊框」，以錯誤（CONDITION_MISMATCH）停止（<a href="#sec-9">第 9 章</a>開頭）。若一方取消的 REJECT 與另一方最後的開始簽章交錯，開始簽章已齊備的一方會以此錯誤結束。無論哪一方，對局都不會開始。</p>
+</section>
+<section id="play">
+<h2 id="sec-9">9. 對局中的步驟</h2>
+<p>雙方的開始簽章齊備後，所有訊框的 <code>gameId</code> 都放入對局ID。收到對局ID 不同的訊框時，以錯誤（CONDITION_MISMATCH）停止對局（<a href="#sec-9-7">第 9.7 節</a>）。</p>
+
+<h3 id="sec-9-1">9.1 開始（State0 與 READY）</h3>
+<pre><code>先手                                           後手
+  ── STATE_PROPOSE（State0, 先手的認可）───→   檢查 State0 與簽章
+  ←───────── STATE_ACCEPT（0, 後手的認可）──
+  ←───────── CONTROL READY（[state0Hash]）──   從這裡開始，觀測先手第一手的時間
+  從收到 READY 的時點起，開始第一手的計時</code></pre>
+<ul>
+<li>後手檢查收到的 State0 與<a href="#sec-7-2">第 7.2 節</a>的值完全一致，以及簽章以先手的單局金鑰驗證正確。</li>
+<li>先手檢查 READY 的 <code>state0Hash</code> 與自己的 State0 的雜湊一致。即使收到兩次 READY，也不重新初始化時鐘。</li>
+<li>若在雙方的開始簽章齊備後 30 秒內未完成到這一步，就不開始對局而結束（成為沒有結果的記錄）。</li>
+</ul>
+
+<h3 id="sec-9-2">9.2 著手的提議（STATE_PROPOSE）</h3>
+<pre><code>Frame   = [1, 4, requestId, gameId, payload]
+payload = [State, signature]       ; signature 為走棋方以單局金鑰對 StateApproval 所做的簽章（bstr(64)）</code></pre>
+<p>輪到走棋的一方決定著手後，產生下一個 State（<a href="#sec-7-2">第 7.2 節</a>），以單局金鑰對其 StateApproval 簽章後傳送。</p>
+<ul>
+<li><code>spentMs</code> 是從自己的回合開始到即將產生 State 之前的時間（以自己的時鐘計）。</li>
+<li>剩餘時間依第 9.4 節的計算決定。</li>
+<li>在對方的認可（STATE_ACCEPT）到達之前，不得提議下一手。自己未獲認可的著手，同時只能有 1 個。</li>
+<li>過了 5 秒認可仍未到達時，重新傳送<strong>相同位元組序列</strong>（requestId 也相同）的訊框。從第一次傳送起過了 30 秒仍未到達時，視為連線已中斷，轉入重新連線（<a href="#sec-11">第 11 章</a>）。</li>
+</ul>
+<p>接收方依下列順序檢查。</p>
+<ol>
+<li>State 的 gameId 是對局ID。不同時為錯誤（CONDITION_MISMATCH）。</li>
+<li><code>ply</code> 為 0 時，依第 9.1 節處理（State0 與預期值不同或簽章不正確時，為錯誤（INVALID_SIGNATURE））。<code>ply</code> 為 1 以上，但 State0 的認可與 READY 尚未完成時，為錯誤（CONDITION_MISMATCH）。</li>
+<li><code>ply</code> 在自己所知的最新 State 以下時，當作重送處理。若是相同的 State，就以 STATE_ACCEPT 重新傳送已儲存的自己的認可（不變動棋盤與時鐘）。若是同一手數但<strong>不同</strong>的 State，以錯誤（STATE_CONFLICT）停止。</li>
+<li><code>ply</code> 是最新的下一個（＋1），輪到對方走棋，且自己沒有未獲認可的著手。不符時為錯誤（STATE_CONFLICT）。</li>
+<li>簽章以對方的單局金鑰驗證正確。不符時為錯誤（INVALID_SIGNATURE）。</li>
+<li><code>previousStateHash</code> 是最新 State 的雜湊，且著手字串為第 7.3 節的形式。不符時為錯誤（INVALID_MOVE）。</li>
+<li>申報的 <code>spentMs</code> 不是超時（<code>E ≥ R + B</code>。第 9.4 節）。超時則為錯誤（CLOCK_MISMATCH）。</li>
+<li>著手在最新局面中是合法著手（<a href="#sec-9-6">第 9.6 節</a>），且 <code>sfen</code> 與以第 7.3 節形式寫出的走棋後局面一致。不符時為錯誤（INVALID_MOVE）。</li>
+<li>剩餘時間（<code>blackMainMs</code>、<code>whiteMainMs</code>）符合第 9.4 節的計算。不符時為錯誤（CLOCK_MISMATCH）。</li>
+<li>申報的 <code>spentMs</code> 與自己測得的時間相比不會過短（第 9.4 節的容許誤差）。不符時為錯誤（CLOCK_MISMATCH）。</li>
+</ol>
+<p>全部通過後，先儲存認可，再傳送 STATE_ACCEPT，並反映到棋盤上。payload 格式不符的 STATE_PROPOSE，以錯誤（INVALID_MOVE）停止。</p>
+<p class="note">步驟 3 的「重新傳送認可」，在自己已提議下一手之後可以不進行。串流會保持順序，因此最初傳送的認可一定會送達對方（未送達的情況是斷線時，此時由重新連線的核對補足）。</p>
+
+<h3 id="sec-9-3">9.3 認可（STATE_ACCEPT）</h3>
+<pre><code>Frame   = [1, 5, requestId, gameId, payload]
+payload = [ply, stateHash, signature]    ; signature 為接收方以單局金鑰對 StateApproval 所做的簽章</code></pre>
+<p>提議方檢查 <code>ply</code> 與 <code>stateHash</code> 與自己未獲認可的 State 一致，以及簽章以對方的單局金鑰驗證正確。通過後，該 State 成為<strong>雙方都已認可的狀態</strong>，並反映到棋盤上。</p>
+<ul>
+<li>對已認可著手的相同認可（<code>ply</code> 與 <code>stateHash</code> 與雙方都已認可的 State 一致的重送），予以忽略。自己有未獲認可的著手時也一樣（對方可能針對提議的重送重新傳送認可，而它在我方提議下一手之後才到達）。</li>
+<li>其他的認可（既不是針對自己未獲認可的著手，也不是針對已認可的著手），以錯誤（STATE_CONFLICT）停止。</li>
+<li>payload 格式不符的 STATE_ACCEPT，以錯誤（INVALID_SIGNATURE）停止。</li>
+</ul>
+<p>雙方都已認可的 State 序列（從 State0 到最新）是對局的正式記錄。</p>
+
+<h3 id="sec-9-4">9.4 時間規則</h3>
+<p>用時為「基本用時（R）＋每手的讀秒（B）」。設回合開始時基本用時的剩餘為 R，讀秒為 B，該手使用的時間為 E（皆為毫秒）。</p>
+<ul>
+<li><strong>可以走棋的條件</strong>：<code>E &lt; R + B</code>。<code>E ≥ R + B</code> 為超時，不能走該手（與邊界相同的值為超時）。</li>
+<li><strong>走棋後的剩餘</strong>：走棋方的基本用時為 <code>max(R − E, 0)</code>，對方的不變。將其寫入 State 的 <code>blackMainMs</code>、<code>whiteMainMs</code>。</li>
+</ul>
+<p>時間由走棋方以自己的時鐘測量並申報。對方則與自己的時鐘觀測到的時間對照。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>測量的對象</th><th>起點</th></tr></thead>
+<tbody>
+<tr><td>自己回合的時間（E）</td><td>先手的第一手，為收到 READY 的時點。其他為檢查完對方的著手並傳送 STATE_ACCEPT 的時點</td></tr>
+<tr><td>對方回合的觀測</td><td>第一次傳送自己的 STATE_PROPOSE 的時點。後手觀測先手的第一手時，為傳送 READY 的時點。<strong>重新連線後，重新傳送自己未獲認可的著手時，從重新傳送的時點重新測量</strong>（因為對方的回合從對方收到並認可該著手的時點開始。<a href="#sec-11-5">第 11.5 節</a>）</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>申報的檢查</strong>：對於收到的著手，若 <code>觀測到的時間 − spentMs &gt; 10,000 ＋ 該回合中斷線的時間</code>，以錯誤（CLOCK_MISMATCH）停止。也就是說，申報可以比觀測短最多 10 秒（通訊延遲的部分）。</li>
+<li><strong>自己超時</strong>：在自己的回合中，沒有未獲認可的著手，且以自己的時鐘計 <code>E ≥ R + B</code> 時，申報自己落敗（提議對方獲勝、原因為超時負的結果。<a href="#sec-10-2">第 10.2 節</a>）。</li>
+<li><strong>主張對方超時</strong>：對方的著手一直未到達，且 <code>觀測到的時間（扣除斷線的時間） &gt; R + B + 10,000</code> 時，可以提議因超時而自己獲勝。同一手數只能一次。</li>
+<li>線路中斷期間，輪到走棋一方的時鐘也繼續走。</li>
+<li>時間以單調遞增的時鐘測量。因睡眠或時刻變更而無法確認所測時間連續性的實作，要中斷對局（ABORT，理由為 CLOCK_DISCONTINUITY）。ShogiBoardQ 在單調遞增時鐘與作業系統時刻的前進相差超過 15 秒時中斷。</li>
+</ul>
+
+<h3 id="sec-9-5">9.5 控制訊息（CONTROL）</h3>
+<pre><code>Frame   = [1, 6, requestId, gameId, payload]
+payload = [Control, body, signature]
+Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]     ; bodyHash = H(CBOR(body))</code></pre>
+<p><code>signature</code> 是傳送方以單局金鑰對 <code>CBOR(Control)</code> 所做的簽章（bstr(64)）。<code>body</code> 是陣列，內容依 kind 而定。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>kind</th><th>名稱</th><th>body</th><th>意義</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>READY</td><td><code>[state0Hash]</code></td><td>後手通知已認可 State0、可以開始對局（第 9.1 節）</td></tr>
+<tr><td>2</td><td>RESUME</td><td><code>[latestPly, latestStateHash]</code></td><td>重新連線後，通知雙方都已認可的最新 State（<a href="#sec-11-3">第 11.3 節</a>）</td></tr>
+<tr><td>3</td><td>RESULT_PROPOSE</td><td><code>FinalResult</code> 本身</td><td>結果的提議、同意（<a href="#sec-10-2">第 10.2 節</a>）</td></tr>
+<tr><td>4</td><td>ABORT</td><td><code>[latestStateHash, reasonCode]</code></td><td>單方面離開對局。結果不確定（<a href="#sec-10-5">第 10.5 節</a>）</td></tr>
+<tr><td>5</td><td>ERROR</td><td><code>[errorCode, relatedPly]</code></td><td>以檢查拒絕對方的輸入，並停止對局（<a href="#sec-9-7">第 9.7 節</a>）</td></tr>
+<tr><td>6</td><td>RESULT_DECLINE</td><td><code>[bodyHash]</code></td><td>不同意 RESULT_PROPOSE（所拒絕之提議的 bodyHash）</td></tr>
+</tbody>
+</table></div>
+<p><code>reasonCode</code>、<code>errorCode</code> 為<a href="#sec-12">第 12 章</a>的編號，<code>relatedPly</code> 為相關的手數（0〜512）。</p>
+<p><strong>編號（sequence）的規則</strong>：傳送方依每條連線、每個方向，從 1 開始每次加 1。重新連線成為新的連線時，重設為 1。接收方依下列方式處理。</p>
+<ol>
+<li>檢查 payload 的格式（3 個元素的陣列、Control 的格式、<code>kind</code> 為 1〜6、<code>sequence</code> 為 1 以上、<code>body</code> 為陣列、<code>bodyHash</code> 與 body 的雜湊一致）。不符時，無論屬於哪條連線，都以錯誤（INVALID_SIGNATURE）停止。</li>
+<li>Control 的 gameId、connectionId 不屬於目前的對局、目前的連線時，默默丟棄。</li>
+<li><code>sequence</code> 在已收到的編號以下時，視為重送而默默丟棄。</li>
+<li><code>sequence</code> 不是「最後收到的編號＋1」時，以錯誤（STATE_CONFLICT）停止。</li>
+<li>檢查簽章以對方的單局金鑰驗證正確。不符時為錯誤（INVALID_SIGNATURE）。通過後，把該編號設為「最後收到的編號」。</li>
+</ol>
+<p>在重新連線的核對完成之前到達的 RESUME 以外的控制訊息，進行上述檢查並推進編號後，不處理內容就丟棄。</p>
+<p>每局收發的控制訊息合計最多 4096 個。超過時以錯誤（LIMIT_EXCEEDED）停止。</p>
+
+<h3 id="sec-9-6">9.6 著手的合法性</h3>
+<p>著手必須在本將棋的規則下合法。相容實作至少必須對以下項目做出相同的判定（判定不一致時，其中一方會以 INVALID_MOVE 停止對局）。</p>
+<ul>
+<li>棋子的走法、成（進入敵陣、在敵陣內移動、離開敵陣的著手可以成。只限可以成的棋子）</li>
+<li>禁止無處可走的棋子（第 1 段的步、香，以及第 1〜2 段的桂，不能以不成走入，也不能打入）</li>
+<li>禁止二步、禁止打步詰</li>
+<li>禁止使己方的玉仍處於被王手狀態的著手，以及使己方的玉暴露於王手之下的著手</li>
+<li>禁止超過 512 手的著手（<code>ply</code> 為 512 的 State 之後沒有下一手）</li>
+</ul>
+<p>沒有持將棋的宣言（入玉宣言）與「悔棋」。入玉時，可以經雙方同意判為和棋（<a href="#sec-10-2">第 10.2 節</a>）。</p>
+
+<h3 id="sec-9-7">9.7 檢查失敗（ERROR）</h3>
+<p>對局中對方的輸入未通過檢查時，傳送 CONTROL ERROR（<code>[errorCode, relatedPly]</code>），並把自己這一方的對局以「錯誤（結果未確定）」結束。收到 ERROR 的一方，也同樣把對局以結果未確定結束。<strong>不得把檢查失敗記錄為對方落敗。</strong>雙方都把到那時為止的記錄（到雙方都已認可的 State 為止）作為憑證儲存。</p>
+<p>取得對方在同一手數對兩個不同 State 簽章之證據（兩個 State 與兩個簽章）的實作，應當將其保存下來。</p>
+<p>收到格式不符的 payload（陣列的長度、型別、範圍不同）時，也同樣以 ERROR 停止（STATE_PROPOSE 為 INVALID_MOVE，STATE_ACCEPT、CONTROL、RESULT_SIGNATURE 為 INVALID_SIGNATURE，SYNC_REQUEST、SYNC_CHUNK 為 STATE_CONFLICT）。在開始後收到開始前形式的 HELLO、START_AGREEMENT、START_SIGNATURE 時，以 CONDITION_MISMATCH 停止。外框不符的訊框，關閉串流（<a href="#sec-6-2">第 6.2 節</a>）。</p>
+<p>以下情況不傳送任何東西就結束：在重新連線的核對完成之前（<a href="#sec-11">第 11 章</a>）檢查失敗時、超過開始的期限（第 9.1 節的 30 秒）時、超過斷線的上限（<a href="#sec-11-6">第 11.6 節</a>）時、超過等待對結果簽章的時間（<a href="#sec-10-4">第 10.4 節</a>）時。</p>
+<p>結束對局的實作要關閉串流。對方已經結束時，我方傳送的訊框或重新連線都不會得到回應。</p>
+</section>
+<section id="result">
+<h2 id="sec-10">10. 終局與結果的確定</h2>
+
+<h3 id="sec-10-1">10.1 結果與原因</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>cause</th><th>原因</th><th>允許的 outcome</th><th>由誰提議</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>認輸</td><td>1 或 2（獲勝方）</td><td>只有落敗方。只限自己的回合</td></tr>
+<tr><td>2</td><td>將死（輪到走棋的一方沒有合法著手）</td><td>1 或 2</td><td>雙方（由棋譜決定）</td></tr>
+<tr><td>3</td><td>超時負</td><td>1 或 2</td><td>超時方的申報，或對方的主張（<a href="#sec-9-4">第 9.4 節</a>）</td></tr>
+<tr><td>4</td><td>千日手</td><td>3</td><td>雙方（由棋譜決定）</td></tr>
+<tr><td>5</td><td>連續王手千日手</td><td>1 或 2（被王手的一方獲勝）</td><td>雙方（由棋譜決定）</td></tr>
+<tr><td>6</td><td>協議和棋</td><td>3</td><td>任一方。只有對方的使用者接受時才成立</td></tr>
+<tr><td>7</td><td>達到 512 手</td><td>3</td><td>雙方（由棋譜決定）</td></tr>
+<tr><td>8</td><td>協議中斷</td><td>4</td><td>任一方。只有對方的使用者接受時才成立</td></tr>
+</tbody>
+</table></div>
+<p><code>outcome</code> 為 1＝先手勝，2＝後手勝，3＝和棋，4＝協議中斷。不在表中之組合的 FinalResult 予以拒收。</p>
+
+<h3 id="sec-10-2">10.2 結果的提議與一致</h3>
+<p>結果以 CONTROL RESULT_PROPOSE（body 為 FinalResult）提議。<strong>雙方互相傳送了相同 FinalResult 的 RESULT_PROPOSE 時，視為結果一致</strong>。同意的一方，以 RESULT_PROPOSE 回傳與收到的提議相同的 FinalResult。不同意時傳送 RESULT_DECLINE，並繼續對局。</p>
+<p>FinalResult 必須指向<strong>目前</strong>雙方都已認可的最新 State。</p>
+<pre><code>FinalResult = ["SBQ-RESULT", 1, gameId, H(CBOR(最新的 State)), transcriptHash, 最新的 ply, outcome, cause]</code></pre>
+<ul>
+<li>自己有未獲認可的著手時，不提議結果。</li>
+<li>手數前進後，之前的提議以及正在等待回覆的請求都會失效。</li>
+<li>結果一致後，不同意其他結果的提議（予以忽略）。</li>
+<li><strong>結果一致後到達的 STATE_PROPOSE、STATE_ACCEPT 予以忽略（不認可、不反映到棋盤上）。</strong>若認可 FinalResult 所指手數之後的 State，憑證將無法通過第 13.2 節的檢查。</li>
+<li>在自己提出的「協議和棋、協議中斷」請求得到回覆之前，應當不提議下一手。若提出請求一方的著手與對方的接受交錯，就會發生上述情況（該著手作為沒有對方認可的著手，只留在走棋方憑證的最後）。</li>
+<li>在重新連線的核對完成之前（<a href="#sec-11">第 11 章</a>），不得接受對方的請求而使結果一致（無法把接受傳送給對方）。核對之後對方會重新傳送提議，屆時再回覆。</li>
+</ul>
+<p>收到 RESULT_PROPOSE 的一方，依下列方式決定。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>情況</th><th>處理</th></tr></thead>
+<tbody>
+<tr><td>在交換 READY 之前（先手為收到 READY 之前，後手為傳送 READY 之前）到達</td><td>RESULT_DECLINE（不同意開始程序途中的提議）</td></tr>
+<tr><td>格式不符，或未指向目前最新的 State（ply、finalStateHash、transcriptHash）</td><td>RESULT_DECLINE</td></tr>
+<tr><td>與自己已提議的 FinalResult 相同</td><td>一致</td></tr>
+<tr><td>根據已確定的著手序列，已達到由棋譜決定的終局（<a href="#sec-10-3">第 10.3 節</a>），而提議與該結果（outcome、cause）不同</td><td>認輸、超時負、協議和棋與協議中斷（cause 1、3、6、8）回覆 RESULT_DECLINE（不詢問使用者）。若同意，簽章的結果會與棋譜不一致，無法通過第 13.2 節的驗證。將死等判定的不一致，依下面的列處理</td></tr>
+<tr><td>認輸（cause 1）</td><td>若為自己獲勝，且輪到對方走棋，就回傳相同的提議而一致。否則 RESULT_DECLINE</td></tr>
+<tr><td>將死、千日手、連續王手千日手、達到 512 手（cause 2、4、5、7）</td><td>自己也根據棋譜判定（第 10.3 節）。若不是終局則 RESULT_DECLINE。若結果相同，傳送相同的提議而一致。<strong>若是終局但結果不一致，以錯誤（CONDITION_MISMATCH）停止</strong>（實作不一致）</td></tr>
+<tr><td>超時負，且自己獲勝（對方申報了自己超時）</td><td>若輪到對方走棋，就回傳相同的提議而一致。否則 RESULT_DECLINE</td></tr>
+<tr><td>超時負，且對方獲勝（對方主張我方超時）</td><td>以自己的時鐘確認。若自己的回合已開始（先手的第一手從收到 READY 時起算）、沒有未獲認可的著手，且已達 <code>E ≥ R + B</code>，就回傳相同的提議而一致。否則 RESULT_DECLINE。<code>E</code> 從自己的回合開始時起算，不包含之前的時間</td></tr>
+<tr><td>協議和棋、協議中斷（cause 6、8）</td><td>詢問使用者。接受時回傳相同的提議而一致，拒絕時 RESULT_DECLINE。若在回覆前自己走了棋，視為拒絕</td></tr>
+</tbody>
+</table></div>
+<p>協議和棋、協議中斷的請求，作為使用者的操作，同一手數各最多一次。但是，即使同一手數反覆收到相同的提議，接收方也不得將其視為違規（每次都依上表處理）。ShogiBoardQ 在重新連線後會重新傳送提議（<a href="#sec-11-5">第 11.5 節</a>），並在超過每局實際時間的上限後，每次被拒絕都會重新提議協議中斷（第 10.5 節）。</p>
+
+<h3 id="sec-10-3">10.3 由棋譜決定的終局</h3>
+<p>每前進一手（雙方都已認可的 State 增加時），雙方都依下列順序判定，若為終局，就以 RESULT_PROPOSE 提議該結果。雙方做出相同的判定時，就會互相傳送相同的提議而一致。</p>
+<ol>
+<li><strong>將死</strong>：在最新局面（ply ≥ 1）中，輪到走棋的一方沒有任何合法著手時，輪到走棋的一方落敗（cause 2）。未被王手的情況也同樣處理。</li>
+<li><strong>千日手</strong>：與最新局面相同的局面（棋盤、持駒、輪到走棋的一方皆相同。不比較手數欄），在從 State0 開始的序列中，包含最新的在內出現 4 次以上時。
+  <ul>
+  <li>檢查從同一局面在最新局面之前最後一次出現的 State 的下一個 State 起，到最新的 State 為止。在此期間先手所走的著手全部是王手時，先手落敗（後手勝，cause 5）。若非如此，而後手所走的著手全部是王手時，後手落敗（先手勝，cause 5）。「王手」是指在走完該著手後的局面中，對方的玉被王手。</li>
+  <li>兩者皆非時，為和棋（cause 4）。</li>
+  </ul>
+</li>
+<li><strong>達到 512 手</strong>：最新的 ply 為 512 時，為和棋（cause 7）。</li>
+</ol>
+
+<h3 id="sec-10-4">10.4 對結果的簽章（RESULT_SIGNATURE）</h3>
+<pre><code>Frame   = [1, 9, requestId, gameId, payload]
+payload = [FinalResult, side, signature]    ; signature 為以玩家金鑰對 CBOR(FinalResult) 所做的簽章（bstr(64)）</code></pre>
+<p>結果一致後，雙方各自依下列順序進行。</p>
+<ol>
+<li>儲存一致的結果（resultDigest）。此後，在這局對局中不得對其他結果簽章。</li>
+<li>以玩家金鑰對 FinalResult 簽章，並傳送 RESULT_SIGNATURE。</li>
+<li>等待對方的 RESULT_SIGNATURE（30 秒）。</li>
+</ol>
+<p>接收方檢查 <code>side</code> 是對方的一方、簽章以 StartAgreement 中對方的 playerKey 驗證正確，以及 FinalResult 與一致的結果相同。不符時為錯誤（INVALID_SIGNATURE；結果不同時為 STATE_CONFLICT）。<code>side</code> 與簽章的檢查，即使在結果一致之前也要進行。</p>
+<p><strong>表示同意的 RESULT_PROPOSE，一定要比 RESULT_SIGNATURE 先傳送。</strong>在結果一致之前到達的 RESULT_SIGNATURE，即使通過檢查也會被丟棄，之後也不會使用（該對局以「無對手確定」結束）。</p>
+<ul>
+<li>雙方的簽章齊備時，成為「<strong>雙方已確定</strong>」的記錄。</li>
+<li>過了 30 秒對方的簽章仍未到達，或等待期間線路中斷時，以只有自己簽章的記錄結束（「無對手確定」）。</li>
+</ul>
+
+<h3 id="sec-10-5">10.5 退出對局（ABORT）</h3>
+<p>使用者單方面離開對局時，傳送 CONTROL ABORT（<code>[最新 State 的雜湊, reasonCode]</code>），並把自己這一方的對局以「中斷（結果未確定）」結束。若是使用者的操作，reasonCode 使用 CANCELLED（12）。收到 ABORT 的一方，也把對局以結果未確定結束。<strong>ABORT 不是協議中斷（cause 8），也不是對方落敗。</strong></p>
+<p>在重新連線的核對完成之前，以及 State0 的認可齊備之前，不傳送 ABORT（不傳送，直接結束自己這一方的對局）。</p>
+<p>每局的實際時間（從雙方的開始簽章齊備時起算）超過 24 小時時，提議協議中斷。被拒絕時重新提議。再過 120 秒仍未一致時，以 ABORT（理由為 GAME_TIME_LIMIT）結束。ShogiBoardQ 在超過 24 小時之後，不再重新傳送未獲認可的著手，也不進行超時的申報與主張。</p>
+</section>
+<section id="reconnect">
+<h2 id="sec-11">11. 重新連線</h2>
+<p>即使對局中串流中斷，也可以重新連線回到同一局。重新連線後，先核對雙方最新的狀態再繼續。</p>
+
+<h3 id="sec-11-1">11.1 重新連線方與接受方</h3>
+<ul>
+<li>重新連線的是<strong>申請方</strong>（最初開啟串流的一方）。斷線期間，每隔 5 秒連線到對方的 PeerId，開啟 <code>/shogiboardq/game/1.0.0</code> 的串流。目的位址使用第一次連線時可用的位址，以及從 Identify 得知的位址。不傳送 INVITE_TOKEN。</li>
+<li><strong>申請方開啟串流後，不等對方，立即傳送重新連線的 HELLO（第 11.2 節）。</strong>邀請方在收到第一個訊框之前，不會察覺新的串流已建立。第一個訊框的 gameId 必須是對局ID（不同時，對局會因錯誤而停止）。</li>
+<li><strong>判斷已斷線的一方，要關閉舊的串流。</strong>若不關閉，對方不會察覺斷線，重新連線也不會開始（申請方只在自己的串流關閉時，或自己判斷已斷線時才重新連線）。</li>
+<li><strong>邀請方</strong>從對局開始到結束，只接受來自對局對手 PeerId 的串流（不接受其他對象的串流，以及以 INVITE_TOKEN 開頭的串流）。等待第一個訊框 5 秒，與<a href="#sec-6-3">第 6.3 節</a>相同。</li>
+<li>對方重新連線過來時，即使舊的串流看起來仍然有效，也要關閉舊的，當作已斷線而進入下面的步驟。即使是剛完成核對之後也一樣，每次有新的串流到達，都以新的亂數重新核對（申請方的連線嘗試可能會重疊）。</li>
+<li>對局期間不得變更 PeerId（<a href="#sec-3-2">第 3.2 節</a>）。結束應用程式或節點後，就無法回到同一局對局。</li>
+</ul>
+<p>判斷為「已斷線」的時機，是串流被關閉或重設時，或自己的 STATE_PROPOSE 在 30 秒內沒有收到認可時（<a href="#sec-9-2">第 9.2 節</a>）。在開始前（雙方的開始簽章齊備之前，或 READY 完成之前）斷線時，不重新連線就結束。結果一致之後（等待<a href="#sec-10-4">第 10.4 節</a>的簽章時）斷線時，也不重新連線。此時，若對方尚未察覺結果已一致（在表示同意的 RESULT_PROPOSE 到達之前斷線），對方會嘗試重新連線，但不會得到回應，對方會因第 11.6 節的上限而結束。</p>
+
+<h3 id="sec-11-2">11.2 HELLO（重新連線）</h3>
+<pre><code>Frame   = [1, 1, requestId, gameId, payload]
+payload = ["SBQ-RECONNECT", 1, side, connectionRandom]     ; side 為自己的一方（1＝先手、2＝後手）</code></pre>
+<p>新的串流建立後，<strong>雙方</strong>都傳送放入新的 32 位元組亂數的重新連線 HELLO。收到對方的 HELLO 後，檢查 <code>side</code> 是對方的一方，以及亂數與自己的不同，然後計算新的 connectionId（<a href="#sec-7-5">第 7.5 節</a>。依先手的亂數、後手的亂數的順序）。控制訊息的編號（sequence）雙方都從 1 重新開始。</p>
+<p>開始前的 HELLO 與重新連線的 HELLO，以訊框的 gameId（是 zero32 還是對局ID）與 payload 的標籤區分。</p>
+<p>若重新連線的 HELLO 不是在重新連線期間到達、<code>side</code> 不是對方的一方，或亂數與自己的相同，只要符合其中之一，ShogiBoardQ 就默默丟棄（核對不會進行，最後因第 11.6 節的上限而結束）。</p>
+
+<h3 id="sec-11-3">11.3 RESUME</h3>
+<p>收到對方的重新連線 HELLO 後，傳送 CONTROL RESUME（<code>[latestPly, latestStateHash]</code>）。<code>latestPly</code> 是自己所持、雙方都已認可的最新 State 的手數，<code>latestStateHash</code> 是其雜湊。此 CONTROL 帶有針對新 connectionId 的單局金鑰簽章，因此可以重新確認對方與開始時是同一個對象。</p>
+<p><strong>在檢查 RESUME 之前，不得接受其他訊框</strong>（著手、認可、結果的提議等都默默丟棄）。重新連線期間可以傳送的只有重新連線的 HELLO、CONTROL RESUME、SYNC_REQUEST、SYNC_CHUNK。</p>
+<p>每次核對只傳送一次 RESUME。不在重新連線期間（包括核對完成之後）到達的 RESUME，以錯誤（STATE_CONFLICT）停止。未請求的 SYNC_CHUNK 也一樣。</p>
+<p>收到對方的 RESUME 後，與自己最新的手數（myPly）比較。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>情況</th><th>處理</th></tr></thead>
+<tbody>
+<tr><td>對方的 latestPly ＝ myPly</td><td>若該手數的自己的 State 雜湊一致，核對結束。不同時為錯誤（STATE_CONFLICT）</td></tr>
+<tr><td>對方的 latestPly ＜ myPly</td><td>檢查該手數的自己的 State 雜湊一致，然後等待對方的 SYNC_REQUEST</td></tr>
+<tr><td>對方的 latestPly ＞ myPly</td><td>以 SYNC_REQUEST 請求不足的部分</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="sec-11-4">11.4 SYNC_REQUEST 與 SYNC_CHUNK</h3>
+<pre><code>SYNC_REQUEST: Frame = [1, 7, requestId, gameId, [fromPly, previousStateHash]]
+SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteApproval], ...], final]]</code></pre>
+<ul>
+<li>較舊的一方，以 <code>fromPly</code> ＝ 自己最新的手數＋1、<code>previousStateHash</code> ＝ 自己最新 State 的雜湊來請求。</li>
+<li>較新的一方檢查：已收到對方的 RESUME、<code>fromPly</code> 為 1 以上且在自己最新的手數以下，以及 <code>previousStateHash</code> 是自己第 <code>fromPly − 1</code> 手的 State 的雜湊。不符時為錯誤（STATE_CONFLICT）。通過後，把從 <code>fromPly</code> 到最新的 State，連同雙方認可的簽章（皆為 bstr(64)），以每次最多 64 個的 SYNC_CHUNK 依序回傳。最後一個區塊的 <code>final</code> ＝ 1，其他為 0。不傳送請求範圍以外的內容。</li>
+<li>較舊的一方對收到的 State 逐一檢查手數是否連續、雙方的認可是否正確，以及<a href="#sec-9-2">第 9.2 節</a>的步驟 6〜9（前一狀態的雜湊、著手的形式、超時、合法著手、局面、剩餘時間的計算），通過後再納入。任何一項不符，都以錯誤（STATE_CONFLICT）停止。自己有未獲認可的著手，而同一手數到達了不同的 State 時，以錯誤（STATE_CONFLICT）停止（不回退到只有單方簽章的另一個著手序列）。若是相同的 State，就把未獲認可的著手當作已獲認可處理。</li>
+<li>對於透過重新連線才首次得知的對方著手，自己回合的計時從納入的時點開始（不推測遺失的時刻）。</li>
+</ul>
+
+<h3 id="sec-11-5">11.5 核對之後</h3>
+<ul>
+<li>若還有未獲對方認可的自己的著手，就重新傳送<strong>相同位元組序列</strong>的 STATE_PROPOSE。對方回合的觀測（<a href="#sec-9-4">第 9.4 節</a>）從這次重新傳送的時點重新測量。若透過 SYNC 得知未獲認可的著手已「認可」，則不重新測量（從第一次傳送的時點起測量，並扣除斷線的時間）。</li>
+<li>若已提議過結果，就重新傳送 RESULT_PROPOSE。<strong>若已達到由棋譜決定的終局（<a href="#sec-10-3">第 10.3 節</a>），核對之後一定要提議。</strong>ShogiBoardQ 不會從透過 SYNC 得知最後一手的一方提議，因此若持有最新狀態的一方不重新傳送提議，對局就不會結束。</li>
+<li>把斷線的時間（從判斷已斷線到核對結束）加到該局斷線時間的合計中。</li>
+</ul>
+
+<h3 id="sec-11-6">11.6 斷線的上限</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>上限</th><th>長度</th><th>超過時</th></tr></thead>
+<tbody>
+<tr><td>單次斷線中，到核對結束為止</td><td>120 秒</td><td>以「通訊中斷（結果未確定）」結束</td></tr>
+<tr><td>每局斷線時間的合計</td><td>600 秒</td><td>以中斷（理由為 DISCONNECT_LIMIT）結束</td></tr>
+</tbody>
+</table></div>
+<p>無法區分自己線路的故障與對方故意斷線。<strong>不得把斷線視為對方落敗。</strong></p>
+</section>
+<section id="errors">
+<h2 id="sec-12">12. 錯誤編號</h2>
+<p>REJECT（<a href="#sec-8-7">第 8.7 節</a>）的 errorCode、CONTROL ERROR 的 errorCode、CONTROL ABORT 的 reasonCode 使用同一張表的編號（1〜15）。傳送方不得傳送表中沒有的編號。接收方把表中沒有的編號，當作理由不明的拒絕或中斷處理（不作為拒絕對方的理由）。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>編號</th><th>名稱</th><th>意義</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>不支援的版本</td></tr>
+<tr><td>2</td><td>WRONG_NETWORK</td><td>networkId 不同</td></tr>
+<tr><td>3</td><td>BUSY</td><td>正在與其他對手協商或對局（對已封鎖的對手也回傳此編號）</td></tr>
+<tr><td>4</td><td>EXPIRED</td><td>過期（開始協議的期限、開始程序的期限）</td></tr>
+<tr><td>5</td><td>CONDITION_MISMATCH</td><td>條件、格式、步驟不符</td></tr>
+<tr><td>6</td><td>INVALID_SIGNATURE</td><td>簽章不正確</td></tr>
+<tr><td>7</td><td>INVALID_MOVE</td><td>無法讀取著手、不是合法著手、局面不符</td></tr>
+<tr><td>8</td><td>STATE_CONFLICT</td><td>狀態不一致（同一手數的不同狀態、順序不符的訊框）</td></tr>
+<tr><td>9</td><td>CLOCK_MISMATCH</td><td>時間計算不符、申報與觀測不符</td></tr>
+<tr><td>10</td><td>LIMIT_EXCEEDED</td><td>超過上限（控制訊息的數量等）</td></tr>
+<tr><td>11</td><td>STORAGE_ERROR</td><td>無法儲存記錄</td></tr>
+<tr><td>12</td><td>CANCELLED</td><td>使用者取消、結束了應用程式</td></tr>
+<tr><td>13</td><td>DISCONNECT_LIMIT</td><td>斷線時間的合計超過上限</td></tr>
+<tr><td>14</td><td>GAME_TIME_LIMIT</td><td>每局實際時間的上限</td></tr>
+<tr><td>15</td><td>CLOCK_DISCONTINUITY</td><td>因睡眠、時鐘變更，無法確認計時的連續性</td></tr>
+</tbody>
+</table></div>
+<p>無論以哪個編號結束，檢查失敗、中斷、斷線都是「結果未確定」，不判定勝負。勝負只在雙方對相同的 FinalResult 簽章時（<a href="#sec-10-4">第 10.4 節</a>），以及由棋譜決定終局時（<a href="#sec-13-3">第 13.3 節</a>）才決定。</p>
+</section>
+<section id="evidence">
+<h2 id="sec-13">13. 對局記錄（憑證）</h2>
+<p>對局結束後（結果未確定時也一樣），雙方各自把對局的記錄儲存到一個檔案中。這稱為<strong>憑證</strong>。任何人都可以不使用網路、也不需要對手，就驗證憑證。副檔名為 <code>.sbqmatch</code>，大小在 8 MiB 以下。相容實作寫出的憑證，必須能以 ShogiBoardQ 的「對局記錄」與 <code>shogiboardq-cli verify-match</code> 驗證，反之亦然。</p>
+
+<h3 id="sec-13-1">13.1 格式</h3>
+<p>檔案的內容只有下列值的確定性CBOR位元組序列（前後不附加任何東西）。</p>
+<pre><code>Evidence = ["SBQ-MATCH", 1,
+            StartAgreement,
+            blackStartSignature, whiteStartSignature,
+            Rules, TimeControl, NetworkPolicy,
+            [[State, blackApproval, whiteApproval], ...],
+            FinalResult 或 [],
+            blackResultSignature, whiteResultSignature]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>StartAgreement</td><td><a href="#sec-7-4">第 7.4 節</a></td></tr>
+<tr><td>blackStartSignature、whiteStartSignature</td><td>先手、後手以玩家金鑰對 StartAgreement 所做的簽章。bstr(64)</td></tr>
+<tr><td>Rules、TimeControl、NetworkPolicy</td><td><a href="#sec-7-1">第 7.1 節</a>的值本身（不是雜湊）</td></tr>
+<tr><td>State 的序列</td><td>從 State0 依序排列，0〜513 個。每個 State 附上先手、後手以單局金鑰對 StateApproval 所做的簽章</td></tr>
+<tr><td>FinalResult</td><td>一致的結果（<a href="#sec-7-5">第 7.5 節</a>）。結果未一致的對局為空陣列 <code>[]</code></td></tr>
+<tr><td>blackResultSignature、whiteResultSignature</td><td>先手、後手以玩家金鑰對 FinalResult 所做的簽章</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>尚未有簽章的欄位，設為長度 0 的 bstr。簽章欄的長度必須為 0 或 64。</li>
+<li>FinalResult 為 <code>[]</code> 時，對結果的兩個簽章欄都設為長度 0。</li>
+<li>未收到對方認可的自己的最後一手，可以作為只附上自己認可的 State，放在序列的最後。只有單方認可的 State 之後，不得放置其他 State。</li>
+<li>不放入顯示名稱、IP 位址、PeerId 本身、邀請的通關密語、本機備註名稱（PeerId 只以 StartAgreement 中的雜湊形式保留）。</li>
+</ul>
+
+<h3 id="sec-13-2">13.2 驗證步驟</h3>
+<p>驗證方依序檢查以下項目。各項結果分別呈現（不混淆「簽章正確」「棋譜符合規則」「時間計算相符」）。簽章的驗證全部依<a href="#sec-2-4">第 2.4 節</a>進行（包含公開金鑰的檢查）。</p>
+<ol>
+<li><strong>格式</strong>：在 8 MiB 以下，為確定性CBOR，且為第 13.1 節的格式。Rules、NetworkPolicy 為 v1 的值，TimeControl 在<a href="#sec-7-1">第 7.1 節</a>的範圍內。</li>
+<li><strong>條件</strong>：Rules、TimeControl、NetworkPolicy 的雜湊與 StartAgreement 中的 3 個雜湊一致。</li>
+<li><strong>開始簽章</strong>：2 個開始簽章分別以 StartAgreement 的 blackPlayerKey、whitePlayerKey 驗證正確。計算 <code>gameId = H(CBOR(StartAgreement))</code>。</li>
+<li><strong>State 的序列</strong>：從開頭依序檢查以下項目。
+  <ul>
+  <li>State 的 gameId 為對局ID，<code>ply</code> 與在序列中的位置（0, 1, 2, …）一致。</li>
+  <li>長度不為 0 的認可簽章，以對應一方的單局金鑰（blackSessionKey、whiteSessionKey）驗證正確。不接受雙方認可都沒有的 State。</li>
+  <li>State0 與<a href="#sec-7-2">第 7.2 節</a>的值一致。其後的 State 都是依<a href="#sec-9-2">第 9.2 節</a>的步驟 6〜9（前一狀態的雜湊、著手的形式、超時、合法著手、局面、剩餘時間的計算），由前一個 State 產生。</li>
+  <li>只有單方認可的 State，只能放在序列的最後。</li>
+  </ul>
+</li>
+<li><strong>雙方都已認可的著手序列</strong>：把雙方認可都齊備的 State（從序列開頭起連續的部分）稱為「雙方都已認可的著手序列」。若它不是空的，就進行<a href="#sec-10-3">第 10.3 節</a>的判定，求出終局是否由棋譜決定。</li>
+<li><strong>結果</strong>：若有 FinalResult，檢查以下項目。
+  <ul>
+  <li>gameId 為對局ID，<code>ply</code>、<code>finalStateHash</code> 指向雙方都已認可的著手序列的最後一個 State，且 <code>transcriptHash</code> 與從雙方都已認可的著手序列計算出的值一致。</li>
+  <li>長度不為 0 的結果簽章，以對應一方的玩家金鑰驗證正確。</li>
+  <li>若終局由棋譜決定，FinalResult 的 outcome、cause 與之一致。若終局不由棋譜決定，FinalResult 的 cause 不是由棋譜決定的原因（將死、千日手、連續王手千日手、達到 512 手）。</li>
+  </ul>
+</li>
+</ol>
+
+<h3 id="sec-13-3">13.3 記錄類別</h3>
+<p>根據驗證的結果，把記錄分為以下 3 類。從上往下依序套用。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>類別</th><th>條件</th><th>能表明的事</th></tr></thead>
+<tbody>
+<tr><td>雙方已確定</td><td>通過步驟 2〜4，有 FinalResult 且指向最後一個 State，且<strong>雙方</strong>玩家金鑰的簽章都正確</td><td>雙方同意了同一結果</td></tr>
+<tr><td>由棋譜決定的結果</td><td>通過步驟 2〜4，且雙方都已認可的著手序列以由棋譜決定的終局（第 10.3 節）結束</td><td>結果由雙方都檢查過的著手序列決定</td></tr>
+<tr><td>結果未確定</td><td>不屬於上面任何一類</td><td>只有到目前為止的著手序列（無法表明勝負）</td></tr>
+</tbody>
+</table></div>
+<p>無論哪個類別，都有憑證無法表明的事。<strong>實際思考的時間</strong>（消耗時間為自報）、<strong>是否由人類下棋</strong>、<strong>對局的日期與時間</strong>，都無法從憑證確認。輸出驗證結果的實作，應當一併表明這一點。</p>
+</section>
+<section id="constants">
+<h2 id="sec-14">14. 常數一覽</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>值</th><th>節</th></tr></thead>
+<tbody>
+<tr><td>對局的協定</td><td><code>/shogiboardq/game/1.0.0</code></td><td><a href="#sec-6-1">6.1</a></td></tr>
+<tr><td>Identify 的 protocolVersion</td><td><code>/shogiboardq/1.0.0</code></td><td><a href="#sec-4-3">4.3</a></td></tr>
+<tr><td>本機驗證用的監聽連接埠</td><td>48210（TCP、UDP）</td><td><a href="#sec-4-2">4.2</a></td></tr>
+<tr><td>中繼的預約</td><td>最多 2 個。被拒絕或失去時，30 秒後重新請求</td><td><a href="#sec-4-4">4.4</a></td></tr>
+<tr><td>訊框的長度</td><td>1〜65536 位元組</td><td><a href="#sec-6-1">6.1</a></td></tr>
+<tr><td>CBOR 的巢狀</td><td>最多 16 層</td><td><a href="#sec-2-2">2.2</a></td></tr>
+<tr><td>讀取憑證時 CBOR 值的總數（ShogiBoardQ 讀取器的上限）</td><td>最多 1,048,576 個（包含陣列的元素）</td><td><a href="#sec-2-2">2.2</a></td></tr>
+<tr><td>邀請字串的長度</td><td>1024 位元組以下</td><td><a href="#sec-5-1">5.1</a></td></tr>
+<tr><td>邀請的有效期限</td><td>600 秒（讀取方預留 60 秒的時鐘誤差）</td><td><a href="#sec-5-3">5.3</a></td></tr>
+<tr><td>邀請的可達候選</td><td>最多 8 個，每個最多 100 位元組</td><td><a href="#sec-5-1">5.1</a></td></tr>
+<tr><td>同時有效的邀請</td><td>最多 4 個</td><td><a href="#sec-5-2">5.2</a></td></tr>
+<tr><td>等待串流第一個訊框的時間</td><td>5 秒</td><td><a href="#sec-6-3">6.3</a></td></tr>
+<tr><td>訊框的頻率</td><td>交換開始簽章之前每秒 5 個（突發 10），已交換的串流之後每秒 20 個（突發 40）。重新連線時開啟的串流維持每秒 5 個（突發 10）</td><td><a href="#sec-6-4">6.4</a></td></tr>
+<tr><td>顯示名稱</td><td>1〜32 個字元，96 位元組以下</td><td><a href="#sec-3-6">3.6</a></td></tr>
+<tr><td>協商的期限</td><td>60 秒</td><td><a href="#sec-8-6">8.6</a></td></tr>
+<tr><td>開始協議的期限（startBefore）</td><td>產生後 180 秒（接收方預留 30 秒的時鐘誤差）</td><td><a href="#sec-8-3">8.3</a></td></tr>
+<tr><td>從開始簽章到 READY</td><td>30 秒</td><td><a href="#sec-9-1">9.1</a></td></tr>
+<tr><td>手數的上限</td><td>512 手</td><td><a href="#sec-10-3">10.3</a></td></tr>
+<tr><td>用時</td><td>基本 0〜86,400,000 ms，讀秒 0〜600,000 ms（兩者不可皆為 0）</td><td><a href="#sec-7-1">7.1</a></td></tr>
+<tr><td>消耗時間的容許誤差</td><td>10,000 ms</td><td><a href="#sec-9-4">9.4</a></td></tr>
+<tr><td>未獲認可著手的重送</td><td>每 5 秒。30 秒視為斷線</td><td><a href="#sec-9-2">9.2</a></td></tr>
+<tr><td>控制訊息</td><td>每局最多 4096 個</td><td><a href="#sec-9-5">9.5</a></td></tr>
+<tr><td>等待對結果簽章的時間</td><td>30 秒</td><td><a href="#sec-10-4">10.4</a></td></tr>
+<tr><td>重新連線的嘗試間隔</td><td>5 秒</td><td><a href="#sec-11-1">11.1</a></td></tr>
+<tr><td>單次斷線的等待時間</td><td>120 秒</td><td><a href="#sec-11-6">11.6</a></td></tr>
+<tr><td>每局斷線時間的合計</td><td>600 秒</td><td><a href="#sec-11-6">11.6</a></td></tr>
+<tr><td>每局實際時間的上限</td><td>24 小時</td><td><a href="#sec-10-5">10.5</a></td></tr>
+<tr><td>SYNC_CHUNK 的 State</td><td>每次最多 64 個</td><td><a href="#sec-11-4">11.4</a></td></tr>
+<tr><td>憑證檔案</td><td>副檔名 <code>.sbqmatch</code>，8 MiB 以下，State 最多 513 個</td><td><a href="#sec-13">13</a></td></tr>
+</tbody>
+</table></div>
+</section>
+<section id="conformance">
+<h2 id="sec-15">15. 符合性的檢查方法</h2>
+
+<h3 id="sec-15-1">15.1 測試輸入</h3>
+<p>ShogiBoardQ 儲存庫的 <code>protocol/testvectors/</code> 中，有用來確認各實作之間得到相同結果的輸入。相容實作應當在自己的測試中讀取這些輸入。以 <code>#</code> 開頭的行與空行要略過。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>檔案</th><th>行的格式</th><th>檢查的內容</th></tr></thead>
+<tbody>
+<tr><td><code>cbor.txt</code></td><td><code>valid &lt;hex&gt;</code>／<code>invalid &lt;hex&gt;</code></td><td>能否作為確定性CBOR讀取（<a href="#sec-2-2">第 2.2 節</a>）</td></tr>
+<tr><td><code>frames.txt</code></td><td><code>valid &lt;hex&gt;</code>／<code>invalid &lt;hex&gt;</code></td><td>作為訊框外框是否正確（<a href="#sec-6-2">第 6.2 節</a>）</td></tr>
+<tr><td><code>displayname.txt</code></td><td><code>accept &lt;hex(UTF-8)&gt;</code>／<code>reject &lt;hex(UTF-8)&gt;</code></td><td>顯示名稱的規則（<a href="#sec-3-6">第 3.6 節</a>）</td></tr>
+<tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId 與 rulesHash（<a href="#sec-3-1">第 3.1 節</a>、<a href="#sec-7-1">第 7.1 節</a>）</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="sec-15-2">15.2 檢查的順序</h3>
+<p>製作相容實作時，最好從下層開始依序檢查。</p>
+<ol>
+<li><strong>確定性CBOR與雜湊</strong>：與第 15.1 節的輸入、附錄 A 的值一致。</li>
+<li><strong>憑證的驗證</strong>：讀取 ShogiBoardQ 儲存的 <code>.sbqmatch</code>，<a href="#sec-13-2">第 13.2 節</a>的驗證全部通過（這可以確認簽章的驗證，以及著手、局面、時間的計算都相符）。</li>
+<li><strong>邀請字串</strong>：能讀取 ShogiBoardQ 產生的邀請字串，且自己產生的邀請字串能以 ShogiBoardQ 的「檢查邀請字串」讀取。</li>
+<li><strong>連線與協商</strong>：把網路設為 <code>sbq-local-1</code>，與同一台電腦上的 ShogiBoardQ，在邀請方與被邀請方兩種角色下都能進行到條件確認畫面。</li>
+<li><strong>對局</strong>：在先手、後手兩種情況下，分別下到認輸、將死、超時負、協議和棋，雙方的憑證都成為「雙方已確定」。以 <code>shogiboardq-cli verify-match --input-path &lt;檔案&gt;</code> 驗證自己寫出的憑證，<code>valid</code> 為 true，<code>category</code> 為 <code>mutually_signed</code>。</li>
+<li><strong>重新連線</strong>：對局中切斷串流後，能重新連線並繼續（自己是申請方時、是邀請方時，以及有未獲認可的著手時、沒有時）。</li>
+<li><strong>拒絕</strong>：傳送不正確的簽章、不合法的著手、時間計算不符的 State、編號跳號的 CONTROL 等，確認對方不判定勝負而停止。自己的實作也要以同樣方式拒絕同樣的輸入。</li>
+</ol>
+<p>在同一台電腦上啟動多個 ShogiBoardQ 時，會依開啟的順序成為不同的玩家（第二個為「第2位玩家」）。與相容實作的測試，可以在同一台電腦內進行。</p>
+</section>
+
+<section id="appendix">
+<h2 id="sec-A">附錄 A. 測試用的值</h2>
+<p>這裡列出的值是 ShogiBoardQ 的實作輸出的值，並已確認與僅依本文件的描述計算出的值一致。<code>aa…</code> 表示把該位元組排列 32 個而成的 bstr(32)。十六進位每 64 位數換行（換行不包含在位元組序列中）。</p>
+
+<h3 id="sec-A-1">A.1 條件的雜湊</h3>
+<p class="vec-title">CBOR(Rules)</p>
+<pre class="vec"><code>89695342512d52554c455301783f6c6e73676b67736e6c2f31723562312f7070
+707070707070702f392f392f392f5050505050505050502f31423552312f4c4e
+53474b47534e4c2062202d20311902006d666f7572666f6c642d647261777470
+657270657475616c2d636865636b2d6c6f73736e6e6f2d6465636c6172617469
+6f6e6568756d616e6568756d616e</code></pre>
+<p class="vec-title">rulesHash</p>
+<pre class="vec"><code>e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7</code></pre>
+<p class="vec-title">networkPolicyHash</p>
+<pre class="vec"><code>9b7c8316692cc4e6593d4266afcb0d90670a0edb948920c920ef64a7fefebe73</code></pre>
+<p class="vec-title">CBOR(TimeControl)（基本 600,000 ms、讀秒 30,000 ms）</p>
+<pre class="vec"><code>86685342512d54494d45011a000927c01975300000</code></pre>
+<p class="vec-title">timeControlHash（同上）</p>
+<pre class="vec"><code>deb3972b6ab25b1992f94da6dfaf7755d8c81e7dd654b01818bce1b75eefe1db</code></pre>
+<h3 id="sec-A-2">A.2 先後手的亂數、連線、確認碼</h3>
+<p class="vec-title">commitA（nonceA = 11…）</p>
+<pre class="vec"><code>30ea3fa164e93f6a60085b31b686b797a3989fb57d745e0541552f60f24761c5</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>nonceA</th><th>nonceB</th><th>申請方</th></tr></thead>
+<tbody>
+<tr><td><code>11…</code></td><td><code>22…</code></td><td>先手</td></tr>
+<tr><td><code>11…</code></td><td><code>33…</code></td><td>後手</td></tr>
+</tbody>
+</table></div>
+<p class="vec-title">connectionId（gameId = aa…、blackRandom = 01…、whiteRandom = 02…）</p>
+<pre class="vec"><code>7415d7e00efb5fb5ec6e8ec7fce4590bf0d0c6e13dedbc71e39ca55a86ed376b</code></pre>
+<p class="vec-title">PeerIdHash（PeerId = 00 24 08 01 12 20 後接 32 個 01）</p>
+<pre class="vec"><code>abb7e8338cc44a8fc428977193d4a7bd3a251a690cb322d5494ffb44df4f15a4</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>公開金鑰 A</th><th>公開金鑰 B</th><th>確認碼</th></tr></thead>
+<tbody>
+<tr><td><code>01…</code></td><td><code>02…</code></td><td><code>56744 64655 21922 42152 96570 31949</code></td></tr>
+<tr><td><code>ff…</code></td><td><code>02…</code></td><td><code>07831 76934 90118 77226 11286 72173</code>（<code>02…</code> 在前。順序以無號方式比較）</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-A-3">A.3 狀態與結果（gameId = aa…，基本 600,000 ms、讀秒 30,000 ms）</h3>
+<p class="vec-title">CBOR(State0)</p>
+<pre class="vec"><code>8a695342512d5354415445015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaa005820000000000000000000000000000000
+000000000000000000000000000000000060783f6c6e73676b67736e6c2f3172
+3562312f7070707070707070702f392f392f392f5050505050505050502f3142
+3552312f4c4e53474b47534e4c2062202d2031001a000927c01a000927c0</code></pre>
+<p class="vec-title">H(CBOR(State0))</p>
+<pre class="vec"><code>67a8f419018a1cec21de54322d407c4abba2e8f562acae327c16df68f1146fe8</code></pre>
+<p>先手以 2,500 ms 走出 ▲７六步（<code>7g7f</code>）後的 State1，其 <code>sfen</code> 為 <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2</code>，<code>blackMainMs</code> 為 597,500，<code>whiteMainMs</code> 為 600,000。</p>
+<p class="vec-title">CBOR(State1)</p>
+<pre class="vec"><code>8a695342512d5354415445015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaa01582067a8f419018a1cec21de54322d407c
+4abba2e8f562acae327c16df68f1146fe8643767376678416c6e73676b67736e
+6c2f31723562312f7070707070707070702f392f392f3250362f505031505050
+5050502f31423552312f4c4e53474b47534e4c2077202d20321909c41a00091d
+fc1a000927c0</code></pre>
+<p class="vec-title">H(CBOR(State1))</p>
+<pre class="vec"><code>3215de1e8656241070b33e65d55ca10d2e9be4c27a3706ca283386b7acab07f2</code></pre>
+<p class="vec-title">CBOR(StateApproval)（ply = 1）</p>
+<pre class="vec"><code>856b5342512d415050524f5645015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0158203215de1e8656241070b33e65d5
+5ca10d2e9be4c27a3706ca283386b7acab07f2</code></pre>
+<p class="vec-title">transcriptHash（State0 與 State1）</p>
+<pre class="vec"><code>cc375e47eda4829e8e31d0673f4de5c0173d2519a136d1a09416e3bfa2678ed1</code></pre>
+<p class="vec-title">CBOR(FinalResult)（ply = 1，先手勝、認輸）</p>
+<pre class="vec"><code>886a5342512d524553554c54015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
+0d2e9be4c27a3706ca283386b7acab07f25820cc375e47eda4829e8e31d0673f
+4de5c0173d2519a136d1a09416e3bfa2678ed1010101</code></pre>
+<p class="vec-title">resultDigest</p>
+<pre class="vec"><code>81c534940d53806ba1db2ca36f07f016999b848c70f25ebf0f7502772cd12e16</code></pre>
+<h3 id="sec-A-4">A.4 簽章與訊框</h3>
+<p>以 RFC 8032 的測試值 <code>9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60</code> 作為私密金鑰的種子時。</p>
+<p class="vec-title">公開金鑰</p>
+<pre class="vec"><code>d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a</code></pre>
+<p class="vec-title">對 A.3 的 CBOR(StateApproval) 的簽章</p>
+<pre class="vec"><code>64cb12d9c0f548437ae77c21d68f6554f7afe16dae66b97f19f6b0810526e50e
+7aeb177dc3adb8a50dd8337317831c3a6abb75c03e28d9d09bf16841e7798c07</code></pre>
+<p class="vec-title">REJECT（BUSY，requestId = 3）的訊框。在串流中傳送時，前面要加上長度 00 00 00 28</p>
+<pre class="vec"><code>85010a0358200000000000000000000000000000000000000000000000000000
+0000000000008103</code></pre>
+<p class="vec-title">INVITE_TOKEN（token = 22…）的訊框</p>
+<pre class="vec"><code>85010b0058200000000000000000000000000000000000000000000000000000
+0000000000008158202222222222222222222222222222222222222222222222
+222222222222222222</code></pre>
+</section>
+
+<section id="history">
+<h2 id="sec-B">附錄 B. 變更履歷</h2>
+<p>從新的版本開始依序排列。版本與「相容實作是否需要修改」的意義如<a href="#sec-1-5">第 1.5 節</a>所述。連結指向導入該變更的 GitHub 提交（commit）。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>文件版本</th><th>協定版本</th><th>相容實作是否需要修改</th><th>變更</th></tr></thead>
+<tbody>
+<tr><td>2026-11-13</td><td>1</td><td>需要</td><td>配合 ShogiBoardQ 的P2P對局安全性稽核（2026-11-13）的修正（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/64dbc7d86394ed74e5a3ac02b054e40acce6845c">64dbc7d8</a>）。
+<ul>
+<li>可達性確認改用 AutoNAT v2，不再使用 v1。ShogiBoardQ 的協作節點只回應 v2 的確認（<a href="#sec-4-1">第 4.1 節</a>）。</li>
+<li>在 <code>sbq-local-1</code> 中，改為不在 Identify 中發布自身的位址（<a href="#sec-4-3">第 4.3 節</a>）。</li>
+<li>新增不作為目的位址的位址範圍，並規定可作為目的位址的 multiaddr 形式。丟棄重疊兩個 IP 的目的位址、含有未知元件的目的位址，以及巢狀的中繼（<a href="#sec-4-5">第 4.5 節</a>）。</li>
+<li>新增上限：來自同一來源 IP、尚未建立的連入，建立連線的期限，等待第一個訊框的對局串流，每條連線的 Yamux 串流（<a href="#sec-4-7">第 4.7 節</a>）。</li>
+<li>新增拒絕結果提議的條件：交換 READY 之前的提議，以及與由棋譜決定的終局不同的提議。對方的超時主張，以從自己的回合開始起算的時間確認（<a href="#sec-10-2">第 10.2 節</a>）。</li>
+<li>在常數一覽中新增讀取憑證時 CBOR 值總數的上限（ShogiBoardQ 的讀取器）（<a href="#sec-14">第 14 章</a>）。</li>
+<li>將等待對局串流第一個訊框的時間改為 5 秒，與實作一致（稽核的修正將其從 10 秒縮短為 5 秒）。此前只有<a href="#sec-4-7">第 4.7 節</a>為 5 秒，<a href="#sec-6-3">第 6.3 節</a>、<a href="#sec-11-1">第 11.1 節</a>和<a href="#sec-14">第 14 章</a>仍為 10 秒。</li>
+<li>新增版本的規則（<a href="#sec-1-5">第 1.5 節</a>）與本變更履歷，並整理了開頭的文字（文字修潤）。</li>
+<li>新增英文、簡體中文、繁體中文的譯本（文字修潤）。</li>
+</ul>
+<p class="note">上述 64dbc7d8 的變更在公開時忘了升文件版本，仍寫著 2026-11-12。即使文件版本為 2026-11-12，只要第 4.1 節寫的是 AutoNAT v2，就是 2026-11-13 的內容。</p></td></tr>
+<tr><td>2026-11-12</td><td>1</td><td>需要</td><td>新增在一般版中修正的中繼預約與監聽的規則（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/dca1d36d6cd52865e809d37860877cd5fb722b89">dca1d36d</a>）。
+<ul>
+<li>規定不得在其他程序正在監聽的連接埠上監聽（<a href="#sec-4-2">第 4.2 節</a>）。</li>
+<li>規定協作節點也可以在 Identify 中發布網際網路上的監聽位址（<a href="#sec-4-3">第 4.3 節</a>）。</li>
+<li>新增以下規定：中繼預約被拒絕或失去時要重新請求；經由中繼的自身位址由使用者指定的協作節點位址產生；協作節點不等可達性確認就持有自身的位址（<a href="#sec-4-4">第 4.4 節</a>）。</li>
+</ul></td></tr>
+<tr><td>2026-11-11</td><td>1</td><td>—</td><td>初版。根據實驗版儲存庫 ShogiBoardQ-P2P 在 2026-11-11 時的 main 實作與 <code>protocol/</code> 撰寫（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/02924f246fc4678cd26191de15cd24a651a52c66">02924f24</a>）。同一天併入一般版，並把文件中的名稱從 ShogiBoardQ-P2P 改為 ShogiBoardQ（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/f540b386803cd0c17e23dec08ea1e8d102615554">f540b386</a>）。</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<footer class="doc">
+<p>本文件根據 ShogiBoardQ 的P2P對局實作，以及儲存庫中的 <code>protocol/</code>（位元組序列的格式與測試輸入），為相容實作彙整而成。版本的規則見<a href="#sec-1-5">第 1.5 節</a>，各版本的變更見<a href="#sec-B">附錄 B</a>。若本文件與實作的行為不一致，請告知儲存庫。</p>
+<p>ShogiBoardQ: <a href="https://github.com/hnakada123/ShogiBoardQ">https://github.com/hnakada123/ShogiBoardQ</a></p>
+</footer>
+</main>
+</body>
+</html>

@@ -695,6 +695,14 @@
                 <p class="guide-step-text"><code>valid</code> is true when the confirmations with player keys and the record structure are correct, and <code>category</code> is the record status (<code>mutually_signed</code> is Confirmed by both, <code>determined_by_record</code> is Determined by the moves, and <code>unconfirmed</code> is Unconfirmed). <code>not_verifiable</code> lists what this record cannot show (actual thinking time, human play, and the date played).</p>
             </div>
 
+            <div class="guide-step" id="spec">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Evidence Format and Protocol Specification</span>
+                </div>
+                <p class="guide-step-text">The format of evidence files, the verification steps, and the communication rules of P2P games (invitations, frames, negotiation before the game, the steps during the game, and reconnection) are described in the <a href="../dev/p2p-interop-spec.html">P2P game specification for compatible implementations</a>. Use it to verify evidence with other software or to build an app that can play against ShogiBoardQ. The protocol is experimental and may change (the specification's change history lists the changes in each version).</p>
+            </div>
+
         </div>
     </div>
 </section>

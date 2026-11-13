@@ -695,6 +695,14 @@
                 <p class="guide-step-text"><code>valid</code> が true ならプレイヤー鍵による確定と記録の形が正しく、<code>category</code> が記録の区分です（<code>mutually_signed</code> が「双方で確定」、<code>determined_by_record</code> が「棋譜から決まる結果」、<code>unconfirmed</code> が「結果未確定」）。<code>not_verifiable</code> には、この記録からは確かめられないこと（実際の思考時間・人間が指したこと・対局の日時）が並びます。</p>
             </div>
 
+            <div class="guide-step" id="spec">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">証跡の形と通信の取り決め</span>
+                </div>
+                <p class="guide-step-text">証跡ファイルの形と検証の手順、P2P対局の通信の取り決め（招待文字列・フレーム・開始の交渉・対局中の手順・再接続）は、<a href="../dev/p2p-interop-spec.html">P2P対局 互換実装のための仕様書</a>にまとめてあります。別のソフトウェアで証跡を検証したり、ShogiBoardQ と対局できるアプリを作ったりするときに使えます。プロトコルは試験中で、今後変わることがあります（版ごとの変更は、仕様書の「変更履歴」にあります）。</p>
+            </div>
+
         </div>
     </div>
 </section>

@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>P2P対局 互換実装のための仕様書（プロトコル v1） - ShogiBoardQ</title>
 <meta name="description" content="通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。">
+<link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/dev/p2p-interop-spec.html">
 <style>
 :root {
   --bg: #fbfaf7; --fg: #23261f; --muted: #5f655a; --line: #d9d6cc; --accent: #3f6b4f;
@@ -27,6 +32,9 @@ main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
 header.doc h1 { font-size: 1.9rem; line-height: 1.35; margin: 0 0 .4rem; }
 header.doc p { margin: .2rem 0; color: var(--muted); }
 header.doc .lead { color: var(--fg); margin-top: 1rem; }
+nav.langs { margin: 0 0 1rem; font-size: .93rem; }
+nav.langs a, nav.langs span { margin-right: 1rem; }
+nav.langs span { font-weight: 700; }
 nav.toc { border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1.2rem; margin: 2rem 0; background: var(--stripe); }
 nav.toc summary { cursor: pointer; font-weight: 700; }
 nav.toc ol { margin: .6rem 0 0; padding-left: 0; list-style: none; columns: 2 18rem; column-gap: 2rem; }
@@ -75,6 +83,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <body>
 <main>
 <header class="doc">
+<nav class="langs" aria-label="言語"><span aria-current="page">日本語</span><a href="../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P対局 互換実装のための仕様書</h1>
 <p>ShogiBoardQ（将棋盤Q。P2P対局を有効にしたビルド）／プロトコルの版 1／文書の版 2026-11-13（<a href="#sec-B">変更履歴</a>）</p>
 <p class="lead">通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
@@ -274,6 +283,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 </table></div>
 <p>版ごとの変更は<a href="#sec-B">付録 B</a>に書く。「互換実装の修正」が「要る」の変更は、決まり（しなければならないこと・してはならないこと・値・上限）を変えたもので、それより前の版に従って作った実装は、直さないと ShogiBoardQ と食い違うことがある。「要らない」は、文の手直しや、ShogiBoardQ の動きの説明を足しただけの変更である。互換実装は、自分が従った文書の版を記録し、それより後の「要る」の変更を確かめることが望ましい。</p>
 <p class="note">P2P対局は実験版で、参加できるネットワークは、ローカル検証用と限定試験用だけである（<a href="#sec-3-1">3.1節</a>）。この間は、互換性のない変更でも、プロトコルの版を上げずに版 1 の決まりを変えることがある（付録 B に「要る」と書く）。公開用のネットワークを設けた後は、互換性のない変更ではプロトコルの版を上げる。</p>
+<p>この文書は日本語で書き、英語・簡体字中国語・繁体字中国語の訳を置く（冒頭の言語のリンク）。訳は日本語版の同じ文書の版を訳したもので、日本語版と食い違うときは日本語版に従う。日本語版を変えたら、訳も同じ版で直す。</p>
 </section>
 <section id="notation">
 <h2 id="sec-2">2. 記法と共通の規則</h2>
@@ -1307,6 +1317,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <li>証跡を読むときの CBOR の値の総数の上限（ShogiBoardQ の読み手）を定数の一覧に足した（<a href="#sec-14">14章</a>）。</li>
 <li>対局ストリームの最初のフレームを待つ時間を、実装（監査の修正で 10 秒から 5 秒にした）に合わせて 5 秒に直した。<a href="#sec-4-7">4.7節</a>だけが 5 秒で、<a href="#sec-6-3">6.3節</a>・<a href="#sec-11-1">11.1節</a>・<a href="#sec-14">14章</a>は 10 秒のままだった。</li>
 <li>版の決まり（<a href="#sec-1-5">1.5節</a>）とこの変更履歴を足し、冒頭の文を整えた（文の手直し）。</li>
+<li>英語・簡体字中国語・繁体字中国語の訳を足した（文の手直し）。</li>
 </ul>
 <p class="note">上の 64dbc7d8 の変更は、公開したときに文書の版を上げ忘れ、2026-11-12 と書いたままだった。文書の版が 2026-11-12 でも、4.1節に AutoNAT v2 と書いてあれば、2026-11-13 の内容である。</p></td></tr>
 <tr><td>2026-11-12</td><td>1</td><td>要る</td><td>通常版で直した中継の予約と待受の決まりを足した（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/dca1d36d6cd52865e809d37860877cd5fb722b89">dca1d36d</a>）。

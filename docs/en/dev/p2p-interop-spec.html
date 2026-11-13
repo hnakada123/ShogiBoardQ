@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P2P Game Specification for Compatible Implementations (Protocol v1) - ShogiBoardQ</title>
+<meta name="description" content="Defines the transport layer, invitation strings, frames, start negotiation, in-game steps, reconnection, and the format and verification of game records (evidence).">
+<link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/dev/p2p-interop-spec.html">
+<link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/dev/p2p-interop-spec.html">
+<style>
+:root {
+  --bg: #fbfaf7; --fg: #23261f; --muted: #5f655a; --line: #d9d6cc; --accent: #3f6b4f;
+  --code-bg: #f0eee6; --head-bg: #4d6650; --head-fg: #ffffff; --stripe: #f4f3ec; --note-bg: #eef3ea;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171a17; --fg: #e6e8e1; --muted: #a3a99d; --line: #3a4039; --accent: #9cc7a8;
+    --code-bg: #222722; --head-bg: #34473a; --head-fg: #f2f4ee; --stripe: #1d211d; --note-bg: #1f2a22;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 1rem; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, system-ui, sans-serif;
+  line-height: 1.8; font-size: 16px; -webkit-text-size-adjust: 100%;
+}
+main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+header.doc h1 { font-size: 1.9rem; line-height: 1.35; margin: 0 0 .4rem; }
+header.doc p { margin: .2rem 0; color: var(--muted); }
+header.doc .lead { color: var(--fg); margin-top: 1rem; }
+nav.langs { margin: 0 0 1rem; font-size: .93rem; }
+nav.langs a, nav.langs span { margin-right: 1rem; }
+nav.langs span { font-weight: 700; }
+nav.toc { border: 1px solid var(--line); border-radius: 8px; padding: .8rem 1.2rem; margin: 2rem 0; background: var(--stripe); }
+nav.toc summary { cursor: pointer; font-weight: 700; }
+nav.toc ol { margin: .6rem 0 0; padding-left: 0; list-style: none; columns: 2 18rem; column-gap: 2rem; }
+nav.toc ol > li { break-inside: avoid; margin-bottom: .5rem; font-weight: 600; }
+nav.toc ul { list-style: none; margin: .1rem 0 0; padding-left: 1rem; font-weight: 400; font-size: .93rem; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+h2 { font-size: 1.5rem; margin: 3.2rem 0 1rem; padding-bottom: .35rem; border-bottom: 2px solid var(--accent); line-height: 1.4; }
+h3 { font-size: 1.15rem; margin: 2.2rem 0 .6rem; line-height: 1.5; }
+p { margin: .7rem 0; }
+ul, ol { padding-left: 1.5rem; margin: .6rem 0; }
+li { margin: .25rem 0; }
+code { font-family: "Noto Sans Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .9em;
+  background: var(--code-bg); padding: .08em .3em; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: .9rem 1rem;
+  overflow-x: auto; line-height: 1.55; margin: .9rem 0; }
+pre code { background: none; padding: 0; font-size: .86rem; overflow-wrap: normal; white-space: pre; }
+pre.vec code { white-space: pre-wrap; overflow-wrap: anywhere; }
+p.vec-title { margin: 1.1rem 0 .2rem; font-weight: 600; font-size: .95rem; }
+pre.vec { margin-top: .2rem; }
+.table-wrap { overflow-x: auto; margin: .9rem 0; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: .94rem; }
+th, td { padding: .55rem .75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+thead th { background: var(--head-bg); color: var(--head-fg); font-weight: 600; white-space: nowrap; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+tbody tr:last-child td { border-bottom: none; }
+td:first-child { font-weight: 600; }
+#history td:first-child { white-space: nowrap; }
+#history thead th { white-space: normal; }
+#history thead th:nth-child(2), #history thead th:nth-child(3) { min-width: 6.5em; }
+#history td:last-child { min-width: 13rem; }
+p.note { background: var(--note-bg); border-left: 4px solid var(--accent); padding: .6rem .9rem; border-radius: 0 6px 6px 0; }
+footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+@media (max-width: 40rem) {
+  main { padding: 1.2rem 1rem 3rem; }
+  header.doc h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.3rem; }
+  th, td { padding: .5rem .55rem; }
+}
+@media print {
+  nav.toc { break-after: page; }
+  pre, .table-wrap { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<main>
+<header class="doc">
+<nav class="langs" aria-label="Language"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><span aria-current="page">English</span><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
+<h1>P2P Game Specification for Compatible Implementations</h1>
+<p>ShogiBoardQ (a build with P2P games enabled) / Protocol version 1 / Document version 2026-11-13 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
+<p class="lead">Defines the transport layer, invitation strings, frames, start negotiation, in-game steps, reconnection, and the format and verification of game records (evidence).</p>
+</header>
+<nav class="toc" aria-label="Contents">
+<details open>
+<summary>Contents</summary>
+<ol>
+<li><a href="#sec-1">1. About This Document</a>
+<ul>
+<li><a href="#sec-1-1">1.1 Purpose and Scope</a></li>
+<li><a href="#sec-1-2">1.2 Requirement Wording</a></li>
+<li><a href="#sec-1-3">1.3 Overall Flow</a></li>
+<li><a href="#sec-1-4">1.4 What Cannot Be Prevented</a></li>
+<li><a href="#sec-1-5">1.5 Versions</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2. Notation and Common Rules</a>
+<ul>
+<li><a href="#sec-2-1">2.1 How Values Are Written</a></li>
+<li><a href="#sec-2-2">2.2 Deterministic CBOR</a></li>
+<li><a href="#sec-2-3">2.3 Hashes</a></li>
+<li><a href="#sec-2-4">2.4 Signatures</a></li>
+<li><a href="#sec-2-5">2.5 String Restrictions</a></li>
+</ul>
+</li>
+<li><a href="#sec-3">3. Networks and Identifiers</a>
+<ul>
+<li><a href="#sec-3-1">3.1 Networks</a></li>
+<li><a href="#sec-3-2">3.2 PeerId</a></li>
+<li><a href="#sec-3-3">3.3 Player Key and Player ID</a></li>
+<li><a href="#sec-3-4">3.4 Per-Game Key</a></li>
+<li><a href="#sec-3-5">3.5 Verification Code</a></li>
+<li><a href="#sec-3-6">3.6 Display Name</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. Transport Layer (libp2p)</a>
+<ul>
+<li><a href="#sec-4-1">4.1 Protocols Used</a></li>
+<li><a href="#sec-4-2">4.2 Listening</a></li>
+<li><a href="#sec-4-3">4.3 Identify</a></li>
+<li><a href="#sec-4-4">4.4 Cooperating Nodes and Relays</a></li>
+<li><a href="#sec-4-5">4.5 Address Rules</a></li>
+<li><a href="#sec-4-6">4.6 The Do Not Use Direct Connections Setting</a></li>
+<li><a href="#sec-4-7">4.7 Limits</a></li>
+</ul>
+</li>
+<li><a href="#sec-5">5. Invitation Strings</a>
+<ul>
+<li><a href="#sec-5-1">5.1 Format</a></li>
+<li><a href="#sec-5-2">5.2 The Creating Side</a></li>
+<li><a href="#sec-5-3">5.3 The Reading Side</a></li>
+</ul>
+</li>
+<li><a href="#sec-6">6. Game Stream and Frames</a>
+<ul>
+<li><a href="#sec-6-1">6.1 Stream</a></li>
+<li><a href="#sec-6-2">6.2 Frame Envelope</a></li>
+<li><a href="#sec-6-3">6.3 Opening a Stream and INVITE_TOKEN</a></li>
+<li><a href="#sec-6-4">6.4 Rate and Size Limits</a></li>
+</ul>
+</li>
+<li><a href="#sec-7">7. Values That Are Signed and Hashed</a>
+<ul>
+<li><a href="#sec-7-1">7.1 Conditions</a></li>
+<li><a href="#sec-7-2">7.2 State</a></li>
+<li><a href="#sec-7-3">7.3 Encoding Moves and Positions</a></li>
+<li><a href="#sec-7-4">7.4 Start Agreement and Game ID</a></li>
+<li><a href="#sec-7-5">7.5 Approval, Control, and Result</a></li>
+</ul>
+</li>
+<li><a href="#sec-8">8. Steps Before the Start</a>
+<ul>
+<li><a href="#sec-8-1">8.1 Flow</a></li>
+<li><a href="#sec-8-2">8.2 HELLO (Before the Start)</a></li>
+<li><a href="#sec-8-3">8.3 START_AGREEMENT</a></li>
+<li><a href="#sec-8-4">8.4 Deciding the Sides</a></li>
+<li><a href="#sec-8-5">8.5 START_SIGNATURE</a></li>
+<li><a href="#sec-8-6">8.6 Deadlines</a></li>
+<li><a href="#sec-8-7">8.7 REJECT</a></li>
+</ul>
+</li>
+<li><a href="#sec-9">9. Steps During the Game</a>
+<ul>
+<li><a href="#sec-9-1">9.1 Start (State0 and READY)</a></li>
+<li><a href="#sec-9-2">9.2 Proposing a Move (STATE_PROPOSE)</a></li>
+<li><a href="#sec-9-3">9.3 Approval (STATE_ACCEPT)</a></li>
+<li><a href="#sec-9-4">9.4 Time Rules</a></li>
+<li><a href="#sec-9-5">9.5 Control Messages (CONTROL)</a></li>
+<li><a href="#sec-9-6">9.6 Move Legality</a></li>
+<li><a href="#sec-9-7">9.7 Check Failures (ERROR)</a></li>
+</ul>
+</li>
+<li><a href="#sec-10">10. Game End and Confirming the Result</a>
+<ul>
+<li><a href="#sec-10-1">10.1 Results and Causes</a></li>
+<li><a href="#sec-10-2">10.2 Proposing and Matching the Result</a></li>
+<li><a href="#sec-10-3">10.3 Game Ends Determined by the Moves</a></li>
+<li><a href="#sec-10-4">10.4 Signing the Result (RESULT_SIGNATURE)</a></li>
+<li><a href="#sec-10-5">10.5 Leaving the Game (ABORT)</a></li>
+</ul>
+</li>
+<li><a href="#sec-11">11. Reconnection</a>
+<ul>
+<li><a href="#sec-11-1">11.1 The Reconnecting Side and the Accepting Side</a></li>
+<li><a href="#sec-11-2">11.2 HELLO (Reconnection)</a></li>
+<li><a href="#sec-11-3">11.3 RESUME</a></li>
+<li><a href="#sec-11-4">11.4 SYNC_REQUEST and SYNC_CHUNK</a></li>
+<li><a href="#sec-11-5">11.5 After the Comparison</a></li>
+<li><a href="#sec-11-6">11.6 Disconnection Limits</a></li>
+</ul>
+</li>
+<li><a href="#sec-12">12. Error Codes</a>
+</li>
+<li><a href="#sec-13">13. Game Record (Evidence)</a>
+<ul>
+<li><a href="#sec-13-1">13.1 Format</a></li>
+<li><a href="#sec-13-2">13.2 Verification Steps</a></li>
+<li><a href="#sec-13-3">13.3 Record Status</a></li>
+</ul>
+</li>
+<li><a href="#sec-14">14. List of Constants</a>
+</li>
+<li><a href="#sec-15">15. Checking Conformance</a>
+<ul>
+<li><a href="#sec-15-1">15.1 Test Inputs</a></li>
+<li><a href="#sec-15-2">15.2 Order of Checks</a></li>
+</ul>
+</li>
+<li><a href="#sec-A">Appendix A. Test Values</a>
+<ul>
+<li><a href="#sec-A-1">A.1 Condition Hash</a></li>
+<li><a href="#sec-A-2">A.2 Side Random Values, Connection, and Verification Code</a></li>
+<li><a href="#sec-A-3">A.3 States and Results (gameId = aa…, main time 600,000 ms, byoyomi 30,000 ms)</a></li>
+<li><a href="#sec-A-4">A.4 Signatures and Frames</a></li>
+</ul>
+</li>
+<li><a href="#sec-B">Appendix B. Change History</a></li>
+</ol>
+</details>
+</nav>
+<section id="overview">
+<h2 id="sec-1">1. About This Document</h2>
+
+<h3 id="sec-1-1">1.1 Purpose and Scope</h3>
+<p>This document is a specification for building, as a separate implementation, software that can play against the "P2P games" of ShogiBoardQ (a build with P2P games enabled). It defines the byte sequences that travel over the network, the procedures, the checks, the time rules, and the file format of game records (evidence). Implementations built according to this document can connect to each other by passing an invitation string, play a game, and keep a game record confirmed by both sides.</p>
+<p>It covers protocol version 1 (frame <code>version</code> 1, and version 1 of each value). The following are out of scope, and each implementation may decide them freely.</p>
+<ul>
+<li>The screens and controls, how settings are saved, and how the player key is stored (the OS keychain, an encrypted file, and so on)</li>
+<li>How the part that handles communication is separated from the part that handles the game and the screens (ShogiBoardQ splits them into separate processes connected by JSON IPC, but this has no bearing on compatibility)</li>
+<li>Safety measures inside the implementation, such as restricting privileges (sandboxing)</li>
+</ul>
+
+<h3 id="sec-1-2">1.2 Requirement Wording</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Wording</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>must / a plain statement ("does …")</td><td>Always followed, for compatibility and safety (MUST)</td></tr>
+<tr><td>must not</td><td>Always avoided (MUST NOT)</td></tr>
+<tr><td>should</td><td>Followed unless there is a particular reason not to (SHOULD)</td></tr>
+<tr><td>may</td><td>The implementation can choose (MAY)</td></tr>
+</tbody>
+</table></div>
+<p>An implementation that receives input that this document says to "refuse" or "reject" must not treat it as valid input. How the refusal is signaled (sending REJECT, closing the stream, or silently discarding it) is stated in each section.</p>
+
+<h3 id="sec-1-3">1.3 Overall Flow</h3>
+<p>There are two players. The side that invites is called the <strong>inviter</strong> (the "host" inside the protocol, <code>role</code> = 2), and the side that receives the invitation and connects is called the <strong>joiner</strong> (<code>role</code> = 1).</p>
+<ol>
+<li><strong>Connection</strong>: Both sides start a libp2p node (<a href="#sec-4">section 4</a>). Over the Internet, each also connects to the cooperating nodes the user specified (nodes that provide relaying and the reachability check).</li>
+<li><strong>Invitation</strong>: The inviter creates an invitation string, and the user passes it to the opponent by another channel (such as a message) (<a href="#sec-5">section 5</a>).</li>
+<li><strong>Stream</strong>: The joiner connects to the addresses in the invitation string, opens a game stream, and first sends the invitation token (INVITE_TOKEN) (<a href="#sec-6">section 6</a>).</li>
+<li><strong>Start negotiation</strong>: The sides exchange HELLO, decide the conditions and the sides, and both sign the start agreement (StartAgreement) with their player keys (<a href="#sec-8">section 8</a>).</li>
+<li><strong>Game</strong>: For each move, the side that moved proposes a state (State), and the opponent checks and approves it. Both sign with their per-game keys (<a href="#sec-9">section 9</a>).</li>
+<li><strong>Game end</strong>: The sides compare the result (FinalResult), and both sign it with their player keys (<a href="#sec-10">section 10</a>).</li>
+<li><strong>Record</strong>: Each side saves the start agreement, all the moves, and the signatures in one file (the evidence). Anyone can verify it (<a href="#sec-13">section 13</a>).</li>
+</ol>
+<p>There is no game server. The correctness of the game is maintained by each side checking the values it receives itself, without trusting the opponent's app. When the connection drops, the sides can reconnect to the same game (<a href="#sec-11">section 11</a>).</p>
+
+<h3 id="sec-1-4">1.4 What Cannot Be Prevented</h3>
+<p>This protocol does not prevent the following. Compatible implementations should explain this to their users.</p>
+<ul>
+<li>Display names are self-declared. The only grounds for telling opponents apart are the public key of the player key (the player ID) and the verification code (<a href="#sec-3-5">section 3.5</a>).</li>
+<li>If the losing side does not sign the result, no record signed by both sides remains.</li>
+<li>Time used is self-reported. Padding of up to 10 seconds per move and stalling by disconnecting (up to 10 minutes in total per game) cannot be detected.</li>
+<li>Games played by engines and arranged games cannot be detected.</li>
+<li>With a direct connection, the opponent can learn your IP address by examining the traffic (this can be avoided with the setting that uses only the relay; <a href="#sec-4-6">section 4.6</a>).</li>
+</ul>
+
+<h3 id="sec-1-5">1.5 Versions</h3>
+<p>This document has two versions.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Version</th><th>What it represents</th><th>When it is raised</th></tr></thead>
+<tbody>
+<tr><td>Protocol version</td><td>Compatibility of the communication. It appears in the frame <code>version</code> (<a href="#sec-6-2">section 6.2</a>) and in the list of supported versions in HELLO (<a href="#sec-8-2">section 8.2</a>). Currently 1</td><td>When a change makes it impossible to play against implementations of the previous version (for the exception during the experimental period, see below)</td></tr>
+<tr><td>Document version</td><td>The content of this document. The date of the change (YYYY-MM-DD); from the second change on the same day, <code>.1</code>, <code>.2</code> is appended</td><td>Every time this document changes (even when only the wording is revised)</td></tr>
+</tbody>
+</table></div>
+<p>The changes in each version are listed in <a href="#sec-B">Appendix B</a>. A change whose "Fix needed in compatible implementations" is "Needed" changes a rule (what must or must not be done, a value, or a limit), and an implementation built according to an earlier version can disagree with ShogiBoardQ unless it is fixed. "Not needed" means a change that only revises the wording or adds an explanation of ShogiBoardQ's behavior. A compatible implementation should record the document version it followed and check the "Needed" changes made after it.</p>
+<p class="note">P2P games are experimental, and the only networks that can be joined are Local test and Limited test (<a href="#sec-3-1">section 3.1</a>). During this period, the rules of version 1 can be changed without raising the protocol version, even by incompatible changes (they are marked "Needed" in Appendix B). After a public network is set up, incompatible changes will raise the protocol version.</p>
+<p>This document is written in Japanese, with English, Simplified Chinese, and Traditional Chinese translations (the language links at the top). Each translation is a translation of the same document version of the Japanese version, and where a translation disagrees with the Japanese version, the Japanese version prevails. When the Japanese version changes, the translations are corrected at the same version.</p>
+</section>
+<section id="notation">
+<h2 id="sec-2">2. Notation and Common Rules</h2>
+
+<h3 id="sec-2-1">2.1 How Values Are Written</h3>
+<p>This document writes CBOR values as follows.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Notation</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>uint</code></td><td>Unsigned integer (0 to 2<sup>64</sup>−1)</td></tr>
+<tr><td><code>bstr</code>, <code>bstr(32)</code></td><td>Byte string. The number in parentheses is the length (in bytes)</td></tr>
+<tr><td><code>tstr</code></td><td>Text string (UTF-8)</td></tr>
+<tr><td><code>[a, b, ...]</code></td><td>Array. The number and order of the elements are fixed, and elements not listed must not be added</td></tr>
+<tr><td><code>"SBQ-..."</code></td><td>A tstr of exactly that string (a label that indicates the kind of value)</td></tr>
+<tr><td><code>zero32</code></td><td>A bstr of 32 zero bytes</td></tr>
+</tbody>
+</table></div>
+<p>Booleans are written as the uint 0 or 1. Times are UNIX seconds (uint), and durations are milliseconds (uint). Hexadecimal is written in lowercase.</p>
+
+<h3 id="sec-2-2">2.2 Deterministic CBOR</h3>
+<p>The CBOR used for signatures, hashes, frames, invitation strings, and evidence uses only the following subset of the core deterministic encoding of RFC 8949. <strong>The reading side must reject everything not listed here.</strong></p>
+<ul>
+<li>Only four types can be used: unsigned integers (major type 0), byte strings (2), text strings (3), and arrays (4). Negative integers, maps, tags, floating-point numbers, and simple values (true/false/null/undefined) are not used.</li>
+<li>Lengths and integers are written in the shortest form (0 to 23 in the initial byte, 24 to 255 in one following byte, 256 to 65535 in two bytes, 65536 to 2<sup>32</sup>−1 in four bytes, and anything larger in eight bytes). Forms that are not the shortest are rejected.</li>
+<li>Indefinite lengths (additional information 31) and reserved values (28 to 30) are rejected.</li>
+<li>Text strings must be valid UTF-8 (overlong forms, surrogates, and values above U+10FFFF are rejected).</li>
+<li>Nesting is limited to 16 levels. The top-level value counts as level 1, and a value inside an array counts as one level deeper, even if it is not an array (nesting arrays 16 deep and putting one value in the innermost array makes 17 levels, which is rejected).</li>
+<li>The input is exactly one value; if any bytes remain after it, it is rejected.</li>
+<li>After reading a length, check that it fits in the remaining input before allocating memory.</li>
+</ul>
+<p>With these rules, the byte sequence for a given value is unique. Re-encoding a value that has been read yields the original byte sequence. Below, <code>CBOR(x)</code> denotes this byte sequence of the value x.</p>
+
+<h3 id="sec-2-3">2.3 Hashes</h3>
+<p>The hash function <code>H</code> is SHA-256 (32-byte output). <code>H(CBOR(x))</code> denotes the SHA-256 of the deterministic CBOR byte sequence of the value x. In this document, a value whose name ends in "…Hash" is <code>H(CBOR(value))</code> unless stated otherwise.</p>
+
+<h3 id="sec-2-4">2.4 Signatures</h3>
+<p>Signatures are Ed25519 (RFC 8032), with 32-byte public keys and 64-byte signatures. What is signed is exactly the deterministic CBOR byte sequence of the value (<code>CBOR(value)</code>), with no prefix or context string added. The label at the start of the value (such as <code>"SBQ-START"</code>) serves to separate the purposes of signatures.</p>
+<p>A signature is "valid" only when it passes both of the following.</p>
+<ol>
+<li><strong>Public key check</strong>: The public key is a point that passes libsodium's <code>crypto_core_ed25519_is_valid_point</code> (canonically encoded, on the curve, in the prime-order subgroup, and not of small order).</li>
+<li><strong>Signature check</strong>: The result is the same as libsodium's <code>crypto_sign_verify_detached</code> (including libsodium's default check that rejects non-canonical signatures).</li>
+</ol>
+<p>Check 1 is performed for every signature verification (it applies both to public keys received in HELLO and to evidence verification). An implementation that performs only check 2 accepts, unlike ShogiBoardQ, signatures by public keys that are not in the prime-order subgroup. The secret key is derived from a 32-byte seed as specified in RFC 8032.</p>
+
+<h3 id="sec-2-5">2.5 String Restrictions</h3>
+<p>A value described as an "ASCII tstr" must consist only of the characters 0x20 to 0x7E. The maximum length is given in each section. Values that exceed the maximum or contain characters outside the range are rejected.</p>
+</section>
+<section id="identity">
+<h2 id="sec-3">3. Networks and Identifiers</h2>
+
+<h3 id="sec-3-1">3.1 Networks</h3>
+<p>Only implementations that chose the same <code>networkName</code> can play each other. A network is identified by <code>networkId</code>, a 32-byte value determined by its name.</p>
+<pre><code>networkId = H(CBOR(["SBQ-NETWORK", 1, networkName]))     ; networkName is an ASCII tstr (1 to 32 bytes)</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>networkName</th><th>Use</th><th>networkId (hex)</th></tr></thead>
+<tbody>
+<tr><td><code>sbq-local-1</code></td><td>Local test. Connects only within the same PC or the same LAN (<a href="#sec-4-5">section 4.5</a>)</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>Limited test. Connects with opponents on the Internet</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
+</tbody>
+</table></div>
+<p>An implementation must keep a list of the networkNames it can join and refuse any other name. ShogiBoardQ does not join <code>sbq-limited-1</code> once 180 days have passed since the build (the expiry of the experimental build; compatible implementations do not need to have the same expiry).</p>
+<p>The libp2p layer has no mechanism for separating networks (such as a private network key). The network is checked by the networkId in the invitation string (<a href="#sec-5">section 5</a>) and in HELLO (<a href="#sec-8-2">section 8.2</a>).</p>
+
+<h3 id="sec-3-2">3.2 PeerId</h3>
+<p>The key of the libp2p node must be Ed25519. The binary representation of the PeerId is the 38-byte identity multihash that contains the Ed25519 public key as is.</p>
+<pre><code>peerId = 00 24 08 01 12 20 || public key (32 bytes)</code></pre>
+<p>A PeerId that does not have this form (an RSA key, a SHA-256 multihash, and so on) is refused, both in invitation strings and in HELLO. Its text form is base58 (<code>12D3KooW…</code>).</p>
+<p>The PeerId may be created anew each time the node starts (ShogiBoardQ creates a new key for every connection). However, the same PeerId must be used throughout a game, because the start agreement contains a hash of the PeerIds and reconnection is accepted only from the same PeerId (<a href="#sec-11">section 11</a>).</p>
+
+<h3 id="sec-3-3">3.3 Player Key and Player ID</h3>
+<p>Each user has one long-lived Ed25519 key. It is called the <strong>player key</strong>, and its public key (32 bytes) is called the <strong>player ID</strong>. The player key is used only to sign the start agreement (StartAgreement) and the result (FinalResult). It must be a different key from the PeerId key.</p>
+<p>On screen, the player ID is shown as 64 lowercase hexadecimal digits, separated by a space every 8 digits (example: <code>cf3b0b03 a6e888db …</code>). Users must not be made to judge whether an opponent is the same person from a shortened display alone.</p>
+
+<h3 id="sec-3-4">3.4 Per-Game Key</h3>
+<p>A new Ed25519 key is created for each negotiation. It is called the <strong>per-game key</strong> and is used to sign state approvals (StateApproval) and control messages (Control) during the game. It is discarded when the game ends and is not saved. It must be different from both the player key and the opponent's keys.</p>
+
+<h3 id="sec-3-5">3.5 Verification Code</h3>
+<p>From the two player IDs, a verification code is made that shows the same digits on both screens. The users compare the digits through another channel, such as a phone call or in person, to confirm that the opponent's player ID belongs to that person.</p>
+<pre><code>digest = H(CBOR(["SBQ-VERIFY", 1, keyLow, keyHigh]))    ; the two public keys, the smaller first in lexicographic (unsigned) byte order
+group g (0 to 5) = read the 5 bytes digest[5g .. 5g+4] as a big-endian integer, and write the remainder after dividing by 100000 as 5 digits (zero-padded)</code></pre>
+<p>The verification code is six groups of these 5 digits (30 digits in total).</p>
+
+<h3 id="sec-3-6">3.6 Display Name</h3>
+<p>The display name is the self-declared name shown on the opponent's screen, sent in HELLO. It must satisfy all of the following rules, and the receiving side judges it <strong>on the bytes as received</strong> (it must not remove a leading BOM or anything else before judging).</p>
+<ul>
+<li>At most 96 bytes in UTF-8, and 1 to 32 characters (code points)</li>
+<li>Does not start or end with a space (U+0020)</li>
+<li>Every character is in one of the ranges in the following table (both ends inclusive)</li>
+</ul>
+<div class="table-wrap"><table>
+<thead><tr><th>Range (hex)</th><th>Contents</th></tr></thead>
+<tbody>
+<tr><td><code>0020..007E</code></td><td>Printable ASCII characters (including the space)</td></tr>
+<tr><td><code>3001..3003</code></td><td>&#x3001;&#x3002;&#x3003; (ideographic comma, ideographic full stop, ditto mark)</td></tr>
+<tr><td><code>3005..3007</code></td><td>&#x3005;&#x3006;&#x3007; (ideographic iteration mark, ideographic closing mark, ideographic number zero)</td></tr>
+<tr><td><code>3041..3096</code></td><td>Hiragana (the combining voiced and semi-voiced sound marks U+3099 and U+309A are not included)</td></tr>
+<tr><td><code>309B..309E</code></td><td>&#x309B;&#x309C;&#x309D;&#x309E; (non-combining voiced and semi-voiced sound marks, hiragana iteration marks)</td></tr>
+<tr><td><code>30A1..30FE</code></td><td>Katakana (including &#x30FB;&#x30FC;&#x30FD;&#x30FE;: the katakana middle dot, the prolonged sound mark, and the katakana iteration marks)</td></tr>
+<tr><td><code>4E00..9FFF</code></td><td>CJK Unified Ideographs</td></tr>
+<tr><td><code>FF01..FF5E</code></td><td>Full-width alphanumerics and symbols</td></tr>
+</tbody>
+</table></div>
+<p>The table was chosen to contain only characters that are not combining characters and do not change under NFC. Implementations must judge using only this table and must not use the Unicode tables of the OS or the programming language (because the results differ between implementations). Display names are not kept in the game record (evidence).</p>
+</section>
+<section id="transport">
+<h2 id="sec-4">4. Transport Layer (libp2p)</h2>
+
+<h3 id="sec-4-1">4.1 Protocols Used</h3>
+<p>Communication uses libp2p. ShogiBoardQ is built with rust-libp2p 0.56, and compatible implementations must be able to connect to each other with the following protocols.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Layer</th><th>Protocol</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Transport</td><td>QUIC v1 (multiaddr <code>/ip4/…/udp/&lt;port&gt;/quic-v1</code>)</td><td>Connecting with either one is enough. Implementations should support both</td></tr>
+<tr><td>Transport</td><td>TCP (<code>/ip4/…/tcp/&lt;port&gt;</code>) + multistream-select 1.0 + Noise (<code>/noise</code>) + Yamux (<code>/yamux/1.0.0</code>)</td><td>Connections through a relay also use this Noise and Yamux</td></tr>
+<tr><td>Identification</td><td>Identify (<code>/ipfs/id/1.0.0</code>)</td><td>Section 4.3</td></tr>
+<tr><td>Liveness</td><td>Ping (<code>/ipfs/ping/1.0.0</code>)</td><td><strong>Required</strong>. Sent every 10 seconds; if there is no response for 30 seconds, the connection is closed. A connection with a peer that does not support Ping is closed immediately</td></tr>
+<tr><td>Relay</td><td>Circuit Relay v2 (<code>/libp2p/circuit/relay/0.2.0/hop</code>, <code>/stop</code>)</td><td>Section 4.4. Used on <code>sbq-limited-1</code></td></tr>
+<tr><td>Switching to a direct connection</td><td>DCUtR (<code>/libp2p/dcutr</code>)</td><td>May be omitted. Must not be performed with the setting that uses only the relay</td></tr>
+<tr><td>Reachability check</td><td>AutoNAT v2 (<code>/libp2p/autonat/2/dial-request</code>, <code>/libp2p/autonat/2/dial-back</code>)</td><td>May be omitted. Must not be performed with the setting that uses only the relay. Ask for a check only of the direct Internet addresses among the candidates for your own address that peers observed. AutoNAT v1 (<code>/libp2p/autonat/1.0.0</code>), which sends the listen addresses (including private, loopback, and link-local ones) to the peer, is not used. ShogiBoardQ's cooperating nodes respond to v2 checks; ordinary players do not</td></tr>
+<tr><td>Game</td><td><code>/shogiboardq/game/1.0.0</code></td><td>Section 6 onward. The main body of this document</td></tr>
+</tbody>
+</table></div>
+<p>mDNS, Kademlia (DHT), and GossipSub are not used. There is no mechanism for finding opponents automatically; the only peers to which a connection is initiated are the cooperating nodes the user specified and the opponents of invitations and games.</p>
+
+<h3 id="sec-4-2">4.2 Listening</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Network</th><th>Listening</th></tr></thead>
+<tbody>
+<tr><td><code>sbq-local-1</code></td><td>All IPv4 interfaces. TCP and UDP (QUIC) port <strong>48210</strong>. If it is in use, a free port is used. Does not listen on IPv6</td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>All IPv4 and IPv6 interfaces. A free TCP and UDP (QUIC) port</td></tr>
+</tbody>
+</table></div>
+<p>The port number is included in the addresses in the invitation string, so connections work even if a compatible implementation listens on a different port. Port 48210 is a default so that users can decide which port to allow in their firewall.</p>
+<p>An implementation must not listen on a port on which another process is listening. libp2p's TCP listener is opened with the setting that lets multiple processes share the same port (<code>SO_REUSEPORT</code>), so it can be opened even when the port is in use, and incoming connections are then distributed between two processes (a second app on the same PC, or another implementation). ShogiBoardQ first tries TCP port 48210 with a non-shared listener to confirm that it is not in use, and only then opens it. If a process started at the same time does the same between the check and the opening, both could open it, so UDP (QUIC; opened without the sharing setting) is opened first, and only the process that opened UDP port 48210 also uses port 48210 for TCP.</p>
+
+<h3 id="sec-4-3">4.3 Identify</h3>
+<p>The Identify <code>protocolVersion</code> is <code>/shogiboardq/1.0.0</code>, and <code>agentVersion</code> is the name and version of the implementation (for ShogiBoardQ, <code>shogiboardq-peer/&lt;version&gt;</code>). A connection must not be refused because of the peer's values of these (the network is checked by networkId).</p>
+<p>The own addresses advertised via Identify (listenAddrs) must not include the listen addresses as they are. Only addresses that have been confirmed or determined to be actually reachable by peers may be included (on <code>sbq-limited-1</code>, Internet addresses confirmed by the reachability check and addresses through a relay; a cooperating node may also include its listen addresses on the Internet; section 4.4). On <code>sbq-local-1</code>, none are included (Identify also reaches peers that have no invitation, so the list of the PC's private addresses is not handed out to LAN devices that merely connected to the listening port; the addresses for the opponent are passed in the invitation string). Changes to the listen addresses are not announced with Identify push.</p>
+
+<h3 id="sec-4-4">4.4 Cooperating Nodes and Relays</h3>
+<p>Over the Internet (<code>sbq-limited-1</code>), the user specifies the addresses of <strong>cooperating nodes</strong> (of the form <code>/ip4/…/tcp/…/p2p/&lt;PeerId&gt;</code>; up to 16). A cooperating node is a libp2p node that supports the Circuit Relay v2 hop, Identify, and Ping (and answers AutoNAT); it does not read the contents of game frames. Any standard Circuit Relay v2 relay node can be used as a cooperating node.</p>
+<ul>
+<li>An implementation reserves a relay slot on each cooperating node whose Identify protocols include the relay hop, regardless of its own reachability (up to 2 reservations). When a reservation is refused, or is lost because the connection to the cooperating node dropped, the implementation should wait a little and request it again (ShogiBoardQ waits 30 seconds). Unless it requests again, invitation strings contain no address through the relay until it reconnects.</li>
+<li>The own address through a relay has the form <code>&lt;cooperating node address&gt;/p2p/&lt;cooperating node PeerId&gt;/p2p-circuit</code>; it is built from the cooperating node address that the user specified and put in the invitation string (an opponent who specified the same cooperating node can use it as is).</li>
+<li>A cooperating node must return its own addresses in the reservation response. libp2p implementations (such as rust-libp2p, which ShogiBoardQ uses) treat a response without addresses as a failed reservation. A relay node that has just started has no addresses of its own until the reachability check (AutoNAT) completes, and can fail every reservation in the meantime. A cooperating node should take an Internet address it listens on as its own address without waiting for the check (ShogiBoardQ's cooperating node does so).</li>
+<li>For addresses through a relay as well, the rules of section 4.5 are applied to the leading IP address (that of the cooperating node).</li>
+<li>ShogiBoardQ's cooperating node (<code>shogiboardq-peer --service --relay</code>) cuts each relayed connection at 30 minutes or 8 MiB. When it is cut, the game reconnects using the reconnection procedure (<a href="#sec-11">section 11</a>).</li>
+</ul>
+
+<h3 id="sec-4-5">4.5 Address Rules</h3>
+<p>The addresses to which a connection may be made, and the addresses that may be advertised as one's own, are decided per network. IP addresses are classified as follows.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Category</th><th>Ranges</th></tr></thead>
+<tbody>
+<tr><td>loopback</td><td>127.0.0.0/8, ::1 (judged before "Not used" below)</td></tr>
+<tr><td>Private</td><td>10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7 (ULA)</td></tr>
+<tr><td>Not used</td><td>0.0.0.0/8, 169.254.0.0/16, 100.64.0.0/10, 224.0.0.0/4, 240.0.0.0/4 (including 255.255.255.255), 192.0.0.0/24, 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 198.18.0.0/15, 192.88.99.0/24, ::, IPv6 with embedded IPv4 (::/96, ::ffff:0:0/96), 100::/64, fe80::/10, fec0::/10, ff00::/8, 2001::/32 (Teredo), 2001:db8::/32, 64:ff9b::/32, 6to4 (2002::/16) whose embedded IPv4 is not an Internet address</td></tr>
+<tr><td>Internet</td><td>Addresses that are none of the above</td></tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Network</th><th>Addresses that may be connected to</th><th>Accepted sources</th></tr></thead>
+<tbody>
+<tr><td><code>sbq-local-1</code></td><td>Loopback, private, and through a relay. No connections to Internet addresses</td><td>Only loopback and private. A connection that arrives from any other source is closed before it is established as a connection (for TCP, before the Noise handshake starts). A connection through a relay has no source IP, so it is not refused here</td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>Internet addresses and through a relay. Private addresses only when they are addresses in an invitation string and the user allowed them for that invitation. No connections to loopback or "Not used" addresses</td><td>Not restricted</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>Only the following forms can be used as addresses: <code>/ip4|ip6/…/tcp/&lt;port&gt;</code>, <code>/ip4|ip6/…/udp/&lt;port&gt;/quic-v1</code> (a trailing <code>/p2p/&lt;PeerId&gt;</code> is allowed), and, through a relay, <code>[direct form]/p2p/&lt;relay&gt;/p2p-circuit[/p2p/&lt;target&gt;]</code> and <code>/p2p/&lt;relay&gt;/p2p-circuit[/p2p/&lt;target&gt;]</code>. Addresses with two IPs, addresses with unknown components, and nested relays are discarded (within these forms, the leading IP is the only IP; libp2p's TCP connects to the last IP, so checking only the first one would let an address slip past the rules). Addresses with DNS names (<code>/dns</code>, <code>/dns4</code>, <code>/dns6</code>, <code>/dnsaddr</code>) are not used in v1. They must not be put in invitation strings, and are discarded if present.</li>
+<li>Up to 8 addresses per peer. Up to 8 connection attempts at the same time, and an address that failed is not retried for 60 seconds.</li>
+<li>On <code>sbq-limited-1</code>, private addresses are removed from the addresses one advertises (invitations and Identify).</li>
+</ul>
+
+<h3 id="sec-4-6">4.6 The Do Not Use Direct Connections Setting</h3>
+<p>This is a setting for not showing your IP address to the opponent (implementing it is optional). An implementation of this setting must observe the following.</p>
+<ul>
+<li>Direct connections go only to the addresses of the cooperating nodes the user specified (and other addresses those nodes announced via Identify). Direct connections to any other address are refused, whatever path initiated them.</li>
+<li>Addresses through a relay are used only when the relay is a specified cooperating node (a relay that was not specified would see your IP).</li>
+<li>Only addresses through a relay are advertised as your own (invitations and Identify).</li>
+<li>AutoNAT and DCUtR are not performed, because both hand candidates of your own address to the peer.</li>
+</ul>
+<p>When the opponent invites with this setting, simply connect normally to the relay addresses in the invitation string; there is no difference in the protocol.</p>
+<p>When the side with this setting is the <strong>joiner</strong>, it connects only to those addresses in the invitation string whose relay is a cooperating node it specified. Therefore the inviter needs to reserve a relay slot on <strong>the same cooperating node that the joiner specified</strong> and put the address through that relay in the invitation string (both sides specify the same cooperating node). If there is no usable address, the joiner does not start a connection.</p>
+
+<h3 id="sec-4-7">4.7 Limits</h3>
+<p>ShogiBoardQ closes, or does not accept, connections that exceed the following limits. Compatible implementations must operate within these limits.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Item</th><th>Limit</th></tr></thead>
+<tbody>
+<tr><td>Total established connections</td><td>32 (before establishment, 8 each for incoming and outgoing; 3 for incoming connections before establishment from the same source IP)</td></tr>
+<tr><td>Connection establishment (cryptographic handshake and multiplexer negotiation)</td><td>20 seconds</td></tr>
+<tr><td>Connections per peer</td><td>4</td></tr>
+<tr><td>Connections accepted from the same address block (/24 for IPv4, /48 for IPv6; per source IP on <code>sbq-local-1</code>)</td><td>8</td></tr>
+<tr><td>Game streams (total before the start and during the game)</td><td>8</td></tr>
+<tr><td>Incoming game streams waiting for their first frame</td><td>16 in total, 1 per peer. The first frame must be sent within 5 seconds (the stream is closed if it is late). During a game, streams from anyone other than the opponent are closed without being read</td></tr>
+<tr><td>Yamux streams per connection</td><td>64</td></tr>
+<tr><td>Time a connection without streams is kept</td><td>120 seconds</td></tr>
+</tbody>
+</table></div>
+</section>
+<section id="invite">
+<h2 id="sec-5">5. Invitation Strings</h2>
+<p>The opponent of a game is decided by an invitation string. The inviter creates it, and the user passes it to the opponent by another channel. The invitation string contains the addresses for connecting to the inviter and a token that can be used only once.</p>
+
+<h3 id="sec-5-1">5.1 Format</h3>
+<pre><code>invite = "sbqinv1." + base64url(body) + "." + hex(H(body)[0..4])
+body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt])</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Field</th><th>Type</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td>networkId</td><td>bstr(32)</td><td><a href="#sec-3-1">Section 3.1</a></td></tr>
+<tr><td>peerId</td><td>bstr(38)</td><td>Binary representation of the inviter's PeerId (only the form in <a href="#sec-3-2">section 3.2</a>)</td></tr>
+<tr><td>addr</td><td>bstr</td><td>Binary representation of a candidate multiaddr for reaching the inviter. The trailing <code>/p2p/&lt;inviter&gt;</code> is not appended (the <code>/p2p/&lt;cooperating node&gt;</code> inside an address through a relay is kept). 0 to 8 entries, each 1 to 100 bytes</td></tr>
+<tr><td>token</td><td>bstr(32)</td><td>Created with a cryptographic random number generator</td></tr>
+<tr><td>expiresAt</td><td>uint</td><td>Expiry time (UNIX seconds). 600 seconds after creation</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>base64url uses the URL-safe alphabet of RFC 4648, without <code>=</code> padding.</li>
+<li>The check value at the end is the first 4 bytes of the SHA-256 of body in lowercase hex (8 characters). It is for catching typos and truncation and is not a secret.</li>
+<li>The whole string must be at most 1024 bytes.</li>
+</ul>
+
+<h3 id="sec-5-2">5.2 The Creating Side</h3>
+<ul>
+<li>Only addresses that the opponent can actually use are included as candidates (<a href="#sec-4-5">section 4.5</a>, <a href="#sec-4-6">section 4.6</a>). On <code>sbq-local-1</code>, the private addresses used by an opponent on the same LAN come first, and the loopback addresses, usable only on the same PC, come last.</li>
+<li>Up to 4 invitations can be valid at the same time; creating a fifth invalidates the oldest.</li>
+<li>An invitation can be used only once. When a stream with a matching token is accepted, that invitation is marked as used (<a href="#sec-6-3">section 6.3</a>).</li>
+<li>The token must not be written to logs or the like. Users are advised to pass the invitation string by a channel that reaches only the opponent (because it contains the addresses to connect to).</li>
+</ul>
+
+<h3 id="sec-5-3">5.3 The Reading Side</h3>
+<p>Before reading, remove only leading and trailing whitespace (ASCII space, tab, CR, LF). Then check all of the following; if any one of them fails, the invitation is not used.</p>
+<ol>
+<li>The whole is at most 1024 bytes, the prefix is <code>sbqinv1.</code>, and the rest splits at <code>.</code> into exactly two parts.</li>
+<li>The first part can be read as base64url, and the second part matches the first 4 bytes of the SHA-256 of body in lowercase hex.</li>
+<li>body is deterministic CBOR, an array of 7 elements, and the label, the version, and the type and length of each field are as in section 5.1.</li>
+<li>networkId matches the network you are currently joined to.</li>
+<li>expiresAt is later than the current time and no more than 660 seconds from now (600 seconds + 60 seconds of clock skew).</li>
+<li>peerId is not your own PeerId.</li>
+</ol>
+<p>The candidate addresses <strong>must all be readable as binary multiaddrs</strong>. If even one cannot be read (because it contains an unknown protocol code, for example), the whole invitation string is not used. The creating side writes them using only widely used protocols (<code>ip4</code>, <code>ip6</code>, <code>tcp</code>, <code>udp</code>, <code>quic-v1</code>, <code>p2p</code>, <code>p2p-circuit</code>).</p>
+<p>Of the candidates read, only the addresses that may be connected to on the current network (<a href="#sec-4-5">section 4.5</a>) are used, and the rest are discarded. If no usable address remains, no connection is made.</p>
+</section>
+<section id="stream">
+<h2 id="sec-6">6. Game Stream and Frames</h2>
+
+<h3 id="sec-6-1">6.1 Stream</h3>
+<p>The negotiation and the game exchanges take place on a single stream of the libp2p protocol <code>/shogiboardq/game/1.0.0</code>. In this document, "connection" refers to this stream unless stated otherwise. The stream being closed or reset is called "disconnection".</p>
+<p>The stream repeatedly carries a <strong>4-byte big-endian length</strong> followed by a <strong>frame</strong> (deterministic CBOR) of that length. The length must be 1 to 65536 (64 KiB). The receiving side checks the length before allocating memory.</p>
+
+<h3 id="sec-6-2">6.2 Frame Envelope</h3>
+<pre><code>Frame = [version, type, requestId, gameId, payload]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Field</th><th>Type</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td>version</td><td>uint</td><td>1</td></tr>
+<tr><td>type</td><td>uint</td><td>1 to 11 (table below)</td></tr>
+<tr><td>requestId</td><td>uint</td><td>A number assigned by the sender (0 to 2<sup>64</sup>−1). The receiver does not look at the value. ShogiBoardQ numbers the first frame of the negotiation 1 and increases it by 1 for each frame it sends (continuing the count after a reconnection). Only INVITE_TOKEN is fixed at 0</td></tr>
+<tr><td>gameId</td><td>bstr(32)</td><td>The game ID (<a href="#sec-7-4">section 7.4</a>). Frames sent before the game ID is determined use zero32</td></tr>
+<tr><td>payload</td><td>array</td><td>Its contents are determined by the type</td></tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>type</th><th>Name</th><th>Used for</th><th>Section</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>HELLO</td><td>Introduction before the start / introduction on reconnection</td><td><a href="#sec-8-2">8.2</a>, <a href="#sec-11-2">11.2</a></td></tr>
+<tr><td>2</td><td>START_AGREEMENT</td><td>Presenting the start agreement</td><td><a href="#sec-8-3">8.3</a></td></tr>
+<tr><td>3</td><td>START_SIGNATURE</td><td>Signature on the start agreement</td><td><a href="#sec-8-5">8.5</a></td></tr>
+<tr><td>4</td><td>STATE_PROPOSE</td><td>Proposing a state (a move)</td><td><a href="#sec-9-2">9.2</a></td></tr>
+<tr><td>5</td><td>STATE_ACCEPT</td><td>Approving a state</td><td><a href="#sec-9-3">9.3</a></td></tr>
+<tr><td>6</td><td>CONTROL</td><td>Control (ready, resume, result proposal, abort, error)</td><td><a href="#sec-9-5">9.5</a></td></tr>
+<tr><td>7</td><td>SYNC_REQUEST</td><td>Requesting states after reconnection</td><td><a href="#sec-11-4">11.4</a></td></tr>
+<tr><td>8</td><td>SYNC_CHUNK</td><td>Sending states after reconnection</td><td><a href="#sec-11-4">11.4</a></td></tr>
+<tr><td>9</td><td>RESULT_SIGNATURE</td><td>Signature on the result</td><td><a href="#sec-10-4">10.4</a></td></tr>
+<tr><td>10</td><td>REJECT</td><td>Refusal or cancellation before the start</td><td><a href="#sec-8-7">8.7</a></td></tr>
+<tr><td>11</td><td>INVITE_TOKEN</td><td>Invitation token (only at the start of a stream)</td><td><a href="#sec-6-3">6.3</a></td></tr>
+</tbody>
+</table></div>
+<p>On receiving a frame that does not follow the envelope rules (length, deterministic CBOR, an array of 5 elements, version, the range of type, the length of gameId, payload being an array), the receiver must close the stream.</p>
+
+<h3 id="sec-6-3">6.3 Opening a Stream and INVITE_TOKEN</h3>
+<pre><code>INVITE_TOKEN = [1, 11, 0, zero32, [token]]   ; token is bstr(32)</code></pre>
+<p>The <strong>joiner</strong> (the side that received the invitation string) does the following.</p>
+<ol>
+<li>Connect to the peerId and addresses in the invitation string and open a <code>/shogiboardq/game/1.0.0</code> stream (ShogiBoardQ gives up after 30 seconds).</li>
+<li>As soon as it is open, <strong>immediately</strong> send INVITE_TOKEN as the first frame (requestId 0).</li>
+<li>Then send HELLO (<a href="#sec-8-2">section 8.2</a>).</li>
+</ol>
+<p>The <strong>inviter</strong> waits only 5 seconds for the first frame of an incoming stream and decides as follows.</p>
+<ul>
+<li>If the first frame is INVITE_TOKEN and its token matches the token of an unused invitation within its expiry, the inviter marks that invitation as used and accepts the stream. The comparison is made against all invitations, with a comparison whose processing time does not depend on the contents.</li>
+<li>Otherwise (it does not arrive in time, it is not INVITE_TOKEN, or the token does not match), the inviter closes the stream without returning anything.</li>
+</ul>
+<p>INVITE_TOKEN must have requestId 0 and gameId zero32. INVITE_TOKEN must not be sent anywhere but as the first frame of a stream (if one is received elsewhere, the stream is closed as an envelope violation). Streams accepted during a game are described in <a href="#sec-11-1">section 11.1</a>.</p>
+
+<h3 id="sec-6-4">6.4 Rate and Size Limits</h3>
+<p>ShogiBoardQ closes streams that exceed the following. Compatible implementations must send within these limits.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Item</th><th>Limit</th></tr></thead>
+<tbody>
+<tr><td>One frame</td><td>65536 bytes</td></tr>
+<tr><td>Frame rate (until both sides have sent START_SIGNATURE)</td><td>5 per second (burst 10)</td></tr>
+<tr><td>Frame rate (after that; <strong>only on a stream on which START_SIGNATURE was exchanged</strong>)</td><td>20 per second (burst 40)</td></tr>
+<tr><td>Frame rate (stream opened for reconnection)</td><td>Stays at 5 per second (burst 10)</td></tr>
+<tr><td>Amount of received data awaiting processing</td><td>256 KiB</td></tr>
+</tbody>
+</table></div>
+<p>The rate is counted with a token bucket per stream (1 is subtracted for each frame received, and it refills over time up to the limit). START_SIGNATURE is not exchanged on a stream opened for reconnection, so its limit stays at 5 per second (ShogiBoardQ's current behavior). The reconnection comparison (<a href="#sec-11">section 11</a>) and the resending right after it must stay within this limit.</p>
+</section>
+<section id="values">
+<h2 id="sec-7">7. Values That Are Signed and Hashed</h2>
+<p>For the values listed here, the deterministic CBOR byte sequence itself is what is signed or hashed. Changing the order, type, or label of even one element makes the signatures fail to match.</p>
+
+<h3 id="sec-7-1">7.1 Conditions</h3>
+<pre><code>Rules         = ["SBQ-RULES", 1, initialSfen, 512, "fourfold-draw", "perpetual-check-loss",
+                 "no-declaration", "human", "human"]
+TimeControl   = ["SBQ-TIME", 1, mainMs, byoyomiMs, 0, 0]
+NetworkPolicy = ["SBQ-NET", 1, 10000, 30000, 120000, 5000, 86400000, 10000, 600000]</code></pre>
+<ul>
+<li><strong>Rules</strong>: Only one value can be used in v1. <code>initialSfen</code> is the initial position of an even game, <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>. It means: an even game, a draw at 512 moves, repetition is a draw, perpetual check is a loss for the checking side, no entering-king declaration, and human versus human.</li>
+<li><strong>TimeControl</strong>: <code>mainMs</code> is the main time (0 to 86,400,000), and <code>byoyomiMs</code> is the byoyomi (0 to 600,000). Both being 0 is rejected. The two trailing 0s are reserved (increment and delay; only 0 in v1).</li>
+<li><strong>NetworkPolicy</strong>: Only one value can be used in v1. In order: the ping interval of 10 seconds, the time after which a missing move confirmation is treated as a disconnection (30 seconds), the time to wait for reconnection (120 seconds), the resend interval (5 seconds), the limit on the real time of one game (24 hours), the tolerance for time used (10 seconds), and the limit on the total disconnection time in one game (600 seconds).</li>
+</ul>
+<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7
+timeControlHash   = H(CBOR(TimeControl))
+networkPolicyHash = H(CBOR(NetworkPolicy))</code></pre>
+<p>Rules and NetworkPolicy are accepted only when the received value exactly matches the value above.</p>
+
+<h3 id="sec-7-2">7.2 State</h3>
+<pre><code>State      = ["SBQ-STATE", 1, gameId, ply, previousStateHash, moveUsi, sfen, spentMs, blackMainMs, whiteMainMs]
+Transcript = ["SBQ-TRANSCRIPT", 1, gameId, [State0, State1, ...]]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Field</th><th>Type</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td>gameId</td><td>bstr(32)</td><td>Game ID</td></tr>
+<tr><td>ply</td><td>uint</td><td>Ply (0 to 512). 0 for State0</td></tr>
+<tr><td>previousStateHash</td><td>bstr(32)</td><td><code>H(CBOR(State))</code> of the previous State. zero32 for State0</td></tr>
+<tr><td>moveUsi</td><td>ASCII tstr</td><td>The move that led to this state (USI format; section 7.3). The empty string for State0, otherwise 4 to 5 characters</td></tr>
+<tr><td>sfen</td><td>ASCII tstr</td><td>The position after the move (in the form of section 7.3). 1 to 256 bytes</td></tr>
+<tr><td>spentMs</td><td>uint</td><td>The time used for this move (self-reported; 0 to 86,400,000 + 600,000). 0 for State0</td></tr>
+<tr><td>blackMainMs, whiteMainMs</td><td>uint</td><td>Black's and White's remaining main time after this move (0 to 86,400,000)</td></tr>
+</tbody>
+</table></div>
+<p>State0 (the starting position) is the following value, which both sides can compute identically.</p>
+<pre><code>State0 = ["SBQ-STATE", 1, gameId, 0, zero32, "", initialSfen, 0, mainMs, mainMs]</code></pre>
+<p>The side to move is determined by ply. After a State whose <code>ply</code> is even, Black moves; after one whose ply is odd, White moves.</p>
+
+<h3 id="sec-7-3">7.3 Encoding Moves and Positions</h3>
+<p>So that different implementations produce the same byte sequences, move and position strings use only the following forms. A received string that is not in this form is rejected.</p>
+<ul>
+<li><strong>Move (moveUsi)</strong>: USI form. A move on the board is <code>&lt;from&gt;&lt;to&gt;</code> (e.g. <code>7g7f</code>), with a trailing <code>+</code> when promoting (e.g. <code>8h2b+</code>). A drop is <code>&lt;piece&gt;*&lt;to&gt;</code>, where the piece is one of the uppercase <code>P L N S G B R</code> (e.g. <code>P*5e</code>). Files are <code>1</code> to <code>9</code>, and ranks are <code>a</code> to <code>i</code>. No leading or trailing spaces.</li>
+<li><strong>Position (sfen)</strong>: <code>&lt;board&gt; &lt;side to move&gt; &lt;pieces in hand&gt; &lt;move number&gt;</code>, separated by single spaces.
+  <ul>
+  <li>The board follows USI SFEN (rank 1 to rank 9, each rank from file 9 to file 1; empty squares as digits, promoted pieces prefixed with <code>+</code>, Black in uppercase and White in lowercase).</li>
+  <li>The side to move is the side that moves next (Black <code>b</code>, White <code>w</code>).</li>
+  <li>Pieces in hand are written in the order of Black's <code>R B G S N L P</code>, then White's <code>r b g s n l p</code>, listing only the pieces held. A count is prefixed for 2 or more (e.g. <code>2P</code>). If neither side holds any, <code>-</code>.</li>
+  <li>The move number field is <code>ply + 1</code> (1 for State0).</li>
+  </ul>
+</li>
+</ul>
+
+<h3 id="sec-7-4">7.4 Start Agreement and Game ID</h3>
+<pre><code>StartAgreement = ["SBQ-START", 1, networkId, blackNonce, whiteNonce, blackPlayerKey, whitePlayerKey,
+                  blackSessionKey, whiteSessionKey, blackPeerIdHash, whitePeerIdHash,
+                  rulesHash, timeControlHash, networkPolicyHash, startBefore]
+gameId = H(CBOR(StartAgreement))</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Field</th><th>Type</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td>networkId</td><td>bstr(32)</td><td><a href="#sec-3-1">Section 3.1</a></td></tr>
+<tr><td>blackNonce, whiteNonce</td><td>bstr(32)</td><td>The random values that decide the sides (<a href="#sec-8-4">section 8.4</a>), from the side that became Black and the side that became White</td></tr>
+<tr><td>blackPlayerKey, whitePlayerKey</td><td>bstr(32)</td><td>Public keys of the player keys</td></tr>
+<tr><td>blackSessionKey, whiteSessionKey</td><td>bstr(32)</td><td>Public keys of the per-game keys</td></tr>
+<tr><td>blackPeerIdHash, whitePeerIdHash</td><td>bstr(32)</td><td>SHA-256 of the binary representation of the PeerId (<a href="#sec-3-2">section 3.2</a>) (the bytes are hashed as they are, without wrapping them in CBOR)</td></tr>
+<tr><td>rulesHash, timeControlHash, networkPolicyHash</td><td>bstr(32)</td><td>Section 7.1</td></tr>
+<tr><td>startBefore</td><td>uint</td><td>Start deadline (UNIX seconds). The joiner sets it to 180 seconds after the time it creates the agreement</td></tr>
+</tbody>
+</table></div>
+<p>The four public keys must all be different, the two PeerIdHashes must be different, and the two nonces must be different. A StartAgreement that does not meet this is rejected.</p>
+
+<h3 id="sec-7-5">7.5 Approval, Control, and Result</h3>
+<pre><code>StateApproval = ["SBQ-APPROVE", 1, gameId, ply, stateHash]            ; stateHash = H(CBOR(State))
+Control       = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]
+FinalResult   = ["SBQ-RESULT", 1, gameId, finalStateHash, transcriptHash, ply, outcome, cause]
+
+connectionId   = H(CBOR(["SBQ-CONN", 1, gameId, blackRandom, whiteRandom]))
+transcriptHash = H(CBOR(Transcript))     ; the States from State0 to ply, approved by both sides
+resultDigest   = H(CBOR(FinalResult))    ; identifier of the result</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Value</th><th>Signing key</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>StartAgreement</td><td>Player key</td><td>Consent to start a game with these conditions, this opponent, and these sides</td></tr>
+<tr><td>StateApproval</td><td>Per-game key</td><td>Acknowledgment that the State at that ply is correct (by the side that moved, as its own move; by the opponent, as the move it received)</td></tr>
+<tr><td>Control</td><td>Per-game key</td><td>That the control message (<a href="#sec-9-5">section 9.5</a>) is the signer's own</td></tr>
+<tr><td>FinalResult</td><td>Player key</td><td>Consent to that result</td></tr>
+</tbody>
+</table></div>
+<p>The FinalResult <code>ply</code> is 0 to 512, and <code>finalStateHash</code> is the hash of the last State. The values of <code>outcome</code> and <code>cause</code> and the allowed combinations are given in <a href="#sec-10-1">section 10.1</a>. A FinalResult whose combination is not allowed is rejected.</p>
+<p>The Control <code>sequence</code> is 1 or more, and <code>kind</code> is 1 to 6. <code>connectionId</code> is a value that changes with each connection (stream); <code>blackRandom</code> and <code>whiteRandom</code> are the 32-byte random values that Black and White produced for that connection (for the first connection, the <code>connectionRandom</code> of the HELLO before the start; for a reconnection, that of the reconnection HELLO).</p>
+</section>
+<section id="start">
+<h2 id="sec-8">8. Steps Before the Start</h2>
+
+<h3 id="sec-8-1">8.1 Flow</h3>
+<p>Let A be the joiner and B the inviter. All frames go over the same stream.</p>
+<pre><code>A (joiner)                                        B (inviter)
+  ── INVITE_TOKEN ────────────────────────────→   check the token (section 6.3)
+  ── HELLO (role 1, commitA) ─────────────────→   check; to refuse, send REJECT
+  ←─────── HELLO (role 2, nonceB, conditions) ──
+  decide the sides, build the StartAgreement
+  ── START_AGREEMENT ─────────────────────────→   check (section 8.3)
+            [both users check the opponent and conditions on the confirmation screen]
+  user clicks Start
+  ── START_SIGNATURE (A's signature) ─────────→   check the signature
+                                                  user clicks Start
+  ←────────── START_SIGNATURE (B's signature) ──
+  check the signature
+            [both signatures present = the game starts; go to section 9.1]</code></pre>
+<ul>
+<li>A does not accept B's START_SIGNATURE until after it has sent its own START_SIGNATURE.</li>
+<li>B must not send its own START_SIGNATURE until it has verified A's START_SIGNATURE. If B's user clicked Start first, B sends it at the moment it has verified A's signature.</li>
+<li>Each side must not sign with its player key until its user clicks Start.</li>
+</ul>
+
+<h3 id="sec-8-2">8.2 HELLO (Before the Start)</h3>
+<pre><code>Frame   = [1, 1, requestId, zero32, payload]
+payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Field</th><th>Type</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td>role</td><td>uint</td><td>1 = joiner, 2 = inviter</td></tr>
+<tr><td>networkId</td><td>bstr(32)</td><td>Own network. If it differs from the opponent's, REJECT (WRONG_NETWORK)</td></tr>
+<tr><td>(supported versions)</td><td>array of uint</td><td>List of supported protocol versions (up to 8). <code>[1]</code> for v1. Rejected if it does not contain 1</td></tr>
+<tr><td>peerId</td><td>bstr</td><td>Binary representation of own PeerId (1 to 64 bytes). The receiver checks that it matches the PeerId of the peer on the stream</td></tr>
+<tr><td>connectionRandom</td><td>bstr(32)</td><td>Random value for this connection. Used for the first connectionId (<a href="#sec-7-5">section 7.5</a>)</td></tr>
+<tr><td>playerKey</td><td>bstr(32)</td><td>Public key of the player key (claimed; not treated as an identity until the start signature has been verified)</td></tr>
+<tr><td>sessionKey</td><td>bstr(32)</td><td>Public key of the per-game key created for this game</td></tr>
+<tr><td>displayName</td><td>tstr</td><td>Display name (rules of <a href="#sec-3-6">section 3.6</a>; at most 96 bytes)</td></tr>
+<tr><td>sidePreference</td><td>uint</td><td>Preferred side. 0 = No preference, 1 = Black, 2 = White</td></tr>
+<tr><td>offerId</td><td>bstr(32)</td><td>Reserved. Always zero32. If it is not zero32, it is refused (the inviter returns EXPIRED, and the joiner returns CONDITION_MISMATCH)</td></tr>
+<tr><td>coin</td><td>bstr(32)</td><td><code>commitA</code> for the joiner, <code>nonceB</code> for the inviter (<a href="#sec-8-4">section 8.4</a>)</td></tr>
+<tr><td>conditions</td><td>array</td><td>An empty array <code>[]</code> for the joiner. <code>[Rules, TimeControl, NetworkPolicy]</code> for the inviter (<a href="#sec-7-1">section 7.1</a>)</td></tr>
+</tbody>
+</table></div>
+<p>In addition to the form, the receiving side checks the following, and if any check fails, it sends REJECT (CONDITION_MISMATCH, or the code given where a different one is stated).</p>
+<ul>
+<li>role is as expected (the inviter receives 1, and the joiner receives 2), and whether conditions is present matches role.</li>
+<li>playerKey and sessionKey are points that can be used as Ed25519 public keys (<a href="#sec-2-4">section 2.4</a>).</li>
+<li>playerKey, sessionKey, and connectionRandom are not the same values as one's own. The joiner also checks that the opponent's coin (nonceB) is not the same as its own nonceA.</li>
+<li>Inviter: the playerKey claimed by the joiner is not an opponent the user has blocked (BUSY is returned to a blocked opponent without saying that it is blocked). Both sidePreferences are compatible (section 8.4).</li>
+</ul>
+<p>Even after the token has been matched, if the user has cancelled the invitation in the meantime, the inviter sends REJECT (EXPIRED) and closes the stream. If it is already negotiating with another opponent, it sends REJECT (BUSY) without returning HELLO and closes the stream (during a game, no stream other than the game opponent's is accepted; <a href="#sec-11-1">section 11.1</a>). When refusing, it returns REJECT without returning HELLO, and does not reveal its own public keys.</p>
+
+<h3 id="sec-8-3">8.3 START_AGREEMENT</h3>
+<pre><code>Frame   = [1, 2, requestId, zero32, payload]
+payload = [StartAgreement, Rules, TimeControl, NetworkPolicy]</code></pre>
+<p>The joiner, which first learns the conditions (the time control) from the inviter's HELLO, decides the sides and builds it. <code>startBefore</code> is set to 180 seconds after the current time. The inviter checks all of the following, and if any check fails, it sends REJECT (CONDITION_MISMATCH where no code is stated).</p>
+<ul>
+<li>Rules and NetworkPolicy are the v1 values, and TimeControl is the same as the one presented in its own HELLO. The three hashes match the values in the StartAgreement.</li>
+<li>networkId is its own network.</li>
+<li>Its own playerKey, sessionKey, nonce (nonceB), and PeerIdHash are placed correctly on the same side (Black or White). The opponent's playerKey, sessionKey, and PeerIdHash match the opponent's HELLO and the peer on the stream, and are placed on the opposite side.</li>
+<li>For the nonce on the opponent's side (nonceA), <code>H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code> matches the coin (commitA) in the opponent's HELLO.</li>
+<li>The sides follow the method of section 8.4.</li>
+<li><code>startBefore</code> is later than the current time and no more than 210 seconds from now (180 seconds + 30 seconds of clock skew). If not, REJECT (EXPIRED).</li>
+<li>The 4 public keys, the 2 PeerIdHashes, and the 2 nonces are each different (<a href="#sec-7-4">section 7.4</a>).</li>
+</ul>
+
+<h3 id="sec-8-4">8.4 Deciding the Sides</h3>
+<p>The sides are decided by both sides' preferences (sidePreference) and by the random values both sides produced.</p>
+<ol>
+<li>If both sides state a preference and they are the same (both Black, or both White), they are incompatible: REJECT (CONDITION_MISMATCH).</li>
+<li>If the joiner prefers Black, or the inviter prefers White, the joiner is Black.</li>
+<li>If the joiner prefers White, or the inviter prefers Black, the joiner is White.</li>
+<li>If both have "No preference", the random values decide. If the least significant bit of the last byte of <code>coinHash = H(CBOR(["SBQ-COIN", 1, nonceA, nonceB]))</code> is 0, the joiner is Black; if it is 1, the joiner is White.</li>
+</ol>
+<p>The random values are revealed in the following order, so that neither side can choose its own value after seeing the outcome. The joiner creates a 32-byte random value <code>nonceA</code> and shows only <code>commitA = H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code> in HELLO. The inviter shows <code>nonceB</code> as is in HELLO. The joiner reveals <code>nonceA</code> in the START_AGREEMENT (in the nonce field of its own side). The same procedure is followed even when the preferences decide the sides (the nonces also serve to make the game ID unique).</p>
+<p class="note">On ShogiBoardQ's screens, only the inviter can state a side preference (the joiner always sends 0). If a compatible implementation sends a preference as the joiner, it is handled according to the rules above.</p>
+
+<h3 id="sec-8-5">8.5 START_SIGNATURE</h3>
+<pre><code>Frame   = [1, 3, requestId, gameId, payload]
+payload = [side, signature]        ; side is 1 = Black, 2 = White. signature is bstr(64)</code></pre>
+<p><code>signature</code> is the signature by one's own player key over <code>CBOR(StartAgreement)</code>. <code>side</code> is one's own side. The receiver checks that <code>side</code> is the opponent's side, that the signature is valid for the opponent's playerKey in the StartAgreement, and that the current time is before <code>startBefore</code>. If not, REJECT (INVALID_SIGNATURE; EXPIRED when the deadline has passed).</p>
+<p>From the moment the opponent's start signature has been verified, the opponent's playerKey may be treated as a "verified identity". Until then, it is shown on screen as a value the opponent has merely claimed.</p>
+<p><strong>START_SIGNATURE is sent only once.</strong> It must not be resent. A side that receives a second one before the start ends the negotiation with REJECT (INVALID_SIGNATURE), and a side that receives one after the start stops the game with an error (CONDITION_MISMATCH).</p>
+<p>Both start signatures (Black's and White's) are put in the game record (evidence).</p>
+
+<h3 id="sec-8-6">8.6 Deadlines</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Deadline</th><th>Length</th><th>When it passes</th></tr></thead>
+<tbody>
+<tr><td>From the start of the negotiation until both start signatures are present</td><td>60 seconds</td><td>Send REJECT (CANCELLED) and cancel</td></tr>
+<tr><td><code>startBefore</code> of the StartAgreement</td><td>180 seconds from creation</td><td>After that, do not sign and do not accept signatures (EXPIRED)</td></tr>
+<tr><td>From when both start signatures are present until the approval of State0 and READY are done</td><td>30 seconds</td><td>End without starting the game (<a href="#sec-9-1">section 9.1</a>)</td></tr>
+</tbody>
+</table></div>
+<p>The negotiation starts at the moment the stream is "accepted or opened". If the stream drops before the start, the negotiation is cancelled (there is no reconnection; a new invitation string is needed).</p>
+
+<h3 id="sec-8-7">8.7 REJECT</h3>
+<pre><code>Frame   = [1, 10, requestId, zero32, payload]
+payload = [errorCode]              ; errorCode is from the table in section 12</code></pre>
+<p>Sent before the start (until both start signatures are present) to refuse the opponent or to cancel. The gameId field is zero32. The receiver ends the negotiation. When the user cancels on the confirmation screen, CANCELLED (12) is sent.</p>
+<p>After both start signatures are present, REJECT must not be sent (errors during the game are conveyed with CONTROL). A REJECT that arrives after the start is ignored if its gameId is the game ID; if its gameId is zero32, the game stops with an error (CONDITION_MISMATCH) as a "frame with a different game ID" (the beginning of <a href="#sec-9">section 9</a>). If a REJECT by which one side cancelled crosses the other side's last start signature, the side that has both start signatures ends with this error. The game does not start on either side.</p>
+</section>
+<section id="play">
+<h2 id="sec-9">9. Steps During the Game</h2>
+<p>After both start signatures are present, every frame carries the game ID in <code>gameId</code>. On receiving a frame with a different game ID, the receiver stops the game with an error (CONDITION_MISMATCH) (<a href="#sec-9-7">section 9.7</a>).</p>
+
+<h3 id="sec-9-1">9.1 Start (State0 and READY)</h3>
+<pre><code>Black                                                 White
+  ── STATE_PROPOSE (State0, Black's approval) ────→   check State0 and the signature
+  ←────────── STATE_ACCEPT (0, White's approval) ──
+  ←──────────────── CONTROL READY ([state0Hash]) ──   from here, observe the time of Black's first move
+  start timing the first move on receiving READY</code></pre>
+<ul>
+<li>White checks that the received State0 exactly matches the value in <a href="#sec-7-2">section 7.2</a> and that the signature is valid for Black's per-game key.</li>
+<li>Black checks that the <code>state0Hash</code> in READY matches the hash of its own State0. Even if READY is received twice, the clock is not reinitialized.</li>
+<li>If this has not been completed within 30 seconds after both start signatures are present, the game ends without starting (it becomes a record with no result).</li>
+</ul>
+
+<h3 id="sec-9-2">9.2 Proposing a Move (STATE_PROPOSE)</h3>
+<pre><code>Frame   = [1, 4, requestId, gameId, payload]
+payload = [State, signature]       ; signature is the signature by the moving side's per-game key over StateApproval (bstr(64))</code></pre>
+<p>When the side to move has decided on a move, it builds the next State (<a href="#sec-7-2">section 7.2</a>), signs its StateApproval with its per-game key, and sends it.</p>
+<ul>
+<li><code>spentMs</code> is the time from the start of one's own turn until just before the State is built (by one's own clock).</li>
+<li>The remaining time is determined by the calculation in section 9.4.</li>
+<li>The next move must not be proposed until the opponent's approval (STATE_ACCEPT) arrives. There is only one unapproved move of one's own at a time.</li>
+<li>If the approval has not arrived after 5 seconds, the frame is resent with <strong>the same bytes</strong> (including the same requestId). If it has not arrived 30 seconds after the first send, the connection is treated as dropped and the side moves on to reconnection (<a href="#sec-11">section 11</a>).</li>
+</ul>
+<p>The receiving side checks in the following order.</p>
+<ol>
+<li>The gameId of the State is the game ID. If not, error (CONDITION_MISMATCH).</li>
+<li>If <code>ply</code> is 0, it is handled as in section 9.1 (if State0 differs from the expected value or the signature is not valid, error (INVALID_SIGNATURE)). If <code>ply</code> is 1 or more but the approval of State0 and READY are not yet done, error (CONDITION_MISMATCH).</li>
+<li>If <code>ply</code> is at or below that of the latest State one knows, it is treated as a resend. If it is the same State, one's saved approval is resent with STATE_ACCEPT (without moving the board or the clocks). If it is a <strong>different</strong> State at the same ply, the game stops with an error (STATE_CONFLICT).</li>
+<li><code>ply</code> is the next one after the latest (+1), it is the opponent's turn, and one has no unapproved move of one's own. If not, error (STATE_CONFLICT).</li>
+<li>The signature is valid for the opponent's per-game key. If not, error (INVALID_SIGNATURE).</li>
+<li><code>previousStateHash</code> is the hash of the latest State, and the move string is in the form of section 7.3. If not, error (INVALID_MOVE).</li>
+<li>The reported <code>spentMs</code> is not a time loss (<code>E ≥ R + B</code>; section 9.4). If it is a time loss, error (CLOCK_MISMATCH).</li>
+<li>The move is legal in the latest position (<a href="#sec-9-6">section 9.6</a>), and <code>sfen</code> matches the position after the move written in the form of section 7.3. If not, error (INVALID_MOVE).</li>
+<li>The remaining times (<code>blackMainMs</code>, <code>whiteMainMs</code>) follow the calculation in section 9.4. If not, error (CLOCK_MISMATCH).</li>
+<li>The reported <code>spentMs</code> is not too short compared with the time one measured (the tolerance in section 9.4). If not, error (CLOCK_MISMATCH).</li>
+</ol>
+<p>If all checks pass, the receiver saves the approval, then sends STATE_ACCEPT and applies the move to the board. A STATE_PROPOSE whose payload has the wrong form stops the game with an error (INVALID_MOVE).</p>
+<p class="note">The "resending of the approval" in step 3 need not be done once one has already proposed one's next move. The stream preserves order, so the approval sent first always reaches the opponent (it fails to arrive only when the connection drops, and in that case the reconnection comparison makes up for it).</p>
+
+<h3 id="sec-9-3">9.3 Approval (STATE_ACCEPT)</h3>
+<pre><code>Frame   = [1, 5, requestId, gameId, payload]
+payload = [ply, stateHash, signature]    ; signature is the signature by the receiving side's per-game key over StateApproval</code></pre>
+<p>The proposing side checks that <code>ply</code> and <code>stateHash</code> match its own unapproved State and that the signature is valid for the opponent's per-game key. If they pass, that State becomes <strong>a state approved by both sides</strong> and is applied to the board.</p>
+<ul>
+<li>A repeated approval of a move that is already approved (a resend whose <code>ply</code> and <code>stateHash</code> match a State approved by both sides) is ignored. The same applies while one has an unapproved move of one's own (the opponent can resend its approval in response to a resent proposal, and that approval can arrive after one has proposed the next move).</li>
+<li>Any other approval (one that is neither for one's own unapproved move nor for an already approved move) stops the game with an error (STATE_CONFLICT).</li>
+<li>A STATE_ACCEPT whose payload has the wrong form stops the game with an error (INVALID_SIGNATURE).</li>
+</ul>
+<p>The sequence of States approved by both sides (from State0 to the latest) is the official record of the game.</p>
+
+<h3 id="sec-9-4">9.4 Time Rules</h3>
+<p>The time control is "main time (R) + byoyomi for each move (B)". Let R be the remaining main time at the start of the turn, B the byoyomi, and E the time used for that move (all in milliseconds).</p>
+<ul>
+<li><strong>Condition for moving</strong>: <code>E &lt; R + B</code>. <code>E ≥ R + B</code> is a time loss, and the move cannot be made (a value equal to the boundary is a time loss).</li>
+<li><strong>Remaining time after the move</strong>: the moving side's main time becomes <code>max(R − E, 0)</code>, and the other side's does not change. These are written in the State's <code>blackMainMs</code> and <code>whiteMainMs</code>.</li>
+</ul>
+<p>The moving side measures the time with its own clock and reports it. The opponent compares it with the time it observed with its own clock.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>What is measured</th><th>Start</th></tr></thead>
+<tbody>
+<tr><td>Time of one's own turn (E)</td><td>For Black's first move, the moment READY is received. Otherwise, the moment one checked the opponent's move and sent STATE_ACCEPT</td></tr>
+<tr><td>Observation of the opponent's turn</td><td>The moment one first sent one's own STATE_PROPOSE. When White observes Black's first move, the moment it sent READY. <strong>After a reconnection, when one resends one's own unapproved move, the measurement restarts from the moment of the resend</strong> (because the opponent's turn starts when the opponent receives and approves that move; <a href="#sec-11-5">section 11.5</a>)</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>Checking the report</strong>: for a received move, if <code>observed time − spentMs &gt; 10,000 + time disconnected during that turn</code>, the game stops with an error (CLOCK_MISMATCH). In other words, the report may be up to 10 seconds shorter than the observation (to allow for communication delay).</li>
+<li><strong>Own time loss</strong>: when it is one's own turn, one has no unapproved move, and <code>E ≥ R + B</code> by one's own clock, one declares one's own loss (proposes the result "opponent wins, cause time loss"; <a href="#sec-10-2">section 10.2</a>).</li>
+<li><strong>Claiming the opponent's time loss</strong>: if the opponent's move has not arrived and <code>observed time (excluding time disconnected) &gt; R + B + 10,000</code>, one may propose one's own win by time loss. Only once at the same ply.</li>
+<li>The clock of the side to move keeps running even while the connection is down.</li>
+<li>Clocks are measured with a monotonic clock. An implementation that can no longer confirm the continuity of the measured time because of sleep or a change of the system time interrupts the game (ABORT, reason CLOCK_DISCONTINUITY). ShogiBoardQ interrupts the game when the advance of the monotonic clock and that of the OS clock differ by more than 15 seconds.</li>
+</ul>
+
+<h3 id="sec-9-5">9.5 Control Messages (CONTROL)</h3>
+<pre><code>Frame   = [1, 6, requestId, gameId, payload]
+payload = [Control, body, signature]
+Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]     ; bodyHash = H(CBOR(body))</code></pre>
+<p><code>signature</code> is the signature by the sender's per-game key over <code>CBOR(Control)</code> (bstr(64)). <code>body</code> is an array whose contents are determined by kind.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>kind</th><th>Name</th><th>body</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>READY</td><td><code>[state0Hash]</code></td><td>White announces that it has approved State0 and that the game can start (section 9.1)</td></tr>
+<tr><td>2</td><td>RESUME</td><td><code>[latestPly, latestStateHash]</code></td><td>After reconnection, announces the latest State approved by both sides (<a href="#sec-11-3">section 11.3</a>)</td></tr>
+<tr><td>3</td><td>RESULT_PROPOSE</td><td><code>FinalResult</code> itself</td><td>Proposing or agreeing to a result (<a href="#sec-10-2">section 10.2</a>)</td></tr>
+<tr><td>4</td><td>ABORT</td><td><code>[latestStateHash, reasonCode]</code></td><td>Leaving the game unilaterally. The result is not confirmed (<a href="#sec-10-5">section 10.5</a>)</td></tr>
+<tr><td>5</td><td>ERROR</td><td><code>[errorCode, relatedPly]</code></td><td>Refusing the opponent's input after a check and stopping the game (<a href="#sec-9-7">section 9.7</a>)</td></tr>
+<tr><td>6</td><td>RESULT_DECLINE</td><td><code>[bodyHash]</code></td><td>Not agreeing to a RESULT_PROPOSE (the bodyHash of the proposal being declined)</td></tr>
+</tbody>
+</table></div>
+<p><code>reasonCode</code> and <code>errorCode</code> are codes from <a href="#sec-12">section 12</a>, and <code>relatedPly</code> is the related ply (0 to 512).</p>
+<p><strong>Rules for the number (sequence)</strong>: the sender increases it by 1, starting from 1, per connection and per direction. When a reconnection makes a new connection, it goes back to 1. The receiver handles it as follows.</p>
+<ol>
+<li>Check the form of the payload (an array of 3 elements, the form of Control, <code>kind</code> 1 to 6, <code>sequence</code> 1 or more, <code>body</code> an array, and <code>bodyHash</code> matching the hash of body). If not, stop with an error (INVALID_SIGNATURE), whichever connection it belongs to.</li>
+<li>If the gameId or connectionId of the Control is not that of the current game and the current connection, discard it silently.</li>
+<li>If <code>sequence</code> is at or below a number already received, discard it silently as a resend.</li>
+<li>If <code>sequence</code> is not "the last received number + 1", stop with an error (STATE_CONFLICT).</li>
+<li>Check that the signature is valid for the opponent's per-game key. If not, error (INVALID_SIGNATURE). If it is, make that number the "last received number".</li>
+</ol>
+<p>Control messages other than RESUME that arrive before the reconnection comparison is complete go through the checks above and advance the number, and are then discarded without their contents being processed.</p>
+<p>The control messages sent and received in one game are limited to 4096 in total. Beyond that, the game stops with an error (LIMIT_EXCEEDED).</p>
+
+<h3 id="sec-9-6">9.6 Move Legality</h3>
+<p>Moves must be legal under the rules of standard shogi. Compatible implementations must judge at least the following in the same way (if their judgments differ, one side stops the game with INVALID_MOVE).</p>
+<ul>
+<li>Piece movement and promotion (a move that enters the promotion zone, moves within it, or leaves it can promote; only pieces that can promote)</li>
+<li>Prohibition of pieces with no legal moves (a pawn or lance on the farthest rank, or a knight on the farthest two ranks, can be neither moved there without promoting nor dropped there)</li>
+<li>Prohibition of two unpromoted pawns on the same file (nifu), and of checkmate by a pawn drop (uchifuzume)</li>
+<li>Prohibition of moves that leave one's own king in check or expose one's own king to check</li>
+<li>Prohibition of moves beyond 512 (there is no move after a State whose <code>ply</code> is 512)</li>
+</ul>
+<p>There is no impasse declaration (entering-king declaration) and there are no takebacks. An entering-king game can be ended in a draw by agreement of both sides (<a href="#sec-10-2">section 10.2</a>).</p>
+
+<h3 id="sec-9-7">9.7 Check Failures (ERROR)</h3>
+<p>If the opponent's input fails a check during the game, send CONTROL ERROR (<code>[errorCode, relatedPly]</code>) and end the game on one's own side as "Error (unconfirmed)". The side that receives ERROR also ends the game as unconfirmed. <strong>A failed check must not be recorded as a loss for the opponent.</strong> Both sides save the record up to that point (up to the States approved by both sides) as evidence.</p>
+<p>An implementation that obtains proof that the opponent signed two different States for the same ply (the two States and the two signatures) should keep it.</p>
+<p>When a payload with the wrong form (wrong array length, type, or range) is received, the game is likewise stopped with ERROR (INVALID_MOVE for STATE_PROPOSE; INVALID_SIGNATURE for STATE_ACCEPT, CONTROL, and RESULT_SIGNATURE; STATE_CONFLICT for SYNC_REQUEST and SYNC_CHUNK). When a HELLO, START_AGREEMENT, or START_SIGNATURE in the pre-start form is received after the start, the game is stopped with CONDITION_MISMATCH. A frame whose envelope is wrong closes the stream (<a href="#sec-6-2">section 6.2</a>).</p>
+<p>In the following cases, the game ends without sending anything: when a check fails before the reconnection comparison is complete (<a href="#sec-11">section 11</a>), when the start deadline (the 30 seconds of section 9.1) passes, when the disconnection limit (<a href="#sec-11-6">section 11.6</a>) is exceeded, and when the time to wait for the result signatures (<a href="#sec-10-4">section 10.4</a>) passes.</p>
+<p>An implementation that has ended the game closes the stream. When the opponent has already ended the game, frames sent to it and attempts to reconnect get no response.</p>
+</section>
+<section id="result">
+<h2 id="sec-10">10. Game End and Confirming the Result</h2>
+
+<h3 id="sec-10-1">10.1 Results and Causes</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>cause</th><th>Cause</th><th>Allowed outcome</th><th>Who proposes</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Resignation</td><td>1 or 2 (the winning side)</td><td>Only the losing side, and only on its own turn</td></tr>
+<tr><td>2</td><td>Checkmate (the side to move has no legal move)</td><td>1 or 2</td><td>Both (determined by the moves)</td></tr>
+<tr><td>3</td><td>Time loss</td><td>1 or 2</td><td>The declaration of the side that ran out of time, or the opponent's claim (<a href="#sec-9-4">section 9.4</a>)</td></tr>
+<tr><td>4</td><td>Repetition (sennichite)</td><td>3</td><td>Both (determined by the moves)</td></tr>
+<tr><td>5</td><td>Perpetual check</td><td>1 or 2 (the side that was being checked wins)</td><td>Both (determined by the moves)</td></tr>
+<tr><td>6</td><td>Draw by agreement</td><td>3</td><td>Either side. Takes effect only if the opponent's user accepts</td></tr>
+<tr><td>7</td><td>512 moves reached</td><td>3</td><td>Both (determined by the moves)</td></tr>
+<tr><td>8</td><td>Abort by agreement</td><td>4</td><td>Either side. Takes effect only if the opponent's user accepts</td></tr>
+</tbody>
+</table></div>
+<p><code>outcome</code> is 1 = Black wins, 2 = White wins, 3 = draw, 4 = abort by agreement. A FinalResult with a combination not in the table is rejected.</p>
+
+<h3 id="sec-10-2">10.2 Proposing and Matching the Result</h3>
+<p>A result is proposed with CONTROL RESULT_PROPOSE (whose body is the FinalResult). <strong>The result has matched at the moment both sides have sent each other RESULT_PROPOSE with the same FinalResult.</strong> The agreeing side sends back RESULT_PROPOSE with the same FinalResult as the proposal it received. When it does not agree, it sends RESULT_DECLINE and the game continues.</p>
+<p>The FinalResult must refer to the <strong>current</strong> latest State approved by both sides.</p>
+<pre><code>FinalResult = ["SBQ-RESULT", 1, gameId, H(CBOR(latest State)), transcriptHash, latest ply, outcome, cause]</code></pre>
+<ul>
+<li>While one has an unapproved move of one's own, one does not propose a result.</li>
+<li>When the ply advances, earlier proposals and offers awaiting an answer become invalid.</li>
+<li>After the result has matched, a proposal of a different result is not agreed to (it is ignored).</li>
+<li><strong>STATE_PROPOSE and STATE_ACCEPT that arrive after the result has matched are ignored (they are neither approved nor applied to the board).</strong> Approving a State after the ply that the FinalResult refers to would make the evidence fail the checks of section 13.2.</li>
+<li>Until an answer to one's own offer of a "draw or abort by agreement" arrives, one should not propose the next move. If the offering side's move crosses the opponent's acceptance, the situation above arises (that move remains only at the end of the moving side's evidence, as a move without the opponent's approval).</li>
+<li>Before the reconnection comparison is complete (<a href="#sec-11">section 11</a>), one must not accept the opponent's offer and make the result match (the acceptance cannot be sent to the opponent). The opponent resends its proposal after the comparison, so answer it then.</li>
+</ul>
+<p>The side that receives RESULT_PROPOSE decides as follows.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Case</th><th>Handling</th></tr></thead>
+<tbody>
+<tr><td>It arrived before READY was exchanged (for Black, before receiving READY; for White, before sending READY)</td><td>RESULT_DECLINE (a proposal in the middle of the start procedure is not agreed to)</td></tr>
+<tr><td>Its form is wrong, or it does not refer to the current latest State (ply, finalStateHash, transcriptHash)</td><td>RESULT_DECLINE</td></tr>
+<tr><td>It is the same as the FinalResult one has already proposed</td><td>Match</td></tr>
+<tr><td>The confirmed moves have already reached a game end determined by the moves (<a href="#sec-10-3">section 10.3</a>), and the proposal differs from that result (outcome, cause)</td><td>For resignation, time loss, and draw or abort by agreement (cause 1, 3, 6, 8), RESULT_DECLINE (without asking the user). Agreeing would make the signed result conflict with the moves, and the record would fail the verification of section 13.2. A disagreement in judging checkmate and the like is handled as in the row below</td></tr>
+<tr><td>Resignation (cause 1)</td><td>If it is one's own win and it is the opponent's turn, send back the same proposal to match. Otherwise, RESULT_DECLINE</td></tr>
+<tr><td>Checkmate, repetition, perpetual check, 512 moves reached (cause 2, 4, 5, 7)</td><td>Judge from the moves oneself (section 10.3). If it is not a game end, RESULT_DECLINE. If the result is the same, send the same proposal to match. <strong>If it is a game end but the results differ, stop with an error (CONDITION_MISMATCH)</strong> (a disagreement between implementations)</td></tr>
+<tr><td>Time loss, one's own win (the opponent declared its own time loss)</td><td>If it is the opponent's turn, send back the same proposal to match. Otherwise, RESULT_DECLINE</td></tr>
+<tr><td>Time loss, the opponent's win (the opponent claimed that one has lost on time)</td><td>Check with one's own clock. If one's own turn has started (for Black's first move, from the moment READY is received), one has no unapproved move, and <code>E ≥ R + B</code>, send back the same proposal to match. Otherwise, RESULT_DECLINE. <code>E</code> is counted from the moment one's own turn started and does not include any earlier time</td></tr>
+<tr><td>Draw by agreement, abort by agreement (cause 6, 8)</td><td>Ask the user. If the user accepts, send back the same proposal to match; if the user declines, RESULT_DECLINE. If one moves before answering, it counts as declining</td></tr>
+</tbody>
+</table></div>
+<p>As user operations, offers of a draw or abort by agreement are limited to once each per ply. However, the receiving side must not treat the same proposal arriving repeatedly at the same ply as a violation (it handles each one according to the table above). ShogiBoardQ resends its proposal after a reconnection (<a href="#sec-11-5">section 11.5</a>), and once the real-time limit of one game has been exceeded, it proposes an abort by agreement again each time it is declined (section 10.5).</p>
+
+<h3 id="sec-10-3">10.3 Game Ends Determined by the Moves</h3>
+<p>Each time the game advances by one move (the States approved by both sides increase), both sides judge in the following order, and if it is a game end, they propose that result with RESULT_PROPOSE. If both sides judge the same way, they send each other the same proposal and the result matches.</p>
+<ol>
+<li><strong>Checkmate</strong>: if in the latest position (ply ≥ 1) the side to move has no legal move at all, the side to move loses (cause 2). This is handled the same way even when the side to move is not in check.</li>
+<li><strong>Repetition</strong>: when the same position as the latest one (the same board, pieces in hand, and side to move; the move number field is not compared) appears 4 or more times in the sequence from State0, counting the latest one.
+  <ul>
+  <li>Examine the States from the one after the previous occurrence of that position up to the latest State. If all the moves Black made in this span were checks, Black loses (White wins, cause 5). Otherwise, if all the moves White made were checks, White loses (Black wins, cause 5). A "check" means that, in the position after the move, the opponent's king is in check.</li>
+  <li>If neither, a draw (cause 4).</li>
+  </ul>
+</li>
+<li><strong>512 moves reached</strong>: if the latest ply is 512, a draw (cause 7).</li>
+</ol>
+
+<h3 id="sec-10-4">10.4 Signing the Result (RESULT_SIGNATURE)</h3>
+<pre><code>Frame   = [1, 9, requestId, gameId, payload]
+payload = [FinalResult, side, signature]    ; signature is the signature by the player key over CBOR(FinalResult) (bstr(64))</code></pre>
+<p>When the result has matched, each side does the following in order.</p>
+<ol>
+<li>Save the matched result (resultDigest). From then on, it must not sign a different result in this game.</li>
+<li>Sign the FinalResult with the player key and send RESULT_SIGNATURE.</li>
+<li>Wait for the opponent's RESULT_SIGNATURE (30 seconds).</li>
+</ol>
+<p>The receiver checks that <code>side</code> is the opponent's side, that the signature is valid for the opponent's playerKey in the StartAgreement, and that the FinalResult is the same as the matched result. If not, error (INVALID_SIGNATURE; STATE_CONFLICT if the result differs). The checks of <code>side</code> and the signature are performed even before the result has matched.</p>
+<p><strong>The RESULT_PROPOSE that indicates agreement is always sent before RESULT_SIGNATURE.</strong> A RESULT_SIGNATURE that arrives before the result has matched is discarded even if it passes the checks, and is not used later (that game ends as "Without opponent's confirmation").</p>
+<ul>
+<li>When both signatures are present, the record is "<strong>Confirmed by both</strong>".</li>
+<li>If the opponent's signature has not arrived after 30 seconds, or the connection drops while waiting, the game ends as a record with only one's own signature ("Without opponent's confirmation").</li>
+</ul>
+
+<h3 id="sec-10-5">10.5 Leaving the Game (ABORT)</h3>
+<p>When the user leaves the game unilaterally, the implementation sends CONTROL ABORT (<code>[hash of the latest State, reasonCode]</code>) and ends the game on its own side as "Interrupted (unconfirmed)". For a user operation, CANCELLED (12) is used as the reasonCode. The side that receives ABORT also ends the game as unconfirmed. <strong>ABORT is not an abort by agreement (cause 8), nor is it a loss for the opponent.</strong></p>
+<p>ABORT is not sent before the reconnection comparison is complete, or before the approvals of State0 are in place (in those cases the game ends on one's own side without sending it).</p>
+<p>If the real time of one game (counted from the moment both start signatures are present) exceeds 24 hours, an abort by agreement is proposed. If it is declined, it is proposed again. If the result still has not matched after a further 120 seconds, the game ends with ABORT (reason GAME_TIME_LIMIT). Once 24 hours have passed, ShogiBoardQ no longer resends unapproved moves and no longer declares or claims time losses.</p>
+</section>
+<section id="reconnect">
+<h2 id="sec-11">11. Reconnection</h2>
+<p>Even if the stream drops during a game, the sides can reconnect to the same game. After reconnecting, they compare their latest states before continuing.</p>
+
+<h3 id="sec-11-1">11.1 The Reconnecting Side and the Accepting Side</h3>
+<ul>
+<li>The side that reconnects is the <strong>joiner</strong> (the side that opened the stream first). While disconnected, it connects to the opponent's PeerId every 5 seconds and opens a <code>/shogiboardq/game/1.0.0</code> stream. It uses the addresses that worked for the first connection and those learned via Identify. INVITE_TOKEN is not sent.</li>
+<li><strong>Once the joiner has opened the stream, it immediately sends the reconnection HELLO (section 11.2) without waiting for the opponent.</strong> The inviter does not notice that a new stream exists until it receives the first frame. The gameId of the first frame must be the game ID (otherwise the game stops with an error).</li>
+<li><strong>The side that decides that the connection has dropped closes the old stream.</strong> Otherwise the opponent does not notice the drop, and reconnection does not start (the joiner reconnects only when its own stream has closed or when it has itself decided that the connection dropped).</li>
+<li>From the start of the game until its end, the <strong>inviter</strong> accepts only streams from the PeerId of the game opponent (it does not accept streams from anyone else, or streams that begin with INVITE_TOKEN). It waits 5 seconds for the first frame, as in <a href="#sec-6-3">section 6.3</a>.</li>
+<li>When the opponent reconnects, even if the old stream still seems to be alive, the old one is closed and the steps below are followed as for a dropped connection. The same applies right after a comparison has completed: each time a new stream arrives, the comparison is redone with new random values (the joiner's connection attempts can overlap).</li>
+<li>The PeerId must not change during a game (<a href="#sec-3-2">section 3.2</a>). If the app or the node exits, the same game cannot be resumed.</li>
+</ul>
+<p>The connection is judged to have "dropped" when the stream is closed or reset, or when no approval has arrived for one's own STATE_PROPOSE for 30 seconds (<a href="#sec-9-2">section 9.2</a>). If it drops before the start (before both start signatures are present, or before READY is done), the game ends without reconnecting. It is also not reconnected if it drops after the result has matched (while waiting for the signatures of <a href="#sec-10-4">section 10.4</a>). In that case, if the opponent has not yet noticed that the result matched (the connection dropped before the agreeing RESULT_PROPOSE arrived), the opponent tries to reconnect but gets no response, and its side ends at the limit of section 11.6.</p>
+
+<h3 id="sec-11-2">11.2 HELLO (Reconnection)</h3>
+<pre><code>Frame   = [1, 1, requestId, gameId, payload]
+payload = ["SBQ-RECONNECT", 1, side, connectionRandom]     ; side is one's own side (1 = Black, 2 = White)</code></pre>
+<p>Once the new stream exists, <strong>both sides</strong> send a reconnection HELLO containing a new 32-byte random value. On receiving the opponent's HELLO, a side checks that <code>side</code> is the opponent's side and that the random value differs from its own, and computes the new connectionId (<a href="#sec-7-5">section 7.5</a>; Black's random value first, then White's). Both sides restart the control message number (sequence) from 1.</p>
+<p>A HELLO before the start and a reconnection HELLO are told apart by the frame's gameId (zero32 or the game ID) and by the payload label.</p>
+<p>If a reconnection HELLO arrives when no reconnection is in progress, if its <code>side</code> is not the opponent's side, or if its random value is the same as one's own, ShogiBoardQ discards it silently (the comparison does not progress, and the game ends at the limit of section 11.6).</p>
+
+<h3 id="sec-11-3">11.3 RESUME</h3>
+<p>On receiving the opponent's reconnection HELLO, a side sends CONTROL RESUME (<code>[latestPly, latestStateHash]</code>). <code>latestPly</code> is the ply of its own latest State approved by both sides, and <code>latestStateHash</code> is the hash of that State. This CONTROL carries a per-game key signature over the new connectionId, so each side can reconfirm that the opponent is the same one as at the start.</p>
+<p><strong>Until RESUME has been verified, other frames must not be accepted</strong> (moves, approvals, result proposals, and so on are discarded silently). The only frames that may be sent during reconnection are the reconnection HELLO, CONTROL RESUME, SYNC_REQUEST, and SYNC_CHUNK.</p>
+<p>RESUME is sent only once per comparison. A RESUME that arrives when no reconnection is in progress (including after the comparison has completed) stops the game with an error (STATE_CONFLICT). The same applies to a SYNC_CHUNK that was not requested.</p>
+<p>On receiving the opponent's RESUME, a side compares it with its own latest ply (myPly).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Case</th><th>Handling</th></tr></thead>
+<tbody>
+<tr><td>Opponent's latestPly = myPly</td><td>If the hash of one's own State at that ply matches, the comparison is done. If not, error (STATE_CONFLICT)</td></tr>
+<tr><td>Opponent's latestPly &lt; myPly</td><td>Check that the hash of one's own State at that ply matches, and wait for the opponent's SYNC_REQUEST</td></tr>
+<tr><td>Opponent's latestPly &gt; myPly</td><td>Request the missing part with SYNC_REQUEST</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="sec-11-4">11.4 SYNC_REQUEST and SYNC_CHUNK</h3>
+<pre><code>SYNC_REQUEST: Frame = [1, 7, requestId, gameId, [fromPly, previousStateHash]]
+SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteApproval], ...], final]]</code></pre>
+<ul>
+<li>The side that is behind requests with <code>fromPly</code> = its own latest ply + 1 and <code>previousStateHash</code> = the hash of its own latest State.</li>
+<li>The side that is ahead checks that it has already received the opponent's RESUME, that <code>fromPly</code> is 1 or more and at or below its own latest ply, and that <code>previousStateHash</code> is the hash of its own State at ply <code>fromPly − 1</code>. If not, error (STATE_CONFLICT). If the checks pass, it returns the States from <code>fromPly</code> to the latest, together with the signatures of both approvals (each bstr(64)), in order, in SYNC_CHUNKs of up to 64 entries each. The last chunk has <code>final</code> = 1, and the others 0. Nothing outside the requested range is sent.</li>
+<li>The side that is behind checks each received State, one at a time, before taking it in: that the plies are consecutive, that both approvals are valid, and steps 6 to 9 of <a href="#sec-9-2">section 9.2</a> (previous state hash, move format, time loss, legal move, position, remaining-time calculation). If any check fails, it stops with an error (STATE_CONFLICT). If it has an unapproved move of its own and a different State arrives at the same ply, it stops with an error (STATE_CONFLICT) (it does not roll back to a different line signed by only one side). If it is the same State, the unapproved move is treated as approved.</li>
+<li>For an opponent's move first learned through the reconnection, the timing of one's own turn starts from the moment the move is taken in (the lost time is not guessed).</li>
+</ul>
+
+<h3 id="sec-11-5">11.5 After the Comparison</h3>
+<ul>
+<li>If a move of one's own without the opponent's approval remains, STATE_PROPOSE is resent with <strong>the same bytes</strong>. The observation of the opponent's turn (<a href="#sec-9-4">section 9.4</a>) restarts from the moment of this resend. When a move that was unapproved turns out through SYNC to be "approved", the measurement is not restarted (it is measured from the moment the move was first sent, minus the time disconnected).</li>
+<li>If one had proposed a result, RESULT_PROPOSE is resent. <strong>If a game end determined by the moves (<a href="#sec-10-3">section 10.3</a>) has been reached, it must be proposed after the comparison.</strong> ShogiBoardQ does not propose from the side that learned the last move through SYNC, so unless the side that was up to date resends the proposal, the game does not end.</li>
+<li>The time disconnected (from deciding that the connection dropped until the comparison completes) is added to the total disconnection time of that game.</li>
+</ul>
+
+<h3 id="sec-11-6">11.6 Disconnection Limits</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Limit</th><th>Length</th><th>When exceeded</th></tr></thead>
+<tbody>
+<tr><td>For one disconnection, until the comparison completes</td><td>120 seconds</td><td>End as "Communication lost (unconfirmed)"</td></tr>
+<tr><td>Total disconnection time in one game</td><td>600 seconds</td><td>End as an interruption (reason DISCONNECT_LIMIT)</td></tr>
+</tbody>
+</table></div>
+<p>A failure on one's own line cannot be told apart from a deliberate disconnection by the opponent. <strong>A disconnection must not be treated as a loss for the opponent.</strong></p>
+</section>
+<section id="errors">
+<h2 id="sec-12">12. Error Codes</h2>
+<p>The errorCode of REJECT (<a href="#sec-8-7">section 8.7</a>), the errorCode of CONTROL ERROR, and the reasonCode of CONTROL ABORT use codes from the same table (1 to 15). The sender must not send a code that is not in the table. The receiver treats a code not in the table as a refusal or interruption for an unknown reason (it is not a reason to refuse the opponent).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Code</th><th>Name</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>Unsupported version</td></tr>
+<tr><td>2</td><td>WRONG_NETWORK</td><td>The networkId differs</td></tr>
+<tr><td>3</td><td>BUSY</td><td>Negotiating or playing with another opponent (this is also returned to blocked opponents)</td></tr>
+<tr><td>4</td><td>EXPIRED</td><td>Expired (the start agreement deadline or the deadline of the start procedure)</td></tr>
+<tr><td>5</td><td>CONDITION_MISMATCH</td><td>The conditions, form, or procedure do not match</td></tr>
+<tr><td>6</td><td>INVALID_SIGNATURE</td><td>The signature is not valid</td></tr>
+<tr><td>7</td><td>INVALID_MOVE</td><td>The move cannot be read, is not legal, or the position does not match</td></tr>
+<tr><td>8</td><td>STATE_CONFLICT</td><td>States conflict (different states at the same ply, or frames out of order)</td></tr>
+<tr><td>9</td><td>CLOCK_MISMATCH</td><td>The time calculation does not match, or the report does not match the observation</td></tr>
+<tr><td>10</td><td>LIMIT_EXCEEDED</td><td>A limit (such as the number of control messages) was exceeded</td></tr>
+<tr><td>11</td><td>STORAGE_ERROR</td><td>The record could not be saved</td></tr>
+<tr><td>12</td><td>CANCELLED</td><td>The user cancelled or exited the app</td></tr>
+<tr><td>13</td><td>DISCONNECT_LIMIT</td><td>The total disconnection time exceeded the limit</td></tr>
+<tr><td>14</td><td>GAME_TIME_LIMIT</td><td>The real-time limit of one game</td></tr>
+<tr><td>15</td><td>CLOCK_DISCONTINUITY</td><td>The continuity of timing cannot be confirmed because of sleep or a clock change</td></tr>
+</tbody>
+</table></div>
+<p>Whatever code a game ends with, check failures, interruptions, and disconnections are "Unconfirmed" and are not turned into a win or a loss. A win or loss is decided only when both sides sign the same FinalResult (<a href="#sec-10-4">section 10.4</a>), or when the game end is determined by the moves (<a href="#sec-13-3">section 13.3</a>).</p>
+</section>
+<section id="evidence">
+<h2 id="sec-13">13. Game Record (Evidence)</h2>
+<p>When a game ends (even when the result was not confirmed), each side saves the record of the game in one file. This is called the <strong>evidence</strong>. Anyone can verify the evidence without using the network or the opponent. The extension is <code>.sbqmatch</code>, and the size is at most 8 MiB. Evidence written by a compatible implementation must be verifiable with ShogiBoardQ's Game Records tab and with <code>shogiboardq-cli verify-match</code>, and vice versa.</p>
+
+<h3 id="sec-13-1">13.1 Format</h3>
+<p>The content of the file is only the deterministic CBOR byte sequence of the following value (with nothing added before or after it).</p>
+<pre><code>Evidence = ["SBQ-MATCH", 1,
+            StartAgreement,
+            blackStartSignature, whiteStartSignature,
+            Rules, TimeControl, NetworkPolicy,
+            [[State, blackApproval, whiteApproval], ...],
+            FinalResult or [],
+            blackResultSignature, whiteResultSignature]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Field</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td>StartAgreement</td><td><a href="#sec-7-4">Section 7.4</a></td></tr>
+<tr><td>blackStartSignature, whiteStartSignature</td><td>Signatures over the StartAgreement by Black's and White's player keys. bstr(64)</td></tr>
+<tr><td>Rules, TimeControl, NetworkPolicy</td><td>The values of <a href="#sec-7-1">section 7.1</a> themselves (not their hashes)</td></tr>
+<tr><td>Sequence of States</td><td>In order from State0, 0 to 513 entries. Each State is accompanied by the signatures over its StateApproval by Black's and White's per-game keys</td></tr>
+<tr><td>FinalResult</td><td>The matched result (<a href="#sec-7-5">section 7.5</a>). For a game whose result did not match, an empty array <code>[]</code></td></tr>
+<tr><td>blackResultSignature, whiteResultSignature</td><td>Signatures over the FinalResult by Black's and White's player keys</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>A signature field whose signature does not exist yet is a bstr of length 0. Signature fields must be of length 0 or 64.</li>
+<li>When FinalResult is <code>[]</code>, both result signature fields are of length 0.</li>
+<li>One's own last move, whose approval by the opponent did not arrive, may be put at the end of the sequence as a State with only one's own approval. Other States must not be placed after a State that has only one approval.</li>
+<li>Display names, IP addresses, the PeerIds themselves, invitation tokens, and local names are not included (PeerIds remain only as hashes inside the StartAgreement).</li>
+</ul>
+
+<h3 id="sec-13-2">13.2 Verification Steps</h3>
+<p>The verifier checks the following in order. Each result is reported separately ("the signatures are valid", "the moves follow the rules", and "the time arithmetic matches" are not mixed). All signature verification is done as in <a href="#sec-2-4">section 2.4</a> (including the public key check).</p>
+<ol>
+<li><strong>Format</strong>: at most 8 MiB, deterministic CBOR, and in the form of section 13.1. Rules and NetworkPolicy are the v1 values, and TimeControl is within the ranges of <a href="#sec-7-1">section 7.1</a>.</li>
+<li><strong>Conditions</strong>: the hashes of Rules, TimeControl, and NetworkPolicy match the three hashes in the StartAgreement.</li>
+<li><strong>Start signatures</strong>: the two start signatures are valid for blackPlayerKey and whitePlayerKey in the StartAgreement, respectively. Compute <code>gameId = H(CBOR(StartAgreement))</code>.</li>
+<li><strong>Sequence of States</strong>: from the beginning, check the following in order.
+  <ul>
+  <li>The gameId of the State is the game ID, and <code>ply</code> matches its position in the sequence (0, 1, 2, …).</li>
+  <li>Each approval signature that is not of length 0 is valid for the per-game key of the corresponding side (blackSessionKey, whiteSessionKey). A State with neither approval is not accepted.</li>
+  <li>State0 matches the value in <a href="#sec-7-2">section 7.2</a>. Each later State has been built from the previous State according to steps 6 to 9 of <a href="#sec-9-2">section 9.2</a> (previous state hash, move format, time loss, legal move, position, remaining-time calculation).</li>
+  <li>A State with only one approval can be placed only at the end of the sequence.</li>
+  </ul>
+</li>
+<li><strong>Moves approved by both sides</strong>: the States that have both approvals (a contiguous part from the beginning of the sequence) are called "the moves approved by both sides". If they are not empty, perform the judgment of <a href="#sec-10-3">section 10.3</a> to find whether the game end is determined by the moves.</li>
+<li><strong>Result</strong>: if there is a FinalResult, check the following.
+  <ul>
+  <li>Its gameId is the game ID, <code>ply</code> and <code>finalStateHash</code> refer to the last State of the moves approved by both sides, and <code>transcriptHash</code> matches the value computed from the moves approved by both sides.</li>
+  <li>Each result signature that is not of length 0 is valid for the player key of the corresponding side.</li>
+  <li>If the game end is determined by the moves, the outcome and cause of the FinalResult match it. If the game end is not determined by the moves, the cause of the FinalResult is not one of the causes determined by the moves (checkmate, repetition, perpetual check, 512 moves reached).</li>
+  </ul>
+</li>
+</ol>
+
+<h3 id="sec-13-3">13.3 Record Status</h3>
+<p>Based on the verification results, a record falls into one of the following three statuses. They are applied in order from the top.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Status</th><th>Condition</th><th>What it can show</th></tr></thead>
+<tbody>
+<tr><td>Confirmed by both</td><td>Passes steps 2 to 4, has a FinalResult that refers to the last State, and the player-key signatures of <strong>both</strong> sides are valid</td><td>Both sides agreed on the same result</td></tr>
+<tr><td>Determined by the moves</td><td>Passes steps 2 to 4, and the moves approved by both sides end in a game end determined by the moves (section 10.3)</td><td>The result is determined by the moves both sides checked</td></tr>
+<tr><td>Unconfirmed</td><td>Neither of the above</td><td>Only the moves up to that point (a win or loss cannot be shown)</td></tr>
+</tbody>
+</table></div>
+<p>Whatever the status, there are things the evidence cannot show. <strong>The time actually spent thinking</strong> (time used is self-reported), <strong>that humans played</strong>, and <strong>when the game was played</strong> cannot be confirmed from the evidence. An implementation that outputs verification results should show this along with them.</p>
+</section>
+<section id="constants">
+<h2 id="sec-14">14. List of Constants</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Item</th><th>Value</th><th>Section</th></tr></thead>
+<tbody>
+<tr><td>Game protocol</td><td><code>/shogiboardq/game/1.0.0</code></td><td><a href="#sec-6-1">6.1</a></td></tr>
+<tr><td>Identify protocolVersion</td><td><code>/shogiboardq/1.0.0</code></td><td><a href="#sec-4-3">4.3</a></td></tr>
+<tr><td>Listening port for Local test</td><td>48210 (TCP, UDP)</td><td><a href="#sec-4-2">4.2</a></td></tr>
+<tr><td>Relay reservations</td><td>Up to 2. Requested again 30 seconds after being refused or lost</td><td><a href="#sec-4-4">4.4</a></td></tr>
+<tr><td>Frame length</td><td>1 to 65536 bytes</td><td><a href="#sec-6-1">6.1</a></td></tr>
+<tr><td>CBOR nesting</td><td>Up to 16 levels</td><td><a href="#sec-2-2">2.2</a></td></tr>
+<tr><td>Total number of CBOR values when reading evidence (limit of ShogiBoardQ's reader)</td><td>Up to 1,048,576 (including array elements)</td><td><a href="#sec-2-2">2.2</a></td></tr>
+<tr><td>Invitation string length</td><td>At most 1024 bytes</td><td><a href="#sec-5-1">5.1</a></td></tr>
+<tr><td>Invitation expiry</td><td>600 seconds (the reading side allows for 60 seconds of clock skew)</td><td><a href="#sec-5-3">5.3</a></td></tr>
+<tr><td>Candidate addresses in an invitation</td><td>Up to 8, each up to 100 bytes</td><td><a href="#sec-5-1">5.1</a></td></tr>
+<tr><td>Invitations valid at the same time</td><td>Up to 4</td><td><a href="#sec-5-2">5.2</a></td></tr>
+<tr><td>Time to wait for the first frame of a stream</td><td>5 seconds</td><td><a href="#sec-6-3">6.3</a></td></tr>
+<tr><td>Frame rate</td><td>5 per second (burst 10) until the start signatures are exchanged; afterwards, 20 per second (burst 40) on the stream where they were exchanged. Streams opened for reconnection stay at 5 per second (burst 10)</td><td><a href="#sec-6-4">6.4</a></td></tr>
+<tr><td>Display name</td><td>1 to 32 characters, at most 96 bytes</td><td><a href="#sec-3-6">3.6</a></td></tr>
+<tr><td>Negotiation deadline</td><td>60 seconds</td><td><a href="#sec-8-6">8.6</a></td></tr>
+<tr><td>Start agreement deadline (startBefore)</td><td>180 seconds from creation (the receiving side allows for 30 seconds of clock skew)</td><td><a href="#sec-8-3">8.3</a></td></tr>
+<tr><td>From the start signatures to READY</td><td>30 seconds</td><td><a href="#sec-9-1">9.1</a></td></tr>
+<tr><td>Maximum number of moves</td><td>512 moves</td><td><a href="#sec-10-3">10.3</a></td></tr>
+<tr><td>Time control</td><td>Main time 0 to 86,400,000 ms, byoyomi 0 to 600,000 ms (both 0 is not allowed)</td><td><a href="#sec-7-1">7.1</a></td></tr>
+<tr><td>Tolerance for time used</td><td>10,000 ms</td><td><a href="#sec-9-4">9.4</a></td></tr>
+<tr><td>Resending an unapproved move</td><td>Every 5 seconds. Treated as a disconnection after 30 seconds</td><td><a href="#sec-9-2">9.2</a></td></tr>
+<tr><td>Control messages</td><td>Up to 4096 per game</td><td><a href="#sec-9-5">9.5</a></td></tr>
+<tr><td>Time to wait for the result signatures</td><td>30 seconds</td><td><a href="#sec-10-4">10.4</a></td></tr>
+<tr><td>Interval between reconnection attempts</td><td>5 seconds</td><td><a href="#sec-11-1">11.1</a></td></tr>
+<tr><td>Time to wait during one disconnection</td><td>120 seconds</td><td><a href="#sec-11-6">11.6</a></td></tr>
+<tr><td>Total disconnection time per game</td><td>600 seconds</td><td><a href="#sec-11-6">11.6</a></td></tr>
+<tr><td>Real-time limit per game</td><td>24 hours</td><td><a href="#sec-10-5">10.5</a></td></tr>
+<tr><td>States in a SYNC_CHUNK</td><td>Up to 64 at a time</td><td><a href="#sec-11-4">11.4</a></td></tr>
+<tr><td>Evidence file</td><td>Extension <code>.sbqmatch</code>, at most 8 MiB, up to 513 States</td><td><a href="#sec-13">13</a></td></tr>
+</tbody>
+</table></div>
+</section>
+<section id="conformance">
+<h2 id="sec-15">15. Checking Conformance</h2>
+
+<h3 id="sec-15-1">15.1 Test Inputs</h3>
+<p>The <code>protocol/testvectors/</code> directory of the ShogiBoardQ repository contains inputs for confirming that implementations produce the same results. Compatible implementations should read them in their own tests. Lines beginning with <code>#</code> and empty lines are skipped.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>File</th><th>Line format</th><th>What it checks</th></tr></thead>
+<tbody>
+<tr><td><code>cbor.txt</code></td><td><code>valid &lt;hex&gt;</code> / <code>invalid &lt;hex&gt;</code></td><td>Whether the input can be read as deterministic CBOR (<a href="#sec-2-2">section 2.2</a>)</td></tr>
+<tr><td><code>frames.txt</code></td><td><code>valid &lt;hex&gt;</code> / <code>invalid &lt;hex&gt;</code></td><td>Whether the input is a valid frame envelope (<a href="#sec-6-2">section 6.2</a>)</td></tr>
+<tr><td><code>displayname.txt</code></td><td><code>accept &lt;hex(UTF-8)&gt;</code> / <code>reject &lt;hex(UTF-8)&gt;</code></td><td>Display name rules (<a href="#sec-3-6">section 3.6</a>)</td></tr>
+<tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId and rulesHash (<a href="#sec-3-1">section 3.1</a>, <a href="#sec-7-1">section 7.1</a>)</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="sec-15-2">15.2 Order of Checks</h3>
+<p>When building a compatible implementation, it is best to check it in order, starting from the lower layers.</p>
+<ol>
+<li><strong>Deterministic CBOR and hashes</strong>: the inputs of section 15.1 and the values in Appendix A match.</li>
+<li><strong>Evidence verification</strong>: read a <code>.sbqmatch</code> saved by ShogiBoardQ, and all the verification of <a href="#sec-13-2">section 13.2</a> passes (this confirms the signature verification and that the moves, positions, and time calculations agree).</li>
+<li><strong>Invitation strings</strong>: you can read invitation strings created by ShogiBoardQ, and ShogiBoardQ's Check Invitation can read invitation strings you created.</li>
+<li><strong>Connection and negotiation</strong>: with the network set to <code>sbq-local-1</code>, get as far as the confirmation screen with ShogiBoardQ on the same PC, both as the inviting side and as the invited side.</li>
+<li><strong>Game</strong>: as both Black and White, play games to resignation, checkmate, time loss, and draw by agreement, and the evidence of both sides becomes "Confirmed by both". Verify the evidence you wrote with <code>shogiboardq-cli verify-match --input-path &lt;file&gt;</code>; <code>valid</code> is true and <code>category</code> is <code>mutually_signed</code>.</li>
+<li><strong>Reconnection</strong>: cut the stream during a game, and the game can be reconnected and continued (when you are the joiner and when you are the inviter, and with and without an unapproved move).</li>
+<li><strong>Refusal</strong>: send invalid signatures, illegal moves, States with wrong time calculations, CONTROL messages with skipped numbers, and so on, and confirm that the opponent stops without assigning a win or loss. Your own implementation refuses the same inputs in the same way.</li>
+</ol>
+<p>When ShogiBoardQ is started several times on the same PC, each copy becomes a different player in the order it was opened (the second is "Player 2"). Tests against a compatible implementation can be done within one PC.</p>
+</section>
+
+<section id="appendix">
+<h2 id="sec-A">Appendix A. Test Values</h2>
+<p>The values listed here were output by ShogiBoardQ's implementation, and have been confirmed to match the values computed from the descriptions in this document alone. <code>aa…</code> denotes a bstr(32) consisting of that byte repeated 32 times. The hex is broken into lines every 64 digits (the line breaks are not part of the byte sequence).</p>
+
+<h3 id="sec-A-1">A.1 Condition Hash</h3>
+<p class="vec-title">CBOR(Rules)</p>
+<pre class="vec"><code>89695342512d52554c455301783f6c6e73676b67736e6c2f31723562312f7070
+707070707070702f392f392f392f5050505050505050502f31423552312f4c4e
+53474b47534e4c2062202d20311902006d666f7572666f6c642d647261777470
+657270657475616c2d636865636b2d6c6f73736e6e6f2d6465636c6172617469
+6f6e6568756d616e6568756d616e</code></pre>
+<p class="vec-title">rulesHash</p>
+<pre class="vec"><code>e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7</code></pre>
+<p class="vec-title">networkPolicyHash</p>
+<pre class="vec"><code>9b7c8316692cc4e6593d4266afcb0d90670a0edb948920c920ef64a7fefebe73</code></pre>
+<p class="vec-title">CBOR(TimeControl) (main time 600,000 ms, byoyomi 30,000 ms)</p>
+<pre class="vec"><code>86685342512d54494d45011a000927c01975300000</code></pre>
+<p class="vec-title">timeControlHash (same as above)</p>
+<pre class="vec"><code>deb3972b6ab25b1992f94da6dfaf7755d8c81e7dd654b01818bce1b75eefe1db</code></pre>
+<h3 id="sec-A-2">A.2 Side Random Values, Connection, and Verification Code</h3>
+<p class="vec-title">commitA (nonceA = 11…)</p>
+<pre class="vec"><code>30ea3fa164e93f6a60085b31b686b797a3989fb57d745e0541552f60f24761c5</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>nonceA</th><th>nonceB</th><th>Joiner</th></tr></thead>
+<tbody>
+<tr><td><code>11…</code></td><td><code>22…</code></td><td>Black</td></tr>
+<tr><td><code>11…</code></td><td><code>33…</code></td><td>White</td></tr>
+</tbody>
+</table></div>
+<p class="vec-title">connectionId (gameId = aa…, blackRandom = 01…, whiteRandom = 02…)</p>
+<pre class="vec"><code>7415d7e00efb5fb5ec6e8ec7fce4590bf0d0c6e13dedbc71e39ca55a86ed376b</code></pre>
+<p class="vec-title">PeerIdHash (PeerId = 00 24 08 01 12 20 followed by 32 bytes of 01)</p>
+<pre class="vec"><code>abb7e8338cc44a8fc428977193d4a7bd3a251a690cb322d5494ffb44df4f15a4</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Public key A</th><th>Public key B</th><th>Verification code</th></tr></thead>
+<tbody>
+<tr><td><code>01…</code></td><td><code>02…</code></td><td><code>56744 64655 21922 42152 96570 31949</code></td></tr>
+<tr><td><code>ff…</code></td><td><code>02…</code></td><td><code>07831 76934 90118 77226 11286 72173</code> (<code>02…</code> comes first; the order is compared as unsigned bytes)</td></tr>
+</tbody>
+</table></div>
+<h3 id="sec-A-3">A.3 States and Results (gameId = aa…, main time 600,000 ms, byoyomi 30,000 ms)</h3>
+<p class="vec-title">CBOR(State0)</p>
+<pre class="vec"><code>8a695342512d5354415445015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaa005820000000000000000000000000000000
+000000000000000000000000000000000060783f6c6e73676b67736e6c2f3172
+3562312f7070707070707070702f392f392f392f5050505050505050502f3142
+3552312f4c4e53474b47534e4c2062202d2031001a000927c01a000927c0</code></pre>
+<p class="vec-title">H(CBOR(State0))</p>
+<pre class="vec"><code>67a8f419018a1cec21de54322d407c4abba2e8f562acae327c16df68f1146fe8</code></pre>
+<p>For State1, in which Black plays P-7f (<code>7g7f</code>) using 2,500 ms, <code>sfen</code> is <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2</code>, <code>blackMainMs</code> is 597,500, and <code>whiteMainMs</code> is 600,000.</p>
+<p class="vec-title">CBOR(State1)</p>
+<pre class="vec"><code>8a695342512d5354415445015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaa01582067a8f419018a1cec21de54322d407c
+4abba2e8f562acae327c16df68f1146fe8643767376678416c6e73676b67736e
+6c2f31723562312f7070707070707070702f392f392f3250362f505031505050
+5050502f31423552312f4c4e53474b47534e4c2077202d20321909c41a00091d
+fc1a000927c0</code></pre>
+<p class="vec-title">H(CBOR(State1))</p>
+<pre class="vec"><code>3215de1e8656241070b33e65d55ca10d2e9be4c27a3706ca283386b7acab07f2</code></pre>
+<p class="vec-title">CBOR(StateApproval) (ply = 1)</p>
+<pre class="vec"><code>856b5342512d415050524f5645015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0158203215de1e8656241070b33e65d5
+5ca10d2e9be4c27a3706ca283386b7acab07f2</code></pre>
+<p class="vec-title">transcriptHash (State0 and State1)</p>
+<pre class="vec"><code>cc375e47eda4829e8e31d0673f4de5c0173d2519a136d1a09416e3bfa2678ed1</code></pre>
+<p class="vec-title">CBOR(FinalResult) (ply = 1, Black wins, resignation)</p>
+<pre class="vec"><code>886a5342512d524553554c54015820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
+0d2e9be4c27a3706ca283386b7acab07f25820cc375e47eda4829e8e31d0673f
+4de5c0173d2519a136d1a09416e3bfa2678ed1010101</code></pre>
+<p class="vec-title">resultDigest</p>
+<pre class="vec"><code>81c534940d53806ba1db2ca36f07f016999b848c70f25ebf0f7502772cd12e16</code></pre>
+<h3 id="sec-A-4">A.4 Signatures and Frames</h3>
+<p>The following values use the RFC 8032 test value <code>9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60</code> as the seed of the secret key.</p>
+<p class="vec-title">Public key</p>
+<pre class="vec"><code>d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a</code></pre>
+<p class="vec-title">Signature over CBOR(StateApproval) of A.3</p>
+<pre class="vec"><code>64cb12d9c0f548437ae77c21d68f6554f7afe16dae66b97f19f6b0810526e50e
+7aeb177dc3adb8a50dd8337317831c3a6abb75c03e28d9d09bf16841e7798c07</code></pre>
+<p class="vec-title">REJECT frame (BUSY, requestId = 3). On the stream, it is preceded by the length 00 00 00 28</p>
+<pre class="vec"><code>85010a0358200000000000000000000000000000000000000000000000000000
+0000000000008103</code></pre>
+<p class="vec-title">INVITE_TOKEN frame (token = 22…)</p>
+<pre class="vec"><code>85010b0058200000000000000000000000000000000000000000000000000000
+0000000000008158202222222222222222222222222222222222222222222222
+222222222222222222</code></pre>
+</section>
+
+<section id="history">
+<h2 id="sec-B">Appendix B. Change History</h2>
+<p>Versions are listed newest first. The meanings of the versions and of "Fix needed in compatible implementations" are as described in <a href="#sec-1-5">section 1.5</a>. Each link points to the GitHub commit that made the change.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Document version</th><th>Protocol version</th><th>Fix needed in compatible implementations</th><th>Changes</th></tr></thead>
+<tbody>
+<tr><td>2026-11-13</td><td>1</td><td>Needed</td><td>Aligned with the fixes from the security audit of ShogiBoardQ's P2P games (2026-11-13) (<a href="https://github.com/hnakada123/ShogiBoardQ/commit/64dbc7d86394ed74e5a3ac02b054e40acce6845c">64dbc7d8</a>).
+<ul>
+<li>The reachability check now uses AutoNAT v2, and v1 is no longer used. ShogiBoardQ's cooperating nodes respond only to v2 checks (<a href="#sec-4-1">section 4.1</a>).</li>
+<li>On <code>sbq-local-1</code>, one's own addresses are no longer advertised via Identify (<a href="#sec-4-3">section 4.3</a>).</li>
+<li>Added address ranges that are not used as addresses, and defined the multiaddr forms that can be used as addresses. Addresses with two IPs, addresses with unknown components, and nested relays are discarded (<a href="#sec-4-5">section 4.5</a>).</li>
+<li>Added limits: incoming connections before establishment from the same source IP, the deadline for connection establishment, game streams waiting for their first frame, and Yamux streams per connection (<a href="#sec-4-7">section 4.7</a>).</li>
+<li>Added conditions for declining a result proposal: a proposal made before READY is exchanged, and a proposal that differs from a game end determined by the moves. The opponent's claim of a time loss is checked with the time counted from the start of one's own turn (<a href="#sec-10-2">section 10.2</a>).</li>
+<li>Added the limit on the total number of CBOR values when reading evidence (ShogiBoardQ's reader) to the list of constants (<a href="#sec-14">section 14</a>).</li>
+<li>Corrected the time to wait for the first frame of a game stream to 5 seconds, matching the implementation (the audit fix shortened it from 10 seconds to 5). Only <a href="#sec-4-7">section 4.7</a> said 5 seconds; <a href="#sec-6-3">section 6.3</a>, <a href="#sec-11-1">section 11.1</a>, and <a href="#sec-14">section 14</a> still said 10 seconds.</li>
+<li>Added the versioning rules (<a href="#sec-1-5">section 1.5</a>) and this change history, and tidied the opening text (wording revision).</li>
+<li>Added English, Simplified Chinese, and Traditional Chinese translations (wording revision).</li>
+</ul>
+<p class="note">When the change in 64dbc7d8 above was published, the document version was not raised and still read 2026-11-12. Even if the document version says 2026-11-12, a document whose section 4.1 mentions AutoNAT v2 has the content of 2026-11-13.</p></td></tr>
+<tr><td>2026-11-12</td><td>1</td><td>Needed</td><td>Added the rules for relay reservations and listening that were fixed in the regular edition (<a href="https://github.com/hnakada123/ShogiBoardQ/commit/dca1d36d6cd52865e809d37860877cd5fb722b89">dca1d36d</a>).
+<ul>
+<li>An implementation must not listen on a port on which another process is listening (<a href="#sec-4-2">section 4.2</a>).</li>
+<li>A cooperating node may also advertise its listen addresses on the Internet via Identify (<a href="#sec-4-3">section 4.3</a>).</li>
+<li>Added that a refused or lost relay reservation is requested again, that one's own address through a relay is built from the cooperating node address the user specified, and that a cooperating node takes its own address without waiting for the reachability check (<a href="#sec-4-4">section 4.4</a>).</li>
+</ul></td></tr>
+<tr><td>2026-11-11</td><td>1</td><td>—</td><td>First edition. Written based on the implementation on main and the <code>protocol/</code> directory of the experimental repository ShogiBoardQ-P2P as of 2026-11-11 (<a href="https://github.com/hnakada123/ShogiBoardQ/commit/02924f246fc4678cd26191de15cd24a651a52c66">02924f24</a>). On the same day it was merged into the regular edition, and the name in the document was changed from ShogiBoardQ-P2P to ShogiBoardQ (<a href="https://github.com/hnakada123/ShogiBoardQ/commit/f540b386803cd0c17e23dec08ea1e8d102615554">f540b386</a>).</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<footer class="doc">
+<p>This document gathers into one place, for compatible implementations, what is defined by the implementation of ShogiBoardQ's P2P games and by the repository's <code>protocol/</code> directory (the byte formats and the test inputs). The versioning rules are in <a href="#sec-1-5">section 1.5</a>, and the changes in each version are in <a href="#sec-B">Appendix B</a>. If this document and the behavior of the implementation disagree, please report it to the repository.</p>
+<p>ShogiBoardQ: <a href="https://github.com/hnakada123/ShogiBoardQ">https://github.com/hnakada123/ShogiBoardQ</a></p>
+</footer>
+</main>
+</body>
+</html>
