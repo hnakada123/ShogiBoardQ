@@ -13,6 +13,7 @@
 #include <QTimer>
 
 #include "logcategories.h"
+#include "peerconfinement.h"
 #include "peeripc.h"
 
 namespace {
@@ -36,8 +37,11 @@ bool sandboxIsApplied(const QJsonObject& sandbox)
     const QJsonArray mechanisms = sandbox.value(QStringLiteral("mechanisms")).toArray();
     QStringList names;
     for (const QJsonValue& m : mechanisms) names << m.toString();
-    for (const char* required : {"no_new_privs", "landlock_fs", "seccomp", "parent_death_signal", "no_core_dump"}) {
-        if (!names.contains(QLatin1String(required))) return false;
+    // OS ごとの必須の仕組み（Linux は通信プロセスが自分で掛け、Windows は起動のときに掛けたものを通信プロセスが確かめる）
+    const QStringList required = PeerConfinement::requiredMechanisms();
+    if (required.isEmpty()) return false;
+    for (const QString& name : required) {
+        if (!names.contains(name)) return false;
     }
     return true;
 }
@@ -67,7 +71,7 @@ PeerProcess::PeerProcess(QObject* parent)
 PeerProcess::~PeerProcess()
 {
     if (m_process) {
-        // 親が終わると通信プロセスも終わる（標準入力の終端・PR_SET_PDEATHSIG）。知らせを受けずに止める
+        // 親が終わると通信プロセスも終わる（標準入力の終端・PR_SET_PDEATHSIG・ジョブ）。知らせを受けずに止める
         m_process->disconnect(this);
         m_process->kill();
     }
@@ -88,16 +92,16 @@ QString PeerProcess::executablePath()
     return QDir(QCoreApplication::applicationDirPath()).filePath(name);
 }
 
-void PeerProcess::start()
+void PeerProcess::start(PeerConfinement::Reach reach)
 {
     if (m_state != State::NotRunning) return;
-#ifndef Q_OS_LINUX
-    // 権限の制限を確かめた OS だけで使う（Linux 以外の制限は未実装）
-    m_failed = false;
-    fail(Failure::UnsupportedOs, QString());
-    emit stopped();
-    return;
-#else
+    if (!PeerConfinement::isSupported()) {
+        // 権限の制限を確かめた OS だけで使う
+        m_failed = false;
+        fail(Failure::UnsupportedOs, QString());
+        emit stopped();
+        return;
+    }
     const QString path = executablePath();
     if (!QFileInfo(path).isExecutable()) {
         m_failed = false;
@@ -117,12 +121,16 @@ void PeerProcess::start()
     m_process = new QProcess(this);
     m_process->setProgram(path);
     m_process->setArguments({});
-    // 環境変数は渡さない。標準入出力以外の記述子を引き継がない
-    m_process->setProcessEnvironment(QProcessEnvironment());
-    QProcess::UnixProcessParameters params;
-    params.flags = QProcess::UnixProcessFlag::CloseFileDescriptors | QProcess::UnixProcessFlag::ResetSignalHandlers;
-    m_process->setUnixProcessParameters(params);
-    m_process->setWorkingDirectory(QDir::rootPath());
+    // 環境変数と標準入出力以外のハンドル・記述子を引き継がず、OS ごとの権限の制限を掛けて起動する
+    QString confinementError;
+    m_confinement = PeerConfinement::apply(m_process, path, reach, &confinementError);
+    if (!m_confinement) {
+        // 制限なしでは起動しない
+        resetProcess();
+        fail(Failure::SandboxFailed, confinementError);
+        emit stopped();
+        return;
+    }
     connect(m_process, &QProcess::readyReadStandardOutput, this, &PeerProcess::onReadyReadStdout);
     connect(m_process, &QProcess::readyReadStandardError, this, &PeerProcess::onReadyReadStderr);
     connect(m_process, &QProcess::finished, this, &PeerProcess::onFinished);
@@ -134,7 +142,6 @@ void PeerProcess::start()
     hello[QStringLiteral("uiVersion")] = QStringLiteral(APP_VERSION);
     m_helloRequestId = send(QStringLiteral("hello"), hello);
     m_stopTimer->start(kHelloTimeoutMs);
-#endif
 }
 
 void PeerProcess::stop()
@@ -315,7 +322,16 @@ void PeerProcess::onFinished(int exitCode, QProcess::ExitStatus status)
 void PeerProcess::onErrorOccurred(QProcess::ProcessError error)
 {
     if (error == QProcess::FailedToStart) {
+#ifdef Q_OS_WIN
+        // 実行ファイルがあるのに起動できないのは、権限の制限（AppContainer・ジョブ）を付けてプロセスを作れなかったとき
+        if (QFileInfo(executablePath()).isExecutable()) {
+            fail(Failure::SandboxFailed, QStringLiteral("the confined process could not be created"));
+        } else {
+            fail(Failure::NotFound, executablePath());
+        }
+#else
         fail(Failure::NotFound, executablePath());
+#endif
         resetProcess();
         m_state = State::NotRunning;
         emit stopped();
@@ -344,4 +360,6 @@ void PeerProcess::resetProcess()
     m_process->deleteLater();
     m_process = nullptr;
     m_buffer.clear();
+    // プロセスが終わった後に手放す（Windows では、ジョブを閉じると動いている通信プロセスが終わる）
+    m_confinement.reset();
 }

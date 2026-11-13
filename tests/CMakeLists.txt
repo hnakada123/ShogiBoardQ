@@ -1325,6 +1325,12 @@ if(ENABLE_P2P_PLAY)
     add_shogi_test(tst_p2p_protocol tst_p2p_protocol.cpp)
     target_link_libraries(tst_p2p_protocol PRIVATE shogiboardq_static)
     target_compile_definitions(tst_p2p_protocol PRIVATE SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+    if(MSVC)
+        # libsodium の DLL を、試験の実行ファイルの隣にも置く
+        add_custom_command(TARGET tst_p2p_protocol POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SODIUM_RUNTIME_DLL} $<TARGET_FILE_DIR:tst_p2p_protocol>
+            VERBATIM)
+    endif()
 endif()
 if(ENABLE_P2P_PLAY)
     # 開始までの交渉と対局の状態機械（2人分を直接つなぐ。順序・重複・欠落・再接続・時計）
@@ -1351,6 +1357,15 @@ if(ENABLE_P2P_PLAY)
         VERBATIM)
     set_tests_properties(tst_p2p_endtoend PROPERTIES TIMEOUT 180
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;SHOGIBOARDQ_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/tst_p2p_endtoend")
+endif()
+if(ENABLE_P2P_PLAY)
+    # 通信プロセスの権限の制限（アプリと同じ起動のしかたで起動し、禁止した操作が拒否される。Linux と Windows）
+    add_shogi_test(tst_p2p_sandbox tst_p2p_sandbox.cpp)
+    target_link_libraries(tst_p2p_sandbox PRIVATE shogiboardq_static)
+    target_compile_definitions(tst_p2p_sandbox PRIVATE
+        PEER_EXECUTABLE="$<TARGET_FILE_DIR:tst_p2p_endtoend>/${SBQ_PEER_NAME}")
+    add_dependencies(tst_p2p_sandbox tst_p2p_endtoend)
+    set_tests_properties(tst_p2p_sandbox PROPERTIES TIMEOUT 120)
 endif()
 if(ENABLE_P2P_PLAY)
     # 画面（ウィンドウ・条件確認画面・プレイヤー鍵のダイアログ）

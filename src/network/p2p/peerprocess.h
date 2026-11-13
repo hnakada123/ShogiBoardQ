@@ -11,6 +11,9 @@
 #include <QProcess>
 #include <QString>
 
+#include <memory>
+
+#include "peerconfinement.h"
 #include "peeripc.h"
 
 class QTimer;
@@ -18,7 +21,8 @@ class QTimer;
 /**
  * @brief 通信プロセス1つ
  *
- * 配布物の中の決まった場所から絶対パスで、空の環境で起動し、hello の応答で権限の制限を確かめてから使う。
+ * 配布物の中の決まった場所から絶対パスで、環境変数を引き継がず、権限を制限して起動し（PeerConfinement）、hello の
+ * 応答で権限の制限を確かめてから使う。
  * 受けたメッセージは、世代・要求番号・形をすべて確かめ、合わなければ通信プロセスを終わらせて失敗として扱う。
  * 通信プロセスの「成功」の応答を、署名の成立や相手の身元の根拠にしない（それは対局の司令塔が確かめる）。
  * GUI スレッドで作り、イベントループを止めない（waitFor* を使わない）。
@@ -35,7 +39,7 @@ public:
         None,
         NotFound,           ///< 実行ファイルがない
         UnsupportedOs,      ///< この OS では権限の制限を掛けられない（P2P対局を使えない）
-        SandboxFailed,      ///< 権限の制限を掛けられなかった（終了コード 3）
+        SandboxFailed,      ///< 権限の制限を掛けられなかった（起動の設定の失敗・終了コード 3）
         HelloMismatch,      ///< hello の版・制限の結果が合わない
         ProtocolViolation,  ///< 上限超過・形の合わないメッセージ
         Crashed,            ///< 異常終了した
@@ -54,8 +58,9 @@ public:
     /// hello の応答の sandbox（権限の制限の結果）
     QJsonObject sandbox() const { return m_sandbox; }
 
-    /// 起動して hello を送る。使えるようになれば ready、使えなければ failed
-    void start();
+    /// 起動して hello を送る。使えるようになれば ready、使えなければ failed。reach は通信プロセスに許す宛先の範囲
+    /// （同じ LAN へ出るのは、ローカルのネットワークを使うときだけ）
+    void start(PeerConfinement::Reach reach);
     /// shutdown を頼み、2秒で終わらなければ terminate、さらに2秒で kill する（すべて非同期）
     void stop();
     /// アプリの終了のときだけ使う。送った要求（中断の知らせ・shutdown）を書き終え、通信プロセスが終わるのを msecs まで
@@ -90,6 +95,7 @@ private:
     void resetProcess();
 
     QProcess* m_process = nullptr;
+    std::unique_ptr<PeerConfinement> m_confinement;   ///< 起動のときに掛けた権限の制限（プロセスの終わりまで持つ）
     QTimer* m_stopTimer = nullptr;
     State m_state = State::NotRunning;
     quint64 m_generation = 0;

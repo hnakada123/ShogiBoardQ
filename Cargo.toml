@@ -1,8 +1,9 @@
-# P2P対局の Rust のワークスペース（通信プロセス peer/ と共通の取り決め protocol/rust）。
+# P2P対局の Rust のワークスペース（通信プロセス peer/ と共通の取り決め protocol/rust、Windows の制限を確かめる
+# Win32 API の呼び出し peer/win32）。unsafe を書いてよいのは peer/win32 だけ（そのクレートは下の lints を継がない）。
 # C++ のビルドは CMake（ENABLE_P2P_PLAY）が cargo を呼ぶ。Cargo.lock で依存の版を固定する。
 [workspace]
 resolver = "2"
-members = ["protocol/rust", "peer"]
+members = ["protocol/rust", "peer", "peer/win32"]
 
 [workspace.package]
 version = "0.1.0"

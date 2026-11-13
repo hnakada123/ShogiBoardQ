@@ -42,10 +42,10 @@ fn runtime() -> Option<tokio::runtime::Runtime> {
     }
 }
 
-fn self_test(initial_ppid: i32) -> i32 {
+fn self_test(initial_ppid: i32, targets: &[String]) -> i32 {
     match sandbox::apply(Some(initial_ppid)) {
         Ok(report) => {
-            println!("{}", sandbox::self_test(&report));
+            println!("{}", sandbox::self_test(&report, targets));
             0
         }
         Err(e) => {
@@ -65,7 +65,7 @@ fn main() {
             println!("shogiboardq-peer {}", env!("CARGO_PKG_VERSION"));
             0
         }
-        Some("--sandbox-self-test") => self_test(initial_ppid),
+        Some("--sandbox-self-test") => self_test(initial_ppid, args.get(1..).unwrap_or_default()),
         Some("--service") => service::run(args.get(1..).unwrap_or_default()),
         Some(other) => {
             eprintln!("shogiboardq-peer: unknown option {other}");

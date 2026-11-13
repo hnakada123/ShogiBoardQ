@@ -25,6 +25,7 @@
 #include "p2precordstore.h"
 #include "p2pwindow.h"
 #include "p2pwindowtext.h"
+#include "peerconfinement.h"
 #include "shogiview.h"
 
 namespace {
@@ -138,11 +139,11 @@ void P2pGameUiController::openWindow()
 void P2pGameUiController::onStartRequested()
 {
     if (!m_lobby || !m_window) return;
-#ifndef Q_OS_LINUX
     // 通信プロセスの権限を制限できる OS だけで使う。プレイヤー鍵を作る前に知らせる
-    onPeerFailed(PeerProcess::Failure::UnsupportedOs, QString());
-    return;
-#else
+    if (!PeerConfinement::isSupported()) {
+        onPeerFailed(PeerProcess::Failure::UnsupportedOs, QString());
+        return;
+    }
     // 対局が始まると棋譜を作り直すので、未保存の棋譜を先に確かめる（ほかの対局の始め方と同じ。通信プロセスを動かす
     // 前に聞き、交渉の途中にはモーダルを出さない）
     if (m_deps.kifuFiles && !m_deps.kifuFiles->confirmDiscardUnsaved()) return;
@@ -169,7 +170,6 @@ void P2pGameUiController::onStartRequested()
         identity->unlock();
         return;
     }
-#endif
 }
 
 void P2pGameUiController::onIdentityFinished(P2pIdentityStore::Failure failure)

@@ -22,6 +22,7 @@
 #include "p2plobbyservice.h"
 #include "p2pplayerprofile.h"
 #include "p2precordstore.h"
+#include "peerconfinement.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
 
@@ -131,9 +132,7 @@ private slots:
     {
         QVERIFY(Crypto::initialize());
         QVERIFY(m_dir.isValid());
-#ifndef Q_OS_LINUX
-        QSKIP("the communication process is sandboxed only on Linux");
-#endif
+        if (!PeerConfinement::isSupported()) QSKIP("the communication process cannot be confined on this OS");
         QVERIFY2(QFileInfo(QStringLiteral(PEER_EXECUTABLE)).isExecutable(), PEER_EXECUTABLE);
         // 通信プロセスは試験の実行ファイルの隣に置いてある（CMake）。デバッグビルドでは差し替えでも同じものを指す
         qputenv("SHOGIBOARDQ_PEER_EXECUTABLE", QByteArrayLiteral(PEER_EXECUTABLE));
@@ -299,6 +298,9 @@ private slots:
     /// 招待された側は相手の直接のアドレスへつながない（通信プロセスの試験 relay_only_* が宛先の規則を確かめる）
     void relayOnlyGameThroughServiceNode()
     {
+#ifndef Q_OS_LINUX
+        QSKIP("the cooperating node (--service) runs only on Linux");
+#endif
         // 協力ノードを固定のポートで起動し、標準エラーの最初の行から PeerId を読む
         QTcpServer probe;
         QVERIFY(probe.listen(QHostAddress::LocalHost));

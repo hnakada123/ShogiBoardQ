@@ -1061,8 +1061,32 @@ set(SRC_CLI
 option(ENABLE_P2P_PLAY "Build the experimental P2P play (requires libsodium and a Rust toolchain)" OFF)
 set(SRC_P2P)
 if(ENABLE_P2P_PLAY)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium>=1.0.18)
+    if(MSVC)
+        # Windows（MSVC）には pkg-config がないので、libsodium の公式のビルド済みの配布物（libsodium-*-msvc.zip）を
+        # 展開したフォルダを SODIUM_ROOT で受け取る（include/ と x64/Release/v143/dynamic/ などがある）。
+        # DLL はアプリの隣に置く
+        set(SODIUM_ROOT "" CACHE PATH "Folder of the prebuilt libsodium for MSVC (contains include/ and x64/)")
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
+            set(_sodium_arch ARM64)
+        else()
+            set(_sodium_arch x64)
+        endif()
+        find_path(SODIUM_INCLUDE_DIR sodium.h HINTS ${SODIUM_ROOT}/include REQUIRED)
+        find_library(SODIUM_IMPORT_LIBRARY libsodium
+            HINTS ${SODIUM_ROOT}/${_sodium_arch}/Release/v143/dynamic ${SODIUM_ROOT}/${_sodium_arch}/Release/v142/dynamic
+                  ${SODIUM_ROOT}/lib
+            REQUIRED)
+        get_filename_component(_sodium_lib_dir ${SODIUM_IMPORT_LIBRARY} DIRECTORY)
+        find_file(SODIUM_RUNTIME_DLL libsodium.dll HINTS ${_sodium_lib_dir} ${SODIUM_ROOT}/bin REQUIRED)
+        add_library(PkgConfig::SODIUM SHARED IMPORTED)
+        set_target_properties(PkgConfig::SODIUM PROPERTIES
+            IMPORTED_IMPLIB ${SODIUM_IMPORT_LIBRARY}
+            IMPORTED_LOCATION ${SODIUM_RUNTIME_DLL}
+            INTERFACE_INCLUDE_DIRECTORIES ${SODIUM_INCLUDE_DIR})
+    else()
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium>=1.0.18)
+    endif()
     # OS の鍵の保管庫。無ければプレイヤー鍵はパスフレーズで暗号化したファイルにだけ置ける
     find_package(Qt6Keychain CONFIG QUIET)
     find_program(CARGO_EXECUTABLE cargo REQUIRED)
@@ -1139,6 +1163,8 @@ if(ENABLE_P2P_PLAY)
         src/network/p2p/p2precordstore.cpp
         src/network/p2p/p2precordstore.h
         src/network/p2p/p2ptransport.h
+        src/network/p2p/peerconfinement.cpp
+        src/network/p2p/peerconfinement.h
         src/network/p2p/peeripc.cpp
         src/network/p2p/peeripc.h
         src/network/p2p/peerprocess.cpp
@@ -1239,6 +1265,10 @@ if(ENABLE_P2P_PLAY)
         list(APPEND SBQ_LINK_LIBS Qt6Keychain::Qt6Keychain)
         list(APPEND SBQ_COMPILE_DEFINITIONS SBQ_HAVE_QTKEYCHAIN=1)
     endif()
+    if(WIN32)
+        # 通信プロセスを AppContainer で起動する（src/network/p2p/peerconfinement.cpp）
+        list(APPEND SBQ_LINK_LIBS userenv advapi32)
+    endif()
 endif()
 
 # ==== ガイドの画像を撮るためのビルド（P2P対局を自動化 API から操作する） ====
@@ -1328,6 +1358,11 @@ if(ENABLE_P2P_PLAY)
         VERBATIM
     )
     add_dependencies(ShogiBoardQ shogiboardq_peer)
+    if(MSVC)
+        add_custom_command(TARGET ShogiBoardQ POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SODIUM_RUNTIME_DLL} $<TARGET_FILE_DIR:ShogiBoardQ>
+            VERBATIM)
+    endif()
 endif()
 
 # .qm 生成（.ts → .qm コンパイルのみ、高速）
@@ -1428,6 +1463,9 @@ install(TARGETS shogiboardq-cli
 # P2P対局の通信プロセス（アプリと同じフォルダから起動する）
 if(ENABLE_P2P_PLAY)
     install(PROGRAMS $<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
+    if(MSVC)
+        install(FILES ${SODIUM_RUNTIME_DLL} DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif()
 endif()
 
 # デスクトップエントリ

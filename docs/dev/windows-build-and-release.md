@@ -196,6 +196,31 @@ dir build\Release\*.qm   # VS ジェネレータ
 .\build\ShogiBoardQ.exe
 ```
 
+### 3.4 P2P対局（実験版）を有効にしたビルド
+
+P2P対局（`ENABLE_P2P_PLAY`、既定 OFF）は配布物には入れない。試すときは、次の2つを用意して MSVC でビルドする。
+
+- **Rust**（1.85 以上。[rustup](https://rustup.rs/) の `x86_64-pc-windows-msvc`）。通信プロセス `shogiboardq-peer.exe` を cargo でビルドする
+- **libsodium**（1.0.18 以上）。公式のビルド済みの配布物（`libsodium-<版>-msvc.zip`）を展開し、中の `libsodium` フォルダ
+  （`include\` と `x64\` がある）を `SODIUM_ROOT` で指定する。`libsodium.dll` はビルドがアプリの隣にコピーする
+
+```powershell
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON `
+    -DSODIUM_ROOT=C:\dev\libsodium-msvc\libsodium
+cmake --build build
+ctest --test-dir build -R tst_p2p --output-on-failure
+```
+
+通信プロセスは、アプリが AppContainer・ジョブ・子プロセスの禁止を付けて起動する（`src/network/p2p/peerconfinement.cpp`、
+`protocol/ipc.md` 6.2節）。次の点が Linux と違う。
+
+- 初めて「接続」したときに、AppContainer のプロファイル `io.github.hnakada123.ShogiBoardQ.peer` を利用者ごとに1回登録する
+  （利用者のレジストリと `%LOCALAPPDATA%\Packages` の下の空のフォルダ）
+- `shogiboardq-peer.exe` に、その AppContainer の読み取りと実行の許可（ACL）を足す（Program Files の下に置いた場合は足さない）
+- `shogiboardq-peer.exe` を直接起動しても動かない（終了コード 3）。Rust の結合試験（`peer/tests/ipc.rs`）は Linux だけで動き、
+  Windows の試験は `tst_p2p_sandbox`・`tst_p2p_endtoend` で行う
+- 協力ノード（`shogiboardq-peer --service`）は Windows では動かない
+
 ---
 
 ## 4. 配布パッケージの作成

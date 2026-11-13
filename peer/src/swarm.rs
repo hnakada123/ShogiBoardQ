@@ -1,5 +1,9 @@
 //! libp2p の Swarm（使う機能だけ）
 
+// derive(NetworkBehaviour) が作るコードには、イベントを出さない振る舞い（イベントの型が値を持たない）の分岐があり、
+// 新しい rustc はそこを「届かないコード」と警告する。生成されたコードなので、このファイルでは警告にしない
+#![allow(unreachable_code)]
+
 use std::sync::Arc;
 use std::time::Duration;
 

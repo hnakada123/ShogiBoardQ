@@ -9,22 +9,25 @@
 |---|---|
 | `shogiboardq-peer`（引数なし） | 対局・UI側から使う。標準入出力で IPC を行う |
 | `shogiboardq-peer --service ...` | 協力ノード（7章）。IPC を使わない |
-| `shogiboardq-peer --sandbox-self-test` | 権限の制限を掛けてから、禁止した操作を試し、結果を JSON 1行で標準出力に書いて終わる（試験用） |
+| `shogiboardq-peer --sandbox-self-test [試す相手...]` | 権限の制限を掛けてから（Windows では掛かっていることを確かめてから）、禁止した操作を試し、結果を JSON 1行で標準出力に書いて終わる（試験用。6章） |
 | `shogiboardq-peer --version` | 版を1行で書いて終わる |
 
 - 対局・UI側は、実行ファイルをアプリと同じフォルダ（`QCoreApplication::applicationDirPath()`）から絶対パスで起動する。
-  環境変数は渡さない（空の環境）。標準入出力と標準エラー以外のファイル記述子を引き継がない
-  （Unix は `QProcess::UnixProcessFlag::CloseFileDescriptors`）。
-- 通信プロセスは、標準入力を読む前に権限の制限（6章）を掛ける。掛けられなければ、標準エラーに理由を書いて
-  終了コード 3 で終わる。
+  環境変数は渡さない（Linux は空の環境。Windows は、無いとプロセスを作れない `SystemRoot` と `LOCALAPPDATA` だけ）。
+  標準入出力と標準エラー以外のファイル記述子・ハンドルを引き継がない
+  （Unix は `QProcess::UnixProcessFlag::CloseFileDescriptors`、Windows は `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`）。
+  起動のしかたは `PeerConfinement`（`src/network/p2p/peerconfinement.cpp`）の1か所で決める。
+- 通信プロセスは、標準入力を読む前に権限の制限（6章）を掛ける（Windows では、起動する側が掛けた制限を確かめる）。
+  掛けられなければ、標準エラーに理由を書いて終了コード 3 で終わる。
 - 標準入力が終端に達したら、直ちに終了する（親の終了）。Linux では親の終了で SIGKILL を受ける設定もする。
+  Windows では、起動する側が持つジョブのハンドルが閉じると終わる。
 
 | 終了コード | 意味 |
 |---|---|
 | 0 | `shutdown` または標準入力の終端による終了 |
 | 1 | そのほかの失敗 |
 | 2 | IPC の違反（上限超過・形式不正・知らないメソッド）。対局・UI側が送ったものが正しくない |
-| 3 | 権限の制限を掛けられなかった |
+| 3 | 権限の制限を掛けられなかった（Windows では、制限なしで起動された） |
 
 標準エラーは診断の文だけに使う（秘密・招待文字列・IP アドレスを書かない）。対局・UI側は先頭から 64 KiB までを
 読み、保存しない。
@@ -84,9 +87,12 @@
 | `closeConnection` | `{"connection"}` | `{}` |
 | `shutdown` | `{}` | `{}` |
 
-- `hello` は最初に1回だけ。`Sandbox` は `{"applied": 真偽, "os": "linux", "mechanisms": [文字列], "landlockAbi": 整数}`。
-  `mechanisms` には掛けたものを入れる（`no_new_privs`・`landlock_fs`・`seccomp`・`parent_death_signal`・`no_core_dump`、
-  掛けられた場合だけ `landlock_scope`）。`applied` は必須のもの（`landlock_scope` 以外のすべて）を掛けたとき true。
+- `hello` は最初に1回だけ。`Sandbox` は `{"applied": 真偽, "os": "linux" か "windows", "mechanisms": [文字列], "landlockAbi": 整数}`
+  （`landlockAbi` は Windows では 0）。
+  `mechanisms` には掛けたものを入れる。Linux は `no_new_privs`・`landlock_fs`・`seccomp`・`parent_death_signal`・`no_core_dump` と、
+  掛けられた場合だけ `landlock_scope`。Windows は `appcontainer`・`job_kill_on_close`・`job_single_process`・`no_child_process`・
+  `no_error_dialog`。`applied` は必須のもの（`landlock_scope` 以外のすべて）を掛けたとき true。対局・UI側は、自分の OS の
+  必須の名前（`PeerConfinement::requiredMechanisms()`）がすべて入っていることを確かめる。
   通信プロセスは掛けられなければ終了しているので、`applied: false` を返すことはない。対局・UI側は値を確かめ直す。
 - `start` は `hello` の後に1回だけ。`networkName` は `README.md` 1.1節の一覧にあるもの。
   `bootstrap` は利用者が指定した協力ノード（`/p2p/<PeerId>` で終わる multiaddr。16件まで）。今の profile で使えない
@@ -208,9 +214,11 @@ LAN 全体が同じ帯に入るので接続元の IP ごと）から受け付け
 対局ストリームのフレームは、START_SIGNATURE（type 3）を双方が送るまでは 5件/秒、その後は 20件/秒（どちらも
 バーストは2倍）。超えたらストリームを閉じる（`rate_limited`）。
 
-## 6. 権限の制限（Linux）
+## 6. 権限の制限
 
-標準入力を読む前に、次の順で掛ける。どれか必須のものが失敗したら終了コード 3 で終わる。
+### 6.1 Linux
+
+通信プロセスが自分で掛ける。標準入力を読む前に、次の順で掛ける。どれか必須のものが失敗したら終了コード 3 で終わる。
 
 1. 親の終了で SIGKILL を受ける（`PR_SET_PDEATHSIG`）。設定の後に親がすでに替わっていれば終わる。
 2. コアダンプを残さない（`RLIMIT_CORE` を0、`PR_SET_DUMPABLE` を0）。
@@ -229,17 +237,69 @@ LAN 全体が同じ帯に入るので接続元の IP ごと）から受け付け
    x86_64 では、x32 の呼び出し（番号に 0x40000000 を立てたもの）でプロセスを終わらせる（seccomp の表は
    アーキテクチャの値と番号で照らすので、x32 の番号では上の表に当たらない）。
 
-Linux 以外では、制限の実装がないので終了コード 3 で終わる（P2P対局を使えない）。
-
 `landlockAbi` は、カーネルと Landlock の crate の両方が知っている ABI のうち最も新しい版（crate が知らない新しい版の
 カーネルでも、crate の知っている版で報告する）。
 
-`--sandbox-self-test` は、上の制限を掛けた後に次を試し、`{"applied":..., "results":{"<名前>":"denied"|"allowed"}}` を書く。
+Linux の `--sandbox-self-test` は、上の制限を掛けた後に次を試し、`{"applied":..., "results":{"<名前>":"denied"|"allowed"}}` を書く。
 `read_file`（/etc/hostname を開く）、`write_file`（/tmp に作る）、`exec`（/bin/true を起動）、`fork`（スレッドでない clone）、
 `unix_socket`（AF_UNIX の socket）、`unix_connect_abstract`、`signal_parent`（親へ signal 0）、`connect_loopback_tcp`（127.0.0.1 の
 閉じたポートへ接続。OS の側では止めないので `allowed` が出る。実装仕様 10.4節の「OS の側で止められなかった操作」）。
 
+### 6.2 Windows
+
+Windows では、プロセスを作る時点でしか掛けられない制限を使うので、**起動する側（対局・UI側の `PeerConfinement`）が
+`CreateProcess` の属性で掛け**、通信プロセスは標準入力を読む前に、掛かっていることを確かめる（確かめるための Win32 API の
+呼び出しは `peer/win32` のクレートだけに置く。unsafe を書くのはそこだけ）。必須のものが1つでも掛かっていなければ、
+終了コード 3 で終わる（実行ファイルを直接起動しても動かない）。
+
+起動する側が掛けるもの:
+
+1. AppContainer（`PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES`）。名前は `io.github.hnakada123.ShogiBoardQ.peer`。
+   プロファイルを登録していない AppContainer ではプロセスを作れないので、最初の1回だけ `CreateAppContainerProfile` で
+   登録する（利用者のレジストリと、`%LOCALAPPDATA%` の `Packages` の下の空のフォルダ。通信プロセスは何も書かない）。
+   能力は `internetClient`・`internetClientServer` だけで、ローカルのネットワーク（`sbq-local-1`）を使うときだけ
+   `privateNetworkClientServer` を足す。AppContainer の中からは、利用者のファイルの読み書き、ほかのプロセスを開くこと、
+   名前付きパイプ（自動化 API など）への接続、loopback への接続ができない。
+2. ジョブ（`PROC_THREAD_ATTRIBUTE_JOB_LIST`）: ハンドルが閉じたら終わる（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`。
+   起動した側の終了で終わる）、プロセスは1つだけ（`ActiveProcessLimit` 1）、処理されない例外でエラーの報告の画面を
+   出さずに終わる（`JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION`）、UI の制限（クリップボード・デスクトップ・
+   グローバルなアトム・ほかのプロセスの USER ハンドルなど）すべて。
+3. 子プロセスの禁止（`PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY` の `PROCESS_CREATION_CHILD_PROCESS_RESTRICTED`）。
+4. 緩和ポリシー（`PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY`）: win32k のシステムコールの禁止、拡張ポイントの禁止、
+   実行時のコード生成の禁止、フォントの読み込みの禁止、ネットワーク上と低い整合性の場所からの DLL の読み込みの禁止、
+   ヒープの破損での終了、ASLR、ハンドルの厳密な検査。
+5. 引き継ぐハンドルは標準入出力と標準エラーのパイプだけ。コンソールは持たせない（`DETACHED_PROCESS`。コンソールを
+   作ると OS が conhost を起動しようとして、子プロセスの禁止に当たる）。作業フォルダはシステムのフォルダ。
+6. 通信プロセスの実行ファイルに、この AppContainer の読み取りと実行の許可が無ければ足す（利用者のフォルダに置いた
+   アプリの実行ファイルは、AppContainer から読めない。Program Files の下ではすでに読めるので何もしない）。
+   通信プロセスは C ランタイムを静的にリンクし（`.cargo/config.toml`）、OS の DLL だけで起動する。
+
+通信プロセスが確かめるもの（`mechanisms` の名前）: トークンが AppContainer（`appcontainer`）、ジョブに入っていて
+ハンドルが閉じたら終わる（`job_kill_on_close`）、プロセスの上限が1（`job_single_process`）、子プロセスの禁止
+（`no_child_process`）、エラーの報告の画面を出さない（`no_error_dialog`）。緩和ポリシーと能力の内訳は確かめない。
+
+Windows の `--sandbox-self-test` は、起動する側が渡した相手（`file=<パス>`・`pipe=<名前付きパイプの名前>`・
+`pid=<プロセス>`・`port=<loopback で待ち受けているポート>`）に次を試す: `read_file`・`write_file`（`<パス>.created` を作る）、
+`exec`（cmd.exe を起動）、`connect_named_pipe`、`open_process`、`connect_loopback_tcp`。Windows ではどれも `denied` になる
+（loopback への接続も OS が止める。`tests/tst_p2p_sandbox.cpp` が、アプリと同じ起動のしかたで確かめる）。
+同じ AppContainer の通信プロセスどうしは、同じ PC でもつながる（`tst_p2p_endtoend` の同じ PC の対局）。待受を始めても、
+Windows のファイアウォールは利用者に許可を求めない。
+
+止められないもの: システムのフォルダのファイル（Windows・Program Files の下など、すべてのアプリケーション パッケージに
+読み取りを許しているもの）は読める。私設アドレスへの接続を OS が止めるのは、`privateNetworkClientServer` を渡していない
+とき（ローカルのネットワーク以外）で、OS がそのネットワークをプライベートと扱っている場合。利用者や管理者が
+Windows エラー報告の保存（LocalDumps）を設定していれば、異常終了のダンプは残りうる（通信プロセスは鍵を持たない）。
+
+協力ノード（`--service`）は Windows では動かない（識別鍵のファイルを自分で読むので、起動の時点でファイルを読めなく
+する AppContainer と合わない）。
+
+### 6.3 そのほかの OS
+
+制限の実装がないので、終了コード 3 で終わる（P2P対局を使えない）。
+
 ## 7. 協力ノード（`--service`）
+
+Linux だけで動く。
 
 ```text
 shogiboardq-peer --service --network <networkName> --identity <鍵ファイル> --listen <multiaddr> [--listen ...]

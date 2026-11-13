@@ -109,6 +109,11 @@ fn load_identity(path: &Path) -> Result<Keypair, String> {
 
 /// 協力ノードとして動かす。戻らない（失敗は終了コードで返す）
 pub fn run(args: &[String]) -> i32 {
+    // 識別鍵のファイルを読んだ後に自分で制限を掛けられる OS だけで動かす（鍵のファイルを作る前に断る）
+    if !cfg!(target_os = "linux") {
+        eprintln!("shogiboardq-peer: sandbox: the service mode runs only on Linux");
+        return 3;
+    }
     let args = match parse_args(args) {
         Ok(a) => a,
         Err(e) => {

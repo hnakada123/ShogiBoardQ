@@ -1,0 +1,7 @@
+# Windows の通信プロセス（shogiboardq-peer）は C ランタイムを静的にリンクする。AppContainer の中からは、利用者の
+# フォルダに展開したアプリのフォルダ（同梱の vcruntime140.dll）を読めないので、OS の DLL だけで起動できるようにする
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

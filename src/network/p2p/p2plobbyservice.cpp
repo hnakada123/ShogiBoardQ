@@ -88,7 +88,8 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
         m_deps.game->setEnvironment(this, m_profile->records(), m_profile->knownPeers(), m_profile->identity()->key());
     }
     emit statusChanged();
-    m_peer->start();
+    // 同じ LAN へ出られるのは、ローカルのネットワークだけ（Windows では OS が止める。実装仕様 10.4節）
+    m_peer->start(network->local ? PeerConfinement::Reach::LocalNetwork : PeerConfinement::Reach::Internet);
     return StartFailure::None;
 }
 
@@ -230,7 +231,7 @@ void P2pLobbyService::onPeerNotified(const QString& name, const QJsonObject& par
     } else if (const auto* received = std::get_if<PeerIpc::FrameReceived>(&*notification)) {
         if (m_deps.game) m_deps.game->onFrame(received->connection, received->frame);
     } else if (const auto* closed = std::get_if<PeerIpc::ConnectionClosed>(&*notification)) {
-        if (m_pendingConnections.remove(closed->connection) > 0) emit connectFailed(closed->reason);
+        if (m_pendingConnections.remove(closed->connection)) emit connectFailed(closed->reason);
         if (m_deps.game) m_deps.game->onConnectionClosed(closed->connection);
     } else if (const auto* route = std::get_if<PeerIpc::ConnectionRoute>(&*notification)) {
         if (m_deps.game) m_deps.game->onRouteChanged(route->connection, route->viaRelay);

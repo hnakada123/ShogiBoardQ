@@ -1,0 +1,29 @@
+[package]
+name = "sbq-peer-win32"
+description = "ShogiBoardQ P2P: the Win32 calls the communication process needs to check its own confinement"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# ワークスペースの lints（unsafe の禁止）を継がない。Win32 API の呼び出しは unsafe なので、通信プロセスの自前の
+# コードのうち unsafe を書いてよいのはこのクレートだけにする（実装仕様 10.4節）。ほかの禁止は同じにする
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"
+undocumented_unsafe_blocks = "deny"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+] }

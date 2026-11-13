@@ -1,7 +1,10 @@
 //! 権限の制限（protocol/ipc.md 6章、実装仕様 10.4節）
 //!
-//! 標準入力を読む前（外部の入力を読む前）に、スレッドを作る前の主スレッドで掛ける
+//! Linux: 標準入力を読む前（外部の入力を読む前）に、スレッドを作る前の主スレッドで掛ける
 //! （seccomp と Landlock は掛けたスレッドとその後に作るスレッドに効く）。
+//!
+//! Windows: 制限は起動する側（対局・UI側）がプロセスを作るときに掛ける（AppContainer・ジョブ・子プロセスの禁止）。
+//! 通信プロセスは、標準入力を読む前に、それらが掛かっていることを確かめる。掛かっていなければ動かない。
 
 use serde_json::{json, Value};
 
@@ -294,6 +297,47 @@ mod linux {
     }
 }
 
+#[cfg(windows)]
+mod windows {
+    use super::SandboxReport;
+
+    /// 起動する側が掛けた制限を確かめる。必須のものが1つでも掛かっていなければ理由を返す
+    pub fn apply(with_parent: bool) -> Result<SandboxReport, String> {
+        if !with_parent {
+            // 協力ノードは識別鍵のファイルを自分で読むので、起動の時点でファイルを読めなくする AppContainer とは合わない
+            return Err("the service mode is not supported on Windows".to_owned());
+        }
+        let c = sbq_peer_win32::confinement()?;
+        let mut mechanisms = Vec::new();
+        if !c.app_container {
+            return Err("not running in an AppContainer".to_owned());
+        }
+        mechanisms.push("appcontainer");
+        if !c.in_job || !c.kill_on_job_close {
+            return Err("not in a job that ends with the parent".to_owned());
+        }
+        mechanisms.push("job_kill_on_close");
+        if c.active_process_limit != Some(1) {
+            return Err("the job does not limit the number of processes to one".to_owned());
+        }
+        mechanisms.push("job_single_process");
+        if !c.no_child_process {
+            return Err("child processes are not forbidden".to_owned());
+        }
+        mechanisms.push("no_child_process");
+        if !c.die_on_unhandled_exception {
+            return Err("the job does not suppress the error reporting dialog".to_owned());
+        }
+        mechanisms.push("no_error_dialog");
+        Ok(SandboxReport {
+            applied: true,
+            os: "windows",
+            mechanisms,
+            landlock_abi: 0,
+        })
+    }
+}
+
 /// 親の PID（起動の直後に読む。制限を掛けた後に親が替わっていないかを確かめる）
 pub fn initial_parent() -> i32 {
     #[cfg(unix)]
@@ -316,24 +360,30 @@ fn nix_parent() -> i32 {
     0
 }
 
-/// 制限を掛ける。掛けられなければ理由。initial_ppid を渡すと、親の終了で終わるようにする
-/// （協力ノードは渡さない）
+/// 制限を掛ける（Windows では、起動する側が掛けた制限を確かめる）。掛けられなければ理由。initial_ppid を渡すと、
+/// 親の終了で終わるようにする（協力ノードは渡さない）
 pub fn apply(initial_ppid: Option<i32>) -> Result<SandboxReport, String> {
     #[cfg(target_os = "linux")]
     {
         linux::apply(initial_ppid)
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(windows)]
+    {
+        windows::apply(initial_ppid.is_some())
+    }
+    #[cfg(not(any(target_os = "linux", windows)))]
     {
         let _ = initial_ppid;
         Err("the sandbox is not implemented for this operating system".to_owned())
     }
 }
 
-/// 制限を掛けた後に、禁止した操作を試す（--sandbox-self-test）
-pub fn self_test(report: &SandboxReport) -> Value {
+/// 制限を掛けた後に、禁止した操作を試す（--sandbox-self-test）。targets は試す相手（Windows だけ。
+/// `file=<パス>`・`pipe=<名前>`・`pid=<プロセス>`・`port=<loopback のポート>`。渡されなかったものは試さない）
+pub fn self_test(report: &SandboxReport, targets: &[String]) -> Value {
     #[cfg(target_os = "linux")]
     {
+        let _ = targets;
         let results = linux_probe::run();
         json!({
             "applied": report.applied,
@@ -342,9 +392,84 @@ pub fn self_test(report: &SandboxReport) -> Value {
             "results": results,
         })
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(windows)]
     {
+        json!({
+            "applied": report.applied,
+            "mechanisms": report.mechanisms,
+            "results": windows_probe::run(targets),
+        })
+    }
+    #[cfg(not(any(target_os = "linux", windows)))]
+    {
+        let _ = targets;
         json!({ "applied": report.applied, "results": {} })
+    }
+}
+
+#[cfg(windows)]
+mod windows_probe {
+    use std::net::{SocketAddr, TcpStream};
+    use std::time::Duration;
+
+    use serde_json::{Map, Value};
+
+    fn verdict(ok: bool) -> Value {
+        Value::from(if ok { "allowed" } else { "denied" })
+    }
+
+    fn target<'a>(targets: &'a [String], name: &str) -> Option<&'a str> {
+        targets.iter().find_map(|t| t.strip_prefix(name)?.strip_prefix('='))
+    }
+
+    /// WSAEACCES（フィルターが接続を止めた）
+    const WSAEACCES: i32 = 10013;
+
+    pub fn run(targets: &[String]) -> Value {
+        let mut results = Map::new();
+
+        if let Some(path) = target(targets, "file") {
+            results.insert("read_file".into(), verdict(std::fs::File::open(path).is_ok()));
+            let created = format!("{path}.created");
+            let write = std::fs::File::create(&created);
+            if write.is_ok() {
+                let _ = std::fs::remove_file(&created);
+            }
+            results.insert("write_file".into(), verdict(write.is_ok()));
+        }
+
+        // 子プロセス（ジョブの上限と緩和ポリシーの両方で止める）
+        let root = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".to_owned());
+        let exec = std::process::Command::new(format!(r"{root}\System32\cmd.exe"))
+            .args(["/c", "exit"])
+            .status();
+        results.insert("exec".into(), verdict(exec.is_ok()));
+
+        // 名前付きパイプ（自動化 API など、ローカルのサービスの入口）
+        if let Some(name) = target(targets, "pipe") {
+            let pipe = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(format!(r"\\.\pipe\{name}"));
+            results.insert("connect_named_pipe".into(), verdict(pipe.is_ok()));
+        }
+
+        // ほかのプロセス（起動した側）を開く
+        if let Some(pid) = target(targets, "pid").and_then(|t| t.parse::<u32>().ok()) {
+            results.insert("open_process".into(), verdict(sbq_peer_win32::can_open_process(pid)));
+        }
+
+        // loopback で待ち受けているポート。つながるか、相手に拒まれた（OS の側では止めていない）なら allowed
+        if let Some(port) = target(targets, "port").and_then(|t| t.parse::<u16>().ok()) {
+            let addr = SocketAddr::from(([127, 0, 0, 1], port));
+            let tcp = match TcpStream::connect_timeout(&addr, Duration::from_millis(1500)) {
+                Ok(_) => true,
+                Err(e) => e.kind() == std::io::ErrorKind::ConnectionRefused && e.raw_os_error() != Some(WSAEACCES),
+            };
+            results.insert("connect_loopback_tcp".into(), verdict(tcp));
+        }
+
+        Value::Object(results)
     }
 }
 

@@ -1,5 +1,9 @@
 //! 通信プロセスを起動し、IPC（protocol/ipc.md）で動かす結合試験（ローカル検証用のネットワーク sbq-local-1）
+//!
+//! Linux だけで動かす。Windows の通信プロセスは、起動する側（対局・UI側の PeerConfinement）が AppContainer とジョブを
+//! 付けて起動しないと動かないので、Windows の試験は C++ の側（tst_p2p_sandbox・tst_p2p_endtoend）で行う。
 
+#![cfg(target_os = "linux")]
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
