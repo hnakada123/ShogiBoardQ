@@ -93,6 +93,7 @@
 セキュリティ監査:
 
 - [2026-10-23](reports/security-audit-2026-10-23.md)・[2026-11-07](reports/security-audit-2026-11-07.md)
+- [security-audit-p2p-2026-11-13.md](reports/security-audit-p2p-2026-11-13.md): P2P対局（実験版）のセキュリティ監査（Winny のような情報漏えいにならないかの確認を含む）と修正の記録
 
 性能:
 
