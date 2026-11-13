@@ -104,7 +104,7 @@
                 <ul class="guide-step-text">
                     <li><strong>Does</strong>: Only the reachability check and the relay.</li>
                     <li><strong>Does not</strong>: It does not judge moves or results, and does not store game records. Relayed traffic is encrypted between the two apps, so the node cannot read its contents (moves, player IDs, display names) either.</li>
-                    <li><strong>What the operator can see</strong>: The IP addresses of the users and which IP addresses connected to each other. The cooperating node program does not write source IP addresses to its log, but the operator can find them by examining the traffic.</li>
+                    <li><strong>What the operator can see</strong>: The IP addresses of the users and which IP addresses connected to each other. The cooperating node program does not write source IP addresses to its log, but the operator can find them by examining the traffic. The reachability check only asks the node to test, one at a time, the addresses it saw; the users' LAN addresses are not sent.</li>
                 </ul>
             </div>
 

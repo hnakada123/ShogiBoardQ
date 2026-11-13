@@ -710,9 +710,10 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>Your opponent</strong></td><td>Your player ID, display name, and conditions. With a direct connection, they can also find your IP address by inspecting the traffic (it is not shown on screen). With Do not use direct connections, they cannot</td></tr>
-                        <tr><td><strong>Anyone who sees the invitation</strong></td><td>The addresses for reaching the inviter (including the IP address when direct connections are used)</td></tr>
-                        <tr><td><strong>The operator of the cooperating node</strong></td><td>IP addresses and which IP addresses connected to each other. Not the moves, player IDs, or display names</td></tr>
-                        <tr><td><strong>Anyone who receives the game record (evidence)</strong></td><td>Both player IDs, the conditions, all moves with self-reported time, and the result confirmed by both. Display names, IP addresses, and local names are not kept</td></tr>
+                        <tr><td><strong>Anyone who sees the invitation</strong></td><td>The addresses for reaching the inviter (including the IP address when direct connections are used. On “Local test (same PC / same LAN)”, all of this PC's LAN addresses are included, also those of VPNs and virtual devices)</td></tr>
+                        <tr><td><strong>The operator of the cooperating node</strong></td><td>IP addresses and which IP addresses connected to each other. The reachability check only asks the node to test the address it saw; your LAN addresses are not sent. Not the moves, player IDs, or display names</td></tr>
+                        <tr><td><strong>Devices on the same LAN</strong></td><td>While you are connected on “Local test (same PC / same LAN)”, that this PC is running P2P play (anyone who connects to the listening port can tell). Without the invitation, they see neither this PC's list of addresses nor the game</td></tr>
+                        <tr><td><strong>Anyone who receives the game record (evidence)</strong></td><td>Both player IDs, the conditions, the approximate date and time the game started, all moves with self-reported time, and the result confirmed by both. Display names, IP addresses, and local names are not kept</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">The app never publishes your game records or sends them anywhere.</p>
