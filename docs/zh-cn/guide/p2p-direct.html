@@ -68,7 +68,7 @@
             <span class="badge">同一电脑・同一局域网</span>
             <span class="badge">无需协作节点</span>
             <span class="badge">邀请一人一次</span>
-            <span class="badge">实验版・Linux</span>
+            <span class="badge">实验版・Linux / Windows</span>
         </div>
         <p class="screenshot-note">P2P对局的准备（玩家密钥・显示名）、窗口和对局记录请参阅<a href="p2p-game.html">P2P对局（实验版）</a>。与互联网上的对手对局请参阅<a href="p2p-relay.html">使用协作节点对局</a>。</p>
     </div>
@@ -239,6 +239,7 @@
                 <p class="guide-step-text">使用 firewalld 时，可以用下面的命令允许连接，直到重新启动为止。</p>
                 <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
                 <p class="guide-step-text">使用 ufw 时，可以用 <code>sudo ufw allow 48210</code> 允许（不再需要时用 <code>sudo ufw delete allow 48210</code>）。应用只接受来源为局域网内地址的连接，因此即使开放端口，来自互联网的连接也会被拒绝。</p>
+                <p class="guide-step-text">在 Windows 上，开始监听时不会出现防火墙的确认画面（通信进程在允许与同一局域网通信的容器（AppContainer）中运行）。同一台电脑上两个应用之间的对局已经确认可用。来自其他电脑的连接能否通过，取决于 Windows 是否把该网络视为“专用”网络以及 Windows 防火墙的设置（与其他电脑的对局尚未确认）。</p>
             </div>
 
             <div class="guide-step">

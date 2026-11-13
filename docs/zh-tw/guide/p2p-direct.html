@@ -68,7 +68,7 @@
             <span class="badge">同一電腦・同一區域網路</span>
             <span class="badge">無需協作節點</span>
             <span class="badge">邀請一人一次</span>
-            <span class="badge">實驗版・Linux</span>
+            <span class="badge">實驗版・Linux / Windows</span>
         </div>
         <p class="screenshot-note">P2P對局的準備（玩家金鑰・顯示名稱）、視窗和對局記錄請參閱<a href="p2p-game.html">P2P對局（實驗版）</a>。與網際網路上的對手對局請參閱<a href="p2p-relay.html">使用協作節點對局</a>。</p>
     </div>
@@ -239,6 +239,7 @@
                 <p class="guide-step-text">使用 firewalld 時，可以用下面的指令允許連線，直到重新開機為止。</p>
                 <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
                 <p class="guide-step-text">使用 ufw 時，可以用 <code>sudo ufw allow 48210</code> 允許（不再需要時用 <code>sudo ufw delete allow 48210</code>）。應用程式只接受來源為區域網路內位址的連線，因此即使開放連接埠，來自網際網路的連線也會被拒絕。</p>
+                <p class="guide-step-text">在 Windows 上，開始監聽時不會出現防火牆的確認畫面（通訊程序在允許與同一區域網路通訊的容器（AppContainer）中執行）。同一台電腦上兩個應用程式之間的對局已經確認可用。來自其他電腦的連線能否通過，取決於 Windows 是否把該網路視為「私人」網路以及 Windows 防火牆的設定（與其他電腦的對局尚未確認）。</p>
             </div>
 
             <div class="guide-step">

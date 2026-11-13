@@ -68,7 +68,7 @@
             <span class="badge">Same PC / Same LAN</span>
             <span class="badge">No Cooperating Node</span>
             <span class="badge">One Invitation per Person</span>
-            <span class="badge">Experimental, Linux</span>
+            <span class="badge">Experimental, Linux / Windows</span>
         </div>
         <p class="screenshot-note">Setting up P2P games (player key and display name), the window, and game records are covered in <a href="p2p-game.html">P2P Games (Experimental)</a>. To play someone over the Internet, see <a href="p2p-relay.html">Playing with a Cooperating Node</a>.</p>
     </div>
@@ -239,6 +239,7 @@
                 <p class="guide-step-text">With firewalld, the following command allows it until the next reboot.</p>
                 <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
                 <p class="guide-step-text">With ufw, <code>sudo ufw allow 48210</code> allows it (remove it later with <code>sudo ufw delete allow 48210</code>). The app accepts connections only from addresses on the LAN, so even with the port open, connections from the Internet are refused.</p>
+                <p class="guide-step-text">On Windows, no firewall prompt appears when the app starts listening (the communication process runs inside a container, an AppContainer, that is allowed to talk to the same LAN). Games between two apps on the same PC have been verified. Whether connections from another PC get through depends on whether Windows treats the network as Private and on the Windows firewall settings (games with another PC have not been verified yet).</p>
             </div>
 
             <div class="guide-step">

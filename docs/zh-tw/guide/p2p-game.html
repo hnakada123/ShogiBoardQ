@@ -68,7 +68,7 @@
             <span class="badge">與熟人透過邀請對局</span>
             <span class="badge">雙方確定的對局記錄</span>
             <span class="badge">可隱藏IP的設定</span>
-            <span class="badge">實驗版・Linux</span>
+            <span class="badge">實驗版・Linux / Windows</span>
         </div>
         <p class="screenshot-note">這是實驗中的功能，畫面和規則今後可能會改變。截圖於 Linux 上以繁體中文介面擷取。</p>
     </div>
@@ -196,9 +196,9 @@
                     <span class="guide-step-number">6</span>
                     <span class="guide-step-title">實驗版可以使用的內容</span>
                 </div>
-                <p class="guide-step-text">P2P對局是實驗中的功能，不包含在發布的 ShogiBoardQ 中。要使用時，從原始碼建置時在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，建置步驟見<a href="linux-build-and-release.html">Linux 建置與發布步驟</a>）。</p>
+                <p class="guide-step-text">P2P對局是實驗中的功能，不包含在發布的 ShogiBoardQ 中。要使用時，從原始碼建置時在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，建置步驟見<a href="linux-build-and-release.html">Linux 建置與發布步驟</a>、<a href="windows-build-and-release.html">Windows 建置與發布步驟</a>。在 Windows 上，用 <code>-DSODIUM_ROOT=</code> 指定解壓縮 libsodium 官方預先編譯套件（MSVC 用）後的資料夾）。</p>
                 <ul class="guide-step-text">
-                    <li><strong>支援的作業系統</strong>：目前僅支援 Linux。在無法用作業系統功能限制通訊程序（shogiboardq-peer）權限的環境中無法使用。</li>
+                    <li><strong>支援的作業系統</strong>：Linux 和 Windows（10 / 11）。通訊程序（shogiboardq-peer）在由作業系統功能限制權限的狀態下執行，因此在無法限制的環境（macOS 等）中無法使用。在 Windows 上，第一次連線時會註冊一次用來隔離該程序的容器（AppContainer）。協作節點只能在 Linux 上執行（在 Windows 上可以透過協作節點對局）。</li>
                     <li><strong>網路</strong>：有「本機驗證用（同一電腦・同一區域網路）」和「限定測試用」兩種。如何選擇請參閱<a href="#ways">兩種對局方式</a>。</li>
                     <li><strong>協作節點</strong>：透過網際網路對局（限定測試用）時，需要一個作為最初連線對象的協作節點（<a href="p2p-relay.html">使用協作節點對局</a>）。同一電腦・同一區域網路的對局不需要（<a href="p2p-direct.html">不使用協作節點對局</a>）。</li>
                     <li><strong>使用期限</strong>：自建置之日起超過 180 天後，不再加入限定測試網路。本機驗證網路以及查看、驗證已儲存的記錄在期限後仍可使用。</li>
