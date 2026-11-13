@@ -63,6 +63,10 @@ void warning(QWidget* parent, const QString& title, const QString& text);
 void critical(QWidget* parent, const QString& title, const QString& text);
 void information(QWidget* parent, const QString& title, const QString& text);
 
+/// 上の知らせと同じ箱を、待たずに出すために作る（PlainText・モードレス・閉じたら消える）。出すのは呼ぶ側（show）。
+/// 外から届く知らせ（通信プロセスの通知など）の処理の中で出すときに使い、入れ子のイベントループに入らない
+QMessageBox* createNoticeBox(QWidget* parent, QMessageBox::Icon icon, const QString& title, const QString& text);
+
 } // namespace DialogUtils
 
 #endif // DIALOGUTILS_H

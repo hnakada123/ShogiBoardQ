@@ -15,6 +15,7 @@
 #include <QJsonArray>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMimeData>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScreen>
@@ -420,7 +421,8 @@ void P2pWindow::refresh()
     m_status->setText(statusText);
     m_connect->setText(running ? tr("切断") : tr("接続"));
     m_network->setEnabled(!running);
-    m_connect->setEnabled(!busy);
+    // ほかの動作（ローカル対局・CSA 通信対局・検討など）の最中は接続を始めない（動作状態を取り上げない）
+    m_connect->setEnabled(!busy && (running || m_lobby->canBegin()));
 
     P2pIdentityStore* identity = m_lobby->profile() ? m_lobby->profile()->identity() : nullptr;
     const QByteArray key = identity ? identity->publicKey() : QByteArray();
@@ -543,6 +545,7 @@ void P2pWindow::onCreateInvite()
 void P2pWindow::onInviteCreated(const QString& invite, quint64 expiresAt, int addressCount)
 {
     m_inviteOut->setPlainText(invite);
+    m_inviteExpiresAt = expiresAt;
     // 接続先の入っていない招待文字列では、相手はつなげない
     m_inviteOutInfo->setText(addressCount > 0 ? tr("期限: %1（到達候補 %2 件）").arg(dateText(expiresAt)).arg(addressCount)
                                               : tr("この招待文字列には接続先が入っていないので、相手は接続できません。"
@@ -562,7 +565,26 @@ void P2pWindow::growToFit()
 
 void P2pWindow::onCopyInvite()
 {
-    if (!m_inviteOut->toPlainText().isEmpty()) QApplication::clipboard()->setText(m_inviteOut->toPlainText());
+    const QString invite = m_inviteOut->toPlainText();
+    if (invite.isEmpty()) return;
+    // 招待文字列には接続先（IP）と合言葉が入る。クリップボードの履歴（KDE の Klipper など）に残さないよう秘密の印を
+    // 付け、期限が過ぎたら、クリップボードがまだこの文字列のままなら消す
+    auto* mime = new QMimeData;
+    mime->setText(invite);
+    mime->setData(QStringLiteral("x-kde-passwordManagerHint"), QByteArrayLiteral("secret"));
+    QApplication::clipboard()->setMimeData(mime);
+    m_copiedInvite = invite;
+    const qint64 now = QDateTime::currentSecsSinceEpoch();
+    const qint64 left = qBound(qint64(0), static_cast<qint64>(m_inviteExpiresAt) - now, qint64(15 * 60));
+    QTimer::singleShot(static_cast<int>(left * 1000), this, &P2pWindow::clearCopiedInvite);
+}
+
+void P2pWindow::clearCopiedInvite()
+{
+    if (m_copiedInvite.isEmpty()) return;
+    QClipboard* clipboard = QApplication::clipboard();
+    if (clipboard->text() == m_copiedInvite) clipboard->clear();
+    m_copiedInvite.clear();
 }
 
 void P2pWindow::onInspectInvite()
@@ -631,7 +653,10 @@ void P2pWindow::onConnectFailed(PeerIpc::CloseReason reason)
         }
     }
     m_inviteInInfo->clear();
-    DialogUtils::warning(this, tr("接続"), text);
+    // 通信プロセスの知らせの処理の中なので、閉じるのを待たない（監査 2026-11-13 P4）。続けて届いたら前の箱を閉じる
+    if (m_connectFailedBox) m_connectFailedBox->close();
+    m_connectFailedBox = DialogUtils::createNoticeBox(this, QMessageBox::Warning, tr("接続"), text);
+    m_connectFailedBox->show();
 }
 
 void P2pWindow::onCopyPlayerId()

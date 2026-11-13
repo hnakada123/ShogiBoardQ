@@ -3,19 +3,32 @@
 
 #include "p2plobbyservice.h"
 
+#include <QPointer>
+
 #include "logcategories.h"
 #include "p2pbuildexpiry.h"
 #include "p2pidentitystore.h"
 #include "p2pplayerprofile.h"
 #include "peeripc.h"
 
+namespace {
+/// 接続の状態の知らせを出す間隔の下限
+constexpr int kNetworkStatusIntervalMs = 250;
+} // namespace
+
 P2pLobbyService::P2pLobbyService(const Deps& deps, P2pPlayerProfile* profile, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
     , m_profile(profile)
+    , m_networkStatusTimer(new QTimer(this))
 {
+    m_networkStatusTimer->setSingleShot(true);
+    m_networkStatusTimer->setInterval(kNetworkStatusIntervalMs);
+    connect(m_networkStatusTimer, &QTimer::timeout, this, &P2pLobbyService::networkStatusChanged);
     if (m_deps.activity) {
         connect(m_deps.activity, &AppActivityState::revoked, this, &P2pLobbyService::onActivityRevoked);
+        // ほかの動作（対局・検討など）が始まる・終わると、接続できるか（canBegin）が変わる
+        connect(m_deps.activity, &AppActivityState::changed, this, &P2pLobbyService::statusChanged);
     }
     if (m_deps.game) {
         connect(m_deps.game, &P2pGameCoordinator::resultAgreed, this, &P2pLobbyService::onGameReleased);
@@ -39,6 +52,8 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
     // 保存先を使えるアプリは同時に1つ（実装仕様 9章）
     if (!m_profile || !m_profile->open()) return StartFailure::Locked;
     if (!m_profile->identity()->isUnlocked()) return StartFailure::NoIdentity;
+    // ほかの動作（ローカル対局・CSA 通信対局・検討など）を取り上げない（待機中だけ始める）
+    if (!canBegin()) return StartFailure::Busy;
 
     m_networkName = networkName;
     m_bootstrap = bootstrap.mid(0, 16);
@@ -49,6 +64,19 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
     m_relayReservations = 0;
     holdConnectionActivity();
 
+    // 止めている途中の前の通信プロセスは、知らせを受けずに、止まったら消す（古い知らせを新しい接続に混ぜない。
+    // 前のプロセスの stopped で新しいプロセスを消さない）
+    if (m_peer) {
+        PeerProcess* previous = m_peer;
+        m_peer = nullptr;
+        previous->disconnect(this);
+        if (previous->isRunning()) {
+            connect(previous, &PeerProcess::stopped, previous, &QObject::deleteLater);
+            previous->stop();
+        } else {
+            previous->deleteLater();
+        }
+    }
     m_peer = new PeerProcess(this);
     connect(m_peer, &PeerProcess::ready, this, &P2pLobbyService::onPeerReady);
     connect(m_peer, &PeerProcess::replied, this, &P2pLobbyService::onPeerReplied);
@@ -74,6 +102,17 @@ void P2pLobbyService::end()
     m_lease.reset();
     if (m_profile) m_profile->close();
     emit statusChanged();
+}
+
+void P2pLobbyService::waitForExit(int msecs)
+{
+    const QPointer<PeerProcess> peer = m_peer;
+    if (peer) peer->waitForExit(msecs);
+}
+
+bool P2pLobbyService::canBegin() const
+{
+    return !m_deps.activity || m_deps.activity->is(AppActivityState::Activity::Idle);
 }
 
 void P2pLobbyService::holdConnectionActivity()
@@ -117,6 +156,8 @@ void P2pLobbyService::onPeerReplied(quint64 requestId, const QString& method, co
         m_networkId = started->networkId;
         // 通信プロセスが返した networkId を、こちらで計算した値と比べる
         if (m_networkId != P2p::networkId(m_networkName.toLatin1())) {
+            // 食い違う通信プロセスは使わない（ネットワークに参加したまま残さない）
+            m_peer->stop();
             onPeerFailed(PeerProcess::Failure::HelloMismatch, QStringLiteral("networkId mismatch"));
             return;
         }
@@ -177,10 +218,13 @@ void P2pLobbyService::onPeerNotified(const QString& name, const QJsonObject& par
     const std::optional<PeerIpc::Notification> notification = PeerIpc::readNotification(name, params);
     if (!notification) return;
     if (const auto* status = std::get_if<PeerIpc::NetworkStatus>(&*notification)) {
+        const bool changed = m_connectedPeers != status->connectedPeers || m_reachability != status->reachability
+            || m_relayReservations != status->relayReservations;
         m_connectedPeers = status->connectedPeers;
         m_reachability = status->reachability;
         m_relayReservations = status->relayReservations;
-        emit networkStatusChanged();
+        // 変わったときだけ、少しまとめてから知らせる（通信プロセスが知らせを続けて送っても、画面の負荷にしない）
+        if (changed && !m_networkStatusTimer->isActive()) m_networkStatusTimer->start();
     } else if (const auto* opened = std::get_if<PeerIpc::ConnectionOpened>(&*notification)) {
         handleConnectionOpened(*opened);
     } else if (const auto* received = std::get_if<PeerIpc::FrameReceived>(&*notification)) {

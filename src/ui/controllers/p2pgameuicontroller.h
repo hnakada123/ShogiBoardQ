@@ -16,6 +16,7 @@
 #include "peerprocess.h"
 
 class AppActivityState;
+class KifuFileController;
 class MainWindowAppearanceController;
 class P2pConfirmDialog;
 class P2pGameCoordinator;
@@ -48,6 +49,7 @@ public:
         /// 対局中の窓口 P2pGameChannel へ送る）
         QAction* resignAction = nullptr;
         QAction* breakOffAction = nullptr;
+        KifuFileController* kifuFiles = nullptr;   ///< 始める前の未保存の棋譜の確認
     };
 
     explicit P2pGameUiController(const Deps& deps, QObject* parent = nullptr);
@@ -77,6 +79,8 @@ private slots:
     void onOfferReceived(P2p::Cause cause);
     /// 相手の申し出に答えた（result は QMessageBox::Yes なら承諾）
     void onOfferAnswered(int result);
+    /// 申し出の箱の「承諾」を押せるようにする（出してから少し待つ）
+    void enableOfferAccept();
     /// 申し出が無効になった（手数が進んだ・結果が決まった・対局が終わった）なら、尋ねる箱を閉じる
     void closeStaleOffer();
     void onProposalDeclined();
@@ -99,6 +103,7 @@ private:
     QPointer<P2pWindow> m_window;
     QPointer<P2pConfirmDialog> m_confirm;
     QPointer<QMessageBox> m_offerBox;   ///< 相手の申し出を尋ねる箱（モードレス。閉じたら消える）
+    QPointer<QMessageBox> m_failureBox; ///< 通信プロセスの失敗の知らせ（モードレス。閉じたら消える）
     bool m_automationDisabled = false;
     bool m_startAfterUnlock = false;   ///< 鍵を読み込んだら参加する
 };

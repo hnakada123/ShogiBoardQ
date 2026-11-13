@@ -88,7 +88,9 @@ Check integer(int minimum, int maximum)
     return [minimum, maximum](const QJsonValue& v) {
         if (!v.isDouble()) return false;
         const double d = v.toDouble();
-        return d == static_cast<double>(static_cast<int>(d)) && d >= minimum && d <= maximum;
+        // 範囲を先に確かめる（範囲外の値を int にすると未定義動作）。NaN は比べると偽になる
+        if (!(d >= minimum && d <= maximum)) return false;
+        return d == static_cast<double>(static_cast<int>(d));
     };
 }
 

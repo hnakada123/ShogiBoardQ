@@ -5,8 +5,10 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFileInfo>
 #include <QJsonArray>
+#include <QPointer>
 #include <QProcessEnvironment>
 #include <QTimer>
 
@@ -38,6 +40,18 @@ bool sandboxIsApplied(const QJsonObject& sandbox)
         if (!names.contains(QLatin1String(required))) return false;
     }
     return true;
+}
+
+/// 権限の制限に失敗したときの診断（標準エラーの最初の行）。印字できる ASCII だけを、短く残す。
+/// 知らせの文に添えるので、アプリの文と読み違えるような任意の文を通さない
+QString diagnosticLine(const QByteArray& stderrText)
+{
+    QString line;
+    for (const char c : stderrText) {
+        if (c == '\n' || line.size() >= 200) break;
+        if (c >= 0x20 && c <= 0x7e) line.append(QLatin1Char(c));
+    }
+    return line.trimmed();
 }
 
 } // namespace
@@ -132,6 +146,20 @@ void PeerProcess::stop()
     m_stopTimer->start(kStopStepMs);
 }
 
+void PeerProcess::waitForExit(int msecs)
+{
+    if (!m_process || m_process->state() == QProcess::NotRunning) return;
+    QProcess* process = m_process;
+    QElapsedTimer timer;
+    timer.start();
+    while (process->bytesToWrite() > 0 && timer.elapsed() < msecs) {
+        if (!process->waitForBytesWritten(static_cast<int>(msecs - timer.elapsed()))) break;
+    }
+    // 終わると onFinished で m_process を外す（QProcess は deleteLater なので、ここで使い終えるまで残る）
+    const qint64 left = msecs - timer.elapsed();
+    if (left > 0 && process->state() != QProcess::NotRunning) process->waitForFinished(static_cast<int>(left));
+}
+
 void PeerProcess::onStopTimeout()
 {
     if (!m_process) return;
@@ -173,9 +201,12 @@ quint64 PeerProcess::send(const QString& method, const QJsonObject& params)
 
 void PeerProcess::onReadyReadStdout()
 {
-    if (!m_process) return;
+    if (!m_process || m_failed) return;
     m_buffer.append(m_process->readAllStandardOutput());
-    while (m_buffer.size() >= 4 && m_process) {
+    // 知らせの受け手がイベントループを回すと、その間にこのオブジェクトが消えることがある（受け手は待たない知らせを
+    // 使うが、念のため）。消えた後と、違反で失敗した後は、残りを読まない
+    const QPointer<PeerProcess> self(this);
+    while (m_buffer.size() >= 4 && m_process && !m_failed) {
         const quint32 length = (static_cast<quint32>(static_cast<quint8>(m_buffer.at(0))) << 24)
             | (static_cast<quint32>(static_cast<quint8>(m_buffer.at(1))) << 16)
             | (static_cast<quint32>(static_cast<quint8>(m_buffer.at(2))) << 8)
@@ -189,11 +220,13 @@ void PeerProcess::onReadyReadStdout()
         const QByteArray json = m_buffer.mid(4, static_cast<qsizetype>(length));
         m_buffer.remove(0, static_cast<qsizetype>(length) + 4);
         handleMessage(json);
+        if (!self) return;
     }
 }
 
 void PeerProcess::handleMessage(const QByteArray& json)
 {
+    if (m_failed) return;
     QString error;
     const std::optional<PeerIpc::Incoming> in = PeerIpc::parse(json, &error);
     if (!in) {
@@ -267,8 +300,9 @@ void PeerProcess::onFinished(int exitCode, QProcess::ExitStatus status)
     m_stopTimer->stop();
     const bool expected = m_state == State::Stopping;
     if (!expected && !m_failed) {
-        if (status == QProcess::NormalExit && exitCode == 3) {
-            fail(Failure::SandboxFailed, QString::fromUtf8(m_stderr).left(512));
+        // 権限の制限の失敗（終了コード 3）とみなすのは、hello に答える前だけ（制限は外部の入力を読む前に掛ける）
+        if (status == QProcess::NormalExit && exitCode == 3 && m_state == State::Starting) {
+            fail(Failure::SandboxFailed, diagnosticLine(m_stderr));
         } else {
             fail(Failure::Crashed, QStringLiteral("exit code %1").arg(exitCode));
         }

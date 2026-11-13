@@ -4,6 +4,9 @@
 /// SBQ_P2P_UI_SHOTS にフォルダを指定すると、各画面の画像を保存する（見た目の確認用）。
 
 #include <QtTest>
+#include <QPlainTextEdit>
+#include <QMimeData>
+#include <QClipboard>
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -206,6 +209,19 @@ private slots:
         // 自動化 API を有効にしたときは使い始めない
         lobby.disableForAutomation();
         QCOMPARE(lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::AutomationEnabled);
+
+        // 招待文字列のコピーには、クリップボードの履歴に残さない印を付け、期限が過ぎたら消す（監査 2026-11-13。
+        // この試験は offscreen なので、利用者のクリップボードには触れない）
+        auto* inviteOut = window.findChild<QPlainTextEdit*>(QStringLiteral("p2pInviteOut"));
+        QVERIFY(inviteOut);
+        inviteOut->setPlainText(QStringLiteral("sbqinv1.test"));
+        QVERIFY(QMetaObject::invokeMethod(&window, "onCopyInvite"));
+        const QMimeData* copied = QApplication::clipboard()->mimeData();
+        QVERIFY(copied);
+        QCOMPARE(copied->text(), QStringLiteral("sbqinv1.test"));
+        QCOMPARE(copied->data(QStringLiteral("x-kde-passwordManagerHint")), QByteArrayLiteral("secret"));
+        // 期限（この試験では作っていないので過ぎている）を過ぎると、まだこの文字列のままなら消す
+        QTRY_VERIFY(QApplication::clipboard()->text().isEmpty());
     }
 
     /// ウィンドウの操作は意図のシグナルで画面の部品が受け、投了と合意中断はメニューと同じ QAction を通る
@@ -408,6 +424,10 @@ private slots:
         const SigningKey applicantKey = SigningKey::generate();
         const SigningKey hostKey = SigningKey::generate();
         P2pKnownPeers known(m_dir.filePath(QStringLiteral("peers.cbor")));
+        // 募集側のプレイヤーID に、確認済みの友人として名前を付けてある（名乗っただけの相手にこの記録を出さない）
+        QVERIFY(known.recordGameStarted(hostKey.publicKey(), QStringLiteral("募集する人")));
+        QVERIFY(known.setLocalName(hostKey.publicKey(), QStringLiteral("親友のA")));
+        QVERIFY(known.setVerified(hostKey.publicKey(), true));
         applicant.setEnvironment(&toHost, nullptr, &known, &applicantKey);
         host.setEnvironment(&toApplicant, nullptr, &known, &hostKey);
 
@@ -445,6 +465,10 @@ private slots:
                 QCOMPARE(label->textFormat(), Qt::PlainText);
             }
             unverified = unverified || label->text().contains(QStringLiteral("まだ確かめていません"));
+            // 署名を確かめる前は、申告の ID で手元の記録（付けた名前・確認済み）を引かない（監査 2026-11-13 P14）
+            QVERIFY2(!label->text().contains(QStringLiteral("親友のA")), qPrintable(label->text()));
+            QVERIFY2(!label->text().contains(QStringLiteral("確認済みの相手")), qPrintable(label->text()));
+            QVERIFY2(!label->text().contains(QStringLiteral("確認済みとして")), qPrintable(label->text()));
         }
         QVERIFY(quoted);
         QVERIFY(unverified);
@@ -542,7 +566,11 @@ private slots:
         black.game.offerAbort();
         QTRY_VERIFY(visibleBox(white, QStringLiteral("中断")));
         QTRY_VERIFY(!visibleBox(white, QStringLiteral("引き分け")));
-        visibleBox(white, QStringLiteral("中断"))->button(QMessageBox::Yes)->click();
+        // 出してすぐは「承諾」を押せない（箱が入れ替わった瞬間のクリックで、別の申し出を承諾しない。監査 2026-11-13）
+        QAbstractButton* acceptAbort = visibleBox(white, QStringLiteral("中断"))->button(QMessageBox::Yes);
+        QVERIFY(!acceptAbort->isEnabled());
+        QTRY_VERIFY(acceptAbort->isEnabled());
+        acceptAbort->click();
         QTRY_VERIFY(black.game.match()->agreedResult() && white.game.match()->agreedResult());
         QCOMPARE(black.game.match()->agreedResult()->cause, Cause::AgreedAbort);
         QCOMPARE(declined.count(), 0);

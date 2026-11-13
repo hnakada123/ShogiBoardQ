@@ -71,8 +71,10 @@ public:
     /// 対局を続けても、局の結果の知らせが積み重ならないようにする（連続対局・通信対局の続きの対局で共通）
     static void replaceInformation(QPointer<QMessageBox>& previous, QWidget* parent, const QString& title,
                                    const QString& message, Wait wait);
-    /// 題名付きの警告を出す（記録するときは情報と同じく notices）
-    static void warning(QWidget* parent, const QString& title, const QString& message);
+    /// 題名付きの警告を出す（記録するときは情報と同じく notices）。Wait::No なら information と同じく出した非モーダルの
+    /// 箱を返す（外から届く知らせの処理の中で出すときは、入れ子のイベントループに入らないよう Wait::No にする）
+    static QMessageBox* warning(QWidget* parent, const QString& title, const QString& message,
+                                Wait wait = Wait::UntilClosed);
     /// 題名付きのエラーを出す（記録するときは errors）。Wait::No なら information と同じく出した非モーダルの箱を返す
     static QMessageBox* critical(QWidget* parent, const QString& title, const QString& message,
                                  Wait wait = Wait::UntilClosed);

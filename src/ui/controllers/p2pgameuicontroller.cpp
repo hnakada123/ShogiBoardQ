@@ -5,10 +5,13 @@
 
 #include <QAction>
 #include <QMessageBox>
+#include <QPushButton>
+#include <QTimer>
 #include <QWidget>
 
 #include "apppaths.h"
 #include "dialogutils.h"
+#include "kifufilecontroller.h"
 #include "mainwindowappearancecontroller.h"
 #include "networksettings.h"
 #include "notificationpresenter.h"
@@ -23,6 +26,13 @@
 #include "p2pwindow.h"
 #include "p2pwindowtext.h"
 #include "shogiview.h"
+
+namespace {
+/// 申し出の箱を出してから「承諾」を押せるまでの時間
+constexpr int kOfferAcceptDelayMs = 1000;
+/// アプリの終了で、通信プロセスが中断の知らせを送って終わるのを待つ上限（通信プロセスは shutdown の 0.3 秒後に終わる）
+constexpr int kExitWaitMs = 1500;
+} // namespace
 
 #include <QDir>
 #include <QStringList>
@@ -58,7 +68,11 @@ void P2pGameUiController::disableForAutomation()
 
 void P2pGameUiController::shutdown()
 {
-    if (m_lobby) m_lobby->end();
+    if (m_lobby) {
+        m_lobby->end();
+        // 終了の後はイベントループが回らない。中断の知らせが相手に届くよう、通信プロセスが終わるのを短く待つ
+        m_lobby->waitForExit(kExitWaitMs);
+    }
     if (m_window) m_window->close();
 }
 
@@ -124,6 +138,15 @@ void P2pGameUiController::openWindow()
 void P2pGameUiController::onStartRequested()
 {
     if (!m_lobby || !m_window) return;
+#ifndef Q_OS_LINUX
+    // 通信プロセスの権限を制限できる OS だけで使う。プレイヤー鍵を作る前に知らせる
+    onPeerFailed(PeerProcess::Failure::UnsupportedOs, QString());
+    return;
+#else
+    // 対局が始まると棋譜を作り直すので、未保存の棋譜を先に確かめる（ほかの対局の始め方と同じ。通信プロセスを動かす
+    // 前に聞き、交渉の途中にはモーダルを出さない）
+    if (m_deps.kifuFiles && !m_deps.kifuFiles->confirmDiscardUnsaved()) return;
+    if (!m_lobby || !m_window || !m_profile) return;
     P2pIdentityStore* identity = m_profile->identity();
     if (identity->isUnlocked()) {
         beginNetwork();
@@ -146,6 +169,7 @@ void P2pGameUiController::onStartRequested()
         identity->unlock();
         return;
     }
+#endif
 }
 
 void P2pGameUiController::onIdentityFinished(P2pIdentityStore::Failure failure)
@@ -287,7 +311,17 @@ void P2pGameUiController::onOfferReceived(P2p::Cause cause)
     m_offerBox = DialogUtils::createConfirmBox(dialogParent(), tr("P2P対局"), question, tr("承諾"));
     m_offerBox->setObjectName(QStringLiteral("p2pOfferBox"));
     connect(m_offerBox, &QMessageBox::finished, this, &P2pGameUiController::onOfferAnswered);
+    // 出してすぐは「承諾」を押せない。相手が引き分けと中断の申し出を続けて送ると箱が入れ替わり、前の申し出に向けた
+    // クリックで、別の申し出を承諾しうる（ボタンの文字は同じ）
+    if (QAbstractButton* accept = m_offerBox->button(QMessageBox::Yes)) accept->setEnabled(false);
+    QTimer::singleShot(kOfferAcceptDelayMs, this, &P2pGameUiController::enableOfferAccept);
     m_offerBox->show();
+}
+
+void P2pGameUiController::enableOfferAccept()
+{
+    if (!m_offerBox) return;
+    if (QAbstractButton* accept = m_offerBox->button(QMessageBox::Yes)) accept->setEnabled(true);
 }
 
 void P2pGameUiController::onOfferAnswered(int result)
@@ -341,6 +375,9 @@ void P2pGameUiController::onPeerFailed(PeerProcess::Failure failure, const QStri
 {
     const QString text = P2pWindowText::peerFailureText(failure, detail);
     if (text.isEmpty()) return;
-    NotificationPresenter::warning(dialogParent(), tr("P2P対局"), text);
+    // 通信プロセスから届いた知らせの処理の中なので、閉じるのを待たない（待つと入れ子のイベントループの中で通信プロセスの
+    // 部品が消え、戻った先で消えたものを読む。監査 2026-11-13 P4）。続けて届いたら前の箱を閉じる
+    if (m_failureBox) m_failureBox->close();
+    m_failureBox = NotificationPresenter::warning(dialogParent(), tr("P2P対局"), text, NotificationPresenter::Wait::No);
     if (m_window) m_window->refresh();
 }

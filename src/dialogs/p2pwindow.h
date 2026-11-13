@@ -16,6 +16,7 @@ class QCheckBox;
 class QComboBox;
 class QLabel;
 class QLineEdit;
+class QMessageBox;
 class QPlainTextEdit;
 class QPushButton;
 class QSpinBox;
@@ -77,6 +78,8 @@ private slots:
     void onCreateInvite();
     void onInviteCreated(const QString& invite, quint64 expiresAt, int addressCount);
     void onCopyInvite();
+    /// 期限の過ぎた招待文字列がクリップボードに残っていれば消す
+    void clearCopiedInvite();
     void onInspectInvite();
     void onInviteInspected(const P2pLobbyService::InviteInfo& info);
     void onConnectInvite();
@@ -126,6 +129,9 @@ private:
     QPlainTextEdit* m_inviteIn = nullptr;
     QPushButton* m_inspectInvite = nullptr;
     QLabel* m_inviteInInfo = nullptr;
+    QPointer<QMessageBox> m_connectFailedBox;   ///< 招待の接続に失敗した知らせ（モードレス。閉じたら消える）
+    quint64 m_inviteExpiresAt = 0;               ///< 作った招待文字列の期限（UNIX 秒）
+    QString m_copiedInvite;                      ///< コピーした招待文字列（期限が過ぎたらクリップボードから消す）
     QCheckBox* m_allowPrivate = nullptr;
     QPushButton* m_connectInvite = nullptr;
 

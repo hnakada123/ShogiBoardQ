@@ -221,6 +221,13 @@ private slots:
         QVERIFY(frame && std::holds_alternative<PeerIpc::FrameReceived>(*frame));
         QCOMPARE(std::get<PeerIpc::FrameReceived>(*frame).frame, QByteArray("ab"));
         QVERIFY(!PeerIpc::readNotification(QStringLiteral("unknownNotification"), QJsonObject()));
+        // 範囲外の大きな数は、int にする前に断る（監査 2026-11-13。UBSan の float-cast-overflow）
+        const QJsonObject huge = object(R"({"state":"online","connectedPeers":1e300,"reachability":"unknown",)"
+                                        R"("relayReservations":0})");
+        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("networkStatus"), huge));
+        const QJsonObject status = object(R"({"state":"online","connectedPeers":3,"reachability":"unknown",)"
+                                          R"("relayReservations":0})");
+        QVERIFY(PeerIpc::checkNotification(QStringLiteral("networkStatus"), status));
     }
 
     /// 実験版のビルドの使用期限は、期限の時刻を過ぎてから（監査 2026-11-12 R5。通信プロセスと同じ起点と日数）

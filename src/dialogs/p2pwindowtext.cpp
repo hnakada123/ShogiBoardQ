@@ -38,8 +38,9 @@ QString P2pWindowText::rulesText()
 
 QString P2pWindowText::recordContentsText()
 {
-    return tr("対局記録（証跡）には、双方のプレイヤーID・条件・全手順と自己申告の消費時間・双方がプレイヤー鍵で確定した結果が残り、"
-              "双方の手元に保存されます。表示名・IPアドレス・手元で付けた名前は残りません。アプリから公開・送信はしません。");
+    return tr("対局記録（証跡）には、双方のプレイヤーID・条件・対局を始めたおおよその日時・全手順と自己申告の消費時間・双方が"
+              "プレイヤー鍵で確定した結果が残り、双方の手元に保存されます。表示名・IPアドレス・手元で付けた名前は残りません。"
+              "アプリから公開・送信はしません。");
 }
 
 QString P2pWindowText::causeText(P2p::Cause cause)
@@ -144,6 +145,8 @@ QString P2pWindowText::startFailureText(P2pLobbyService::StartFailure failure)
     case P2pLobbyService::StartFailure::NoIdentity: return tr("プレイヤー鍵を読み込んでいません。");
     case P2pLobbyService::StartFailure::AutomationEnabled:
         return tr("自動化 API を有効にして起動したときは、P2P対局を使えません。");
+    case P2pLobbyService::StartFailure::Busy:
+        return tr("対局・検討などの最中は接続できません。終えてから接続してください。");
     }
     return QString();
 }

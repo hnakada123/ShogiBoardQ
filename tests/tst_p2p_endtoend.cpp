@@ -11,6 +11,8 @@
 #include <QTcpServer>
 #include <QTemporaryDir>
 
+#include <memory>
+
 #include "appactivitystate.h"
 #include "gameboard.h"
 #include "matchrecordsink.h"
@@ -82,26 +84,9 @@ private:
         return app.profile.identity()->isUnlocked();
     }
 
-private slots:
-    void initTestCase()
+    /// 2人が sbq-local-1 に参加し、招待から対局の開始まで進める（招待した側が先手）
+    static void startGame(App& host, App& guest)
     {
-        QVERIFY(Crypto::initialize());
-        QVERIFY(m_dir.isValid());
-#ifndef Q_OS_LINUX
-        QSKIP("the communication process is sandboxed only on Linux");
-#endif
-        QVERIFY2(QFileInfo(QStringLiteral(PEER_EXECUTABLE)).isExecutable(), PEER_EXECUTABLE);
-        // 通信プロセスは試験の実行ファイルの隣に置いてある（CMake）。デバッグビルドでは差し替えでも同じものを指す
-        qputenv("SHOGIBOARDQ_PEER_EXECUTABLE", QByteArrayLiteral(PEER_EXECUTABLE));
-    }
-
-    void inviteGameOverRealPeers()
-    {
-        App host(m_dir.filePath(QStringLiteral("host")));
-        App guest(m_dir.filePath(QStringLiteral("guest")));
-        QVERIFY(createIdentity(host));
-        QVERIFY(createIdentity(guest));
-
         QCOMPARE(host.lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::None);
         QCOMPARE(guest.lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::None);
         QVERIFY(host.activity.is(AppActivityState::Activity::DuringP2pConnection));
@@ -139,6 +124,50 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(guestStarted.count(), 1, 20000);
         QVERIFY(host.activity.is(AppActivityState::Activity::DuringP2pGame));
         QTRY_VERIFY_WITH_TIMEOUT(host.game.isHumanToMove(), 20000);
+    }
+
+private slots:
+    void initTestCase()
+    {
+        QVERIFY(Crypto::initialize());
+        QVERIFY(m_dir.isValid());
+#ifndef Q_OS_LINUX
+        QSKIP("the communication process is sandboxed only on Linux");
+#endif
+        QVERIFY2(QFileInfo(QStringLiteral(PEER_EXECUTABLE)).isExecutable(), PEER_EXECUTABLE);
+        // 通信プロセスは試験の実行ファイルの隣に置いてある（CMake）。デバッグビルドでは差し替えでも同じものを指す
+        qputenv("SHOGIBOARDQ_PEER_EXECUTABLE", QByteArrayLiteral(PEER_EXECUTABLE));
+    }
+
+    /// ほかの動作（ローカル対局など）の最中は接続を始めず、その動作状態を取り上げない。以前は、開いたままの P2P の
+    /// ウィンドウで「接続」を押すと、進行中の対局の動作状態を取り上げ、対局が裏で続いていた（監査 2026-11-13 P15）
+    void beginRefusesWhileAnotherActivity()
+    {
+        App app(m_dir.filePath(QStringLiteral("busy")));
+        QVERIFY(createIdentity(app));
+        QObject localGame;
+        ActivityLease gameLease = app.activity.begin(AppActivityState::Activity::DuringGame, &localGame);
+        QVERIFY(!app.lobby.canBegin());
+        QCOMPARE(app.lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::Busy);
+        QVERIFY(gameLease.isCurrent());
+        QVERIFY(app.activity.is(AppActivityState::Activity::DuringGame));
+        QCOMPARE(app.lobby.status(), P2pLobbyService::Status::Off);
+        // 対局を終えれば接続できる（変わったことを statusChanged で知らせる）
+        QSignalSpy changed(&app.lobby, &P2pLobbyService::statusChanged);
+        gameLease.reset();
+        QVERIFY(app.lobby.canBegin());
+        QVERIFY(changed.count() > 0);
+    }
+
+    void inviteGameOverRealPeers()
+    {
+        App host(m_dir.filePath(QStringLiteral("host")));
+        App guest(m_dir.filePath(QStringLiteral("guest")));
+        QVERIFY(createIdentity(host));
+        QVERIFY(createIdentity(guest));
+
+        startGame(host, guest);
+        if (QTest::currentTestFailed()) return;
 
         // 着手: 承認を受けてから両方の盤に指す
         const char* moves[] = {"7g7f", "3c3d", "2g2f", "8c8d"};
@@ -194,6 +223,29 @@ private slots:
         guest.lobby.end();
         QTRY_VERIFY_WITH_TIMEOUT(host.lobby.status() == P2pLobbyService::Status::Off, 10000);
         QVERIFY(host.activity.is(AppActivityState::Activity::Idle));
+    }
+
+    /// アプリを終えるとき（end の後はイベントループが回らない）も、対局の相手に中断が届く。以前は通信プロセスに要求を
+    /// 書き終える前に終わり、通信プロセスも親の終了で止まるので、相手はつなぎ直しを待ち続けた（監査 2026-11-13）
+    void quittingDuringGameTellsTheOpponent()
+    {
+        auto host = std::make_unique<App>(m_dir.filePath(QStringLiteral("quit-host")));
+        App guest(m_dir.filePath(QStringLiteral("quit-guest")));
+        QVERIFY(createIdentity(*host));
+        QVERIFY(createIdentity(guest));
+        startGame(*host, guest);
+        if (QTest::currentTestFailed()) return;
+
+        QSignalSpy guestFinished(&guest.game, &P2pGameCoordinator::gameFinished);
+        // アプリの終了と同じ順（P2pGameUiController::shutdown）。この後、招待した側のイベントループは回さずに部品を消す
+        // （アプリの終了では、通信プロセスも親の終了で止まる）
+        host->lobby.end();
+        host->lobby.waitForExit(1500);
+        host.reset();
+        // 招待された側は、つなぎ直しを待たずに中断で終わる
+        QTRY_COMPARE_WITH_TIMEOUT(guestFinished.count(), 1, 10000);
+        QCOMPARE(guest.game.match()->settlement(), Settlement::Aborted);
+        guest.lobby.end();
     }
 
     /// 開始のジャーナルを書けず、対局が始まった呼び出しの中で終わっても、P2P の接続は続く（監査 2026-11-12 B1）。

@@ -11,6 +11,7 @@
 #include <QPointer>
 #include <QString>
 #include <QStringList>
+#include <QTimer>
 
 #include <memory>
 #include <optional>
@@ -52,6 +53,7 @@ public:
         BuildExpired,        ///< 使用期限を過ぎたビルド（期限のあるネットワーク）
         NoIdentity,          ///< プレイヤー鍵を読み込んでいない
         AutomationEnabled,   ///< 自動化 API を有効にして起動した
+        Busy,                ///< ほかの動作（対局・検討など）の最中
     };
     Q_ENUM(StartFailure)
 
@@ -71,6 +73,10 @@ public:
     StartFailure begin(const QString& networkName, const QStringList& bootstrap, bool relayOnly);
     /// 招待を無効にし、対局中なら中断を知らせて、通信プロセスを止める（保存先も閉じる）
     void end();
+    /// アプリの終了のときだけ使う。end() の後、通信プロセスが中断の知らせと shutdown を受けて終わるのを msecs まで待つ
+    void waitForExit(int msecs);
+    /// 接続を始められるか（ほかの動作（対局・検討など）の最中でない）。変わると statusChanged を出す
+    bool canBegin() const;
 
     Status status() const { return m_status; }
     bool isLocalProfile() const { return m_localProfile; }
@@ -126,6 +132,9 @@ private:
     Deps m_deps;
     QPointer<P2pPlayerProfile> m_profile;     ///< 非所有
     PeerProcess* m_peer = nullptr;            ///< 子オブジェクト（使う間だけ）
+    /// 接続の状態の知らせ（networkStatusChanged）をまとめて出す。通信プロセスが知らせを続けて送っても、画面を
+    /// そのたびに作り直さない
+    QTimer* m_networkStatusTimer = nullptr;
     ActivityLease m_lease;
     bool m_automationDisabled = false;
 

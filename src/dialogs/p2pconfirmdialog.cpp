@@ -108,9 +108,12 @@ void P2pConfirmDialog::refresh()
     if (!n || !n->opponent()) return;
     const P2p::OpponentHello& opponent = *n->opponent();
     const bool verified = n->opponentVerified();
-    const P2pKnownPeer* known = m_knownPeers ? m_knownPeers->find(opponent.playerKey) : nullptr;
+    // 手元の記録（付けた名前・確認済みか・対局数）は、相手の開始署名を確かめてから引く。申告だけの ID で引くと、
+    // 確認済みの友人の ID を名乗るだけで、その友人の名前と「確認済み」が出る（実装仕様 3.4節。監査 2026-11-13 P14）
+    const P2pKnownPeer* known = verified && m_knownPeers ? m_knownPeers->find(opponent.playerKey) : nullptr;
 
     // 表示名は相手が自由に書ける文。かぎ括弧で囲む。対局したことのない相手の名前を出さない設定も守る
+    // （確かめる前は、対局したことのある相手かも分からないので出さない）
     const bool hideName = m_hideUnknownNames && !known;
     m_opponent->setText(hideName ? tr("表示名: 名前は非表示") : tr("表示名（自己申告）: 「%1」").arg(opponent.displayName));
     m_playerId->setText(P2pWindowText::playerIdText(opponent.playerKey));
@@ -121,14 +124,11 @@ void P2pConfirmDialog::refresh()
     } else {
         identity << tr("相手がこのIDの鍵の持ち主であることを確かめました。");
     }
-    if (known) {
-        if (!known->localName.isEmpty()) {
-            identity << (verified ? tr("手元で付けた名前: %1").arg(known->localName)
-                                  : tr("申告されたIDに付けてある名前: %1").arg(known->localName));
-        }
-        identity << (known->verified ? (verified ? tr("確認済みの相手です（確認コードで照合済み）。")
-                                                 : tr("申告されたIDは確認済みとして記録してあります。"))
-                                     : tr("確認コードでは照合していません。"));
+    if (!verified) {
+        identity << tr("手元の記録（付けた名前・確認済みか・対局数）は、相手がこのIDの持ち主だと確かめてから表示します。");
+    } else if (known) {
+        if (!known->localName.isEmpty()) identity << tr("手元で付けた名前: %1").arg(known->localName);
+        identity << (known->verified ? tr("確認済みの相手です（確認コードで照合済み）。") : tr("確認コードでは照合していません。"));
         identity << tr("この相手との対局: %1局（結果が確定しなかった対局: %2局）").arg(known->games).arg(known->unconfirmed);
     } else {
         identity << tr("初めての相手です。");

@@ -174,4 +174,13 @@ void information(QWidget* parent, const QString& title, const QString& text)
     showPlainBox(parent, QMessageBox::Information, title, text);
 }
 
+QMessageBox* createNoticeBox(QWidget* parent, QMessageBox::Icon icon, const QString& title, const QString& text)
+{
+    auto* box = new QMessageBox(icon, title, text, QMessageBox::Ok, parent);
+    box->setTextFormat(Qt::PlainText);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->setModal(false);
+    return box;
+}
+
 } // namespace DialogUtils

@@ -49,6 +49,8 @@ public:
     static QString executablePath();
 
     bool isReady() const { return m_state == State::Ready; }
+    /// 通信プロセスを動かしている（起動中・止めている途中を含む）
+    bool isRunning() const { return m_state != State::NotRunning; }
     /// hello の応答の sandbox（権限の制限の結果）
     QJsonObject sandbox() const { return m_sandbox; }
 
@@ -56,6 +58,9 @@ public:
     void start();
     /// shutdown を頼み、2秒で終わらなければ terminate、さらに2秒で kill する（すべて非同期）
     void stop();
+    /// アプリの終了のときだけ使う。送った要求（中断の知らせ・shutdown）を書き終え、通信プロセスが終わるのを msecs まで
+    /// 待つ（通信プロセスは親の終了で止まるので、待たないと相手に中断が届かない。ふだんは待たずに非同期で止める）
+    void waitForExit(int msecs);
 
     /// 要求を送る（Ready のときだけ。0 は送れなかった）。結果は replied・requestFailed
     quint64 request(const QString& method, const QJsonObject& params = QJsonObject());

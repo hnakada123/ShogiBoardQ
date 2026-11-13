@@ -70,9 +70,9 @@ void NotificationPresenter::replaceInformation(QPointer<QMessageBox>& previous, 
     previous = information(parent, title, message, wait);
 }
 
-void NotificationPresenter::warning(QWidget* parent, const QString& title, const QString& message)
+QMessageBox* NotificationPresenter::warning(QWidget* parent, const QString& title, const QString& message, Wait wait)
 {
-    show(parent, Kind::Warning, title, message, Wait::UntilClosed);
+    return show(parent, Kind::Warning, title, message, wait);
 }
 
 QMessageBox* NotificationPresenter::critical(QWidget* parent, const QString& title, const QString& message, Wait wait)
