@@ -1,9 +1,9 @@
 //! 通信プロセスを起動し、IPC（protocol/ipc.md）で動かす結合試験（ローカル検証用のネットワーク sbq-local-1）
 //!
-//! Linux だけで動かす。Windows の通信プロセスは、起動する側（対局・UI側の PeerConfinement）が AppContainer とジョブを
+//! Linux と macOS で動かす（通信プロセスが自分で制限を掛ける OS）。Windows の通信プロセスは、起動する側（対局・UI側の PeerConfinement）が AppContainer とジョブを
 //! 付けて起動しないと動かないので、Windows の試験は C++ の側（tst_p2p_sandbox・tst_p2p_endtoend）で行う。
 
-#![cfg(target_os = "linux")]
+#![cfg(any(target_os = "linux", target_os = "macos"))]
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -444,7 +444,8 @@ fn sandbox_self_test_denies_forbidden_operations() {
     assert_eq!(output.status.code(), Some(0));
     let v: Value = serde_json::from_slice(&output.stdout).expect("json");
     assert_eq!(v["applied"], true);
-    for name in [
+    #[cfg(target_os = "linux")]
+    let denied = [
         "read_file",
         "write_file",
         "exec",
@@ -452,7 +453,10 @@ fn sandbox_self_test_denies_forbidden_operations() {
         "unix_socket",
         "unix_connect_abstract",
         "signal_parent",
-    ] {
+    ];
+    #[cfg(target_os = "macos")]
+    let denied = ["read_file", "write_file", "exec", "fork", "signal_parent"];
+    for name in denied {
         assert_eq!(v["results"][name], "denied", "{name}: {v}");
     }
 }

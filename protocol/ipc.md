@@ -7,19 +7,24 @@
 
 | 起動のしかた | 用途 |
 |---|---|
-| `shogiboardq-peer`（引数なし） | 対局・UI側から使う。標準入出力で IPC を行う |
+| `shogiboardq-peer`（引数なし。macOS では `--no-loopback` を付けることがある） | 対局・UI側から使う。標準入出力で IPC を行う |
 | `shogiboardq-peer --service ...` | 協力ノード（7章）。IPC を使わない |
 | `shogiboardq-peer --sandbox-self-test [試す相手...]` | 権限の制限を掛けてから（Windows では掛かっていることを確かめてから）、禁止した操作を試し、結果を JSON 1行で標準出力に書いて終わる（試験用。6章） |
 | `shogiboardq-peer --version` | 版を1行で書いて終わる |
 
+`--no-loopback` は macOS だけの引数で、引数のどこに置いてもよい（IPC と `--sandbox-self-test` に効く）。loopback への
+発信をサンドボックスでも止める（6.3節）。対局・UI側は、ローカルのネットワーク（`sbq-local-1`）を使わないときに付ける。
+ほかの OS では受け付けない（終了コード 3）。
+
 - 対局・UI側は、実行ファイルをアプリと同じフォルダ（`QCoreApplication::applicationDirPath()`）から絶対パスで起動する。
-  環境変数は渡さない（Linux は空の環境。Windows は、無いとプロセスを作れない `SystemRoot` と `LOCALAPPDATA` だけ）。
+  環境変数は渡さない（Linux と macOS は空の環境。Windows は、無いとプロセスを作れない `SystemRoot` と `LOCALAPPDATA` だけ）。
   標準入出力と標準エラー以外のファイル記述子・ハンドルを引き継がない
   （Unix は `QProcess::UnixProcessFlag::CloseFileDescriptors`、Windows は `PROC_THREAD_ATTRIBUTE_HANDLE_LIST`）。
   起動のしかたは `PeerConfinement`（`src/network/p2p/peerconfinement.cpp`）の1か所で決める。
 - 通信プロセスは、標準入力を読む前に権限の制限（6章）を掛ける（Windows では、起動する側が掛けた制限を確かめる）。
   掛けられなければ、標準エラーに理由を書いて終了コード 3 で終わる。
 - 標準入力が終端に達したら、直ちに終了する（親の終了）。Linux では親の終了で SIGKILL を受ける設定もする。
+  macOS では親の終了を kqueue で見張り、終わったら自分に SIGKILL を送る。
   Windows では、起動する側が持つジョブのハンドルが閉じると終わる。
 
 | 終了コード | 意味 |
@@ -87,11 +92,13 @@
 | `closeConnection` | `{"connection"}` | `{}` |
 | `shutdown` | `{}` | `{}` |
 
-- `hello` は最初に1回だけ。`Sandbox` は `{"applied": 真偽, "os": "linux" か "windows", "mechanisms": [文字列], "landlockAbi": 整数}`
-  （`landlockAbi` は Windows では 0）。
+- `hello` は最初に1回だけ。`Sandbox` は `{"applied": 真偽, "os": "linux" か "windows" か "macos", "mechanisms": [文字列], "landlockAbi": 整数}`
+  （`landlockAbi` は Linux 以外では 0）。
   `mechanisms` には掛けたものを入れる。Linux は `no_new_privs`・`landlock_fs`・`seccomp`・`parent_death_signal`・`no_core_dump` と、
   掛けられた場合だけ `landlock_scope`。Windows は `appcontainer`・`job_kill_on_close`・`job_single_process`・`no_child_process`・
-  `no_error_dialog`。`applied` は必須のもの（`landlock_scope` 以外のすべて）を掛けたとき true。対局・UI側は、自分の OS の
+  `no_error_dialog`。macOS は `seatbelt`・`parent_death_watch`・`no_core_dump`・`deny_attach` と、`--no-loopback` を付けて
+  起動されたときだけ `seatbelt_no_loopback`。`applied` は必須のもの（`landlock_scope`・`seatbelt_no_loopback` 以外のすべて）を
+  掛けたとき true。対局・UI側は、自分の OS の
   必須の名前（`PeerConfinement::requiredMechanisms()`）がすべて入っていることを確かめる。
   通信プロセスは掛けられなければ終了しているので、`applied: false` を返すことはない。対局・UI側は値を確かめ直す。
 - `start` は `hello` の後に1回だけ。`networkName` は `README.md` 1.1節の一覧にあるもの。
@@ -293,13 +300,52 @@ Windows エラー報告の保存（LocalDumps）を設定していれば、異�
 協力ノード（`--service`）は Windows では動かない（識別鍵のファイルを自分で読むので、起動の時点でファイルを読めなく
 する AppContainer と合わない）。
 
-### 6.3 そのほかの OS
+### 6.3 macOS
+
+Linux と同じく、通信プロセスが自分で掛ける。標準入力を読む前に、次の順で掛ける。どれか必須のものが失敗したら
+終了コード 3 で終わる。サンドボックスを掛ける libSystem の関数の呼び出しは `peer/macos` のクレートだけに置く
+（unsafe を書くのはそこだけ。規則の本文は `peer/src/sandbox.rs` が決める）。
+
+1. 親の終了を見張る（kqueue の `EVFILT_PROC`・`NOTE_EXIT`）。登録の後に親がすでに替わっていれば終わる。
+   サンドボックスを掛けた後に見張りのスレッドを作り、親が終わったら自分に SIGKILL を送る（`parent_death_watch`）。
+2. コアダンプを残さない（`RLIMIT_CORE` を0。`no_core_dump`）。
+3. デバッガなどの接続を断る（`ptrace` の `PT_DENY_ATTACH`。`deny_attach`）。
+4. サンドボックス（Seatbelt。`sandbox_init` にプロファイルの本文を渡す。プロセス全体に効き、外せない。`seatbelt`）。
+   既定ですべて拒否し（`(deny default)`）、次だけを許す。
+   - TCP と UDP の待受・着信・発信（IPv4・IPv6）
+   - 自分へのシグナル
+   - sysctl の読み取り（インターフェースのアドレスの一覧など）
+   - アドレスの変化の知らせを受ける configd（Mach のサービス `com.apple.SystemConfiguration.configd`）
+
+   許していないので、ファイルの読み書き（開いてある標準入出力は使える）、プログラムの起動、プロセスの複製、
+   ほかのプロセスへのシグナル、Unix ドメインのソケットへの接続（自動化 API など）、ほかの Mach のサービス
+   （キーチェーン・クリップボードなど）は拒否される。インターフェースの物理アドレス（MAC アドレス）の読み取りも
+   拒否する（一覧を読むたびに OS が確かめるので、この拒否だけはログに残さない）。
+5. `--no-loopback` を付けて起動されたときは、この Mac 自身（規則の `localhost`。127.0.0.1・::1 と、この Mac に付いているアドレス）への発信も拒否する（`seatbelt_no_loopback`）。
+   対局・UI側の `PeerConfinement` は、ローカルのネットワーク（`sbq-local-1`）を使わないときに付ける。待受と着信には
+   掛けない（loopback での待受の拒否は、すべてのアドレスでの待受まで止めてしまう）。
+
+macOS の `--sandbox-self-test` は、上の制限を掛けた後に次を試す。試す相手は、渡されれば `file=<パス>`・
+`pipe=<Unix ドメインのソケットのパス>`・`connect=<アドレス:ポート>` を使う。`read_file`（渡されなければ /etc/hosts）、`write_file`（`<パス>.created`。
+渡されなければ /tmp に作る）、`exec`（/usr/bin/true を起動）、`fork`、`connect_unix_socket`（渡されたときだけ）、
+`signal_parent`（親へ signal 0）、`listen_tcp`（すべてのアドレスでの待受。`allowed` が出る）、`connect_tcp`（渡された宛先へ接続。渡されたときだけ。
+ほかの PC の宛先なら `allowed`）、`connect_loopback_tcp`
+（127.0.0.1 と ::1 の閉じたポートへ接続。`--no-loopback` を付けたときは `denied`、付けないときは `allowed`）。
+
+止められないもの: 私設アドレスへの接続（サンドボックスの規則は、宛先を「すべて」か loopback でしか絞れない）と、
+`--no-loopback` を付けないとき（ローカルのネットワーク）の loopback への接続。どちらも通信プロセスのコードだけが守る。
+macOS 15 以降では、同じ LAN の相手と初めて通信するときに、OS が利用者に「ローカルネットワーク上のデバイスの検索」の
+許可を求めることがある（OS の設定で、通信プロセスの規則とは別）。
+
+協力ノード（`--service`）は、識別鍵のファイルを読んだ後に同じ制限を掛ける（親の終了は見張らない）。
+
+### 6.4 そのほかの OS
 
 制限の実装がないので、終了コード 3 で終わる（P2P対局を使えない）。
 
 ## 7. 協力ノード（`--service`）
 
-Linux だけで動く。
+Linux と macOS で動く。
 
 ```text
 shogiboardq-peer --service --network <networkName> --identity <鍵ファイル> --listen <multiaddr> [--listen ...]
@@ -307,9 +353,10 @@ shogiboardq-peer --service --network <networkName> --identity <鍵ファイル> 
 ```
 
 - 識別鍵のファイル（Ed25519 の秘密鍵の protobuf 形式）がなければ作り、所有者だけが読み書きできる権限で保存する。
-  読んだ後に Landlock でファイルの操作を拒否する。
+  読んだ後に、ファイルの操作を拒否する（Linux は Landlock、macOS はサンドボックス）。
 - 利用者のアプリが最初に接続する相手になり、到達性の確認（AutoNAT v2）に応える。`--relay` で Circuit Relay v2 の中継を
   有効にする。対局ストリームは受け付けない（指し手もプレイヤーID も読まない。中継する通信は当事者間で暗号化されている）。
 - 中継の上限: 予約 128、1ピアあたりの回路 4、1回路 30 分・8 MiB。
 - ログは標準エラーに、起動・停止・接続数だけを書く（接続元の IP は書かない）。
-- 権限の制限は6章と同じだが、親の終了では終わらない（`mechanisms` に `parent_death_signal` が入らない）。
+- 権限の制限は6章と同じだが、親の終了では終わらない（`mechanisms` に `parent_death_signal`・`parent_death_watch` が
+  入らない）。

@@ -1,0 +1,22 @@
+[package]
+name = "sbq-peer-macos"
+description = "ShogiBoardQ P2P: the macOS calls the communication process needs to confine itself"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# ワークスペースの lints（unsafe の禁止）を継がない。サンドボックスを掛ける libSystem の関数の呼び出しは unsafe なので、
+# macOS の通信プロセスの自前のコードのうち unsafe を書いてよいのはこのクレートだけにする（実装仕様 10.4節）。
+# ほかの禁止は同じにする。依存するクレートはない（libSystem の関数を直接宣言する）
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"
+undocumented_unsafe_blocks = "deny"

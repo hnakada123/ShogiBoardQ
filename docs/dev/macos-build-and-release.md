@@ -211,6 +211,33 @@ ShogiBoardQ.app/
 open build/ShogiBoardQ.app
 ```
 
+### 3.4 P2P対局（実験版）を有効にしたビルド
+
+P2P対局（`ENABLE_P2P_PLAY`、既定 OFF）は配布物には入れない（`scripts/build-macos.sh` は有効にしない）。試すときは、次の2つを用意してビルドする。
+
+- **Rust**（1.85 以上）。通信プロセス `shogiboardq-peer` を cargo でビルドする
+- **libsodium**（1.0.18 以上）。pkg-config で見つける
+
+```bash
+brew install rust libsodium pkg-config
+
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON \
+    -DCMAKE_PREFIX_PATH="$HOME/Qt/6.x.x/macos"
+ninja -C build
+ctest --test-dir build -R tst_p2p --output-on-failure
+cargo test --locked --workspace
+```
+
+通信プロセスはアプリのバンドルの中（`ShogiBoardQ.app/Contents/MacOS/shogiboardq-peer`）に作られ、アプリがそこから起動する。次の点が Linux・Windows と違う。
+
+- 通信プロセスは、起動の直後に自分でサンドボックス（Seatbelt）を掛ける（`peer/src/sandbox.rs`・`peer/macos`、`protocol/ipc.md` 6.3節）。ファイルの読み書き・プログラムの起動・Unix ドメインのソケットへの接続などは拒否され、拒否は「コンソール」アプリのログ（送信元 `Sandbox`）に残る
+- ローカルのネットワーク（同じ PC・同じ LAN）を使わないときは、アプリが `--no-loopback` を付けて起動し、loopback への発信もサンドボックスが止める
+- デバッガ（lldb）は通信プロセスに接続できない（`PT_DENY_ATTACH`）
+- `CMAKE_OSX_DEPLOYMENT_TARGET` を指定すると、通信プロセスも同じ最小の macOS の版でビルドする。Universal Binary（`CMAKE_OSX_ARCHITECTURES` に2つ）には対応していない（通信プロセスはビルドした Mac のアーキテクチャだけ）
+- libsodium は Homebrew の動的ライブラリ（`/opt/homebrew/opt/libsodium`）にリンクする。ほかの Mac へ持っていくバンドルにするには、macdeployqt で同梱する
+- プレイヤー鍵をキーチェーンに置くには QtKeychain が要る（任意。アプリと同じ Qt でビルドしたもの。Homebrew の `qtkeychain` は Homebrew の Qt 用なので、Qt Online Installer の Qt と混ぜない）。無ければ、鍵はパスフレーズで暗号化したファイルに置く
+- 協力ノード（`shogiboardq-peer --service`）も動く
+
 ---
 
 ## 4. アプリバンドルの作成

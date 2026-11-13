@@ -263,6 +263,18 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: cd build && ctest --output-on-failure -R "tst_p2p|tst_app_paths|tst_app_ui_state_policy|tst_layer_dependencies|tst_structural_kpi"
 
+  # P2P対局の通信プロセスを macOS で確かめる（自分で掛けるサンドボックスの下での IPC・招待・中継の結合試験と clippy）
+  p2p-macos:
+    if: github.event_name != 'schedule'
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Rust tests and clippy (Cargo.lock の版だけを使う)
+        run: |
+          cargo test --locked --workspace
+          cargo clippy --locked --workspace --all-targets -- -D warnings
+
   static-analysis:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest

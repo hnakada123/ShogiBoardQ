@@ -217,7 +217,7 @@ ctest --test-dir build -R tst_p2p --output-on-failure
 - 初めて「接続」したときに、AppContainer のプロファイル `io.github.hnakada123.ShogiBoardQ.peer` を利用者ごとに1回登録する
   （利用者のレジストリと `%LOCALAPPDATA%\Packages` の下の空のフォルダ）
 - `shogiboardq-peer.exe` に、その AppContainer の読み取りと実行の許可（ACL）を足す（Program Files の下に置いた場合は足さない）
-- `shogiboardq-peer.exe` を直接起動しても動かない（終了コード 3）。Rust の結合試験（`peer/tests/ipc.rs`）は Linux だけで動き、
+- `shogiboardq-peer.exe` を直接起動しても動かない（終了コード 3）。Rust の結合試験（`peer/tests/ipc.rs`）は Linux と macOS だけで動き、
   Windows の試験は `tst_p2p_sandbox`・`tst_p2p_endtoend` で行う
 - 協力ノード（`shogiboardq-peer --service`）は Windows では動かない
 

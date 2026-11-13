@@ -2567,6 +2567,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "sbq-peer-macos"
+version = "0.1.0"
+
+[[package]]
 name = "sbq-peer-win32"
 version = "0.1.0"
 dependencies = [
@@ -2674,6 +2678,7 @@ dependencies = [
  "libp2p-stream",
  "nix 0.29.0",
  "rand 0.8.8",
+ "sbq-peer-macos",
  "sbq-peer-win32",
  "sbq-protocol",
  "seccompiler",

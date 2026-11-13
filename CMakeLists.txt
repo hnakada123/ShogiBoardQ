@@ -1347,8 +1347,13 @@ if(ENABLE_P2P_PLAY)
     else()
         set(SBQ_PEER_NAME shogiboardq-peer)
     endif()
+    # macOS では、通信プロセスの最小の OS の版をアプリと同じにする（rustc は MACOSX_DEPLOYMENT_TARGET を読む）
+    set(SBQ_CARGO_ENV SBQ_P2P_BUILD_EPOCH=${SBQ_P2P_BUILD_EPOCH})
+    if(APPLE AND CMAKE_OSX_DEPLOYMENT_TARGET)
+        list(APPEND SBQ_CARGO_ENV MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET})
+    endif()
     add_custom_target(shogiboardq_peer ALL
-        COMMAND ${CMAKE_COMMAND} -E env SBQ_P2P_BUILD_EPOCH=${SBQ_P2P_BUILD_EPOCH}
+        COMMAND ${CMAKE_COMMAND} -E env ${SBQ_CARGO_ENV}
             ${CARGO_EXECUTABLE} build --release --locked -p shogiboardq-peer --target-dir ${SBQ_CARGO_TARGET_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${SBQ_CARGO_TARGET_DIR}/release/${SBQ_PEER_NAME} $<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME}
@@ -1461,7 +1466,8 @@ install(TARGETS shogiboardq-cli
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 # P2P対局の通信プロセス（アプリと同じフォルダから起動する）
-if(ENABLE_P2P_PLAY)
+# macOS ではアプリのバンドルの中（Contents/MacOS）に作ってあるので、バンドルと一緒に入る
+if(ENABLE_P2P_PLAY AND NOT APPLE)
     install(PROGRAMS $<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
     if(MSVC)
         install(FILES ${SODIUM_RUNTIME_DLL} DESTINATION ${CMAKE_INSTALL_BINDIR})

@@ -298,8 +298,8 @@ private slots:
     /// 招待された側は相手の直接のアドレスへつながない（通信プロセスの試験 relay_only_* が宛先の規則を確かめる）
     void relayOnlyGameThroughServiceNode()
     {
-#ifndef Q_OS_LINUX
-        QSKIP("the cooperating node (--service) runs only on Linux");
+#if !defined(Q_OS_LINUX) && !defined(Q_OS_MACOS)
+        QSKIP("the cooperating node (--service) runs only on Linux and macOS");
 #endif
         // 協力ノードを固定のポートで起動し、標準エラーの最初の行から PeerId を読む
         QTcpServer probe;

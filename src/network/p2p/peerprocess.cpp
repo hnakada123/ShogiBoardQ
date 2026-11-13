@@ -37,7 +37,7 @@ bool sandboxIsApplied(const QJsonObject& sandbox)
     const QJsonArray mechanisms = sandbox.value(QStringLiteral("mechanisms")).toArray();
     QStringList names;
     for (const QJsonValue& m : mechanisms) names << m.toString();
-    // OS ごとの必須の仕組み（Linux は通信プロセスが自分で掛け、Windows は起動のときに掛けたものを通信プロセスが確かめる）
+    // OS ごとの必須の仕組み（Linux と macOS は通信プロセスが自分で掛け、Windows は起動のときに掛けたものを通信プロセスが確かめる）
     const QStringList required = PeerConfinement::requiredMechanisms();
     if (required.isEmpty()) return false;
     for (const QString& name : required) {
@@ -71,7 +71,7 @@ PeerProcess::PeerProcess(QObject* parent)
 PeerProcess::~PeerProcess()
 {
     if (m_process) {
-        // 親が終わると通信プロセスも終わる（標準入力の終端・PR_SET_PDEATHSIG・ジョブ）。知らせを受けずに止める
+        // 親が終わると通信プロセスも終わる（標準入力の終端・PR_SET_PDEATHSIG・kqueue の見張り・ジョブ）。知らせを受けずに止める
         m_process->disconnect(this);
         m_process->kill();
     }

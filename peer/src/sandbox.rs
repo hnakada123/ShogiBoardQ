@@ -5,6 +5,8 @@
 //!
 //! Windows: 制限は起動する側（対局・UI側）がプロセスを作るときに掛ける（AppContainer・ジョブ・子プロセスの禁止）。
 //! 通信プロセスは、標準入力を読む前に、それらが掛かっていることを確かめる。掛かっていなければ動かない。
+//!
+//! macOS: Linux と同じく、標準入力を読む前に通信プロセスが自分で掛ける（サンドボックス Seatbelt。プロセス全体に効く）。
 
 use serde_json::{json, Value};
 
@@ -338,6 +340,125 @@ mod windows {
     }
 }
 
+#[cfg(target_os = "macos")]
+mod macos {
+    use nix::errno::Errno;
+    use nix::sys::event::{EventFilter, EventFlag, FilterFlag, KEvent, Kqueue};
+    use nix::sys::resource::{setrlimit, Resource};
+    use nix::sys::signal::{kill, Signal};
+    use nix::unistd::{getppid, Pid};
+
+    use super::SandboxReport;
+
+    /// サンドボックスの規則（SBPL）。既定ですべて拒否し、通信プロセスが使うものだけを許す:
+    /// TCP と UDP の待受・着信・発信（IPv4・IPv6。Unix ドメインのソケットは許さない）、自分へのシグナル、
+    /// sysctl の読み取り（インターフェースのアドレスの一覧・CPU の数など）、アドレスの変化の知らせを受ける configd。
+    /// ファイルの読み書き・プログラムの起動・プロセスの複製・ほかのプロセスへのシグナル・ほかの Mach のサービスは
+    /// 許していないので拒否される（開いてある標準入出力は使える）。インターフェースの一覧を読むたびに OS が確かめる
+    /// 物理アドレス（MAC アドレス）の読み取りは、拒否したうえでログに残さない（一覧のたびに何行も出るので）
+    pub(super) const PROFILE: &str = r#"(version 1)
+(deny default)
+(deny system-info (with no-log) (info-type "net.link.addr"))
+(allow signal (target self))
+(allow sysctl-read)
+(allow mach-lookup (global-name "com.apple.SystemConfiguration.configd"))
+(allow network-bind (local tcp "*:*") (local udp "*:*"))
+(allow network-inbound (local tcp "*:*") (local udp "*:*"))
+(allow network-outbound (remote tcp "*:*") (remote udp "*:*"))
+"#;
+
+    /// loopback への発信を OS の側でも止める規則（後ろの規則が勝つので、上の許可の後ろに足す）。ローカルのネットワーク
+    /// （同じ PC・同じ LAN）を使わないときに足す。同じ PC で動いているほかのサービスへつながせない。
+    /// 待受と着信には掛けない（`(local ip "localhost:*")` の拒否は、すべてのアドレスでの待受まで止めてしまう）
+    pub(super) const NO_LOOPBACK: &str = r#"(deny network-outbound (remote ip "localhost:*"))
+"#;
+
+    /// 親の終了の知らせ（kqueue の NOTE_EXIT）を登録する。親がすでに終わっていれば失敗する
+    fn watch_parent(ppid: i32) -> Result<Kqueue, String> {
+        let ident = usize::try_from(ppid).map_err(|_| "invalid parent".to_owned())?;
+        let queue = Kqueue::new().map_err(|e| format!("kqueue: {e}"))?;
+        let change = KEvent::new(
+            ident,
+            EventFilter::EVFILT_PROC,
+            EventFlag::EV_ADD | EventFlag::EV_ONESHOT,
+            FilterFlag::NOTE_EXIT,
+            0,
+            0,
+        );
+        queue
+            .kevent(&[change], &mut [], None)
+            .map_err(|e| format!("watching the parent: {e}"))?;
+        if getppid().as_raw() != ppid {
+            return Err("parent already exited".to_owned());
+        }
+        Ok(queue)
+    }
+
+    /// 親が終わるまで待ち、終わったらこのプロセスを終わらせる（Linux の PR_SET_PDEATHSIG と同じく SIGKILL）
+    fn die_with_parent(queue: Kqueue) {
+        loop {
+            let mut events = [KEvent::new(
+                0,
+                EventFilter::EVFILT_PROC,
+                EventFlag::empty(),
+                FilterFlag::empty(),
+                0,
+                0,
+            )];
+            match queue.kevent(&[], &mut events, None) {
+                Ok(0) | Err(Errno::EINTR) => continue,
+                // 親の終了の知らせか、見張れなくなった（どちらでも、親なしでは動き続けない）
+                Ok(_) | Err(_) => break,
+            }
+        }
+        let _ = kill(Pid::this(), Signal::SIGKILL);
+        std::process::exit(1);
+    }
+
+    pub fn apply(initial_ppid: Option<i32>, no_loopback: bool) -> Result<SandboxReport, String> {
+        let mut mechanisms = Vec::new();
+
+        let parent_watch = match initial_ppid {
+            Some(ppid) => Some(watch_parent(ppid)?),
+            None => None,
+        };
+
+        setrlimit(Resource::RLIMIT_CORE, 0, 0).map_err(|e| format!("RLIMIT_CORE: {e}"))?;
+        mechanisms.push("no_core_dump");
+        sbq_peer_macos::deny_attach().map_err(|e| format!("PT_DENY_ATTACH: {e}"))?;
+        mechanisms.push("deny_attach");
+
+        let profile = if no_loopback {
+            [PROFILE, NO_LOOPBACK].concat()
+        } else {
+            PROFILE.to_owned()
+        };
+        sbq_peer_macos::apply_profile(&profile).map_err(|e| format!("sandbox_init: {e}"))?;
+        if !sbq_peer_macos::is_sandboxed() {
+            return Err("the sandbox is not in effect".to_owned());
+        }
+        mechanisms.push("seatbelt");
+        if no_loopback {
+            mechanisms.push("seatbelt_no_loopback");
+        }
+
+        if let Some(queue) = parent_watch {
+            std::thread::Builder::new()
+                .name("parent-watch".to_owned())
+                .spawn(move || die_with_parent(queue))
+                .map_err(|e| format!("parent watch: {e}"))?;
+            mechanisms.push("parent_death_watch");
+        }
+
+        Ok(SandboxReport {
+            applied: true,
+            os: "macos",
+            mechanisms,
+            landlock_abi: 0,
+        })
+    }
+}
+
 /// 親の PID（起動の直後に読む。制限を掛けた後に親が替わっていないかを確かめる）
 pub fn initial_parent() -> i32 {
     #[cfg(unix)]
@@ -350,19 +471,35 @@ pub fn initial_parent() -> i32 {
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn nix_parent() -> i32 {
     nix::unistd::getppid().as_raw()
 }
 
-#[cfg(all(unix, not(target_os = "linux")))]
+#[cfg(all(unix, not(any(target_os = "linux", target_os = "macos"))))]
 fn nix_parent() -> i32 {
     0
 }
 
-/// 制限を掛ける（Windows では、起動する側が掛けた制限を確かめる）。掛けられなければ理由。initial_ppid を渡すと、
-/// 親の終了で終わるようにする（協力ノードは渡さない）
-pub fn apply(initial_ppid: Option<i32>) -> Result<SandboxReport, String> {
+/// 制限を掛ける（Linux と macOS。Windows では、起動する側が掛けた制限を確かめる）。掛けられなければ理由。initial_ppid を渡すと、
+/// 親の終了で終わるようにする（協力ノードは渡さない）。no_loopback は、loopback への発信を OS の側でも止める
+/// （`--no-loopback`。macOS だけ。OS の側で止められない Linux と、起動する側が決める Windows では受け付けない）
+pub fn apply(initial_ppid: Option<i32>, no_loopback: bool) -> Result<SandboxReport, String> {
+    #[cfg(target_os = "macos")]
+    {
+        macos::apply(initial_ppid, no_loopback)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        if no_loopback {
+            return Err("--no-loopback is not supported on this operating system".to_owned());
+        }
+        apply_without_options(initial_ppid)
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn apply_without_options(initial_ppid: Option<i32>) -> Result<SandboxReport, String> {
     #[cfg(target_os = "linux")]
     {
         linux::apply(initial_ppid)
@@ -378,8 +515,10 @@ pub fn apply(initial_ppid: Option<i32>) -> Result<SandboxReport, String> {
     }
 }
 
-/// 制限を掛けた後に、禁止した操作を試す（--sandbox-self-test）。targets は試す相手（Windows だけ。
-/// `file=<パス>`・`pipe=<名前>`・`pid=<プロセス>`・`port=<loopback のポート>`。渡されなかったものは試さない）
+/// 制限を掛けた後に、禁止した操作を試す（--sandbox-self-test）。targets は試す相手（Windows は
+/// `file=<パス>`・`pipe=<名前>`・`pid=<プロセス>`・`port=<loopback のポート>`。渡されなかったものは試さない。
+/// macOS は `file=<パス>`・`pipe=<Unix ドメインのソケットのパス>`・`connect=<アドレス:ポート>`。file は渡されなければ
+/// 決まった相手で試し、pipe と connect は渡されたときだけ試す。Linux は使わない）
 pub fn self_test(report: &SandboxReport, targets: &[String]) -> Value {
     #[cfg(target_os = "linux")]
     {
@@ -400,7 +539,15 @@ pub fn self_test(report: &SandboxReport, targets: &[String]) -> Value {
             "results": windows_probe::run(targets),
         })
     }
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(target_os = "macos")]
+    {
+        json!({
+            "applied": report.applied,
+            "mechanisms": report.mechanisms,
+            "results": macos_probe::run(targets),
+        })
+    }
+    #[cfg(not(any(target_os = "linux", windows, target_os = "macos")))]
     {
         let _ = targets;
         json!({ "applied": report.applied, "results": {} })
@@ -468,6 +615,87 @@ mod windows_probe {
             };
             results.insert("connect_loopback_tcp".into(), verdict(tcp));
         }
+
+        Value::Object(results)
+    }
+}
+
+#[cfg(target_os = "macos")]
+mod macos_probe {
+    use std::net::{SocketAddr, TcpStream};
+    use std::time::Duration;
+
+    use nix::errno::Errno;
+    use serde_json::{Map, Value};
+
+    fn verdict(ok: bool) -> Value {
+        Value::from(if ok { "allowed" } else { "denied" })
+    }
+
+    fn target<'a>(targets: &'a [String], name: &str) -> Option<&'a str> {
+        targets.iter().find_map(|t| t.strip_prefix(name)?.strip_prefix('='))
+    }
+
+    pub fn run(targets: &[String]) -> Value {
+        let mut results = Map::new();
+
+        let read = match target(targets, "file") {
+            Some(path) => std::fs::File::open(path),
+            None => std::fs::File::open("/etc/hosts"),
+        };
+        results.insert("read_file".into(), verdict(read.is_ok()));
+
+        let created = match target(targets, "file") {
+            Some(path) => format!("{path}.created"),
+            None => format!("/tmp/sbq-peer-selftest-{}", std::process::id()),
+        };
+        let write = std::fs::File::create(&created);
+        if write.is_ok() {
+            let _ = std::fs::remove_file(&created);
+        }
+        results.insert("write_file".into(), verdict(write.is_ok()));
+
+        let exec = std::process::Command::new("/usr/bin/true").status();
+        results.insert("exec".into(), verdict(exec.is_ok()));
+
+        results.insert("fork".into(), verdict(sbq_peer_macos::can_fork()));
+
+        // Unix ドメインのソケット（自動化 API など、ローカルのサービスの入口）
+        if let Some(path) = target(targets, "pipe") {
+            let unix = std::os::unix::net::UnixStream::connect(path);
+            results.insert("connect_unix_socket".into(), verdict(unix.is_ok()));
+        }
+
+        // 親へシグナル 0（届くかだけを確かめる）。サンドボックスが止めれば EPERM
+        let signal = nix::sys::signal::kill(nix::unistd::getppid(), None);
+        results.insert("signal_parent".into(), verdict(signal != Err(Errno::EPERM)));
+
+        // loopback でない待受（すべてのアドレス）。どちらの起動のしかたでも許している
+        let listen = std::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], 0)));
+        results.insert("listen_tcp".into(), verdict(listen.is_ok()));
+
+        // loopback でない宛先への接続（渡されたときだけ）。相手に拒まれた・届かないなら、OS の側では止めていない
+        if let Some(addr) = target(targets, "connect").and_then(|t| t.parse::<SocketAddr>().ok()) {
+            let remote = match TcpStream::connect_timeout(&addr, Duration::from_millis(3000)) {
+                Ok(_) => true,
+                Err(e) => e.kind() != std::io::ErrorKind::PermissionDenied,
+            };
+            results.insert("connect_tcp".into(), verdict(remote));
+        }
+
+        // loopback の閉じたポート（IPv4 と IPv6）。接続を拒まれたなら、OS の側では止めていない（allowed）。
+        // `--no-loopback` を付けて起動されたときだけ denied になる
+        let closed = [
+            SocketAddr::from(([127, 0, 0, 1], 9)),
+            SocketAddr::from((std::net::Ipv6Addr::LOCALHOST, 9)),
+        ];
+        let tcp = closed.iter().any(
+            |addr| match TcpStream::connect_timeout(addr, Duration::from_millis(500)) {
+                Ok(_) => true,
+                Err(e) => e.kind() != std::io::ErrorKind::PermissionDenied,
+            },
+        );
+        results.insert("connect_loopback_tcp".into(), verdict(tcp));
 
         Value::Object(results)
     }

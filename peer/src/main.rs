@@ -13,9 +13,11 @@ mod sandbox;
 mod service;
 mod swarm;
 
-fn run_ipc(initial_ppid: i32) -> i32 {
+const NO_LOOPBACK: &str = "--no-loopback";
+
+fn run_ipc(initial_ppid: i32, no_loopback: bool) -> i32 {
     // 標準入力を読む前（外部の入力を読む前）に、スレッドを作る前の主スレッドで制限を掛ける
-    let report = match sandbox::apply(Some(initial_ppid)) {
+    let report = match sandbox::apply(Some(initial_ppid), no_loopback) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("shogiboardq-peer: sandbox: {e}");
@@ -42,8 +44,8 @@ fn runtime() -> Option<tokio::runtime::Runtime> {
     }
 }
 
-fn self_test(initial_ppid: i32, targets: &[String]) -> i32 {
-    match sandbox::apply(Some(initial_ppid)) {
+fn self_test(initial_ppid: i32, no_loopback: bool, targets: &[String]) -> i32 {
+    match sandbox::apply(Some(initial_ppid), no_loopback) {
         Ok(report) => {
             println!("{}", sandbox::self_test(&report, targets));
             0
@@ -58,14 +60,17 @@ fn self_test(initial_ppid: i32, targets: &[String]) -> i32 {
 fn main() {
     // 制限を掛けた後に親が替わっていないかを確かめるため、最初に親を読む
     let initial_ppid = sandbox::initial_parent();
-    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut args: Vec<String> = std::env::args().skip(1).collect();
+    // loopback への発信を OS の側でも止める（macOS で、起動する側がローカルのネットワークを使わないときに付ける）
+    let no_loopback = args.iter().any(|a| a == NO_LOOPBACK);
+    args.retain(|a| a != NO_LOOPBACK);
     let code = match args.first().map(String::as_str) {
-        None => run_ipc(initial_ppid),
+        None => run_ipc(initial_ppid, no_loopback),
         Some("--version") => {
             println!("shogiboardq-peer {}", env!("CARGO_PKG_VERSION"));
             0
         }
-        Some("--sandbox-self-test") => self_test(initial_ppid, args.get(1..).unwrap_or_default()),
+        Some("--sandbox-self-test") => self_test(initial_ppid, no_loopback, args.get(1..).unwrap_or_default()),
         Some("--service") => service::run(args.get(1..).unwrap_or_default()),
         Some(other) => {
             eprintln!("shogiboardq-peer: unknown option {other}");

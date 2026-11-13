@@ -1,5 +1,5 @@
 /// @file peerconfinement.cpp
-/// @brief 通信プロセスの起動のしかたの実装（Linux と Windows）
+/// @brief 通信プロセスの起動のしかたの実装（Linux・macOS と Windows）
 
 #include "peerconfinement.h"
 
@@ -20,12 +20,12 @@
 
 PeerConfinement::~PeerConfinement() = default;
 
-#if defined(Q_OS_LINUX)
+#if defined(Q_OS_LINUX) || defined(Q_OS_MACOS)
 
 namespace {
 
-/// Linux では通信プロセスが自分で制限を掛けるので、持ち続けるものはない
-class LinuxConfinement final : public PeerConfinement
+/// Linux と macOS では通信プロセスが自分で制限を掛けるので、持ち続けるものはない
+class SelfConfinement final : public PeerConfinement
 {
 };
 
@@ -38,19 +38,30 @@ bool PeerConfinement::isSupported()
 
 QStringList PeerConfinement::requiredMechanisms()
 {
+#if defined(Q_OS_LINUX)
     return {QStringLiteral("no_new_privs"), QStringLiteral("landlock_fs"), QStringLiteral("seccomp"),
             QStringLiteral("parent_death_signal"), QStringLiteral("no_core_dump")};
+#else
+    return {QStringLiteral("seatbelt"), QStringLiteral("parent_death_watch"), QStringLiteral("no_core_dump"),
+            QStringLiteral("deny_attach")};
+#endif
 }
 
-std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const QString&, Reach, QString*)
+std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const QString&, Reach reach, QString*)
 {
+#if defined(Q_OS_MACOS)
+    // ローカルのネットワークを使わないときは、loopback への発信をサンドボックスでも止めさせる（protocol/ipc.md 6.3節）
+    if (reach == Reach::Internet) process->setArguments(process->arguments() << QStringLiteral("--no-loopback"));
+#else
+    Q_UNUSED(reach)
+#endif
     // 環境変数は渡さない。標準入出力以外の記述子を引き継がない
     process->setProcessEnvironment(QProcessEnvironment());
     QProcess::UnixProcessParameters params;
     params.flags = QProcess::UnixProcessFlag::CloseFileDescriptors | QProcess::UnixProcessFlag::ResetSignalHandlers;
     process->setUnixProcessParameters(params);
     process->setWorkingDirectory(QDir::rootPath());
-    return std::make_unique<LinuxConfinement>();
+    return std::make_unique<SelfConfinement>();
 }
 
 #elif defined(Q_OS_WIN)

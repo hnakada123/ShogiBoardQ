@@ -62,6 +62,7 @@ void wipe(QByteArray& bytes)
     bytes.clear();
 }
 
+#ifdef SBQ_HAVE_QTKEYCHAIN
 /// ほかと共有している領域ごと、その場で消す（QtKeychain のジョブは渡した・読んだ種と同じ領域を持つ。data() で
 /// 切り離して消すと、ジョブの持つ写しが残る。監査 2026-11-13 I-g）
 void wipeShared(QByteArray& bytes)
@@ -69,6 +70,7 @@ void wipeShared(QByteArray& bytes)
     if (!bytes.isEmpty()) sodium_memzero(const_cast<char*>(bytes.constData()), static_cast<size_t>(bytes.size()));
     bytes.clear();
 }
+#endif
 
 /// 古い鍵のファイルの中身を 0 で上書きしてから消す（作り直し・削除の後に、ディスクに古い種を残さない。SSD や
 /// コピーオンライトのファイルシステムでは元の場所が上書きされる保証はないが、少なくともファイルとしては残さない）

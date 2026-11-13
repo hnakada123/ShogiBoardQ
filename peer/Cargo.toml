@@ -35,3 +35,9 @@ libc = "0.2"
 # Windows では、起動する側が掛けた制限（AppContainer・ジョブ）を確かめる Win32 API の呼び出しだけを別のクレートに置く
 [target.'cfg(windows)'.dependencies]
 sbq-peer-win32 = { path = "win32" }
+
+# macOS では、通信プロセスが自分でサンドボックス（Seatbelt）を掛ける。そのための libSystem の関数の呼び出しだけを
+# 別のクレートに置く。親の終了は kqueue で見張る
+[target.'cfg(target_os = "macos")'.dependencies]
+sbq-peer-macos = { path = "macos" }
+nix = { version = "0.29", default-features = false, features = ["event", "process", "resource", "signal", "user"] }

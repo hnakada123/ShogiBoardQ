@@ -2,7 +2,8 @@
 /// @brief 通信プロセスの権限の制限の試験（アプリと同じ起動のしかた PeerConfinement で起動し、禁止した操作が拒否される）
 ///
 /// 実装仕様 10.4節・protocol/ipc.md 6章。通信プロセスの --sandbox-self-test に、試す相手（このプロセスが作った
-/// ファイル・名前付きパイプ・loopback の待受と、このプロセス自身）を渡し、結果を確かめる。
+/// ファイル・名前付きパイプ（macOS では Unix ドメインのソケット）・loopback の待受と、このプロセス自身）を渡し、
+/// 結果を確かめる。
 
 #include <QtTest>
 
@@ -73,13 +74,19 @@ private slots:
         QLocalServer pipe;
         const QString pipeName = QStringLiteral("sbq-sandbox-test-%1").arg(QCoreApplication::applicationPid());
         QVERIFY(pipe.listen(pipeName));
+#ifdef Q_OS_MACOS
+        // Unix ドメインのソケットは、ソケットのファイルの場所で渡す
+        const QString pipeTarget = pipe.fullServerName();
+#else
+        const QString pipeTarget = pipeName;
+#endif
         QTcpServer tcp;
         QVERIFY(tcp.listen(QHostAddress::LocalHost));
 
         int exitCode = -1;
         const QJsonObject report = runSelfTest(
             localNetwork ? PeerConfinement::Reach::LocalNetwork : PeerConfinement::Reach::Internet,
-            {QStringLiteral("file=") + QDir::toNativeSeparators(filePath), QStringLiteral("pipe=") + pipeName,
+            {QStringLiteral("file=") + QDir::toNativeSeparators(filePath), QStringLiteral("pipe=") + pipeTarget,
              QStringLiteral("pid=%1").arg(QCoreApplication::applicationPid()),
              QStringLiteral("port=%1").arg(tcp.serverPort())},
             &exitCode);
@@ -91,6 +98,10 @@ private slots:
         const QStringList denied{QStringLiteral("read_file"),          QStringLiteral("write_file"),
                                  QStringLiteral("exec"),               QStringLiteral("connect_named_pipe"),
                                  QStringLiteral("open_process"),       QStringLiteral("connect_loopback_tcp")};
+#elif defined(Q_OS_MACOS)
+        const QStringList denied{QStringLiteral("read_file"),           QStringLiteral("write_file"),
+                                 QStringLiteral("exec"),                QStringLiteral("fork"),
+                                 QStringLiteral("connect_unix_socket"), QStringLiteral("signal_parent")};
 #else
         const QStringList denied{QStringLiteral("read_file"),   QStringLiteral("write_file"),
                                  QStringLiteral("exec"),        QStringLiteral("fork"),
@@ -99,6 +110,15 @@ private slots:
         for (const QString& name : denied) {
             QVERIFY2(results.value(name).toString() == QStringLiteral("denied"), qPrintable(name));
         }
+#ifdef Q_OS_MACOS
+        // loopback への発信は、ローカルのネットワークを使わないときだけサンドボックスが止める。loopback でない待受は
+        // どちらでもできる
+        QCOMPARE(results.value(QStringLiteral("connect_loopback_tcp")).toString(),
+                 localNetwork ? QStringLiteral("allowed") : QStringLiteral("denied"));
+        QCOMPARE(results.value(QStringLiteral("listen_tcp")).toString(), QStringLiteral("allowed"));
+        const QStringList mechanisms = report.value(QStringLiteral("mechanisms")).toVariant().toStringList();
+        QCOMPARE(mechanisms.contains(QStringLiteral("seatbelt_no_loopback")), !localNetwork);
+#endif
         // 禁止した操作は、実際に何も残していない
         QVERIFY(!QFileInfo::exists(filePath + QStringLiteral(".created")));
         QVERIFY(!pipe.hasPendingConnections());
