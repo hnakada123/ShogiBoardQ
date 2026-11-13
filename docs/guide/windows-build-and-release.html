@@ -288,6 +288,26 @@ dir build\Release\*.qm   # VS ジェネレータ</code></pre>
 <pre class="powershell"><code># ビルドしたアプリを起動（Qt DLL が PATH に含まれている環境で）
 .\build\ShogiBoardQ.exe</code></pre>
 </section>
+<section id="34-p2p対局実験版を有効にしたビルド" class="level3">
+<h3>3.4 P2P対局（実験版）を有効にしたビルド</h3>
+<p><a href="p2p-game.html">P2P対局</a>（<code>ENABLE_P2P_PLAY</code>、既定 OFF）は配布物には入れない（<code>scripts/build-windows.ps1</code> は有効にしない）。試すときは、次の2つを用意して MSVC でビルドする。</p>
+<ul>
+<li><strong>Rust</strong>（1.85 以上。<a href="https://rustup.rs/">rustup</a> の <code>x86_64-pc-windows-msvc</code>）。通信プロセス <code>shogiboardq-peer.exe</code> を cargo でビルドする</li>
+<li><strong>libsodium</strong>（1.0.18 以上）。公式のビルド済みの配布物（<code>libsodium-&lt;版&gt;-msvc.zip</code>）を展開し、中の <code>libsodium</code> フォルダ（<code>include\</code> と <code>x64\</code> がある）を <code>SODIUM_ROOT</code> で指定する。<code>libsodium.dll</code> はビルドがアプリの隣にコピーする</li>
+</ul>
+<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON `
+    -DSODIUM_ROOT=C:\dev\libsodium-msvc\libsodium
+cmake --build build
+ctest --test-dir build -R tst_p2p --output-on-failure
+cargo test --locked --workspace</code></pre>
+<p>通信プロセスは <code>ShogiBoardQ.exe</code> の隣に作られ、アプリが AppContainer・ジョブ・子プロセスの禁止を付けて起動する。次の点が Linux・macOS と違う。</p>
+<ul>
+<li>初めて「接続」したときに、AppContainer のプロファイル <code>io.github.hnakada123.ShogiBoardQ.peer</code> を利用者ごとに1回登録する（利用者のレジストリと <code>%LOCALAPPDATA%\Packages</code> の下の空のフォルダ）</li>
+<li><code>shogiboardq-peer.exe</code> に、その AppContainer の読み取りと実行の許可（ACL）を足す（Program Files の下に置いた場合は足さない）</li>
+<li><code>shogiboardq-peer.exe</code> を直接起動しても動かない（終了コード 3）。Rust の結合試験（<code>peer/tests/ipc.rs</code>）は Linux と macOS だけで動き、Windows の試験は <code>tst_p2p_sandbox</code>・<code>tst_p2p_endtoend</code> で行う</li>
+<li>協力ノード（<code>shogiboardq-peer --service</code>）は Windows では動かない</li>
+</ul>
+</section>
 </section>
 <section id="4-配布パッケージの作成" class="level2">
 <h2>4. 配布パッケージの作成</h2>
@@ -467,6 +487,22 @@ cmd /c &quot;cd deploy\Hayanagi &amp;&amp; (echo usi&amp; echo isready&amp; echo
 <section id="45-zip-ファイルの作成" class="level3">
 <h3>4.5 ZIP ファイルの作成</h3>
 <pre class="powershell"><code>Compress-Archive -Path deploy\* -DestinationPath ShogiBoardQ-windows.zip</code></pre>
+</section>
+<section id="46-インストーラの作成" class="level3">
+<h3>4.6 インストーラの作成</h3>
+<p>配布用ディレクトリの中身を、<a href="https://jrsoftware.org/isinfo.php">Inno Setup 6</a> で <code>ShogiBoardQ-windows-setup.exe</code> に包む。定義は <code>packaging/windows/shogiboardq.iss</code>。ZIP と同じファイルを包むだけで、ビルドはしない。<code>scripts/build-windows.ps1</code> はインストーラを作らないので、ZIP を作った後に別に実行する。</p>
+<pre class="powershell"><code># 初回のみ
+winget install --id JRSoftware.InnoSetup
+
+# build\installer\ShogiBoardQ-windows-setup.exe を作る
+.\scripts\build-windows-installer.ps1 -DeployDir deploy</code></pre>
+<p>版番号は配布用ディレクトリの <code>shogiboardq-cli.exe</code> から読む。公開済みの ZIP からインストーラだけを作るときは、ZIP を空のフォルダに展開して <code>-DeployDir</code> に渡す。</p>
+<ul>
+<li>既定は利用者ごとのインストール（管理者権限は不要で、<code>%LOCALAPPDATA%\Programs\ShogiBoardQ</code> に入る）。最初のダイアログで全ユーザー向け（<code>Program Files</code>）も選べる。</li>
+<li><code>AppId</code> は版をまたいで変えない。同じ ID なら、新しい版で上書きして更新される。</li>
+<li>設定（<code>%LOCALAPPDATA%\ShogiBoardQ</code>）はアンインストールしても残る。</li>
+<li>ウィザードの言語は Inno Setup が標準で持つ日本語と英語だけで、中国語の環境では英語で表示される。</li>
+</ul>
 </section>
 </section>
 <section id="5-github-release-での公開" class="level2">

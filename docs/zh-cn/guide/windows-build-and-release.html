@@ -248,6 +248,26 @@ dir build\Release\*.qm   # VS 生成器</code></pre>
 <pre class="powershell"><code># 启动构建好的应用程序（需在 PATH 中包含 Qt DLL 的环境下）
 .\build\ShogiBoardQ.exe</code></pre>
 </section>
+<section id="build-p2p" class="level3">
+<h3>3.4 启用P2P对局（实验版）的构建</h3>
+<p><a href="p2p-game.html">P2P对局</a>（<code>ENABLE_P2P_PLAY</code>，默认 OFF）不包含在发布包中（<code>scripts/build-windows.ps1</code> 不会启用它）。要试用时，请准备以下两项后用 MSVC 构建。</p>
+<ul>
+<li><strong>Rust</strong>（1.85 以上。<a href="https://rustup.rs/">rustup</a> 的 <code>x86_64-pc-windows-msvc</code>）。用 cargo 构建通信进程 <code>shogiboardq-peer.exe</code></li>
+<li><strong>libsodium</strong>（1.0.18 以上）。解压官方的预编译包（<code>libsodium-&lt;版本&gt;-msvc.zip</code>），用 <code>SODIUM_ROOT</code> 指定其中的 <code>libsodium</code> 文件夹（内有 <code>include\</code> 和 <code>x64\</code>）。<code>libsodium.dll</code> 由构建复制到应用程序旁边</li>
+</ul>
+<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON `
+    -DSODIUM_ROOT=C:\dev\libsodium-msvc\libsodium
+cmake --build build
+ctest --test-dir build -R tst_p2p --output-on-failure
+cargo test --locked --workspace</code></pre>
+<p>通信进程生成在 <code>ShogiBoardQ.exe</code> 旁边，由应用加上 AppContainer、作业对象和禁止创建子进程的限制后启动。以下几点与 Linux、macOS 不同。</p>
+<ul>
+<li>第一次“连接”时，会为每个用户注册一次 AppContainer 配置文件 <code>io.github.hnakada123.ShogiBoardQ.peer</code>（用户的注册表和 <code>%LOCALAPPDATA%\Packages</code> 下的一个空文件夹）</li>
+<li>会给 <code>shogiboardq-peer.exe</code> 添加该 AppContainer 的读取和执行权限（ACL）（放在 Program Files 下时不添加）</li>
+<li>直接启动 <code>shogiboardq-peer.exe</code> 无法运行（退出代码 3）。Rust 的集成测试（<code>peer/tests/ipc.rs</code>）只在 Linux 和 macOS 上运行，Windows 上的测试由 <code>tst_p2p_sandbox</code>、<code>tst_p2p_endtoend</code> 进行</li>
+<li>协作节点（<code>shogiboardq-peer --service</code>）不能在 Windows 上运行</li>
+</ul>
+</section>
 </section>
 <section id="package" class="level2">
 <h2>4. 制作发布包</h2>
@@ -409,6 +429,22 @@ cmd /c &quot;cd deploy\Hayanagi &amp;&amp; (echo usi&amp; echo isready&amp; echo
 <section id="package-zip" class="level3">
 <h3>4.5 制作 ZIP 文件</h3>
 <pre class="powershell"><code>Compress-Archive -Path deploy\* -DestinationPath ShogiBoardQ-windows.zip</code></pre>
+</section>
+<section id="package-installer" class="level3">
+<h3>4.6 制作安装程序</h3>
+<p>用 <a href="https://jrsoftware.org/isinfo.php">Inno Setup 6</a> 把发布目录的内容打包成 <code>ShogiBoardQ-windows-setup.exe</code>。定义文件是 <code>packaging/windows/shogiboardq.iss</code>。它只是打包与 ZIP 相同的文件，不进行构建。<code>scripts/build-windows.ps1</code> 不会制作安装程序，请在生成 ZIP 之后另行执行。</p>
+<pre class="powershell"><code># 仅首次
+winget install --id JRSoftware.InnoSetup
+
+# 生成 build\installer\ShogiBoardQ-windows-setup.exe
+.\scripts\build-windows-installer.ps1 -DeployDir deploy</code></pre>
+<p>版本号从发布目录中的 <code>shogiboardq-cli.exe</code> 读取。只想用已发布的 ZIP 制作安装程序时，把 ZIP 解压到空文件夹，再传给 <code>-DeployDir</code>。</p>
+<ul>
+<li>默认按用户安装（不需要管理员权限，安装到 <code>%LOCALAPPDATA%\Programs\ShogiBoardQ</code>）。在最初的对话框中也可以选择为所有用户安装（<code>Program Files</code>）。</li>
+<li><code>AppId</code> 在各版本之间保持不变。ID 相同时，新版本会覆盖旧版本完成更新。</li>
+<li>设置（<code>%LOCALAPPDATA%\ShogiBoardQ</code>）在卸载后仍会保留。</li>
+<li>向导的语言只有 Inno Setup 自带的日语和英语，在中文环境下以英语显示。</li>
+</ul>
 </section>
 </section>
 <section id="release" class="level2">

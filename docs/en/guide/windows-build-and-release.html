@@ -245,6 +245,26 @@ dir build\Release\*.qm   # VS generator</code></pre>
 <pre class="powershell"><code># Start the built application (in an environment where the Qt DLLs are on PATH)
 .\build\ShogiBoardQ.exe</code></pre>
 </section>
+<section id="build-p2p" class="level3">
+<h3>3.4 Building with P2P games (experimental)</h3>
+<p><a href="p2p-game.html">P2P games</a> (<code>ENABLE_P2P_PLAY</code>, off by default) are not part of the distributed package (<code>scripts/build-windows.ps1</code> does not enable them). To try them, prepare the following two items and build with MSVC.</p>
+<ul>
+<li><strong>Rust</strong> (1.85 or later; the <code>x86_64-pc-windows-msvc</code> toolchain from <a href="https://rustup.rs/">rustup</a>). cargo builds the communication process <code>shogiboardq-peer.exe</code></li>
+<li><strong>libsodium</strong> (1.0.18 or later). Extract the official prebuilt package (<code>libsodium-&lt;version&gt;-msvc.zip</code>) and pass the <code>libsodium</code> folder inside it (the one with <code>include\</code> and <code>x64\</code>) as <code>SODIUM_ROOT</code>. The build copies <code>libsodium.dll</code> next to the application</li>
+</ul>
+<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON `
+    -DSODIUM_ROOT=C:\dev\libsodium-msvc\libsodium
+cmake --build build
+ctest --test-dir build -R tst_p2p --output-on-failure
+cargo test --locked --workspace</code></pre>
+<p>The communication process is built next to <code>ShogiBoardQ.exe</code>, and the app starts it with an AppContainer, a job object and a ban on child processes. These points differ from Linux and macOS.</p>
+<ul>
+<li>The first time you connect, the AppContainer profile <code>io.github.hnakada123.ShogiBoardQ.peer</code> is registered once per user (in the user's registry and as an empty folder under <code>%LOCALAPPDATA%\Packages</code>)</li>
+<li>Read and execute permission for that AppContainer (an ACL entry) is added to <code>shogiboardq-peer.exe</code> (not when it is placed under Program Files)</li>
+<li>Starting <code>shogiboardq-peer.exe</code> directly does not work (exit code 3). The Rust integration tests (<code>peer/tests/ipc.rs</code>) run only on Linux and macOS; on Windows the tests are <code>tst_p2p_sandbox</code> and <code>tst_p2p_endtoend</code></li>
+<li>A cooperating node (<code>shogiboardq-peer --service</code>) does not run on Windows</li>
+</ul>
+</section>
 </section>
 <section id="package" class="level2">
 <h2>4. Creating the distribution package</h2>
@@ -406,6 +426,22 @@ cmd /c &quot;cd deploy\Hayanagi &amp;&amp; (echo usi&amp; echo isready&amp; echo
 <section id="package-zip" class="level3">
 <h3>4.5 Creating the ZIP file</h3>
 <pre class="powershell"><code>Compress-Archive -Path deploy\* -DestinationPath ShogiBoardQ-windows.zip</code></pre>
+</section>
+<section id="package-installer" class="level3">
+<h3>4.6 Creating the installer</h3>
+<p>The contents of the deploy directory are wrapped into <code>ShogiBoardQ-windows-setup.exe</code> with <a href="https://jrsoftware.org/isinfo.php">Inno Setup 6</a>. The definition is <code>packaging/windows/shogiboardq.iss</code>. It only wraps the same files as the ZIP; it does not build anything. <code>scripts/build-windows.ps1</code> does not create the installer, so run this separately after the ZIP is made.</p>
+<pre class="powershell"><code># First time only
+winget install --id JRSoftware.InnoSetup
+
+# Creates build\installer\ShogiBoardQ-windows-setup.exe
+.\scripts\build-windows-installer.ps1 -DeployDir deploy</code></pre>
+<p>The version number is read from <code>shogiboardq-cli.exe</code> in the deploy directory. To make only the installer from a published ZIP, extract the ZIP into an empty folder and pass that folder to <code>-DeployDir</code>.</p>
+<ul>
+<li>The default is a per-user installation (no administrator rights needed; it goes into <code>%LOCALAPPDATA%\Programs\ShogiBoardQ</code>). The first dialog also offers an installation for all users (<code>Program Files</code>).</li>
+<li><code>AppId</code> does not change between versions. With the same ID, a newer version installs over the old one and updates it.</li>
+<li>The settings (<code>%LOCALAPPDATA%\ShogiBoardQ</code>) remain after uninstalling.</li>
+<li>The wizard is available only in Japanese and English, the languages Inno Setup ships with by default; in a Chinese environment it is shown in English.</li>
+</ul>
 </section>
 </section>
 <section id="release" class="level2">
