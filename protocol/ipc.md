@@ -101,7 +101,7 @@
   ストリームが開けたら `connectionOpened`、開けなければ `connectionClosed`（`reason` は `unreachable`・`timeout`、
   `relayOnly` で招待に使える中継経由の宛先が無いときは `no_relay_route`。全体で 30 秒）が届く。
   `connectPeer` は `setGamePeer` の相手にだけ使える（再接続。つなぐのに使った宛先を覚えておいて使う）。
-- 受け付けた側（inbound）の `connectionOpened` は、相手の最初のフレームが届いてから出す（最初のフレームを 10 秒待つ）。
+- 受け付けた側（inbound）の `connectionOpened` は、相手の最初のフレームが届いてから出す（最初のフレームを 5 秒待つ）。
   `origin` が `game` なら、続けてそのフレームを `frameReceived` で渡す（`invite` の最初のフレームは
   INVITE_TOKEN なので渡さない）。したがって接続を開いた側（outbound）は、`connectionOpened` を受けたら先にフレームを
   送る（申込みの HELLO、再接続の CONTROL など）。

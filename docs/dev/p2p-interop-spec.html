@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>P2P対局 互換実装のための仕様書（プロトコル v1） - ShogiBoardQ</title>
-<meta name="description" content="ShogiBoardQ の P2P対局と相互に対局できるソフトウェアを作るための仕様書。通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。">
+<meta name="description" content="通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。">
 <style>
 :root {
   --bg: #fbfaf7; --fg: #23261f; --muted: #5f655a; --line: #d9d6cc; --accent: #3f6b4f;
@@ -53,6 +53,10 @@ thead th { background: var(--head-bg); color: var(--head-fg); font-weight: 600; 
 tbody tr:nth-child(even) { background: var(--stripe); }
 tbody tr:last-child td { border-bottom: none; }
 td:first-child { font-weight: 600; }
+#history td:first-child { white-space: nowrap; }
+#history thead th { white-space: normal; }
+#history thead th:nth-child(2), #history thead th:nth-child(3) { min-width: 6.5em; }
+#history td:last-child { min-width: 13rem; }
 p.note { background: var(--note-bg); border-left: 4px solid var(--accent); padding: .6rem .9rem; border-radius: 0 6px 6px 0; }
 footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
 @media (max-width: 40rem) {
@@ -72,8 +76,8 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <main>
 <header class="doc">
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ（将棋盤Q。P2P対局を有効にしたビルド）／プロトコルの版 1／文書の版 2026-11-12</p>
-<p class="lead">ShogiBoardQ の「P2P対局」と相互に対局できるソフトウェアを作るための仕様書である。通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
+<p>ShogiBoardQ（将棋盤Q。P2P対局を有効にしたビルド）／プロトコルの版 1／文書の版 2026-11-13（<a href="#sec-B">変更履歴</a>）</p>
+<p class="lead">通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
 <details open>
@@ -85,6 +89,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li><a href="#sec-1-2">1.2 言葉の使い方</a></li>
 <li><a href="#sec-1-3">1.3 全体の流れ</a></li>
 <li><a href="#sec-1-4">1.4 防げないこと</a></li>
+<li><a href="#sec-1-5">1.5 版</a></li>
 </ul>
 </li>
 <li><a href="#sec-2">2. 記法と共通の規則</a>
@@ -207,6 +212,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li><a href="#sec-A-4">A.4 署名とフレーム</a></li>
 </ul>
 </li>
+<li><a href="#sec-B">付録 B. 変更履歴</a></li>
 </ol>
 </details>
 </nav>
@@ -256,6 +262,18 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li>エンジンが指した対局や、示し合わせた対局は見分けられない。</li>
 <li>直接つなぐと、相手は通信を調べて IP アドレスを知ることができる（中継だけを使う設定で避けられる。<a href="#sec-4-6">4.6節</a>）。</li>
 </ul>
+
+<h3 id="sec-1-5">1.5 版</h3>
+<p>この文書には、2つの版がある。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>版</th><th>表すもの</th><th>上げるとき</th></tr></thead>
+<tbody>
+<tr><td>プロトコルの版</td><td>通信の互換性。フレームの <code>version</code>（<a href="#sec-6-2">6.2節</a>）と、HELLO の対応する版の一覧（<a href="#sec-8-2">8.2節</a>）に出る。今は 1</td><td>前の版の実装と対局できなくなる変更をしたとき（実験版の間の例外は下に書く）</td></tr>
+<tr><td>文書の版</td><td>この文書の内容。変えた日の日付（YYYY-MM-DD）で、同じ日の2回目からは末尾に <code>.1</code>・<code>.2</code> と付ける</td><td>この文書を変えるたび（文の手直しだけでも）</td></tr>
+</tbody>
+</table></div>
+<p>版ごとの変更は<a href="#sec-B">付録 B</a>に書く。「互換実装の修正」が「要る」の変更は、決まり（しなければならないこと・してはならないこと・値・上限）を変えたもので、それより前の版に従って作った実装は、直さないと ShogiBoardQ と食い違うことがある。「要らない」は、文の手直しや、ShogiBoardQ の動きの説明を足しただけの変更である。互換実装は、自分が従った文書の版を記録し、それより後の「要る」の変更を確かめることが望ましい。</p>
+<p class="note">P2P対局は実験版で、参加できるネットワークは、ローカル検証用と限定試験用だけである（<a href="#sec-3-1">3.1節</a>）。この間は、互換性のない変更でも、プロトコルの版を上げずに版 1 の決まりを変えることがある（付録 B に「要る」と書く）。公開用のネットワークを設けた後は、互換性のない変更ではプロトコルの版を上げる。</p>
 </section>
 <section id="notation">
 <h2 id="sec-2">2. 記法と共通の規則</h2>
@@ -545,7 +563,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <li>開いたら<strong>直ちに</strong>、最初のフレームとして INVITE_TOKEN を送る（requestId は 0）。</li>
 <li>続けて HELLO を送る（<a href="#sec-8-2">8.2節</a>）。</li>
 </ol>
-<p><strong>招待側</strong>は、届いたストリームの最初のフレームを 10 秒だけ待ち、次のように決める。</p>
+<p><strong>招待側</strong>は、届いたストリームの最初のフレームを 5 秒だけ待ち、次のように決める。</p>
 <ul>
 <li>最初のフレームが INVITE_TOKEN で、その token が、まだ使われていない有効期限内の招待の token と一致すれば、その招待を使用済みにして、ストリームを受け付ける。照合は、処理時間が中身によらない比較で、すべての招待と行う。</li>
 <li>それ以外（時間内に届かない・INVITE_TOKEN でない・token が一致しない）は、何も返さずにストリームを閉じる。</li>
@@ -973,7 +991,7 @@ payload = [FinalResult, side, signature]    ; signature は、プレイヤー鍵
 <li>つなぎ直すのは<strong>申込側</strong>（最初にストリームを開いた側）である。切れている間、5 秒おきに相手の PeerId へ接続し、<code>/shogiboardq/game/1.0.0</code> のストリームを開く。宛先は、最初の接続で使えたもの・Identify で知ったものを使う。INVITE_TOKEN は送らない。</li>
 <li><strong>申込側は、ストリームを開いたら、相手を待たずに直ちに再接続の HELLO（11.2節）を送る。</strong>招待側は、最初のフレームを受け取るまで、新しいストリームができたことに気づかない。最初のフレームの gameId は対局ID でなければならない（違えば、対局がエラーで止まる）。</li>
 <li><strong>切れたと判断した側は、古いストリームを閉じる。</strong>閉じないと、相手は切れたことに気づかず、つなぎ直しが始まらない（申込側がつなぎ直すのは、自分のストリームが閉じたとき・自分が切れたと判断したときだけである）。</li>
-<li><strong>招待側</strong>は、対局が始まってから終わるまで、対局の相手の PeerId からのストリームだけを受け付ける（ほかの相手のストリームと、INVITE_TOKEN で始まるストリームは受け付けない）。最初のフレームを 10 秒待つのは <a href="#sec-6-3">6.3節</a>と同じである。</li>
+<li><strong>招待側</strong>は、対局が始まってから終わるまで、対局の相手の PeerId からのストリームだけを受け付ける（ほかの相手のストリームと、INVITE_TOKEN で始まるストリームは受け付けない）。最初のフレームを 5 秒待つのは <a href="#sec-6-3">6.3節</a>と同じである。</li>
 <li>相手がつなぎ直してきたとき、古いストリームがまだ生きているように見えても、古いほうを閉じ、切れたものとして下の手順へ進む。照合が済んだ直後でも同じで、新しいストリームが届くたびに、新しい乱数で照合をやり直す（申込側の接続の試みは重なることがある）。</li>
 <li>PeerId は対局の間、変えてはならない（<a href="#sec-3-2">3.2節</a>）。アプリやノードを終了すると、同じ対局には戻れない。</li>
 </ul>
@@ -1135,7 +1153,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>招待の有効期限</td><td>600 秒（読む側は時計のずれ 60 秒を見込む）</td><td><a href="#sec-5-3">5.3</a></td></tr>
 <tr><td>招待の到達候補</td><td>8 件まで、1件 100 バイトまで</td><td><a href="#sec-5-1">5.1</a></td></tr>
 <tr><td>同時に有効な招待</td><td>4 つまで</td><td><a href="#sec-5-2">5.2</a></td></tr>
-<tr><td>ストリームの最初のフレームを待つ時間</td><td>10 秒</td><td><a href="#sec-6-3">6.3</a></td></tr>
+<tr><td>ストリームの最初のフレームを待つ時間</td><td>5 秒</td><td><a href="#sec-6-3">6.3</a></td></tr>
 <tr><td>フレームの頻度</td><td>開始署名を交わすまで 5 件/秒（バースト 10）、交わしたストリームではその後 20 件/秒（バースト 40）。再接続で開いたストリームは 5 件/秒（バースト 10）のまま</td><td><a href="#sec-6-4">6.4</a></td></tr>
 <tr><td>表示名</td><td>1〜32 文字、96 バイト以下</td><td><a href="#sec-3-6">3.6</a></td></tr>
 <tr><td>交渉の期限</td><td>60 秒</td><td><a href="#sec-8-6">8.6</a></td></tr>
@@ -1273,8 +1291,37 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 222222222222222222</code></pre>
 </section>
 
+<section id="history">
+<h2 id="sec-B">付録 B. 変更履歴</h2>
+<p>新しい版から順に並べる。版と「互換実装の修正」の意味は<a href="#sec-1-5">1.5節</a>のとおり。リンク先は、その変更を入れた GitHub のコミットである。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>文書の版</th><th>プロトコルの版</th><th>互換実装の修正</th><th>変更</th></tr></thead>
+<tbody>
+<tr><td>2026-11-13</td><td>1</td><td>要る</td><td>ShogiBoardQ の P2P対局のセキュリティ監査（2026-11-13）の修正に合わせた（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/64dbc7d86394ed74e5a3ac02b054e40acce6845c">64dbc7d8</a>）。
+<ul>
+<li>到達性の確認を AutoNAT v2 にし、v1 は使わないことにした。ShogiBoardQ の協力ノードは v2 の確認にだけ応える（<a href="#sec-4-1">4.1節</a>）。</li>
+<li><code>sbq-local-1</code> では、Identify で自分のアドレスを配らないことにした（<a href="#sec-4-3">4.3節</a>）。</li>
+<li>宛先に使わないアドレスの範囲を足し、宛先に使える multiaddr の形を決めた。IP を2つ重ねた宛先・知らない部品を含む宛先・中継の入れ子は捨てる（<a href="#sec-4-5">4.5節</a>）。</li>
+<li>上限を足した: 同じ接続元の IP からの確立前の受け・接続の確立の期限・最初のフレームを待つ対局ストリーム・1接続の Yamux のストリーム（<a href="#sec-4-7">4.7節</a>）。</li>
+<li>結果の提案を断る条件を足した: READY を交わす前の提案と、棋譜で決まった終局と違う提案。相手の時間切れの主張は、自分の手番が始まってから数えた時間で確かめる（<a href="#sec-10-2">10.2節</a>）。</li>
+<li>証跡を読むときの CBOR の値の総数の上限（ShogiBoardQ の読み手）を定数の一覧に足した（<a href="#sec-14">14章</a>）。</li>
+<li>対局ストリームの最初のフレームを待つ時間を、実装（監査の修正で 10 秒から 5 秒にした）に合わせて 5 秒に直した。<a href="#sec-4-7">4.7節</a>だけが 5 秒で、<a href="#sec-6-3">6.3節</a>・<a href="#sec-11-1">11.1節</a>・<a href="#sec-14">14章</a>は 10 秒のままだった。</li>
+<li>版の決まり（<a href="#sec-1-5">1.5節</a>）とこの変更履歴を足し、冒頭の文を整えた（文の手直し）。</li>
+</ul>
+<p class="note">上の 64dbc7d8 の変更は、公開したときに文書の版を上げ忘れ、2026-11-12 と書いたままだった。文書の版が 2026-11-12 でも、4.1節に AutoNAT v2 と書いてあれば、2026-11-13 の内容である。</p></td></tr>
+<tr><td>2026-11-12</td><td>1</td><td>要る</td><td>通常版で直した中継の予約と待受の決まりを足した（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/dca1d36d6cd52865e809d37860877cd5fb722b89">dca1d36d</a>）。
+<ul>
+<li>ほかのプロセスが待ち受けているポートで待ち受けてはならないことにした（<a href="#sec-4-2">4.2節</a>）。</li>
+<li>協力ノードは、Identify でインターネット上の待受のアドレスも配ってよいことにした（<a href="#sec-4-3">4.3節</a>）。</li>
+<li>中継の予約を断られた・失ったときは頼み直すこと、中継経由の自分のアドレスを利用者が指定した協力ノードのアドレスから作ること、協力ノードは到達性の確認を待たずに自分のアドレスを持つことを足した（<a href="#sec-4-4">4.4節</a>）。</li>
+</ul></td></tr>
+<tr><td>2026-11-11</td><td>1</td><td>—</td><td>初版。実験版リポジトリ ShogiBoardQ-P2P の 2026-11-11 時点の main の実装と <code>protocol/</code> をもとに書いた（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/02924f246fc4678cd26191de15cd24a651a52c66">02924f24</a>）。同じ日に通常版へ取り込み、文書の中の名前を ShogiBoardQ-P2P から ShogiBoardQ に直した（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/f540b386803cd0c17e23dec08ea1e8d102615554">f540b386</a>）。</td></tr>
+</tbody>
+</table></div>
+</section>
+
 <footer class="doc">
-<p>この文書は、ShogiBoardQ の P2P対局の実装（実験版リポジトリ ShogiBoardQ-P2P の 2026-11-11 時点の main。同じ日に通常版へ取り込んだ。2026-11-12 に、通常版で直した中継の予約の頼み直しと、待受のポートを共有しない決まりを足した）と、リポジトリの <code>protocol/</code>（バイト列の形と試験の入力）をもとに、互換実装のために1つにまとめたものである。プロトコルは実験版で、今後、版を上げて変えることがある。この文書と実装の動きが食い違うときは、リポジトリへ知らせてほしい。</p>
+<p>この文書は、ShogiBoardQ の P2P対局の実装と、リポジトリの <code>protocol/</code>（バイト列の形と試験の入力）をもとに、互換実装のために1つにまとめたものである。版の決まりは<a href="#sec-1-5">1.5節</a>、版ごとの変更は<a href="#sec-B">付録 B</a>にある。この文書と実装の動きが食い違うときは、リポジトリへ知らせてほしい。</p>
 <p>ShogiBoardQ: <a href="https://github.com/hnakada123/ShogiBoardQ">https://github.com/hnakada123/ShogiBoardQ</a></p>
 </footer>
 </main>
