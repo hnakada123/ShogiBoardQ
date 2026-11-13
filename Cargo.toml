@@ -23,3 +23,8 @@ arithmetic_side_effects = "deny"
 
 [profile.release]
 overflow-checks = true
+
+# 整数のオーバーフローの検査は自前のコード（ワークスペース）にだけ掛ける。依存のクレートはリリースでの通常の
+# 振る舞い（検査なし）のままにする（依存の中の溢れで、主のタスクごと通信プロセスを終わらせない。監査 2026-11-13）
+[profile.release.package."*"]
+overflow-checks = false

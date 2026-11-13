@@ -4,6 +4,7 @@
 //! （実装仕様 2.1節・10.4節）。対局・UI側とは標準入出力の IPC（protocol/ipc.md）でやり取りする。
 
 mod addr;
+mod behaviours;
 mod game;
 mod ipc;
 mod listen;

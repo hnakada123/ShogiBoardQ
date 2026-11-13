@@ -52,13 +52,43 @@ fn parse_args(args: &[String]) -> Result<ServiceArgs, String> {
     })
 }
 
-/// 識別鍵を読む。なければ作り、所有者だけが読み書きできる権限で保存する
+/// 識別鍵のファイルを、所有者だけが読み書きできるか確かめる（ほかの利用者が読める・書ける鍵は使わない）
+#[cfg(unix)]
+fn check_identity_permissions(path: &Path) -> Result<(), String> {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    let meta = std::fs::symlink_metadata(path).map_err(|e| format!("identity: {e}"))?;
+    if !meta.file_type().is_file() {
+        return Err("identity: not a regular file".to_owned());
+    }
+    if meta.uid() != nix::unistd::getuid().as_raw() {
+        return Err("identity: owned by another user".to_owned());
+    }
+    if meta.permissions().mode() & 0o077 != 0 {
+        return Err("identity: readable or writable by other users (chmod 600)".to_owned());
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn check_identity_permissions(_path: &Path) -> Result<(), String> {
+    Ok(())
+}
+
+/// 識別鍵を読む。なければ作り、所有者だけが読み書きできる権限で保存する（一時ファイルに書いてから置き換えるので、
+/// 書く途中で止まっても壊れたファイルを残さない）
 fn load_identity(path: &Path) -> Result<Keypair, String> {
     match std::fs::read(path) {
-        Ok(bytes) => Keypair::from_protobuf_encoding(&bytes).map_err(|e| format!("identity: {e}")),
+        Ok(bytes) => {
+            check_identity_permissions(path)?;
+            Keypair::from_protobuf_encoding(&bytes).map_err(|e| format!("identity: {e}"))
+        }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             let keypair = Keypair::generate_ed25519();
             let bytes = keypair.to_protobuf_encoding().map_err(|e| format!("identity: {e}"))?;
+            let mut temp = path.as_os_str().to_owned();
+            temp.push(".tmp");
+            let temp = std::path::PathBuf::from(temp);
+            let _ = std::fs::remove_file(&temp);
             let mut options = std::fs::OpenOptions::new();
             options.write(true).create_new(true);
             #[cfg(unix)]
@@ -66,9 +96,11 @@ fn load_identity(path: &Path) -> Result<Keypair, String> {
                 use std::os::unix::fs::OpenOptionsExt;
                 options.mode(0o600);
             }
-            let mut file = options.open(path).map_err(|e| format!("identity: {e}"))?;
+            let mut file = options.open(&temp).map_err(|e| format!("identity: {e}"))?;
             file.write_all(&bytes).map_err(|e| format!("identity: {e}"))?;
             file.sync_all().map_err(|e| format!("identity: {e}"))?;
+            drop(file);
+            std::fs::rename(&temp, path).map_err(|e| format!("identity: {e}"))?;
             Ok(keypair)
         }
         Err(e) => Err(format!("identity: {e}")),

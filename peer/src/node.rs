@@ -4,7 +4,6 @@
 //! 対局ストリーム（streams）、作った招待（invites）、中継の予約（reservations）。待受は crate::listen
 
 use std::collections::HashMap;
-use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -85,6 +84,8 @@ pub struct Node {
     pub next_conn: u64,
     pub invites: invites::Invites,
     pub game_peer: Option<PeerId>,
+    /// 最初のフレームを待つ届いた対局ストリームの数と、対局中の相手（受け付けのタスクと共有する）
+    pub accept_gate: Arc<streams::AcceptGate>,
     pub peer_conns: HashMap<PeerId, HashMap<ConnectionId, bool>>,
     /// 受け付けた接続の接続元のアドレス帯
     pub inbound_prefixes: HashMap<ConnectionId, Vec<u8>>,
@@ -228,8 +229,10 @@ impl Node {
             relay_server: config.relay_server,
             relay_only: config.relay_only,
             // 「直接接続を使わない」のときは、到達性の確認（AutoNAT）をしない。確認の依頼には自分の
-            // アドレスの候補が入り、中継経由でつながった相手にも届きうる
-            autonat: internet && !config.relay_only,
+            // アドレスの候補が入る。確認に応えるのは協力ノードだけ（AutoNAT v2 のクライアントは、応える側の
+            // ピアにだけ頼むので、確認の依頼は協力ノードにだけ届く）
+            autonat_client: internet && !config.relay_only && !config.service,
+            autonat_server: internet && config.service,
         })?;
 
         if listen::open(&mut swarm, config.listen) == 0 {
@@ -239,16 +242,13 @@ impl Node {
         let (conn_tx, conn_rx) = mpsc::unbounded_channel();
         let (internal_tx, internal_rx) = mpsc::unbounded_channel();
         let mut control = swarm.behaviour().game.new_control();
+        let accept_gate = Arc::new(streams::AcceptGate::default());
         if !config.service {
             // 協力ノードは対局ストリームを受け付けない
             let incoming = control
                 .accept(StreamProtocol::new(GAME_PROTOCOL))
                 .map_err(|e| e.to_string())?;
-            tokio::spawn(streams::accept_task(
-                incoming,
-                internal_tx.clone(),
-                Arc::new(AtomicUsize::new(0)),
-            ));
+            tokio::spawn(streams::accept_task(incoming, internal_tx.clone(), accept_gate.clone()));
         }
 
         Ok(Node {
@@ -266,6 +266,7 @@ impl Node {
             next_conn: 1,
             invites: invites::Invites::default(),
             game_peer: None,
+            accept_gate,
             peer_conns: HashMap::new(),
             inbound_prefixes: HashMap::new(),
             addr_book: HashMap::new(),
@@ -296,8 +297,13 @@ impl Node {
             }
             self.swarm.add_peer_address(peer, base.clone());
             self.bootstrap.insert(peer, base.clone());
+            // 協力ノードへは、新しいポートで接続する。起動の直後は TCP の待受がまだ自分のアドレスを登録していないので、
+            // 待受のポートを使い回せず一時的なポートで出ていく。ポートを使い回すつもりで出ると、Identify は協力ノードが
+            // 観測したアドレス（一時的なポート）をそのまま到達性の確認の候補にし、確認は必ず失敗する。新しいポートで
+            // 出たと分かっていれば、Identify は観測したアドレスを待受のポートに直して候補にする
             let opts = libp2p::swarm::dial_opts::DialOpts::peer_id(peer)
                 .addresses(vec![base])
+                .allocate_new_port()
                 .build();
             let _ = self.swarm.dial(opts);
         }

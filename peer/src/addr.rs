@@ -51,7 +51,9 @@ fn classify_v4(ip: Ipv4Addr) -> IpClass {
         || (a == 198 && b == 51 && c == 100)
         || (a == 203 && b == 0 && c == 113)
         || (a == 198 && (18..=19).contains(&b))
-        || (a == 192 && b == 0 && c == 0);
+        || (a == 192 && b == 0 && c == 0)
+        // 6to4 の中継の範囲（RFC 7526 で廃止）
+        || (a == 192 && b == 88 && c == 99);
     if forbidden {
         return IpClass::Forbidden;
     }
@@ -70,14 +72,32 @@ fn classify_v6(ip: Ipv6Addr) -> IpClass {
     }
     let ipv4_embedded = seg.get(..5).is_some_and(|s| s.iter().all(|&x| x == 0))
         && matches!(seg.get(5).copied(), Some(0) | Some(0xffff));
+    // 100::/64（捨てるためのアドレス）
+    let discard = first == 0x0100 && seg.get(1..4).is_some_and(|s| s.iter().all(|&x| x == 0));
     let forbidden = ip.is_unspecified()
         || ipv4_embedded
+        || discard
         || (first & 0xffc0) == 0xfe80
+        // サイトローカル（fec0::/10。廃止された私設の範囲）
+        || (first & 0xffc0) == 0xfec0
         || (first & 0xff00) == 0xff00
         || (first == 0x2001 && second == 0x0db8)
+        // Teredo（2001::/32。IPv4 の NAT の内側へのトンネル）
+        || (first == 0x2001 && second == 0x0000)
         || (first == 0x0064 && second == 0xff9b);
     if forbidden {
         return IpClass::Forbidden;
+    }
+    // 6to4（2002::/16）は、埋め込んだ IPv4 がインターネット上のアドレスのときだけ使う（私設の IPv4 を包んで、
+    // 規則を抜けさせない）
+    if first == 0x2002 {
+        let third = seg.get(2).copied().unwrap_or(0);
+        let [a, b] = second.to_be_bytes();
+        let [c, d] = third.to_be_bytes();
+        return match classify_v4(Ipv4Addr::new(a, b, c, d)) {
+            IpClass::Public => IpClass::Public,
+            _ => IpClass::Forbidden,
+        };
     }
     IpClass::Public
 }
@@ -95,6 +115,60 @@ pub fn first_ip(addr: &Multiaddr) -> Option<IpAddr> {
         Protocol::Ip4(ip) => Some(IpAddr::V4(ip)),
         Protocol::Ip6(ip) => Some(IpAddr::V6(ip)),
         _ => None,
+    }
+}
+
+/// 直接の宛先の形（ip/tcp・ip/udp/quic-v1）なら、その IP
+fn direct_ip(parts: &[Protocol<'_>]) -> Option<IpAddr> {
+    let (ip, rest) = match parts {
+        [Protocol::Ip4(ip), rest @ ..] => (IpAddr::V4(*ip), rest),
+        [Protocol::Ip6(ip), rest @ ..] => (IpAddr::V6(*ip), rest),
+        _ => return None,
+    };
+    match rest {
+        [Protocol::Tcp(_)] | [Protocol::Udp(_), Protocol::QuicV1] => Some(ip),
+        _ => None,
+    }
+}
+
+/// 宛先として受け付ける形か。受け付けるのは決めた並びだけ:
+/// - 直接: `ip/tcp`・`ip/udp/quic-v1`（末尾の `/p2p/<PeerId>` は許す）
+/// - 中継経由: `[直接の形]/p2p/<中継>/p2p-circuit[/p2p/<宛先>]` と `/p2p/<中継>/p2p-circuit[/p2p/<宛先>]`
+///
+/// この形の中では、先頭の IP が唯一の IP になる（ほかの規則は先頭の IP を見る）。libp2p-tcp は multiaddr の末尾の
+/// IP へつなぐので、IP を2つ重ねた宛先で先頭だけを確かめる規則を抜けられた（監査 2026-11-13 P3）
+pub fn has_known_shape(addr: &Multiaddr) -> bool {
+    let parts: Vec<Protocol<'_>> = addr.iter().collect();
+    let Some(circuit) = parts.iter().position(|p| matches!(p, Protocol::P2pCircuit)) else {
+        let direct = match parts.as_slice() {
+            [rest @ .., Protocol::P2p(_)] => rest,
+            all => all,
+        };
+        return direct_ip(direct).is_some();
+    };
+    let (before, after) = parts.split_at(circuit);
+    // p2p-circuit の後は、宛先の /p2p/<PeerId> だけ（中継の入れ子は受け付けない）
+    if !matches!(after, [Protocol::P2pCircuit] | [Protocol::P2pCircuit, Protocol::P2p(_)]) {
+        return false;
+    }
+    // p2p-circuit の前は /p2p/<中継> で終わり、その前は空か直接の形
+    match before {
+        [Protocol::P2p(_)] => true,
+        [relay @ .., Protocol::P2p(_)] => direct_ip(relay).is_some(),
+        _ => false,
+    }
+}
+
+/// インターネット上の直接の宛先（到達性の確認に送ってよい自分のアドレスの候補）か
+pub fn is_public_direct(addr: &Multiaddr) -> bool {
+    has_known_shape(addr) && !is_circuit(addr) && first_ip(addr).map(classify) == Some(IpClass::Public)
+}
+
+/// 接続元の IP（同じ機器からの接続の数を数える）
+pub fn ip_key(addr: &Multiaddr) -> Option<Vec<u8>> {
+    match first_ip(addr)? {
+        IpAddr::V4(v4) => Some(v4.octets().to_vec()),
+        IpAddr::V6(v6) => Some(v6.octets().to_vec()),
     }
 }
 
@@ -227,7 +301,7 @@ impl AddrPolicy {
 
     /// この profile の宛先として形と IP の区分が合うか
     fn profile_allows(&self, addr: &Multiaddr) -> bool {
-        if has_dns(addr) {
+        if has_dns(addr) || !has_known_shape(addr) {
             return false;
         }
         match addr.iter().next() {
@@ -320,13 +394,14 @@ impl AddrPolicy {
         )
     }
 
-    /// 待受のアドレスを、そのまま自分のアドレス（外から届く宛先）にしてよいか。ローカル（同じPC・同じLAN）では
-    /// loopback と私設アドレス。インターネットでは、協力ノードのグローバルなアドレスだけにする（協力ノードは
-    /// 中継の予約の応答で自分のアドレスを返す。到達性の確認を待つと、起動した直後の予約を断ることになる）。
-    /// ふつうのプレイヤーのインターネットのアドレスは、到達性の確認（AutoNAT）で決める。
-    /// 「直接接続を使わない」のときは載せない（advertisable）
+    /// 待受のアドレスを、そのまま自分のアドレス（外から届く宛先。Identify に載る）にしてよいか。協力ノードの
+    /// インターネットのグローバルなアドレスだけにする（協力ノードは中継の予約の応答で自分のアドレスを返す。到達性の
+    /// 確認を待つと、起動した直後の予約を断ることになる）。ふつうのプレイヤーのインターネットのアドレスは、到達性の
+    /// 確認（AutoNAT）で決める。ローカル（同じPC・同じLAN）では載せない。Identify は招待を持たない相手にも届くので、
+    /// 待受のポートにつないだだけの LAN の機器に、この PC の私設アドレスの一覧（VPN・仮想の NIC を含む）を配らない
+    /// （監査 2026-11-13 P10。相手への宛先は招待で渡し、つなぎ直すのは招待で接続した側）
     pub fn listen_is_external(&self, service: bool, addr: &Multiaddr) -> bool {
-        !is_circuit(addr) && self.advertisable(addr) && (self.profile == Profile::Local || service)
+        service && !is_circuit(addr) && self.advertisable(addr)
     }
 
     /// ダイヤルしてよいか（失敗の待ちも見る）
@@ -484,6 +559,72 @@ mod tests {
         assert!(!p.usable(&ma("/ip4/192.168.1.6/tcp/4001")));
     }
 
+    /// IP を2つ重ねた宛先など、決めた並びでない宛先は使わない。libp2p-tcp は末尾の IP へつなぐので、先頭だけを
+    /// 確かめると loopback・LAN・インターネットへ抜けられた（監査 2026-11-13 P3）
+    #[test]
+    fn only_known_shapes_are_usable() {
+        let relay = "12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN";
+        let dest = "12D3KooWQYhTNQdmr3ArTeUHRYzFg94BKyTkoWBDWez9kSCVe2Xo";
+        let internet = AddrPolicy::new(Profile::Internet, false);
+        let local = AddrPolicy::new(Profile::Local, false);
+        for good in [
+            "/ip4/8.8.8.8/tcp/4001".to_owned(),
+            format!("/ip4/8.8.8.8/tcp/4001/p2p/{dest}"),
+            "/ip6/2400:4050::1/udp/4001/quic-v1".to_owned(),
+            format!("/ip4/8.8.8.8/udp/4001/quic-v1/p2p/{relay}/p2p-circuit"),
+            format!("/ip4/8.8.8.8/tcp/4001/p2p/{relay}/p2p-circuit/p2p/{dest}"),
+            format!("/p2p/{relay}/p2p-circuit/p2p/{dest}"),
+        ] {
+            assert!(has_known_shape(&ma(&good)), "{good}");
+        }
+        for stacked in [
+            "/ip4/1.2.3.4/tcp/1/ip4/127.0.0.1/tcp/4001".to_owned(),
+            "/ip4/1.2.3.4/tcp/1/ip4/192.168.1.2/tcp/4001".to_owned(),
+            "/ip4/1.2.3.4/udp/1/quic-v1/ip4/10.0.0.1/tcp/4001".to_owned(),
+            "/ip4/8.8.8.8/tcp/4001/tcp/5000".to_owned(),
+            "/ip4/8.8.8.8/udp/4001".to_owned(),
+            format!("/ip4/1.2.3.4/tcp/1/ip4/127.0.0.1/tcp/4001/p2p/{relay}/p2p-circuit"),
+            format!("/ip4/8.8.8.8/tcp/4001/p2p/{relay}/p2p-circuit/p2p/{relay}/p2p-circuit/p2p/{dest}"),
+            format!("/ip4/8.8.8.8/tcp/4001/p2p-circuit/p2p/{dest}"),
+        ] {
+            assert!(!has_known_shape(&ma(&stacked)), "{stacked}");
+            assert!(!internet.usable(&ma(&stacked)), "{stacked}");
+        }
+        // ローカルでも、loopback の後ろにインターネット上のアドレスを重ねた宛先は使わない
+        assert!(!local.usable(&ma("/ip4/127.0.0.1/tcp/1/ip6/2400:4050::1/tcp/4001")));
+        assert!(local.usable(&ma("/ip4/127.0.0.1/tcp/4001")));
+    }
+
+    /// 私設の IPv4 を包んだ IPv6 と、廃止・トンネルの範囲は使わない
+    #[test]
+    fn wrapped_and_deprecated_v6_ranges() {
+        let ip = |s: &str| classify(s.parse::<IpAddr>().unwrap());
+        assert_eq!(ip("2002:c0a8:0102::1"), IpClass::Forbidden); // 6to4 に 192.168.1.2
+        assert_eq!(ip("2002:7f00:0001::1"), IpClass::Forbidden); // 6to4 に 127.0.0.1
+        assert_eq!(ip("2002:0808:0808::1"), IpClass::Public); // 6to4 に 8.8.8.8
+        assert_eq!(ip("2001:0:4136:e378::1"), IpClass::Forbidden); // Teredo
+        assert_eq!(ip("fec0::1"), IpClass::Forbidden); // サイトローカル
+        assert_eq!(ip("100::1"), IpClass::Forbidden); // 捨てるためのアドレス
+        assert_eq!(ip("64:ff9b:1::c0a8:102"), IpClass::Forbidden); // ローカル用の NAT64
+        assert_eq!(ip("2001:4860::8888"), IpClass::Public);
+        assert_eq!(ip("192.88.99.1"), IpClass::Forbidden); // 廃止された 6to4 の中継
+        assert_eq!(ip("11.88.99.1"), IpClass::Public); // 撮影用コンテナの「インターネット」
+    }
+
+    #[test]
+    fn public_direct_candidates() {
+        assert!(is_public_direct(&ma("/ip4/8.8.8.8/tcp/4001")));
+        assert!(is_public_direct(&ma("/ip6/2400:4050::1/udp/4001/quic-v1")));
+        for bad in [
+            "/ip4/192.168.1.2/tcp/4001",
+            "/ip4/127.0.0.1/tcp/4001",
+            "/ip6/fe80::1/tcp/4001",
+            "/ip4/1.2.3.4/tcp/1/ip4/192.168.1.2/tcp/4001",
+        ] {
+            assert!(!is_public_direct(&ma(bad)), "{bad}");
+        }
+    }
+
     #[test]
     fn local_rules() {
         let p = AddrPolicy::new(Profile::Local, false);
@@ -504,9 +645,10 @@ mod tests {
         assert!(!internet.listen_is_external(true, &ma("/ip4/127.0.0.1/tcp/4001")));
         // ふつうのプレイヤーは、到達性の確認で決める
         assert!(!internet.listen_is_external(false, &ma("/ip4/8.8.8.8/tcp/4001")));
-        // ローカルは loopback と私設アドレス（「直接接続を使わない」なら載せない）
+        // ローカルは載せない（Identify は招待を持たない LAN の機器にも届く。監査 2026-11-13 P10）
         let local = AddrPolicy::new(Profile::Local, false);
-        assert!(local.listen_is_external(false, &ma("/ip4/192.168.1.2/tcp/48210")));
+        assert!(!local.listen_is_external(false, &ma("/ip4/192.168.1.2/tcp/48210")));
+        assert!(!local.listen_is_external(false, &ma("/ip4/127.0.0.1/tcp/48210")));
         assert!(!local.listen_is_external(false, &ma("/ip4/8.8.8.8/tcp/48210")));
         let local_relay_only = AddrPolicy::new(Profile::Local, true);
         assert!(!local_relay_only.listen_is_external(false, &ma("/ip4/192.168.1.2/tcp/48210")));

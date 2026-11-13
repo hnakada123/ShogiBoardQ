@@ -2,8 +2,9 @@
 //!
 //! 中継するのは外枠と頻度を確かめたフレームだけで、対局の規則（着手・状態・署名）は対局・UI側が確かめる。
 
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::atomic::Ordering;
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use futures::{AsyncReadExt, StreamExt};
@@ -18,8 +19,70 @@ use crate::ipc;
 
 /// 対局ストリーム（開始前・対局中を合わせて）の上限
 pub const MAX_GAME_CONNECTIONS: usize = 8;
-/// 最初のフレームを待つ時間
-const FIRST_FRAME_TIMEOUT: Duration = Duration::from_secs(10);
+/// 最初のフレームを待つ時間（つなぐ側は開いた直後に送る）
+const FIRST_FRAME_TIMEOUT: Duration = Duration::from_secs(5);
+/// 最初のフレームを待つ届いたストリームの上限（全体）。接続は同じアドレス帯から8本までなので、1つのアドレス帯で
+/// 使い切れない数にする
+const MAX_PENDING_STREAMS: usize = 16;
+/// 最初のフレームを待つ届いたストリームの上限（相手ごと）
+const MAX_PENDING_STREAMS_PER_PEER: usize = 1;
+
+/// 届いた対局ストリームのうち、最初のフレームを待つものの数と、対局中の相手（受け付けのタスクと主ループで共有する）。
+///
+/// 招待の合言葉と相手の確認は最初のフレームの後なので、最初のフレームを送らない相手に待ちの枠を使い切られると、
+/// 招待を持つ相手や対局相手のストリームを捨てることになる（監査 2026-11-13 P6）。待ちの枠は相手ごとに数え、対局中は
+/// 相手以外のストリームを読まずに閉じる
+#[derive(Default)]
+pub struct AcceptGate {
+    state: Mutex<GateState>,
+}
+
+#[derive(Default)]
+struct GateState {
+    total: usize,
+    per_peer: HashMap<PeerId, usize>,
+    game_peer: Option<PeerId>,
+}
+
+impl AcceptGate {
+    fn lock(&self) -> MutexGuard<'_, GateState> {
+        match self.state.lock() {
+            Ok(g) => g,
+            Err(poisoned) => poisoned.into_inner(),
+        }
+    }
+
+    /// 対局中の相手（None で対局していない）
+    pub fn set_game_peer(&self, peer: Option<PeerId>) {
+        self.lock().game_peer = peer;
+    }
+
+    /// 最初のフレームを待ってよいか（よければ数に入れる）
+    fn enter(&self, peer: &PeerId) -> bool {
+        let mut state = self.lock();
+        if state.game_peer.is_some_and(|game| &game != peer) {
+            return false;
+        }
+        let mine = state.per_peer.get(peer).copied().unwrap_or(0);
+        if state.total >= MAX_PENDING_STREAMS || mine >= MAX_PENDING_STREAMS_PER_PEER {
+            return false;
+        }
+        state.total = state.total.saturating_add(1);
+        state.per_peer.insert(*peer, mine.saturating_add(1));
+        true
+    }
+
+    fn leave(&self, peer: &PeerId) {
+        let mut state = self.lock();
+        state.total = state.total.saturating_sub(1);
+        let left = state.per_peer.get(peer).copied().unwrap_or(0).saturating_sub(1);
+        if left == 0 {
+            state.per_peer.remove(peer);
+        } else {
+            state.per_peer.insert(*peer, left);
+        }
+    }
+}
 /// 接続を開くまでの時間
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 
@@ -301,18 +364,18 @@ impl Node {
 pub(super) async fn accept_task(
     mut incoming: libp2p_stream::IncomingStreams,
     internal: mpsc::UnboundedSender<Internal>,
-    pending: Arc<AtomicUsize>,
+    gate: Arc<AcceptGate>,
 ) {
     while let Some((peer, mut stream)) = incoming.next().await {
-        if pending.load(Ordering::SeqCst) >= MAX_GAME_CONNECTIONS {
+        // 待ちの枠がない・対局中の相手でないストリームは、読まずに閉じる（捨てると閉じる）
+        if !gate.enter(&peer) {
             continue;
         }
-        pending.fetch_add(1, Ordering::SeqCst);
         let internal = internal.clone();
-        let pending = pending.clone();
+        let gate = gate.clone();
         tokio::spawn(async move {
             let first = tokio::time::timeout(FIRST_FRAME_TIMEOUT, game::read_frame(&mut stream)).await;
-            pending.fetch_sub(1, Ordering::SeqCst);
+            gate.leave(&peer);
             if let Ok(Ok((bytes, header))) = first {
                 let _ = internal.send(Internal::Inbound {
                     peer,
@@ -322,5 +385,34 @@ pub(super) async fn accept_task(
                 });
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 待ちの枠は相手ごとに1件。対局中は相手以外を受け付けない（監査 2026-11-13 P6）
+    #[test]
+    fn accept_gate_limits_per_peer_and_keeps_the_game_peer() {
+        let gate = AcceptGate::default();
+        let attacker = PeerId::random();
+        let friend = PeerId::random();
+        assert!(gate.enter(&attacker));
+        assert!(!gate.enter(&attacker));
+        assert!(gate.enter(&friend));
+        gate.leave(&attacker);
+        assert!(gate.enter(&attacker));
+        // 全体の上限
+        let others: Vec<PeerId> = (0..MAX_PENDING_STREAMS).map(|_| PeerId::random()).collect();
+        let admitted = others.iter().filter(|p| gate.enter(p)).count();
+        assert_eq!(admitted, MAX_PENDING_STREAMS.saturating_sub(2));
+        // 対局中は相手だけ
+        let fresh = AcceptGate::default();
+        fresh.set_game_peer(Some(friend));
+        assert!(!fresh.enter(&attacker));
+        assert!(fresh.enter(&friend));
+        fresh.set_game_peer(None);
+        assert!(fresh.enter(&attacker));
     }
 }

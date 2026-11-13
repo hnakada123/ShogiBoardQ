@@ -6,13 +6,14 @@ use libp2p::core::ConnectedPoint;
 use libp2p::multiaddr::Protocol;
 use libp2p::swarm::{DialError, SwarmEvent};
 use libp2p::{autonat, identify, ping, relay, Multiaddr, PeerId};
+use sbq_protocol::network::Profile;
 
 use super::{ConnState, Node};
 use crate::addr;
 use crate::ipc;
 use crate::swarm::{supports_relay_hop, BehaviourEvent};
 
-/// 同じアドレス帯から受け付ける接続の上限
+/// 同じアドレス帯（ローカルでは同じ IP）から受け付ける接続の上限
 const MAX_INBOUND_PER_PREFIX: usize = 8;
 /// 覚える待受のアドレスの上限
 const MAX_LISTEN_ADDRS: usize = 16;
@@ -24,9 +25,8 @@ impl Node {
                 if !self.listen_addrs.contains(&address) && self.listen_addrs.len() < MAX_LISTEN_ADDRS {
                     self.listen_addrs.push(address.clone());
                 }
-                // ローカル（同じPC・同じLAN）では、待受のアドレスのうち loopback と私設アドレスを、そのまま自分の
-                // アドレスにする（Identify に載せ、再接続の宛先にする）。協力ノードは、インターネットのグローバルな
-                // 待受を自分のアドレスにする（中継の予約の応答に載せる）。「直接接続を使わない」のときは載せない
+                // 協力ノードは、インターネットのグローバルな待受を自分のアドレスにする（中継の予約の応答に載せる）。
+                // ふつうのプレイヤーの待受は Identify に載せない（ローカルの宛先は招待で渡す）
                 if self.policy.listen_is_external(self.service, &address) {
                     self.swarm.add_external_address(address);
                 }
@@ -90,9 +90,15 @@ impl Node {
         }
     }
 
-    /// 同じアドレス帯から受け付けた接続が多すぎるか（多すぎなければ数に入れる）
+    /// 同じアドレス帯から受け付けた接続が多すぎるか（多すぎなければ数に入れる）。ローカル（同じPC・同じLAN）では
+    /// LAN 全体が同じアドレス帯に入るので、接続元の IP ごとに数える（1台の機器で LAN の相手を締め出させない）
     fn admit_inbound(&mut self, connection: libp2p::swarm::ConnectionId, addr: &Multiaddr) -> bool {
-        let Some(prefix) = addr::prefix_of(addr) else {
+        let key = if self.spec.profile == Profile::Local {
+            addr::ip_key(addr)
+        } else {
+            addr::prefix_of(addr)
+        };
+        let Some(prefix) = key else {
             return true;
         };
         let count = self.inbound_prefixes.values().filter(|p| **p == prefix).count();
@@ -140,11 +146,12 @@ impl Node {
             BehaviourEvent::RelayClient(relay::client::Event::ReservationReqAccepted { relay_peer_id, .. }) => {
                 self.reservations.accepted(relay_peer_id);
             }
-            BehaviourEvent::Autonat(autonat::Event::StatusChanged { new, .. }) => {
-                self.reachability = match new {
-                    autonat::NatStatus::Public(_) => ipc::Reachability::Public,
-                    autonat::NatStatus::Private => ipc::Reachability::Private,
-                    autonat::NatStatus::Unknown => ipc::Reachability::Unknown,
+            BehaviourEvent::AutonatClient(autonat::v2::client::Event { result, .. }) => {
+                // 確かめた候補のどれかに外から届けば、インターネットから届く。届かなかった候補しかなければ届かない
+                self.reachability = match (result, self.reachability) {
+                    (Ok(()), _) => ipc::Reachability::Public,
+                    (Err(_), ipc::Reachability::Public) => ipc::Reachability::Public,
+                    (Err(_), _) => ipc::Reachability::Private,
                 };
             }
             _ => {}
@@ -160,8 +167,12 @@ impl Node {
                 self.policy.allow_node(peer, a);
             }
         }
-        let addrs = self.policy.filter_addrs(info.listen_addrs.iter().cloned());
-        self.remember_addrs(peer, &addrs);
+        // 名乗った宛先を覚えるのは、自分からつないだ相手（招待・対局）だけ。つないできただけの相手に、覚える枠を
+        // 埋めさせない（監査 2026-11-13 P19）
+        if self.addr_book.contains_key(&peer) || self.game_peer == Some(peer) {
+            let addrs = self.policy.filter_addrs(info.listen_addrs.iter().cloned());
+            self.remember_addrs(peer, &addrs);
+        }
         // 中継の予約は、自分の到達性によらず取る。「直接接続を使わない」相手は、中継経由のアドレスでしか
         // つなげないので、外から直接届く側も中継経由のアドレスを招待に入れる
         if !self.service && is_node && supports_relay_hop(&info) {
@@ -176,7 +187,9 @@ impl Node {
             return;
         }
         // 中継のアドレスは、利用者が指定した宛先から作る（同じ協力ノードを指定した相手が、そのまま使える）
-        let Some(base) = self.bootstrap.get(&peer).cloned() else { return };
+        let Some(base) = self.bootstrap.get(&peer).cloned() else {
+            return;
+        };
         let circuit = base.with(Protocol::P2p(peer)).with(Protocol::P2pCircuit);
         if let Ok(listener) = self.swarm.listen_on(circuit) {
             self.reservations.requested(peer, listener);

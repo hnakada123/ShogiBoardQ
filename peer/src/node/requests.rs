@@ -193,6 +193,8 @@ impl Node {
             let peer = parse_peer_id(&p.peer_id).ok_or_else(|| invalid("invalid peerId"))?;
             self.game_peer = Some(peer);
         }
+        // 対局中は、相手以外の届いた対局ストリームを読まずに閉じる
+        self.accept_gate.set_game_peer(self.game_peer);
         Ok(json!({}))
     }
 

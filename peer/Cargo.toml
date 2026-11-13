@@ -29,5 +29,5 @@ rand = "0.8"
 [target.'cfg(target_os = "linux")'.dependencies]
 landlock = "0.4"
 seccompiler = "0.5"
-nix = { version = "0.29", default-features = false, features = ["process", "resource", "signal", "socket"] }
+nix = { version = "0.29", default-features = false, features = ["process", "resource", "signal", "socket", "user"] }
 libc = "0.2"

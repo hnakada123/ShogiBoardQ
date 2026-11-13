@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use futures::future::Either;
 use libp2p::core::muxing::StreamMuxerBox;
+use libp2p::core::transport::timeout::TransportTimeout;
 use libp2p::core::transport::Transport as _;
 use libp2p::core::upgrade::Version;
 use libp2p::identity::Keypair;
@@ -15,6 +16,14 @@ use libp2p::{autonat, connection_limits, dcutr, identify, noise, ping, quic, rel
 use sbq_protocol::network::IDENTIFY_PROTOCOL;
 
 use crate::addr::{AddrPolicy, FilteredTransport};
+use crate::behaviours::{PendingPerSource, PublicAutonatClient};
+
+/// 接続の確立（暗号の手続きと多重化の取り決め）の期限。何も送らない接続で確立前の枠を使い続けさせない
+const CONNECTION_SETUP_TIMEOUT: Duration = Duration::from_secs(20);
+/// 1つの接続元から受け付ける確立前の接続の上限（全体の上限 8 より小さくし、1つの接続元で使い切れないようにする）
+const MAX_PENDING_PER_SOURCE: usize = 3;
+/// 1つの接続で同時に開ける yamux のストリームの上限（対局・Identify・ping・中継の予約に足りる数）
+const MAX_YAMUX_STREAMS: usize = 64;
 
 /// 中継の hop のプロトコル
 pub const RELAY_HOP_PROTOCOL: &str = "/libp2p/circuit/relay/0.2.0/hop";
@@ -23,12 +32,16 @@ pub const RELAY_HOP_PROTOCOL: &str = "/libp2p/circuit/relay/0.2.0/hop";
 #[derive(NetworkBehaviour)]
 pub struct Behaviour {
     pub limits: connection_limits::Behaviour,
+    pub pending_per_source: PendingPerSource,
     pub identify: identify::Behaviour,
     pub ping: ping::Behaviour,
     pub relay_client: Toggle<relay::client::Behaviour>,
     pub relay_server: Toggle<relay::Behaviour>,
     pub dcutr: Toggle<dcutr::Behaviour>,
-    pub autonat: Toggle<autonat::Behaviour>,
+    /// 到達性の確認のクライアント（AutoNAT v2。確かめてもらう候補はインターネット上のアドレスだけ）
+    pub autonat_client: Toggle<PublicAutonatClient>,
+    /// 到達性の確認に応える側（協力ノードだけ。ふつうのプレイヤーは、ほかのピアの頼みでそのピアへ接続を始めない）
+    pub autonat_server: Toggle<autonat::v2::server::Behaviour>,
     pub game: libp2p_stream::Behaviour,
 }
 
@@ -41,12 +54,24 @@ pub struct SwarmOptions {
     pub relay_server: bool,
     /// 直接接続を使わない（DCUtR をしない）
     pub relay_only: bool,
-    /// AutoNAT を使う（internet で、直接接続を使うとき）
-    pub autonat: bool,
+    /// 到達性の確認を頼む（internet のふつうのプレイヤーで、直接接続を使うとき）
+    pub autonat_client: bool,
+    /// 到達性の確認に応える（internet の協力ノード）
+    pub autonat_server: bool,
 }
 
 fn io_err<E: std::fmt::Display>(e: E) -> String {
     e.to_string()
+}
+
+fn io_err_owned<E: std::error::Error + Send + Sync + 'static>(e: E) -> std::io::Error {
+    std::io::Error::other(e)
+}
+
+fn yamux_config() -> yamux::Config {
+    let mut config = yamux::Config::default();
+    config.set_max_num_streams(MAX_YAMUX_STREAMS);
+    config
 }
 
 /// Swarm を作る
@@ -59,7 +84,7 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
         .or_transport(tcp::tokio::Transport::new(tcp::Config::default().nodelay(true)))
         .upgrade(Version::V1Lazy)
         .authenticate(noise::Config::new(&keypair).map_err(io_err)?)
-        .multiplex(yamux::Config::default());
+        .multiplex(yamux_config());
     let quic_transport = quic::tokio::Transport::new(quic::Config::new(&keypair));
     let combined = quic_transport
         .or_transport(tcp_and_relay)
@@ -67,6 +92,10 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
             Either::Left((peer, conn)) => (peer, StreamMuxerBox::new(conn)),
             Either::Right((peer, muxer)) => (peer, StreamMuxerBox::new(muxer)),
         })
+        .boxed();
+    // 確立の期限は、届いた接続（待受）とつなぐ接続のどちらにも掛かる
+    let combined = TransportTimeout::new(combined, CONNECTION_SETUP_TIMEOUT)
+        .map_err(io_err_owned)
         .boxed();
     let transport = FilteredTransport::new(combined, options.policy.clone()).boxed();
 
@@ -100,6 +129,7 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
 
     let behaviour = Behaviour {
         limits: connection_limits::Behaviour::new(limits),
+        pending_per_source: PendingPerSource::new(MAX_PENDING_PER_SOURCE),
         identify: identify::Behaviour::new(identify_config),
         ping: ping::Behaviour::new(
             ping::Config::new()
@@ -113,17 +143,8 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
         } else {
             Some(dcutr::Behaviour::new(local_peer))
         }),
-        autonat: Toggle::from(if options.autonat {
-            Some(autonat::Behaviour::new(
-                local_peer,
-                autonat::Config {
-                    only_global_ips: true,
-                    ..Default::default()
-                },
-            ))
-        } else {
-            None
-        }),
+        autonat_client: Toggle::from(options.autonat_client.then(PublicAutonatClient::new)),
+        autonat_server: Toggle::from(options.autonat_server.then(autonat::v2::server::Behaviour::default)),
         game: libp2p_stream::Behaviour::new(),
     };
 
