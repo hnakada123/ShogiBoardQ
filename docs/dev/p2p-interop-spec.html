@@ -374,7 +374,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <tr><td>死活</td><td>Ping（<code>/ipfs/ping/1.0.0</code>）</td><td><strong>必須</strong>。10 秒ごとに送り、30 秒応答がなければ接続を閉じる。Ping に対応しない相手との接続は、すぐに閉じる</td></tr>
 <tr><td>中継</td><td>Circuit Relay v2（<code>/libp2p/circuit/relay/0.2.0/hop</code>・<code>/stop</code>）</td><td>4.4節。<code>sbq-limited-1</code> で使う</td></tr>
 <tr><td>直接接続への切り替え</td><td>DCUtR（<code>/libp2p/dcutr</code>）</td><td>省いてよい。中継だけを使う設定では行ってはならない</td></tr>
-<tr><td>到達性の確認</td><td>AutoNAT（<code>/libp2p/autonat/1.0.0</code>）</td><td>省いてよい。中継だけを使う設定では行ってはならない</td></tr>
+<tr><td>到達性の確認</td><td>AutoNAT v2（<code>/libp2p/autonat/2/dial-request</code>・<code>/libp2p/autonat/2/dial-back</code>）</td><td>省いてよい。中継だけを使う設定では行ってはならない。確かめてもらうのは、相手が観測した自分のアドレスの候補のうちインターネット上の直接のアドレスだけにする。待受のアドレス（私設・loopback・link-local を含む）を相手に送る AutoNAT v1（<code>/libp2p/autonat/1.0.0</code>）は使わない。ShogiBoardQ の協力ノードは v2 の確認に応え、ふつうのプレイヤーは応えない</td></tr>
 <tr><td>対局</td><td><code>/shogiboardq/game/1.0.0</code></td><td>6章以降。この文書の本体</td></tr>
 </tbody>
 </table></div>
@@ -393,7 +393,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 
 <h3 id="sec-4-3">4.3 Identify</h3>
 <p>Identify の <code>protocolVersion</code> は <code>/shogiboardq/1.0.0</code>、<code>agentVersion</code> は実装の名前と版（ShogiBoardQ は <code>shogiboardq-peer/&lt;版&gt;</code>）にする。相手のこれらの値で接続を断ってはならない（ネットワークの違いは networkId で確かめる）。</p>
-<p>Identify で配る自分のアドレス（listenAddrs）には、待受のアドレスをそのまま入れてはならない。入れてよいのは、相手が実際に届くと確かめた・決めたアドレスだけである（<code>sbq-local-1</code> では loopback と私設アドレス、<code>sbq-limited-1</code> では AutoNAT で確かめたインターネット上のアドレスと中継経由のアドレス。協力ノードは、インターネット上の待受のアドレスも入れてよい。4.4節）。待受のアドレスが変わったことを Identify の push で知らせない。</p>
+<p>Identify で配る自分のアドレス（listenAddrs）には、待受のアドレスをそのまま入れてはならない。入れてよいのは、相手が実際に届くと確かめた・決めたアドレスだけである（<code>sbq-limited-1</code> では到達性の確認で確かめたインターネット上のアドレスと中継経由のアドレス。協力ノードは、インターネット上の待受のアドレスも入れてよい。4.4節）。<code>sbq-local-1</code> では入れない（Identify は招待を持たない相手にも届くので、待受のポートにつないだだけの LAN の機器に、PC の私設アドレスの一覧を配らない。相手への宛先は招待文字列で渡す）。待受のアドレスが変わったことを Identify の push で知らせない。</p>
 
 <h3 id="sec-4-4">4.4 協力ノードと中継</h3>
 <p>インターネット越し（<code>sbq-limited-1</code>）では、利用者が<strong>協力ノード</strong>のアドレス（<code>/ip4/…/tcp/…/p2p/&lt;PeerId&gt;</code> の形。16 件まで）を指定する。協力ノードは、Circuit Relay v2 の hop と Identify・Ping（と AutoNAT の応答）に対応した libp2p のノードで、対局のフレームの中身は読まない。標準の Circuit Relay v2 の中継ノードであれば、協力ノードとして使える。</p>
@@ -412,7 +412,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <tbody>
 <tr><td>loopback</td><td>127.0.0.0/8、::1（下の「使わない」より先に判定する）</td></tr>
 <tr><td>私設</td><td>10.0.0.0/8、172.16.0.0/12、192.168.0.0/16、fc00::/7（ULA）</td></tr>
-<tr><td>使わない</td><td>0.0.0.0/8、169.254.0.0/16、100.64.0.0/10、224.0.0.0/4、240.0.0.0/4（255.255.255.255 を含む）、192.0.0.0/24、192.0.2.0/24、198.51.100.0/24、203.0.113.0/24、198.18.0.0/15、::、IPv4 を埋め込んだ IPv6（::/96・::ffff:0:0/96）、fe80::/10、ff00::/8、2001:db8::/32、64:ff9b::/32</td></tr>
+<tr><td>使わない</td><td>0.0.0.0/8、169.254.0.0/16、100.64.0.0/10、224.0.0.0/4、240.0.0.0/4（255.255.255.255 を含む）、192.0.0.0/24、192.0.2.0/24、198.51.100.0/24、203.0.113.0/24、198.18.0.0/15、192.88.99.0/24、::、IPv4 を埋め込んだ IPv6（::/96・::ffff:0:0/96）、100::/64、fe80::/10、fec0::/10、ff00::/8、2001::/32（Teredo）、2001:db8::/32、64:ff9b::/32、埋め込んだ IPv4 がインターネット上のアドレスでない 6to4（2002::/16）</td></tr>
 <tr><td>インターネット</td><td>上のどれでもないアドレス</td></tr>
 </tbody>
 </table></div>
@@ -424,7 +424,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 </tbody>
 </table></div>
 <ul>
-<li>宛先として使えるのは、<code>/ip4/…</code> か <code>/ip6/…</code> で始まるアドレス（中継経由のアドレスを含む）と、<code>/p2p/&lt;協力ノード&gt;/p2p-circuit</code> の形だけである。DNS 名の宛先（<code>/dns</code>・<code>/dns4</code>・<code>/dns6</code>・<code>/dnsaddr</code>）は v1 では使わない。招待文字列に入れてはならず、入っていれば捨てる。</li>
+<li>宛先として使えるのは、次の形だけである: <code>/ip4|ip6/…/tcp/&lt;port&gt;</code>、<code>/ip4|ip6/…/udp/&lt;port&gt;/quic-v1</code>（末尾の <code>/p2p/&lt;PeerId&gt;</code> は許す）と、中継経由の <code>[直接の形]/p2p/&lt;中継&gt;/p2p-circuit[/p2p/&lt;宛先&gt;]</code>・<code>/p2p/&lt;中継&gt;/p2p-circuit[/p2p/&lt;宛先&gt;]</code>。IP を2つ重ねた宛先・知らない部品を含む宛先・中継の入れ子は捨てる（この形の中では、先頭の IP が唯一の IP になる。libp2p の TCP は末尾の IP へつなぐので、先頭だけを確かめると規則を抜けられる）。DNS 名の宛先（<code>/dns</code>・<code>/dns4</code>・<code>/dns6</code>・<code>/dnsaddr</code>）は v1 では使わない。招待文字列に入れてはならず、入っていれば捨てる。</li>
 <li>1ピアあたりの宛先は 8 件まで。同時に試す接続は 8 件までとし、失敗した宛先は 60 秒再試行しない。</li>
 <li><code>sbq-limited-1</code> では、自分が出すアドレス（招待・Identify）から私設アドレスを除く。</li>
 </ul>
@@ -445,10 +445,13 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>項目</th><th>上限</th></tr></thead>
 <tbody>
-<tr><td>確立した接続の合計</td><td>32（確立前は受け・掛けそれぞれ 8）</td></tr>
+<tr><td>確立した接続の合計</td><td>32（確立前は受け・掛けそれぞれ 8。同じ接続元の IP からの確立前の受けは 3）</td></tr>
+<tr><td>接続の確立（暗号の手続きと多重化の取り決め）</td><td>20 秒</td></tr>
 <tr><td>1ピアあたりの接続</td><td>4</td></tr>
-<tr><td>同じアドレス帯（IPv4 は /24、IPv6 は /48）から受け付ける接続</td><td>8</td></tr>
+<tr><td>同じアドレス帯（IPv4 は /24、IPv6 は /48。<code>sbq-local-1</code> では接続元の IP ごと）から受け付ける接続</td><td>8</td></tr>
 <tr><td>対局ストリーム（開始前・対局中の合計）</td><td>8</td></tr>
+<tr><td>最初のフレームを待つ届いた対局ストリーム</td><td>全体で 16、1ピアあたり 1。最初のフレームは 5 秒以内に送る（遅れれば閉じる）。対局中は、対局相手以外のストリームを読まずに閉じる</td></tr>
+<tr><td>1接続の Yamux のストリーム</td><td>64</td></tr>
 <tr><td>ストリームのない接続を保つ時間</td><td>120 秒</td></tr>
 </tbody>
 </table></div>
@@ -914,12 +917,14 @@ Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]    
 <div class="table-wrap"><table>
 <thead><tr><th>場合</th><th>扱い</th></tr></thead>
 <tbody>
+<tr><td>READY を交わす前（先手は READY を受ける前、後手は READY を送る前）に届いた</td><td>RESULT_DECLINE（開始の手続きの途中の提案には同意しない）</td></tr>
 <tr><td>形が合わない、または今の最新の State（ply・finalStateHash・transcriptHash）を指していない</td><td>RESULT_DECLINE</td></tr>
 <tr><td>自分がすでに提案した FinalResult と同じ</td><td>一致</td></tr>
+<tr><td>確定した手順から、棋譜で決まる終局（<a href="#sec-10-3">10.3節</a>）にすでに達していて、提案がその結果（outcome・cause）と違う</td><td>投了・時間切れ・合意による引き分けと中断（cause 1・3・6・8）は RESULT_DECLINE（利用者に尋ねない）。同意すると、署名した結果が棋譜と食い違い、13.2節の検証に通らない。詰みなどの判定の食い違いは、下の行のとおり</td></tr>
 <tr><td>投了（cause 1）</td><td>自分の勝ちで、かつ相手の手番なら、同じ提案を送り返して一致。そうでなければ RESULT_DECLINE</td></tr>
 <tr><td>詰み・千日手・連続王手の千日手・512 手到達（cause 2・4・5・7）</td><td>自分でも棋譜から判定する（10.3節）。終局でなければ RESULT_DECLINE。同じ結果なら、同じ提案を送って一致。<strong>終局だが結果が食い違うなら、エラー（CONDITION_MISMATCH）で止める</strong>（実装の不一致）</td></tr>
 <tr><td>時間切れで、自分の勝ち（相手が自分の時間切れを申告した）</td><td>相手の手番なら、同じ提案を送り返して一致。そうでなければ RESULT_DECLINE</td></tr>
-<tr><td>時間切れで、相手の勝ち（相手がこちらの時間切れを主張した）</td><td>自分の時計で確かめる。自分の手番で、未承認の手がなく、<code>E ≥ R + B</code> になっていれば、同じ提案を送り返して一致。そうでなければ RESULT_DECLINE</td></tr>
+<tr><td>時間切れで、相手の勝ち（相手がこちらの時間切れを主張した）</td><td>自分の時計で確かめる。自分の手番が始まっていて（先手の初手は READY を受けた時点から）、未承認の手がなく、<code>E ≥ R + B</code> になっていれば、同じ提案を送り返して一致。そうでなければ RESULT_DECLINE。<code>E</code> は自分の手番が始まった時点から数え、それより前の時間を含めない</td></tr>
 <tr><td>合意による引き分け・合意による中断（cause 6・8）</td><td>利用者に尋ねる。承諾なら同じ提案を送り返して一致、断るなら RESULT_DECLINE。答える前に自分が指したら、断ったことにする</td></tr>
 </tbody>
 </table></div>
@@ -1125,6 +1130,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>中継の予約</td><td>2 件まで。断られた・失ったら 30 秒後に頼み直す</td><td><a href="#sec-4-4">4.4</a></td></tr>
 <tr><td>フレームの長さ</td><td>1〜65536 バイト</td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>CBOR の入れ子</td><td>16 段まで</td><td><a href="#sec-2-2">2.2</a></td></tr>
+<tr><td>証跡を読むときの CBOR の値の総数（ShogiBoardQ の読み手の上限）</td><td>1,048,576 まで（配列の要素を含む）</td><td><a href="#sec-2-2">2.2</a></td></tr>
 <tr><td>招待文字列の長さ</td><td>1024 バイト以下</td><td><a href="#sec-5-1">5.1</a></td></tr>
 <tr><td>招待の有効期限</td><td>600 秒（読む側は時計のずれ 60 秒を見込む）</td><td><a href="#sec-5-3">5.3</a></td></tr>
 <tr><td>招待の到達候補</td><td>8 件まで、1件 100 バイトまで</td><td><a href="#sec-5-1">5.1</a></td></tr>

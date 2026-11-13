@@ -129,7 +129,7 @@
   `privateAddresses` だけ）。
 - `state` は、接続しているピアがある（または協力ノードを指定せずに待受を始めた）とき `online`、協力ノードへ接続中のとき
   `connecting`、それ以外は `offline`。値が変わったときにだけ、1秒に1回まで出す。
-- `reachability` は AutoNAT の結果（`relayOnly` では確かめないので `unknown` のまま）。`route` は、その相手との接続が
+- `reachability` は到達性の確認（AutoNAT v2）の結果（`relayOnly` では確かめないので `unknown` のまま）。`route` は、その相手との接続が
   すべて中継経由なら `relay`、1つでも直接の接続があれば `direct`。
 - `frameReceived` は外枠を確かめたフレームだけを運ぶ。INVITE_TOKEN は運ばない。
 - `connectionClosed` の `reason` は `closed`・`reset`・`timeout`・`unreachable`・`no_relay_route`・`invalid_frame`・`rate_limited`・`limit`。
@@ -146,17 +146,26 @@
 loopback（127.0.0.0/8、::1）、私設（10/8、172.16/12、192.168/16）、link-local（169.254/16、fe80::/10）、
 共有アドレス空間（100.64.0.0/10）、ULA（fc00::/7）、マルチキャスト（224.0.0.0/4、ff00::/8）、
 未指定（0.0.0.0/8、::）、IPv4 射影（::ffff:0:0/96）、そのほか予約済み（240.0.0.0/4、255.255.255.255、
-192.0.2/24・198.51.100/24・203.0.113/24・2001:db8::/32 の文書用、198.18/15）。
+192.0.2/24・198.51.100/24・203.0.113/24・2001:db8::/32 の文書用、198.18/15、廃止された 6to4 の中継の 192.88.99/24）。
 私設アドレスは `connectInvite` の `allowPrivate` が true の招待の宛先にだけ使う。
+6to4（2002::/16）は埋め込んだ IPv4 がインターネット上のアドレスのときだけ使い、Teredo（2001::/32）・
+サイトローカル（fec0::/10）・100::/64・NAT64（64:ff9b::/32）は使わない。
+
+宛先は、どの profile でも決めた形だけを受け付ける: `ip/tcp`・`ip/udp/quic-v1`（末尾の `/p2p/<PeerId>` は許す）と、
+中継経由の `[直接の形]/p2p/<中継>/p2p-circuit[/p2p/<宛先>]`・`/p2p/<中継>/p2p-circuit[/p2p/<宛先>]`。この形の中では
+先頭の IP が唯一の IP になる。IP を2つ重ねた宛先（`/ip4/<A>/tcp/1/ip4/<B>/tcp/2`）・知らない部品を含む宛先・中継の
+入れ子は使わない（libp2p の TCP は末尾の IP へつなぐので、先頭だけを確かめる規則を抜けられる）。
 
 - DNS 名の宛先（`/dns4`・`/dns6`・`/dnsaddr`）は v1 では使わない（名前解決のためのファイルを読まない）。
 - 1ピアあたりの宛先は8件まで。同時に試す接続は8件まで。失敗した宛先は 60 秒再試行しない。
 - 自分が広告するアドレスからも私設アドレスを除く。Identify で配るのは対応するプロトコルとアプリの版
-  （`shogiboardq-peer/<版>`）だけにする。
+  （`shogiboardq-peer/<版>`）と、`internet` で到達性を確かめたアドレス・中継のアドレスだけにする。
 - mDNS は使わない。
 - `local` は、同じ PC と同じ LAN の相手と、協力ノードなしでつなぐ。待受のアドレスのうち loopback と私設アドレスを、
-  自分のアドレスとして招待と Identify に載せる。招待には、同じ LAN の相手が使う私設アドレスを先に、同じ PC でしか
-  使えない loopback を最後に入れる。届いた接続は、接続元が loopback・私設アドレスのものだけを受け付け、ほかは
+  自分のアドレスとして招待に載せる（Identify には載せない。Identify は招待を持たない相手にも届くので、待受のポートに
+  つないだだけの LAN の機器に、この PC の私設アドレスの一覧を配らない。つなぎ直すのは招待で接続した側で、宛先は
+  招待のものを使う）。招待には、同じ LAN の相手が使う私設アドレスを先に、同じ PC でしか使えない loopback を最後に
+  入れる。届いた接続は、接続元が loopback・私設アドレスのものだけを受け付け、ほかは
   暗号の手続きを始める前に閉じる（Transport の層。中継経由の接続は接続元の IP を持たないので、ここでは断らない）。
   私設アドレスへの接続に、招待ごとの許可（`allowPrivate`）は求めない（このネットワークを選んだ利用者は、LAN 内の
   宛先へつなぐことを選んでいる）。
@@ -166,7 +175,12 @@ loopback（127.0.0.0/8、::1）、私設（10/8、172.16/12、192.168/16）、li
   設定で開くので、確かめないと、届いた接続が2つのプロセスに振り分けられる）。確かめてから開くまでの間に、同時に
   起動したプロセスも同じことをすると両方が開けてしまうので、UDP（QUIC）を先に開け、48210 の UDP を開けたプロセス
   だけが TCP でも 48210 を試す（UDP の待受は共有できないので、48210 の持ち主が1つに決まる）。
-  `internet` では、AutoNAT で確かめたインターネット上のアドレスと中継のアドレスだけを載せる。
+  `internet` では、到達性の確認（AutoNAT v2）で確かめたインターネット上のアドレスと中継のアドレスだけを載せる。
+- 到達性の確認は AutoNAT v2（`/libp2p/autonat/2/dial-request`）で行う。確かめてもらうのは、相手（協力ノード）が
+  観測した自分のアドレスの候補のうちインターネット上の直接のアドレスだけで、1件ずつ頼む（v1 は待受のアドレス
+  （私設・loopback・link-local を含む）を全部送るので使わない）。確認に応えるのは協力ノード（`--service`）だけで、
+  ふつうのプレイヤーは応えない（ほかのピアの頼みで、そのピアへ接続を始めない）。協力ノードへは新しいポートで接続し、
+  観測されたアドレスを待受のポートに直して候補にする。
 - 中継の hop に対応する協力ノードには、自分の到達性によらず予約を取る（2件まで）。中継経由のアドレスは、利用者が
   指定した協力ノードの宛先から作り、招待に入れる（`relayOnly` の相手は、中継経由のアドレスでしかつなげない）。
 - ping（10秒ごと、30秒で失敗）に応えない接続は閉じる。
@@ -185,8 +199,11 @@ loopback（127.0.0.0/8、::1）、私設（10/8、172.16/12、192.168/16）、li
 - AutoNAT（到達性の確認）と DCUtR（直接接続への切り替え）を行わない。どちらも、自分のアドレスの候補を
   相手に渡すため。
 
-上限（実装仕様4章）: 接続は合計32（確立前は受け・掛けそれぞれ8、1ピアあたり4）、同じアドレス帯（IPv4 は /24、IPv6 は /48）
-から受け付ける接続は8。対局ストリームは合わせて8（`setGamePeer` の間は、その相手からのものだけを受け付ける）。
+上限（実装仕様4章）: 接続は合計32（確立前は受け・掛けそれぞれ8、同じ接続元の IP からの確立前の受けは3、1ピアあたり4）、
+接続の確立（暗号の手続きと多重化の取り決め）は20秒まで、同じアドレス帯（IPv4 は /24、IPv6 は /48。`local` では
+LAN 全体が同じ帯に入るので接続元の IP ごと）から受け付ける接続は8、1接続の yamux のストリームは64まで。
+対局ストリームは合わせて8（`setGamePeer` の間は、その相手からのものだけを受け付け、ほかは最初のフレームを読まずに
+閉じる）。届いた対局ストリームの最初のフレームは5秒まで待ち、待つのは全体で16本・相手ごとに1本まで。
 接続ごとの受信キュー 256 KiB（対局・UI側へ書き終えていない受信。超えたら `limit` で閉じる）。
 対局ストリームのフレームは、START_SIGNATURE（type 3）を双方が送るまでは 5件/秒、その後は 20件/秒（どちらも
 バーストは2倍）。超えたらストリームを閉じる（`rate_limited`）。
@@ -202,10 +219,15 @@ loopback（127.0.0.0/8、::1）、私設（10/8、172.16/12、192.168/16）、li
    ほかのプロセスへのシグナルも拒否する（`landlock_scope`）。
 5. seccomp-bpf: プログラムの起動（execve・execveat）、プロセスの複製（clone は CLONE_THREAD のある呼び出しだけ許し、
    clone3 は ENOSYS）、ほかのプロセスへの干渉（ptrace・process_vm_readv・process_vm_writev・kill・pidfd_open・
-   pidfd_send_signal・pidfd_getfd）、socket・socketpair の AF_INET・AF_INET6・AF_NETLINK 以外、カーネルの構成を
-   変える呼び出し（mount・umount2・pivot_root・chroot・unshare・setns・bpf・perf_event_open・keyctl・add_key・
-   request_key・init_module・finit_module・delete_module・kexec_load・reboot・swapon・swapoff・acct・
-   userfaultfd・personality・io_uring_setup、x86_64 では fork・vfork も）を EPERM で拒否する。
+   pidfd_send_signal・pidfd_getfd・tkill と、第1引数が自分のプロセスでない tgkill・rt_tgsigqueueinfo・
+   rt_sigqueueinfo）、ファイルの属性の変更（chmod・fchmod・fchmodat・fchmodat2・chown・fchown・lchown・fchownat・
+   utime・utimes・utimensat・futimesat・setxattr などの xattr。Landlock は属性の変更を止めない）、
+   socket・socketpair の AF_INET・AF_INET6・AF_NETLINK 以外（AF_INET・AF_INET6 は TCP・UDP だけ、AF_NETLINK は
+   NETLINK_ROUTE だけ）、カーネルの構成を変える呼び出し（mount・umount2・pivot_root・chroot・unshare・setns・bpf・
+   perf_event_open・keyctl・add_key・request_key・init_module・finit_module・delete_module・kexec_load・reboot・
+   swapon・swapoff・acct・userfaultfd・personality・io_uring_setup、x86_64 では fork・vfork も）を EPERM で拒否する。
+   x86_64 では、x32 の呼び出し（番号に 0x40000000 を立てたもの）でプロセスを終わらせる（seccomp の表は
+   アーキテクチャの値と番号で照らすので、x32 の番号では上の表に当たらない）。
 
 Linux 以外では、制限の実装がないので終了コード 3 で終わる（P2P対局を使えない）。
 
@@ -226,7 +248,7 @@ shogiboardq-peer --service --network <networkName> --identity <鍵ファイル> 
 
 - 識別鍵のファイル（Ed25519 の秘密鍵の protobuf 形式）がなければ作り、所有者だけが読み書きできる権限で保存する。
   読んだ後に Landlock でファイルの操作を拒否する。
-- 利用者のアプリが最初に接続する相手になり、到達性の確認（AutoNAT）に応える。`--relay` で Circuit Relay v2 の中継を
+- 利用者のアプリが最初に接続する相手になり、到達性の確認（AutoNAT v2）に応える。`--relay` で Circuit Relay v2 の中継を
   有効にする。対局ストリームは受け付けない（指し手もプレイヤーID も読まない。中継する通信は当事者間で暗号化されている）。
 - 中継の上限: 予約 128、1ピアあたりの回路 4、1回路 30 分・8 MiB。
 - ログは標準エラーに、起動・停止・接続数だけを書く（接続元の IP は書かない）。
