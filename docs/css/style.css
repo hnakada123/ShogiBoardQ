@@ -865,6 +865,12 @@ a.feature-card-link:hover .feature-card-more {
     color: var(--color-accent-dark);
 }
 
+/* 項目の本文の下で、別の文書へ案内するカード */
+a.feature-card-link.guide-doc-link {
+    max-width: 640px;
+    margin-top: 1.25rem;
+}
+
 /* --- Judgment Table --- */
 .judgment-table {
     width: 100%;
