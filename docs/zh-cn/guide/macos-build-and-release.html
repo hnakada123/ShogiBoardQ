@@ -245,6 +245,31 @@ find build/ShogiBoardQ.app -type f | head -20</code></pre>
 <pre class="bash"><code># 启动构建好的应用程序
 open build/ShogiBoardQ.app</code></pre>
 </section>
+<section id="build-p2p" class="level3">
+<h3>3.4 启用P2P对局（实验版）的构建</h3>
+<p><a href="p2p-game.html">P2P对局</a>（<code>ENABLE_P2P_PLAY</code>，默认 OFF）不包含在发布包中（<code>scripts/build-macos.sh</code> 不会启用它）。要试用时，请准备以下两项后再构建。</p>
+<ul>
+<li><strong>Rust</strong>（1.85 以上）。用 cargo 构建通信进程 <code>shogiboardq-peer</code></li>
+<li><strong>libsodium</strong>（1.0.18 以上）。通过 pkg-config 查找</li>
+</ul>
+<pre class="bash"><code>brew install rust libsodium pkg-config
+
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON \
+    -DCMAKE_PREFIX_PATH=&quot;$HOME/Qt/6.x.x/macos&quot;
+ninja -C build
+ctest --test-dir build -R tst_p2p --output-on-failure
+cargo test --locked --workspace</code></pre>
+<p>通信进程生成在应用程序包内（<code>ShogiBoardQ.app/Contents/MacOS/shogiboardq-peer</code>），由应用从该位置启动。以下几点与 Linux、Windows 不同。</p>
+<ul>
+<li>通信进程启动后会立即自行进入沙盒（Seatbelt）。读写文件、启动程序、连接 Unix 域套接字等操作会被拒绝，拒绝记录保留在“控制台”应用的日志中（发送者为 <code>Sandbox</code>）</li>
+<li>不使用本地网络（同一台电脑、同一局域网）时，应用会加上 <code>--no-loopback</code> 启动，沙盒也会阻止向这台 Mac 自身发起的连接</li>
+<li>调试器（lldb）无法附加到通信进程</li>
+<li>指定 <code>CMAKE_OSX_DEPLOYMENT_TARGET</code> 后，通信进程也以相同的最低 macOS 版本构建。不支持 Universal Binary（通信进程只有构建所用 Mac 的架构）</li>
+<li>libsodium 链接到 Homebrew 的动态库（<code>/opt/homebrew/opt/libsodium</code>）。要制作能拿到其他 Mac 上运行的应用程序包，请用 macdeployqt 一并打包</li>
+<li>要把玩家密钥保存到钥匙串，需要 QtKeychain（可选。须用与应用相同的 Qt 构建。Homebrew 的 <code>qtkeychain</code> 面向 Homebrew 的 Qt，不要与 Qt Online Installer 的 Qt 混用）。没有时，密钥保存在用密码短语加密的文件中</li>
+<li>协作节点（<code>shogiboardq-peer --service</code>）也可以运行</li>
+</ul>
+</section>
 </section>
 <section id="bundle" class="level2">
 <h2>4. 制作应用程序包</h2>

@@ -106,6 +106,25 @@ open build/ShogiBoardQ.app</code></pre>
 <pre><code>cmake -B build -S . -DBUILD_TESTING=ON
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure</code></pre>
+<h3 id="build-p2p">Building with P2P games (experimental)</h3>
+<p><a href="p2p-game.html">P2P games</a> (<code>ENABLE_P2P_PLAY</code>, off by default) are not part of the distributed package, and <code>scripts/build-macos.sh</code> does not enable them. To try them, install Rust (1.85 or later; cargo builds the communication process <code>shogiboardq-peer</code>) and libsodium (1.0.18 or later; found through pkg-config), then build:</p>
+<pre><code>brew install rust libsodium pkg-config
+
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON \
+    -DCMAKE_PREFIX_PATH=&quot;$HOME/Qt/6.x.x/macos&quot;
+ninja -C build
+ctest --test-dir build -R tst_p2p --output-on-failure
+cargo test --locked --workspace</code></pre>
+<p>The communication process is built inside the app bundle (<code>ShogiBoardQ.app/Contents/MacOS/shogiboardq-peer</code>) and the app starts it from there. These points differ from Linux and Windows:</p>
+<ul>
+<li>The communication process puts itself into a sandbox (Seatbelt) right after it starts. Reading and writing files, starting programs, connecting to Unix domain sockets and similar operations are denied, and the denials appear in the Console app log (sender <code>Sandbox</code>).</li>
+<li>When the local network (same computer, same LAN) is not used, the app starts the process with <code>--no-loopback</code>, and the sandbox also blocks outgoing connections to this Mac itself.</li>
+<li>A debugger (lldb) cannot attach to the communication process.</li>
+<li>If <code>CMAKE_OSX_DEPLOYMENT_TARGET</code> is set, the communication process is built for the same minimum macOS version. Universal binaries are not supported; the process is built only for the architecture of the Mac that builds it.</li>
+<li>libsodium is linked as Homebrew's dynamic library (<code>/opt/homebrew/opt/libsodium</code>). To make a bundle that runs on another Mac, bundle it with macdeployqt.</li>
+<li>Storing the player key in the Keychain needs QtKeychain (optional; it must be built with the same Qt as the app. Homebrew's <code>qtkeychain</code> is built for Homebrew's Qt, so do not mix it with Qt from the Qt Online Installer). Without it, the key is kept in a file encrypted with a passphrase.</li>
+<li>A cooperating node (<code>shogiboardq-peer --service</code>) can also be run.</li>
+</ul>
 </section>
 <section id="qt-sources" class="level2">
 <h2>Prepare bundled Qt notices</h2>

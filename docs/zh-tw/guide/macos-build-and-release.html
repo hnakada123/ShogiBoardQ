@@ -245,6 +245,31 @@ find build/ShogiBoardQ.app -type f | head -20</code></pre>
 <pre class="bash"><code># 啟動建置好的應用程式
 open build/ShogiBoardQ.app</code></pre>
 </section>
+<section id="build-p2p" class="level3">
+<h3>3.4 啟用P2P對局（實驗版）的建置</h3>
+<p><a href="p2p-game.html">P2P對局</a>（<code>ENABLE_P2P_PLAY</code>，預設 OFF）不包含在發布套件中（<code>scripts/build-macos.sh</code> 不會啟用它）。要試用時，請準備以下兩項後再建置。</p>
+<ul>
+<li><strong>Rust</strong>（1.85 以上）。用 cargo 建置通訊程序 <code>shogiboardq-peer</code></li>
+<li><strong>libsodium</strong>（1.0.18 以上）。透過 pkg-config 尋找</li>
+</ul>
+<pre class="bash"><code>brew install rust libsodium pkg-config
+
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON \
+    -DCMAKE_PREFIX_PATH=&quot;$HOME/Qt/6.x.x/macos&quot;
+ninja -C build
+ctest --test-dir build -R tst_p2p --output-on-failure
+cargo test --locked --workspace</code></pre>
+<p>通訊程序產生在應用程式套件內（<code>ShogiBoardQ.app/Contents/MacOS/shogiboardq-peer</code>），由應用程式從該位置啟動。以下幾點與 Linux、Windows 不同。</p>
+<ul>
+<li>通訊程序啟動後會立即自行進入沙盒（Seatbelt）。讀寫檔案、啟動程式、連線到 Unix 網域通訊端等操作會被拒絕，拒絕記錄保留在「系統監視程式」App 的記錄中（傳送者為 <code>Sandbox</code>）</li>
+<li>不使用區域網路（同一台電腦、同一區域網路）時，應用程式會加上 <code>--no-loopback</code> 啟動，沙盒也會阻止向這台 Mac 自身發起的連線</li>
+<li>除錯器（lldb）無法附加到通訊程序</li>
+<li>指定 <code>CMAKE_OSX_DEPLOYMENT_TARGET</code> 後，通訊程序也以相同的最低 macOS 版本建置。不支援 Universal Binary（通訊程序只有建置所用 Mac 的架構）</li>
+<li>libsodium 連結到 Homebrew 的動態函式庫（<code>/opt/homebrew/opt/libsodium</code>）。要製作能拿到其他 Mac 上執行的應用程式套件，請用 macdeployqt 一併打包</li>
+<li>要把玩家金鑰儲存到鑰匙圈，需要 QtKeychain（選用。須用與應用程式相同的 Qt 建置。Homebrew 的 <code>qtkeychain</code> 是給 Homebrew 的 Qt 用的，不要與 Qt Online Installer 的 Qt 混用）。沒有時，金鑰儲存在用密碼片語加密的檔案中</li>
+<li>協作節點（<code>shogiboardq-peer --service</code>）也可以執行</li>
+</ul>
+</section>
 </section>
 <section id="bundle" class="level2">
 <h2>4. 製作應用程式套件</h2>
