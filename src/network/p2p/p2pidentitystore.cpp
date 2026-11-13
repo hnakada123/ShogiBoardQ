@@ -127,12 +127,13 @@ bool P2pIdentityStore::keychainSupported()
 QString P2pIdentityStore::keychainItemKey(const QString& directory, const QString& standardDataDirectory)
 {
     const QString base = QString::fromLatin1(kKeychainKey);
-    const QString own = QDir::cleanPath(QDir(directory).absolutePath());
+    // 先に整えてから絶対パスにする（Windows の Qt は、整っていないパスにだけドライブを補うので、書き方で結果が変わる）
+    const auto absolute = [](const QString& path) { return QDir::cleanPath(QDir(QDir::cleanPath(path)).absolutePath()); };
+    const QString own = absolute(directory);
     if (!standardDataDirectory.isEmpty()) {
         // これまでの名前を使うのは、標準の場所の1人目の鍵だけ（P2pPlayerSlot::storageDirectory の p2p と、
         // P2pPlayerProfile::identityDirectory の identity。2人目からの p2p-2/identity などは別の項目にする）
-        const QString standard =
-            QDir::cleanPath(QDir(standardDataDirectory).absoluteFilePath(QStringLiteral("p2p/identity")));
+        const QString standard = absolute(QDir(standardDataDirectory).filePath(QStringLiteral("p2p/identity")));
         if (own == standard) return base;
     }
     const QByteArray digest = QCryptographicHash::hash(own.toUtf8(), QCryptographicHash::Sha256);

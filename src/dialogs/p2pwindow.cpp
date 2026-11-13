@@ -557,6 +557,9 @@ void P2pWindow::growToFit()
 {
     QLayout* box = layout();
     if (!box) return;
+    // 子の変更（文・表示の切り替え）は、LayoutRequest のイベントで1段ずつ親のレイアウトへ伝わる。届く前に測ると
+    // 変わる前の高さになるので、タブの中の入れ子の段数だけ先に届ける
+    for (int level = 0; level < 8; ++level) QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
     box->activate();
     int needed = box->totalHeightForWidth(width());
     if (const QScreen* display = screen()) needed = qMin(needed, display->availableGeometry().height());
