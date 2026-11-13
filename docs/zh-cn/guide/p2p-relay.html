@@ -68,7 +68,7 @@
             <span class="badge">通过互联网</span>
             <span class="badge">一个协作节点</span>
             <span class="badge">可隐藏IP的设置</span>
-            <span class="badge">实验版・Linux</span>
+            <span class="badge">实验版・Linux / macOS</span>
         </div>
         <p class="screenshot-note">P2P对局的准备（玩家密钥・显示名）、窗口和对局记录请参阅<a href="p2p-game.html">P2P对局（实验版）</a>。与同一电脑・同一局域网的对手对局请参阅<a href="p2p-direct.html">不使用协作节点对局</a>。</p>
     </div>
@@ -153,7 +153,7 @@
                 <p class="guide-step-text">启动的人需要下面这些条件。</p>
                 <ul class="guide-step-text">
                     <li><strong>互联网可以到达的 IP 地址</strong>：拥有公网 IP 地址的服务器（VPS 等），或可以开放端口的家庭网络。手机网络，以及运营商叠加多层地址转换的网络（CGNAT）无法从外部到达，因此无法运行。</li>
-                    <li><strong>Linux</strong>：协作节点的程序会先用 Landlock 和 seccomp 限制自己的权限再运行。在无法施加这些限制的环境中无法运行。</li>
+                    <li><strong>Linux 或 macOS</strong>：协作节点的程序会先限制自己的权限再运行（Linux 使用 Landlock 和 seccomp，macOS 使用沙盒）。在无法施加这些限制的环境中无法运行，也不能在 Windows 上运行。本页的步骤以 Linux 服务器为例。</li>
                     <li><strong>一个可以开放的 TCP 端口</strong>：本页的示例为 4001 号。</li>
                     <li><strong>持续运行</strong>：两人对局期间请不要停止。通过中继下棋的对局会在协作节点停止时断开，如果 120 秒内无法重新连接，就会中断（结果未确定）。</li>
                 </ul>

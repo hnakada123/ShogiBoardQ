@@ -68,7 +68,7 @@
             <span class="badge">同じPC・同じLAN</span>
             <span class="badge">協力ノード不要</span>
             <span class="badge">招待は1人に1回</span>
-            <span class="badge">実験版・Linux / Windows</span>
+            <span class="badge">実験版・Linux / Windows / macOS</span>
         </div>
         <p class="screenshot-note">P2P対局の準備（プレイヤー鍵・表示名）・画面・対局記録は<a href="p2p-game.html">P2P対局（実験版）</a>にあります。インターネット越しの相手とは<a href="p2p-relay.html">協力ノードを使って対局する</a>をご覧ください。</p>
     </div>
@@ -240,6 +240,7 @@
                 <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
                 <p class="guide-step-text">ufw なら <code>sudo ufw allow 48210</code> で許可できます（要らなくなったら <code>sudo ufw delete allow 48210</code>）。アプリは接続元がLANの中のアドレスの接続だけを受け付けるので、ポートを開けても、インターネットから届いた接続は断ります。</p>
                 <p class="guide-step-text">Windows では、待受を始めてもファイアウォールの確認の画面は出ません（通信を受け持つプロセスは、同じLANとの通信を許した入れ物（AppContainer）の中で動きます）。同じPCどうしの対局は確かめてあります。別のPCから届く接続が通るかは、Windows がそのネットワークを「プライベート」と扱っているかと、Windows のファイアウォールの設定によります（別のPCとの対局は、まだ確かめていません）。</p>
+                <p class="guide-step-text">macOS でも、同じPCどうしの対局は確かめてあります。別のPCとつなぐときは、macOS のファイアウォールを有効にしていると着信の許可を、初めてLANの相手と通信するときに「ローカルネットワーク」へのアクセスの許可を、macOS から求められることがあります（別のPCとの対局は、まだ確かめていません）。</p>
             </div>
 
             <div class="guide-step">

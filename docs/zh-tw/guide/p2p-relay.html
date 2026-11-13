@@ -68,7 +68,7 @@
             <span class="badge">透過網際網路</span>
             <span class="badge">一個協作節點</span>
             <span class="badge">可隱藏IP的設定</span>
-            <span class="badge">實驗版・Linux</span>
+            <span class="badge">實驗版・Linux / macOS</span>
         </div>
         <p class="screenshot-note">P2P對局的準備（玩家金鑰・顯示名稱）、視窗和對局記錄請參閱<a href="p2p-game.html">P2P對局（實驗版）</a>。與同一電腦・同一區域網路的對手對局請參閱<a href="p2p-direct.html">不使用協作節點對局</a>。</p>
     </div>
@@ -153,7 +153,7 @@
                 <p class="guide-step-text">啟動的人需要下面這些條件。</p>
                 <ul class="guide-step-text">
                     <li><strong>網際網路可以到達的 IP 位址</strong>：擁有公用 IP 位址的伺服器（VPS 等），或可以開放連接埠的家用網路。行動網路，以及網路業者疊加多層位址轉換的線路（CGNAT）無法從外部到達，因此無法執行。</li>
-                    <li><strong>Linux</strong>：協作節點的程式會先用 Landlock 和 seccomp 限制自己的權限再執行。在無法施加這些限制的環境中無法執行。</li>
+                    <li><strong>Linux 或 macOS</strong>：協作節點的程式會先限制自己的權限再執行（Linux 使用 Landlock 和 seccomp，macOS 使用沙盒）。在無法施加這些限制的環境中無法執行，也不能在 Windows 上執行。本頁的步驟以 Linux 伺服器為例。</li>
                     <li><strong>一個可以開放的 TCP 連接埠</strong>：本頁的範例為 4001。</li>
                     <li><strong>持續執行</strong>：兩人對局期間請不要停止。透過中繼下棋的對局會在協作節點停止時斷線，如果 120 秒內無法重新連線，就會中斷（結果未確定）。</li>
                 </ul>

@@ -68,7 +68,7 @@
             <span class="badge">Play Friends by Invitation</span>
             <span class="badge">Records Confirmed by Both</span>
             <span class="badge">Option to Hide Your IP</span>
-            <span class="badge">Experimental, Linux / Windows</span>
+            <span class="badge">Experimental, Linux / Windows / macOS</span>
         </div>
         <p class="screenshot-note">This is an experimental feature; screens and rules may change. Screenshots were captured on Linux with the English interface.</p>
     </div>
@@ -196,9 +196,9 @@
                     <span class="guide-step-number">6</span>
                     <span class="guide-step-title">What the Experimental Build Offers</span>
                 </div>
-                <p class="guide-step-text">P2P games are an experimental feature and are not included in the distributed ShogiBoardQ. To use them, pass <code>-DENABLE_P2P_PLAY=ON</code> to CMake when you build from source (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a> and <a href="windows-build-and-release.html">Windows Build and Release</a> for the build steps. On Windows, pass the folder of the official prebuilt libsodium for MSVC with <code>-DSODIUM_ROOT=</code>).</p>
+                <p class="guide-step-text">P2P games are an experimental feature and are not included in the distributed ShogiBoardQ. To use them, pass <code>-DENABLE_P2P_PLAY=ON</code> to CMake when you build from source (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a>, <a href="windows-build-and-release.html">Windows Build and Release</a> and <a href="macos-build-and-release.html">macOS Build and Release</a> for the build steps. On Windows, pass the folder of the official prebuilt libsodium for MSVC with <code>-DSODIUM_ROOT=</code>. On macOS, <code>brew install rust libsodium pkg-config</code> provides them).</p>
                 <ul class="guide-step-text">
-                    <li><strong>Operating system</strong>: Linux and Windows (10 / 11). The communication process (shogiboardq-peer) runs with its privileges restricted by the OS, so P2P games are not available where that is not possible (macOS, for example). On Windows, the first connection registers, once, the container (AppContainer) that confines this process. A cooperating node can only be run on Linux (you can still play through one from Windows).</li>
+                    <li><strong>Operating system</strong>: Linux, Windows (10 / 11) and macOS. The communication process (shogiboardq-peer) runs with its privileges restricted by the OS, so P2P games are not available where that is not possible. On Windows, the first connection registers, once, the container (AppContainer) that confines this process. On macOS, the process puts itself into a sandbox right after it starts. A cooperating node can be run on Linux and macOS (you can still play through one from Windows).</li>
                     <li><strong>Networks</strong>: Local test (same PC / same LAN) and Limited test. For which to use, see <a href="#ways">Two Ways to Play</a>.</li>
                     <li><strong>Cooperating node</strong>: Games over the Internet (Limited test) need one cooperating node as the first peer to connect to (<a href="p2p-relay.html">Playing with a Cooperating Node</a>). Games on the same PC or LAN do not need one (<a href="p2p-direct.html">Playing Without a Cooperating Node</a>).</li>
                     <li><strong>Expiry</strong>: 180 days after the build date, the build no longer joins the limited test network. The local test network and reviewing or verifying saved records keep working.</li>

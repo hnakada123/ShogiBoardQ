@@ -68,7 +68,7 @@
             <span class="badge">インターネット越し</span>
             <span class="badge">協力ノードは1つ</span>
             <span class="badge">IPを見せない設定</span>
-            <span class="badge">実験版・Linux</span>
+            <span class="badge">実験版・Linux / macOS</span>
         </div>
         <p class="screenshot-note">P2P対局の準備（プレイヤー鍵・表示名）・画面・対局記録は<a href="p2p-game.html">P2P対局（実験版）</a>にあります。同じPC・同じLANの相手とは<a href="p2p-direct.html">協力ノードなしで対局する</a>をご覧ください。</p>
     </div>
@@ -153,7 +153,7 @@
                 <p class="guide-step-text">起動する人には、次のものが要ります。</p>
                 <ul class="guide-step-text">
                     <li><strong>インターネットから届く IP アドレス</strong>：グローバル IP アドレスを持つサーバー（VPS など）か、ポートを開けられる自宅の回線です。携帯電話の回線や、プロバイダーがアドレスの変換を重ねている回線（CGNAT）では、外から届かないので動かせません。</li>
-                    <li><strong>Linux</strong>：協力ノードのプログラムは、Landlock と seccomp で自分の権限を制限してから動きます。制限を掛けられない環境では動きません。</li>
+                    <li><strong>Linux か macOS</strong>：協力ノードのプログラムは、自分の権限を制限してから動きます（Linux は Landlock と seccomp、macOS はサンドボックス）。制限を掛けられない環境では動きません。Windows では動かせません。このページの手順は Linux のサーバーの例です。</li>
                     <li><strong>開けられる TCP のポート1つ</strong>：このページの例では 4001 番です。</li>
                     <li><strong>動かし続けること</strong>：2人が対局する間は止めないでください。中継で指している対局は、協力ノードが止まると切れ、120秒以内につなぎ直せなければ中断（結果未確定）になります。</li>
                 </ul>

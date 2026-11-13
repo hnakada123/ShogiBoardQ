@@ -68,7 +68,7 @@
             <span class="badge">Over the Internet</span>
             <span class="badge">One Cooperating Node</span>
             <span class="badge">Option to Hide Your IP</span>
-            <span class="badge">Experimental, Linux</span>
+            <span class="badge">Experimental, Linux / macOS</span>
         </div>
         <p class="screenshot-note">Setting up P2P games (player key and display name), the window, and game records are covered in <a href="p2p-game.html">P2P Games (Experimental)</a>. To play someone on the same PC or LAN, see <a href="p2p-direct.html">Playing Without a Cooperating Node</a>.</p>
     </div>
@@ -153,7 +153,7 @@
                 <p class="guide-step-text">The person who runs it needs the following.</p>
                 <ul class="guide-step-text">
                     <li><strong>An IP address reachable from the Internet</strong>: A server with a global IP address (such as a VPS), or a home connection where you can open a port. Mobile connections and connections where the provider stacks address translation (CGNAT) cannot be reached from outside, so they cannot run one.</li>
-                    <li><strong>Linux</strong>: The cooperating node program restricts its own privileges with Landlock and seccomp before it runs. It does not run where the restrictions cannot be applied.</li>
+                    <li><strong>Linux or macOS</strong>: The cooperating node program restricts its own privileges before it runs (with Landlock and seccomp on Linux, with the sandbox on macOS). It does not run where the restrictions cannot be applied, and it cannot be run on Windows. The steps on this page use a Linux server as the example.</li>
                     <li><strong>One TCP port you can open</strong>: Port 4001 in the examples on this page.</li>
                     <li><strong>Keep it running</strong>: Do not stop it while the two players are playing. A game played over the relay is cut off when the cooperating node stops, and is aborted (result unconfirmed) if it cannot reconnect within 120 seconds.</li>
                 </ul>
