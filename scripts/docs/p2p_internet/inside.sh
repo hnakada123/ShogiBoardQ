@@ -7,11 +7,12 @@
 #   inside.sh nat <A|B> <easy|strict>
 #                                ルーターの NAT を切り替える（strict は接続ごとにポートを変え、ホールパンチングが通らない）
 #
-# 構成（「インターネット」の 192.88.99.0/24 は、6to4 のために予約され今は使われない範囲。アプリは文書用の範囲
-# 203.0.113.0/24 などを宛先に使わないので、グローバル扱いになるこの範囲を使う。コンテナの外へは出ない）:
+# 構成（「インターネット」の 11.88.99.0/24 は、インターネット上のアドレスとして扱われる範囲。アプリは文書用・予約済みの
+# 範囲（203.0.113.0/24・廃止された 6to4 の中継の 192.88.99.0/24 など）を宛先に使わないので、この範囲を使う。
+# コンテナの外へは出ない）:
 #
-#   協力ノード 192.88.99.1 ─┬─ ルーターA 192.88.99.11（NAT）─ 家庭LAN A 192.168.10.0/24 ─ プレイヤーA .10
-#                           └─ ルーターB 192.88.99.12（NAT）─ 家庭LAN B 192.168.20.0/24 ─ プレイヤーB .10
+#   協力ノード 11.88.99.1 ─┬─ ルーターA 11.88.99.11（NAT）─ 家庭LAN A 192.168.10.0/24 ─ プレイヤーA .10
+#                          └─ ルーターB 11.88.99.12（NAT）─ 家庭LAN B 192.168.20.0/24 ─ プレイヤーB .10
 #
 # 環境: /repo（リポジトリ。読み取り専用）、/work（作業フォルダ）、SBQ_BUILD（既定 build-p2p-docs）
 set -euo pipefail
@@ -19,7 +20,7 @@ BUILD=/repo/${SBQ_BUILD:-build-p2p-docs}
 WORK=/work
 NODE_PORT=4001
 
-wan_of() { case $1 in A) echo 192.88.99.11 ;; B) echo 192.88.99.12 ;; esac; }
+wan_of() { case $1 in A) echo 11.88.99.11 ;; B) echo 11.88.99.12 ;; esac; }
 lan_of() { case $1 in A) echo 10 ;; B) echo 20 ;; esac; }
 
 up() {
@@ -37,7 +38,7 @@ up() {
     ip netns add node
     ip link add n-node type veth peer name eth0 netns node
     ip link set n-node master br0 up
-    ip -n node addr add 192.88.99.1/24 dev eth0
+    ip -n node addr add 11.88.99.1/24 dev eth0
     ip -n node link set eth0 up
     ip -n node link set lo up
 
@@ -91,7 +92,7 @@ EOF
     peer=$(sed -n 's/.*service started as //p' "$WORK/node.log" | head -1)
     [ -n "$peer" ] || { cat "$WORK/node.log" >&2; exit 1; }
     # TCP と QUIC の宛先（QUIC は待受のソケットから接続するので、ルーターが送り元のポートを保てばホールパンチングが通る）
-    printf '/ip4/192.88.99.1/udp/%s/quic-v1/p2p/%s\n/ip4/192.88.99.1/tcp/%s/p2p/%s\n' \
+    printf '/ip4/11.88.99.1/udp/%s/quic-v1/p2p/%s\n/ip4/11.88.99.1/tcp/%s/p2p/%s\n' \
         "$NODE_PORT" "$peer" "$NODE_PORT" "$peer" > "$WORK/node.addr"
     cat "$WORK/node.addr"
 
@@ -142,6 +143,7 @@ player() {
         DISPLAY=:99 QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=kde XDG_CURRENT_DESKTOP=KDE \
         XDG_CONFIG_HOME="$cfg" XDG_CACHE_HOME="$WORK/cache-$name" XDG_DATA_HOME="$WORK/data-$name" \
         SHOGIBOARDQ_CONFIG_HOME="$cfg" SHOGIBOARDQ_CACHE_HOME="$WORK/cache-$name" SHOGIBOARDQ_DATA_HOME="$WORK/data-$name" \
+        SHOGIBOARDQ_P2P_DOCS_LAB=1 \
         XDG_STATE_HOME="$WORK/state-$name" XDG_RUNTIME_DIR="$WORK/run" LANG="$loc" LC_ALL="$loc" "${locpath[@]}" \
         "$BUILD/ShogiBoardQ" --automation --automation-socket "$WORK/run/$name.sock" > "$WORK/app-$name.log" 2>&1 &
     for _ in $(seq 1 60); do [ -S "$WORK/run/$name.sock" ] && break; sleep 0.5; done

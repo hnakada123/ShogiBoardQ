@@ -78,7 +78,18 @@ const QStringList& AutomationActionPolicy::allowedActions()
     return actions;
 }
 
+bool AutomationActionPolicy::allowsP2pPlay()
+{
+#ifdef SBQ_P2P_DOCS_AUTOMATION
+    return qEnvironmentVariable(kP2pDocsLabVariable) == QLatin1String("1");
+#else
+    return false;
+#endif
+}
+
 bool AutomationActionPolicy::isAllowed(const QString& objectName)
 {
+    // P2P対局のメニューは、撮影の環境だと明示したときだけ（allowsP2pPlay）
+    if (objectName == QLatin1String("actionP2pGame") && !allowsP2pPlay()) return false;
     return allowedActions().contains(objectName);
 }

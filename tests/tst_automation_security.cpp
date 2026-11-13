@@ -201,13 +201,23 @@ private slots:
     /// 許可リストに入れない（--automation のときに P2P対局の部品を作らないのも allowsP2pPlay で決める）
     void p2pPlayIsDrivableOnlyInTheDocsBuild()
     {
+        // 撮影の環境だと明示しないときは、撮影用のビルドでも操作できない（誤って配ったビルドを、ふだんの起動で
+        // 動かさない。監査 2026-11-13 I-e）
+        const QByteArray saved = qgetenv(AutomationActionPolicy::kP2pDocsLabVariable);
+        qunsetenv(AutomationActionPolicy::kP2pDocsLabVariable);
+        QVERIFY(!AutomationActionPolicy::allowsP2pPlay());
+        QVERIFY(!AutomationActionPolicy::isAllowed(QStringLiteral("actionP2pGame")));
+        qputenv(AutomationActionPolicy::kP2pDocsLabVariable, "1");
 #ifdef SBQ_P2P_DOCS_AUTOMATION
         QVERIFY(AutomationActionPolicy::allowsP2pPlay());
         QVERIFY(AutomationActionPolicy::isAllowed(QStringLiteral("actionP2pGame")));
 #else
+        // ふだんのビルドでは、環境変数があっても操作できない
         QVERIFY(!AutomationActionPolicy::allowsP2pPlay());
         QVERIFY(!AutomationActionPolicy::isAllowed(QStringLiteral("actionP2pGame")));
 #endif
+        if (saved.isNull()) qunsetenv(AutomationActionPolicy::kP2pDocsLabVariable);
+        else qputenv(AutomationActionPolicy::kP2pDocsLabVariable, saved);
     }
 };
 

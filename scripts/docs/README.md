@@ -95,7 +95,8 @@ xvfb-run -a -s '-screen 0 1920x1440x24' python3 scripts/docs/shoot_csa.py \
 
 P2P対局は、ふだんのビルドでは自動化 API から操作できない（`--automation` で起動すると P2P対局を作らない）。
 撮影には、自動化 API から P2P対局を操作できる撮影用のビルドを使う。配布してはならないので、Release・MinSizeRel では
-ビルドできず、`cmake --install` もできない（`docs/dev/p2p-game-spec.md` 10.2節）。
+ビルドできず、`cmake --install` もできない（`docs/dev/p2p-game-spec.md` 10.2節）。撮影用のビルドでも、環境変数
+`SHOGIBOARDQ_P2P_DOCS_LAB=1` を付けて起動したときだけ P2P対局を操作できる（`launch.sh` と `p2p_internet/inside.sh` が付ける）。
 
 ```bash
 cmake -B build-p2p-docs -S . -G Ninja -DENABLE_P2P_PLAY=ON -DENABLE_P2P_DOCS_AUTOMATION=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -113,8 +114,8 @@ scripts/docs/p2p_internet/lab.sh down      # 作業フォルダの持ち主を�
 場面（`basic`・`direct`・`relay_only`・`settings`）を選んで撮り直せる。「設定」タブの「接続候補」は、IP アドレスの前半を
 伏せた見本（`XXX.XXX.113.10`）に書き換えて写す。
 
-- 「インターネット」は 192.88.99.0/24（6to4 のために予約され、今は使われない範囲）。アプリは文書用のアドレス
-  （203.0.113.0/24 など）を宛先に使わないので、グローバル扱いになるこの範囲を使う。コンテナの外へは出ない
+- 「インターネット」は 11.88.99.0/24（インターネット上のアドレスとして扱われる範囲）。アプリは文書用・予約済みのアドレス
+  （203.0.113.0/24、廃止された 6to4 の中継の 192.88.99.0/24 など）を宛先に使わないので、この範囲を使う。コンテナの外へは出ない
 - ルーターは外から始まる接続を、変換の記録を作る前に捨てる。記録すると、ホールパンチングで相手の包みが先に届いたとき
   変換表が衝突して送り元のポートが変わり、直接の接続に切り替わらない
 - `inside.sh nat <A|B> strict` は接続ごとに送り元のポートを変える NAT で、ホールパンチングが通らない（「経路: 中継」の画像）

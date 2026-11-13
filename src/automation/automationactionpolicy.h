@@ -21,16 +21,13 @@ const QStringList& allowedActions();
 bool isAllowed(const QString& objectName);
 
 /// 自動化 API から P2P対局を操作してよいか。ガイドの画像を撮るためのビルド（CMake の
-/// ENABLE_P2P_DOCS_AUTOMATION）だけ true。ふだんのビルドでは、ローカルのソケットから招待・対局・確定を
-/// 始めさせないため false（docs/dev/p2p-game-spec.md 11章）
-constexpr bool allowsP2pPlay()
-{
-#ifdef SBQ_P2P_DOCS_AUTOMATION
-    return true;
-#else
-    return false;
-#endif
-}
+/// ENABLE_P2P_DOCS_AUTOMATION）で、しかも撮影の環境だと環境変数 SHOGIBOARDQ_P2P_DOCS_LAB=1 で明示して起動した
+/// ときだけ true。ふだんのビルドでは、ローカルのソケットから招待・対局・確定を始めさせないため false
+/// （docs/dev/p2p-game-spec.md 11章）。撮影用のビルドを誤って配っても、ふだんの起動では動かせない（監査 2026-11-13 I-e）
+bool allowsP2pPlay();
+
+/// 撮影の環境だと明示する環境変数（値は "1"）
+inline constexpr char kP2pDocsLabVariable[] = "SHOGIBOARDQ_P2P_DOCS_LAB";
 
 } // namespace AutomationActionPolicy
 
