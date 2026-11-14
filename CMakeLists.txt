@@ -1056,10 +1056,18 @@ set(SRC_CLI
     src/cli/main.cpp
 )
 
-# ==== P2P対局（実験版。docs/dev/p2p-game-spec.md） ====
-# 既定は OFF。OFF では libsodium・QtKeychain・Rust を要求せず、P2P の部品も通信プロセスも作らない。
-option(ENABLE_P2P_PLAY "Build the experimental P2P play (requires libsodium and a Rust toolchain)" OFF)
+# ==== P2P対局（docs/dev/p2p-game-spec.md） ====
+# 既定は ON で、libsodium と Rust（cargo）が要る（QtKeychain は任意）。-DENABLE_P2P_PLAY=OFF にすると、それらを
+# 要求せず、P2P の部品も通信プロセスも作らない。
+option(ENABLE_P2P_PLAY "Build P2P play (requires libsodium and a Rust toolchain)" ON)
 set(SRC_P2P)
+# P2P対局に要るものが見つからないときは、入れ方と、P2P対局なしでビルドする方法を添えて止める
+function(sbq_p2p_requirement_missing WHAT HOW)
+    message(FATAL_ERROR
+        "P2P play: ${WHAT} was not found.\n"
+        "  ${HOW}\n"
+        "  To build without P2P play, configure with -DENABLE_P2P_PLAY=OFF.")
+endfunction()
 if(ENABLE_P2P_PLAY)
     if(MSVC)
         # Windows（MSVC）には pkg-config がないので、libsodium の公式のビルド済みの配布物（libsodium-*-msvc.zip）を
@@ -1071,31 +1079,48 @@ if(ENABLE_P2P_PLAY)
         else()
             set(_sodium_arch x64)
         endif()
-        find_path(SODIUM_INCLUDE_DIR sodium.h HINTS ${SODIUM_ROOT}/include REQUIRED)
+        find_path(SODIUM_INCLUDE_DIR sodium.h HINTS ${SODIUM_ROOT}/include)
         find_library(SODIUM_IMPORT_LIBRARY libsodium
             HINTS ${SODIUM_ROOT}/${_sodium_arch}/Release/v143/dynamic ${SODIUM_ROOT}/${_sodium_arch}/Release/v142/dynamic
-                  ${SODIUM_ROOT}/lib
-            REQUIRED)
-        get_filename_component(_sodium_lib_dir ${SODIUM_IMPORT_LIBRARY} DIRECTORY)
-        find_file(SODIUM_RUNTIME_DLL libsodium.dll HINTS ${_sodium_lib_dir} ${SODIUM_ROOT}/bin REQUIRED)
+                  ${SODIUM_ROOT}/lib)
+        if(SODIUM_IMPORT_LIBRARY)
+            get_filename_component(_sodium_lib_dir ${SODIUM_IMPORT_LIBRARY} DIRECTORY)
+            find_file(SODIUM_RUNTIME_DLL libsodium.dll HINTS ${_sodium_lib_dir} ${SODIUM_ROOT}/bin)
+        endif()
+        if(NOT SODIUM_INCLUDE_DIR OR NOT SODIUM_IMPORT_LIBRARY OR NOT SODIUM_RUNTIME_DLL)
+            sbq_p2p_requirement_missing("libsodium 1.0.18 or later"
+                "Extract the official prebuilt libsodium-<version>-msvc.zip and pass its libsodium folder with -DSODIUM_ROOT=<folder>.")
+        endif()
         add_library(PkgConfig::SODIUM SHARED IMPORTED)
         set_target_properties(PkgConfig::SODIUM PROPERTIES
             IMPORTED_IMPLIB ${SODIUM_IMPORT_LIBRARY}
             IMPORTED_LOCATION ${SODIUM_RUNTIME_DLL}
             INTERFACE_INCLUDE_DIRECTORIES ${SODIUM_INCLUDE_DIR})
     else()
-        find_package(PkgConfig REQUIRED)
-        pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium>=1.0.18)
+        find_package(PkgConfig)
+        if(NOT PkgConfig_FOUND)
+            sbq_p2p_requirement_missing("pkg-config (to find libsodium)"
+                "Install pkg-config (pkgconf) and libsodium (libsodium-dev on Debian and Ubuntu).")
+        endif()
+        pkg_check_modules(SODIUM IMPORTED_TARGET libsodium>=1.0.18)
+        if(NOT SODIUM_FOUND)
+            sbq_p2p_requirement_missing("libsodium 1.0.18 or later"
+                "Install libsodium (libsodium-dev on Debian and Ubuntu, libsodium on Arch Linux and Homebrew).")
+        endif()
     endif()
     # OS の鍵の保管庫。無ければプレイヤー鍵はパスフレーズで暗号化したファイルにだけ置ける
     find_package(Qt6Keychain CONFIG QUIET)
-    find_program(CARGO_EXECUTABLE cargo REQUIRED)
+    find_program(CARGO_EXECUTABLE cargo)
+    if(NOT CARGO_EXECUTABLE)
+        sbq_p2p_requirement_missing("a Rust toolchain (cargo, Rust 1.85 or later)"
+            "Install Rust from https://rustup.rs/ or from your package manager.")
+    endif()
 
     # 表示名の文字の表は protocol/ の1つだけを、通信プロセス（Rust）と同じ内容で取り込む
     file(READ ${CMAKE_CURRENT_SOURCE_DIR}/protocol/displayname-v1.txt SBQ_DISPLAYNAME_TABLE)
     configure_file(cmake/p2pdisplaynametable.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/p2pdisplaynametable.h @ONLY)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS protocol/displayname-v1.txt)
-    # 実験版のビルドの使用期限（実装仕様 3.1節）。起点は構成した時刻（SOURCE_DATE_EPOCH があればそれ）で、ここで
+    # ビルドの使用期限（実装仕様 3.1節）。起点は構成した時刻（SOURCE_DATE_EPOCH があればそれ）で、ここで
     # 1回だけ決めて通信プロセスの cargo にも渡す（SBQ_P2P_BUILD_EPOCH）。日数は通信プロセスと同じ値を、
     # sbq-protocol の BUILD_LIFETIME_DAYS の1か所から読む（対局・UI側と通信プロセスの判定を食い違わせない）
     string(TIMESTAMP SBQ_P2P_BUILD_EPOCH "%s" UTC)
@@ -1313,6 +1338,17 @@ qt_add_library(shogiboardq_objects OBJECT
 target_include_directories(shogiboardq_objects PUBLIC ${SBQ_INCLUDE_DIRS})
 target_link_libraries(shogiboardq_objects PUBLIC ${SBQ_LINK_LIBS})
 target_compile_definitions(shogiboardq_objects PUBLIC ${SBQ_COMPILE_DEFINITIONS})
+# AUTOMOC（Ninja）は、ヘッダーと CMakeLists.txt が変わったときだけ走り直す。既存のビルドフォルダで ENABLE_P2P_PLAY
+# だけを切り替えると、ソースの一覧が変わっても走り直さず、P2P の部品の moc が無いままリンクに失敗する（OFF に
+# 戻したときは、消えたヘッダーの moc が残ってコンパイルに失敗する）。前に作った moc の一覧がオプションと
+# 合っていなければ、AUTOMOC の時刻印を消して走り直させる
+set(_sbq_autogen_dir ${CMAKE_CURRENT_BINARY_DIR}/shogiboardq_objects_autogen)
+if(EXISTS ${_sbq_autogen_dir}/mocs_compilation.cpp)
+    file(STRINGS ${_sbq_autogen_dir}/mocs_compilation.cpp _sbq_p2p_mocs REGEX "moc_p2p")
+    if((ENABLE_P2P_PLAY AND NOT _sbq_p2p_mocs) OR (NOT ENABLE_P2P_PLAY AND _sbq_p2p_mocs))
+        file(REMOVE ${_sbq_autogen_dir}/timestamp)
+    endif()
+endif()
 
 # CLI・テスト用の静的ライブラリ（同じオブジェクトファイルをアーカイブする）
 add_library(shogiboardq_static STATIC $<TARGET_OBJECTS:shogiboardq_objects>)

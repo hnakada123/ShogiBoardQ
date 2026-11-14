@@ -47,7 +47,7 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
     if (m_status == Status::Starting || m_status == Status::Online) return StartFailure::None;
     const std::optional<P2p::NetworkInfo> network = P2p::findNetwork(networkName);
     if (!network) return StartFailure::NetworkNotAllowed;
-    // 期限を過ぎたビルドは、限定試験用と公開用のネットワークへ参加しない（ローカル検証用は使える）
+    // 期限を過ぎたビルドは、インターネットのネットワークへ参加しない（ローカルのネットワークは使える）
     if (!network->local && P2pBuildExpiry::isExpired()) return StartFailure::BuildExpired;
     // 保存先を使えるアプリは同時に1つ（実装仕様 9章）
     if (!m_profile || !m_profile->open()) return StartFailure::Locked;

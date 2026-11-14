@@ -63,7 +63,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     , m_player(lobby && lobby->profile() ? lobby->profile()->playerNumber() : 1)
 {
     setObjectName(QStringLiteral("p2pWindow"));
-    setWindowTitle(m_player > 1 ? tr("P2P対局（実験版）— %1人目").arg(m_player) : tr("P2P対局（実験版）"));
+    setWindowTitle(m_player > 1 ? tr("P2P対局 — %1人目").arg(m_player) : tr("P2P対局"));
     setModal(false);
     auto* layout = new QVBoxLayout(this);
     if (m_player > 1) {
@@ -137,8 +137,8 @@ QWidget* P2pWindow::createConnectionTab()
     auto* networkForm = new QFormLayout(networkBox);
     m_network = new QComboBox(networkBox);
     m_network->setObjectName(QStringLiteral("p2pNetwork"));
-    m_network->addItem(tr("ローカル検証用（同じPC・同じLAN）"), QStringLiteral("sbq-local-1"));
-    m_network->addItem(tr("限定試験用"), QStringLiteral("sbq-limited-1"));
+    m_network->addItem(tr("ローカル（同じPC・同じLAN）"), QStringLiteral("sbq-local-1"));
+    m_network->addItem(tr("インターネット"), QStringLiteral("sbq-limited-1"));
     auto* connectRow = new QHBoxLayout;
     m_connect = new QPushButton(networkBox);
     m_connect->setObjectName(QStringLiteral("p2pConnect"));
@@ -451,7 +451,7 @@ void P2pWindow::refresh()
         identityLines << tr("loopbackとLAN内への接続は、OSの側では止められません（通信プロセス自身が断ります）。");
     }
     m_identityInfo->setText(identityLines.join(QLatin1Char('\n')));
-    m_buildInfo->setText(tr("このビルドの使用期限: %1（期限後は限定試験用のネットワークに参加しません）")
+    m_buildInfo->setText(tr("このビルドの使用期限: %1（期限後は「インターネット」のネットワークに参加しません）")
                              .arg(dateText(static_cast<quint64>(P2pBuildExpiry::expiresAt()))));
     updateGameStatus();
 }

@@ -65,6 +65,11 @@ VersionDialog::VersionDialog(QWidget *parent) : QDialog(parent), ui(std::make_un
     if (QFile::exists(directory + QStringLiteral("/THIRD-PARTY-NOTICES.md"))) {
         documents->addItem(tr("同梱ライブラリのライセンス一覧"), QStringLiteral("THIRD-PARTY-NOTICES.md"));
     }
+#ifdef SBQ_ENABLE_P2P
+    // P2P対局の通信プロセス（shogiboardq-peer）に取り込んだ Rust のライブラリの一覧（アプリに内蔵している。
+    // scripts/rust_licenses.py が Cargo.lock から作る）
+    documents->addItem(tr("P2P対局のライブラリのライセンス一覧"), QStringLiteral("RUST-NOTICES.md"));
+#endif
     documents->setAccessibleName(tr("ライセンス文書"));
     auto* browser = new QTextBrowser(this);
     browser->setObjectName(QStringLiteral("licenseBrowser"));

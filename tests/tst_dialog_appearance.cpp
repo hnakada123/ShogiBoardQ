@@ -320,8 +320,9 @@ private slots:
         auto* documents = dialog.findChild<QComboBox*>(QStringLiteral("licenseDocuments"));
         auto* browser = dialog.findChild<QTextBrowser*>(QStringLiteral("licenseBrowser"));
         QVERIFY(documents && browser);
-        // Qt の一覧がない場合も、選択肢と表示する文書が対応する。
-        QCOMPARE(documents->count(), 5);
+        // Qt の一覧がない場合も、選択肢と表示する文書が対応する（P2P対局のライブラリの一覧は、その後ろに足す）。
+        QCOMPARE(documents->findData(QStringLiteral("QT-NOTICES.md")), -1);
+        QCOMPARE(documents->findData(QStringLiteral("THIRD-PARTY-NOTICES.md")), 4);
         QCOMPARE(documents->itemText(4), QStringLiteral("同梱ライブラリのライセンス一覧"));
         documents->setCurrentIndex(4);
         QVERIFY(browser->toPlainText().contains(QStringLiteral("openssl 3.6.0-1")));
@@ -337,6 +338,40 @@ private slots:
         documents->setCurrentIndex(0);
         QVERIFY(browser->toPlainText().startsWith(QStringLiteral("Notice")));
     }
+
+#ifdef SBQ_ENABLE_P2P
+    /// P2P対局の通信プロセスに取り込んだ Rust のライブラリの一覧は、アプリに内蔵してあり、配布物の licenses が
+    /// なくても選べる。ライセンスの本文は原文のまま出す
+    void p2pLibraryNotices()
+    {
+        VersionDialog dialog;
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        auto* documents = dialog.findChild<QComboBox*>(QStringLiteral("licenseDocuments"));
+        auto* browser = dialog.findChild<QTextBrowser*>(QStringLiteral("licenseBrowser"));
+        QVERIFY(documents && browser);
+        const int index = documents->findData(QStringLiteral("RUST-NOTICES.md"));
+        QCOMPARE(index, documents->count() - 1);
+        QCOMPARE(documents->itemText(index), QStringLiteral("P2P対局のライブラリのライセンス一覧"));
+        QElapsedTimer timer;
+        timer.start();
+        documents->setCurrentIndex(index);
+        const QString text = browser->toPlainText();
+        // 250 を超えるクレートの一覧と本文（約 500 KB）を、待たせずに出す
+        QVERIFY2(timer.elapsed() < 3000, qPrintable(QStringLiteral("%1 ms").arg(timer.elapsed())));
+        QVERIFY(text.startsWith(QStringLiteral("Rust library licenses")));
+        QVERIFY(text.contains(QStringLiteral("libp2p")));
+        // 本文は折り返しや記号を変えずに出す（Markdown として解釈しない）
+        QVERIFY(text.contains(QStringLiteral("Permission is hereby granted, free of charge, to any person obtaining a copy\n"
+                                             "of this software and associated documentation files (the \"Software\"), to deal")));
+        QVERIFY(text.contains(QStringLiteral("TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION")));
+        // 著作権表示の文書からのリンクでも開ける
+        documents->setCurrentIndex(0);
+        QVERIFY(browser->toHtml().contains(QStringLiteral("qrc:/licenses/RUST-NOTICES.md")));
+        browser->setSource(QUrl(QStringLiteral("qrc:/licenses/RUST-NOTICES.md")));
+        QVERIFY(browser->toPlainText().startsWith(QStringLiteral("Rust library licenses")));
+    }
+#endif
 
     /// 詰将棋問題一覧のプレビューは、盤と駒台の周りを盤の背景色で塗らず、カードの地のままにする
     void tsumePreviewKeepsCardBackground()

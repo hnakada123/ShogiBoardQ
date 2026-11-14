@@ -230,7 +230,7 @@ private slots:
         QVERIFY(PeerIpc::checkNotification(QStringLiteral("networkStatus"), status));
     }
 
-    /// 実験版のビルドの使用期限は、期限の時刻を過ぎてから（監査 2026-11-12 R5。通信プロセスと同じ起点と日数）
+    /// ビルドの使用期限は、期限の時刻を過ぎてから（監査 2026-11-12 R5。通信プロセスと同じ起点と日数）
     void buildExpiryIsAfterTheLifetime()
     {
         const qint64 expiresAt = P2pBuildExpiry::expiresAt();

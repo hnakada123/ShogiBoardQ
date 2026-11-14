@@ -10,6 +10,7 @@
 ## Build, Test, and Development Commands
 - `cmake -B build -S .` configures the project (CMake 3.16+, C++17).
 - `cmake --build build` builds the Qt6 application.
+- P2P play is built by default and needs libsodium and a Rust toolchain (cargo); add `-DENABLE_P2P_PLAY=OFF` to build without it.
 - `./build/ShogiBoardQ` runs the app after a successful build.
 - `cmake -B build -S . -DBUILD_TESTING=ON` configures with tests enabled.
 - `ctest --test-dir build --output-on-failure` runs the test suite.

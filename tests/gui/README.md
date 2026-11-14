@@ -21,7 +21,7 @@ xvfb-run -a -s '-screen 0 1600x1200x24' env QT_QPA_PLATFORM=xcb \
 
 Qt Testで実際のメニュー、ボタン、棋譜欄を操作する。アプリケーション本体のオブジェクトファイルを再利用し、`main.cpp`だけをテスト用の起動処理へ置き換える。MainWindowやコーディネーターのスタブは使用しない。
 
-対象環境はLinux、Qt6、Python3、Xvfb、Release/Ninjaビルド。通常のCTestとは別に実行する。既存の`build/`が別の構成の場合、この手順の対象外となる。`build/`をP2P対局を含めて構成した場合（`-DENABLE_P2P_PLAY=ON`）は、試験もアプリと同じ定義とライブラリ（libsodium・QtKeychain）で組む。
+対象環境はLinux、Qt6、Python3、Xvfb、Release/Ninjaビルド。通常のCTestとは別に実行する。既存の`build/`が別の構成の場合、この手順の対象外となる。`build/`をP2P対局を含めて構成した場合（`ENABLE_P2P_PLAY`。既定で ON）は、試験もアプリと同じ定義とライブラリ（libsodium・QtKeychain）で組む。
 
 `legalMoveHighlights` は対局中の駒選択、表示メニューでのON/OFF、盤の反転、着手・キャンセル時の消去、再起動時の設定復元を検証し、`legal-moves-selected.png`・`legal-moves-flipped.png` を保存します。合法手の制約（王手、ピン、成り必須、二歩、行き所のない駒打ち、打ち歩詰め）と選択状態の破棄は CTest の `tst_legal_move_highlights` で検証します。
 

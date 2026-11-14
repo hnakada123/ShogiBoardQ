@@ -1,5 +1,5 @@
 /// @file p2pbuildexpiry.cpp
-/// @brief 実験版のビルドの使用期限の実装
+/// @brief ビルドの使用期限の実装
 
 #include "p2pbuildexpiry.h"
 

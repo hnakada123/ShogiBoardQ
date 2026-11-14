@@ -19,5 +19,29 @@ Qt 内的第三方代码各自适用其许可。二进制发行包的 licenses/q
 Linux 版 AppImage 除 Qt 外还随附从 Arch Linux 软件包获取的库（glib、PulseAudio、OpenSSL 等），
 各库适用其各自的许可。列表及许可原文见“随附库的许可证”（licenses/THIRD-PARTY-NOTICES.md）。
 
+P2P对局使用 libsodium（https://libsodium.org/ ，ISC License；随附于 Windows 版、macOS 版和
+Linux 版 AppImage，许可原文见本文档末尾）。P2P对局的通信进程（shogiboardq-peer）用 Rust 编写，
+并包含 rust-libp2p 等 Rust 库，各库适用其各自的许可。列表及许可原文见
+“[P2P对局所用库的许可证](qrc:/licenses/RUST-NOTICES.md)”。
+
 本软件不附加禁止修改 Qt、替换为接口兼容的库，或为调试此类修改而进行逆向工程的限制。
 本软件在适用许可规定的范围内不提供担保。
+
+## libsodium
+
+    ISC License
+
+    Copyright (c) 2013-2026
+    Frank Denis <j at pureftpd dot org>
+
+    Permission to use, copy, modify, and/or distribute this software for any
+    purpose with or without fee is hereby granted, provided that the above
+    copyright notice and this permission notice appear in all copies.
+
+    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.

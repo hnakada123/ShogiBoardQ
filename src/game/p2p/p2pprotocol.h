@@ -181,7 +181,7 @@ struct FinalResult {
 /// このビルドが参加できるネットワーク（protocol/README.md 1.1節）
 struct NetworkInfo {
     const char* name;
-    bool local;        ///< ローカル検証用（loopback を使う。使用期限なし）
+    bool local;        ///< ローカルのネットワーク（loopback を使う。使用期限なし）
 };
 /// 参加できるネットワークの一覧
 const std::vector<NetworkInfo>& allowedNetworks();

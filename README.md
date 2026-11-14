@@ -17,6 +17,7 @@
   <code>C++17</code>&nbsp;
   <code>USI対応</code>&nbsp;
   <code>CSA通信対局</code>&nbsp;
+  <code>P2P対局</code>&nbsp;
   <code>Windows / macOS / Linux</code>&nbsp;
   <code>日本語 / English / 简体中文 / 繁體中文</code>
 </p>
@@ -43,6 +44,7 @@ ShogiBoardQ は、USI エンジンとの対局・検討・棋譜解析、6,000�
 - **[対局機能](https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html)** - 人間対エンジン・エンジン同士・人間同士で対局できます。駒を選ぶと移動できるマスを表示し、中断した対局は局面と残り時間を保ったまま再開できます。
 - **[将棋エンジン Hayanagi](https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html)** - ShogiBoardQ と一緒に開発している USI エンジンです。登録すれば対局・検討・解析に使え、詰将棋対局では玉方を務めます。
 - **[CSA通信対局](https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html)** - floodgate など CSA プロトコルに対応したサーバーに接続し、人間またはエンジンで通信対局できます。
+- **[P2P対局](https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html)** - 対局サーバーを使わずに、知り合いと招待でつないで指し、開始と結果を双方で確定した対局記録を残します。
 - **[入玉宣言](https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html)** - 持将棋の点数を計算し、24点法・27点法に基づく入玉宣言を判定します。
 
 ### 研究・解析
@@ -122,6 +124,7 @@ makepkg -si
 | **Qt** | 6.7 以上（Widgets・Charts・Network・Concurrent・Multimedia・Sql（SQLite ドライバ）・LinguistTools）。駒とアイコンは SVG なので、実行には Qt SVG のプラグインも必要 |
 | **コンパイラ** | C++17 対応（GCC 9 以降、Clang 10 以降、MSVC 2019 以降など） |
 | **CMake** | 3.16 以上（Ninja を推奨） |
+| **Rust・libsodium** | P2P対局のビルドに使います。Rust 1.85 以上（cargo）と libsodium 1.0.18 以上が必要です（QtKeychain があれば、プレイヤー鍵を OS の鍵の保管庫に置けます）。P2P対局なしでビルドするなら不要で、構成に `-DENABLE_P2P_PLAY=OFF` を付けます |
 
 日本語・中国語の表示には、インストール済みの CJK フォント（Noto Sans CJK JP／SC／TC など）を優先します。Linux ではこれらのフォントが必要です。見つからない場合は OS の既定のフォントを使います。GUI 全体の書体は「表示」→「GUI全体のフォント…」で変更できます。
 

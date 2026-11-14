@@ -10,6 +10,10 @@ if(Python3_Interpreter_FOUND)
     add_test(NAME tst_bundled_licenses
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_bundled_licenses.py)
     set_tests_properties(tst_bundled_licenses PROPERTIES ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1")
+    # P2P対局の通信プロセスに取り込む Rust のライブラリのライセンス一覧（内蔵の文書が Cargo.lock と合っているか）
+    add_test(NAME tst_rust_licenses
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_rust_licenses.py)
+    set_tests_properties(tst_rust_licenses PROPERTIES ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1" TIMEOUT 120)
 endif()
 
 # Common source root

@@ -36,6 +36,10 @@ jobs:
       - name: Install MCP test dependencies
         run: python3 -m pip install './mcp[test]'
 
+      # P2P対局（既定で ON）のビルドに使う。Rust はランナーに入っている
+      - name: Install libsodium
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev
+
       - name: Configure
         run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=ON
 
@@ -205,6 +209,10 @@ jobs:
           version: '6.7.*'
           modules: 'qtcharts qtmultimedia'
 
+      # P2P対局（既定で ON）のビルドに使う。Rust はランナーに入っている
+      - name: Install libsodium
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev
+
       - name: Configure (Debug)
         run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DENABLE_WERROR=ON
 
@@ -228,7 +236,7 @@ jobs:
             build/CMakeFiles/CMakeOutput.log
             build/CMakeFiles/CMakeError.log
 
-  # P2P対局（実験版。ENABLE_P2P_PLAY）: 通信プロセス（Rust）の試験と clippy、C++ との共通の試験入力、
+  # P2P対局（ENABLE_P2P_PLAY。既定で ON）: 通信プロセス（Rust）の試験と clippy、C++ との共通の試験入力、
   # 本物の通信プロセスを使うローカルの対局試験。公開ネットワークには接続しない（開発方針 5.1節）
   p2p:
     if: github.event_name != 'schedule'
@@ -251,6 +259,14 @@ jobs:
         run: |
           cargo test --locked --workspace
           cargo clippy --locked --workspace --all-targets -- -D warnings
+
+      # アプリに内蔵する Rust のライブラリのライセンス一覧（resources/licenses/RUST-NOTICES.md）が Cargo.lock と
+      # 合っているか。ほかの OS だけで使うクレートの文書も確かめるので、全部のターゲットのソースを取得してから照らす
+      # （主のビルドの tst_rust_licenses は、ソースが手元に無ければ読み飛ばす）
+      - name: Rust library notices
+        run: |
+          cargo fetch --locked
+          python3 scripts/rust_licenses.py --check --offline
 
       - name: Configure (Debug, P2P)
         run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DENABLE_WERROR=ON -DENABLE_P2P_PLAY=ON
@@ -292,8 +308,9 @@ jobs:
       - name: Install clang-tidy
         run: sudo apt-get update && sudo apt-get install -y clang-tidy
 
+      # P2P対局は入れない（今までと同じ範囲を調べる。P2P対局のビルドと試験は build-and-test・build-debug・p2p のジョブ）
       - name: Configure with clang-tidy
-        run: cmake -B build -S . -DENABLE_CLANG_TIDY=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+        run: cmake -B build -S . -DENABLE_CLANG_TIDY=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DENABLE_P2P_PLAY=OFF
 
       - name: Build and check
         run: |
@@ -335,8 +352,9 @@ jobs:
       - name: Install clazy
         run: sudo apt-get update && sudo apt-get install -y clazy
 
+      # P2P対局は入れない（今までと同じ範囲を調べる。P2P対局のビルドと試験は build-and-test・build-debug・p2p のジョブ）
       - name: Configure
-        run: cmake -B build -S . -DCMAKE_CXX_COMPILER=clazy -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -S . -DCMAKE_CXX_COMPILER=clazy -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=OFF
 
       - name: Build with clazy
         run: cmake --build build --parallel 2 2>&1 | tee clazy-output.txt
@@ -378,8 +396,9 @@ jobs:
           version: '6.7.*'
           modules: 'qtcharts qtmultimedia'
 
+      # P2P対局は入れない（今までと同じ範囲を調べる。P2P対局のビルドと試験は build-and-test・build-debug・p2p のジョブ）
       - name: Configure with Sanitizers
-        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SANITIZERS=ON
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SANITIZERS=ON -DENABLE_P2P_PLAY=OFF
 
       - name: Build
         run: cmake --build build --parallel 2
@@ -405,8 +424,9 @@ jobs:
           version: '6.7.*'
           modules: 'qtcharts qtmultimedia'
 
+      # P2P対局は入れない（今までと同じ範囲を調べる。P2P対局のビルドと試験は build-and-test・build-debug・p2p のジョブ）
       - name: Configure with Sanitizers
-        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZERS=ON
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZERS=ON -DENABLE_P2P_PLAY=OFF
 
       - name: Build
         run: cmake --build build --parallel 2
@@ -440,11 +460,13 @@ jobs:
       - name: Install gcovr
         run: pip install gcovr
 
+      # P2P対局は入れない（今までと同じ範囲を調べる。P2P対局のビルドと試験は build-and-test・build-debug・p2p のジョブ）
       - name: Configure with Coverage
         run: |
           cmake -B build -S . -DBUILD_TESTING=ON \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage"
+            -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage" \
+            -DENABLE_P2P_PLAY=OFF
 
       - name: Build
         run: cmake --build build --parallel 2
@@ -503,8 +525,9 @@ jobs:
           version: '6.7.*'
           modules: 'qtcharts qtmultimedia'
 
+      # P2P対局は入れない（今までと同じ範囲を調べる。P2P対局のビルドと試験は build-and-test・build-debug・p2p のジョブ）
       - name: Configure
-        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=OFF
 
       - name: Build
         run: cmake --build build --parallel 3
@@ -528,8 +551,9 @@ jobs:
           version: '6.7.*'
           modules: 'qtcharts qtmultimedia'
 
+      # P2P対局は入れない（今までと同じ範囲を調べる。P2P対局のビルドと試験は build-and-test・build-debug・p2p のジョブ）
       - name: Configure
-        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=OFF
 
       - name: Build
         run: cmake --build build --config Release --parallel 2

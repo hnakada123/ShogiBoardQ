@@ -316,9 +316,9 @@ private slots:
         {
             P2pWindow one(&first, &game);
             P2pWindow two(&second, &game);
-            QCOMPARE(one.windowTitle(), QStringLiteral("P2P対局（実験版）"));
+            QCOMPARE(one.windowTitle(), QStringLiteral("P2P対局"));
             QVERIFY(!one.findChild<QLabel*>(QStringLiteral("p2pPlayerNotice")));
-            QCOMPARE(two.windowTitle(), QStringLiteral("P2P対局（実験版）— 2人目"));
+            QCOMPARE(two.windowTitle(), QStringLiteral("P2P対局 — 2人目"));
             auto* notice = two.findChild<QLabel*>(QStringLiteral("p2pPlayerNotice"));
             QVERIFY(notice);
             QVERIFY2(notice->text().contains(QStringLiteral("「2人目」")), qPrintable(notice->text()));

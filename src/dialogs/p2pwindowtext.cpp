@@ -140,8 +140,8 @@ QString P2pWindowText::startFailureText(P2pLobbyService::StartFailure failure)
     case P2pLobbyService::StartFailure::Locked: return tr("ほかの ShogiBoardQ が P2P対局を使っています。");
     case P2pLobbyService::StartFailure::NetworkNotAllowed: return tr("このビルドはそのネットワークに参加できません。");
     case P2pLobbyService::StartFailure::BuildExpired:
-        return tr("このビルドは使用期限を過ぎたので、限定試験用のネットワークに参加できません。新しい版に更新してください。"
-                  "保存した記録の確認と、ローカル検証用のネットワークは使えます。");
+        return tr("このビルドは使用期限を過ぎたので、「インターネット」のネットワークに参加できません。新しい版に更新してください。"
+                  "保存した記録の確認と、「ローカル」のネットワークは使えます。");
     case P2pLobbyService::StartFailure::NoIdentity: return tr("プレイヤー鍵を読み込んでいません。");
     case P2pLobbyService::StartFailure::AutomationEnabled:
         return tr("自動化 API を有効にして起動したときは、P2P対局を使えません。");

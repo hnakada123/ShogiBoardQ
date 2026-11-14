@@ -623,7 +623,7 @@
      <normaloff>:/images/actions/actionP2pGame.svg</normaloff>:/images/actions/actionP2pGame.svg</iconset>
    </property>
    <property name="text">
-    <string>P2P対局（実験版）…</string>
+    <string>P2P対局…</string>
    </property>
   </action>
   <action name="actionCancelAnalyzeKifu">

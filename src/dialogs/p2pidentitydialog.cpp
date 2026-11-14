@@ -31,7 +31,7 @@ QLabel* wrappedLabel(const QString& text, QWidget* parent)
 
 QString P2pIdentityDialog::knownLimitsText()
 {
-    return tr("P2P対局は実験版です。次のことは防げません。\n"
+    return tr("P2P対局では、次のことは防げません。\n"
               "・表示名は自己申告です。相手を確かめる根拠はプレイヤーIDと確認コードです。\n"
               "・負けた側のアプリが結果を確定しなければ（途中でアプリを終了するなど）、双方で確定した記録は残りません。\n"
               "・消費時間は自己申告で、少しの水増しと、切断を使った時間稼ぎは見分けられません。\n"
