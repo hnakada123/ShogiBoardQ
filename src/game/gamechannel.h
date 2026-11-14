@@ -26,7 +26,7 @@ public:
     enum class MoveResult {
         Rejected,   ///< 指せない（人間の手番でない・合法手でない・終局した）
         Played,     ///< 盤で指した（ローカル対局）
-        Sent,       ///< サーバーへ送った（盤はサーバーの確認を受けてから動かす。通信対局）
+        Sent,       ///< 相手・サーバーへ送った（盤は確認を受けてから動かす。それまでは表示だけを指した後にする。通信対局・P2P対局）
     };
 
     virtual ~GameChannel() = default;

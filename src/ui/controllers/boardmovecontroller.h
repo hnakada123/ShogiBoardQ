@@ -24,10 +24,11 @@ class GameBoard;
  * 受け付けるかと行き先は OperationPolicy::boardInput() の1か所で決まる。このクラスは行き先ごとに処理する。
  * - 局面編集: 駒の配置を変える（PositionEditSession）
  * - 変化: 表示中の手の次の手として棋譜に記録する（BranchTreeEditController）
- * - 対局（ローカル・通信）: 対局相手の窓口（GameChannel::playMove）へ渡す。ローカル対局は司令塔が合法手を確かめて
- *   盤に指し、通信対局はサーバーへ送る（盤は確認を受けてから動かす）
+ * - 対局（ローカル・通信・P2P）: 対局相手の窓口（GameChannel::playMove）へ渡す。ローカル対局は司令塔が合法手を
+ *   確かめて盤に指し、通信対局・P2P対局は相手・サーバーへ送る（盤は確認を受けてから動かす）
  * 局面編集のほかは、クリックの移動元・移動先を UsiMove にしてから同じ処理に渡す。
- * どの場合も、手を受け付けたかを盤の操作へ返す（つまんだ駒の表示を戻すため）。
+ * 盤で指した手・受け付けなかった手は、結果を盤の操作へ返す（つまんだ駒の表示を戻すため）。送って確認を待つ手は、
+ * 盤の操作に確認待ちの表示をさせる（BoardInteractionController::showSentMove。駒を移動元へ戻して見せない）。
  */
 class BoardMoveController : public QObject, public BoardInputRoute
 {

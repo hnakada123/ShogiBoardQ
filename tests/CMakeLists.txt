@@ -1247,6 +1247,12 @@ add_shogi_test(tst_board_drag_repaint
 )
 target_link_libraries(tst_board_drag_repaint PRIVATE shogiboardq_static)
 target_include_directories(tst_board_drag_repaint PRIVATE ${SRC}/automation)
+# 通信対局・P2P対局で送って確認を待っている手の表示（駒を移動元へ戻さない）
+add_shogi_test(tst_sent_move_display
+    tst_sent_move_display.cpp
+    ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc
+)
+target_link_libraries(tst_sent_move_display PRIVATE shogiboardq_static)
 add_shogi_test(tst_move_record_updates tst_move_record_updates.cpp)
 target_link_libraries(tst_move_record_updates PRIVATE shogiboardq_static)
 add_shogi_test(tst_thinking_display_updates tst_thinking_display_updates.cpp)

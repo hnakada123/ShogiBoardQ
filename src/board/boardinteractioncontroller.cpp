@@ -109,7 +109,8 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
     }
 
     if (!m_waitingSecondClick) {
-        // 1stクリック：選択＆ドラッグ開始
+        // 1stクリック：選択＆ドラッグ開始。つまむ駒は盤の局面から決めるので、確認待ちの手の表示が残っていればやめる
+        clearSentMove();
         m_view->startDrag(pt);
         m_waitingSecondClick = true;
 
@@ -204,7 +205,40 @@ void BoardInteractionController::showLastMove(const QString& usiMove)
 
 void BoardInteractionController::cancelPendingClick()
 {
+    clearSentMove();
     finalizeDrag();
+}
+
+void BoardInteractionController::showSentMove(const UsiMove& move)
+{
+    if (!m_view || !m_board) return;
+    clearSentMove();
+    Position next = m_board->position();
+    const Turn mover = next.sideToMove();
+    if (!next.apply(move)) {
+        // 今の局面の手でなければ（確認が先に届いて盤がもう進んでいるなど）表示しない
+        finalizeDrag();
+        return;
+    }
+    const ShogiViewHighlighting* highlighting = m_view->highlighting();
+    m_sentMove = SentMove{next, highlighting->highlights(BoardHighlightLayer::LastMoveFrom),
+                          highlighting->highlights(BoardHighlightLayer::LastMoveTo)};
+    m_view->showPendingPosition(next);
+    showMoveHighlights(BoardCoordinates::fromSquare(move, mover), BoardCoordinates::toSquare(move));
+    clearSelectionHighlight();
+}
+
+void BoardInteractionController::clearSentMove()
+{
+    if (!m_sentMove) return;
+    const SentMove sent = *m_sentMove;
+    m_sentMove.reset();
+    m_view->clearPendingPosition();
+    // 確認を受けて盤がその局面になったのなら、直前の手の表示はそのままでよい
+    if (m_board->position() == sent.next) return;
+    ShogiViewHighlighting* highlighting = m_view->highlighting();
+    highlighting->setHighlights(BoardHighlightLayer::LastMoveFrom, sent.previousFrom);
+    highlighting->setHighlights(BoardHighlightLayer::LastMoveTo, sent.previousTo);
 }
 
 void BoardInteractionController::clearSelectionHighlight()

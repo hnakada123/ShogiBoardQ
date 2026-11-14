@@ -9,6 +9,7 @@
 #include <functional>
 #include <optional>
 #include "shogiview.h"
+#include "shogiposition.h"
 #include "boardconstants.h"
 #include "usimove.h"
 #include "appsettings.h"
@@ -62,8 +63,17 @@ public:
     /// すべてのハイライトを削除する
     void clearAllHighlights();
 
+    /**
+     * @brief 相手・サーバーへ送って確認を待つ手を、指した後の表示にする（盤は変えない）
+     *
+     * 通信対局・P2P対局は確認を受けてから盤を動かす。その間も駒を移動先に出し、直前の手として示す
+     * （移動元へ戻して見せない）。確認を受けて盤が動くか、入力の取り消し（cancelPendingClick。終局・動作状態の
+     * 変化）でやめる。盤が動かないままやめたときは、直前の手の表示を元に戻す。
+     */
+    void showSentMove(const UsiMove& move);
+
 public slots:
-    /// 2クリック入力の途中状態をキャンセルする（新規・動作状態や手番が変わったとき）
+    /// 2クリック入力の途中状態と、確認待ちの手の表示をやめる（新規・動作状態や手番が変わったとき）
     void cancelPendingClick();
     /// つまんでいた駒を放し、選択を消す（盤の拡大・縮小・回転のとき）
     void cancelInput();
@@ -86,6 +96,14 @@ private:
     void finalizeDrag();
     void refreshLegalMoveHighlights();
     void clearLegalMoveHighlights();
+    void clearSentMove();
+
+    /// 確認待ちの手の表示（指した後の局面と、表示する前の直前の手のハイライト）
+    struct SentMove {
+        Position next;
+        QList<QPoint> previousFrom;
+        QList<QPoint> previousTo;
+    };
 
     static constexpr int kBlackStandFile = BoardConstants::kBlackStandFile; ///< 先手駒台のファイル番号
     static constexpr int kWhiteStandFile = BoardConstants::kWhiteStandFile; ///< 後手駒台のファイル番号
@@ -100,6 +118,7 @@ private:
     // --- クリック状態 ---
     QPoint m_clickPoint; ///< 現在選択中のマス座標
     bool   m_waitingSecondClick = false; ///< 2クリック目待ちフラグ
+    std::optional<SentMove> m_sentMove;  ///< 送って確認を待っている手の表示（無ければ nullopt）
 };
 
 #endif // BOARDINTERACTIONCONTROLLER_H

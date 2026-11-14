@@ -70,9 +70,14 @@ class TestBoardDragRepaint : public QObject
     /// 盤で指した手の行き先（指した手はテストが盤に反映する）
     struct TestRoute : BoardInputRoute {
         bool editing = false;
+        /// 行き先が決まったときの処理（無ければ何もしない）
+        std::function<void(const QPoint&, const QPoint&)> onSubmit;
         bool acceptsInput() const override { return true; }
         bool isEditing() const override { return editing; }
-        void submit(const QPoint&, const QPoint&) override {}
+        void submit(const QPoint& from, const QPoint& to) override
+        {
+            if (onSubmit) onSubmit(from, to);
+        }
         void cycle(const QPoint&) override {}
     };
 
@@ -556,6 +561,61 @@ private slots:
         PositionEditRules::cyclePiece(*ui.gc.board(), BoardSquare{7, 7});
         QCoreApplication::processEvents();
         QCOMPARE(stalePixels(ui), 0);
+    }
+
+    // 通信対局・P2P対局で送って確認を待つ手は、盤を変えずに指した後の表示にする。表示するとき・確認を受けて
+    // 盤が動いたとき・確認が届かないままやめたときのどれも、変わった所だけを描き直して描き残しが無い
+    void sentMoveRepaintsOnlyChangedSquares()
+    {
+        BoardUi ui(sfen(), false);
+        QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
+        settle();
+        // 行き先は主画面の通信対局と同じく、クリックを手にして「送った」と盤の操作へ返す
+        std::optional<UsiMove> sent;
+        ui.route.onSubmit = [&ui, &sent](const QPoint& from, const QPoint& to) {
+            sent = ui.controller->moveFromClick(from, to);
+            if (sent) ui.controller->showSentMove(*sent);
+        };
+        const QString start = ui.gc.board()->toSfen();
+
+        // 角打ち・歩の突き・歩で取る・歩打ち（送る → 確認を受けて盤に指す）
+        const QList<QPair<QPoint, QPoint>> game = {
+            {QPoint(10, 6), QPoint(5, 5)}, {QPoint(8, 5), QPoint(8, 6)},
+            {QPoint(8, 7), QPoint(8, 6)}, {QPoint(11, 9), QPoint(8, 5)},
+        };
+        for (const auto& [from, to] : game) {
+            const QString label = QStringLiteral("%1,%2 -> %3,%4").arg(from.x()).arg(from.y()).arg(to.x()).arg(to.y());
+            const QString before = ui.gc.board()->toSfen();
+            ui.controller->onLeftClick(from);
+            settle();
+            if (from.x() >= BoardConstants::kBlackStandFile) {
+                // 駒打ちは、合法な移動先（空きマスのほとんど）のハイライトも消すので描き直す範囲が広い
+                ui.controller->onLeftClick(to);
+                settle();
+                QVERIFY2(stalePixels(ui) == 0, qPrintable(label));
+            } else {
+                verifyPartialStep(ui.view, [&ui, to = to] { ui.controller->onLeftClick(to); },
+                                  QStringLiteral("sent ") + label);
+            }
+            QVERIFY2(sent.has_value(), qPrintable(label));
+            QVERIFY2(ui.view.hasPendingPosition(), qPrintable(label));
+            QCOMPARE(ui.gc.board()->toSfen(), before);
+            verifyPartialStep(ui.view, [&ui, &sent] { QVERIFY(ui.gc.applyMove(*sent, {}).has_value()); },
+                              QStringLiteral("confirmed ") + label);
+            QVERIFY2(!ui.view.hasPendingPosition(), qPrintable(label));
+            QVERIFY(ui.gc.board()->toSfen() != before);
+        }
+        QVERIFY(ui.gc.board()->toSfen() != start);
+
+        // 確認が届かないままやめる（終局・切断）: 駒が移動元へ戻る
+        const QString before = ui.gc.board()->toSfen();
+        ui.controller->onLeftClick(QPoint(7, 7));
+        settle();
+        verifyPartialStep(ui.view, [&ui] { ui.controller->onLeftClick(QPoint(6, 6)); }, QStringLiteral("sent 7,7 -> 6,6"));
+        QVERIFY(ui.view.hasPendingPosition());
+        verifyPartialStep(ui.view, [&ui] { ui.controller->cancelPendingClick(); }, QStringLiteral("cancelled"));
+        QVERIFY(!ui.view.hasPendingPosition());
+        QCOMPARE(ui.gc.board()->toSfen(), before);
     }
 
     // 盤を回転して戻したとき・拡大して縮小し戻したときは、盤面の変わらない部分の画像を

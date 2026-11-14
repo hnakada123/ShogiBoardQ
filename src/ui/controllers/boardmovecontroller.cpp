@@ -69,10 +69,12 @@ bool BoardMoveController::playUsiMove(const UsiMove& move)
         return ok;
     }
     case Input::Game: {
-        // ローカル対局は司令塔が合法手を確かめて盤に指し、通信対局はサーバーへ送る（盤は確認を受けてから動かす）
+        // ローカル対局は司令塔が合法手を確かめて盤に指し、通信対局・P2P対局は相手・サーバーへ送る（盤は確認を受けてから動かす）
         GameChannel* channel = m_deps.channels->active();
         const GameChannel::MoveResult result = channel ? channel->playMove(move) : GameChannel::MoveResult::Rejected;
-        reportResult(move, result == GameChannel::MoveResult::Played);
+        // 送った手は、確認を受けて盤が動くまで、指した後の表示にしておく（つまんだ駒を移動元へ戻して見せない）
+        if (result == GameChannel::MoveResult::Sent) m_deps.board->showSentMove(move);
+        else reportResult(move, result == GameChannel::MoveResult::Played);
         if (result == GameChannel::MoveResult::Rejected) qCDebug(lcUi) << "human move rejected";
         return result != GameChannel::MoveResult::Rejected;
     }

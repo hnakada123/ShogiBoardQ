@@ -74,12 +74,18 @@ void ShogiView::setBoard(ShogiBoard* board)
     }
 
     m_board = board;
+    m_pendingPosition.reset();
     rebuildGeometry(squareSize(), flipMode());
     // 新しい盤は、まだ画面に出ていないものとして扱う
     m_shownSquares = QList<std::optional<Piece>>(board ? board->files() * board->ranks() : 0);
     m_shownStandCounts.clear();
 
     if (board) {
+        // 盤の局面が変わったら、確認待ちの手の表示をやめる（描き直す範囲を盤の局面から決めるので、ほかの受け手より先に）
+        connect(board, &ShogiBoard::dataChanged, this, &ShogiView::clearPendingPosition);
+        connect(board, &ShogiBoard::standChanged, this, &ShogiView::clearPendingPosition);
+        connect(board, &ShogiBoard::boardReset, this, &ShogiView::clearPendingPosition);
+        connect(board, &ShogiBoard::turnChanged, this, &ShogiView::clearPendingPosition);
         connect(board, &ShogiBoard::dataChanged, this, &ShogiView::onBoardSquareChanged);
         connect(board, &ShogiBoard::standChanged, this, &ShogiView::onBoardStandChanged);
         connect(board, &ShogiBoard::boardReset,  this, &ShogiView::onBoardReset);
@@ -457,7 +463,13 @@ void ShogiView::onBoardReset()
 {
     if (!m_board) return;
     m_chrome->setActiveSide(m_board->currentPlayer());
+    updateStaleCells();
+    update(pieceBoxRect());
+}
 
+void ShogiView::updateStaleCells()
+{
+    const Position& position = shownPosition();
     const int files = m_board->files();
     if (m_shownSquares.size() != qsizetype(files) * m_board->ranks()) {
         update();
@@ -466,17 +478,39 @@ void ShogiView::onBoardReset()
     for (int rank = 1; rank <= m_board->ranks(); ++rank) {
         for (int file = 1; file <= files; ++file) {
             const std::optional<Piece>& shown = m_shownSquares.at(qsizetype(rank - 1) * files + (file - 1));
-            if (!shown || *shown != m_board->pieceCharacter(file, rank)) update(fieldPaintRect(QPoint(file, rank)));
+            if (!shown || *shown != position.pieceAt(file, rank)) update(fieldPaintRect(QPoint(file, rank)));
         }
     }
     for (const Turn side : {Turn::Black, Turn::White}) {
         for (const Piece piece : BoardGeometry::standPieces(side)) {
             const auto shown = m_shownStandCounts.constFind(piece);
-            if (shown == m_shownStandCounts.cend() || shown.value() != m_board->pieceStandCount(piece))
+            if (shown == m_shownStandCounts.cend() || shown.value() != position.handCount(piece))
                 update(standPieceRect(piece));
         }
     }
-    update(pieceBoxRect());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 確認待ちの手の表示
+// ─────────────────────────────────────────────────────────────────────────────
+
+const Position& ShogiView::shownPosition() const
+{
+    return m_pendingPosition ? *m_pendingPosition : m_board->position();
+}
+
+void ShogiView::showPendingPosition(const Position& position)
+{
+    if (!m_board) return;
+    m_pendingPosition = position;
+    updateStaleCells();
+}
+
+void ShogiView::clearPendingPosition()
+{
+    if (!m_pendingPosition) return;
+    m_pendingPosition.reset();
+    if (m_board) updateStaleCells();
 }
 
 
@@ -581,8 +615,8 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
         : adjustedRect | PiecePainter::paintedRect(adjustedRect, m_boardVisuals).toAlignedRect();
     if (!intersectsPaintRegion(painted)) return;
 
-    // 【盤から駒種を取得】
-    const Piece pieceValue = m_board->pieceCharacter(file, rank);
+    // 【画面に出す局面から駒種を取得】（確認待ちの手があれば、それを指した後の局面）
+    const Piece pieceValue = shownPosition().pieceAt(file, rank);
 
     // 【ドラッグ中の元マスは描かない】
     const bool lifted = m_interaction.dragging() && QPoint(file, rank) == m_interaction.dragFrom();
@@ -629,7 +663,7 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
     // 駒・枚数はセル内に切り抜いて描くため、セルが再描画範囲に掛からなければ省く。
     if (!intersectsPaintRegion(adjustedRect)) return;
     const bool lifting = m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(pieceKey);
-    const int count = lifting ? m_interaction.tempPieceStandCounts()[pieceKey] : m_board->pieceStandCount(pieceKey);
+    const int count = lifting ? m_interaction.tempPieceStandCounts()[pieceKey] : shownPosition().handCount(pieceKey);
     // 画面に出た枚数を記録する（持ち上げ中の一時的な枚数は局面と違うので記録しない）
     if (lifting || !paintRegionCovers(adjustedRect)) m_shownStandCounts.remove(pieceKey);
     else m_shownStandCounts.insert(pieceKey, count);

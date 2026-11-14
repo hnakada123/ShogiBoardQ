@@ -24,6 +24,7 @@
 #include "shogiviewinteraction.h"
 #include "boardcolors.h"
 #include "boardvisuals.h"
+#include "shogiposition.h"
 
 #include <QIcon>
 #include <QMap>
@@ -112,6 +113,16 @@ public:
     void startDrag(const QPoint &from);
     void endDrag();
 
+    // ───────────────────────────── 確認待ちの手の表示 ────────────────────────
+    /**
+     * @brief 相手・サーバーへ送って確認を待っている手を指した後の局面を出す（表示だけ。盤 ShogiBoard は変えない）
+     *
+     * 通信対局・P2P対局は確認を受けてから盤を動かすので、その間も駒を移動先に出しておく（移動元へ戻して
+     * 見せない）。盤の局面が変わったら（確認を受けて指した・局面を置き換えた）自分でやめる。
+     */
+    void showPendingPosition(const Position& position);
+    bool hasPendingPosition() const { return m_pendingPosition.has_value(); }
+
 
     // 対局者カード・時計・手番の札・編集用ボタン
     BoardChromeWidget* chrome() const { return m_chrome; }
@@ -131,6 +142,8 @@ public slots:
     /// 盤を拡大・縮小する（マスの幅を ±1。Ctrl+ホイールもここ）。変わったら fieldSizeChanged で知らせる
     void enlargeBoard();
     void reduceBoard();
+    /// 確認待ちの手の表示をやめ、盤の局面を出す（表示が違うマス・駒台のセルだけを描き直す）
+    void clearPendingPosition();
 
 signals:
     void positionChanged();
@@ -199,6 +212,12 @@ private:
     // 局面を丸ごと替えたとき（棋譜をたどる・待った・読み込みなど）は、画面に出ている駒と
     // 違うマス・駒台のセルだけを描き直す
     void onBoardReset();
+    // 画面に出ている駒が shownPosition() と違うマス・駒台のセルだけを描き直す
+    void updateStaleCells();
+
+    // 画面に出す局面（確認待ちの手があればそれを指した後の局面、無ければ盤の局面）
+    const Position& shownPosition() const;
+    std::optional<Position> m_pendingPosition;   ///< 確認待ちの手を指した後の局面（表示だけ）
 
     // 画面に出ている駒（盤はマスごと、駒台は駒ごとの枚数）。描いたときに記録し、
     // 描き直しの範囲に一部しか入らず記録と違う駒になったマスは不明（nullopt / 記録なし）にする。

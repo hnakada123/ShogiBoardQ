@@ -1586,7 +1586,7 @@ sequenceDiagram
 #### フロー解説
 
 1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`clicked` シグナルで `BoardInteractionController` に盤の座標を通知する。駒をつまめるかは行き先（`BoardInputRoute::acceptsInput()`）に聞く。1回目のクリックで駒を選び、設定により `EngineMoveValidator` で合法な移動先を光らせる
-2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。行き先は `OperationPolicy::boardInput()` の1か所で決まる。局面編集中は `PositionEditSession::applyEditMove()`、それ以外はクリックを盤の操作の `BoardInteractionController::moveFromClick()` で `UsiMove` にしてから、待機中は棋譜の変化として `BranchTreeEditController::recordMove()`、対局中は対局相手の窓口（`GameChannel::playMove()`。`GameChannels::active()` を `setActiveChannel()` で受け取る）へ渡す。通信対局の窓口はサーバーへ送り（盤は確認を受けてから動かす）、ローカル対局は次のとおり
+2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。行き先は `OperationPolicy::boardInput()` の1か所で決まる。局面編集中は `PositionEditSession::applyEditMove()`、それ以外はクリックを盤の操作の `BoardInteractionController::moveFromClick()` で `UsiMove` にしてから、待機中は棋譜の変化として `BranchTreeEditController::recordMove()`、対局中は対局相手の窓口（`GameChannel::playMove()`。`GameChannels::active()` を `setActiveChannel()` で受け取る）へ渡す。通信対局・P2P対局の窓口は相手・サーバーへ送り（盤は確認を受けてから動かす。それまでは `BoardInteractionController::showSentMove()` で、表示だけを指した後にする）、ローカル対局は次のとおり
 3. **合法手判定と適用**: ローカル対局では、`MatchCoordinator::isHumanSide()` が真の手番のときだけ `BoardInteractionController::moveFromClick()` が `EngineMoveValidator` で合法手かを判定し、クリックを `UsiMove` にする（詰将棋を解く画面も同じ関数）。成り・不成の両方が合法なら成りの選び方（盤の操作を作るときに合成ルートが渡す `PromoteDialog::ask()`）に従う。ローカル対局の窓口から `MatchCoordinator::playHumanMove(UsiMove)` が呼ばれ、エンジンの手と同じく司令塔が対局の盤 `GameBoard::applyMove()` で指し（合法手の確認はここだけ。棋譜の1行は `MoveRecord::play()` が作り、盤には `ShogiBoard::replacePosition()` で変わった所だけを知らせる）、結果は棋譜の1行（`RecordEntry`）で返る
 4. **一手の確定**: `MatchCoordinator::playHumanMove()` が指した手を対局者の組ごとの Strategy に渡すと、Strategy を通して `completeMove()` が時計・考慮時間を確定し、行を `MatchRecordSink`（`GameSession::appendRecord()`）に書く。`GameSession` はライブ対局のセッション（`LiveGameSession`）経由で分岐ツリー（`KifuBranchTree`）に追記する
 5. **表示の同期**:
@@ -5879,10 +5879,14 @@ playUsiMove(move)                   ← playMove()、JosekiWindowController（�
        │     （考慮時間の確定・棋譜への追記・千日手と最大手数の判定・エンジンへの手番渡しは司令塔が行う）。Played
        ├── CsaGameChannel → CsaGameCoordinator::sendHumanMove(move): 合法手ならサーバーへ送る
        │     （通信対局は確認を受けてから確定するので、盤は動かさない）。Sent
-       └── BoardInteractionController::onMoveApplied() でハイライトを更新（盤で指したときだけ ok）
+       ├── P2pGameChannel → P2pGameCoordinator::playMove(move): 合法手なら署名して相手へ送る
+       │     （相手の承認を受けてから確定するので、盤は動かさない）。Sent
+       ├── Played・Rejected → BoardInteractionController::onMoveApplied() でハイライトを更新（盤で指したときだけ ok）
+       └── Sent → BoardInteractionController::showSentMove(): 盤は変えずに、表示だけを指した後にする
+             （ShogiView::showPendingPosition。駒を移動先に出し、直前の手として示す）
 ```
 
-どの場合も、手を受け付けたかを戻り値で返し、`onMoveApplied()` で盤の操作（つまんだ駒の表示）を戻す。クリックは1回だけ `UsiMove` にし、その後の処理は `playUsiMove()` にまとまっている。定跡ウィンドウの手（`JosekiWindowController`）は成り・不成まで決まっているので `playUsiMove()` を直接呼び（盤の座標を経由しない。局面編集中は指さない）、盤で指した手と同じに扱われる。
+どの場合も、手を受け付けたかを戻り値で返す。盤で指した手・受け付けなかった手は、`onMoveApplied()` で盤の操作（つまんだ駒の表示）を戻す。通信対局・P2P対局で送った手（`Sent`）は、確認が届くまでの間につまんだ駒を移動元へ戻すと、確認が届いたときに駒が移動元から移動先へ跳んで見えるので、`showSentMove()` で指した後の表示にしておく。表示は盤の局面が変わったとき（確認を受けて指した）にやめ、確認が届かないまま終わったとき（終局・切断。`cancelPendingClick()`）は駒と直前の手の表示を元に戻す。クリックは1回だけ `UsiMove` にし、その後の処理は `playUsiMove()` にまとまっている。定跡ウィンドウの手（`JosekiWindowController`）は成り・不成まで決まっているので `playUsiMove()` を直接呼び（盤の座標を経由しない。局面編集中は指さない）、盤で指した手と同じに扱われる。
 
 #### PvBoardController — 読み筋クリック処理
 
