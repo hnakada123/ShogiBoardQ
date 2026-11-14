@@ -231,7 +231,7 @@ private slots:
     void engineMoveIsCommittedOnlyOnConfirmation()
     {
         Harness h;
-        QSignalSpy committed(&h.gc, &GameBoard::moveCommitted);
+        QSignalSpy committed(&h.gc, &GameBoard::piecePlaced);
         QVERIFY(h.start("-", {}, true));
         h.server.send("+7776FU,T1");
         QVERIFY(h.server.waitForLine(QStringLiteral("-8384FU")));
@@ -633,7 +633,7 @@ private slots:
     {
         Harness h;
         QSignalSpy turns(&h.coordinator, &CsaGameCoordinator::turnChanged);
-        QSignalSpy applied(&h.gc, &GameBoard::moveCommitted);
+        QSignalSpy applied(&h.gc, &GameBoard::piecePlaced);
         QVERIFY(h.start("+"));
         QVERIFY(h.coordinator.isMyTurn());
         QVERIFY(h.coordinator.isBlackSide());
@@ -642,10 +642,20 @@ private slots:
         QCOMPARE(h.coordinator.whiteRemainingMs(), 600000);
         QCOMPARE(h.moveCount(), 0);
 
+        QVERIFY(h.clock.isRunning());
         h.playHumanMove(QStringLiteral("7g7f"));
+        // 駒を置いた時点に合わせる: 送ったときに駒音を知らせ、自分の時計を止める（盤と棋譜は確認を受けてから）
+        QCOMPARE(applied.size(), 1);
+        QCOMPARE(applied.first().at(0).value<Turn>(), Turn::Black);
+        QCOMPARE(applied.first().at(1).toInt(), 1);
+        QVERIFY(!h.clock.isRunning());
+        QCOMPARE(h.sink.records.size(), 0);
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
         h.server.send("+7776FU,T5");
         QTRY_COMPARE(h.sink.records.size(), 1);
+        // 確認を受けたら、サーバーの残り時間に合わせて相手の時計を進める
+        QVERIFY(h.clock.isRunning());
+        QCOMPARE(h.clock.currentPlayer(), Turn::White);
         const RecordEntry mine = h.sink.records.at(0);
         QCOMPARE(mine.mover, Turn::Black);
         QVERIFY(mine.displayText.contains(QStringLiteral("７六歩")));
@@ -658,7 +668,7 @@ private slots:
         QCOMPARE(h.coordinator.progress().moveCount(), 1);
         QVERIFY(!h.coordinator.isMyTurn());
         QCOMPARE(turns.last().at(0).toBool(), false);
-        QCOMPARE(applied.size(), 1);  // 確認時に人間の手も一度だけ通知する
+        QCOMPARE(applied.size(), 1);  // 送ったときに知らせた手は、確認では知らせない
         QCOMPARE(h.moveCount(), 1);
 
         h.server.send("-3334FU,T7");
@@ -1129,7 +1139,7 @@ private slots:
         sd.csaGame = &h.coordinator;
         GameSession recordService(sd);
         h.coordinator.setRecordSink(&recordService);
-        QSignalSpy sounds(&h.gc, &GameBoard::moveCommitted);
+        QSignalSpy sounds(&h.gc, &GameBoard::piecePlaced);
 
         QVERIFY(h.start("-"));
         h.server.send("+7776FU,T1");
@@ -1142,9 +1152,13 @@ private slots:
 
         // 自分（後手）の手：人間の操作で盤を動かしてから送る
         h.playHumanMove(QStringLiteral("3c3d"));
+        // 駒音は送ったときに鳴らす（確認ではもう鳴らさない）
+        QCOMPARE(sounds.size(), 2);
+        QCOMPARE(live.moveCount(), 1);
         QVERIFY(h.server.waitForLine(QStringLiteral("-3334FU")));
         h.server.send("-3334FU,T2");
         QTRY_COMPARE(live.moveCount(), 2);
+        QCOMPARE(sounds.size(), 2);
         QCOMPARE(live.liveNode()->move().move.toString(), QStringLiteral("3c3d"));
 
         h.server.send("%TORYO,T3");

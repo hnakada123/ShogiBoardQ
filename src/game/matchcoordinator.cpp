@@ -210,7 +210,7 @@ bool MatchCoordinator::completeMove(RecordEntry played, std::optional<UsiScore> 
     // 時計の表示は時計を見る部品（TimeDisplayPresenter）が合わせる
     m_clock->notifyTimeUpdated();
     if (engineScore) emit engineMovePlayed(mover, currentPly(), *engineScore);
-    m_gameBoard->notifyMoveCommitted(mover, currentPly());
+    m_gameBoard->notifyPiecePlaced(mover, currentPly());
 
     if (checkAndHandleSennichite()) return false;
     if (m_session.maxMoves() > 0 && currentPly() >= m_session.maxMoves()) {

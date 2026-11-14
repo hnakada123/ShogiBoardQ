@@ -118,7 +118,7 @@ std::optional<RecordEntry> GameBoard::applyMove(const UsiMove& move, BoardSquare
 | ドラッグ終了 | 行き先の `submit()` から戻った後に、盤の操作が `ShogiView::endDrag()` を呼ぶ |
 | 棋譜の行と盤面更新 | `commitMove()` が盤の局面の写しで `MoveRecord::play(局面, move, previousTo)` を呼び、指した手の行（`RecordEntry`）を作る（棋譜の読み込みの `KifLineBuilder::addMove()` と同じ関数。棋譜文字列は `KifMoveText::format()` の日本語表記で、例: `"▲７六歩(77)"`。呼び出し側が渡した直前の手の移動先 `previousTo` と同じマスなら「同」。対局では `MatchCoordinator::lastMoveDestination()`）。指した後の局面を `ShogiBoard::replacePosition()` で盤に渡し、変わったマス・駒台・手番だけを知らせる（SFEN の手数も1つ進む。手番が替わると `ShogiBoard::turnChanged` が出る。3.5） |
 
-着手確定の知らせ `moveCommitted` はここでは出さない。司令塔が一手を確定し終えてから `notifyMoveCommitted()` で出す（4.4）。
+駒を置いた知らせ `piecePlaced`（駒音）はここでは出さない。司令塔が一手を確定し終えてから `notifyPiecePlaced()` で出す（4.4）。
 
 #### 成り判定の詳細
 
@@ -194,7 +194,7 @@ MatchCoordinator::completeMove(played, engineScore)
     │      表示中の手が最新の手に移り、盤・ハイライト・棋譜欄が合う
     ├─ clock->notifyTimeUpdated()                 → ShogiClock::timeUpdated → TimeDisplayPresenter（3.6）
     ├─ エンジンの手なら emit engineMovePlayed(mover, ply, score) → EvaluationGraphPresenter::plotEngineScore()
-    ├─ gameBoard->notifyMoveCommitted(mover, ply) → moveCommitted（4.4）
+    ├─ gameBoard->notifyPiecePlaced(mover, ply) → piecePlaced（4.4）
     ├─ 千日手チェック: checkAndHandleSennichite() → 成立なら false（8.4）
     └─ 最大手数チェック: maxMoves > 0 && 手数 >= maxMoves → handleMaxMovesJishogi()、false（8.3）
 ```
@@ -521,16 +521,16 @@ GameSession::appendRecord(entry)                 （src/app/gamesession.cpp）
 
 対局の手順は分岐ツリーの写しではない。対局の開始時に、表示中の手順（`KifuNavigationState::currentRecordLine()`）から作る（[対局開始フロー](game-start-flow.md)）。
 
-### 4.4 着手確定の通知（moveCommitted）
+### 4.4 駒を置いた知らせ（piecePlaced）
 
-`completeMove()` は棋譜に書いて表示を合わせた後に `GameBoard::notifyMoveCommitted(mover, ply)` を呼ぶ。
+`completeMove()` は棋譜に書いて表示を合わせた後に `GameBoard::notifyPiecePlaced(mover, ply)` を呼ぶ。
 
 ```
-GameBoard::moveCommitted(mover, ply)
+GameBoard::piecePlaced(mover, ply)
     └─ PieceSoundPlayer::playMoveSound()   … 駒音（MainWindowComposer::connectBoard() が接続）
 ```
 
-定跡ウィンドウは、表示中の手の変化（`KifuNavigationState::changed`）で `JosekiWindowController::updateJosekiWindow()` が更新する（4.2）。通信対局では `CsaGameCoordinator` がサーバーの確認を受けた手で `notifyMoveCommitted()` を呼ぶ。評価値グラフは、エンジンの手のたびに司令塔が出す `engineMovePlayed(side, ply, score)` を `EvaluationGraphPresenter::plotEngineScore()` が受けて、その手の評価値（`UsiMatchMove::score`。指した側から見た最善の読み筋の評価値）を足す（人間対エンジン・エンジン同士で同じ）。
+定跡ウィンドウは、表示中の手の変化（`KifuNavigationState::changed`）で `JosekiWindowController::updateJosekiWindow()` が更新する（4.2）。通信対局・P2P対局では、相手の手とエンジンの手は確認を受けて盤に指した後に、人間が盤で指した自分の手は相手・サーバーへ送ったとき（駒を置いた時点。盤の表示もこの時点で指した後になる）に `notifyPiecePlaced()` を呼ぶ（1手につき1回）。評価値グラフは、エンジンの手のたびに司令塔が出す `engineMovePlayed(side, ply, score)` を `EvaluationGraphPresenter::plotEngineScore()` が受けて、その手の評価値（`UsiMatchMove::score`。指した側から見た最善の読み筋の評価値）を足す（人間対エンジン・エンジン同士で同じ）。
 
 ---
 

@@ -83,8 +83,8 @@ std::optional<RecordEntry> GameBoard::commitMove(const UsiMove& move, BoardSquar
     return entry;
 }
 
-void GameBoard::notifyMoveCommitted(Turn mover, int ply)
+void GameBoard::notifyPiecePlaced(Turn mover, int ply)
 {
-    emit moveCommitted(mover, ply);
+    emit piecePlaced(mover, ply);
 }
 

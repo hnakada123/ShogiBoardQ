@@ -177,9 +177,34 @@ private slots:
         QVERIFY(black.coordinator.isHumanToMove());
         // 1秒を超えて考えてから指す。署名する消費時間はミリ秒の端数を持つ
         QTest::qWait(1200);
+        QSignalSpy blackSounds(&black.board, &GameBoard::piecePlaced);
+        QSignalSpy whiteSounds(&white.board, &GameBoard::piecePlaced);
+        const QString startSfen = black.board.board()->position().toSfen();
+        QVERIFY(black.clock.isRunning());
         QCOMPARE(black.coordinator.playMove(UsiMove::fromString(u"7g7f")), GameChannel::MoveResult::Sent);
         QVERIFY(!black.coordinator.isHumanToMove());
+        // 駒を置いた時点に合わせる: 送ったときに駒音を知らせ、自分の時計を署名した残り時間で止める
+        // （盤と棋譜は相手の承認を受けてから）
+        QCOMPARE(blackSounds.count(), 1);
+        QCOMPARE(blackSounds.first().at(0).value<Turn>(), Turn::Black);
+        QCOMPARE(blackSounds.first().at(1).toInt(), 1);
+        QVERIFY(!black.clock.isRunning());
+        const GameState* sent = black.coordinator.match()->pendingState();
+        QVERIFY(sent != nullptr);
+        QVERIFY(sent->blackMainMs <= 60'000u - 1200u);
+        QCOMPARE(black.clock.remainingMs(Turn::Black), static_cast<qint64>(sent->blackMainMs));
+        QCOMPARE(black.board.board()->position().toSfen(), startSfen);
+        QCOMPARE(black.sink.entries.size(), 0);
+        const qint64 stopped = black.clock.remainingMs(Turn::Black);
         settle();
+        // 承認を受けたら盤を動かし、相手の時計を進める。自分の時計は止めた値のままで、駒音はもう鳴らさない。
+        // 相手の側は、手を受けて盤に指したときに鳴らす
+        QCOMPARE(black.coordinator.match()->pendingState(), nullptr);
+        QCOMPARE(blackSounds.count(), 1);
+        QCOMPARE(whiteSounds.count(), 1);
+        QVERIFY(black.clock.isRunning());
+        QCOMPARE(black.clock.currentPlayer(), Turn::White);
+        QCOMPARE(black.clock.remainingMs(Turn::Black), stopped);
         QCOMPARE(black.board.board()->position().toSfen(), white.board.board()->position().toSfen());
         QCOMPARE(black.sink.entries.size(), 1);
         QCOMPARE(white.sink.entries.size(), 1);
@@ -193,8 +218,11 @@ private slots:
         QVERIFY(black.coordinator.match()->confirmedStates().back().state.spentMs >= 1200u);
         QVERIFY(white.coordinator.isHumanToMove());
         QCOMPARE(white.coordinator.playMove(UsiMove::fromString(u"3c3d")), GameChannel::MoveResult::Sent);
+        QCOMPARE(whiteSounds.count(), 2);
         settle();
         QCOMPARE(black.sink.entries.size(), 2);
+        QCOMPARE(blackSounds.count(), 2);
+        QCOMPARE(whiteSounds.count(), 2);
 
         // 先手の投了: 結果の一致で棋譜を確定し、P2P対局中を手放す。両方の署名がそろって証跡を保存する
         QVERIFY(black.coordinator.canResign());

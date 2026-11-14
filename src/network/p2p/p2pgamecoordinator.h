@@ -143,6 +143,8 @@ private:
     void handleMatchEvent(const P2p::MatchEvent& event);
     void applyCommittedMove(const P2p::MatchEvent& event);
     void syncClock();
+    /// 自分の手を相手へ送った時点で、自分の時計を止めて駒音を知らせる（盤は承認を受けてから動かす）
+    void onMoveSent();
     void writeEndingRecord(const P2p::FinalResult* result);
     void releaseGame();
     void saveEvidence();

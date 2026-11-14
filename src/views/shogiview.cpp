@@ -503,6 +503,8 @@ void ShogiView::showPendingPosition(const Position& position)
 {
     if (!m_board) return;
     m_pendingPosition = position;
+    // 対局者カードの手番の印も、指した後の局面の手番にする
+    m_chrome->setActiveSide(position.sideToMove());
     updateStaleCells();
 }
 
@@ -510,7 +512,9 @@ void ShogiView::clearPendingPosition()
 {
     if (!m_pendingPosition) return;
     m_pendingPosition.reset();
-    if (m_board) updateStaleCells();
+    if (!m_board) return;
+    m_chrome->setActiveSide(m_board->currentPlayer());
+    updateStaleCells();
 }
 
 

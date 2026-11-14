@@ -1592,7 +1592,7 @@ sequenceDiagram
 5. **表示の同期**:
    - `ShogiView`: `ShogiBoard` の `dataChanged`／`standChanged`／`turnChanged` シグナルで、変わったマスと駒台、手番の表示を更新する。移動元・移動先のハイライトは `BoardInteractionController` が付ける
    - 棋譜欄・分岐・盤・コメント・評価値グラフなど: 分岐ツリーが変わると `KifuNavigationState` が表示中の手を最新の手に進めて `changed()` を出し、`KifuDisplayPresenter`（棋譜欄・分岐候補欄・分岐ツリー）、`BoardSyncPresenter`（盤・ハイライト）などが各自で合わせる
-   - `moveCommitted` シグナルでは、駒音を鳴らす（`PieceSoundPlayer`）
+   - `piecePlaced` シグナルでは、駒音を鳴らす（`PieceSoundPlayer`）
 6. **エンジン応答**: 対エンジンの対局では、`MatchCoordinator` がエンジンに `position` + `go` を送り（`requestEngineMove()`）、`bestmove` を `GameBoard::applyMove()` で指して一手を確定する。評価値グラフは `engineMovePlayed` シグナルで `EvaluationGraphPresenter::plotEngineScore()` が更新する
 
 #### 棋譜読み込みのデータフロー
@@ -3189,13 +3189,13 @@ GameBoard::commitMove(move, previousTo)
   └── ShogiBoard::replacePosition(指した後の局面)   変わったマス・駒台・手番だけを知らせる（turnChanged が出る）
 ```
 
-着手の確定の知らせ（`moveCommitted`）は `commitMove()` では出さない。呼び出し側が盤・手順・棋譜・時計を更新し終えてから `notifyMoveCommitted(mover, ply)` で出す（ローカル対局は `MatchCoordinator::completeMove()`、通信対局は `CsaGameCoordinator`）。
+駒を置いた知らせ（`piecePlaced`。駒音）は `commitMove()` では出さない。対局の司令塔が、1手につき1回だけ `notifyPiecePlaced(mover, ply)` で出す。盤に指した手（ローカル対局の `MatchCoordinator::completeMove()`、通信対局の `CsaGameCoordinator`・P2P対局の `P2pGameCoordinator` が受けた相手の手とエンジンの手）は、盤・手順・棋譜・時計を更新し終えてから出す。通信対局・P2P対局で人間が盤で指した手は、相手・サーバーへ送ったとき（`CsaGameCoordinator::sendHumanMove()`・`P2pGameCoordinator::playMove()`）に出し、確認を受けて盤に指したときはもう出さない（盤の表示も送った時点で指した後になる。`BoardInteractionController::showSentMove()`）。
 
 #### 主要なシグナル
 
 | シグナル | 接続先 | 用途 |
 |---------|-------|------|
-| `moveCommitted(Turn, int)` | PieceSoundPlayer::playMoveSound | 着手確定通知。ローカル対局・通信対局のどちらもこの知らせを使う |
+| `piecePlaced(Turn, int)` | PieceSoundPlayer::playMoveSound | 駒を置いた知らせ。ローカル対局・通信対局・P2P対局のどれもこの知らせを使う |
 
 駒のドラッグ表示は、盤の操作が行き先の `submit()` から戻った後に `ShogiView::endDrag()` で終える（成り・不成を尋ねている間は保つ）。手番の変更の知らせは `GameBoard` ではなく、盤の `ShogiBoard::turnChanged` が出す（6.7節）。
 
@@ -3244,7 +3244,7 @@ ShogiBoard::turnChanged(Turn)
                 ├── 棋譜の行（MatchRecordSink::appendRecord）→ 表示中の手が最新の手になり、
                 │     盤・ハイライト・棋譜欄を各部品が合わせる
                 ├── ShogiClock::notifyTimeUpdated()（時計の表示）/ engineMovePlayed（エンジンの手のとき）
-                ├── GC::notifyMoveCommitted() → moveCommitted
+                ├── GC::notifyPiecePlaced() → piecePlaced
                 └── 千日手・最大手数の判定
                               │
              次の手番は誰か？（Strategy が判定）
@@ -5886,7 +5886,7 @@ playUsiMove(move)                   ← playMove()、JosekiWindowController（�
              （ShogiView::showPendingPosition。駒を移動先に出し、直前の手として示す）
 ```
 
-どの場合も、手を受け付けたかを戻り値で返す。盤で指した手・受け付けなかった手は、`onMoveApplied()` で盤の操作（つまんだ駒の表示）を戻す。通信対局・P2P対局で送った手（`Sent`）は、確認が届くまでの間につまんだ駒を移動元へ戻すと、確認が届いたときに駒が移動元から移動先へ跳んで見えるので、`showSentMove()` で指した後の表示にしておく。表示は盤の局面が変わったとき（確認を受けて指した）にやめ、確認が届かないまま終わったとき（終局・切断。`cancelPendingClick()`）は駒と直前の手の表示を元に戻す。クリックは1回だけ `UsiMove` にし、その後の処理は `playUsiMove()` にまとまっている。定跡ウィンドウの手（`JosekiWindowController`）は成り・不成まで決まっているので `playUsiMove()` を直接呼び（盤の座標を経由しない。局面編集中は指さない）、盤で指した手と同じに扱われる。
+どの場合も、手を受け付けたかを戻り値で返す。盤で指した手・受け付けなかった手は、`onMoveApplied()` で盤の操作（つまんだ駒の表示）を戻す。通信対局・P2P対局で送った手（`Sent`）は、確認が届くまでの間につまんだ駒を移動元へ戻すと、確認が届いたときに駒が移動元から移動先へ跳んで見えるので、`showSentMove()` で指した後の表示にしておく。表示は盤の局面が変わったとき（確認を受けて指した）にやめ、確認が届かないまま終わったとき（終局・切断。`cancelPendingClick()`）は駒と直前の手の表示を元に戻す。対局者カードの手番の印も、この表示の局面の手番にする。駒音と時計も駒を置いた時点に合わせる: 司令塔が送ったときに `GameBoard::notifyPiecePlaced()` で駒音を知らせ、表示の時計の自分の側を止める（相手の時計は確認を受けてから進める）。クリックは1回だけ `UsiMove` にし、その後の処理は `playUsiMove()` にまとまっている。定跡ウィンドウの手（`JosekiWindowController`）は成り・不成まで決まっているので `playUsiMove()` を直接呼び（盤の座標を経由しない。局面編集中は指さない）、盤で指した手と同じに扱われる。
 
 #### PvBoardController — 読み筋クリック処理
 
@@ -6049,7 +6049,7 @@ CsaGameUiController のコンストラクタ
   └── gameStarted / gameEnded / turnChanged / logMessage → 自身のスロット（画面の切り替え）
 ```
 
-通信対局の指し手も `GameBoard` が盤に指すので、駒音（`PieceSoundPlayer`）はローカル対局と同じ `GameBoard::moveCommitted` で受ける（`connectBoard()`）。
+通信対局の指し手も `GameBoard` が盤に指すので、駒音（`PieceSoundPlayer`）はローカル対局と同じ `GameBoard::piecePlaced` で受ける（`connectBoard()`）。人間が盤で指した手は、サーバーへ送ったときに鳴らす（確認を待たない）。
 
 #### 対局者情報の配線（PlayerInfoPresenter）
 
@@ -6217,7 +6217,7 @@ BoardInputRoute::submit(from, to)
   ├── GameBoard::applyMove(move, 直前の手の移動先)  ← Model層（司令塔が呼ぶ）
   │     ├── ShogiBoard::replacePosition(指した後の局面)
   │     │     └── [View] ShogiView が dataChanged / standChanged で変わったマスを再描画
-  │     └── moveCommitted(mover, ply) シグナル
+  │     └── piecePlaced(mover, ply) シグナル
   │           └── PieceSoundPlayer::playMoveSound()（駒音）
   │
   ├── [Controller] BoardInteractionController::onMoveApplied(from, to, ok)
@@ -6914,7 +6914,7 @@ CsaClientとゲームシステム（GameBoard, ShogiClock等）の橋渡し役�
 
 - CsaClient のシグナルを受け取り、ゲームシステムに反映
 - CSA形式 ↔ USI形式の指し手変換（`CsaMoveConverter::toUsi()` / `toCsa()`）
-- 盤面への指し手適用（`playCsaMove()` が `toUsi()` で得た指し手を `GameBoard::applyRecordedMove()` で指す。確定後は `GameBoard::notifyMoveCommitted()` でローカル対局と同じ経路の `moveCommitted` を出す）
+- 盤面への指し手適用（`playCsaMove()` が `toUsi()` で得た指し手を `GameBoard::applyRecordedMove()` で指す。確定後は `GameBoard::notifyPiecePlaced()` でローカル対局と同じ経路の `piecePlaced` を出す。人間が盤で指した自分の手は、送ったときに出している）
 - 対局の手順を `CsaGameProgress::record`（`RecordLine`）1つに積み、確定した棋譜行を棋譜の受け手（`MatchRecordSink`。ローカル対局と同じ `GameSession`）へ書く。対局の開始では `beginRecord(recordStart())`（サーバーの開始局面・対局者名・持ち時間と、接続ダイアログの自動保存）で新しい棋譜を作らせてから再開局面の既存手順を書き、終局では終局の行の後で `finishRecord(true)` を呼ぶ
 - 動作状態。接続してから通信対局を続ける間（`sessionContinues()`: ログアウト・失敗・予定の対局数を終えるまで。終局の後にサーバーが切っても再接続を待つ間は続ける）は `DuringCsaConnection` のリースを持ち（`updateActivity()`。`publishGameState()` のたびに合わせる）、対局の間は棋譜を作った後で `DuringCsaGame` に取り直す（`MatchCoordinator::start()` と同じ形）。終局（棋譜の確定の後）で接続中に戻すか手放し、`stopGame()` で手放す。局と局の間の「中断」（`CsaGameChannel::breakOff()`）は `stopGame()` でログアウトする
 - GUI側の時計制御（サーバーの権威的な消費時間でGUI時計を補正。表示用の `ShogiClock` はサーバーの残り時間の写しで、計算には使わない）
@@ -8051,8 +8051,8 @@ sequenceDiagram
         Note over MC: Strategy → completeHumanMove()<br/>時計の確定と消費時間の記録
         MC->>GS: appendRecord()（MatchRecordSink。ライブ対局のセッションに追記）
         GS-->>BSP: 表示中の手が最新の手になり、盤・ハイライト・手番の表示を合わせる
-        MC->>SGC: notifyMoveCommitted()
-        SGC-->>SV: moveCommitted シグナル（駒音は PieceSoundPlayer）
+        MC->>SGC: notifyPiecePlaced()
+        SGC-->>SV: piecePlaced シグナル（駒音は PieceSoundPlayer）
         Note over MC: 千日手と最大手数の判定
 
         alt エンジン手番（人間対エンジン）
@@ -8076,7 +8076,7 @@ sequenceDiagram
 | `ShogiView` | 盤面の描画とマウスイベントの発行。クリックを `clickedSquare()` でマスにして `clicked` で知らせる |
 | `BoardInteractionController` | 2クリック方式の駒選択と、行き先（`BoardInputRoute`）への移動元・移動先の受け渡し、ハイライト管理 |
 | `BoardMoveController` | 主画面の `BoardInputRoute`。つまめるかを答え、盤で決まった手を動作状態に合わせて局面編集・棋譜の変化の記録・通信対局・対局に振り分ける（`src/ui/controllers/`） |
-| `GameBoard` | 指し手の検証と盤面更新の実行。着手確定の知らせ（`moveCommitted`） |
+| `GameBoard` | 指し手の検証と盤面更新の実行。駒を置いた知らせ（`piecePlaced`） |
 | `EngineMoveValidator` | 合法手判定ロジック（王手放置、二歩、打ち歩詰め、行き所のない駒等を検査） |
 | `ShogiBoard` | 9x9盤面 + 駒台のデータモデル。手番もここだけが持つ |
 | `MatchCoordinator` | 一手の確定（時計・棋譜の行・千日手・最大手数）と、エンジンへの手番渡し |
@@ -8310,8 +8310,8 @@ sequenceDiagram
         CGC->>SGC: CsaMoveConverter::toUsi() → applyRecordedMove()（盤に指す）
         Note over CGC: 時計と CsaGameProgress::record（RecordLine）を更新
         CGC->>GS: appendRecord(entry)（MatchRecordSink）
-        CGC->>SGC: notifyMoveCommitted()
-        Note over SGC: moveCommitted シグナル<br/>（駒音）
+        CGC->>SGC: notifyPiecePlaced()
+        Note over SGC: piecePlaced シグナル<br/>（駒音）
     end
 
     Srv-->>CC: #RESIGN or #TIME_UP etc.
@@ -8336,7 +8336,7 @@ sequenceDiagram
 | `CsaGameCoordinator` | CSA通信対局の進行管理（合成ルートが起動時に1つ作る）。1局の進行（持ち時間・手数・手順）は `CsaGameProgress` に持ち、手順は `record`（`RecordLine`）1つだけ。自分の手番は持たず `CsaClient::isMyTurn()` を見る。棋譜は受け手に書き、動作状態 `DuringCsaGame` は自分で持つ（`MatchCoordinator` と同じ順） |
 | `CsaClient` | CSAプロトコルのTCP/IP通信実装。メッセージの送受信と状態管理。Game_Summary は `CsaGameSummaryReader` が読んで値 `CsaGameSummary`（`myTurn` は `std::optional<Turn>`、`toMove` は `Turn`）にする |
 | `MatchEngineSeat` | エンジンで指すときの `Usi` の起動・知らせ・終局の手順（ローカル対局と共有。エンジンの枠は `EngineSlots` を使う） |
-| `GameBoard` | 盤面データの更新と、着手確定の知らせ（`moveCommitted`） |
+| `GameBoard` | 盤面データの更新と、駒を置いた知らせ（`piecePlaced`） |
 
 **補足:**
 - `CsaClient`は状態マシンパターンで実装されており、`ConnectionState`が `Disconnected → Connecting → Connected → LoggedIn → WaitingForGame → GameReady → InGame → GameOver` と遷移する
@@ -8344,7 +8344,7 @@ sequenceDiagram
 - 自分の手も相手の手も、サーバーからの確認（`moveConfirmed`／`moveReceived`）を受けてから盤に指す。盤で入力した手はその時点では盤を変えない
 - 解釈できない指し手行が届いたときは、すぐ終局させずサーバーの裁定（`#ILLEGAL_MOVE` と勝敗）を待つ
 - エンジン対局時は `MatchEngineSeat` が `Usi` を借り、`matchMoveReady` で受けた応手を `moveReady` で `CsaGameCoordinator` に返す
-- 着手確定の知らせは、ローカル対局と同じ `GameBoard::moveCommitted`（`notifyMoveCommitted()` が出す）で、駒音はこれを受ける
+- 駒を置いた知らせは、ローカル対局と同じ `GameBoard::piecePlaced`（`notifyPiecePlaced()` が出す）で、駒音はこれを受ける。人間が盤で指した手は、サーバーへ送ったとき（`sendHumanMove()`）に知らせ、表示の時計の自分の側もこの時点で止める（消費時間はサーバーが決めるので、確認で残り時間を合わせ直してから相手の時計を進める）。相手の手とエンジンの手は、確認を受けて盤に指した後に知らせる
 - 終局原因（投了・時間切れ・千日手・入玉宣言等）は `CsaClient::GameEndCause` 列挙型で分類され、対応する結果表示が行われる
 
 <!-- chapter-15-end -->

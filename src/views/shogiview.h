@@ -118,7 +118,8 @@ public:
      * @brief 相手・サーバーへ送って確認を待っている手を指した後の局面を出す（表示だけ。盤 ShogiBoard は変えない）
      *
      * 通信対局・P2P対局は確認を受けてから盤を動かすので、その間も駒を移動先に出しておく（移動元へ戻して
-     * 見せない）。盤の局面が変わったら（確認を受けて指した・局面を置き換えた）自分でやめる。
+     * 見せない）。対局者カードの手番の印も、その局面の手番にする。盤の局面が変わったら（確認を受けて指した・
+     * 局面を置き換えた）自分でやめる。
      */
     void showPendingPosition(const Position& position);
     bool hasPendingPosition() const { return m_pendingPosition.has_value(); }

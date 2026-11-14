@@ -239,21 +239,23 @@ private slots:
         QCOMPARE(h.highlights(BoardHighlightLayer::LastMoveTo), QList<QPoint>{to});
         QVERIFY(h.highlights(BoardHighlightLayer::Selection).isEmpty());
         QVERIFY(h.highlights(BoardHighlightLayer::LegalDestinations).isEmpty());
+        // 駒・駒台・直前の手・手番の印のどれも、その手を指した後の盤と同じ絵になる
         const QImage pendingImage = h.image();
         QVERIFY(pendingImage != beforeImage);
-        // 手番の印だけは、確認を受けるまで指した側のまま
-        Position shown = after;
-        shown.setSideToMove(before.sideToMove());
-        QVERIFY(pendingImage == referenceImage(shown, from, to, flipped));
+        QVERIFY(pendingImage == referenceImage(after, from, to, flipped));
+        // 手番の印も指した後の手番になる（指した側に付いたままの絵とは違う）
+        Position moverToMove = after;
+        moverToMove.setSideToMove(before.sideToMove());
+        QVERIFY(pendingImage != referenceImage(moverToMove, from, to, flipped));
 
-        // 確認が届く: 盤が動き、表示は変わらない（手番の印だけが替わる）
+        // 確認が届く: 盤が動き、表示は何も変わらない
         QVERIFY(h.channel->confirm());
         QCoreApplication::processEvents();
         QVERIFY(h.board()->position() == after);
         QVERIFY(!h.view.hasPendingPosition());
         QCOMPARE(h.highlights(BoardHighlightLayer::LastMoveFrom), QList<QPoint>{from});
         QCOMPARE(h.highlights(BoardHighlightLayer::LastMoveTo), QList<QPoint>{to});
-        QVERIFY(h.image() == referenceImage(after, from, to, flipped));
+        QVERIFY(h.image() == pendingImage);
     }
 
     /// 確認が届かないまま対局が終わった（切断・時間切れなど）: 駒と直前の手の表示を元に戻す

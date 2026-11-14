@@ -672,7 +672,7 @@ private slots:
         QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         gc.newGame(initial);
         const Position before = gc.board()->position();
-        QSignalSpy committed(&gc, &GameBoard::moveCommitted);
+        QSignalSpy committed(&gc, &GameBoard::piecePlaced);
         QVERIFY(!clickMove(gc, from, to));
         QCOMPARE(gc.board()->position(), before);
         QCOMPARE(gc.board()->toSfen(), initial);
@@ -729,7 +729,7 @@ private slots:
         GameBoard gc;
         gc.newGame(sfen);
         const Position board = gc.board()->position();
-        QSignalSpy committed(&gc, &GameBoard::moveCommitted);
+        QSignalSpy committed(&gc, &GameBoard::piecePlaced);
         const auto parsed = UsiMove::parse(move);
         QVERIFY(parsed);
         QVERIFY(!gc.applyMove(*parsed, {}));

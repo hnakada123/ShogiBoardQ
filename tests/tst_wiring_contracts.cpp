@@ -87,7 +87,7 @@ private slots:
         StartGameDialogData data;
         QString error;
         QVERIFY2(startGame(p, data, &error), qPrintable(error));
-        connect(p.gameBoard, &GameBoard::moveCommitted, this, &TestWiringContracts::observeMove);
+        connect(p.gameBoard, &GameBoard::piecePlaced, this, &TestWiringContracts::observeMove);
         p.boardMoves->submit(QPoint(7, 7), QPoint(7, 6));
         p.boardMoves->submit(QPoint(3, 3), QPoint(3, 4));
         QCOMPARE(m_consistentMoves, 2);

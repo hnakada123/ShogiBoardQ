@@ -135,7 +135,7 @@ void MainWindowComposer::connectBoard()
     BoardInteractionController* board = m_c.boardController;
     connect(m_c.shogiView, &ShogiView::clicked, board, &BoardInteractionController::onLeftClick);
     connect(m_c.shogiView, &ShogiView::rightClicked, board, &BoardInteractionController::onRightClick);
-    connect(m_c.gameBoard, &GameBoard::moveCommitted,
+    connect(m_c.gameBoard, &GameBoard::piecePlaced,
             m_c.pieceSoundPlayer, &PieceSoundPlayer::playMoveSound);
 
     // 局面編集（棋譜は編集した局面だけになる）

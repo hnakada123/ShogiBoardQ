@@ -202,6 +202,10 @@ bool CsaGameCoordinator::sendHumanMove(const UsiMove& move)
     const QString csaMove = CsaMoveConverter::toCsa(move, m_progress.isBlackSide ? Turn::Black : Turn::White,
                                                     m_gameBoard->board()->position());
     if (csaMove.isEmpty() || !m_client->sendMove(csaMove)) return false;
+    // 駒を置いた時点に合わせる: 自分の時計を止め（消費時間はサーバーが決めるので、確認で残り時間を合わせ直す。
+    // 相手の時計は確認を受けてから進める）、駒音を鳴らす。盤の表示は盤の操作が指した後にする
+    if (m_clock) m_clock->stopClock();
+    m_gameBoard->notifyPiecePlaced(m_progress.isBlackSide ? Turn::Black : Turn::White, m_progress.moveCount() + 1);
     emit turnChanged(false);
     return true;
 }

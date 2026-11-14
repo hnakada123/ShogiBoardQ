@@ -50,14 +50,18 @@ public:
     std::optional<RecordEntry> applyRecordedMove(const UsiMove& move, BoardSquare previousTo);
 
     /**
-     * @brief 着手の確定を知らせる（盤・手順・棋譜・時計を更新し終えた後に、対局の司令塔が呼ぶ）
-     * @param ply 対局の手順での手数
+     * @brief 駒を置いた時点を知らせる（駒音）。対局の司令塔が、1手につき1回だけ呼ぶ
+     *
+     * - 盤に指した手（ローカル対局の手・相手の手・通信対局のエンジンの手）: 盤・手順・棋譜・時計を更新し終えた後
+     * - 人間が盤で指して相手・サーバーへ送った手（通信対局・P2P対局）: 送ったとき。盤の表示もこの時点で指した後に
+     *   なる（BoardInteractionController::showSentMove）。確認を受けて盤に指したときは、もう知らせない
+     * @param ply 対局の手順での、その手の手数
      */
-    void notifyMoveCommitted(Turn mover, int ply);
+    void notifyPiecePlaced(Turn mover, int ply);
 
 signals:
-    /// 着手が確定した（→ PieceSoundPlayer）
-    void moveCommitted(Turn mover, int ply);
+    /// 駒を置いた（→ PieceSoundPlayer）
+    void piecePlaced(Turn mover, int ply);
 
 private:
     std::unique_ptr<ShogiBoard> m_board; ///< 将棋盤（所有。起動から終了まで同じ1つ）

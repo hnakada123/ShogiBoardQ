@@ -109,6 +109,8 @@ public:
     bool isMyTurn() const;
     /// 確認待ちの自分の手があるか
     bool hasPendingMove() const { return m_pending.has_value(); }
+    /// 相手の承認を待っている自分の状態（消費時間を引いた残り時間を持つ。無ければ nullptr）
+    const GameState* pendingState() const { return m_pending ? &m_pending->state : nullptr; }
     /// 両方の署名がそろった最新の状態。開始局面（State0）の承認がそろう前は、手数 0 の空の状態を返す
     /// （開始の手続きの途中で対局が終わったとき・相手が最初に壊れた提案を送ったときにも呼ばれる。空の列の末尾を読まない）
     const GameState& lastState() const;

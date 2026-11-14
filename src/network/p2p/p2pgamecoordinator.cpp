@@ -400,8 +400,9 @@ void P2pGameCoordinator::applyCommittedMove(const P2p::MatchEvent& event)
     entry->time = RecordTime::wholeSeconds(total - static_cast<qint64>(event.spentMs), total);
     if (m_sink) m_sink->appendRecord(*entry);
     syncClock();
-    // 盤・棋譜・時計を更新し終えた後に知らせる（駒音）
-    m_deps.gameBoard->notifyMoveCommitted(mover, static_cast<int>(state.ply));
+    // 盤・棋譜・時計を更新し終えた後に知らせる（駒音）。自分の手は、送ったとき（onMoveSent）に知らせている
+    const bool mine = (mover == Turn::Black) == m_match->iAmBlack();
+    if (!mine) m_deps.gameBoard->notifyPiecePlaced(mover, static_cast<int>(state.ply));
     emit statusChanged();
 }
 
@@ -478,10 +479,26 @@ GameChannel::MoveResult P2pGameCoordinator::playMove(const UsiMove& move)
 {
     if (!isHumanToMove()) return GameChannel::MoveResult::Rejected;
     const P2p::Match::MoveError error = m_match->playMove(move);
+    if (error == P2p::Match::MoveError::None) onMoveSent();
     flushMatch();
     emit statusChanged();
     // 盤は相手の承認を受けてから動かす（確認待ちの手を棋譜へ先に入れない）
     return error == P2p::Match::MoveError::None ? GameChannel::MoveResult::Sent : GameChannel::MoveResult::Rejected;
+}
+
+void P2pGameCoordinator::onMoveSent()
+{
+    // 駒を置いた時点に合わせる。消費時間は送る状態を作った時点で固定しているので、自分の時計をその残り時間で
+    // 止める（相手の時計は承認を受けてから進める。syncClock）。駒音もここで鳴らす。盤の表示は盤の操作が指した後にする
+    const P2p::GameState* sent = m_match->pendingState();
+    if (!sent || m_recordFinished) return;
+    if (m_deps.clock) {
+        m_deps.clock->stopClock();
+        m_deps.clock->setRemainingTimes(static_cast<qint64>(sent->blackMainMs), static_cast<qint64>(sent->whiteMainMs));
+    }
+    if (m_deps.gameBoard) {
+        m_deps.gameBoard->notifyPiecePlaced(P2p::GameRules::sideToMove(sent->ply - 1), static_cast<int>(sent->ply));
+    }
 }
 
 bool P2pGameCoordinator::canResign() const

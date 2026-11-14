@@ -142,7 +142,7 @@ void Tst_MatchCoordinator::humanMove_isRecordedAndAnnounced()
     h.startHumanVsHuman();
     // 手番の正本は盤。盤が手番の変化を1回だけ知らせる
     QSignalSpy turn(h.gc.board(), &ShogiBoard::turnChanged);
-    QSignalSpy committed(&h.gc, &GameBoard::moveCommitted);
+    QSignalSpy committed(&h.gc, &GameBoard::piecePlaced);
 
     QVERIFY(h.playHuman(QStringLiteral("7g7f")));
 

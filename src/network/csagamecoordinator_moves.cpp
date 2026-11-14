@@ -97,8 +97,10 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
     p.record.entries.append(entry);
     if (m_sink) m_sink->appendRecord(entry);
     emit turnChanged(nowMyTurn);
-    // 盤面・棋譜・時計を確定し終えた着手を知らせる（駒音。通知は盤面の更新の後）
-    m_gameBoard->notifyMoveCommitted(isBlackMove ? Turn::Black : Turn::White, p.moveCount());
+    // 盤面・棋譜・時計を確定し終えた着手を知らせる（駒音。通知は盤面の更新の後）。人間が盤で指した自分の手は、
+    // 送ったとき（sendHumanMove）に知らせている
+    const bool sentByHuman = !nowMyTurn && isHumanPlayer();
+    if (!sentByHuman) m_gameBoard->notifyPiecePlaced(isBlackMove ? Turn::Black : Turn::White, p.moveCount());
 }
 
 // ============================================================
