@@ -35,7 +35,7 @@ jobs:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125  # v4.4.1
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06  # v4.5.0
         with:
           version: ${{ env.QT_VERSION }}
           modules: "qtcharts qtmultimedia"
@@ -125,7 +125,7 @@ jobs:
           sudo apt-get install -y libfuse2 imagemagick libsodium-dev pkg-config
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125  # v4.4.1
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06  # v4.5.0
         with:
           version: ${{ env.QT_VERSION }}
           # 盤面画像の TIFF / WebP 書き出しのプラグイン（qtiff・qwebp）は qtimageformats にある
@@ -167,7 +167,7 @@ jobs:
         run: brew install create-dmg libsodium pkg-config
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125  # v4.4.1
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06  # v4.5.0
         with:
           version: ${{ env.QT_VERSION }}
           # 盤面画像の TIFF / WebP 書き出しのプラグイン（qtiff・qwebp）は qtimageformats にある
@@ -249,7 +249,7 @@ jobs:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125  # v4.4.1
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06  # v4.5.0
         with:
           version: ${{ env.QT_VERSION }}
           # 盤面画像の TIFF / WebP 書き出しのプラグイン（qtiff・qwebp）は qtimageformats にある
