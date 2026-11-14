@@ -90,12 +90,19 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
     p.recordMoveTime(isBlackMove, consumedTimeMs);
     // 次の手番の考慮時間を数え始める
     m_turnTimer.start();
-    syncClockAfterMove(nowMyTurn);
+    {
+        // 時計の値は、一手を確定し終えてからまとめて知らせる（ローカル対局と同じ）
+        const QSignalBlocker clockNotifications(m_clock);
+        syncClockAfterMove(nowMyTurn);
+    }
 
     RecordEntry entry = played;
     entry.time = p.moveTime(isBlackMove, consumedTimeMs);
     p.record.entries.append(entry);
     if (m_sink) m_sink->appendRecord(entry);
+    // 時計の表示は時計を見る部品（TimeDisplayPresenter）が合わせる。ここで知らせないと、サーバーが示した残り時間が
+    // 動いている側の秒の変わり目（最大1秒後）まで表示に出ない
+    if (m_clock) m_clock->notifyTimeUpdated();
     emit turnChanged(nowMyTurn);
     // 盤面・棋譜・時計を確定し終えた着手を知らせる（駒音。通知は盤面の更新の後）。人間が盤で指した自分の手は、
     // 送ったとき（sendHumanMove）に知らせている
@@ -117,9 +124,6 @@ bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTim
         failGame(tr("手数の上限（%1手）を超えたので対局を中断しました").arg(limit));
         return false;
     }
-    // 時計の通知は、棋譜と時計まで確定した後にまとめて送る。
-    const QSignalBlocker clockNotifications(m_clock);
-
     const std::optional<RecordEntry> played = playCsaMove(move);
     if (!played) {
         // 書式の誤りも局面に合わない手も、CsaMoveConverter::toUsi が1か所で断る

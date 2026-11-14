@@ -651,11 +651,15 @@ private slots:
         QVERIFY(!h.clock.isRunning());
         QCOMPARE(h.sink.records.size(), 0);
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
+        QSignalSpy clockUpdates(&h.clock, &ShogiClock::timeUpdated);
         h.server.send("+7776FU,T5");
         QTRY_COMPARE(h.sink.records.size(), 1);
-        // 確認を受けたら、サーバーの残り時間に合わせて相手の時計を進める
+        // 確認を受けたら、サーバーの残り時間に合わせて相手の時計を進める。時計の表示へは、棋譜まで確定した後に
+        // 1回知らせる（知らせないと、動いている側の秒の変わり目まで表示が直らない）
         QVERIFY(h.clock.isRunning());
         QCOMPARE(h.clock.currentPlayer(), Turn::White);
+        QCOMPARE(h.clock.remainingMs(Turn::Black), 605000);
+        QCOMPARE(clockUpdates.size(), 1);
         const RecordEntry mine = h.sink.records.at(0);
         QCOMPARE(mine.mover, Turn::Black);
         QVERIFY(mine.displayText.contains(QStringLiteral("７六歩")));
