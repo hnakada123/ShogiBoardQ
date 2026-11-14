@@ -10,12 +10,41 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QToolButton>
+#include <QAbstractAnimation>
+#include <QEvent>
 #include <QProgressBar>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include "logcategories.h"
 
 #include "networksettings.h"
+
+namespace {
+// 動かない「処理中」の帯。Fusion は範囲のない帯を動かすために毎秒60回描き直し、帯も下のダイアログも
+// 待つ間ずっと描き続ける（対局相手を何時間も待つことがある）。スタイルが動きの知らせを送ってきたら、
+// 描き直さずに、スタイルの動き（帯を親にして作られる）を止めておく。止まった帯として出る。
+// 待っていることは上の状態の文が示す。知らせを断るだけだと、スタイルは動きを作り直して描き直しを続ける
+// （Qt 6.12 の QCommonStylePrivate::removeAnimation）
+class StillBusyBar final : public QProgressBar
+{
+public:
+    using QProgressBar::QProgressBar;
+
+protected:
+    bool event(QEvent* event) override
+    {
+        if (event->type() != QEvent::StyleAnimationUpdate) return QProgressBar::event(event);
+        const QList<QAbstractAnimation*> animations = findChildren<QAbstractAnimation*>(Qt::FindDirectChildrenOnly);
+        for (QAbstractAnimation* animation : animations) {
+            // 知らせを送っている処理の途中なので、止めるのは戻ってから
+            if (animation->state() == QAbstractAnimation::Running)
+                QMetaObject::invokeMethod(animation, &QAbstractAnimation::pause, Qt::QueuedConnection);
+        }
+        event->accept();
+        return true;
+    }
+};
+} // namespace
 
 CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* parent)
     : QDialog(parent)
@@ -69,7 +98,7 @@ void CsaWaitingDialog::setupUi()
     m_statusLabel->setFont(statusFont);
     mainLayout->addWidget(m_statusLabel);
 
-    m_progressBar = new QProgressBar(this);
+    m_progressBar = new StillBusyBar(this);
     m_progressBar->setMinimum(0);
     m_progressBar->setMaximum(0);
     m_progressBar->setTextVisible(false);
@@ -244,7 +273,7 @@ void CsaWaitingDialog::onShowLogClicked()
 {
     createLogWindow();
     if (m_logWindow) {
-        m_logWindow->show();
+        DialogUtils::showWindow(m_logWindow);
         m_logWindow->raise();
         m_logWindow->activateWindow();
     }

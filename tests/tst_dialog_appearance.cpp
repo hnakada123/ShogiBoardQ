@@ -11,6 +11,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QScopeGuard>
+#include <QProgressBar>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSettings>
@@ -521,6 +522,31 @@ private slots:
         dialog.reject();
     }
 
+    /// 通信対局の待機ダイアログの「処理中」の帯は動かさない（動かすと、待つ間ずっと帯とダイアログを描き直す）
+    void csaWaitingBarStaysStill()
+    {
+        CsaWaitingDialog waiting(nullptr);
+        waiting.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&waiting));
+        auto* bar = waiting.findChild<QProgressBar*>();
+        QVERIFY(bar);
+        QCOMPARE(bar->minimum(), 0);
+        QCOMPARE(bar->maximum(), 0);
+        QTest::qWait(200);
+        struct PaintCounter : QObject {
+            int paints = 0;
+            bool eventFilter(QObject* watched, QEvent* event) override
+            {
+                if (event->type() == QEvent::Paint) ++paints;
+                return QObject::eventFilter(watched, event);
+            }
+        } counter;
+        bar->installEventFilter(&counter);
+        QTest::qWait(500);
+        bar->removeEventFilter(&counter);
+        QCOMPARE(counter.paints, 0);
+    }
+
     void boardZoomResizesWindow_data()
     {
         QTest::addColumn<QString>("name");
@@ -551,7 +577,8 @@ private slots:
         for (int i = 0; i < 40; ++i) reduce->click();
         const QSize reduced = dialog->size();
         for (int i = 0; i < 10; ++i) enlarge->click();
-        QCOMPARE(view->size(), view->sizeHint());
+        // 拡大では、ウィンドウが広がってから盤を合わせる（広がる前に、スクロールバー付きで1度描かない）
+        QTRY_COMPARE(view->size(), view->sizeHint());
         QVERIFY(dialog->width() > reduced.width() && dialog->height() > reduced.height());
         // スクロールバーはイベント処理の後に消える
         QTRY_VERIFY(!scroll->horizontalScrollBar()->isVisible() && !scroll->verticalScrollBar()->isVisible());
