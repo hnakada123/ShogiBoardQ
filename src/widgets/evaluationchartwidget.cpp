@@ -8,6 +8,7 @@
 
 #include <QChart>
 #include <QComboBox>
+#include <QEvent>
 #include <QLineSeries>
 #include <QValueAxis>
 #include <QGridLayout>
@@ -22,9 +23,27 @@
 #include <QLabel>
 #include <cmath>
 
+namespace {
+// ウィンドウが前面になる・後ろに回るたびに、Qt はグラフの部品（QGraphicsWidget）の全体を描き直す。
+// グラフの見た目は前面かどうかで変わらないので、その知らせでは描き直さない
+// （ダイアログを開く・閉じるたびに、後ろの主画面のグラフ全体を描いていた）
+class SteadyChart final : public QChart
+{
+public:
+    using QChart::QChart;
+
+protected:
+    bool event(QEvent* event) override
+    {
+        if (event->type() == QEvent::WindowActivate || event->type() == QEvent::WindowDeactivate) return true;
+        return QChart::event(event);
+    }
+};
+} // namespace
+
 EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     : QWidget(parent)
-    , m_chart(new QChart())
+    , m_chart(new SteadyChart())
     , m_axX(new QValueAxis())
     , m_axY(new QValueAxis())
     , m_chartView(new EvaluationChartView(m_chart, this))
@@ -270,8 +289,11 @@ void EvaluationChartWidget::onPlotAreaChanged()
 
 void EvaluationChartWidget::updateReferenceLines()
 {
-    m_zeroLine->replace({QPointF(0, 0), QPointF(xAxisLimit(), 0)});
-    m_cursorLine->replace({QPointF(m_currentPly, -yAxisLimit()), QPointF(m_currentPly, yAxisLimit())});
+    // Qt Charts は同じ点を入れ直しても線を描き直すので、変わった線だけを入れ直す（0 の線は横軸が伸びたときだけ）
+    const QList<QPointF> zero{QPointF(0, 0), QPointF(xAxisLimit(), 0)};
+    if (m_zeroLine->points() != zero) m_zeroLine->replace(zero);
+    const QList<QPointF> cursor{QPointF(m_currentPly, -yAxisLimit()), QPointF(m_currentPly, yAxisLimit())};
+    if (m_cursorLine->points() != cursor) m_cursorLine->replace(cursor);
     m_cursorLine->setVisible(m_currentPly <= xAxisLimit());
 }
 

@@ -5,6 +5,10 @@
 #include <QDir>
 #include <QLabel>
 #include <QLineSeries>
+#include <QPaintEvent>
+#include <QScreen>
+#include <QWindow>
+#include <functional>
 #include <QPushButton>
 #include <QSettings>
 #include <QSpinBox>
@@ -354,6 +358,131 @@ private slots:
         // 点を収める縦の表示範囲が変わるときは、同じ点でも表示する値が変わるので作り直す
         widget.fixYRange(500);
         QVERIFY(replaced.count() >= 2);
+    }
+
+    // 表示中の手を移すだけなら、グラフは変わった所（見出しの文・「N手目」の札・前と今の点の印・縦の線）だけを
+    // 描き直す。全体を描き直した画面と同じになる
+    void currentPlyMoveRepaintsOnlyChangedParts()
+    {
+        TestChart widget;
+        widget.resize(900, 360);
+        for (int ply = 1; ply <= 14; ++ply) widget.appendScoreP1(ply, UsiScore::cp(ply * 173 - 900));
+        widget.setRecordLength(20);
+        widget.setCurrentPly(3);
+        widget.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&widget));
+        QTest::qWait(150);  // 点をまとめて描く待ち
+        QWidget* area = view(widget)->viewport();
+
+        struct PaintSpy : QObject {
+            QRegion region;
+            int fullPaints = 0;
+            bool eventFilter(QObject* watched, QEvent* event) override
+            {
+                if (event->type() == QEvent::Paint) {
+                    const QRegion& painted = static_cast<QPaintEvent*>(event)->region();
+                    region += painted;
+                    if ((QRegion(static_cast<QWidget*>(watched)->rect()) - painted).isEmpty()) ++fullPaints;
+                }
+                return QObject::eventFilter(watched, event);
+            }
+        };
+        const auto areaOf = [](const QRegion& region) {
+            qint64 total = 0;
+            for (const QRect& rect : region) total += qint64(rect.width()) * rect.height();
+            return total;
+        };
+        // 画面に出ている絵（部分描画の結果）と、全体を描き直した絵で、違う画素の数（合成の丸めの ±1 は数えない）
+        const auto stalePixels = [&widget, area]() {
+            const auto grab = [&widget] {
+                return widget.windowHandle()->screen()->grabWindow(widget.winId()).toImage()
+                    .convertToFormat(QImage::Format_ARGB32);
+            };
+            const QImage partial = grab();
+            area->repaint();
+            QCoreApplication::processEvents();
+            const QImage full = grab();
+            if (partial.size() != full.size()) return -1;
+            int stale = 0;
+            for (int y = 0; y < full.height(); ++y) {
+                const auto* a = reinterpret_cast<const QRgb*>(partial.constScanLine(y));
+                const auto* b = reinterpret_cast<const QRgb*>(full.constScanLine(y));
+                for (int x = 0; x < full.width(); ++x) {
+                    if (qAbs(qRed(a[x]) - qRed(b[x])) > 1 || qAbs(qGreen(a[x]) - qGreen(b[x])) > 1
+                        || qAbs(qBlue(a[x]) - qBlue(b[x])) > 1)
+                        ++stale;
+                }
+            }
+            return stale;
+        };
+        const auto step = [&](const std::function<void()>& change) {
+            PaintSpy spy;
+            area->installEventFilter(&spy);
+            change();
+            for (int i = 0; i < 3; ++i) QCoreApplication::processEvents();
+            area->removeEventFilter(&spy);
+            return std::make_pair(areaOf(spy.region), spy.fullPaints);
+        };
+        const qint64 whole = qint64(area->width()) * area->height();
+        QCOMPARE(stalePixels(), 0);
+        // 表示した直後の1回は、Qt Charts が線の位置を決め直して全体を描く
+        step([&] { widget.setRecordLength(20); widget.setCurrentPly(5); });
+        QCOMPARE(stalePixels(), 0);
+
+        for (const int ply : {9, 10, 2, 14, 17, 0}) {
+            const auto [painted, fullPaints] = step([&] {
+                widget.setRecordLength(20);
+                widget.setCurrentPly(ply);
+            });
+            QVERIFY2(painted > 0 && painted * 4 < whole && fullPaints == 0,
+                     qPrintable(QStringLiteral("ply %1: repainted %2 of %3 px, full %4").arg(ply).arg(painted).arg(whole).arg(fullPaints)));
+            QCOMPARE(stalePixels(), 0);
+        }
+        // 同じ手のままなら描き直さない
+        QCOMPARE(step([&] { widget.setRecordLength(20); widget.setCurrentPly(0); }).first, 0);
+        // 点が増える・表示範囲が変わるときも、描き残しが無い
+        step([&] { widget.appendScoreP1(15, UsiScore::cp(1200)); });
+        QTest::qWait(150);
+        QCOMPARE(stalePixels(), 0);
+        step([&] { widget.appendScoreP2(16, mateScore(QStringLiteral("+"))); });
+        QTest::qWait(150);
+        QCOMPARE(stalePixels(), 0);
+        step([&] { widget.fixYRange(500); });
+        QCOMPARE(stalePixels(), 0);
+        step([&] { widget.setRecordLength(120); });
+        QCOMPARE(stalePixels(), 0);
+        step([&] { widget.resize(700, 300); });
+        QTest::qWait(50);
+        QCOMPARE(stalePixels(), 0);
+        step([&] { widget.setCurrentPly(7); });
+        QCOMPARE(stalePixels(), 0);
+    }
+
+    // ウィンドウが前面になる・後ろに回るだけでは、グラフを描き直さない（見た目は変わらない。
+    // Qt はグラフの部品に前面・後ろの知らせを送り、部品は知らせのたびに全体を描き直す）
+    void windowActivationDoesNotRepaintChart()
+    {
+        TestChart widget;
+        widget.resize(900, 360);
+        for (int ply = 1; ply <= 14; ++ply) widget.appendScoreP1(ply, UsiScore::cp(ply * 173 - 900));
+        widget.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&widget));
+        QTest::qWait(150);
+        struct PaintCounter : QObject {
+            int paints = 0;
+            bool eventFilter(QObject* watched, QEvent* event) override
+            {
+                if (event->type() == QEvent::Paint) ++paints;
+                return QObject::eventFilter(watched, event);
+            }
+        } counter;
+        view(widget)->viewport()->installEventFilter(&counter);
+        for (const QEvent::Type type : {QEvent::WindowDeactivate, QEvent::WindowActivate, QEvent::WindowDeactivate}) {
+            QEvent event(type);
+            QCoreApplication::sendEvent(&widget, &event);
+            for (int i = 0; i < 3; ++i) QCoreApplication::processEvents();
+        }
+        QCOMPARE(counter.paints, 0);
     }
 
     void settingsPersistAndCancel()
