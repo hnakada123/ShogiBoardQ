@@ -49,6 +49,8 @@
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
+#include "csagameuicontroller.h"
+#include <QStatusBar>
 #include "gameboard.h"
 
 namespace {
@@ -589,6 +591,42 @@ private slots:
         QCOMPARE(h.gc.board()->pieceCharacter(7, 7), Piece::BlackPawn);
     }
 
+    /// 対局中の1手ごとの進行（手番・送受信の行・指し手の確認）は、ログの文として知らせない。
+    /// 盤の手番の札・棋譜欄・通信ログが出しているので、ステータスバーには出さない（毎手描き直さない）。
+    /// 状態の変化と異常（開始・終局・エラーなど）だけを知らせる
+    void movesDoNotReportProgressToTheStatusBar()
+    {
+        Harness h;
+        QVERIFY(h.start("+"));
+        QStatusBar status;
+        CsaGameUiController::Deps deps;
+        deps.coordinator = &h.coordinator;
+        deps.statusBar = &status;
+        CsaGameUiController ui(deps);
+        QSignalSpy logs(&h.coordinator, &CsaGameCoordinator::logMessage);
+        QSignalSpy messages(&status, &QStatusBar::messageChanged);
+        QSignalSpy commLog(&h.coordinator, &CsaGameCoordinator::csaCommLogAppended);
+
+        h.playHumanMove(QStringLiteral("7g7f"));
+        QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
+        h.server.send("+7776FU,T5");
+        QTRY_COMPARE(h.sink.records.size(), 1);
+        h.server.send("-3334FU,T2");
+        QTRY_COMPARE(h.sink.records.size(), 2);
+        QVERIFY2(logs.isEmpty(), qPrintable(logs.isEmpty() ? QString() : logs.first().at(0).toString()));
+        QVERIFY2(messages.isEmpty(), qPrintable(messages.isEmpty() ? QString() : messages.first().at(0).toString()));
+        // 送受信の行は通信ログに出る（自分の手の送信と確認、相手の手）
+        QVERIFY2(commLog.size() >= 3, qPrintable(QString::number(commLog.size())));
+
+        // 終局はステータスバーに出る
+        h.server.send("%TORYO,T3");
+        h.server.send("#RESIGN");
+        h.server.send("#LOSE");
+        QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
+        QVERIFY(!messages.isEmpty());
+        QVERIFY(!status.currentMessage().isEmpty());
+    }
+
     void pendingConfirmationKeepsBoardAndHistoryUnchanged()
     {
         Harness h;
@@ -632,7 +670,6 @@ private slots:
     void myMoveAndOpponentMoveUpdateTimesAndCount()
     {
         Harness h;
-        QSignalSpy turns(&h.coordinator, &CsaGameCoordinator::turnChanged);
         QSignalSpy applied(&h.gc, &GameBoard::piecePlaced);
         QVERIFY(h.start("+"));
         QVERIFY(h.coordinator.isMyTurn());
@@ -671,7 +708,6 @@ private slots:
         QCOMPARE(h.coordinator.whiteRemainingMs(), 610000);
         QCOMPARE(h.coordinator.progress().moveCount(), 1);
         QVERIFY(!h.coordinator.isMyTurn());
-        QCOMPARE(turns.last().at(0).toBool(), false);
         QCOMPARE(applied.size(), 1);  // 送ったときに知らせた手は、確認では知らせない
         QCOMPARE(h.moveCount(), 1);
 
@@ -687,7 +723,6 @@ private slots:
         QCOMPARE(h.coordinator.blackRemainingMs(), 615000);
         QCOMPARE(h.coordinator.progress().moveCount(), 2);
         QVERIFY(h.coordinator.isMyTurn());
-        QCOMPARE(turns.last().at(0).toBool(), true);
         QCOMPARE(applied.size(), 2);
         QCOMPARE(h.coordinator.record().usiMoves(), QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
         QCOMPARE(h.moveCount(), 2);

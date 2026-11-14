@@ -21,10 +21,10 @@ CsaGameUiController::CsaGameUiController(const Deps& deps, QObject* parent)
     Q_ASSERT(m_deps.coordinator);
     CsaGameCoordinator* const c = m_deps.coordinator;
 
-    // 対局の開始・終局・手番・ログの反映
+    // 対局の開始・終局・状態の変化と異常の知らせの反映。手番はステータスバーに出さない（盤の手番の札が出している。
+    // 出すと、対局中は1手ごとにステータスバーを描き直す）
     connect(c, &CsaGameCoordinator::gameStarted, this, &CsaGameUiController::onGameStarted);
     connect(c, &CsaGameCoordinator::gameEnded, this, &CsaGameUiController::onGameEnded);
-    connect(c, &CsaGameCoordinator::turnChanged, this, &CsaGameUiController::onTurnChanged);
     connect(c, &CsaGameCoordinator::logMessage, this, &CsaGameUiController::onLogMessage);
 }
 
@@ -96,12 +96,6 @@ void CsaGameUiController::onGameEnded(CsaClient::GameResult result, CsaClient::G
     // 棋譜の確定・終了日時・自動保存と待機への切り替えは、司令塔がこの知らせの前に済ませている
     showGameEndDialog(tr("対局終了"), tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(shownResult, shownCause));
     showStatus(tr("対局終了: %1 (%2)").arg(shownResult, shownCause), 5000);
-}
-
-void CsaGameUiController::onTurnChanged(bool isMyTurn)
-{
-    const bool isBlackTurn = m_deps.coordinator->isBlackSide() ? isMyTurn : !isMyTurn;
-    showStatus(isBlackTurn ? tr("先手番") : tr("後手番"), 2000);
 }
 
 void CsaGameUiController::onLogMessage(const QString& message, bool isError)

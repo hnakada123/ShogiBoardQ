@@ -2470,9 +2470,9 @@
         <translation>正在连接服务器 %1:%2...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="218"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="232"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="242"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="221"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="235"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="245"/>
         <source>相手の手番です</source>
         <translation>对手行棋</translation>
     </message>
@@ -2481,47 +2481,47 @@
         <translation type="vanished">生成 CSA 着法失败。</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="247"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="250"/>
         <source>対局条件に入玉宣言ルール（Declaration:Jishogi）がありません。宣言は反則負けと判定される可能性があります</source>
         <translation>对局条件中没有入玉宣言规则（Declaration:Jishogi）。宣言可能被判为犯规负</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="264"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="267"/>
         <source>接続完了。ログイン中...</source>
         <translation>已连接。正在登录...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="278"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="281"/>
         <source>サーバーが切断しました。%1秒後に再接続します</source>
         <translation>服务器已断开连接。%1 秒后重新连接</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="283"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="286"/>
         <source>サーバーから切断されました</source>
         <translation>已断开与服务器的连接</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="299"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="302"/>
         <source>エラー: %1</source>
         <translation>错误：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="321"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="324"/>
         <source>ログイン成功。対局待ち中...</source>
         <translation>登录成功。正在等待对局...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="327"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="330"/>
         <source>ログイン失敗: %1</source>
         <translation>登录失败：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="336"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="339"/>
         <source>ログアウト完了</source>
         <translation>已退出登录</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="508"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="510"/>
         <source>エンジン %1 を起動しました</source>
         <translation>引擎 %1 已启动</translation>
     </message>
@@ -2638,7 +2638,7 @@
         <translation>拒绝对局条件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="501"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="503"/>
         <source>エンジンが入玉宣言を選択しました</source>
         <translation>引擎选择入玉宣言</translation>
     </message>
@@ -2652,12 +2652,12 @@
         <translation>正在同意对局条件...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="350"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="353"/>
         <source>対局開始！</source>
         <translation>对局开始！</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="390"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="392"/>
         <source>対局が拒否されました (ID: %1, 拒否者: %2)</source>
         <translation>对局被拒绝（ID：%1，拒绝方：%2）</translation>
     </message>
@@ -2666,22 +2666,20 @@
         <translation type="vanished">对局结束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="473"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="475"/>
         <source>対局が中断されました</source>
         <translation>对局已中断</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="478"/>
         <source>[RECV] %1</source>
-        <translation>[接收] %1</translation>
+        <translation type="vanished">[接收] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="485"/>
         <source>[SEND] %1</source>
-        <translation>[发送] %1</translation>
+        <translation type="vanished">[发送] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="492"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="494"/>
         <source>エンジンが投了を選択しました</source>
         <translation>引擎选择认输</translation>
     </message>
@@ -2712,12 +2710,11 @@
         <translation type="vanished">收到坐标无效的着法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="134"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
-        <translation>对手着法：%1（用时：%2 毫秒）</translation>
+        <translation type="vanished">对手着法：%1（用时：%2 毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="157"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="162"/>
         <source>エンジンに送る局面を作れません</source>
         <translation>无法生成要发送给引擎的局面</translation>
     </message>
@@ -2726,19 +2723,18 @@
         <translation type="vanished">无法解析来自服务器的着法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="124"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="129"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>应用着法失败：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="125"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="130"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>无法将服务器着法应用于棋盘：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="141"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
-        <translation>着法已确认：%1（用时：%2 毫秒）</translation>
+        <translation type="vanished">着法已确认：%1（用时：%2 毫秒）</translation>
     </message>
     <message>
         <source>サーバーからの指し手確認を解釈できません: %1</source>
@@ -2753,38 +2749,36 @@
         <translation type="vanished">无法转换服务器的着法确认：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="160"/>
         <source>エンジンが思考中...</source>
-        <translation>引擎思考中...</translation>
+        <translation type="vanished">引擎思考中...</translation>
     </message>
     <message>
         <source>エンジンが投了しました</source>
         <translation type="vanished">引擎认输</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="115"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="123"/>
         <source>手数の上限（%1手）を超えたので対局を中断しました</source>
         <translation>手数超过上限（%1 手），对局已中断</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="171"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="176"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>引擎未返回有效着法</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="177"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="182"/>
         <source>盤面が取得できませんでした</source>
         <translation>无法获取棋盘状态</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="185"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="190"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>转换移动棋子种类失败</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="189"/>
         <source>CSA形式の指し手: %1</source>
-        <translation>CSA 格式着法：%1</translation>
+        <translation type="vanished">CSA 格式着法：%1</translation>
     </message>
     <message>
         <source>エンジンの指し手を盤面に適用できません: %1</source>
@@ -3418,89 +3412,87 @@
         <translation>对局结束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="104"/>
         <source>先手番</source>
-        <translation>先手行棋</translation>
+        <translation type="vanished">先手行棋</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="104"/>
         <source>後手番</source>
-        <translation>后手行棋</translation>
+        <translation type="vanished">后手行棋</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="121"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="115"/>
         <source>勝ち</source>
         <translation>胜</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="122"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="116"/>
         <source>負け</source>
         <translation>负</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="123"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="117"/>
         <source>引き分け</source>
         <translation>和棋</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="124"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="118"/>
         <source>打ち切り</source>
         <translation>对局终止</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="125"/>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="141"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="119"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="135"/>
         <source>中断</source>
         <translation>中断</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="128"/>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="145"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="122"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="139"/>
         <source>不明</source>
         <translation>未知</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="134"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="128"/>
         <source>投了</source>
         <translation>认输</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="135"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="129"/>
         <source>時間切れ</source>
         <translation>超时</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="136"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="130"/>
         <source>反則</source>
         <translation>犯规</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="137"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="131"/>
         <source>千日手</source>
         <translation>千日手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="138"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="132"/>
         <source>連続王手の千日手</source>
         <translation>连续王手千日手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="139"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="133"/>
         <source>入玉宣言</source>
         <translation>入玉宣言</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="140"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="134"/>
         <source>手数制限</source>
         <translation>手数限制</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="142"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="136"/>
         <source>不正行為</source>
         <translation>违规行为</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="160"/>
+        <location filename="../../src/ui/controllers/csagameuicontroller.cpp" line="154"/>
         <source>エラー</source>
         <translation>错误</translation>
     </message>
@@ -14263,7 +14255,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">放置后手棋子（不改变行棋方）</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="661"/>
+        <location filename="../../src/views/shogiview.cpp" line="713"/>
         <source>駒箱</source>
         <translation>棋子盒</translation>
     </message>

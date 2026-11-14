@@ -206,7 +206,6 @@ bool CsaGameCoordinator::sendHumanMove(const UsiMove& move)
     // 相手の時計は確認を受けてから進める）、駒音を鳴らす。盤の表示は盤の操作が指した後にする
     if (m_clock) m_clock->stopClock();
     m_gameBoard->notifyPiecePlaced(m_progress.isBlackSide ? Turn::Black : Turn::White, m_progress.moveCount() + 1);
-    emit turnChanged(false);
     return true;
 }
 
@@ -371,7 +370,6 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
     emit gameStarted(summary.blackName, summary.whiteName);
     if (!isHumanPlayer())
         emit matchEngineStarted(m_progress.isBlackSide ? Turn::Black : Turn::White, m_options.engineName);
-    emit turnChanged(myTurn);
 
     if (!isHumanPlayer() && myTurn) startEngineThinking();
 }
@@ -477,16 +475,16 @@ void CsaGameCoordinator::onGameInterrupted()
     emit logMessage(tr("対局が中断されました"));
 }
 
+// 送受信の行は通信ログ（csaCommLogAppended）にだけ出す。logMessage は状態の変化と異常の知らせで、ステータスバーと
+// 待機ダイアログに出る。1行ごとに出すと、対局中は1手ごとにステータスバーを描き直すことになる
 void CsaGameCoordinator::onRawMessageReceived(const QString& message)
 {
-    emit logMessage(tr("[RECV] %1").arg(message));
     emit csaCommLogAppended(QStringLiteral("▶ ") + message);
 }
 
 void CsaGameCoordinator::onRawMessageSent(const QString& message)
 {
     // LOGIN のパスワードはクライアントが伏せてから知らせる（CsaClient::sendMessage）
-    emit logMessage(tr("[SEND] %1").arg(message));
     emit csaCommLogAppended(QStringLiteral("◀ ") + message);
 }
 

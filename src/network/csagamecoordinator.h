@@ -201,8 +201,11 @@ signals:
     void matchEngineStarted(Turn side, const QString& engineName);
     /// 対局が終わった（終局の行を書いた棋譜を確定し、動作状態を接続中か待機に戻した後）
     void gameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
-    void turnChanged(bool isMyTurn);
+    /// 状態の変化（接続・ログイン・対局条件・開始・再接続・裁定待ちなど）と異常の知らせ。ステータスバーと
+    /// 待機ダイアログに出る。1手ごとの進行（手番・指し手の確認・送受信の行）は知らせない（盤の手番の札・
+    /// 棋譜欄・通信ログが出している。知らせると、対局中は1手ごとにステータスバーを描き直す）
     void logMessage(const QString& message, bool isError = false);
+    /// 送受信した行（通信ログに出す）
     void csaCommLogAppended(const QString& line);
     /// 自分のエンジンが指した手をサーバーへ送った（score は自分から見た評価値。グラフの ply 手目に足す。
     /// MatchCoordinator::engineMovePlayed と同じ形）

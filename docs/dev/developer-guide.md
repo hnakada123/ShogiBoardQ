@@ -6046,7 +6046,7 @@ MainWindowComposer::connectGame()
   （盤の手は BoardMoveController が対局中の窓口 CsaGameChannel::playMove → sendHumanMove で渡す。シグナルではない）
 
 CsaGameUiController のコンストラクタ
-  └── gameStarted / gameEnded / turnChanged / logMessage → 自身のスロット（画面の切り替え）
+  └── gameStarted / gameEnded / logMessage → 自身のスロット（画面の切り替え）
 ```
 
 通信対局の指し手も `GameBoard` が盤に指すので、駒音（`PieceSoundPlayer`）はローカル対局と同じ `GameBoard::piecePlaced` で受ける（`connectBoard()`）。人間が盤で指した手は、サーバーへ送ったときに鳴らす（確認を待たない）。
@@ -6996,7 +6996,6 @@ sequenceDiagram
     Client-->>Coord: moveReceived(move, 5000ms)
     Coord->>Coord: playCsaMove()（toUsi → applyRecordedMove）/ finishMove()（CsaGameProgress::recordMoveTime）
     Coord->>Sink: appendRecord(entry)
-    Coord-->>UI: turnChanged()
 
     UI->>Coord: sendHumanMove(UsiMove)（CsaGameChannel::playMove から）
     Coord->>Client: sendMove(+7776FU)
@@ -7056,7 +7055,7 @@ CSA通信対局の開始（待機ダイアログ）と、`CsaGameCoordinator` �
 
 #### 役割
 
-- コンストラクタで `CsaGameCoordinator` の `gameStarted`・`gameEnded`・`turnChanged`・`logMessage` を自分のスロットにつなぐ
+- コンストラクタで `CsaGameCoordinator` の `gameStarted`・`gameEnded`・`logMessage` を自分のスロットにつなぐ。ステータスバーに出すのは、状態の変化（接続・ログイン・対局条件・開始・終局・再接続・裁定待ち）と異常だけ。1手ごとの進行（手番・指し手の確認・送受信の行）は出さない（盤の手番の札・棋譜欄・通信ログが出している。司令塔も `logMessage` で知らせない。出すと、対局中は1手ごとにステータスバーを描き直す）
 - `startGame(const CsaGameDialog::Selection&)`: `CsaWaitingDialog` を出して `CsaGameCoordinator::startGame()` を呼び、対局が始まるかエラー・キャンセルまで待つ。始まらなければ司令塔を止める。呼び出しは `DialogLauncher`（CsaGameDialog で設定を決めた後）
 - 対局開始時: 後手なら盤を反転してステータスバーに知らせる（棋譜と対局情報の作り直し・対局者の表示と `DuringCsaGame` への切り替えは、司令塔が `gameStarted` の前に済ませている）
 - 終局時: 結果を表示する（棋譜の確定・終局日時・自動保存と待機への切り替えは、司令塔が `gameEnded` の前に済ませている。自動保存の指定は接続ダイアログの値を `CsaGameCoordinator::StartOptions::autoSave` に入れて渡す）

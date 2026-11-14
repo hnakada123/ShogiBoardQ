@@ -103,7 +103,6 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
     // 時計の表示は時計を見る部品（TimeDisplayPresenter）が合わせる。ここで知らせないと、サーバーが示した残り時間が
     // 動いている側の秒の変わり目（最大1秒後）まで表示に出ない
     if (m_clock) m_clock->notifyTimeUpdated();
-    emit turnChanged(nowMyTurn);
     // 盤面・棋譜・時計を確定し終えた着手を知らせる（駒音。通知は盤面の更新の後）。人間が盤で指した自分の手は、
     // 送ったとき（sendHumanMove）に知らせている
     const bool sentByHuman = !nowMyTurn && isHumanPlayer();
@@ -137,14 +136,14 @@ bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTim
 
 void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
 {
-    emit logMessage(tr("相手の指し手: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs), false);
+    qCDebug(lcNetwork).noquote() << "opponent move:" << move << "consumed" << consumedTimeMs << "ms";
     if (applyConfirmedMove(move, consumedTimeMs, true) && !isHumanPlayer())
         startEngineThinking();
 }
 
 void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs)
 {
-    emit logMessage(tr("指し手確認: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs), false);
+    qCDebug(lcNetwork).noquote() << "move confirmed:" << move << "consumed" << consumedTimeMs << "ms";
     applyConfirmedMove(move, consumedTimeMs, false);
 }
 
@@ -163,7 +162,7 @@ void CsaGameCoordinator::startEngineThinking()
         emit logMessage(tr("エンジンに送る局面を作れません"), true);
         return;
     }
-    emit logMessage(tr("エンジンが思考中..."), false);
+    qCDebug(lcNetwork) << "engine starts thinking";
 
     // 持ち時間はこの司令塔（MatchTimeSource）がサーバーの残り時間から返す
     m_engineSeat->engine()->requestMatchMove(*position);
@@ -192,10 +191,9 @@ void CsaGameCoordinator::onEngineMoveReady(const UsiMatchMove& result)
         return;
     }
 
-    emit logMessage(tr("CSA形式の指し手: %1").arg(csaMove), false);
+    qCDebug(lcNetwork).noquote() << "engine move in CSA format:" << csaMove;
 
     if (m_client->sendMove(csaMove)) {
-        emit turnChanged(false);
         emit engineMovePlayed(black ? Turn::Black : Turn::White, m_progress.moveCount() + 1, result.score);
     }
 }

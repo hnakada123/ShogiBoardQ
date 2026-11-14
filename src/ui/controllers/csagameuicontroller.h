@@ -69,7 +69,6 @@ public slots:
 private slots:
     void onGameStarted(const QString& blackName, const QString& whiteName);
     void onGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
-    void onTurnChanged(bool isMyTurn);
     void onLogMessage(const QString& message, bool isError);
 
 private:
