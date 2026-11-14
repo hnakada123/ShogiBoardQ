@@ -2,6 +2,7 @@
 /// @brief 棋譜解析の結果ドックの中身の実装
 
 #include "analysisresultspanel.h"
+#include "opaquebackground.h"
 #include "columnwidthmemory.h"
 #include "fontsizecontrol.h"
 #include "tableheaderview.h"
@@ -90,6 +91,8 @@ AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     buttonLayout->addWidget(m_fontIncrease);
 
     m_statusLabel = new QLabel(tr("解析条件を設定して、棋譜解析を開始してください。"), this);
+    // 解析中は1局面ごとに文が替わる。下にあるパネルまで同じ範囲を描き直さない
+    OpaqueBackground::keep(m_statusLabel);
     m_statusLabel->setObjectName(QStringLiteral("analysisStatusLabel"));
     m_statusLabel->setWordWrap(true);
     m_progressBar = new QProgressBar(this);

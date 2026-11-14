@@ -10,8 +10,10 @@
 #include <QAction>
 #include <QCoreApplication>
 #include <QDockWidget>
+#include <QEvent>
 #include <QMainWindow>
 #include <QMenu>
+#include <QPalette>
 #include <QWindow>
 
 using DockId = DockRegistry::DockId;
@@ -41,6 +43,19 @@ public:
             windowHandle()->setTransientParent(nullptr);
         }
         QDockWidget::setVisible(visible);
+    }
+
+protected:
+    // ウィンドウが前面になる・後ろに回ると、Qt はタイトルの範囲を描き直す（ダイアログを開く・閉じるたびに、
+    // 見えているドックの全部で起きる）。収まっているドックのタイトルは文字だけで、前面と後ろでパレットが
+    // 同じなら見た目は変わらないので、描き直しを頼ませない（Qt の処理は描き直しを頼むだけ）
+    bool event(QEvent* event) override
+    {
+        const QEvent::Type type = event->type();
+        if ((type == QEvent::WindowActivate || type == QEvent::WindowDeactivate) && !isFloating()
+            && palette().isEqual(QPalette::Active, QPalette::Inactive))
+            return QWidget::event(event);
+        return QDockWidget::event(event);
     }
 };
 
@@ -81,8 +96,9 @@ const std::array<DockRegistry::DockSpec, DockRegistry::kDockCount>& DockRegistry
         // 定跡ウィンドウは1手ごとに表と局面のラベルが変わる
         {DockId::Joseki, "JosekiWindowDock", QT_TRANSLATE_NOOP("DockRegistry", "定跡"), kBottom,
          false, false, true, true, 0, 0, "JosekiWindowDock"},
+        // 棋譜解析の結果は1局面ごとに表・進み具合・状況の文が変わる
         {DockId::AnalysisResults, "AnalysisResultsDock", QT_TRANSLATE_NOOP("DockRegistry", "棋譜解析"), kBottom,
-         false, false, false, false, 0, 0, "KifuAnalysisResultsDock"},
+         false, false, true, true, 0, 0, "KifuAnalysisResultsDock"},
     }};
     return table;
 }

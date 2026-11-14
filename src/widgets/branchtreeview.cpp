@@ -2,6 +2,7 @@
 /// @brief 分岐ツリーの図の実装（ツリーの変更・描画・強調・操作）
 
 #include "branchtreeview.h"
+#include "opaquebackground.h"
 #include "movefont.h"
 #include "branchnodeitem.h"
 #include "kifubranchnode.h"
@@ -106,6 +107,8 @@ BranchTreeView::BranchTreeView(QWidget* parent)
     setScene(m_scene);
     // 矢印キーで手を移動できるようにする
     setFocusPolicy(Qt::StrongFocus);
+    // 手が増えるたびに変わる横のスクロールバーの描き直しを、ドックとメインウィンドウまで広げない
+    OpaqueBackground::keepScrollBars(this);
 
     m_compactLayout = AnalysisSettings::branchTreeCompactLayout();
     m_zoomPercent = AnalysisSettings::branchTreeZoomPercent();

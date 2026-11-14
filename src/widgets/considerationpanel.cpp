@@ -2,6 +2,7 @@
 /// @brief 検討タブのパネルの実装（状態管理・設定・イベント処理）
 
 #include "considerationpanel.h"
+#include "opaquebackground.h"
 #include "actionbinding.h"
 #include "fontsizecontrol.h"
 #include "engineselector.h"
@@ -273,6 +274,8 @@ void ConsiderationPanel::buildToolbarControls()
     m_elapsedTimeLabel->setObjectName(QStringLiteral("considerationElapsed"));
     m_elapsedTimeLabel->setToolTip(tr("検討開始からの経過時間"));
     m_elapsedTimeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    // 検討中は毎秒描き直す。下にある操作列とパネルまで同じ範囲を描き直さない
+    OpaqueBackground::keep(m_elapsedTimeLabel);
 
     // 経過時間更新タイマー
     m_elapsedTimer = new QTimer(this);

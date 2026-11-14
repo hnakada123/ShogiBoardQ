@@ -54,6 +54,7 @@ private:
     void showStoreError();
     void resetProgress(bool allCollections);
     void rebuildPage();
+    void refreshPageAfterPlay();
     void arrangeCards();
     void updateCard(QPushButton* card);
     void savePreferences();

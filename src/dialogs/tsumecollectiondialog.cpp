@@ -16,6 +16,7 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPalette>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSpinBox>
@@ -405,6 +406,14 @@ void TsumeCollectionDialog::rebuildPage()
         card->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
         card->setToolTip(problem.sfen);
         card->setAutoDefault(false);
+        // カードの下に見えるのは、カードを並べる入れ物の背景色（角の丸みの外側）。カードに同じ色を塗らせて
+        // 不透明にし、ページを替えるたびに入れ物までカードと同じ範囲を描き直さない。押せないカードも
+        // 入れ物（押せる状態）と同じ色で塗る
+        QPalette cardPalette = card->palette();
+        cardPalette.setBrush(QPalette::Disabled, QPalette::Window, cardPalette.brush(QPalette::Active, QPalette::Window));
+        card->setPalette(cardPalette);
+        card->setBackgroundRole(QPalette::Window);
+        card->setAutoFillBackground(true);
         auto* contents = new QVBoxLayout(card);
         auto* title = new QLabel(tr("第%1問（%2行目）").arg(index + 1).arg(problem.lineNumber), card);
         title->setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -427,6 +436,23 @@ void TsumeCollectionDialog::rebuildPage()
     updateCards();
     arrangeCards();
     m_scroll->verticalScrollBar()->setValue(0);
+}
+
+// 対局画面から戻ったときの一覧の更新。変わるのは解いた問題の挑戦状況と手数の表示だけなので、絞り込みで
+// 並びが変わらなければ、カードは作り直さずに中身だけを更新する（作り直すと、表示中のカードを全部描き直す）
+void TsumeCollectionDialog::refreshPageAfterPlay()
+{
+    const QList<int> filtered = m_session->filtered(static_cast<TsumeCollectionSession::Filter>(m_filter->currentIndex()));
+    if (filtered != m_filtered || m_cards.isEmpty()) {
+        rebuildPage();
+        return;
+    }
+    QList<int> shown;
+    for (const auto* card : std::as_const(m_cards)) shown.append(card->property("problemIndex").toInt());
+    m_session->cancelEvaluation();
+    // 対局画面で出題した問題の手数を判定し直す（判定済みのものは結果を使う）
+    m_session->evaluate(shown);
+    updateCards();
 }
 
 void TsumeCollectionDialog::arrangeCards()
@@ -473,7 +499,7 @@ void TsumeCollectionDialog::startProblem()
     m_session->forgetResults(m_played);
     m_session->refreshProgress();
     m_session->setPaused(false);
-    rebuildPage();
+    refreshPageAfterPlay();
     m_scroll->verticalScrollBar()->setValue(scroll);
     raise();
     activateWindow();

@@ -65,6 +65,9 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showPredictedMove)
     , m_showPredictedMove(showPredictedMove)
 {
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    // 帯は自分の全体を不透明な色で塗る（paintEvent）。そう知らせておくと、値のラベルを描き直すたびに、
+    // 帯の下にある親（思考のパネルなど）まで同じ範囲を描き直さない
+    setAttribute(Qt::WA_OpaquePaintEvent);
     QPalette bandPalette = palette();
     bandPalette.setColor(QPalette::WindowText, TableStyles::engineBandText());
     setPalette(bandPalette);
