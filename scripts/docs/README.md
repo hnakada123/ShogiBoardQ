@@ -91,6 +91,18 @@ xvfb-run -a -s '-screen 0 1920x1440x24' python3 scripts/docs/shoot_csa.py \
 `--languages ja_JP en` のように対象言語を指定できます。起動には既存の `launch.sh` を使い、
 サーバーの記録とアプリの設定は `/tmp` に隔離します。終了後は今回起動したアプリとサーバーを停止します。
 
+ガイドの画像を上書きせずに試すときは、`--out-dir <フォルダ>` で保存先を変えます
+（`<フォルダ>/{,en/,zh-cn/,zh-tw/}csa-game/` に書き出す）。
+
+Ruby 3.4 以降は shogi-server が使う `webrick` を同梱しないので、サーバーの起動に失敗したら
+（`cannot load such file -- webrick` と出て止まる）、作業用の場所に入れてから `GEM_PATH` を付けて実行します。
+
+```bash
+gem install --no-document --install-dir /tmp/sbq-gems webrick
+GEM_PATH=/tmp/sbq-gems xvfb-run -a -s '-screen 0 1920x1440x24' python3 scripts/docs/shoot_csa.py \
+  --server /path/to/shogi-server --out-dir /tmp/sbq-csa-trial
+```
+
 ## インターネット越しの P2P対局の画像の撮り直し
 
 P2P対局は、ふだんのビルドでは自動化 API から操作できない（`--automation` で起動すると P2P対局を作らない）。

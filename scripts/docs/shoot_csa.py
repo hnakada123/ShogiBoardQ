@@ -24,11 +24,11 @@ LANG_DIR = {'ja_JP': '', 'en': 'en', 'zh_CN': 'zh-cn', 'zh_TW': 'zh-tw'}
 
 
 class Capture:
-    def __init__(self, root, language):
+    def __init__(self, root, language, images):
         self.root, self.language = root, language
         self.name = 'csa-' + language
         self.sock = root / (self.name + '.sock')
-        self.dest = REPO / 'docs/images' / LANG_DIR[language] / 'csa-game'
+        self.dest = images / LANG_DIR[language] / 'csa-game'
 
     async def rpc(self, method, **params):
         reader, writer = await asyncio.open_unix_connection(str(self.sock))
@@ -104,7 +104,7 @@ class Capture:
         await self.set(dialog, tabWidget=1)
         await self.set(dialog, lineEditGameName='test-600-10', comboBoxTurnPreference=1)
         await self.set(dialog, tabWidget=0)
-        await self.rpc('dialog.clickButton', dialog=dialog, widget='pushButtonStart')
+        await self.rpc('dialog.clickButton', target=dialog, widget='pushButtonStart')
         waiting = await self.dialog('CsaWaitingDialog')
         for _ in range(80):
             state = await self.rpc('app.state')
@@ -113,9 +113,9 @@ class Capture:
         else:
             raise RuntimeError(state)
         await self.capture('csa-02-waiting.png', waiting)
-        await self.rpc('dialog.clickButton', dialog=waiting, text=self.translated('CsaWaitingDialog', '通信ログ'))
+        await self.rpc('dialog.clickButton', target=waiting, text=self.translated('CsaWaitingDialog', '通信ログ'))
         await self.capture('csa-02-commlog.png', 'csaWaitingLogWindow')
-        await self.rpc('dialog.close', dialog='csaWaitingLogWindow')
+        await self.rpc('dialog.close', target='csaWaitingLogWindow')
         reader, writer = await asyncio.open_connection('127.0.0.1', port)
         async def send(line):
             writer.write((line+'\n').encode())
@@ -155,7 +155,7 @@ class Capture:
             await until('#WIN')
             end = await self.dialog('QMessageBox')
             await self.capture('csa-04-game-end.png', end)
-            await self.rpc('dialog.close', dialog=end)
+            await self.rpc('dialog.close', target=end)
         finally:
             writer.close()
             await writer.wait_closed()
@@ -182,7 +182,7 @@ async def main(args):
                 except OSError:
                     await asyncio.sleep(.1)
             for language in args.languages:
-                cap = Capture(root, language)
+                cap = Capture(root, language, args.out_dir.resolve())
                 env = dict(os.environ, SBQ_WORK=str(root), SBQ_SOCKET_DIR=str(root), SBQ_ENGINES='1')
                 display = os.environ['DISPLAY'].lstrip(':').split('.')[0]
                 subprocess.run(['bash', str(REPO/'scripts/docs/launch.sh'), cap.name, language, display, '1300', '980'],
@@ -200,4 +200,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--server', type=Path, required=True)
     parser.add_argument('--languages', nargs='+', choices=LANG_DIR, default=list(LANG_DIR))
+    parser.add_argument('--out-dir', type=Path, default=REPO / 'docs/images',
+                        help='images are written to <out-dir>/{,en/,zh-cn/,zh-tw/}csa-game/ (default: docs/images)')
     asyncio.run(main(parser.parse_args()))
