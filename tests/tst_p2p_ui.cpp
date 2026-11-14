@@ -17,7 +17,9 @@
 #include <QAction>
 #include <QMainWindow>
 #include <QMessageBox>
+#include <QPaintEvent>
 #include <QPushButton>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QTemporaryDir>
@@ -161,6 +163,64 @@ private slots:
     {
         QVERIFY(Crypto::initialize());
         QVERIFY(m_dir.isValid());
+    }
+
+    // 「対局中」の状態の文は1手ごとに替わる。文が替わっても、タブの部品（QTabWidget）は描き直さない
+    // （文の入れ替えが配置のやり直しを親へ伝え、QTabWidget はそれを受けるたびに全体を描き直していた）
+    void gameStatusChangeDoesNotRepaintTabs()
+    {
+        AppActivityState activity;
+        GameBoard board;
+        ShogiClock clock;
+        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
+        P2pPlayerProfile profile(m_dir.filePath(QStringLiteral("tabs")));
+        QVERIFY(profile.open());
+        P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, &profile);
+        P2pWindow window(&lobby, &game);
+        window.resize(820, 640);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("p2pTabs"));
+        auto* status = window.findChild<QLabel*>(QStringLiteral("p2pGameStatus"));
+        QVERIFY(tabs && status);
+        tabs->setCurrentIndex(2);
+        QCOMPARE(tabs->tabText(2), QStringLiteral("対局中"));
+        QVERIFY(status->isVisible());
+        const QString head = QStringLiteral("相手: 「テスト」\nあなたは先手\n経路: 直接\n");
+        const QString tail = QStringLiteral("\n切断時間の残り: 180 秒");
+        status->setText(head + QStringLiteral("あなたの手番です") + tail);
+        for (int i = 0; i < 5; ++i) QCoreApplication::processEvents();
+
+        struct PaintSpy : QObject {
+            int paints = 0;
+            QRegion region;
+            bool eventFilter(QObject* watched, QEvent* event) override
+            {
+                if (event->type() == QEvent::Paint) {
+                    ++paints;
+                    region += static_cast<QPaintEvent*>(event)->region();
+                }
+                return QObject::eventFilter(watched, event);
+            }
+        } tabPaints, tabBarPaints, statusPaints;
+        tabs->installEventFilter(&tabPaints);
+        tabs->tabBar()->installEventFilter(&tabBarPaints);
+        status->installEventFilter(&statusPaints);
+        for (const QString& line : {QStringLiteral("着手の確認を待っています…"), QStringLiteral("相手の手番です"),
+                                    QStringLiteral("あなたの手番です"), QStringLiteral("相手の手番です")}) {
+            status->setText(head + line + tail);
+            for (int i = 0; i < 5; ++i) QCoreApplication::processEvents();
+        }
+        QCOMPARE(statusPaints.paints, 4);
+        // タブの部品が描くのは、文のラベルの下だけ（ラベルは不透明でないので、下の親もその範囲を描く）
+        const QRect statusRect(status->mapTo(tabs, QPoint(0, 0)), status->size());
+        QVERIFY2((tabPaints.region - statusRect).isEmpty(), "the tab widget repainted outside the status label");
+        QCOMPARE(tabBarPaints.paints, 0);
+        // 行が増えて大きさの条件が変わるときは、配置をやり直す（文が欠けない）
+        const int heightBefore = status->height();
+        status->setText(head + QStringLiteral("あなたの手番です") + tail + QStringLiteral("\n結果: 先手の勝ち（投了）\n確定しました"));
+        for (int i = 0; i < 5; ++i) QCoreApplication::processEvents();
+        QVERIFY(status->height() > heightBefore);
     }
 
     void windowStartsOffline()

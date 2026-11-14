@@ -27,6 +27,7 @@
 
 #include "dialogfontscale.h"
 #include "dialogutils.h"
+#include "layoutboundarywidget.h"
 #include "networksettings.h"
 #include "p2pbuildexpiry.h"
 #include "p2pdisplayname.h"
@@ -80,7 +81,9 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     m_tabs->setObjectName(QStringLiteral("p2pTabs"));
     m_tabs->addTab(createConnectionTab(), tr("接続と条件"));
     m_tabs->addTab(createInviteTab(), tr("招待で接続"));
-    m_gameTab = createGameTab();
+    // 状態の文は1手ごとに替わる。文の入れ替えは配置のやり直しを親へ伝え、タブの部品（QTabWidget）は
+    // それを受けるたびに全体を描き直す。ページの大きさの条件が変わったときだけ伝える入れ物で包む
+    m_gameTab = new LayoutBoundaryWidget(createGameTab(), this);
     m_tabs->addTab(m_gameTab, tr("対局中"));
     const P2pPlayerProfile* profile = lobby ? lobby->profile() : nullptr;
     m_history = new P2pHistoryPanel(profile ? profile->records() : nullptr, profile ? profile->knownPeers() : nullptr, this);
