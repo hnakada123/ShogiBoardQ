@@ -4426,6 +4426,7 @@ int main(int argc, char** argv)
     ApplicationRendering::reservePixmapCacheForPieces();
     // アプリと同じスタイル（Fusion。ドックのボタンのアイコンを使い回す版）
     app.setStyle(ApplicationStyle::create());
+    ApplicationRendering::useActiveColorsWhenInactive();
     ApplicationFonts::initialize();
     GuiAudit audit;
     return QTest::qExec(&audit, argc, argv);

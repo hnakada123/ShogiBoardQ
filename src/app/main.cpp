@@ -37,6 +37,8 @@ static void configureApplicationAppearance(QApplication& app, const QString& lan
 {
     // Creatorのような「Fusion」スタイルに統一する（ドックのボタンのアイコンを使い回す版）。
     app.setStyle(ApplicationStyle::create());
+    // 後ろに回ったウィンドウも前面のときと同じ色で描く（前面・後ろの切り替えのたびに全体を描き直さない）
+    ApplicationRendering::useActiveColorsWhenInactive();
     ApplicationFonts::initialize(AppSettings::uiFontFamily(), language);
 
     // QDialogButtonBox のデフォルトスタイル（全ダイアログ共通）

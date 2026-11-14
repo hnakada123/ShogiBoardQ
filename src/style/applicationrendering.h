@@ -27,6 +27,16 @@ void paintOnGuiThreadOnly();
 /// 使った分だけ確保されるので、小さな盤では増えない。利用者やテストが広げた値は縮めない。
 void reservePixmapCacheForPieces();
 
+/// QApplication を作り、スタイルを設定した後に呼ぶ。後ろに回ったウィンドウも、前面のときと同じ色で描かせる。
+///
+/// Qt は、ウィンドウが前面になる・後ろに回るたびに、前面のときと後ろのときでパレットの色が違う部品を
+/// すべて描き直す（QWidget::event の WindowActivate・WindowDeactivate）。デスクトップの既定の配色は
+/// 後ろのウィンドウの選択色などを変えるので、ダイアログを開く・閉じるたびに、ダイアログと後ろの
+/// ウィンドウのほとんどの部品を描き直していた（ダイアログは表示の直後に前面になるので、開くときに
+/// 全体を2回描く）。アプリのパレットの「後ろのとき」の色を「前面のとき」の色に合わせ、配色が変わったら
+/// 合わせ直す。後ろに回ったウィンドウの選択色などは、前面のときと同じ色になる。
+void useActiveColorsWhenInactive();
+
 /// reservePixmapCacheForPieces が確保する QPixmapCache の上限（KB）
 inline constexpr int kPixmapCacheLimitKb = 64 * 1024;
 

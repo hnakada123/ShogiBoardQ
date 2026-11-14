@@ -4,6 +4,7 @@
 #include <QImage>
 #include <QLinearGradient>
 #include <QPainter>
+#include <QPalette>
 #include <QPixmapCache>
 
 #include "applicationrendering.h"
@@ -81,6 +82,39 @@ private slots:
         ApplicationRendering::reservePixmapCacheForPieces();
         QCOMPARE(QPixmapCache::cacheLimit(), ApplicationRendering::kPixmapCacheLimitKb * 2);
         QPixmapCache::setCacheLimit(original);
+    }
+
+    // 後ろに回ったウィンドウの色（Inactive）を、前面のときの色（Active）に合わせ、配色が変わっても合わせ直す
+    void inactiveColorsFollowActiveColors()
+    {
+        const QPalette original = QGuiApplication::palette();
+        QPalette palette = original;
+        palette.setColor(QPalette::Active, QPalette::Highlight, QColor(10, 20, 30));
+        palette.setColor(QPalette::Inactive, QPalette::Highlight, QColor(1, 2, 3));
+        palette.setColor(QPalette::Active, QPalette::WindowText, QColor(40, 50, 60));
+        palette.setColor(QPalette::Inactive, QPalette::WindowText, QColor(4, 5, 6));
+        QGuiApplication::setPalette(palette);
+        QVERIFY(!QGuiApplication::palette().isEqual(QPalette::Active, QPalette::Inactive));
+
+        ApplicationRendering::useActiveColorsWhenInactive();
+        QVERIFY(QGuiApplication::palette().isEqual(QPalette::Active, QPalette::Inactive));
+        QCOMPARE(QGuiApplication::palette().color(QPalette::Inactive, QPalette::Highlight), QColor(10, 20, 30));
+        QCOMPARE(QGuiApplication::palette().color(QPalette::Inactive, QPalette::WindowText), QColor(40, 50, 60));
+        // 押せない状態の色は変えない
+        QCOMPARE(QGuiApplication::palette().color(QPalette::Disabled, QPalette::Highlight),
+                 palette.color(QPalette::Disabled, QPalette::Highlight));
+
+        // 配色が変わったら（前面のときの色だけが変わる）、後ろのときの色も合わせ直す
+        palette = QGuiApplication::palette();
+        palette.setColor(QPalette::Active, QPalette::Highlight, QColor(70, 80, 90));
+        QGuiApplication::setPalette(palette);
+        QCOMPARE(QGuiApplication::palette().color(QPalette::Inactive, QPalette::Highlight), QColor(70, 80, 90));
+        QVERIFY(QGuiApplication::palette().isEqual(QPalette::Active, QPalette::Inactive));
+
+        // 2回呼んでも変わらない
+        ApplicationRendering::useActiveColorsWhenInactive();
+        QVERIFY(QGuiApplication::palette().isEqual(QPalette::Active, QPalette::Inactive));
+        QGuiApplication::setPalette(original);
     }
 };
 
