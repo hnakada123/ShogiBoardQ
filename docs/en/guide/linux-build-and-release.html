@@ -96,6 +96,7 @@
 <tr><td>Compiler</td><td>GCC 9 or later, or Clang 10 or later, with C++17 support</td></tr>
 <tr><td>CMake</td><td>3.16 or later (Ninja recommended)</td></tr>
 <tr><td>Qt</td><td>6.7 or later (Widgets, Charts, Network, Concurrent, Multimedia, Sql, LinguistTools). Packaging also needs the SVG plugins</td></tr>
+<tr><td>Rust and libsodium</td><td>Used to build P2P games: Rust 1.85 or later (cargo) and libsodium 1.0.18 or later (found with pkg-config). With QtKeychain (the Qt 6 build), the player key can be kept in the system keyring (optional). Configuring with <code>-DENABLE_P2P_PLAY=OFF</code> builds without P2P games and needs none of them</td></tr>
 <tr><td>Python</td><td>Python 3 (packaging scripts)</td></tr>
 <tr><td>Docker</td><td>To build release packages in the container</td></tr>
 <tr><td>Other</td><td>Git, curl, file, FUSE 2 (to run AppImage-based tools), ImageMagick (to shrink icons larger than 512 px)</td></tr>
@@ -121,7 +122,9 @@
 </blockquote>
 <p>To build and develop on Arch Linux directly, install the build tools and Arch's Qt packages. fcitx5-qt provides the Japanese input (fcitx5) plugin that is bundled in the AppImage; without it, that plugin is left out.</p>
 <pre><code>sudo pacman -S --needed base-devel cmake ninja git curl file python fuse2 imagemagick \
-  qt6-base qt6-charts qt6-multimedia qt6-svg qt6-tools fcitx5-qt</code></pre>
+  qt6-base qt6-charts qt6-multimedia qt6-svg qt6-tools fcitx5-qt \
+  rust libsodium qtkeychain-qt6</code></pre>
+<p>rust (cargo), libsodium and qtkeychain-qt6 are for P2P games. The communication process <code>shogiboardq-peer</code> is written in Rust and CMake builds it with cargo. cargo downloads the crates it depends on from crates.io during the build (versions and hashes are pinned in <code>Cargo.lock</code>).</p>
 </section>
 <section id="setup-other" class="level3">
 <h3>2.2 Other distributions (building the application only)</h3>
@@ -129,11 +132,15 @@
 <p>Ubuntu / Debian:</p>
 <pre><code>sudo apt install build-essential cmake ninja-build git \
   qt6-base-dev qt6-charts-dev qt6-multimedia-dev qt6-tools-dev qt6-tools-dev-tools \
-  qt6-l10n-tools libqt6sql6-sqlite libgl1-mesa-dev</code></pre>
+  qt6-l10n-tools libqt6sql6-sqlite libgl1-mesa-dev \
+  cargo libsodium-dev pkg-config qtkeychain-qt6-dev</code></pre>
 <p>Fedora:</p>
 <pre><code>sudo dnf install gcc-c++ cmake ninja-build git \
   qt6-qtbase-devel qt6-qtcharts-devel qt6-qtmultimedia-devel qt6-qttools-devel \
-  qt6-linguist mesa-libGL-devel</code></pre>
+  qt6-linguist mesa-libGL-devel \
+  cargo libsodium-devel pkgconf-pkg-config qtkeychain-qt6-devel</code></pre>
+<p>cargo, libsodium and QtKeychain are for P2P games. If the distribution's Rust is older than 1.85 (Ubuntu 24.04, for example), install Rust with <a href="https://rustup.rs/">rustup</a>. To build without P2P games, skip them and configure as follows.</p>
+<pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=OFF</code></pre>
 <p>For Qt installed with the Qt Online Installer, pass its location when configuring CMake (Qt 6.12.0 in this example).</p>
 <pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/gcc_64"</code></pre>
@@ -142,7 +149,9 @@
 <h3>2.3 Checking the installation</h3>
 <pre><code>cmake --version
 g++ --version
-qmake6 --version</code></pre>
+qmake6 --version
+cargo --version
+pkg-config --modversion libsodium</code></pre>
 </section>
 </section>
 <section id="build" class="level2">
@@ -193,8 +202,11 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <p>For a release, first update the version to the release date and commit it (<a href="#release">section 6</a>).</p>
 </blockquote>
 <pre><code>./scripts/build-linux-container.sh</code></pre>
+<blockquote>
+<p><strong>About P2P games</strong>: the container has Rust for building the communication process of P2P games (the official distribution, checked against its SHA-256, because the Rust 1.79 of that Arch snapshot cannot build it), libsodium and QtKeychain. cargo downloads the Rust crates the communication process uses from crates.io during the build, so every build needs network access (the downloads stay in <code>build-container/cargo-home</code> and are reused). To update Rust, change <code>RUST_VERSION</code> and <code>RUST_SHA256</code> (the value of the <code>.sha256</code> file on the official site) in the Dockerfile.</p>
+</blockquote>
 <ul>
-<li>The first run creates the build image (<code>scripts/linux-container/Dockerfile</code>, about 3 GB). Downloads from the Arch Linux Archive are slow and take tens of minutes.</li>
+<li>The first run creates the build image (<code>scripts/linux-container/Dockerfile</code>, about 4 GB). Downloads from the Arch Linux Archive are slow and take tens of minutes.</li>
 <li>Inside the container, <code>scripts/build-linux.sh</code> runs as your user. It uses <code>build-container</code> instead of the usual <code>build</code> directory and writes the outputs to the repository root.</li>
 <li>Some keys that signed packages at that time have since expired. The image verifies signatures against the official keyring but does not require the keys to be currently trusted.</li>
 <li>The bundled OpenSSL and libcurl, and the network libraries libcurl uses (nghttp2, nghttp3, ngtcp2, libssh2), are replaced with newer versions, because the versions of that time lack later fixes. Current Arch packages are installed after checking their SHA-256 (<code>scripts/linux-container/packages.sha256</code>) and signatures; curl, whose current package uses newer glibc functions, is rebuilt in the image from the same version's Arch PKGBUILD.</li>
@@ -231,8 +243,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 </div>
 <p><code>build-linux.sh</code> performs these steps (in the container, the same steps run inside it):</p>
 <ol>
-<li>Check the required tools (cmake and python3; ninja recommended)</li>
-<li>Configure CMake and build in Release mode (ShogiBoardQ and Hayanagi)</li>
+<li>Check the required tools (cmake, python3, cargo, pkg-config and libsodium; ninja recommended)</li>
+<li>Configure CMake and build in Release mode (ShogiBoardQ, the P2P communication process <code>shogiboardq-peer</code>, and Hayanagi)</li>
 <li>Check the executable, translation files, and the 3- to 13-move collections (one file per move count)</li>
 <li>Download linuxdeploy, its Qt plugin, appimagetool, and the AppImage runtime (first time only; saved in the build directory). Before using them, check them against the SHA-256 values in <code>build-linux.sh</code>. They are continuous builds that upstream replaces, so a replacement makes the check fail and stop; then review the upstream release digest and changes before updating the values</li>
 <li>Create the AppDir and generate the AppImage (files needed to run, plus Qt and bundled library license notices)</li>
@@ -251,6 +263,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
     └── usr/
         ├── bin/
         │   ├── ShogiBoardQ             ← executable
+        │   ├── shogiboardq-peer        ← communication process of P2P games
         │   ├── qt.conf                 ← Qt plugin location
         │   └── ShogiBoardQ_{ja_JP,en,zh_CN,zh_TW}.qm   ← application translations (4 languages)
         ├── lib/                        ← Qt and dependencies
@@ -267,10 +280,12 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
             ├── ShogiBoardQ/openssl.cnf ← settings the bundled OpenSSL reads (empty; the system's are not read)
             └── licenses/ShogiBoardQ/
                 ├── NOTICE*.md, SOURCE_CODE*.md, GPL-3.0.txt, LGPL-3.0.txt
+                ├── RUST-NOTICES.md             ← notices of the Rust libraries in it
                 ├── QT-NOTICES.md, qt/          ← notices of the bundled Qt modules
                 ├── QT-SOURCE.json, BUILD.json  ← Qt source record and build version
                 └── THIRD-PARTY-NOTICES.md, third-party/   ← notices of the other bundled libraries</code></pre>
 <ul>
+<li>The communication process of P2P games, <code>shogiboardq-peer</code>, goes into <code>usr/bin/</code> (the application starts it from the folder of its own executable). libsodium and QtKeychain, which the application links, are bundled in <code>usr/lib/</code> as dependencies (libsecret, used by QtKeychain, is loaded from the system at run time). The Rust libraries built into the communication process (about 250 crates) are listed with their license texts in <code>RUST-NOTICES.md</code>, which is also built into the application ("Licenses of the libraries for P2P games" in the About dialog). <code>scripts/rust_licenses.py</code> writes this document from <code>Cargo.lock</code> and it is kept in the repository; <code>build-linux.sh</code> stops if it is out of date.</li>
 <li>Puzzle collections, the Hayanagi engine for regular games, documentation, and validation records (<code>validation_*.json</code>) are not included. The application does not read them from inside the AppImage and users cannot select files there, so they are shipped only as files outside the AppImage in the ZIP. The Hayanagi used for tsume play is built into the application.</li>
 <li>Qt's own translations placed by linuxdeploy (<code>usr/translations/</code>) are removed. The Japanese and Chinese translations of standard dialogs are built into the executable, and the application translations are read from <code>usr/bin/</code>.</li>
 <li>Unused plugins are not bundled: OpenGL integration (<code>xcbglintegrations</code>) and GIF images. No widget uses OpenGL.</li>
@@ -330,10 +345,12 @@ chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 ./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
 ls squashfs-root/usr/bin/ squashfs-root/usr/plugins/*/
 ls squashfs-root/usr/share/licenses/ShogiBoardQ/THIRD-PARTY-NOTICES.md
+squashfs-root/usr/bin/shogiboardq-peer --version
 test ! -e squashfs-root/usr/bin/hayanagi &amp;&amp; test ! -e squashfs-root/usr/translations &amp;&amp; echo OK
 
 # Required glibc version
-find squashfs-root/usr -type f \( -name '*.so*' -o -name ShogiBoardQ \) -exec objdump -T {} + 2&gt;/dev/null \
+find squashfs-root/usr -type f \( -name '*.so*' -o -name ShogiBoardQ -o -name shogiboardq-peer \) \
+  -exec objdump -T {} + 2&gt;/dev/null \
   | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
 
 # Hayanagi in the ZIP answers as a USI engine
@@ -383,6 +400,14 @@ Without FUSE, start it with --appimage-extract-and-run.</code></pre>
 <h3>Qt is not found</h3>
 <pre><code>Could not find a package configuration file provided by "Qt6"</code></pre>
 <p>Make sure Qt 6.7 or later and the required modules are installed. For Qt from the Qt Online Installer, pass <code>-DCMAKE_PREFIX_PATH</code>. After switching Qt or the CMake generator, start over in a new build directory.</p>
+</section>
+<section id="ts-p2p" class="level3">
+<h3>Something P2P games need is not found</h3>
+<pre><code>P2P play: a Rust toolchain (cargo, Rust 1.85 or later) was not found.
+
+    Install Rust from https://rustup.rs/ or from your package manager.
+    To build without P2P play, configure with -DENABLE_P2P_PLAY=OFF.</code></pre>
+<p>P2P games are enabled by default, so configuring needs Rust (cargo) and libsodium. Install what the message names (<a href="#setup">section 2</a>). If the distribution's Rust is older than 1.85, install it with rustup. To build without P2P games, add <code>-DENABLE_P2P_PLAY=OFF</code>. A build directory configured earlier without P2P games keeps that setting and stays disabled; configure again with <code>-DENABLE_P2P_PLAY=ON</code> to enable it.</p>
 </section>
 <section id="ts-submodule" class="level3">
 <h3>Hayanagi sources are missing</h3>

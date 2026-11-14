@@ -96,6 +96,7 @@
 <tr><td>コンパイラ</td><td>C++17 に対応した GCC 9 以降、または Clang 10 以降</td></tr>
 <tr><td>CMake</td><td>3.16 以上（Ninja を推奨）</td></tr>
 <tr><td>Qt</td><td>6.7 以上（Widgets・Charts・Network・Concurrent・Multimedia・Sql・LinguistTools）。配布物の作成には SVG のプラグインも必要</td></tr>
+<tr><td>Rust・libsodium</td><td>P2P対局のビルドに使う。Rust 1.85 以上（cargo）と libsodium 1.0.18 以上（pkg-config で見つける）。QtKeychain（Qt 6 版）があれば、プレイヤー鍵を OS の鍵の保管庫に置ける（任意）。<code>-DENABLE_P2P_PLAY=OFF</code> で構成すれば、P2P対局なしでビルドでき、どれも要らない</td></tr>
 <tr><td>Python</td><td>Python 3（配布用のスクリプト）</td></tr>
 <tr><td>Docker</td><td>リリース用の配布物をコンテナで作る場合</td></tr>
 <tr><td>その他</td><td>Git、curl、file、FUSE 2（AppImage 形式のツールの実行）、ImageMagick（512px を超えるアイコンの縮小）</td></tr>
@@ -121,7 +122,9 @@
 </blockquote>
 <p>手元の Arch Linux でビルド・開発する場合は、ビルドツールと Arch の Qt パッケージを入れる。fcitx5-qt は、日本語入力（fcitx5）用の入力プラグインを AppImage に同梱するために使う。入っていないと、このプラグインは同梱されない。</p>
 <pre><code>sudo pacman -S --needed base-devel cmake ninja git curl file python fuse2 imagemagick \
-  qt6-base qt6-charts qt6-multimedia qt6-svg qt6-tools fcitx5-qt</code></pre>
+  qt6-base qt6-charts qt6-multimedia qt6-svg qt6-tools fcitx5-qt \
+  rust libsodium qtkeychain-qt6</code></pre>
+<p>rust（cargo）・libsodium・qtkeychain-qt6 は P2P対局に使う。通信プロセス <code>shogiboardq-peer</code> は Rust で書かれ、CMake が cargo でビルドする。依存のクレートは、cargo がビルド中に crates.io から取得する（版とハッシュは <code>Cargo.lock</code> で固定）。</p>
 </section>
 <section id="setup-other" class="level3">
 <h3>2.2 ほかのディストリビューション（アプリのビルドのみ）</h3>
@@ -129,11 +132,15 @@
 <p>Ubuntu / Debian:</p>
 <pre><code>sudo apt install build-essential cmake ninja-build git \
   qt6-base-dev qt6-charts-dev qt6-multimedia-dev qt6-tools-dev qt6-tools-dev-tools \
-  qt6-l10n-tools libqt6sql6-sqlite libgl1-mesa-dev</code></pre>
+  qt6-l10n-tools libqt6sql6-sqlite libgl1-mesa-dev \
+  cargo libsodium-dev pkg-config qtkeychain-qt6-dev</code></pre>
 <p>Fedora:</p>
 <pre><code>sudo dnf install gcc-c++ cmake ninja-build git \
   qt6-qtbase-devel qt6-qtcharts-devel qt6-qtmultimedia-devel qt6-qttools-devel \
-  qt6-linguist mesa-libGL-devel</code></pre>
+  qt6-linguist mesa-libGL-devel \
+  cargo libsodium-devel pkgconf-pkg-config qtkeychain-qt6-devel</code></pre>
+<p>cargo・libsodium・QtKeychain は P2P対局に使う。ディストリビューションの Rust が 1.85 より古い場合（Ubuntu 24.04 など）は、<a href="https://rustup.rs/">rustup</a> で Rust を入れる。P2P対局なしでビルドするなら、これらは入れずに次のように構成する。</p>
+<pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=OFF</code></pre>
 <p>Qt Online Installer で入れた Qt は、CMake の構成時に場所を指定する（例は Qt 6.12.0）。</p>
 <pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/gcc_64"</code></pre>
@@ -142,7 +149,9 @@
 <h3>2.3 インストールの確認</h3>
 <pre><code>cmake --version
 g++ --version
-qmake6 --version</code></pre>
+qmake6 --version
+cargo --version
+pkg-config --modversion libsodium</code></pre>
 </section>
 </section>
 <section id="build" class="level2">
@@ -193,8 +202,11 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <p>リリース用に作るときは、先に版番号をリリースする日の日付に上げてコミットする（<a href="#release">6章</a>）。</p>
 </blockquote>
 <pre><code>./scripts/build-linux-container.sh</code></pre>
+<blockquote>
+<p><strong>P2P対局について</strong>: コンテナには、P2P対局の通信プロセスを作る Rust（公式の配布物を SHA-256 で確かめて入れる。当時の Arch の Rust 1.79 ではビルドできないため）と、libsodium・QtKeychain が入っている。通信プロセスが使う Rust のクレートは、cargo がビルド中に crates.io から取得するので、ビルドのたびにネットワークが要る（取得したものは <code>build-container/cargo-home</code> に残り、次のビルドで使い回す）。Rust の版を上げるときは、Dockerfile の <code>RUST_VERSION</code> と <code>RUST_SHA256</code>（公式配布サイトの <code>.sha256</code> の値）を書き換える。</p>
+</blockquote>
 <ul>
-<li>初回はビルド環境のイメージ（<code>scripts/linux-container/Dockerfile</code>、約3GB）を作る。Arch Linux Archive からのダウンロードは遅く、数十分かかる。</li>
+<li>初回はビルド環境のイメージ（<code>scripts/linux-container/Dockerfile</code>、約4GB）を作る。Arch Linux Archive からのダウンロードは遅く、数十分かかる。</li>
 <li>コンテナの中で、自分のユーザーとして <code>scripts/build-linux.sh</code> を実行する。ビルドディレクトリは普段の <code>build</code> と分けて <code>build-container</code> を使い、出力はリポジトリ直下に置く。</li>
 <li>当時のパッケージに署名した鍵には、その後に期限が切れたものがある。イメージでは、署名を公式の鍵束で確かめたうえで鍵の信頼度は問わない設定にしている。</li>
 <li>同梱する OpenSSL・libcurl と、libcurl が使う通信のライブラリ（nghttp2・nghttp3・ngtcp2・libssh2）は、当時の版には修正が入っていないので新しい版に替える。今の Arch のパッケージを <code>scripts/linux-container/packages.sha256</code> の SHA-256 と署名で確かめて入れ、新しい glibc の関数を使う curl は同じ版の Arch の PKGBUILD でイメージの中で作り直す。</li>
@@ -231,8 +243,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 </div>
 <p><code>build-linux.sh</code> は次の処理を行う（コンテナでは、その中で同じ処理を行う）。</p>
 <ol>
-<li>前提ツールの確認（cmake・python3。ninja を推奨）</li>
-<li>CMake の構成と Release ビルド（ShogiBoardQ と Hayanagi）</li>
+<li>前提ツールの確認（cmake・python3・cargo・pkg-config と libsodium。ninja を推奨）</li>
+<li>CMake の構成と Release ビルド（ShogiBoardQ・P2P対局の通信プロセス <code>shogiboardq-peer</code>・Hayanagi）</li>
 <li>実行ファイル・翻訳ファイルと、3〜13手詰の問題集（各手数1ファイル）の確認</li>
 <li>linuxdeploy・Qt プラグイン・appimagetool・AppImage のランタイムのダウンロード（初回のみ。ビルドディレクトリに保存）。使う前に <code>build-linux.sh</code> に書いた SHA-256 と照らし合わせる。どれも上流が差し替える continuous 版なので、差し替えられると一致せずに止まる。そのときは上流のリリースの digest と変更を確かめてから値を更新する</li>
 <li>AppDir の作成と AppImage の生成（実行に必要なファイルと、Qt・同梱ライブラリのライセンス文書）</li>
@@ -251,6 +263,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
     └── usr/
         ├── bin/
         │   ├── ShogiBoardQ             ← 実行ファイル
+        │   ├── shogiboardq-peer        ← P2P対局の通信プロセス
         │   ├── qt.conf                 ← Qt プラグインの検索先
         │   └── ShogiBoardQ_{ja_JP,en,zh_CN,zh_TW}.qm   ← アプリの翻訳（4言語）
         ├── lib/                        ← Qt と依存ライブラリ
@@ -267,10 +280,12 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
             ├── ShogiBoardQ/openssl.cnf ← 同梱の OpenSSL が読む設定（空。システムの設定は読まない）
             └── licenses/ShogiBoardQ/
                 ├── NOTICE*.md, SOURCE_CODE*.md, GPL-3.0.txt, LGPL-3.0.txt
+                ├── RUST-NOTICES.md             ← 通信プロセスの Rust のライブラリの文書
                 ├── QT-NOTICES.md, qt/          ← 同梱する Qt モジュールの文書
                 ├── QT-SOURCE.json, BUILD.json  ← Qt の取得元・ビルド時の版
                 └── THIRD-PARTY-NOTICES.md, third-party/   ← Qt 以外の同梱ライブラリの文書</code></pre>
 <ul>
+<li>P2P対局の通信プロセス <code>shogiboardq-peer</code> は <code>usr/bin/</code> に置く（アプリが実行ファイルと同じフォルダから起動する）。アプリがリンクする libsodium と QtKeychain は、依存ライブラリとして <code>usr/lib/</code> に入る（QtKeychain が使う libsecret は、実行時にシステムのものを読み込む）。通信プロセスに取り込んだ Rust のライブラリ（約250クレート）の一覧とライセンスの本文は <code>RUST-NOTICES.md</code> にあり、アプリにも内蔵している（「バージョン情報」の「P2P対局のライブラリのライセンス一覧」）。この文書は <code>scripts/rust_licenses.py</code> が <code>Cargo.lock</code> から作ってリポジトリに置くもので、合っていなければ <code>build-linux.sh</code> が止まる。</li>
 <li>問題集・通常対局用の Hayanagi・説明書・問題集の検証記録（<code>validation_*.json</code>）は入れない。アプリはこれらを AppImage 内から読まず、利用者もファイル選択できないため、ZIP の外部ファイルとしてだけ配布する。詰将棋対局の Hayanagi はアプリ本体に組み込まれている。</li>
 <li>linuxdeploy が配置する Qt 標準の翻訳（<code>usr/translations/</code>）は使わないので削除する。標準ダイアログの日本語・中国語訳は実行ファイルに内蔵し、アプリの翻訳は <code>usr/bin/</code> から読む。</li>
 <li>使わないプラグイン（OpenGL 連携の <code>xcbglintegrations</code>、GIF 画像）は入れない。OpenGL を使う画面部品がないため。</li>
@@ -330,10 +345,12 @@ chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 ./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
 ls squashfs-root/usr/bin/ squashfs-root/usr/plugins/*/
 ls squashfs-root/usr/share/licenses/ShogiBoardQ/THIRD-PARTY-NOTICES.md
+squashfs-root/usr/bin/shogiboardq-peer --version
 test ! -e squashfs-root/usr/bin/hayanagi &amp;&amp; test ! -e squashfs-root/usr/translations &amp;&amp; echo OK
 
 # 必要な glibc の版
-find squashfs-root/usr -type f \( -name '*.so*' -o -name ShogiBoardQ \) -exec objdump -T {} + 2&gt;/dev/null \
+find squashfs-root/usr -type f \( -name '*.so*' -o -name ShogiBoardQ -o -name shogiboardq-peer \) \
+  -exec objdump -T {} + 2&gt;/dev/null \
   | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
 
 # ZIP の Hayanagi が USI エンジンとして応答すること
@@ -383,6 +400,14 @@ FUSE がない場合は --appimage-extract-and-run を付けて起動できま�
 <h3>Qt が見つからない</h3>
 <pre><code>Could not find a package configuration file provided by "Qt6"</code></pre>
 <p>Qt 6.7 以上と必要なモジュールが入っているか確かめる。Qt Online Installer の Qt は <code>-DCMAKE_PREFIX_PATH</code> で指定する。Qt や CMake のジェネレーターを替えたときは、新しい build ディレクトリでやり直す。</p>
+</section>
+<section id="ts-p2p" class="level3">
+<h3>P2P対局に要るものが見つからない</h3>
+<pre><code>P2P play: a Rust toolchain (cargo, Rust 1.85 or later) was not found.
+
+    Install Rust from https://rustup.rs/ or from your package manager.
+    To build without P2P play, configure with -DENABLE_P2P_PLAY=OFF.</code></pre>
+<p>P2P対局は既定で有効なので、構成に Rust（cargo）と libsodium が要る。メッセージに出たものを入れる（<a href="#setup">2章</a>）。ディストリビューションの Rust が 1.85 より古ければ rustup で入れる。P2P対局なしでビルドするなら <code>-DENABLE_P2P_PLAY=OFF</code> を付ける。以前に P2P対局なしで構成した build ディレクトリは、設定が残っていて無効のままになる。有効にするには <code>-DENABLE_P2P_PLAY=ON</code> を付けて構成し直す。</p>
 </section>
 <section id="ts-submodule" class="level3">
 <h3>Hayanagi のソースがない</h3>

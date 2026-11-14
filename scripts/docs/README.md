@@ -23,7 +23,7 @@
 | `kwin_x_capture.sh` | `kwin_capture.sh` の Xwayland 版。アプリを xcb で起動するので `x11ctl.py move` でメインウィンドウや浮動ドックの位置を決められる（Wayland のクライアントは自分の位置を決められないため、浮動ドックを並べる `dock-04-floating` に使う）。撮影は `spectacle -b -n -f -o out.png`（全画面）で、背景は黒になるので `magick in -alpha set -fuzz 1% -fill transparent -draw 'color 1,1 floodfill' …` で透明にする（英語版のようにメインウィンドウが浮動ドックに重なると黒い部分が左右に分かれるので、右上・右下などからも `-draw 'color X,Y floodfill'` を重ねる） |
 | `shoot_tables.py` | 思考表・検討タブの表が主な題材の画像（検討ページ・ドックの既定配置・詰み探索の思考タブ・ホームのメイン画像・対局の思考タブ・多言語対応の画面）を言語ごとに撮る。`docs/images` と同じ並びで書き出す |
 | `shoot_csa.py` | ローカルの shogi-server で4言語のCSA設定・待機・対局・終局を撮影する。floodgateは設定画面だけを撮り、公開サーバーには接続しない |
-| `p2p_internet/` | インターネット越し（限定試験用）の P2P対局の画像を撮る。`lab.sh` が Docker のコンテナ（ホストの `/usr` を読み取り専用で見せる `archlinux:latest`、外とつながらない）の中に、協力ノード・家庭のルーター2台（NAT）・その内側の2人のアプリの仮想のネットワークを作り（`inside.sh`）、`shoot.py` が自動化 API で2人を操作して招待・対局・撮影まで進める。アプリは撮影用のビルド（下記）を使う |
+| `p2p_internet/` | インターネット越し（ネットワーク「インターネット」）の P2P対局の画像を撮る。`lab.sh` が Docker のコンテナ（ホストの `/usr` を読み取り専用で見せる `archlinux:latest`、外とつながらない）の中に、協力ノード・家庭のルーター2台（NAT）・その内側の2人のアプリの仮想のネットワークを作り（`inside.sh`）、`shoot.py` が自動化 API で2人を操作して招待・対局・撮影まで進める。アプリは撮影用のビルド（下記）を使う |
 | `sample_kifu/` | 画像に写る見本の棋譜（▲鈴木・▽山田、105行）。`mkkif.py` が `full.usi` から言語別の KIF（`sample-<言語>.kif`・ホーム用の `main-<言語>.kif`）を書き出す。1〜50手目（`first50.usi`）は画像から読み取った手順、51手目以降は `continue_game.py` でやねうら王に指させた |
 
 ## 典型的な使い方
@@ -99,7 +99,7 @@ P2P対局は、ふだんのビルドでは自動化 API から操作できない
 `SHOGIBOARDQ_P2P_DOCS_LAB=1` を付けて起動したときだけ P2P対局を操作できる（`launch.sh` と `p2p_internet/inside.sh` が付ける）。
 
 ```bash
-cmake -B build-p2p-docs -S . -G Ninja -DENABLE_P2P_PLAY=ON -DENABLE_P2P_DOCS_AUTOMATION=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake -B build-p2p-docs -S . -G Ninja -DENABLE_P2P_DOCS_AUTOMATION=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
 ninja -C build-p2p-docs
 
 scripts/docs/p2p_internet/lab.sh up        # コンテナ・仮想のネットワーク・協力ノード・Xvfb
@@ -111,7 +111,7 @@ scripts/docs/p2p_internet/lab.sh down      # 作業フォルダの持ち主を�
 
 画像は作業フォルダ（既定 `/tmp/sbq-p2p-lab-<uid>`）の `shots/<言語>/internet-*.png` に出る。ガイドでは
 `docs/images/{,en/,zh-cn/,zh-tw/}p2p-game/p2p-internet-*.png` として使う。`shoot.py <言語> settings` のように
-場面（`basic`・`direct`・`relay_only`・`settings`）を選んで撮り直せる。「設定」タブの「接続候補」は、IP アドレスの前半を
+場面（`basic`・`direct`・`relay_only`・`settings`・対局をせずに撮れる画像だけの `connection`）を選んで撮り直せる。「設定」タブの「接続候補」は、IP アドレスの前半を
 伏せた見本（`XXX.XXX.113.10`）に書き換えて写す。
 
 - 「インターネット」は 11.88.99.0/24（インターネット上のアドレスとして扱われる範囲）。アプリは文書用・予約済みのアドレス

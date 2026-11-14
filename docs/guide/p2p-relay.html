@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>協力ノードを使って対局する（P2P対局） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ のP2P対局（実験版）を、協力ノードを通してインターネット越しの相手と指す方法。協力ノードの役割、だれが起動するか、起動のしかた（shogiboardq-peer --service）、2人の準備、経路、IPアドレスを見せない設定、つながらないときを解説します。">
+    <meta name="description" content="ShogiBoardQ のP2P対局を、協力ノードを通してインターネット越しの相手と指す方法。協力ノードの役割、だれが起動するか、起動のしかた（shogiboardq-peer --service）、2人の準備、経路、IPアドレスを見せない設定、つながらないときを解説します。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-relay.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -63,14 +63,14 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>協力ノードを使って対局する</h1>
-        <p class="hero-subtitle">P2P対局（実験版）で、協力ノードを通して、インターネット上の相手と招待で対局します</p>
+        <p class="hero-subtitle">P2P対局で、協力ノードを通して、インターネット上の相手と招待で対局します</p>
         <div class="hero-badges">
             <span class="badge">インターネット越し</span>
             <span class="badge">協力ノードは1つ</span>
             <span class="badge">IPを見せない設定</span>
-            <span class="badge">実験版・Linux / macOS</span>
+            <span class="badge">Linux / macOS</span>
         </div>
-        <p class="screenshot-note">P2P対局の準備（プレイヤー鍵・表示名）・画面・対局記録は<a href="p2p-game.html">P2P対局（実験版）</a>にあります。同じPC・同じLANの相手とは<a href="p2p-direct.html">協力ノードなしで対局する</a>をご覧ください。</p>
+        <p class="screenshot-note">P2P対局の準備（プレイヤー鍵・表示名）・画面・対局記録は<a href="p2p-game.html">P2P対局</a>にあります。同じPC・同じLANの相手とは<a href="p2p-direct.html">協力ノードなしで対局する</a>をご覧ください。</p>
     </div>
 </section>
 
@@ -93,7 +93,7 @@
                     <li><strong>到達性の確認</strong>：インターネットから見たこのPCのアドレスと、外からそこへ届くかを確かめてもらいます。届くなら、そのアドレスを招待文字列に入れ、相手と直接つなぎます。</li>
                     <li><strong>中継</strong>：協力ノードに中継の席を取っておき、協力ノードを経由する宛先も招待文字列に入れます。外から直接届かないとき（家庭の回線の多くはこちらです）は、相手はこの宛先で協力ノードを通ってつながります。</li>
                 </ul>
-                <p class="guide-step-text">協力ノードを入れずに「限定試験用」で接続すると、招待文字列に宛先が1つも入らず、相手は接続できません。</p>
+                <p class="guide-step-text">協力ノードを入れずに「インターネット」で接続すると、招待文字列に宛先が1つも入らず、相手は接続できません。</p>
             </div>
 
             <div class="guide-step">
@@ -200,13 +200,13 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                     <tbody>
                         <tr><td><strong><code>--service</code></strong></td><td>協力ノードとして動かします。</td></tr>
                         <tr><td><strong><code>--relay</code></strong></td><td>中継を受け持ちます。家庭の回線どうしの対局には、ほとんどの場合要ります。</td></tr>
-                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>「限定試験用」のネットワークです。アプリの「限定試験用」は、この名前のネットワークに参加します。</td></tr>
+                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>インターネット越しの対局のネットワークです。アプリの「インターネット」は、この名前のネットワークに参加します。</td></tr>
                         <tr><td><strong><code>--identity &lt;ファイル&gt;</code></strong></td><td>協力ノードの識別鍵のファイルです。無ければ作ります（持ち主だけが読み書きできる権限）。同じファイルを使い続ければ PeerId は変わりません。消すと PeerId が変わり、アドレスを伝え直すことになります。</td></tr>
                         <tr><td><strong><code>--listen &lt;アドレス&gt;</code></strong></td><td>待ち受けるアドレスとポートです。<code>0.0.0.0</code> は、すべてのネットワークの口で待ちます。ポートは 4001 でなくてもかまいません。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">起動すると、<code>service started as</code> の後に PeerId が出ます。止めるときは Ctrl+C を押します。</p>
-                <p class="guide-step-text">協力ノードには使用期限はありません（期限で止まるのは、アプリが「限定試験用」に参加するときだけです）。</p>
+                <p class="guide-step-text">協力ノードには使用期限はありません（期限で止まるのは、アプリが「インターネット」に参加するときだけです）。</p>
             </div>
 
             <div class="guide-step">
@@ -220,7 +220,7 @@ $ sudo firewall-cmd --permanent --add-port=4001/tcp
 $ sudo firewall-cmd --reload
 # ufw
 $ sudo ufw allow 4001/tcp</code></pre></div>
-                <p class="guide-step-text">自宅のPCで動かすときは、ルーターでそのポートをこのPCへ転送します（ポート開放）。自宅のグローバル IP アドレスが変わると、協力ノードのアドレスも変わります。また、その家の中のPCからこの協力ノードを使うには、ルーターが、自分のグローバル IP アドレスへの折り返しの接続（ヘアピン NAT）に対応している必要があります（「限定試験用」では、LANの中のアドレスの協力ノードにはつながないためです）。</p>
+                <p class="guide-step-text">自宅のPCで動かすときは、ルーターでそのポートをこのPCへ転送します（ポート開放）。自宅のグローバル IP アドレスが変わると、協力ノードのアドレスも変わります。また、その家の中のPCからこの協力ノードを使うには、ルーターが、自分のグローバル IP アドレスへの折り返しの接続（ヘアピン NAT）に対応している必要があります（「インターネット」では、LANの中のアドレスの協力ノードにはつながないためです）。</p>
             </div>
 
             <div class="guide-step">
@@ -231,7 +231,7 @@ $ sudo ufw allow 4001/tcp</code></pre></div>
                 <p class="guide-step-text">協力ノードのアドレスは、次の形です。PeerId は、起動したときに <code>service started as</code> の後に出た文字列です。</p>
                 <div class="build-steps"><pre><code>/ip4/&lt;サーバーのグローバルIPアドレス&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
                 <p class="guide-step-text">IP アドレスで書きます（ドメイン名は使えません）。このアドレスを、対局する人たちに伝えます。</p>
-                <p class="guide-step-text">動いているかは、アプリで確かめられます。「接続候補」に入れて「限定試験用」で接続し、「つながっているピア」が 1 以上になり、「招待の経路」に「協力ノードの中継を通ります（…）。」か「直接つなぎます（協力ノードの中継も使えます）。」と出れば、協力ノードと中継を使えています。</p>
+                <p class="guide-step-text">動いているかは、アプリで確かめられます。「接続候補」に入れて「インターネット」で接続し、「つながっているピア」が 1 以上になり、「招待の経路」に「協力ノードの中継を通ります（…）。」か「直接つなぎます（協力ノードの中継も使えます）。」と出れば、協力ノードと中継を使えています。</p>
             </div>
 
             <div class="guide-step">
@@ -266,7 +266,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
 <section id="prepare" class="section">
     <div class="section-inner">
         <h2 class="section-title">対局する2人の準備</h2>
-        <p class="section-desc">2人とも同じ協力ノードを入れて、「限定試験用」で接続します</p>
+        <p class="section-desc">2人とも同じ協力ノードを入れて、「インターネット」で接続します</p>
 
         <div class="screenshot-gallery">
 
@@ -286,16 +286,16 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">「限定試験用」で接続する</span>
+                    <span class="guide-step-title">「インターネット」で接続する</span>
                 </div>
-                <p class="guide-step-text">「接続と条件」タブで「ネットワーク」を「限定試験用」にして「接続」を押します。協力ノードにつながり、中継の予約が取れると、「招待の経路」に「協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。」と出ます。予約が取れるまで、少し時間がかかることがあります。</p>
+                <p class="guide-step-text">「接続と条件」タブで「ネットワーク」を「インターネット」にして「接続」を押します。協力ノードにつながり、中継の予約が取れると、「招待の経路」に「協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。」と出ます。予約が取れるまで、少し時間がかかることがあります。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-internet-connected.png"><img src="../images/p2p-game/p2p-internet-connected.png" alt="限定試験用で接続し、招待の経路に協力ノードの中継を通ると出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
+                    <a href="../images/p2p-game/p2p-internet-connected.png"><img src="../images/p2p-game/p2p-internet-connected.png" alt="「インターネット」で接続し、招待の経路に協力ノードの中継を通ると出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">協力ノードにつながったところ</p>
                 </div>
                 <p class="guide-step-text">協力ノードを入れずに接続すると、どこにもつながらず（「つながっているピア: 0」）、「招待の経路」に「外から届く接続先がまだありません。…」と出ます。この状態で招待文字列を作っても接続先が入らず、「招待文字列を作る」の下に「この招待文字列には接続先が入っていないので、相手は接続できません。…」と出ます。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-internet-no-node.png"><img src="../images/p2p-game/p2p-internet-no-node.png" alt="協力ノードを入れずに限定試験用で接続し、外から届く接続先がまだないと出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
+                    <a href="../images/p2p-game/p2p-internet-no-node.png"><img src="../images/p2p-game/p2p-internet-no-node.png" alt="協力ノードを入れずに「インターネット」で接続し、外から届く接続先がまだないと出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">協力ノードを入れずに接続したところ</p>
                 </div>
             </div>
@@ -408,7 +408,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                         <tr><td><strong>「招待の経路」に「外から届く接続先がまだありません。…」</strong></td><td>協力ノードにまだつながっていないか、中継の予約がまだ取れていません。少し待っても変わらなければ、上の行を確かめます。</td></tr>
                         <tr><td><strong>「招待の経路」に「中継を使えません。…」</strong></td><td>「直接接続を使わない」にしていて、中継のできる協力ノードが「接続候補」にありません。協力ノードを <code>--relay</code> を付けて起動しているかも確かめます。</td></tr>
                         <tr><td><strong>「この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。…」</strong></td><td>「直接接続を使わない」にしていて、招待した人と協力ノードが違います。同じ協力ノードを入れます。</td></tr>
-                        <tr><td><strong>「別のネットワークの招待文字列です。」</strong></td><td>2人の「ネットワーク」が違います。2人とも「限定試験用」で接続します。</td></tr>
+                        <tr><td><strong>「別のネットワークの招待文字列です。」</strong></td><td>2人の「ネットワーク」が違います。2人とも「インターネット」で接続します。</td></tr>
                         <tr><td><strong>「このビルドは使用期限を過ぎたので、…」</strong></td><td>使用期限を過ぎたビルドです（下の2）。</td></tr>
                     </tbody>
                 </table>
@@ -419,8 +419,8 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">使用期限</span>
                 </div>
-                <p class="guide-step-text">「限定試験用」に参加できるのは、アプリをビルドした日から180日までです（「設定」タブの「このビルドの使用期限」に出ます）。P2P対局には古い版を止めるサーバーがないので、不具合や安全上の欠陥が直っていない古い版がネットワークに残り続けないようにしています。期限を過ぎたら、新しい版をビルドし直してください。</p>
-                <p class="guide-step-text">期限があるのは、アプリの「限定試験用」だけです。協力ノードと、「ローカル検証用」の対局、保存した記録の確認・検証には、期限はありません。</p>
+                <p class="guide-step-text">「インターネット」に参加できるのは、アプリをビルドした日から180日までです（「設定」タブの「このビルドの使用期限」に出ます）。P2P対局には古い版を止めるサーバーがないので、不具合や安全上の欠陥が直っていない古い版がネットワークに残り続けないようにしています。期限を過ぎたら、新しい版に更新してください（ソースからビルドしている場合は、ビルドし直します）。</p>
+                <p class="guide-step-text">期限があるのは、アプリの「インターネット」だけです。協力ノードと、「ローカル」の対局、保存した記録の確認・検証には、期限はありません。</p>
             </div>
 
         </div>
@@ -430,7 +430,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="p2p-game.html" class="back-link">← P2P対局（実験版）に戻る</a>
+    <a href="p2p-game.html" class="back-link">← P2P対局に戻る</a>
 </div>
 
 <!-- Footer -->

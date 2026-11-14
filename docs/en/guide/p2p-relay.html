@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Playing with a Cooperating Node (P2P Games) - ShogiBoardQ</title>
-    <meta name="description" content="How to play P2P games (experimental) in ShogiBoardQ with an opponent over the Internet through a cooperating node: what the node does, who runs it, how to run it (shogiboardq-peer --service), preparing both players, routes, hiding your IP address, and what to check when you cannot connect.">
+    <meta name="description" content="How to play P2P games in ShogiBoardQ with an opponent over the Internet through a cooperating node: what the node does, who runs it, how to run it (shogiboardq-peer --service), preparing both players, routes, hiding your IP address, and what to check when you cannot connect.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-relay.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -63,14 +63,14 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>Playing with a Cooperating Node</h1>
-        <p class="hero-subtitle">Play a P2P game (experimental) by invitation with an opponent on the Internet, through a cooperating node</p>
+        <p class="hero-subtitle">Play a P2P game by invitation with an opponent on the Internet, through a cooperating node</p>
         <div class="hero-badges">
             <span class="badge">Over the Internet</span>
             <span class="badge">One Cooperating Node</span>
             <span class="badge">Option to Hide Your IP</span>
-            <span class="badge">Experimental, Linux / macOS</span>
+            <span class="badge">Linux / macOS</span>
         </div>
-        <p class="screenshot-note">Setting up P2P games (player key and display name), the window, and game records are covered in <a href="p2p-game.html">P2P Games (Experimental)</a>. To play someone on the same PC or LAN, see <a href="p2p-direct.html">Playing Without a Cooperating Node</a>.</p>
+        <p class="screenshot-note">Setting up P2P games (player key and display name), the window, and game records are covered in <a href="p2p-game.html">P2P Games</a>. To play someone on the same PC or LAN, see <a href="p2p-direct.html">Playing Without a Cooperating Node</a>.</p>
     </div>
 </section>
 
@@ -93,7 +93,7 @@
                     <li><strong>Reachability check</strong>: It tells you your PC's address as seen from the Internet and whether that address can be reached from outside. If it can, the address goes into the invitation and you connect directly with your opponent.</li>
                     <li><strong>Relay</strong>: Your app reserves a relay slot on the cooperating node and also puts an address that goes through the node into the invitation. When your PC cannot be reached directly from outside (as with most home connections), the opponent connects through the cooperating node with this address.</li>
                 </ul>
-                <p class="guide-step-text">If you connect to Limited test without a cooperating node, the invitation contains no address at all, and your opponent cannot connect.</p>
+                <p class="guide-step-text">If you connect to Internet without a cooperating node, the invitation contains no address at all, and your opponent cannot connect.</p>
             </div>
 
             <div class="guide-step">
@@ -200,13 +200,13 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                     <tbody>
                         <tr><td><strong><code>--service</code></strong></td><td>Runs as a cooperating node.</td></tr>
                         <tr><td><strong><code>--relay</code></strong></td><td>Provides the relay. Games between home connections almost always need it.</td></tr>
-                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>The Limited test network. The app's Limited test joins the network with this name.</td></tr>
+                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>The network for games over the Internet. The app's Internet network joins the network with this name.</td></tr>
                         <tr><td><strong><code>--identity &lt;file&gt;</code></strong></td><td>The file with the cooperating node's identity key. It is created if missing (readable and writable only by its owner). As long as you keep using the same file, the PeerId does not change. If you delete it, the PeerId changes and you have to share the address again.</td></tr>
                         <tr><td><strong><code>--listen &lt;address&gt;</code></strong></td><td>The address and port to listen on. <code>0.0.0.0</code> listens on all network interfaces. The port does not have to be 4001.</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">When it starts, the PeerId is shown after <code>service started as</code>. Press Ctrl+C to stop it.</p>
-                <p class="guide-step-text">A cooperating node does not expire (the expiry applies only when the app joins Limited test).</p>
+                <p class="guide-step-text">A cooperating node does not expire (the expiry applies only when the app joins the Internet network).</p>
             </div>
 
             <div class="guide-step">
@@ -220,7 +220,7 @@ $ sudo firewall-cmd --permanent --add-port=4001/tcp
 $ sudo firewall-cmd --reload
 # ufw
 $ sudo ufw allow 4001/tcp</code></pre></div>
-                <p class="guide-step-text">To run it on a PC at home, forward the port on your router to that PC (port forwarding). If your home's global IP address changes, the cooperating node's address changes too. Also, to use this cooperating node from a PC inside the same home, the router must support connections looped back to its own global IP address (hairpin NAT), because Limited test does not connect to cooperating nodes at LAN addresses.</p>
+                <p class="guide-step-text">To run it on a PC at home, forward the port on your router to that PC (port forwarding). If your home's global IP address changes, the cooperating node's address changes too. Also, to use this cooperating node from a PC inside the same home, the router must support connections looped back to its own global IP address (hairpin NAT), because the Internet network does not connect to cooperating nodes at LAN addresses.</p>
             </div>
 
             <div class="guide-step">
@@ -231,7 +231,7 @@ $ sudo ufw allow 4001/tcp</code></pre></div>
                 <p class="guide-step-text">A cooperating node's address has the following form. The PeerId is the string shown after <code>service started as</code> when it started.</p>
                 <div class="build-steps"><pre><code>/ip4/&lt;server's global IP address&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
                 <p class="guide-step-text">Write it with an IP address (domain names cannot be used). Give this address to the players.</p>
-                <p class="guide-step-text">You can check that it works in the app. Enter it in Bootstrap nodes and connect to Limited test. If the peer count becomes 1 or more and Invitation route shows "Through the relay of your cooperating node (…)." or "Direct connection (the relay of your cooperating node is also available).", the cooperating node and its relay are working.</p>
+                <p class="guide-step-text">You can check that it works in the app. Enter it in Bootstrap nodes and connect to Internet. If the peer count becomes 1 or more and Invitation route shows "Through the relay of your cooperating node (…)." or "Direct connection (the relay of your cooperating node is also available).", the cooperating node and its relay are working.</p>
             </div>
 
             <div class="guide-step">
@@ -266,7 +266,7 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
 <section id="prepare" class="section">
     <div class="section-inner">
         <h2 class="section-title">Preparing the Two Players</h2>
-        <p class="section-desc">Both players enter the same cooperating node and connect to Limited test</p>
+        <p class="section-desc">Both players enter the same cooperating node and connect to Internet</p>
 
         <div class="screenshot-gallery">
 
@@ -286,16 +286,16 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">Connect to Limited Test</span>
+                    <span class="guide-step-title">Connect to Internet</span>
                 </div>
-                <p class="guide-step-text">On the Connection and Conditions tab, set Network to Limited test and click Connect. Once your app connects to the cooperating node and reserves a relay slot, Invitation route shows "Through the relay of your cooperating node (it may switch to a direct connection after connecting)." The reservation may take a little while.</p>
+                <p class="guide-step-text">On the Connection and Conditions tab, set Network to Internet and click Connect. Once your app connects to the cooperating node and reserves a relay slot, Invitation route shows "Through the relay of your cooperating node (it may switch to a direct connection after connecting)." The reservation may take a little while.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-internet-connected.png"><img src="../../images/en/p2p-game/p2p-internet-connected.png" alt="Connection and Conditions tab connected to Limited test, with Invitation route going through the cooperating node&#x27;s relay" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/en/p2p-game/p2p-internet-connected.png"><img src="../../images/en/p2p-game/p2p-internet-connected.png" alt="Connection and Conditions tab connected to Internet, with Invitation route going through the cooperating node&#x27;s relay" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">Connected to a cooperating node</p>
                 </div>
                 <p class="guide-step-text">If you connect without a cooperating node, your app connects to no one ("Connected (peers: 0)"), and Invitation route shows "There is no address yet that can be reached from outside. …". An invitation created in this state contains no address, and "This invitation contains no address, so your opponent cannot connect. …" appears below Create Invitation.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-internet-no-node.png"><img src="../../images/en/p2p-game/p2p-internet-no-node.png" alt="Connection and Conditions tab connected to Limited test without a cooperating node, saying there is no address reachable from outside yet" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/en/p2p-game/p2p-internet-no-node.png"><img src="../../images/en/p2p-game/p2p-internet-no-node.png" alt="Connection and Conditions tab connected to Internet without a cooperating node, saying there is no address reachable from outside yet" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">Connected without a cooperating node</p>
                 </div>
             </div>
@@ -408,8 +408,8 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
                         <tr><td><strong>Invitation route shows "There is no address yet that can be reached from outside. …"</strong></td><td>Your app has not connected to the cooperating node yet, or has not reserved a relay slot yet. If it does not change after a while, check the row above.</td></tr>
                         <tr><td><strong>Invitation route shows "No relay is available. …"</strong></td><td>Do not use direct connections is on, and Bootstrap nodes has no cooperating node that provides a relay. Also check that the cooperating node was started with <code>--relay</code>.</td></tr>
                         <tr><td><strong>"This invitation has no address that goes through the relay of your cooperating nodes. …"</strong></td><td>Do not use direct connections is on, and your cooperating node differs from the inviter's. Enter the same cooperating node.</td></tr>
-                        <tr><td><strong>"The invitation is for another network."</strong></td><td>The two players chose different networks. Both connect to Limited test.</td></tr>
-                        <tr><td><strong>"This build has expired and cannot join the limited test network. …"</strong></td><td>The build has passed its expiry (step 2 below).</td></tr>
+                        <tr><td><strong>"The invitation is for another network."</strong></td><td>The two players chose different networks. Both connect to Internet.</td></tr>
+                        <tr><td><strong>"This build has expired and cannot join the "Internet" network. …"</strong></td><td>The build has passed its expiry (step 2 below).</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -419,8 +419,8 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">Expiry</span>
                 </div>
-                <p class="guide-step-text">A build can join Limited test for 180 days from the day the app was built (shown as This build expires on the Settings tab). P2P games have no server that can stop old versions, so this keeps old versions with unfixed bugs or security flaws from staying on the network. After it expires, build a new version.</p>
-                <p class="guide-step-text">Only the app's Limited test expires. The cooperating node, Local test games, and reviewing and verifying saved records have no expiry.</p>
+                <p class="guide-step-text">A build can join the Internet network for 180 days from the day the app was built (shown as This build expires on the Settings tab). P2P games have no server that can stop old versions, so this keeps old versions with unfixed bugs or security flaws from staying on the network. After it expires, update to a newer version (or rebuild, if you build from source).</p>
+                <p class="guide-step-text">Only the app's Internet network expires. The cooperating node, Local games, and reviewing and verifying saved records have no expiry.</p>
             </div>
 
         </div>
@@ -430,7 +430,7 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="p2p-game.html" class="back-link">← Back to P2P Games (Experimental)</a>
+    <a href="p2p-game.html" class="back-link">← Back to P2P Games</a>
 </div>
 
 <!-- Footer -->

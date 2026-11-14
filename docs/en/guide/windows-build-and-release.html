@@ -65,7 +65,7 @@
 </section>
 <div class="section">
 <article class="section-inner build-document" aria-label="Windows Build and Release instructions">
-<p>The Windows ZIP contains the application (<code>ShogiBoardQ.exe</code> and <code>shogiboardq-cli.exe</code>), the runtime DLLs, the translations, six tsume shogi collection files, the Hayanagi executable with its opening book, and the root LICENSE. It does not contain README files. <code>Hayanagi/source/</code> and an external <code>licenses/</code> folder will not be included in future Windows releases either. The license display built into the application is used as it is.</p>
+<p>The Windows ZIP contains the application (<code>ShogiBoardQ.exe</code>, <code>shogiboardq-cli.exe</code>, and the communication process of P2P games <code>shogiboardq-peer.exe</code>), the runtime DLLs (including <code>libsodium.dll</code> for P2P games), the translations, six tsume shogi collection files, the Hayanagi executable with its opening book, and the root LICENSE. It does not contain README files. <code>Hayanagi/source/</code> and an external <code>licenses/</code> folder will not be included in future Windows releases either. The license display built into the application is used as it is.</p>
 <p>Attach only the runnable ZIP to a release; do not attach the Qt sources or related documents separately. For how the license documents inside the application are prepared, see the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">policy on Qt documents and release attachments (Japanese)</a>.</p>
 <section id="contents" class="level2">
 <h2>Contents</h2>
@@ -92,6 +92,7 @@
 <tr><td>CMake</td><td>3.16 or later</td></tr>
 <tr><td>Qt</td><td>6.7 or later (Widgets, Charts, Network, Concurrent, Multimedia, Sql, LinguistTools)</td></tr>
 <tr><td>C++</td><td>A compiler with C++17 support (MSVC 2019 or later)</td></tr>
+<tr><td>Rust and libsodium</td><td>Used to build <a href="p2p-game.html">P2P games</a>: Rust 1.85 or later (cargo) and the prebuilt package of libsodium 1.0.18 or later (<a href="#build-p2p">3.4</a>). Not needed when building without P2P games</td></tr>
 </tbody>
 </table>
 </div>
@@ -162,7 +163,8 @@ cd ShogiBoardQ</code></pre>
 <blockquote>
 <p><strong>Important</strong>: run it from Developer PowerShell for VS 2022 (the MSVC environment variables are required).</p>
 </blockquote>
-<pre class="powershell"><code># Normal build + ZIP
+<pre class="powershell"><code># Normal build + ZIP (pass the location of libsodium with the SODIUM_ROOT environment variable or -SodiumRoot; see 3.4)
+$env:SODIUM_ROOT = &quot;C:\dev\libsodium-msvc\libsodium&quot;
 .\scripts\build-windows.ps1
 
 # Clean build, no ZIP
@@ -183,16 +185,18 @@ cd ShogiBoardQ</code></pre>
 <tr><td><code>-BuildDir</code></td><td>Build directory (default: <code>build</code>)</td></tr>
 <tr><td><code>-DeployDir</code></td><td>Distribution directory (default: <code>deploy</code>)</td></tr>
 <tr><td><code>-ZipPath</code></td><td>ZIP file to create (default: <code>ShogiBoardQ-windows.zip</code>)</td></tr>
+<tr><td><code>-SodiumRoot</code></td><td>The <code>libsodium</code> folder inside the extracted prebuilt package of libsodium (default: the <code>SODIUM_ROOT</code> environment variable). Used to build P2P games (<a href="#build-p2p">3.4</a>)</td></tr>
+<tr><td><code>-NoP2p</code></td><td>Build without P2P games (Rust and libsodium are not needed)</td></tr>
 <tr><td><code>-Help</code></td><td>Show help</td></tr>
 </tbody>
 </table>
 </div>
 <p>The script performs the following steps automatically:</p>
 <ol type="1">
-<li>Checks that the required tools exist (cmake, ninja, cl, windeployqt, and the location of the MSVC runtime DLLs)</li>
-<li>CMake configure + build (ShogiBoardQ, shogiboardq-cli, and Hayanagi)</li>
-<li>Checks the build outputs (.exe, .qm translation files, hayanagi.exe and its opening book, and one collection file per move count)</li>
-<li>Creates the deploy directory + places the collections, Hayanagi (including its opening book), and LICENSE + deploys the DLLs with windeployqt + adds <code>qoffscreen.dll</code> + copies the MSVC runtime DLLs + verifies the result</li>
+<li>Checks that the required tools exist (cmake, ninja, cl, windeployqt, the location of the MSVC runtime DLLs, and cargo and libsodium for P2P games)</li>
+<li>CMake configure + build (ShogiBoardQ, shogiboardq-cli, the P2P communication process shogiboardq-peer, and Hayanagi)</li>
+<li>Checks the build outputs (.exe, .qm translation files, shogiboardq-peer.exe and libsodium.dll, hayanagi.exe and its opening book, and one collection file per move count)</li>
+<li>Creates the deploy directory + places shogiboardq-peer.exe and libsodium.dll, the collections, Hayanagi (including its opening book), and LICENSE + deploys the DLLs with windeployqt + adds <code>qoffscreen.dll</code> + copies the MSVC runtime DLLs + verifies the result</li>
 <li>Creates the ZIP file</li>
 </ol>
 <blockquote>
@@ -246,23 +250,26 @@ dir build\Release\*.qm   # VS generator</code></pre>
 .\build\ShogiBoardQ.exe</code></pre>
 </section>
 <section id="build-p2p" class="level3">
-<h3>3.4 Building with P2P games (experimental)</h3>
-<p><a href="p2p-game.html">P2P games</a> (<code>ENABLE_P2P_PLAY</code>, off by default) are not part of the distributed package (<code>scripts/build-windows.ps1</code> does not enable them). To try them, prepare the following two items and build with MSVC.</p>
+<h3>3.4 P2P games (Rust and libsodium)</h3>
+<p><a href="p2p-game.html">P2P games</a> (<code>ENABLE_P2P_PLAY</code>) are enabled by default and are part of the distributed package (<code>scripts/build-windows.ps1</code> builds them as well, and they go into the ZIP and the installer). Building needs the following two items (build with MSVC).</p>
 <ul>
 <li><strong>Rust</strong> (1.85 or later; the <code>x86_64-pc-windows-msvc</code> toolchain from <a href="https://rustup.rs/">rustup</a>). cargo builds the communication process <code>shogiboardq-peer.exe</code></li>
 <li><strong>libsodium</strong> (1.0.18 or later). Extract the official prebuilt package (<code>libsodium-&lt;version&gt;-msvc.zip</code>) and pass the <code>libsodium</code> folder inside it (the one with <code>include\</code> and <code>x64\</code>) as <code>SODIUM_ROOT</code>. The build copies <code>libsodium.dll</code> next to the application</li>
 </ul>
-<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON `
+<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON `
     -DSODIUM_ROOT=C:\dev\libsodium-msvc\libsodium
 cmake --build build
 ctest --test-dir build -R tst_p2p --output-on-failure
 cargo test --locked --workspace</code></pre>
+<p>To build without P2P games (Rust and libsodium are then not needed), add <code>-DENABLE_P2P_PLAY=OFF</code> when configuring (<code>-NoP2p</code> for the distribution script). A build directory that was configured earlier without P2P games keeps that setting and stays disabled; configure it again with <code>-DENABLE_P2P_PLAY=ON</code> to enable them.</p>
 <p>The communication process is built next to <code>ShogiBoardQ.exe</code>, and the app starts it with an AppContainer, a job object and a ban on child processes. These points differ from Linux and macOS.</p>
 <ul>
 <li>The first time you connect, the AppContainer profile <code>io.github.hnakada123.ShogiBoardQ.peer</code> is registered once per user (in the user's registry and as an empty folder under <code>%LOCALAPPDATA%\Packages</code>)</li>
 <li>Read and execute permission for that AppContainer (an ACL entry) is added to <code>shogiboardq-peer.exe</code> (not when it is placed under Program Files)</li>
 <li>Starting <code>shogiboardq-peer.exe</code> directly does not work (exit code 3). The Rust integration tests (<code>peer/tests/ipc.rs</code>) run only on Linux and macOS; on Windows the tests are <code>tst_p2p_sandbox</code> and <code>tst_p2p_endtoend</code></li>
 <li>A cooperating node (<code>shogiboardq-peer --service</code>) does not run on Windows</li>
+<li>In the distributed package, <code>shogiboardq-peer.exe</code> and <code>libsodium.dll</code> are placed in the same folder as <code>ShogiBoardQ.exe</code> (the distribution script and the installer do this). The app starts the communication process from its own folder</li>
+<li>The list of the Rust libraries built into the communication process, with their license texts (<code>resources/licenses/RUST-NOTICES.md</code>), and the license of libsodium are built into the app (the About dialog). After changing the dependencies (<code>Cargo.lock</code>), regenerate the list with <code>python scripts/rust_licenses.py</code> (the distribution script stops if it is out of date)</li>
 </ul>
 </section>
 </section>
@@ -277,6 +284,8 @@ cargo test --locked --workspace</code></pre>
 <pre class="powershell"><code>mkdir deploy, deploy\Hayanagi\book, deploy\data\tsumeshogi
 copy build\ShogiBoardQ.exe deploy\
 copy build\shogiboardq-cli.exe deploy\
+copy build\shogiboardq-peer.exe deploy\
+copy build\libsodium.dll deploy\
 copy build\*.qm deploy\
 copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
 copy build\Hayanagi\book\hayanagi_book.db deploy\Hayanagi\book\
@@ -346,6 +355,10 @@ dir deploy\platforms\qoffscreen.dll
 # SQLite driver (used to save the tsume shogi solving history)
 dir deploy\sqldrivers\qsqlite.dll
 
+# Communication process of P2P games and libsodium
+dir deploy\shogiboardq-peer.exe
+dir deploy\libsodium.dll
+
 # Hayanagi, its opening book, and the collections (6 files)
 dir deploy\Hayanagi
 dir deploy\Hayanagi\book\hayanagi_book.db
@@ -354,6 +367,8 @@ dir deploy\data\tsumeshogi</code></pre>
 <pre><code>deploy/
 ├── ShogiBoardQ.exe                ← Executable
 ├── shogiboardq-cli.exe            ← CLI (called by the MCP server)
+├── shogiboardq-peer.exe           ← communication process of P2P games
+├── libsodium.dll                  ← libsodium (signatures of P2P games)
 ├── LICENSE                        ← License
 ├── ShogiBoardQ_ja_JP.qm           ← Japanese translation
 ├── ShogiBoardQ_en.qm              ← English translation
@@ -537,7 +552,7 @@ gh auth login</code></pre>
 <pre class="powershell"><code># Use signtool, included in the Windows SDK
 signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
   /f &quot;certificate.pfx&quot; /p &quot;password&quot; `
-  deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe deploy\Hayanagi\hayanagi.exe</code></pre>
+  deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe deploy\shogiboardq-peer.exe deploy\Hayanagi\hayanagi.exe</code></pre>
 <p>Sign before creating the ZIP. When using the script, build up to the deploy folder with <code>-SkipZip</code>, sign, and then create the ZIP (the steps in <a href="#package-zip">4.5</a>).</p>
 </section>
 <section id="signing-unsigned" class="level3">

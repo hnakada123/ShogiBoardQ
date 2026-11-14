@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P对局（实验版） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ 的P2P对局（实验版）使用方法：准备玩家密钥、通过邀请字符串对局、对局条件确认画面、对局中的操作、验证对局记录（凭证）、管理对手，以及无法防止的情况与对方可以看到的信息。">
+    <title>P2P对局 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 的P2P对局使用方法：准备玩家密钥、通过邀请字符串对局、对局条件确认画面、对局中的操作、验证对局记录（凭证）、管理对手，以及无法防止的情况与对方可以看到的信息。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-game.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-game.html">
-    <meta property="og:title" content="P2P对局（实验版） - ShogiBoardQ">
+    <meta property="og:title" content="P2P对局 - ShogiBoardQ">
     <meta property="og:description" content="不经过对局服务器，与对手直接连接下棋，并在本地保存双方确定了开始与结果的对局记录。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/p2p-game/p2p-confirm.png">
     <meta property="og:locale" content="zh_CN">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="P2P对局（实验版） - ShogiBoardQ">
+    <meta name="twitter:title" content="P2P对局 - ShogiBoardQ">
     <meta name="twitter:description" content="不经过对局服务器，与对手直接连接下棋，并在本地保存双方确定了开始与结果的对局记录。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/p2p-game/p2p-confirm.png">
     <link rel="stylesheet" href="../../css/style.css">
@@ -62,15 +62,15 @@
 <!-- Hero -->
 <section class="hero hero--sub">
     <div class="hero-content">
-        <h1>P2P对局（实验版）</h1>
+        <h1>P2P对局</h1>
         <p class="hero-subtitle">不经过对局服务器，与对手直接连接下棋，并保存双方确定了开始与结果的对局记录</p>
         <div class="hero-badges">
             <span class="badge">与熟人通过邀请对局</span>
             <span class="badge">双方确定的对局记录</span>
             <span class="badge">可隐藏IP的设置</span>
-            <span class="badge">实验版・Linux / Windows / macOS</span>
+            <span class="badge">Linux / Windows / macOS</span>
         </div>
-        <p class="screenshot-note">这是实验中的功能，画面和规则今后可能会改变。截图在 Linux 上以简体中文界面拍摄。</p>
+        <p class="screenshot-note">发布的 ShogiBoardQ（Linux、Windows、macOS）中包含此功能。截图在 Linux 上以简体中文界面拍摄。</p>
     </div>
 </section>
 
@@ -78,7 +78,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">什么是P2P对局</h2>
-        <p class="section-desc">仅启用P2P对局构建的将棋盘Q提供的实验中的对局功能</p>
+        <p class="section-desc">不使用对局服务器，通过邀请与认识的人连接对局的功能</p>
 
         <div class="screenshot-gallery">
 
@@ -194,14 +194,14 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">6</span>
-                    <span class="guide-step-title">实验版可以使用的内容</span>
+                    <span class="guide-step-title">可以使用的环境和条件</span>
                 </div>
-                <p class="guide-step-text">P2P对局是实验中的功能，不包含在发布的 ShogiBoardQ 中。要使用时，从源代码构建时在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，构建步骤见<a href="linux-build-and-release.html">Linux 构建与发布步骤</a>、<a href="windows-build-and-release.html">Windows 构建与发布步骤</a>、<a href="macos-build-and-release.html">macOS 构建与发布步骤</a>。在 Windows 上，用 <code>-DSODIUM_ROOT=</code> 指定解压 libsodium 官方预编译包（MSVC 用）后的文件夹。在 macOS 上，可以用 <code>brew install rust libsodium pkg-config</code> 准备）。</p>
+                <p class="guide-step-text">发布的 ShogiBoardQ（Linux、Windows、macOS）中包含P2P对局。从源代码构建时也默认启用（需要 libsodium 和 Rust，构建步骤见<a href="linux-build-and-release.html">Linux 构建与发布步骤</a>、<a href="windows-build-and-release.html">Windows 构建与发布步骤</a>、<a href="macos-build-and-release.html">macOS 构建与发布步骤</a>。在 Windows 上，用 <code>-DSODIUM_ROOT=</code> 指定解压 libsodium 官方预编译包（MSVC 用）后的文件夹。在 macOS 上，可以用 <code>brew install rust libsodium pkg-config</code> 准备。如果不含P2P对局，请在 CMake 中加上 <code>-DENABLE_P2P_PLAY=OFF</code>）。</p>
                 <ul class="guide-step-text">
                     <li><strong>支持的操作系统</strong>：Linux、Windows（10 / 11）和 macOS。通信进程（shogiboardq-peer）在由操作系统功能限制权限的状态下运行，因此在无法限制的环境中无法使用。在 Windows 上，第一次连接时会注册一次用来隔离该进程的容器（AppContainer）。在 macOS 上，该进程启动后会立即自行进入沙盒。协作节点可以在 Linux 和 macOS 上运行（在 Windows 上可以通过协作节点对局）。</li>
-                    <li><strong>网络</strong>：有“本地验证用（同一电脑・同一局域网）”和“限定测试用”两种。如何选择请参阅<a href="#ways">两种对局方式</a>。</li>
-                    <li><strong>协作节点</strong>：通过互联网对局（限定测试用）时，需要一个作为最初连接对象的协作节点（<a href="p2p-relay.html">使用协作节点对局</a>）。同一电脑・同一局域网的对局不需要（<a href="p2p-direct.html">不使用协作节点对局</a>）。</li>
-                    <li><strong>使用期限</strong>：自构建之日起超过 180 天后，不再加入限定测试网络。本地验证网络以及查看、验证已保存的记录在期限后仍可使用。</li>
+                    <li><strong>网络</strong>：有“本地（同一电脑・同一局域网）”和“互联网”两种。如何选择请参阅<a href="#ways">两种对局方式</a>。</li>
+                    <li><strong>协作节点</strong>：通过互联网对局（“互联网”）时，需要一个作为最初连接对象的协作节点（<a href="p2p-relay.html">使用协作节点对局</a>）。同一电脑・同一局域网的对局不需要（<a href="p2p-direct.html">不使用协作节点对局</a>）。</li>
+                    <li><strong>使用期限</strong>：自构建之日起超过 180 天后，不再加入“互联网”网络（请更新到新版本）。“本地”网络以及查看、验证已保存的记录在期限后仍可使用。</li>
                     <li><strong>自动化 API</strong>：加上 <code>--automation</code> 启动时，无法使用P2P对局。</li>
                 </ul>
             </div>
@@ -265,7 +265,7 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>可以对局的对手</strong></td><td>同一电脑・同一局域网的对手</td><td>互联网上的对手（另一个家庭、另一条线路）</td></tr>
-                        <tr><td><strong>“网络”</strong></td><td>本地验证用（同一电脑・同一局域网）</td><td>限定测试用</td></tr>
+                        <tr><td><strong>“网络”</strong></td><td>本地（同一电脑・同一局域网）</td><td>互联网</td></tr>
                         <tr><td><strong>协作节点</strong></td><td>不需要</td><td>需要一个（由某人启动，双方都填入其地址）</td></tr>
                         <tr><td><strong>“设置”标签页</strong></td><td>无需更改</td><td>在“连接候选”中填入协作节点</td></tr>
                         <tr><td><strong>邀请字符串中的地址</strong></td><td>这台电脑在局域网内的地址（192.168.… 等）</td><td>经由协作节点的地址（如果电脑可以从外部直接到达，还有互联网上的 IP 地址）</td></tr>
@@ -299,12 +299,12 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">打开“对局”→“P2P对局（实验版）…”</span>
+                    <span class="guide-step-title">打开“对局”→“P2P对局…”</span>
                 </div>
-                <p class="guide-step-text">从菜单栏的“对局”中选择“P2P对局（实验版）…”，会打开P2P对局窗口。窗口打开时也可以操作棋盘和棋谱。</p>
+                <p class="guide-step-text">从菜单栏的“对局”中选择“P2P对局…”，会打开P2P对局窗口。窗口打开时也可以操作棋盘和棋谱。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-menu.png"><img src="../../images/zh-cn/p2p-game/p2p-menu.png" alt="打开“对局”菜单并选中“P2P对局（实验版）…”" width="177" height="408" loading="lazy"></a>
-                    <p class="screenshot-caption">“对局”菜单：用“P2P对局（实验版）…”打开窗口</p>
+                    <a href="../../images/zh-cn/p2p-game/p2p-menu.png"><img src="../../images/zh-cn/p2p-game/p2p-menu.png" alt="打开“对局”菜单并选中“P2P对局…”" width="161" height="424" loading="lazy"></a>
+                    <p class="screenshot-caption">“对局”菜单：用“P2P对局…”打开窗口</p>
                 </div>
             </div>
 
@@ -321,7 +321,7 @@
                 </ul>
                 <p class="guide-step-text">密钥文件保存在 <code>~/.local/share/ShogiBoardQ/p2p/identity</code>。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-identity.png"><img src="../../images/zh-cn/p2p-game/p2p-identity.png" alt="显示玩家密钥的三种保存方式和无法防止的情况列表的“准备P2P对局”对话框" width="533" height="498" loading="lazy"></a>
+                    <a href="../../images/zh-cn/p2p-game/p2p-identity.png"><img src="../../images/zh-cn/p2p-game/p2p-identity.png" alt="显示玩家密钥的三种保存方式和无法防止的情况列表的“准备P2P对局”对话框" width="670" height="478" loading="lazy"></a>
                     <p class="screenshot-caption">首次连接时打开的“准备P2P对局”</p>
                 </div>
             </div>
@@ -366,7 +366,7 @@
                         <tr><td><strong>设置</strong></td><td>协作节点的地址、不让对手看到 IP 地址的设置，以及重新生成玩家密钥。同一电脑・同一局域网内的对局都不需要这些设置。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">窗口下方的“A-”“A+”用于改变文字大小（下次打开时保持相同大小）。点击“关闭”关闭窗口后，连接和对局仍会继续。要再次打开，请选择“对局”→“P2P对局（实验版）…”；要断开连接，请点击“连接与条件”标签页的“断开”。</p>
+                <p class="guide-step-text">窗口下方的“A-”“A+”用于改变文字大小（下次打开时保持相同大小）。点击“关闭”关闭窗口后，连接和对局仍会继续。要再次打开，请选择“对局”→“P2P对局…”；要断开连接，请点击“连接与条件”标签页的“断开”。</p>
             </div>
 
             <div class="guide-step">
@@ -384,7 +384,7 @@
                         <tr><th scope="col">项目</th><th scope="col">说明</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>网络</strong></td><td>要加入的网络。“本地验证用（同一电脑・同一局域网）”可与同一电脑和同一局域网的对手连接，“限定测试用”可与互联网上的对手连接（限定测试用需要协作节点）。连接期间无法更改。</td></tr>
+                        <tr><td><strong>网络</strong></td><td>要加入的网络。“本地（同一电脑・同一局域网）”可与同一电脑和同一局域网的对手连接，“互联网”可与互联网上的对手连接（“互联网”需要协作节点）。连接期间无法更改。</td></tr>
                         <tr><td><strong>连接／断开</strong></td><td>连接所选的网络。第一次连接时会打开生成玩家密钥的画面。连接后按钮变为“断开”，点击后会使有效的邀请失效并断开连接。确认条件期间和对局中无法点击。</td></tr>
                         <tr><td><strong>状态</strong></td><td>显示“未连接”“正在连接…”“已连接（已连接的节点：N）”之一。N 是当前已连接的对象（协作节点和对局对手）的数量。无法启动负责通信的进程时，显示“无法使用P2P对局”。</td></tr>
                         <tr><td><strong>您的玩家ID</strong></td><td>玩家密钥的公钥（64 位十六进制数），是对手用来识别您的值。点击“复制”可复制。生成密钥之前显示“（尚未生成）”。</td></tr>
@@ -416,7 +416,7 @@
                         <tr><td><strong>复制</strong></td><td>复制生成的邀请字符串。请用只有对方能收到的方式交给对方。</td></tr>
                         <tr><td><strong>通过邀请连接（输入框）</strong></td><td>粘贴收到的邀请字符串。</td></tr>
                         <tr><td><strong>检查邀请字符串</strong></td><td>读取粘贴的邀请字符串，并在下方显示邀请方的 PeerId（开头部分）、期限和地址数量。</td></tr>
-                        <tr><td><strong>允许连接上方的私有地址（同一局域网的对手）</strong></td><td>仅在“限定测试用”中，邀请字符串含有私有地址（同一局域网内的地址）时显示。允许连接这些地址时请勾选。</td></tr>
+                        <tr><td><strong>允许连接上方的私有地址（同一局域网的对手）</strong></td><td>仅在“互联网”中，邀请字符串含有私有地址（同一局域网内的地址）时显示。允许连接这些地址时请勾选。</td></tr>
                         <tr><td><strong>连接</strong></td><td>连接已检查的邀请字符串的对手。连接成功后，双方都会打开条件确认画面。仅连接并不会开始对局。</td></tr>
                     </tbody>
                 </table>
@@ -527,12 +527,12 @@
                         <tr><th scope="col">项目</th><th scope="col">说明</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>连接候选</strong></td><td>每行填入一个协作节点地址（/ip4/…/p2p/… 形式），最多 16 个。只使用“本地验证用”时可以留空（协作节点的准备见<a href="p2p-relay.html#who">由谁启动协作节点</a>）。</td></tr>
+                        <tr><td><strong>连接候选</strong></td><td>每行填入一个协作节点地址（/ip4/…/p2p/… 形式），最多 16 个。只使用“本地”时可以留空（协作节点的准备见<a href="p2p-relay.html#who">由谁启动协作节点</a>）。</td></tr>
                         <tr><td><strong>不使用直接连接</strong></td><td>仅通过“连接候选”中协作节点的中继，不让对手看到 IP 地址。协作节点的运营者仍可看到（<a href="p2p-relay.html#relay-only">不让对手看到 IP 地址对局</a>）。</td></tr>
                         <tr><td><strong>不显示未对局过的对手的显示名</strong></td><td>在条件确认画面和“对局记录”标签页中，把首次对局对手的显示名显示为“名称已隐藏”。</td></tr>
                         <tr><td><strong>玩家密钥保存</strong></td><td>当前玩家密钥的保存方式（操作系统的密钥库、用密码短语加密的文件、不加密的文件）。连接期间还会显示对负责通信的进程施加的权限限制。</td></tr>
                         <tr><td><strong>重新生成玩家密钥…</strong></td><td>生成新的玩家密钥。玩家ID会改变，对手会把您看作另一个人。旧密钥将被删除。请断开连接后再点击。</td></tr>
-                        <tr><td><strong>此版本的使用期限</strong></td><td>过了这个日期后，不再加入“限定测试用”网络。</td></tr>
+                        <tr><td><strong>此版本的使用期限</strong></td><td>过了这个日期后，不再加入“互联网”网络。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">最下方列出P2P对局无法防止的情况（<a href="#limits">无法防止的情况与对方可以看到的信息</a>）。</p>
@@ -565,7 +565,7 @@
                     <li>想用与过去对局无关的新玩家ID对局时</li>
                 </ul>
                 <p class="guide-step-text">重新生成后玩家ID会改变，在对手的“对手管理”中您会显示为另一个人（首次对局的对手）。确认码也会改变，请让曾把您设为已确认的对手再核对一次。旧密钥会被删除，无法恢复原来的玩家ID。过去的对局记录（凭证）不会被删除，仍保留旧的玩家ID。点击前，请在“连接与条件”标签页断开连接。</p>
-                <p class="guide-step-text"><strong>此版本的使用期限</strong>是构建日起 180 天后的日期。P2P对局没有可以停止旧版本的服务器。为了不让未修复缺陷或安全漏洞的旧版本一直留在互联网上的网络中，过期的版本不再加入“限定测试用”。过期后，请重新构建新版本。“本地验证用”的对局，以及查看和验证已保存的记录，过期后仍可使用。</p>
+                <p class="guide-step-text"><strong>此版本的使用期限</strong>是构建日起 180 天后的日期。P2P对局没有可以停止旧版本的服务器。为了不让未修复缺陷或安全漏洞的旧版本一直留在互联网上的网络中，过期的版本不再加入“互联网”。过期后，请更新到新版本（从源代码构建时，请重新构建）。“本地”的对局，以及查看和验证已保存的记录，过期后仍可使用。</p>
             </div>
 
         </div>
@@ -759,7 +759,7 @@
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">凭证的格式与通信约定</span>
                 </div>
-                <p class="guide-step-text">凭证文件的格式和验证步骤，以及P2P对局的通信约定（邀请字符串、帧、开始前的协商、对局中的步骤、重新连接）汇总在下面的规范中。用其他软件验证凭证，或制作能与将棋盘Q对局的应用时，可以参考它。协议仍在测试中，今后可能变更（各版本的变更见规范中的“变更履历”）。</p>
+                <p class="guide-step-text">凭证文件的格式和验证步骤，以及P2P对局的通信约定（邀请字符串、帧、开始前的协商、对局中的步骤、重新连接）汇总在下面的规范中。用其他软件验证凭证，或制作能与将棋盘Q对局的应用时，可以参考它。协议今后可能变更（各版本的变更见规范中的“变更履历”）。</p>
                 <a href="../dev/p2p-interop-spec.html" class="feature-card-link guide-doc-link">
                     <div class="feature-card">
                         <h3>P2P对局 兼容实现规范</h3>
@@ -777,7 +777,7 @@
 <section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">无法防止的情况与对方可以看到的信息</h2>
-        <p class="section-desc">使用实验版P2P对局前请先了解</p>
+        <p class="section-desc">使用P2P对局前请先了解</p>
 
         <div class="screenshot-gallery">
 
@@ -807,9 +807,9 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>对局对手</strong></td><td>玩家ID、显示名、条件。直接连接时，对手查看通信还能得知 IP 地址（画面上不显示）。设置“不使用直接连接”后无法得知</td></tr>
-                        <tr><td><strong>看到邀请字符串的人</strong></td><td>连接到邀请方的地址（使用直接连接的设置时包含 IP 地址。在“本地验证用（同一电脑・同一局域网）”中，包含这台电脑在局域网内的全部地址，也包括 VPN 和虚拟设备的地址）</td></tr>
+                        <tr><td><strong>看到邀请字符串的人</strong></td><td>连接到邀请方的地址（使用直接连接的设置时包含 IP 地址。在“本地（同一电脑・同一局域网）”中，包含这台电脑在局域网内的全部地址，也包括 VPN 和虚拟设备的地址）</td></tr>
                         <tr><td><strong>协作节点的运营者</strong></td><td>IP 地址，以及哪些 IP 地址之间建立了连接。确认可达性时，只请协作节点确认它看到的你的地址，不发送局域网内的地址。看不到着手、玩家ID 和显示名</td></tr>
-                        <tr><td><strong>同一局域网内的设备</strong></td><td>以“本地验证用（同一电脑・同一局域网）”连接期间，能得知这台电脑正在运行 P2P 对局（连接到监听端口即可知道）。没有邀请字符串时，看不到这台电脑的地址列表，也看不到对局</td></tr>
+                        <tr><td><strong>同一局域网内的设备</strong></td><td>以“本地（同一电脑・同一局域网）”连接期间，能得知这台电脑正在运行 P2P 对局（连接到监听端口即可知道）。没有邀请字符串时，看不到这台电脑的地址列表，也看不到对局</td></tr>
                         <tr><td><strong>收到对局记录（凭证）的人</strong></td><td>双方的玩家ID、条件、对局开始的大致日期和时间、全部着手与自报用时、双方确定的结果。不保存显示名、IP 地址和本地备注名</td></tr>
                     </tbody>
                 </table>

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""インターネット越し（限定試験用）の P2P対局を、コンテナの中の仮想のネットワークで指して撮る。
+"""インターネット越し（ネットワーク「インターネット」）の P2P対局を、コンテナの中の仮想のネットワークで指して撮る。
 
 コンテナの中で実行する（lab.sh up の後）:
     lab.sh exec python3 /repo/scripts/docs/p2p_internet/shoot.py <ja_JP|en|zh_CN|zh_TW>
 
 /work/shots/<言語>/ に次の画像を書く（P2P対局のウィンドウ）:
-    internet-no-node.png   協力ノードを入れずに限定試験用で接続したところ（招待に宛先が入らない）
+    internet-no-node.png   協力ノードを入れずに「インターネット」で接続したところ（招待に宛先が入らない）
     internet-settings.png  「設定」タブの「接続候補」に協力ノードを入れたところ（アドレスは見本。IP の前半は XXX.XXX）
     internet-connected.png 協力ノードにつながり、招待の経路が中継になったところ
     internet-invite.png    受け取った招待文字列を確かめたところ（招待を受けた側）
@@ -143,7 +143,7 @@ def _alive(name):
 
 
 def connect(name, display_name, bootstrap, relay_only=False):
-    """限定試験用に接続する（初めてなら暗号化しないファイルでプレイヤー鍵を作る）"""
+    """ネットワーク「インターネット」（sbq-limited-1）に接続する（初めてなら暗号化しないファイルでプレイヤー鍵を作る）"""
     tab(name, TAB_SETTINGS)
     set_value(name, "p2pBootstrap", bootstrap)
     set_value(name, "p2pRelayOnly", relay_only)
@@ -292,6 +292,19 @@ class Lab:
         set_value(a, "p2pBootstrap", SAMPLE_NODE)
         shot(a, self.out_dir, "internet-settings.png")
         set_value(a, "p2pBootstrap", self.node)
+
+    def connection(self):
+        """対局をせずに撮れる画像（協力ノードなし・協力ノードあり・「設定」タブ）だけを撮り直す"""
+        a, out = self.a, self.out_dir
+        self.start("strict")
+        connect(a, self.name_a, "")
+        wait_until("no route", lambda: route(a) != "", 30)
+        time.sleep(3)
+        shot(a, out, "internet-no-node.png")
+        disconnect(a)
+        self.connect_both()
+        shot(a, out, "internet-connected.png")
+        self.settings_shot()
 
     def settings(self):
         """「設定」タブの画像だけを撮り直す"""

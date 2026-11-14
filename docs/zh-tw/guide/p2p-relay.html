@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>使用協作節點對局（P2P對局） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ 的P2P對局（實驗版）中，透過協作節點與網際網路上的對手下棋的方法：協作節點的作用、由誰啟動、啟動方法（shogiboardq-peer --service）、雙方的準備、路徑、不讓對手看到 IP 位址的設定，以及無法連線時的檢查方法。">
+    <meta name="description" content="ShogiBoardQ 的P2P對局中，透過協作節點與網際網路上的對手下棋的方法：協作節點的作用、由誰啟動、啟動方法（shogiboardq-peer --service）、雙方的準備、路徑、不讓對手看到 IP 位址的設定，以及無法連線時的檢查方法。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-relay.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -63,14 +63,14 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>使用協作節點對局</h1>
-        <p class="hero-subtitle">在P2P對局（實驗版）中，透過協作節點與網際網路上的對手以邀請方式對局</p>
+        <p class="hero-subtitle">在P2P對局中，透過協作節點與網際網路上的對手以邀請方式對局</p>
         <div class="hero-badges">
             <span class="badge">透過網際網路</span>
             <span class="badge">一個協作節點</span>
             <span class="badge">可隱藏IP的設定</span>
-            <span class="badge">實驗版・Linux / macOS</span>
+            <span class="badge">Linux / macOS</span>
         </div>
-        <p class="screenshot-note">P2P對局的準備（玩家金鑰・顯示名稱）、視窗和對局記錄請參閱<a href="p2p-game.html">P2P對局（實驗版）</a>。與同一電腦・同一區域網路的對手對局請參閱<a href="p2p-direct.html">不使用協作節點對局</a>。</p>
+        <p class="screenshot-note">P2P對局的準備（玩家金鑰・顯示名稱）、視窗和對局記錄請參閱<a href="p2p-game.html">P2P對局</a>。與同一電腦・同一區域網路的對手對局請參閱<a href="p2p-direct.html">不使用協作節點對局</a>。</p>
     </div>
 </section>
 
@@ -93,7 +93,7 @@
                     <li><strong>可達性確認</strong>：請協作節點確認從網際網路看到的這台電腦的位址，以及能否從外部到達該位址。如果能到達，就把這個位址放入邀請字串，與對手直接連線。</li>
                     <li><strong>中繼</strong>：在協作節點上預約中繼的席位，並把經由協作節點的位址也放入邀請字串。無法從外部直接到達時（家用網路大多如此），對手用這個位址經由協作節點連線。</li>
                 </ul>
-                <p class="guide-step-text">不填協作節點就以「限定測試用」連線時，邀請字串中一個位址也沒有，對手無法連線。</p>
+                <p class="guide-step-text">不填協作節點就以「網際網路」連線時，邀請字串中一個位址也沒有，對手無法連線。</p>
             </div>
 
             <div class="guide-step">
@@ -200,13 +200,13 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                     <tbody>
                         <tr><td><strong><code>--service</code></strong></td><td>作為協作節點執行。</td></tr>
                         <tr><td><strong><code>--relay</code></strong></td><td>負責中繼。家用網路之間的對局幾乎都需要。</td></tr>
-                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>「限定測試用」的網路。應用程式的「限定測試用」會加入這個名稱的網路。</td></tr>
+                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>用於透過網際網路對局的網路。應用程式的「網際網路」會加入這個名稱的網路。</td></tr>
                         <tr><td><strong><code>--identity &lt;檔案&gt;</code></strong></td><td>協作節點的識別金鑰檔案。不存在時會產生（只有擁有者可以讀寫的權限）。只要一直使用同一個檔案，PeerId 就不會變。刪除後 PeerId 會變，需要重新告知位址。</td></tr>
                         <tr><td><strong><code>--listen &lt;位址&gt;</code></strong></td><td>監聽的位址和連接埠。<code>0.0.0.0</code> 表示在所有網路介面上監聽。連接埠不一定是 4001。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">啟動後，<code>service started as</code> 後面會顯示 PeerId。要停止時按 Ctrl+C。</p>
-                <p class="guide-step-text">協作節點沒有使用期限（期限只在應用程式加入「限定測試用」時起作用）。</p>
+                <p class="guide-step-text">協作節點沒有使用期限（期限只在應用程式加入「網際網路」時起作用）。</p>
             </div>
 
             <div class="guide-step">
@@ -220,7 +220,7 @@ $ sudo firewall-cmd --permanent --add-port=4001/tcp
 $ sudo firewall-cmd --reload
 # ufw
 $ sudo ufw allow 4001/tcp</code></pre></div>
-                <p class="guide-step-text">在家中的電腦上執行時，要在路由器上把該連接埠轉送到這台電腦（連接埠轉送）。家中的公用 IP 位址變更後，協作節點的位址也會變。另外，要從同一個家中的電腦使用這個協作節點，路由器必須支援回到自己公用 IP 位址的連線（NAT 迴路），因為「限定測試用」不會連線到區域網路內位址的協作節點。</p>
+                <p class="guide-step-text">在家中的電腦上執行時，要在路由器上把該連接埠轉送到這台電腦（連接埠轉送）。家中的公用 IP 位址變更後，協作節點的位址也會變。另外，要從同一個家中的電腦使用這個協作節點，路由器必須支援回到自己公用 IP 位址的連線（NAT 迴路），因為「網際網路」不會連線到區域網路內位址的協作節點。</p>
             </div>
 
             <div class="guide-step">
@@ -231,7 +231,7 @@ $ sudo ufw allow 4001/tcp</code></pre></div>
                 <p class="guide-step-text">協作節點的位址是下面的形式。PeerId 是啟動時 <code>service started as</code> 後面顯示的字串。</p>
                 <div class="build-steps"><pre><code>/ip4/&lt;伺服器的公用IP位址&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
                 <p class="guide-step-text">請用 IP 位址書寫（不能使用網域名稱）。把這個位址告訴對局的人。</p>
-                <p class="guide-step-text">可以在應用程式中確認它是否在執行。把位址填入「連線候選」並以「限定測試用」連線，如果節點數變為 1 以上，並且「邀請的路徑」中顯示「透過協作節點的中繼（…）。」或「直接連線（也可使用協作節點的中繼）。」，就表示協作節點和中繼可以使用。</p>
+                <p class="guide-step-text">可以在應用程式中確認它是否在執行。把位址填入「連線候選」並以「網際網路」連線，如果節點數變為 1 以上，並且「邀請的路徑」中顯示「透過協作節點的中繼（…）。」或「直接連線（也可使用協作節點的中繼）。」，就表示協作節點和中繼可以使用。</p>
             </div>
 
             <div class="guide-step">
@@ -266,7 +266,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
 <section id="prepare" class="section">
     <div class="section-inner">
         <h2 class="section-title">對局雙方的準備</h2>
-        <p class="section-desc">雙方都填入相同的協作節點，並以「限定測試用」連線</p>
+        <p class="section-desc">雙方都填入相同的協作節點，並以「網際網路」連線</p>
 
         <div class="screenshot-gallery">
 
@@ -286,16 +286,16 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">以「限定測試用」連線</span>
+                    <span class="guide-step-title">以「網際網路」連線</span>
                 </div>
-                <p class="guide-step-text">在「連線與條件」分頁中把「網路」設為「限定測試用」，按一下「連線」。連線到協作節點並預約到中繼後，「邀請的路徑」中會顯示「透過協作節點的中繼（連線後可能切換為直接連線）。」。預約可能需要一點時間。</p>
+                <p class="guide-step-text">在「連線與條件」分頁中把「網路」設為「網際網路」，按一下「連線」。連線到協作節點並預約到中繼後，「邀請的路徑」中會顯示「透過協作節點的中繼（連線後可能切換為直接連線）。」。預約可能需要一點時間。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-internet-connected.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-connected.png" alt="以限定測試用連線，邀請的路徑顯示透過協作節點中繼的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-connected.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-connected.png" alt="以「網際網路」連線，邀請的路徑顯示透過協作節點中繼的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">連線到協作節點後</p>
                 </div>
                 <p class="guide-step-text">不填協作節點就連線時，不會連線到任何地方（「已連線（已連線的節點：0）」），「邀請的路徑」中顯示「尚無可從外部到達的連線位址。…」。在這種狀態下產生的邀請字串中沒有連線位址，「產生邀請字串」下方會顯示「此邀請字串中沒有連線位址，對手無法連線。…」。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-internet-no-node.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-no-node.png" alt="不填協作節點就以限定測試用連線，顯示尚無可從外部到達的連線位址的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-no-node.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-no-node.png" alt="不填協作節點就以「網際網路」連線，顯示尚無可從外部到達的連線位址的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">不填協作節點就連線後</p>
                 </div>
             </div>
@@ -408,8 +408,8 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                         <tr><td><strong>「邀請的路徑」中顯示「尚無可從外部到達的連線位址。…」</strong></td><td>還沒有連線到協作節點，或還沒有預約到中繼。稍等後仍無變化，請檢查上一列。</td></tr>
                         <tr><td><strong>「邀請的路徑」中顯示「無法使用中繼。…」</strong></td><td>設定了「不使用直接連線」，但「連線候選」中沒有可以中繼的協作節點。還要確認協作節點是否加上 <code>--relay</code> 啟動。</td></tr>
                         <tr><td><strong>「此邀請字串中沒有透過您的協作節點中繼的連線位址。…」</strong></td><td>設定了「不使用直接連線」，且與邀請方的協作節點不同。請填入相同的協作節點。</td></tr>
-                        <tr><td><strong>「這是其他網路的邀請字串。」</strong></td><td>兩人的「網路」不同。兩人都以「限定測試用」連線。</td></tr>
-                        <tr><td><strong>「此版本已過使用期限，無法加入限定測試網路。…」</strong></td><td>這是已過使用期限的版本（下面的 2）。</td></tr>
+                        <tr><td><strong>「這是其他網路的邀請字串。」</strong></td><td>兩人的「網路」不同。兩人都以「網際網路」連線。</td></tr>
+                        <tr><td><strong>「此版本已過使用期限，無法加入「網際網路」網路。…」</strong></td><td>這是已過使用期限的版本（下面的 2）。</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -419,8 +419,8 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">使用期限</span>
                 </div>
-                <p class="guide-step-text">可以加入「限定測試用」的期限是從建置應用程式之日起 180 天（顯示在「設定」分頁的「此版本的使用期限」中）。P2P對局沒有可以停止舊版本的伺服器，因此這樣做是為了不讓未修正缺陷或安全漏洞的舊版本一直留在網路中。過期後，請重新建置新版本。</p>
-                <p class="guide-step-text">只有應用程式的「限定測試用」有期限。協作節點、「本機驗證用」的對局，以及查看和驗證已儲存的記錄都沒有期限。</p>
+                <p class="guide-step-text">可以加入「網際網路」的期限是從建置應用程式之日起 180 天（顯示在「設定」分頁的「此版本的使用期限」中）。P2P對局沒有可以停止舊版本的伺服器，因此這樣做是為了不讓未修正缺陷或安全漏洞的舊版本一直留在網路中。過期後，請更新到新版本（從原始碼建置時，請重新建置）。</p>
+                <p class="guide-step-text">只有應用程式的「網際網路」有期限。協作節點、「本機」的對局，以及查看和驗證已儲存的記錄都沒有期限。</p>
             </div>
 
         </div>
@@ -430,7 +430,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="p2p-game.html" class="back-link">← 返回P2P對局（實驗版）</a>
+    <a href="p2p-game.html" class="back-link">← 返回P2P對局</a>
 </div>
 
 <!-- Footer -->

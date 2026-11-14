@@ -111,6 +111,10 @@
 <td>C++</td>
 <td>A compiler with C++17 support</td>
 </tr>
+<tr>
+<td>Rust and libsodium</td>
+<td>Used to build <a href="p2p-game.html">P2P games</a>: Rust 1.85 or later (cargo) and libsodium 1.0.18 or later (<a href="#build-p2p">3.4</a>). Not needed when building without P2P games</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -123,8 +127,8 @@
 </section>
 <section id="setup-homebrew" class="level3">
 <h3>2.2 Installing the required tools with Homebrew</h3>
-<pre class="bash"><code>brew install cmake ninja create-dmg</code></pre>
-<p>The distribution script uses <code>create-dmg</code> to create the DMG (you do not need it with <code>--skip-dmg</code>).</p>
+<pre class="bash"><code>brew install cmake ninja create-dmg rust libsodium pkg-config</code></pre>
+<p>The distribution script uses <code>create-dmg</code> to create the DMG (you do not need it with <code>--skip-dmg</code>). <code>rust</code>, <code>libsodium</code> and <code>pkg-config</code> are for building P2P games (<a href="#build-p2p">3.4</a>).</p>
 </section>
 <section id="setup-qt" class="level3">
 <h3>2.3 Installing Qt 6</h3>
@@ -196,7 +200,7 @@ export APPLE_ID=&quot;your@email.com&quot; APPLE_TEAM_ID=&quot;TEAMID&quot; APPL
 <tbody>
 <tr>
 <td><code>--universal</code></td>
-<td>Build a Universal Binary (arm64 + x86_64)</td>
+<td>Build a Universal Binary (arm64 + x86_64; P2P games are not included, see <a href="#build-p2p">3.4</a>)</td>
 </tr>
 <tr>
 <td><code>--deployment-target VER</code></td>
@@ -231,13 +235,13 @@ export APPLE_ID=&quot;your@email.com&quot; APPLE_TEAM_ID=&quot;TEAMID&quot; APPL
 </div>
 <p>The script performs these steps automatically:</p>
 <ol type="1">
-<li>Check that the required tools exist (cmake, ninja, macdeployqt, codesign, vtool, python3, create-dmg)</li>
+<li>Check that the required tools exist (cmake, ninja, macdeployqt, codesign, vtool, python3, create-dmg, and cargo, pkg-config and libsodium for P2P games)</li>
 <li>Configure CMake (with <code>CMAKE_OSX_DEPLOYMENT_TARGET</code>) and build with Ninja</li>
-<li>Check the build outputs (the .app, the minimum macOS version of the executable, and the .qm translation files)</li>
+<li>Check the build outputs (the .app, the minimum macOS version of the executable and of the P2P communication process, the .qm translation files, and that the list of Rust library licenses matches <code>Cargo.lock</code>)</li>
 <li>Bundle the frameworks with macdeployqt</li>
 <li>Remove unused Qt parts and thin the Qt binaries to arm64 (<a href="#bundle-prune">4.4</a>; not thinned with <code>--universal</code>), then verify</li>
 <li>Add the Qt license documents (skipped with <code>--skip-qt-licenses</code>)</li>
-<li>Sign the whole bundle and verify it with <code>codesign --verify --deep --strict</code></li>
+<li>Sign the P2P communication process and the whole bundle, and verify them with <code>codesign --verify --deep --strict</code></li>
 <li>Create the DMG with create-dmg (with a Developer ID, the DMG is signed as well)</li>
 <li>With <code>--notarize</code>, notarize and staple the DMG, then verify</li>
 <li>Create the distribution ZIP (<code>ShogiBoardQ-macos.zip</code>) containing the DMG, Hayanagi, and the tsume shogi collections (<a href="#dmg-zip">5.2</a>)</li>
@@ -293,26 +297,29 @@ find build/ShogiBoardQ.app -type f | head -20</code></pre>
 open build/ShogiBoardQ.app</code></pre>
 </section>
 <section id="build-p2p" class="level3">
-<h3>3.4 Building with P2P games (experimental)</h3>
-<p><a href="p2p-game.html">P2P games</a> (<code>ENABLE_P2P_PLAY</code>, off by default) are not part of the distributed package (<code>scripts/build-macos.sh</code> does not enable them). To try them, prepare the following two items and build.</p>
+<h3>3.4 P2P games (Rust and libsodium)</h3>
+<p><a href="p2p-game.html">P2P games</a> (<code>ENABLE_P2P_PLAY</code>) are enabled by default and are part of the distributed package (<code>scripts/build-macos.sh</code> builds them as well). Building needs the following two items.</p>
 <ul>
 <li><strong>Rust</strong> (1.85 or later). cargo builds the communication process <code>shogiboardq-peer</code></li>
 <li><strong>libsodium</strong> (1.0.18 or later). It is found through pkg-config</li>
 </ul>
 <pre class="bash"><code>brew install rust libsodium pkg-config
 
-cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON \
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON \
     -DCMAKE_PREFIX_PATH=&quot;$HOME/Qt/6.x.x/macos&quot;
 ninja -C build
 ctest --test-dir build -R tst_p2p --output-on-failure
 cargo test --locked --workspace</code></pre>
+<p>To build without P2P games (Rust and libsodium are then not needed), add <code>-DENABLE_P2P_PLAY=OFF</code> when configuring. A build directory that was configured earlier without P2P games keeps that setting and stays disabled; configure it again with <code>-DENABLE_P2P_PLAY=ON</code> to enable them.</p>
 <p>The communication process is built inside the app bundle (<code>ShogiBoardQ.app/Contents/MacOS/shogiboardq-peer</code>) and the app starts it from there. These points differ from Linux and Windows.</p>
 <ul>
 <li>The communication process puts itself into a sandbox (Seatbelt) right after it starts. Reading and writing files, starting programs, connecting to Unix domain sockets and similar operations are denied, and the denials appear in the Console app log (sender <code>Sandbox</code>)</li>
 <li>When the local network (same computer, same LAN) is not used, the app starts the process with <code>--no-loopback</code>, and the sandbox also blocks outgoing connections to this Mac itself</li>
 <li>A debugger (lldb) cannot attach to the communication process</li>
-<li>If <code>CMAKE_OSX_DEPLOYMENT_TARGET</code> is set, the communication process is built for the same minimum macOS version. Universal Binaries are not supported (the communication process is built only for the architecture of the Mac that builds it)</li>
-<li>libsodium is linked as Homebrew's dynamic library (<code>/opt/homebrew/opt/libsodium</code>). To make a bundle that can be taken to another Mac, bundle it with macdeployqt</li>
+<li>If <code>CMAKE_OSX_DEPLOYMENT_TARGET</code> is set, the communication process is built for the same minimum macOS version. Universal Binaries are not supported (the communication process and Homebrew's libsodium exist only for the architecture of the Mac that builds them). <code>scripts/build-macos.sh --universal</code> builds without P2P games</li>
+<li>libsodium is linked as Homebrew's dynamic library (<code>/opt/homebrew/opt/libsodium</code>), and macdeployqt bundles it in <code>Contents/Frameworks</code>. The distribution script stops if the minimum macOS version of the bundled libsodium is newer than the target of the app (then rebuild it for the target, for example <code>MACOSX_DEPLOYMENT_TARGET=26.0 brew reinstall --build-from-source libsodium</code>)</li>
+<li>The distribution script signs the communication process on its own before signing the bundle (with the Hardened Runtime and a timestamp for a Developer ID; no entitlements are added)</li>
+<li>The list of the Rust libraries built into the communication process, with their license texts (<code>resources/licenses/RUST-NOTICES.md</code>), is built into the app ("Licenses of the libraries for P2P games" in the About dialog). After changing the dependencies (<code>Cargo.lock</code>), regenerate it with <code>python3 scripts/rust_licenses.py</code> (the distribution script stops if it is out of date)</li>
 <li>Storing the player key in the Keychain needs QtKeychain (optional; it must be built with the same Qt as the app. Homebrew's <code>qtkeychain</code> is built for Homebrew's Qt, so do not mix it with Qt from the Qt Online Installer). Without it, the key is kept in a file encrypted with a passphrase</li>
 <li>A cooperating node (<code>shogiboardq-peer --service</code>) can also be run</li>
 </ul>
@@ -747,7 +754,7 @@ install_name_tool -change \
 </section>
 <section id="trouble-universal" class="level3">
 <h3>Creating a Universal Binary (Intel + Apple Silicon)</h3>
-<p>With the distribution script, you can build one with <code>./scripts/build-macos.sh --universal</code> (the Qt binaries are not thinned to arm64 (<a href="#bundle-prune">4.4</a>)).</p>
+<p>With the distribution script, you can build one with <code>./scripts/build-macos.sh --universal</code> (the Qt binaries are not thinned to arm64 (<a href="#bundle-prune">4.4</a>), and P2P games are not included).</p>
 <p>To create a binary that supports both architectures:</p>
 <pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES=&quot;arm64;x86_64&quot;

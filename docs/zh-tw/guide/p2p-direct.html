@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>不使用協作節點對局（P2P對局） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ 的P2P對局（實驗版）中，不使用協作節點、與同一電腦・同一區域網路的對手下棋的方法：以本機驗證用連線、交換邀請字串、可以邀請的人數與次數、防火牆，以及無法連線時的檢查方法。">
+    <meta name="description" content="ShogiBoardQ 的P2P對局中，不使用協作節點、與同一電腦・同一區域網路的對手下棋的方法：以「本機」連線、交換邀請字串、可以邀請的人數與次數、防火牆，以及無法連線時的檢查方法。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-direct.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -63,14 +63,14 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>不使用協作節點對局</h1>
-        <p class="hero-subtitle">在P2P對局（實驗版）中，與同一電腦・同一區域網路的對手只用邀請字串連線下棋</p>
+        <p class="hero-subtitle">在P2P對局中，與同一電腦・同一區域網路的對手只用邀請字串連線下棋</p>
         <div class="hero-badges">
             <span class="badge">同一電腦・同一區域網路</span>
             <span class="badge">無需協作節點</span>
             <span class="badge">邀請一人一次</span>
-            <span class="badge">實驗版・Linux / Windows / macOS</span>
+            <span class="badge">Linux / Windows / macOS</span>
         </div>
-        <p class="screenshot-note">P2P對局的準備（玩家金鑰・顯示名稱）、視窗和對局記錄請參閱<a href="p2p-game.html">P2P對局（實驗版）</a>。與網際網路上的對手對局請參閱<a href="p2p-relay.html">使用協作節點對局</a>。</p>
+        <p class="screenshot-note">P2P對局的準備（玩家金鑰・顯示名稱）、視窗和對局記錄請參閱<a href="p2p-game.html">P2P對局</a>。與網際網路上的對手對局請參閱<a href="p2p-relay.html">使用協作節點對局</a>。</p>
     </div>
 </section>
 
@@ -78,7 +78,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">不用協作節點可以對局的對手</h2>
-        <p class="section-desc">在「本機驗證用（同一電腦・同一區域網路）」網路中，既不需要協作節點，也不需要變更「設定」分頁</p>
+        <p class="section-desc">在「本機（同一電腦・同一區域網路）」網路中，既不需要協作節點，也不需要變更「設定」分頁</p>
 
         <div class="screenshot-gallery">
 
@@ -87,7 +87,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">與同一電腦・同一區域網路的對手連線</span>
                 </div>
-                <p class="guide-step-text">把「網路」設為「本機驗證用（同一電腦・同一區域網路）」並連線後，邀請字串中會放入這台電腦在區域網路內的位址（192.168.… 等）和只在同一台電腦內使用的位址。對手的電腦可以直接到達這些位址，因此不需要居中協調的協作節點。</p>
+                <p class="guide-step-text">把「網路」設為「本機（同一電腦・同一區域網路）」並連線後，邀請字串中會放入這台電腦在區域網路內的位址（192.168.… 等）和只在同一台電腦內使用的位址。對手的電腦可以直接到達這些位址，因此不需要居中協調的協作節點。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">對手</th><th scope="col">能否連線</th></tr>
@@ -110,7 +110,7 @@
                     <li><strong>「連線候選」</strong>：保持空白即可。</li>
                     <li><strong>「不使用直接連線」</strong>：請取消勾選。勾選後，區域網路內的直接連線也不再使用，因此無法連線（「邀請的路徑」中顯示「無法使用中繼。…」）。</li>
                     <li><strong>對手能看到的位址</strong>：只有區域網路內的位址。網際網路上的 IP 位址不會交給對手。邀請字串中包含這台電腦在區域網路內的全部位址（也包括 VPN 和虛擬裝置的位址），請只交給對手。</li>
-                    <li><strong>使用期限</strong>：沒有。建置後超過 180 天仍可使用（只有「限定測試用」有期限）。</li>
+                    <li><strong>使用期限</strong>：沒有。建置後超過 180 天仍可使用（只有「網際網路」有期限）。</li>
                 </ul>
             </div>
 
@@ -122,20 +122,20 @@
 <section id="steps" class="section">
     <div class="section-inner">
         <h2 class="section-title">開始對局的步驟</h2>
-        <p class="section-desc">雙方都以「本機驗證用」連線，一方把另一方產生的邀請字串貼上</p>
+        <p class="section-desc">雙方都以「本機」連線，一方把另一方產生的邀請字串貼上</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">雙方都以「本機驗證用」連線</span>
+                    <span class="guide-step-title">雙方都以「本機」連線</span>
                 </div>
-                <p class="guide-step-text">用「對局」→「P2P對局（實驗版）…」開啟視窗。第一次使用時，產生玩家金鑰並填入顯示名稱（<a href="p2p-game.html#prepare">準備</a>）。</p>
-                <p class="guide-step-text">在「連線與條件」分頁中把「網路」設為「本機驗證用（同一電腦・同一區域網路）」，按一下「連線」。「狀態」變為「已連線（已連線的節點：0）」，「邀請的路徑」中顯示「與同一電腦・同一區域網路的對手直接連線。」即準備完成（在與對手連線之前，節點數一直是 0）。</p>
+                <p class="guide-step-text">用「對局」→「P2P對局…」開啟視窗。第一次使用時，產生玩家金鑰並填入顯示名稱（<a href="p2p-game.html#prepare">準備</a>）。</p>
+                <p class="guide-step-text">在「連線與條件」分頁中把「網路」設為「本機（同一電腦・同一區域網路）」，按一下「連線」。「狀態」變為「已連線（已連線的節點：0）」，「邀請的路徑」中顯示「與同一電腦・同一區域網路的對手直接連線。」即準備完成（在與對手連線之前，節點數一直是 0）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-connection.png"><img src="../../images/zh-tw/p2p-game/p2p-connection.png" alt="以本機驗證用連線，邀請的路徑顯示與同一電腦・同一區域網路的對手直接連線的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">以「本機驗證用（同一電腦・同一區域網路）」連線後</p>
+                    <a href="../../images/zh-tw/p2p-game/p2p-connection.png"><img src="../../images/zh-tw/p2p-game/p2p-connection.png" alt="以「本機」連線，邀請的路徑顯示與同一電腦・同一區域網路的對手直接連線的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以「本機（同一電腦・同一區域網路）」連線後</p>
                 </div>
             </div>
 
@@ -253,7 +253,7 @@
                         <tr><th scope="col">顯示的訊息・狀態</th><th scope="col">要檢查的內容</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>「這是其他網路的邀請字串。」</strong></td><td>兩人的「網路」不同。兩人都重新以「本機驗證用（同一電腦・同一區域網路）」連線，並重新產生邀請字串。</td></tr>
+                        <tr><td><strong>「這是其他網路的邀請字串。」</strong></td><td>兩人的「網路」不同。兩人都重新以「本機（同一電腦・同一區域網路）」連線，並重新產生邀請字串。</td></tr>
                         <tr><td><strong>「邀請字串已過期。」</strong></td><td>產生後已超過 10 分鐘。請重新產生邀請字串。</td></tr>
                         <tr><td><strong>「無法連線到對手。」</strong></td><td>檢查邀請方電腦的防火牆（上面的 1）。交換邀請方後也可能連線成功。</td></tr>
                         <tr><td><strong>「邀請的路徑」中顯示「無法使用中繼。…」</strong></td><td>取消勾選「設定」分頁的「不使用直接連線」，中斷連線後重新連線。</td></tr>
@@ -281,7 +281,7 @@
                     <span class="guide-step-title">以第2位、第3位玩家開啟</span>
                 </div>
                 <p class="guide-step-text">在同一台電腦上多次啟動本應用程式，並分別開啟「P2P對局」，第二個會自動以「第2位玩家」的身分開啟，第三個為「第3位玩家」（最多同時8個）。視窗標題和頂端的說明會顯示是第幾位玩家。只啟動一個應用程式時，一律是第1位玩家。</p>
-                <p class="guide-step-text">玩家金鑰（玩家ID）、顯示名稱、對局記錄和對手清單會依玩家分別儲存。兩邊都以「本機驗證用（同一電腦・同一區域網路）」連線，然後把其中一個產生的邀請字串貼到另一個，無需協作節點即可對局。由於是同一台電腦內的連線，通常也不需要設定防火牆。</p>
+                <p class="guide-step-text">玩家金鑰（玩家ID）、顯示名稱、對局記錄和對手清單會依玩家分別儲存。兩邊都以「本機（同一電腦・同一區域網路）」連線，然後把其中一個產生的邀請字串貼到另一個，無需協作節點即可對局。由於是同一台電腦內的連線，通常也不需要設定防火牆。</p>
             </div>
 
         </div>
@@ -291,7 +291,7 @@
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="p2p-game.html" class="back-link">← 返回P2P對局（實驗版）</a>
+    <a href="p2p-game.html" class="back-link">← 返回P2P對局</a>
 </div>
 
 <!-- Footer -->

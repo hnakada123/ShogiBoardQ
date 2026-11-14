@@ -34,6 +34,7 @@ UI 言語は日本語・英語・中国語（簡体字・繁体字）の 4 言�
 | CMake | 3.16 以上 |
 | Qt | 6.7 以上（Widgets, Charts, Network, Concurrent, Multimedia, Sql, LinguistTools） |
 | C++ | C++17 対応コンパイラ |
+| Rust・libsodium | P2P対局のビルドに使う。Rust 1.85 以上（cargo）と libsodium 1.0.18 以上（[3.4](#34-p2p対局rust-と-libsodium)）。P2P対局なしでビルドするなら要らない |
 
 ---
 
@@ -48,10 +49,10 @@ xcode-select --install
 ### 2.2 Homebrew で依存ツールをインストール
 
 ```bash
-brew install cmake ninja create-dmg
+brew install cmake ninja create-dmg rust libsodium pkg-config
 ```
 
-`create-dmg` は、配布スクリプトが DMG を作るのに使う（`--skip-dmg` なら要らない）。
+`create-dmg` は、配布スクリプトが DMG を作るのに使う（`--skip-dmg` なら要らない）。`rust`・`libsodium`・`pkg-config` は P2P対局のビルドに使う（[3.4](#34-p2p対局rust-と-libsodium)）。
 
 ### 2.3 Qt 6 のインストール
 
@@ -130,7 +131,7 @@ export APPLE_ID="your@email.com" APPLE_TEAM_ID="TEAMID" APPLE_APP_PASSWORD="app-
 
 | オプション | 説明 |
 |---|---|
-| `--universal` | Universal Binary (arm64 + x86_64) をビルド |
+| `--universal` | Universal Binary (arm64 + x86_64) をビルド（P2P対局は入らない。[3.4](#34-p2p対局rust-と-libsodium)） |
 | `--deployment-target VER` | 最小対応 macOS バージョン（既定: 環境変数 `MACOSX_DEPLOYMENT_TARGET`、未設定なら `26.0`） |
 | `--sign-identity ID` | コード署名 ID（既定: `-` = アドホック署名）。Developer ID を指定すると Hardened Runtime とタイムスタンプを付けて署名し、DMG にも署名する |
 | `--notarize` | DMG を Apple の公証に提出し、公証結果をステープルしてから配布 ZIP を作る。`--sign-identity` で Developer ID を指定し、環境変数 `APPLE_ID`・`APPLE_TEAM_ID`・`APPLE_APP_PASSWORD`（App 用パスワード）を設定しておく |
@@ -141,13 +142,13 @@ export APPLE_ID="your@email.com" APPLE_TEAM_ID="TEAMID" APPLE_APP_PASSWORD="app-
 
 スクリプトは以下の処理を自動実行する：
 
-1. 前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, python3, create-dmg）
+1. 前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, python3, create-dmg と、P2P対局に使う cargo, pkg-config, libsodium）
 2. CMake Configure（`CMAKE_OSX_DEPLOYMENT_TARGET` を指定）+ Ninja ビルド
-3. ビルド成果物の確認（.app、実行ファイルの最小 macOS バージョン、.qm 翻訳ファイル）
+3. ビルド成果物の確認（.app、実行ファイルと P2P対局の通信プロセスの最小 macOS バージョン、.qm 翻訳ファイル、Rust のライブラリのライセンス一覧が `Cargo.lock` と合っていること）
 4. macdeployqt によるフレームワークバンドル
 5. 未使用の Qt 部品の削除と、Qt バイナリの arm64 化（[4.4](#44-未使用の-qt-部品の削除最小構成)。`--universal` 時は arm64 化しない）+ 検証
 6. Qt ライセンス文書の同梱（`--skip-qt-licenses` でスキップ）
-7. バンドル全体のコード署名 + `codesign --verify --deep --strict` による検証
+7. P2P対局の通信プロセスとバンドル全体のコード署名 + `codesign --verify --deep --strict` による検証
 8. create-dmg による DMG 作成（Developer ID のときは DMG にも署名）
 9. `--notarize` のとき、DMG の公証とステープル + 検証
 10. DMG・Hayanagi・詰将棋問題集を入れた配布 ZIP（`ShogiBoardQ-macos.zip`）の作成（[5.2](#52-配布-zip)）
@@ -221,9 +222,9 @@ ShogiBoardQ.app/
 open build/ShogiBoardQ.app
 ```
 
-### 3.4 P2P対局（実験版）を有効にしたビルド
+### 3.4 P2P対局（Rust と libsodium）
 
-P2P対局（`ENABLE_P2P_PLAY`、既定 OFF）は配布物には入れない（`scripts/build-macos.sh` は有効にしない）。試すときは、次の2つを用意してビルドする。
+P2P対局（`ENABLE_P2P_PLAY`）は既定で有効で、配布物にも入れる（`scripts/build-macos.sh` もそのままビルドする）。ビルドには次の2つが要る。
 
 - **Rust**（1.85 以上）。通信プロセス `shogiboardq-peer` を cargo でビルドする
 - **libsodium**（1.0.18 以上）。pkg-config で見つける
@@ -231,20 +232,24 @@ P2P対局（`ENABLE_P2P_PLAY`、既定 OFF）は配布物には入れない（`s
 ```bash
 brew install rust libsodium pkg-config
 
-cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON \
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON \
     -DCMAKE_PREFIX_PATH="$HOME/Qt/6.x.x/macos"
 ninja -C build
 ctest --test-dir build -R tst_p2p --output-on-failure
 cargo test --locked --workspace
 ```
 
+P2P対局なしでビルドするとき（Rust と libsodium が要らない）は、構成に `-DENABLE_P2P_PLAY=OFF` を付ける。以前に P2P対局なしで構成した build ディレクトリは、その設定が残って無効のままになる。有効にするには `-DENABLE_P2P_PLAY=ON` を付けて構成し直す。
+
 通信プロセスはアプリのバンドルの中（`ShogiBoardQ.app/Contents/MacOS/shogiboardq-peer`）に作られ、アプリがそこから起動する。次の点が Linux・Windows と違う。
 
 - 通信プロセスは、起動の直後に自分でサンドボックス（Seatbelt）を掛ける（`peer/src/sandbox.rs`・`peer/macos`、`protocol/ipc.md` 6.3節）。ファイルの読み書き・プログラムの起動・Unix ドメインのソケットへの接続などは拒否され、拒否は「コンソール」アプリのログ（送信元 `Sandbox`）に残る
 - ローカルのネットワーク（同じ PC・同じ LAN）を使わないときは、アプリが `--no-loopback` を付けて起動し、loopback への発信もサンドボックスが止める
 - デバッガ（lldb）は通信プロセスに接続できない（`PT_DENY_ATTACH`）
-- `CMAKE_OSX_DEPLOYMENT_TARGET` を指定すると、通信プロセスも同じ最小の macOS の版でビルドする。Universal Binary（`CMAKE_OSX_ARCHITECTURES` に2つ）には対応していない（通信プロセスはビルドした Mac のアーキテクチャだけ）
-- libsodium は Homebrew の動的ライブラリ（`/opt/homebrew/opt/libsodium`）にリンクする。ほかの Mac へ持っていくバンドルにするには、macdeployqt で同梱する
+- `CMAKE_OSX_DEPLOYMENT_TARGET` を指定すると、通信プロセスも同じ最小の macOS の版でビルドする。Universal Binary（`CMAKE_OSX_ARCHITECTURES` に2つ）には対応していない（通信プロセスと Homebrew の libsodium が、ビルドした Mac のアーキテクチャだけのため）。`scripts/build-macos.sh --universal` は、P2P対局なしでビルドする
+- libsodium は Homebrew の動的ライブラリ（`/opt/homebrew/opt/libsodium`）にリンクし、macdeployqt がバンドルの `Contents/Frameworks` に同梱する。配布スクリプトは、同梱した libsodium の最小の macOS の版がアプリの対象より新しければ停止する（そのときは `MACOSX_DEPLOYMENT_TARGET=26.0 brew reinstall --build-from-source libsodium` のように、対象の版向けに作り直す）
+- 配布スクリプトは、通信プロセスをバンドルより先に単独で署名する（Developer ID のときは Hardened Runtime とタイムスタンプ付き。権限（entitlements）は付けない）
+- 通信プロセスに取り込んだ Rust のライブラリの一覧とライセンスの本文（`resources/licenses/RUST-NOTICES.md`）は、アプリに内蔵している（「バージョン情報」の「P2P対局のライブラリのライセンス一覧」）。依存（`Cargo.lock`）を変えたら `python3 scripts/rust_licenses.py` で作り直す（合っていなければ配布スクリプトが停止する）
 - プレイヤー鍵をキーチェーンに置くには QtKeychain が要る（任意。アプリと同じ Qt でビルドしたもの。Homebrew の `qtkeychain` は Homebrew の Qt 用なので、Qt Online Installer の Qt と混ぜない）。無ければ、鍵はパスフレーズで暗号化したファイルに置く
 - 協力ノード（`shogiboardq-peer --service`）も動く
 
@@ -707,7 +712,7 @@ cp build/ShogiBoardQ_{ja_JP,en,zh_CN,zh_TW}.qm build/ShogiBoardQ.app/Contents/Ma
 
 ### Universal Binary (Intel + Apple Silicon) の作成
 
-配布スクリプトでは `./scripts/build-macos.sh --universal` でビルドできる（Qt の arm64 化（[4.4](#44-未使用の-qt-部品の削除最小構成)）は行わない）。
+配布スクリプトでは `./scripts/build-macos.sh --universal` でビルドできる（Qt の arm64 化（[4.4](#44-未使用の-qt-部品の削除最小構成)）は行わない。P2P対局は入らない）。
 
 両アーキテクチャに対応したバイナリを作成する場合：
 

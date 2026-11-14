@@ -68,7 +68,7 @@
 
 <div class="section">
     <article class="section-inner build-document" aria-label="Windows 构建与发布">
-<p>Windows 的 ZIP 收录应用程序（<code>ShogiBoardQ.exe</code>、<code>shogiboardq-cli.exe</code>）、运行所需的 DLL、翻译、6 个诘棋题集文件、Hayanagi 可执行文件及其定式文件，以及根目录的 LICENSE。不收录 README。今后的 Windows 发布也不收录 <code>Hayanagi/source/</code> 和外部的 <code>licenses/</code>，许可信息使用应用程序内置的显示。</p>
+<p>Windows 的 ZIP 收录应用程序（<code>ShogiBoardQ.exe</code>、<code>shogiboardq-cli.exe</code>、P2P对局的通信进程 <code>shogiboardq-peer.exe</code>）、运行所需的 DLL（含 P2P对局使用的 <code>libsodium.dll</code>）、翻译、6 个诘棋题集文件、Hayanagi 可执行文件及其定式文件，以及根目录的 LICENSE。不收录 README。今后的 Windows 发布也不收录 <code>Hayanagi/source/</code> 和外部的 <code>licenses/</code>，许可信息使用应用程序内置的显示。</p>
 <p>Release 只附加可运行的 ZIP，不另行附加 Qt 源代码或相关文档。应用程序内许可文档的准备请参阅 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt 文档与发布附件的方针</a>（日文）。</p>
 <section id="contents" class="level2">
 <h2>目录</h2>
@@ -95,6 +95,7 @@
 <tr><td>CMake</td><td>3.16 以上</td></tr>
 <tr><td>Qt</td><td>6.7 以上（Widgets、Charts、Network、Concurrent、Multimedia、Sql、LinguistTools）</td></tr>
 <tr><td>C++</td><td>支持 C++17 的编译器（MSVC 2019 以上）</td></tr>
+<tr><td>Rust 与 libsodium</td><td>用于构建 <a href="p2p-game.html">P2P对局</a>。需要 Rust 1.85 以上（cargo）和 libsodium 1.0.18 以上的预编译包（<a href="#build-p2p">3.4</a>）。不含 P2P对局时不需要</td></tr>
 </tbody>
 </table>
 </div>
@@ -165,7 +166,8 @@ cd ShogiBoardQ</code></pre>
 <blockquote>
 <p><strong>重要</strong>：请在 Developer PowerShell for VS 2022 中运行（需要 MSVC 的环境变量）。</p>
 </blockquote>
-<pre class="powershell"><code># 普通构建 + 制作 ZIP
+<pre class="powershell"><code># 普通构建 + 制作 ZIP（用环境变量 SODIUM_ROOT 或 -SodiumRoot 指定 libsodium 的位置，见 3.4）
+$env:SODIUM_ROOT = &quot;C:\dev\libsodium-msvc\libsodium&quot;
 .\scripts\build-windows.ps1
 
 # 清理后构建，不制作 ZIP
@@ -186,16 +188,18 @@ cd ShogiBoardQ</code></pre>
 <tr><td><code>-BuildDir</code></td><td>构建目录（默认：<code>build</code>）</td></tr>
 <tr><td><code>-DeployDir</code></td><td>发布用目录（默认：<code>deploy</code>）</td></tr>
 <tr><td><code>-ZipPath</code></td><td>要制作的 ZIP 文件（默认：<code>ShogiBoardQ-windows.zip</code>）</td></tr>
+<tr><td><code>-SodiumRoot</code></td><td>解压 libsodium 预编译包后其中的 <code>libsodium</code> 文件夹（默认：环境变量 <code>SODIUM_ROOT</code>）。用于构建 P2P对局（<a href="#build-p2p">3.4</a>）</td></tr>
+<tr><td><code>-NoP2p</code></td><td>不含 P2P对局构建（不需要 Rust 和 libsodium）</td></tr>
 <tr><td><code>-Help</code></td><td>显示帮助</td></tr>
 </tbody>
 </table>
 </div>
 <p>脚本会自动执行以下处理：</p>
 <ol type="1">
-<li>确认所需工具（cmake、ninja、cl、windeployqt、MSVC 运行库 DLL 的位置）</li>
-<li>CMake 配置 + 构建（ShogiBoardQ、shogiboardq-cli、Hayanagi）</li>
-<li>确认构建产物（.exe、.qm 翻译文件、hayanagi.exe 和定式文件、每种手数各 1 个文件的题集）</li>
-<li>创建 deploy 目录 + 放置题集、Hayanagi（含定式文件）和 LICENSE + 用 windeployqt 部署 DLL + 添加 <code>qoffscreen.dll</code> + 复制 MSVC 运行库 DLL + 校验</li>
+<li>确认所需工具（cmake、ninja、cl、windeployqt、MSVC 运行库 DLL 的位置，以及 P2P对局使用的 cargo、libsodium）</li>
+<li>CMake 配置 + 构建（ShogiBoardQ、shogiboardq-cli、P2P对局的通信进程 shogiboardq-peer、Hayanagi）</li>
+<li>确认构建产物（.exe、.qm 翻译文件、shogiboardq-peer.exe 和 libsodium.dll、hayanagi.exe 和定式文件、每种手数各 1 个文件的题集）</li>
+<li>创建 deploy 目录 + 放置 shogiboardq-peer.exe 和 libsodium.dll、题集、Hayanagi（含定式文件）和 LICENSE + 用 windeployqt 部署 DLL + 添加 <code>qoffscreen.dll</code> + 复制 MSVC 运行库 DLL + 校验</li>
 <li>制作 ZIP 文件</li>
 </ol>
 <blockquote>
@@ -249,23 +253,26 @@ dir build\Release\*.qm   # VS 生成器</code></pre>
 .\build\ShogiBoardQ.exe</code></pre>
 </section>
 <section id="build-p2p" class="level3">
-<h3>3.4 启用P2P对局（实验版）的构建</h3>
-<p><a href="p2p-game.html">P2P对局</a>（<code>ENABLE_P2P_PLAY</code>，默认 OFF）不包含在发布包中（<code>scripts/build-windows.ps1</code> 不会启用它）。要试用时，请准备以下两项后用 MSVC 构建。</p>
+<h3>3.4 P2P对局（Rust 与 libsodium）</h3>
+<p><a href="p2p-game.html">P2P对局</a>（<code>ENABLE_P2P_PLAY</code>）默认启用，也包含在发布包中（<code>scripts/build-windows.ps1</code> 同样会构建它，并放入 ZIP 和安装程序）。构建需要以下两项（用 MSVC 构建）。</p>
 <ul>
 <li><strong>Rust</strong>（1.85 以上。<a href="https://rustup.rs/">rustup</a> 的 <code>x86_64-pc-windows-msvc</code>）。用 cargo 构建通信进程 <code>shogiboardq-peer.exe</code></li>
 <li><strong>libsodium</strong>（1.0.18 以上）。解压官方的预编译包（<code>libsodium-&lt;版本&gt;-msvc.zip</code>），用 <code>SODIUM_ROOT</code> 指定其中的 <code>libsodium</code> 文件夹（内有 <code>include\</code> 和 <code>x64\</code>）。<code>libsodium.dll</code> 由构建复制到应用程序旁边</li>
 </ul>
-<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON `
+<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON `
     -DSODIUM_ROOT=C:\dev\libsodium-msvc\libsodium
 cmake --build build
 ctest --test-dir build -R tst_p2p --output-on-failure
 cargo test --locked --workspace</code></pre>
+<p>不含 P2P对局构建时（不需要 Rust 和 libsodium），请在配置时加上 <code>-DENABLE_P2P_PLAY=OFF</code>（发布脚本使用 <code>-NoP2p</code>）。以前在不含 P2P对局的情况下配置过的 build 目录会保留该设置，仍为禁用；要启用，请加上 <code>-DENABLE_P2P_PLAY=ON</code> 重新配置。</p>
 <p>通信进程生成在 <code>ShogiBoardQ.exe</code> 旁边，由应用加上 AppContainer、作业对象和禁止创建子进程的限制后启动。以下几点与 Linux、macOS 不同。</p>
 <ul>
 <li>第一次“连接”时，会为每个用户注册一次 AppContainer 配置文件 <code>io.github.hnakada123.ShogiBoardQ.peer</code>（用户的注册表和 <code>%LOCALAPPDATA%\Packages</code> 下的一个空文件夹）</li>
 <li>会给 <code>shogiboardq-peer.exe</code> 添加该 AppContainer 的读取和执行权限（ACL）（放在 Program Files 下时不添加）</li>
 <li>直接启动 <code>shogiboardq-peer.exe</code> 无法运行（退出代码 3）。Rust 的集成测试（<code>peer/tests/ipc.rs</code>）只在 Linux 和 macOS 上运行，Windows 上的测试由 <code>tst_p2p_sandbox</code>、<code>tst_p2p_endtoend</code> 进行</li>
 <li>协作节点（<code>shogiboardq-peer --service</code>）不能在 Windows 上运行</li>
+<li>在发布包中，<code>shogiboardq-peer.exe</code> 和 <code>libsodium.dll</code> 放在与 <code>ShogiBoardQ.exe</code> 相同的文件夹中（发布脚本和安装程序会这样放置）。应用从自己所在的文件夹启动通信进程</li>
+<li>通信进程所包含的 Rust 库的列表及许可原文（<code>resources/licenses/RUST-NOTICES.md</code>）和 libsodium 的许可内置在应用中（“版本信息”）。更改依赖（<code>Cargo.lock</code>）后，请用 <code>python scripts/rust_licenses.py</code> 重新生成（不一致时发布脚本会停止）</li>
 </ul>
 </section>
 </section>
@@ -280,6 +287,8 @@ cargo test --locked --workspace</code></pre>
 <pre class="powershell"><code>mkdir deploy, deploy\Hayanagi\book, deploy\data\tsumeshogi
 copy build\ShogiBoardQ.exe deploy\
 copy build\shogiboardq-cli.exe deploy\
+copy build\shogiboardq-peer.exe deploy\
+copy build\libsodium.dll deploy\
 copy build\*.qm deploy\
 copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
 copy build\Hayanagi\book\hayanagi_book.db deploy\Hayanagi\book\
@@ -349,6 +358,10 @@ dir deploy\platforms\qoffscreen.dll
 # SQLite 驱动（用于保存诘棋的解题记录）
 dir deploy\sqldrivers\qsqlite.dll
 
+# P2P对局的通信进程和 libsodium
+dir deploy\shogiboardq-peer.exe
+dir deploy\libsodium.dll
+
 # Hayanagi、定式文件与题集（6 个文件）
 dir deploy\Hayanagi
 dir deploy\Hayanagi\book\hayanagi_book.db
@@ -357,6 +370,8 @@ dir deploy\data\tsumeshogi</code></pre>
 <pre><code>deploy/
 ├── ShogiBoardQ.exe                ← 可执行文件
 ├── shogiboardq-cli.exe            ← CLI（由 MCP 服务器调用）
+├── shogiboardq-peer.exe           ← P2P对局的通信进程
+├── libsodium.dll                  ← libsodium（P2P对局的签名）
 ├── LICENSE                        ← 许可
 ├── ShogiBoardQ_ja_JP.qm           ← 日语翻译
 ├── ShogiBoardQ_en.qm              ← 英语翻译
@@ -540,7 +555,7 @@ gh auth login</code></pre>
 <pre class="powershell"><code># 使用 Windows SDK 中的 signtool
 signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
   /f &quot;certificate.pfx&quot; /p &quot;password&quot; `
-  deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe deploy\Hayanagi\hayanagi.exe</code></pre>
+  deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe deploy\shogiboardq-peer.exe deploy\Hayanagi\hayanagi.exe</code></pre>
 <p>签名要在制作 ZIP 之前进行。使用脚本时，先用 <code>-SkipZip</code> 生成到 deploy 文件夹为止，签名后再制作 ZIP（<a href="#package-zip">4.5</a> 的步骤）。</p>
 </section>
 <section id="signing-unsigned" class="level3">

@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P對局（實驗版） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ 的P2P對局（實驗版）使用方法：準備玩家金鑰、透過邀請字串對局、對局條件確認畫面、對局中的操作、驗證對局記錄（憑證）、管理對手，以及無法防止的情況與對方可以看到的資訊。">
+    <title>P2P對局 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 的P2P對局使用方法：準備玩家金鑰、透過邀請字串對局、對局條件確認畫面、對局中的操作、驗證對局記錄（憑證）、管理對手，以及無法防止的情況與對方可以看到的資訊。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-game.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-game.html">
-    <meta property="og:title" content="P2P對局（實驗版） - ShogiBoardQ">
+    <meta property="og:title" content="P2P對局 - ShogiBoardQ">
     <meta property="og:description" content="不經過對局伺服器，與對手直接連線下棋，並在本機保存雙方確定了開始與結果的對局記錄。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/p2p-game/p2p-confirm.png">
     <meta property="og:locale" content="zh_TW">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="P2P對局（實驗版） - ShogiBoardQ">
+    <meta name="twitter:title" content="P2P對局 - ShogiBoardQ">
     <meta name="twitter:description" content="不經過對局伺服器，與對手直接連線下棋，並在本機保存雙方確定了開始與結果的對局記錄。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/p2p-game/p2p-confirm.png">
     <link rel="stylesheet" href="../../css/style.css">
@@ -62,15 +62,15 @@
 <!-- Hero -->
 <section class="hero hero--sub">
     <div class="hero-content">
-        <h1>P2P對局（實驗版）</h1>
+        <h1>P2P對局</h1>
         <p class="hero-subtitle">不經過對局伺服器，與對手直接連線下棋，並保存雙方確定了開始與結果的對局記錄</p>
         <div class="hero-badges">
             <span class="badge">與熟人透過邀請對局</span>
             <span class="badge">雙方確定的對局記錄</span>
             <span class="badge">可隱藏IP的設定</span>
-            <span class="badge">實驗版・Linux / Windows / macOS</span>
+            <span class="badge">Linux / Windows / macOS</span>
         </div>
-        <p class="screenshot-note">這是實驗中的功能，畫面和規則今後可能會改變。截圖於 Linux 上以繁體中文介面擷取。</p>
+        <p class="screenshot-note">發布的 ShogiBoardQ（Linux、Windows、macOS）中包含此功能。截圖於 Linux 上以繁體中文介面擷取。</p>
     </div>
 </section>
 
@@ -78,7 +78,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">什麼是P2P對局</h2>
-        <p class="section-desc">僅啟用P2P對局建置的將棋盤Q提供的實驗中的對局功能</p>
+        <p class="section-desc">不使用對局伺服器，透過邀請與認識的人連線對局的功能</p>
 
         <div class="screenshot-gallery">
 
@@ -194,14 +194,14 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">6</span>
-                    <span class="guide-step-title">實驗版可以使用的內容</span>
+                    <span class="guide-step-title">可以使用的環境和條件</span>
                 </div>
-                <p class="guide-step-text">P2P對局是實驗中的功能，不包含在發布的 ShogiBoardQ 中。要使用時，從原始碼建置時在 CMake 中加上 <code>-DENABLE_P2P_PLAY=ON</code>（需要 libsodium 和 Rust，建置步驟見<a href="linux-build-and-release.html">Linux 建置與發布步驟</a>、<a href="windows-build-and-release.html">Windows 建置與發布步驟</a>、<a href="macos-build-and-release.html">macOS 建置與發布步驟</a>。在 Windows 上，用 <code>-DSODIUM_ROOT=</code> 指定解壓縮 libsodium 官方預先編譯套件（MSVC 用）後的資料夾。在 macOS 上，可以用 <code>brew install rust libsodium pkg-config</code> 準備）。</p>
+                <p class="guide-step-text">發布的 ShogiBoardQ（Linux、Windows、macOS）中包含P2P對局。從原始碼建置時也預設啟用（需要 libsodium 和 Rust，建置步驟見<a href="linux-build-and-release.html">Linux 建置與發布步驟</a>、<a href="windows-build-and-release.html">Windows 建置與發布步驟</a>、<a href="macos-build-and-release.html">macOS 建置與發布步驟</a>。在 Windows 上，用 <code>-DSODIUM_ROOT=</code> 指定解壓縮 libsodium 官方預先編譯套件（MSVC 用）後的資料夾。在 macOS 上，可以用 <code>brew install rust libsodium pkg-config</code> 準備。如果不含P2P對局，請在 CMake 中加上 <code>-DENABLE_P2P_PLAY=OFF</code>）。</p>
                 <ul class="guide-step-text">
                     <li><strong>支援的作業系統</strong>：Linux、Windows（10 / 11）和 macOS。通訊程序（shogiboardq-peer）在由作業系統功能限制權限的狀態下執行，因此在無法限制的環境中無法使用。在 Windows 上，第一次連線時會註冊一次用來隔離該程序的容器（AppContainer）。在 macOS 上，該程序啟動後會立即自行進入沙盒。協作節點可以在 Linux 和 macOS 上執行（在 Windows 上可以透過協作節點對局）。</li>
-                    <li><strong>網路</strong>：有「本機驗證用（同一電腦・同一區域網路）」和「限定測試用」兩種。如何選擇請參閱<a href="#ways">兩種對局方式</a>。</li>
-                    <li><strong>協作節點</strong>：透過網際網路對局（限定測試用）時，需要一個作為最初連線對象的協作節點（<a href="p2p-relay.html">使用協作節點對局</a>）。同一電腦・同一區域網路的對局不需要（<a href="p2p-direct.html">不使用協作節點對局</a>）。</li>
-                    <li><strong>使用期限</strong>：自建置之日起超過 180 天後，不再加入限定測試網路。本機驗證網路以及查看、驗證已儲存的記錄在期限後仍可使用。</li>
+                    <li><strong>網路</strong>：有「本機（同一電腦・同一區域網路）」和「網際網路」兩種。如何選擇請參閱<a href="#ways">兩種對局方式</a>。</li>
+                    <li><strong>協作節點</strong>：透過網際網路對局（「網際網路」）時，需要一個作為最初連線對象的協作節點（<a href="p2p-relay.html">使用協作節點對局</a>）。同一電腦・同一區域網路的對局不需要（<a href="p2p-direct.html">不使用協作節點對局</a>）。</li>
+                    <li><strong>使用期限</strong>：自建置之日起超過 180 天後，不再加入「網際網路」網路（請更新到新版本）。「本機」網路以及查看、驗證已儲存的記錄在期限後仍可使用。</li>
                     <li><strong>自動化 API</strong>：加上 <code>--automation</code> 啟動時，無法使用P2P對局。</li>
                 </ul>
             </div>
@@ -265,7 +265,7 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>可以對局的對手</strong></td><td>同一電腦・同一區域網路的對手</td><td>網際網路上的對手（另一個家庭、另一條線路）</td></tr>
-                        <tr><td><strong>「網路」</strong></td><td>本機驗證用（同一電腦・同一區域網路）</td><td>限定測試用</td></tr>
+                        <tr><td><strong>「網路」</strong></td><td>本機（同一電腦・同一區域網路）</td><td>網際網路</td></tr>
                         <tr><td><strong>協作節點</strong></td><td>不需要</td><td>需要一個（由某人啟動，雙方都填入其位址）</td></tr>
                         <tr><td><strong>「設定」分頁</strong></td><td>無需變更</td><td>在「連線候選」中填入協作節點</td></tr>
                         <tr><td><strong>邀請字串中的位址</strong></td><td>這台電腦在區域網路內的位址（192.168.… 等）</td><td>經由協作節點的位址（如果電腦可以從外部直接到達，還有網際網路上的 IP 位址）</td></tr>
@@ -299,12 +299,12 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">開啟「對局」→「P2P對局（實驗版）…」</span>
+                    <span class="guide-step-title">開啟「對局」→「P2P對局…」</span>
                 </div>
-                <p class="guide-step-text">從選單列的「對局」中選擇「P2P對局（實驗版）…」，會開啟P2P對局視窗。視窗開啟時也可以操作棋盤和棋譜。</p>
+                <p class="guide-step-text">從選單列的「對局」中選擇「P2P對局…」，會開啟P2P對局視窗。視窗開啟時也可以操作棋盤和棋譜。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-menu.png"><img src="../../images/zh-tw/p2p-game/p2p-menu.png" alt="開啟「對局」選單並選取「P2P對局（實驗版）…」" width="177" height="408" loading="lazy"></a>
-                    <p class="screenshot-caption">「對局」選單：以「P2P對局（實驗版）…」開啟視窗</p>
+                    <a href="../../images/zh-tw/p2p-game/p2p-menu.png"><img src="../../images/zh-tw/p2p-game/p2p-menu.png" alt="開啟「對局」選單並選取「P2P對局…」" width="161" height="424" loading="lazy"></a>
+                    <p class="screenshot-caption">「對局」選單：以「P2P對局…」開啟視窗</p>
                 </div>
             </div>
 
@@ -321,7 +321,7 @@
                 </ul>
                 <p class="guide-step-text">金鑰檔案保存在 <code>~/.local/share/ShogiBoardQ/p2p/identity</code>。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-identity.png"><img src="../../images/zh-tw/p2p-game/p2p-identity.png" alt="顯示玩家金鑰的三種保存方式和無法防止的情況列表的「準備P2P對局」對話方塊" width="533" height="517" loading="lazy"></a>
+                    <a href="../../images/zh-tw/p2p-game/p2p-identity.png"><img src="../../images/zh-tw/p2p-game/p2p-identity.png" alt="顯示玩家金鑰的三種保存方式和無法防止的情況列表的「準備P2P對局」對話方塊" width="670" height="478" loading="lazy"></a>
                     <p class="screenshot-caption">首次連線時開啟的「準備P2P對局」</p>
                 </div>
             </div>
@@ -366,7 +366,7 @@
                         <tr><td><strong>設定</strong></td><td>協作節點的位址、不讓對手看到 IP 位址的設定，以及重新產生玩家金鑰。同一電腦・同一區域網路內的對局都不需要這些設定。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">視窗下方的「A-」「A+」用於改變文字大小（下次開啟時維持相同大小）。按一下「關閉」關閉視窗後，連線和對局仍會繼續。要再次開啟，請選擇「對局」→「P2P對局（實驗版）…」；要中斷連線，請按一下「連線與條件」分頁的「中斷連線」。</p>
+                <p class="guide-step-text">視窗下方的「A-」「A+」用於改變文字大小（下次開啟時維持相同大小）。按一下「關閉」關閉視窗後，連線和對局仍會繼續。要再次開啟，請選擇「對局」→「P2P對局…」；要中斷連線，請按一下「連線與條件」分頁的「中斷連線」。</p>
             </div>
 
             <div class="guide-step">
@@ -384,7 +384,7 @@
                         <tr><th scope="col">項目</th><th scope="col">說明</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>網路</strong></td><td>要加入的網路。「本機驗證用（同一電腦・同一區域網路）」可與同一電腦和同一區域網路的對手連線，「限定測試用」可與網際網路上的對手連線（限定測試用需要協作節點）。連線期間無法變更。</td></tr>
+                        <tr><td><strong>網路</strong></td><td>要加入的網路。「本機（同一電腦・同一區域網路）」可與同一電腦和同一區域網路的對手連線，「網際網路」可與網際網路上的對手連線（「網際網路」需要協作節點）。連線期間無法變更。</td></tr>
                         <tr><td><strong>連線／中斷連線</strong></td><td>連線所選的網路。第一次連線時會開啟產生玩家金鑰的畫面。連線後按鈕變為「中斷連線」，按一下後會讓有效的邀請失效並中斷連線。確認條件期間和對局中無法按下。</td></tr>
                         <tr><td><strong>狀態</strong></td><td>顯示「未連線」「正在連線…」「已連線（已連線的節點：N）」之一。N 是目前已連線的對象（協作節點和對局對手）的數量。無法啟動負責通訊的程序時，顯示「無法使用P2P對局」。</td></tr>
                         <tr><td><strong>您的玩家ID</strong></td><td>玩家金鑰的公鑰（64 位十六進位數），是對手用來識別您的值。按一下「複製」可複製。產生金鑰之前顯示「（尚未產生）」。</td></tr>
@@ -416,7 +416,7 @@
                         <tr><td><strong>複製</strong></td><td>複製產生的邀請字串。請用只有對方能收到的方式交給對方。</td></tr>
                         <tr><td><strong>透過邀請連線（輸入框）</strong></td><td>貼上收到的邀請字串。</td></tr>
                         <tr><td><strong>檢查邀請字串</strong></td><td>讀取貼上的邀請字串，並在下方顯示邀請方的 PeerId（開頭部分）、期限和位址數量。</td></tr>
-                        <tr><td><strong>允許連線上方的私人位址（同一區域網路的對手）</strong></td><td>僅在「限定測試用」中，邀請字串含有私人位址（同一區域網路內的位址）時顯示。允許連線這些位址時請勾選。</td></tr>
+                        <tr><td><strong>允許連線上方的私人位址（同一區域網路的對手）</strong></td><td>僅在「網際網路」中，邀請字串含有私人位址（同一區域網路內的位址）時顯示。允許連線這些位址時請勾選。</td></tr>
                         <tr><td><strong>連線</strong></td><td>連線已檢查的邀請字串的對手。連線成功後，雙方都會開啟條件確認畫面。僅連線並不會開始對局。</td></tr>
                     </tbody>
                 </table>
@@ -527,12 +527,12 @@
                         <tr><th scope="col">項目</th><th scope="col">說明</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>連線候選</strong></td><td>每行填入一個協作節點位址（/ip4/…/p2p/… 形式），最多 16 個。只使用「本機驗證用」時可以留空（協作節點的準備請見<a href="p2p-relay.html#who">由誰啟動協作節點</a>）。</td></tr>
+                        <tr><td><strong>連線候選</strong></td><td>每行填入一個協作節點位址（/ip4/…/p2p/… 形式），最多 16 個。只使用「本機」時可以留空（協作節點的準備請見<a href="p2p-relay.html#who">由誰啟動協作節點</a>）。</td></tr>
                         <tr><td><strong>不使用直接連線</strong></td><td>僅透過「連線候選」中協作節點的中繼，不讓對手看到 IP 位址。協作節點的營運者仍可看到（<a href="p2p-relay.html#relay-only">不讓對手看到 IP 位址對局</a>）。</td></tr>
                         <tr><td><strong>不顯示未對局過的對手的顯示名稱</strong></td><td>在條件確認畫面和「對局記錄」分頁中，把首次對局對手的顯示名稱顯示為「名稱已隱藏」。</td></tr>
                         <tr><td><strong>玩家金鑰保存</strong></td><td>目前玩家金鑰的保存方式（作業系統的金鑰庫、用密碼短語加密的檔案、不加密的檔案）。連線期間還會顯示對負責通訊的程序施加的權限限制。</td></tr>
                         <tr><td><strong>重新產生玩家金鑰…</strong></td><td>產生新的玩家金鑰。玩家ID會改變，對手會把您視為另一個人。舊金鑰將被刪除。請中斷連線後再按下。</td></tr>
-                        <tr><td><strong>此版本的使用期限</strong></td><td>過了這個日期後，不再加入「限定測試用」網路。</td></tr>
+                        <tr><td><strong>此版本的使用期限</strong></td><td>過了這個日期後，不再加入「網際網路」網路。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">最下方列出P2P對局無法防止的情況（<a href="#limits">無法防止的情況與對方可以看到的資訊</a>）。</p>
@@ -565,7 +565,7 @@
                     <li>想用與過去對局無關的新玩家ID對局時</li>
                 </ul>
                 <p class="guide-step-text">重新產生後玩家ID會改變，在對手的「對手管理」中您會顯示為另一個人（首次對局的對手）。確認碼也會改變，請讓曾把您設為已確認的對手再核對一次。舊金鑰會被刪除，無法恢復原來的玩家ID。過去的對局記錄（憑證）不會被刪除，仍保留舊的玩家ID。按下前，請在「連線與條件」分頁中斷連線。</p>
-                <p class="guide-step-text"><strong>此版本的使用期限</strong>是建置日起 180 天後的日期。P2P對局沒有可以停止舊版本的伺服器。為了不讓未修正缺陷或安全漏洞的舊版本一直留在網際網路上的網路中，過期的版本不再加入「限定測試用」。過期後，請重新建置新版本。「本機驗證用」的對局，以及查看和驗證已儲存的記錄，過期後仍可使用。</p>
+                <p class="guide-step-text"><strong>此版本的使用期限</strong>是建置日起 180 天後的日期。P2P對局沒有可以停止舊版本的伺服器。為了不讓未修正缺陷或安全漏洞的舊版本一直留在網際網路上的網路中，過期的版本不再加入「網際網路」。過期後，請更新到新版本（從原始碼建置時，請重新建置）。「本機」的對局，以及查看和驗證已儲存的記錄，過期後仍可使用。</p>
             </div>
 
         </div>
@@ -759,7 +759,7 @@
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">憑證的格式與通訊約定</span>
                 </div>
-                <p class="guide-step-text">憑證檔案的格式和驗證步驟，以及P2P對局的通訊約定（邀請字串、訊框、開始前的協商、對局中的步驟、重新連線）彙整在下面的規格書中。用其他軟體驗證憑證，或製作能與將棋盤Q對局的應用程式時，可以參考它。協定仍在測試中，今後可能變更（各版本的變更見規格書中的「變更履歷」）。</p>
+                <p class="guide-step-text">憑證檔案的格式和驗證步驟，以及P2P對局的通訊約定（邀請字串、訊框、開始前的協商、對局中的步驟、重新連線）彙整在下面的規格書中。用其他軟體驗證憑證，或製作能與將棋盤Q對局的應用程式時，可以參考它。協定今後可能變更（各版本的變更見規格書中的「變更履歷」）。</p>
                 <a href="../dev/p2p-interop-spec.html" class="feature-card-link guide-doc-link">
                     <div class="feature-card">
                         <h3>P2P對局相容實作規格書</h3>
@@ -777,7 +777,7 @@
 <section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">無法防止的情況與對方可以看到的資訊</h2>
-        <p class="section-desc">使用實驗版P2P對局前請先了解</p>
+        <p class="section-desc">使用P2P對局前請先了解</p>
 
         <div class="screenshot-gallery">
 
@@ -807,9 +807,9 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>對局對手</strong></td><td>玩家ID、顯示名稱、條件。直接連線時，對手查看通訊還能得知 IP 位址（畫面上不顯示）。設定「不使用直接連線」後無法得知</td></tr>
-                        <tr><td><strong>看到邀請字串的人</strong></td><td>連線到邀請方的位址（使用直接連線的設定時包含 IP 位址。在「本機驗證用（同一電腦・同一區域網路）」中，包含這台電腦在區域網路內的全部位址，也包括 VPN 和虛擬裝置的位址）</td></tr>
+                        <tr><td><strong>看到邀請字串的人</strong></td><td>連線到邀請方的位址（使用直接連線的設定時包含 IP 位址。在「本機（同一電腦・同一區域網路）」中，包含這台電腦在區域網路內的全部位址，也包括 VPN 和虛擬裝置的位址）</td></tr>
                         <tr><td><strong>協作節點的營運者</strong></td><td>IP 位址，以及哪些 IP 位址之間建立了連線。確認可達性時，只請協作節點確認它看到的你的位址，不傳送區域網路內的位址。看不到著手、玩家ID 和顯示名稱</td></tr>
-                        <tr><td><strong>同一區域網路內的裝置</strong></td><td>以「本機驗證用（同一電腦・同一區域網路）」連線期間，能得知這台電腦正在執行 P2P 對局（連線到監聽連接埠即可知道）。沒有邀請字串時，看不到這台電腦的位址清單，也看不到對局</td></tr>
+                        <tr><td><strong>同一區域網路內的裝置</strong></td><td>以「本機（同一電腦・同一區域網路）」連線期間，能得知這台電腦正在執行 P2P 對局（連線到監聽連接埠即可知道）。沒有邀請字串時，看不到這台電腦的位址清單，也看不到對局</td></tr>
                         <tr><td><strong>收到對局記錄（憑證）的人</strong></td><td>雙方的玩家ID、條件、對局開始的大致日期與時間、全部著手與自報用時、雙方確定的結果。不保存顯示名稱、IP 位址和本機備註名稱</td></tr>
                     </tbody>
                 </table>

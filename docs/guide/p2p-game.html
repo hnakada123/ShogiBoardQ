@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P対局（実験版） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ のP2P対局（実験版）の使い方。プレイヤー鍵の準備、招待文字列での対局、条件確認画面、対局中の操作、対局記録（証跡）の検証、相手の管理、防げないことと相手に見える情報を解説します。">
+    <title>P2P対局 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ のP2P対局の使い方。プレイヤー鍵の準備、招待文字列での対局、条件確認画面、対局中の操作、対局記録（証跡）の検証、相手の管理、防げないことと相手に見える情報を解説します。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/p2p-game.html">
-    <meta property="og:title" content="P2P対局（実験版） - ShogiBoardQ">
+    <meta property="og:title" content="P2P対局 - ShogiBoardQ">
     <meta property="og:description" content="対局サーバーを使わずに相手と直接つないで指し、開始と結果を双方で確定した対局記録を手元に残します。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/p2p-game/p2p-confirm.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="P2P対局（実験版） - ShogiBoardQ">
+    <meta name="twitter:title" content="P2P対局 - ShogiBoardQ">
     <meta name="twitter:description" content="対局サーバーを使わずに相手と直接つないで指し、開始と結果を双方で確定した対局記録を手元に残します。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/p2p-game/p2p-confirm.png">
     <link rel="stylesheet" href="../css/style.css">
@@ -62,15 +62,15 @@
 <!-- Hero -->
 <section class="hero hero--sub">
     <div class="hero-content">
-        <h1>P2P対局（実験版）</h1>
+        <h1>P2P対局</h1>
         <p class="hero-subtitle">対局サーバーを使わずに相手と直接つないで指し、開始と結果を双方で確定した対局記録を手元に残します</p>
         <div class="hero-badges">
             <span class="badge">知り合いと招待で対局</span>
             <span class="badge">双方で確定する記録</span>
             <span class="badge">IPを見せない設定</span>
-            <span class="badge">実験版・Linux / Windows / macOS</span>
+            <span class="badge">Linux / Windows / macOS</span>
         </div>
-        <p class="screenshot-note">試験中の機能です。画面や決まりは今後変わることがあります。</p>
+        <p class="screenshot-note">配布している ShogiBoardQ（Linux・Windows・macOS）で使えます。画面は Linux 版のものです。</p>
     </div>
 </section>
 
@@ -78,7 +78,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">P2P対局とは</h2>
-        <p class="section-desc">P2P対局を有効にしてビルドした将棋盤Qだけにある、試験中の対局の機能です</p>
+        <p class="section-desc">対局サーバーを使わずに、知り合いと招待でつないで指す対局の機能です</p>
 
         <div class="screenshot-gallery">
 
@@ -194,14 +194,14 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">6</span>
-                    <span class="guide-step-title">実験版で使えるもの</span>
+                    <span class="guide-step-title">使える環境と条件</span>
                 </div>
-                <p class="guide-step-text">P2P対局は試験中の機能で、配布している ShogiBoardQ には入っていません。使うには、ソースからビルドするときに CMake で <code>-DENABLE_P2P_PLAY=ON</code> を付けます（libsodium と Rust が必要です。ビルドの手順は<a href="linux-build-and-release.html">Linux ビルド・リリース手順</a>・<a href="windows-build-and-release.html">Windows ビルド・リリース手順</a>・<a href="macos-build-and-release.html">macOS ビルド・リリース手順</a>。Windows では、libsodium の公式のビルド済みの配布物（MSVC 用）を展開したフォルダを <code>-DSODIUM_ROOT=</code> で指定します。macOS では、<code>brew install rust libsodium pkg-config</code> で用意できます）。</p>
+                <p class="guide-step-text">P2P対局は、配布している ShogiBoardQ（Linux・Windows・macOS）に入っています。ソースからビルドするときも既定で有効です（libsodium と Rust が必要です。ビルドの手順は<a href="linux-build-and-release.html">Linux ビルド・リリース手順</a>・<a href="windows-build-and-release.html">Windows ビルド・リリース手順</a>・<a href="macos-build-and-release.html">macOS ビルド・リリース手順</a>。Windows では、libsodium の公式のビルド済みの配布物（MSVC 用）を展開したフォルダを <code>-DSODIUM_ROOT=</code> で指定します。macOS では、<code>brew install rust libsodium pkg-config</code> で用意できます。P2P対局なしでビルドするには、CMake で <code>-DENABLE_P2P_PLAY=OFF</code> を付けます）。</p>
                 <ul class="guide-step-text">
                     <li><strong>対応OS</strong>：Linux・Windows（10 / 11）・macOS です。通信を受け持つプロセス（shogiboardq-peer）の権限を OS の機能で制限して動かすので、制限できない環境では使えません。Windows では、初めて接続するときに、このプロセスを閉じ込めるための入れ物（AppContainer）を1回だけ登録します。macOS では、このプロセスが起動の直後に自分でサンドボックスに入ります。協力ノードを動かせるのは Linux と macOS です（Windows から協力ノードを使って対局することはできます）。</li>
-                    <li><strong>ネットワーク</strong>：「ローカル検証用（同じPC・同じLAN）」と「限定試験用」の2つです。使い分けは<a href="#ways">2つの対局のしかた</a>をご覧ください。</li>
-                    <li><strong>協力ノード</strong>：インターネット越しの対局（限定試験用）には、最初につなぐ相手になる協力ノードが1つ要ります（<a href="p2p-relay.html">協力ノードを使って対局する</a>）。同じPC・同じLANの対局には要りません（<a href="p2p-direct.html">協力ノードなしで対局する</a>）。</li>
-                    <li><strong>使用期限</strong>：ビルドした日から180日を過ぎると、限定試験用のネットワークに参加しません。ローカル検証用と、保存した記録の確認・検証は期限後も使えます。</li>
+                    <li><strong>ネットワーク</strong>：「ローカル（同じPC・同じLAN）」と「インターネット」の2つです。使い分けは<a href="#ways">2つの対局のしかた</a>をご覧ください。</li>
+                    <li><strong>協力ノード</strong>：インターネット越しの対局（「インターネット」）には、最初につなぐ相手になる協力ノードが1つ要ります（<a href="p2p-relay.html">協力ノードを使って対局する</a>）。同じPC・同じLANの対局には要りません（<a href="p2p-direct.html">協力ノードなしで対局する</a>）。</li>
+                    <li><strong>使用期限</strong>：ビルドした日から180日を過ぎると、「インターネット」のネットワークに参加しません（新しい版に更新してください）。「ローカル」と、保存した記録の確認・検証は期限後も使えます。</li>
                     <li><strong>自動化 API</strong>：<code>--automation</code> を付けて起動したときは、P2P対局は使えません。</li>
                 </ul>
             </div>
@@ -265,7 +265,7 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>対局できる相手</strong></td><td>同じPC・同じLANの相手</td><td>インターネット上の相手（別の家・別の回線）</td></tr>
-                        <tr><td><strong>「ネットワーク」</strong></td><td>ローカル検証用（同じPC・同じLAN）</td><td>限定試験用</td></tr>
+                        <tr><td><strong>「ネットワーク」</strong></td><td>ローカル（同じPC・同じLAN）</td><td>インターネット</td></tr>
                         <tr><td><strong>協力ノード</strong></td><td>要りません</td><td>1つ要ります（だれかが起動し、2人ともアドレスを入れます）</td></tr>
                         <tr><td><strong>「設定」タブ</strong></td><td>変えなくてかまいません</td><td>「接続候補」に協力ノードを入れます</td></tr>
                         <tr><td><strong>招待文字列に入る宛先</strong></td><td>このPCのLANの中のアドレス（192.168.… など）</td><td>協力ノードを経由する宛先（外から直接届くPCなら、インターネット上の IP アドレスも）</td></tr>
@@ -299,12 +299,12 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">「対局」→「P2P対局（実験版）…」を開く</span>
+                    <span class="guide-step-title">「対局」→「P2P対局…」を開く</span>
                 </div>
-                <p class="guide-step-text">メニューバーの「対局」から「P2P対局（実験版）…」を選ぶと、P2P対局のウィンドウが開きます。ウィンドウは開いたままでも盤や棋譜を操作できます。</p>
+                <p class="guide-step-text">メニューバーの「対局」から「P2P対局…」を選ぶと、P2P対局のウィンドウが開きます。ウィンドウは開いたままでも盤や棋譜を操作できます。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-menu.png"><img src="../images/p2p-game/p2p-menu.png" alt="「対局」メニューを開き、「P2P対局（実験版）…」を選んだところ" width="177" height="408" loading="lazy"></a>
-                    <p class="screenshot-caption">「対局」メニュー：「P2P対局（実験版）…」でウィンドウを開く</p>
+                    <a href="../images/p2p-game/p2p-menu.png"><img src="../images/p2p-game/p2p-menu.png" alt="「対局」メニューを開き、「P2P対局…」を選んだところ" width="171" height="424" loading="lazy"></a>
+                    <p class="screenshot-caption">「対局」メニュー：「P2P対局…」でウィンドウを開く</p>
                 </div>
             </div>
 
@@ -321,7 +321,7 @@
                 </ul>
                 <p class="guide-step-text">鍵のファイルは <code>~/.local/share/ShogiBoardQ/p2p/identity</code> に置きます。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-identity.png"><img src="../images/p2p-game/p2p-identity.png" alt="プレイヤー鍵の保管の方法を選ぶ3つの選択肢と、防げないことの一覧が並ぶ「P2P対局の準備」ダイアログ" width="533" height="574" loading="lazy"></a>
+                    <a href="../images/p2p-game/p2p-identity.png"><img src="../images/p2p-game/p2p-identity.png" alt="プレイヤー鍵の保管の方法を選ぶ3つの選択肢と、防げないことの一覧が並ぶ「P2P対局の準備」ダイアログ" width="669" height="516" loading="lazy"></a>
                     <p class="screenshot-caption">初めて接続するときに開く「P2P対局の準備」</p>
                 </div>
             </div>
@@ -366,7 +366,7 @@
                         <tr><td><strong>設定</strong></td><td>協力ノードのアドレス、相手に IP アドレスを見せない設定、プレイヤー鍵の作り直しです。同じPC・同じLANの対局には、どれも要りません。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">ウィンドウの下の「A-」「A+」は文字の大きさを変えます（次に開いたときも同じ大きさです）。「閉じる」でウィンドウを閉じても、接続と対局は続きます。もう一度開くには「対局」→「P2P対局（実験版）…」を選び、接続を切るには「接続と条件」タブの「切断」を押します。</p>
+                <p class="guide-step-text">ウィンドウの下の「A-」「A+」は文字の大きさを変えます（次に開いたときも同じ大きさです）。「閉じる」でウィンドウを閉じても、接続と対局は続きます。もう一度開くには「対局」→「P2P対局…」を選び、接続を切るには「接続と条件」タブの「切断」を押します。</p>
             </div>
 
             <div class="guide-step">
@@ -384,7 +384,7 @@
                         <tr><th scope="col">項目</th><th scope="col">説明</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>ネットワーク</strong></td><td>参加するネットワークです。「ローカル検証用（同じPC・同じLAN）」は同じ PC と同じ LAN の相手と、「限定試験用」はインターネット上の相手とつながります（限定試験用には協力ノードが要ります）。接続している間は変えられません。</td></tr>
+                        <tr><td><strong>ネットワーク</strong></td><td>参加するネットワークです。「ローカル（同じPC・同じLAN）」は同じ PC と同じ LAN の相手と、「インターネット」はインターネット上の相手とつながります（「インターネット」には協力ノードが要ります）。接続している間は変えられません。</td></tr>
                         <tr><td><strong>接続／切断</strong></td><td>選んだネットワークに接続します。初めてのときは、プレイヤー鍵を作る画面が開きます。接続すると「切断」に変わり、押すと有効な招待を無効にして接続を切ります。条件の確認中と対局中は押せません。</td></tr>
                         <tr><td><strong>状態</strong></td><td>「未接続」「接続しています…」「接続中（つながっているピア: N）」のどれかが出ます。N は、今つながっている相手（協力ノードや対局の相手）の数です。通信を受け持つプロセスを動かせなかったときは「P2P対局を使えません」と出ます。</td></tr>
                         <tr><td><strong>あなたのプレイヤーID</strong></td><td>プレイヤー鍵の公開鍵（64桁の16進数）で、相手があなたを見分ける値です。「コピー」でコピーできます。鍵を作る前は「（まだ作っていません）」と出ます。</td></tr>
@@ -416,7 +416,7 @@
                         <tr><td><strong>コピー</strong></td><td>作った招待文字列をコピーします。相手だけに届く方法で渡してください。</td></tr>
                         <tr><td><strong>招待で接続する（欄）</strong></td><td>受け取った招待文字列を貼り付けます。</td></tr>
                         <tr><td><strong>招待文字列を確かめる</strong></td><td>貼り付けた招待文字列を読み、招待した相手の PeerId（先頭の部分）・期限・到達候補の数を下に出します。</td></tr>
-                        <tr><td><strong>上の私設アドレス（同じLANの相手）へ接続してよい</strong></td><td>「限定試験用」で、招待文字列に私設アドレス（同じ LAN の中のアドレス）が入っているときだけ出ます。そのアドレスへ接続してよければチェックを付けます。</td></tr>
+                        <tr><td><strong>上の私設アドレス（同じLANの相手）へ接続してよい</strong></td><td>「インターネット」で、招待文字列に私設アドレス（同じ LAN の中のアドレス）が入っているときだけ出ます。そのアドレスへ接続してよければチェックを付けます。</td></tr>
                         <tr><td><strong>接続する</strong></td><td>確かめた招待文字列の相手に接続します。つながると、双方に条件確認画面が開きます。接続しただけでは対局は始まりません。</td></tr>
                     </tbody>
                 </table>
@@ -527,12 +527,12 @@
                         <tr><th scope="col">項目</th><th scope="col">説明</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>接続候補</strong></td><td>協力ノードのアドレス（/ip4/…/p2p/… の形）を1行に1つ入れます。16件まで入れられます。「ローカル検証用」だけを使うなら、空のままでかまいません（協力ノードの用意は<a href="p2p-relay.html#who">だれが協力ノードを起動するか</a>）。</td></tr>
+                        <tr><td><strong>接続候補</strong></td><td>協力ノードのアドレス（/ip4/…/p2p/… の形）を1行に1つ入れます。16件まで入れられます。「ローカル」だけを使うなら、空のままでかまいません（協力ノードの用意は<a href="p2p-relay.html#who">だれが協力ノードを起動するか</a>）。</td></tr>
                         <tr><td><strong>直接接続を使わない</strong></td><td>「接続候補」に入れた協力ノードの中継だけを通り、相手に IP アドレスを見せません。協力ノードの運営者には見えます（<a href="p2p-relay.html#relay-only">相手に IP アドレスを見せずに対局する</a>）。</td></tr>
                         <tr><td><strong>対局したことのない相手の表示名を出さない</strong></td><td>条件確認画面と「対局記録」タブで、初めての相手の表示名を「名前は非表示」にします。</td></tr>
                         <tr><td><strong>プレイヤー鍵の保管</strong></td><td>今のプレイヤー鍵の保管の方法（OSの鍵の保管庫・パスフレーズで暗号化したファイル・暗号化しないファイル）です。接続している間は、通信を受け持つプロセスに掛けた権限の制限も出ます。</td></tr>
                         <tr><td><strong>プレイヤー鍵を作り直す…</strong></td><td>新しいプレイヤー鍵を作ります。プレイヤーID が変わり、相手からは別人に見えます。古い鍵は消します。切断してから押します。</td></tr>
-                        <tr><td><strong>このビルドの使用期限</strong></td><td>この日を過ぎると、「限定試験用」のネットワークに参加しません。</td></tr>
+                        <tr><td><strong>このビルドの使用期限</strong></td><td>この日を過ぎると、「インターネット」のネットワークに参加しません。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">いちばん下には、P2P対局で防げないことの一覧が出ます（<a href="#limits">防げないことと相手に見える情報</a>）。</p>
@@ -565,7 +565,7 @@
                     <li>これまでの対局と結び付かない、新しいプレイヤーIDで指したいとき</li>
                 </ul>
                 <p class="guide-step-text">作り直すとプレイヤーIDが変わり、相手の「相手の管理」では別人（初めての相手）に見えます。確認コードも変わるので、確認済みにしてもらっていた相手には、もう一度見比べてもらってください。古い鍵は消え、元のプレイヤーIDには戻せません。これまでの対局記録（証跡）は消えず、古いプレイヤーIDのまま残ります。押す前に、「接続と条件」タブで切断してください。</p>
-                <p class="guide-step-text"><strong>このビルドの使用期限</strong>は、ビルドした日から180日後の日付です。P2P対局には、古い版を止めるサーバーがありません。不具合や安全上の欠陥が直っていない古い版がインターネット越しのネットワークに残り続けないように、期限を過ぎたビルドは「限定試験用」に参加しません。期限を過ぎたら、新しい版をビルドし直してください。「ローカル検証用」の対局と、保存した記録の確認・検証は、期限後も使えます。</p>
+                <p class="guide-step-text"><strong>このビルドの使用期限</strong>は、ビルドした日から180日後の日付です。P2P対局には、古い版を止めるサーバーがありません。不具合や安全上の欠陥が直っていない古い版がインターネット越しのネットワークに残り続けないように、期限を過ぎたビルドは「インターネット」に参加しません。期限を過ぎたら、新しい版に更新してください（ソースからビルドしている場合は、ビルドし直します）。「ローカル」の対局と、保存した記録の確認・検証は、期限後も使えます。</p>
             </div>
 
         </div>
@@ -759,7 +759,7 @@
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">証跡の形と通信の取り決め</span>
                 </div>
-                <p class="guide-step-text">証跡ファイルの形と検証の手順、P2P対局の通信の取り決め（招待文字列・フレーム・開始の交渉・対局中の手順・再接続）は、下の仕様書にまとめてあります。別のソフトウェアで証跡を検証したり、ShogiBoardQ と対局できるアプリを作ったりするときに使えます。プロトコルは試験中で、今後変わることがあります（版ごとの変更は、仕様書の「変更履歴」にあります）。</p>
+                <p class="guide-step-text">証跡ファイルの形と検証の手順、P2P対局の通信の取り決め（招待文字列・フレーム・開始の交渉・対局中の手順・再接続）は、下の仕様書にまとめてあります。別のソフトウェアで証跡を検証したり、ShogiBoardQ と対局できるアプリを作ったりするときに使えます。プロトコルは今後変わることがあります（版ごとの変更は、仕様書の「変更履歴」にあります）。</p>
                 <a href="../dev/p2p-interop-spec.html" class="feature-card-link guide-doc-link">
                     <div class="feature-card">
                         <h3>P2P対局 互換実装のための仕様書</h3>
@@ -777,7 +777,7 @@
 <section id="limits" class="section">
     <div class="section-inner">
         <h2 class="section-title">防げないことと相手に見える情報</h2>
-        <p class="section-desc">実験版のP2P対局を使う前に知っておいてほしいことです</p>
+        <p class="section-desc">P2P対局を使う前に知っておいてほしいことです</p>
 
         <div class="screenshot-gallery">
 
@@ -807,9 +807,9 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>対局相手</strong></td><td>プレイヤーID・表示名・条件。直接つなぐと、通信を調べれば IP アドレスも分かります（画面には出ません）。「直接接続を使わない」設定なら分かりません</td></tr>
-                        <tr><td><strong>招待文字列を見た人</strong></td><td>招待した側への接続先（直接つなぐ設定では IP アドレスが入ります。「ローカル検証用（同じPC・同じLAN）」では、このPCのLANの中のアドレスがすべて入り、VPN や仮想の機器のアドレスも含みます）</td></tr>
+                        <tr><td><strong>招待文字列を見た人</strong></td><td>招待した側への接続先（直接つなぐ設定では IP アドレスが入ります。「ローカル（同じPC・同じLAN）」では、このPCのLANの中のアドレスがすべて入り、VPN や仮想の機器のアドレスも含みます）</td></tr>
                         <tr><td><strong>協力ノードの運営者</strong></td><td>IP アドレスと、どの IP どうしがつないだか。到達性の確認では、協力ノードから見えたあなたのアドレスを確かめてもらうだけで、LANの中のアドレスは送りません。指し手・プレイヤーID・表示名は見えません</td></tr>
-                        <tr><td><strong>同じLANの機器</strong></td><td>「ローカル検証用（同じPC・同じLAN）」で接続している間、このPCで P2P対局を動かしていること（待ち受けているポートにつなげば分かります）。招待文字列がなければ、このPCのアドレスの一覧も対局も見えません</td></tr>
+                        <tr><td><strong>同じLANの機器</strong></td><td>「ローカル（同じPC・同じLAN）」で接続している間、このPCで P2P対局を動かしていること（待ち受けているポートにつなげば分かります）。招待文字列がなければ、このPCのアドレスの一覧も対局も見えません</td></tr>
                         <tr><td><strong>対局記録（証跡）を受け取った人</strong></td><td>双方のプレイヤーID・条件・対局を始めたおおよその日時・全手順と自己申告の消費時間・双方で確定した結果。表示名・IPアドレス・手元で付けた名前は残りません</td></tr>
                     </tbody>
                 </table>

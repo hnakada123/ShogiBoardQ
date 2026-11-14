@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Playing Without a Cooperating Node (P2P Games) - ShogiBoardQ</title>
-    <meta name="description" content="How to play P2P games (experimental) in ShogiBoardQ with an opponent on the same PC or LAN, without a cooperating node: connecting to Local test, exchanging invitations, how many people you can invite and how often, the firewall, and what to check when you cannot connect.">
+    <meta name="description" content="How to play P2P games in ShogiBoardQ with an opponent on the same PC or LAN, without a cooperating node: connecting to Local, exchanging invitations, how many people you can invite and how often, the firewall, and what to check when you cannot connect.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-direct.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -63,14 +63,14 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>Playing Without a Cooperating Node</h1>
-        <p class="hero-subtitle">Play a P2P game (experimental) with an opponent on the same PC or LAN, connected with just an invitation</p>
+        <p class="hero-subtitle">Play a P2P game with an opponent on the same PC or LAN, connected with just an invitation</p>
         <div class="hero-badges">
             <span class="badge">Same PC / Same LAN</span>
             <span class="badge">No Cooperating Node</span>
             <span class="badge">One Invitation per Person</span>
-            <span class="badge">Experimental, Linux / Windows / macOS</span>
+            <span class="badge">Linux / Windows / macOS</span>
         </div>
-        <p class="screenshot-note">Setting up P2P games (player key and display name), the window, and game records are covered in <a href="p2p-game.html">P2P Games (Experimental)</a>. To play someone over the Internet, see <a href="p2p-relay.html">Playing with a Cooperating Node</a>.</p>
+        <p class="screenshot-note">Setting up P2P games (player key and display name), the window, and game records are covered in <a href="p2p-game.html">P2P Games</a>. To play someone over the Internet, see <a href="p2p-relay.html">Playing with a Cooperating Node</a>.</p>
     </div>
 </section>
 
@@ -78,7 +78,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">Who You Can Play Without a Cooperating Node</h2>
-        <p class="section-desc">On the Local test (same PC / same LAN) network, you need neither a cooperating node nor any change on the Settings tab</p>
+        <p class="section-desc">On the Local (same PC / same LAN) network, you need neither a cooperating node nor any change on the Settings tab</p>
 
         <div class="screenshot-gallery">
 
@@ -87,7 +87,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">Connect to Opponents on the Same PC or LAN</span>
                 </div>
-                <p class="guide-step-text">When you connect with Network set to Local test (same PC / same LAN), the invitation contains this PC's address on the LAN (such as 192.168.…) and an address used only within the same PC. The opponent's PC can reach these addresses directly, so no cooperating node is needed in between.</p>
+                <p class="guide-step-text">When you connect with Network set to Local (same PC / same LAN), the invitation contains this PC's address on the LAN (such as 192.168.…) and an address used only within the same PC. The opponent's PC can reach these addresses directly, so no cooperating node is needed in between.</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">Opponent</th><th scope="col">Can you connect?</th></tr>
@@ -110,7 +110,7 @@
                     <li><strong>Bootstrap nodes</strong>: You can leave it empty.</li>
                     <li><strong>Do not use direct connections</strong>: Leave it unchecked. When checked, the app stops using direct connections within the LAN as well, so you cannot connect (Invitation route shows "No relay is available. …").</li>
                     <li><strong>Address your opponent can see</strong>: Only your address on the LAN. Your IP address on the Internet is not given to the opponent. The invitation contains all of this PC's LAN addresses (including those of VPNs and virtual devices), so give it only to your opponent.</li>
-                    <li><strong>Expiry</strong>: None. It keeps working more than 180 days after the build (only Limited test expires).</li>
+                    <li><strong>Expiry</strong>: None. It keeps working more than 180 days after the build (only the Internet network expires).</li>
                 </ul>
             </div>
 
@@ -122,20 +122,20 @@
 <section id="steps" class="section">
     <div class="section-inner">
         <h2 class="section-title">Steps to Start a Game</h2>
-        <p class="section-desc">Both players connect to Local test, and one pastes the invitation the other created</p>
+        <p class="section-desc">Both players connect to Local, and one pastes the invitation the other created</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">Both Players Connect to Local Test</span>
+                    <span class="guide-step-title">Both Players Connect to Local</span>
                 </div>
-                <p class="guide-step-text">Open the window with Game → P2P Game (Experimental)…. The first time, create a player key and enter a display name (<a href="p2p-game.html#prepare">Setup</a>).</p>
-                <p class="guide-step-text">On the Connection and Conditions tab, set Network to Local test (same PC / same LAN) and click Connect. You are ready when Status shows Connected (peers: 0) and Invitation route shows "Direct connection to an opponent on the same PC or LAN." (the peer count stays 0 until your opponent connects).</p>
+                <p class="guide-step-text">Open the window with Game → P2P Game…. The first time, create a player key and enter a display name (<a href="p2p-game.html#prepare">Setup</a>).</p>
+                <p class="guide-step-text">On the Connection and Conditions tab, set Network to Local (same PC / same LAN) and click Connect. You are ready when Status shows Connected (peers: 0) and Invitation route shows "Direct connection to an opponent on the same PC or LAN." (the peer count stays 0 until your opponent connects).</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-connection.png"><img src="../../images/en/p2p-game/p2p-connection.png" alt="Connection and Conditions tab connected to Local test, with Invitation route showing a direct connection to an opponent on the same PC or LAN" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Connected to Local test (same PC / same LAN)</p>
+                    <a href="../../images/en/p2p-game/p2p-connection.png"><img src="../../images/en/p2p-game/p2p-connection.png" alt="Connection and Conditions tab connected to Local, with Invitation route showing a direct connection to an opponent on the same PC or LAN" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connected to Local (same PC / same LAN)</p>
                 </div>
             </div>
 
@@ -253,7 +253,7 @@
                         <tr><th scope="col">Message or state</th><th scope="col">What to check</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>"The invitation is for another network."</strong></td><td>The two players chose different networks. Both reconnect to Local test (same PC / same LAN), and the inviter creates a new invitation.</td></tr>
+                        <tr><td><strong>"The invitation is for another network."</strong></td><td>The two players chose different networks. Both reconnect to Local (same PC / same LAN), and the inviter creates a new invitation.</td></tr>
                         <tr><td><strong>"The invitation has expired."</strong></td><td>Ten minutes have passed since it was created. Create a new invitation.</td></tr>
                         <tr><td><strong>"Could not connect to the opponent."</strong></td><td>Check the firewall on the inviter's PC (step 1 above). Swapping who creates the invitation may also help.</td></tr>
                         <tr><td><strong>Invitation route shows "No relay is available. …"</strong></td><td>Uncheck Do not use direct connections on the Settings tab, then disconnect and connect again.</td></tr>
@@ -281,7 +281,7 @@
                     <span class="guide-step-title">Open as Player 2, Player 3, …</span>
                 </div>
                 <p class="guide-step-text">If you start this app several times on the same PC and open P2P Game in each, the second one opens automatically as Player 2, the third as Player 3, and so on (up to eight at a time). The window title and the note at the top show which player it is. When only one app is running, it is always Player 1.</p>
-                <p class="guide-step-text">The player key (player ID), display name, game records and opponent list are saved separately for each player. Connect both to Local test (same PC / same LAN), then paste the invitation created in one into the other to play without a cooperating node. Since the connection stays within the same PC, you usually do not need to change the firewall either.</p>
+                <p class="guide-step-text">The player key (player ID), display name, game records and opponent list are saved separately for each player. Connect both to Local (same PC / same LAN), then paste the invitation created in one into the other to play without a cooperating node. Since the connection stays within the same PC, you usually do not need to change the firewall either.</p>
             </div>
 
         </div>
@@ -291,7 +291,7 @@
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="p2p-game.html" class="back-link">← Back to P2P Games (Experimental)</a>
+    <a href="p2p-game.html" class="back-link">← Back to P2P Games</a>
 </div>
 
 <!-- Footer -->

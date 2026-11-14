@@ -96,6 +96,7 @@
 <tr><td>编译器</td><td>支持 C++17 的 GCC 9 及以上，或 Clang 10 及以上</td></tr>
 <tr><td>CMake</td><td>3.16 及以上（推荐 Ninja）</td></tr>
 <tr><td>Qt</td><td>6.7 及以上（Widgets、Charts、Network、Concurrent、Multimedia、Sql、LinguistTools）。制作发布包还需要 SVG 插件</td></tr>
+<tr><td>Rust 与 libsodium</td><td>用于构建 P2P对局。需要 Rust 1.85 及以上（cargo）和 libsodium 1.0.18 及以上（通过 pkg-config 查找）。如果有 QtKeychain（Qt 6 版），可以把玩家密钥保存在操作系统的密钥保管库中（可选）。用 <code>-DENABLE_P2P_PLAY=OFF</code> 配置时，不含 P2P对局，这些都不需要</td></tr>
 <tr><td>Python</td><td>Python 3（发布用脚本）</td></tr>
 <tr><td>Docker</td><td>在容器中制作用于发布的发布包时</td></tr>
 <tr><td>其他</td><td>Git、curl、file、FUSE 2（运行 AppImage 格式的工具）、ImageMagick（缩小超过 512px 的图标）</td></tr>
@@ -121,7 +122,9 @@
 </blockquote>
 <p>直接在 Arch Linux 上构建和开发时，安装构建工具和 Arch 的 Qt 软件包。fcitx5-qt 用于把日语输入（fcitx5）的输入法插件放进 AppImage；未安装时不会随附该插件。</p>
 <pre><code>sudo pacman -S --needed base-devel cmake ninja git curl file python fuse2 imagemagick \
-  qt6-base qt6-charts qt6-multimedia qt6-svg qt6-tools fcitx5-qt</code></pre>
+  qt6-base qt6-charts qt6-multimedia qt6-svg qt6-tools fcitx5-qt \
+  rust libsodium qtkeychain-qt6</code></pre>
+<p>rust（cargo）、libsodium、qtkeychain-qt6 用于 P2P对局。通信进程 <code>shogiboardq-peer</code> 用 Rust 编写，由 CMake 调用 cargo 构建。所依赖的 crate 由 cargo 在构建过程中从 crates.io 获取（版本和哈希值由 <code>Cargo.lock</code> 固定）。</p>
 </section>
 <section id="setup-other" class="level3">
 <h3>2.2 其他发行版（仅构建应用程序）</h3>
@@ -129,11 +132,15 @@
 <p>Ubuntu / Debian：</p>
 <pre><code>sudo apt install build-essential cmake ninja-build git \
   qt6-base-dev qt6-charts-dev qt6-multimedia-dev qt6-tools-dev qt6-tools-dev-tools \
-  qt6-l10n-tools libqt6sql6-sqlite libgl1-mesa-dev</code></pre>
+  qt6-l10n-tools libqt6sql6-sqlite libgl1-mesa-dev \
+  cargo libsodium-dev pkg-config qtkeychain-qt6-dev</code></pre>
 <p>Fedora：</p>
 <pre><code>sudo dnf install gcc-c++ cmake ninja-build git \
   qt6-qtbase-devel qt6-qtcharts-devel qt6-qtmultimedia-devel qt6-qttools-devel \
-  qt6-linguist mesa-libGL-devel</code></pre>
+  qt6-linguist mesa-libGL-devel \
+  cargo libsodium-devel pkgconf-pkg-config qtkeychain-qt6-devel</code></pre>
+<p>cargo、libsodium、QtKeychain 用于 P2P对局。发行版的 Rust 低于 1.85 时（如 Ubuntu 24.04），请用 <a href="https://rustup.rs/">rustup</a> 安装 Rust。如果不含 P2P对局，可以不安装这些，按如下方式配置。</p>
+<pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=OFF</code></pre>
 <p>使用 Qt Online Installer 安装的 Qt 时，在配置 CMake 时指定其位置（示例为 Qt 6.12.0）。</p>
 <pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH="$HOME/Qt/6.12.0/gcc_64"</code></pre>
@@ -142,7 +149,9 @@
 <h3>2.3 确认安装</h3>
 <pre><code>cmake --version
 g++ --version
-qmake6 --version</code></pre>
+qmake6 --version
+cargo --version
+pkg-config --modversion libsodium</code></pre>
 </section>
 </section>
 <section id="build" class="level2">
@@ -193,8 +202,11 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <p>制作用于发布的发布包时，请先把版本号改为发布当天的日期并提交（<a href="#release">第 6 节</a>）。</p>
 </blockquote>
 <pre><code>./scripts/build-linux-container.sh</code></pre>
+<blockquote>
+<p><strong>关于 P2P对局</strong>：容器中包含用于构建 P2P对局通信进程的 Rust（使用官方发行包并校验 SHA-256，因为当时 Arch 的 Rust 1.79 无法构建），以及 libsodium、QtKeychain。通信进程使用的 Rust crate 由 cargo 在构建过程中从 crates.io 获取，因此每次构建都需要联网（下载的内容保留在 <code>build-container/cargo-home</code> 中，下次构建时复用）。升级 Rust 时，请修改 Dockerfile 中的 <code>RUST_VERSION</code> 和 <code>RUST_SHA256</code>（官方下载站 <code>.sha256</code> 文件的值）。</p>
+</blockquote>
 <ul>
-<li>首次运行时会创建构建环境镜像（<code>scripts/linux-container/Dockerfile</code>，约 3GB）。从 Arch Linux Archive 下载较慢，需要数十分钟。</li>
+<li>首次运行时会创建构建环境镜像（<code>scripts/linux-container/Dockerfile</code>，约 4GB）。从 Arch Linux Archive 下载较慢，需要数十分钟。</li>
 <li>在容器中以自己的用户运行 <code>scripts/build-linux.sh</code>。构建目录与平时的 <code>build</code> 分开，使用 <code>build-container</code>，输出放在仓库根目录。</li>
 <li>为当时的软件包签名的密钥中，有些后来已过期。镜像中用官方密钥环验证签名，但不要求密钥当前受信任。</li>
 <li>随附的 OpenSSL、libcurl 以及 libcurl 使用的网络库（nghttp2、nghttp3、ngtcp2、libssh2）因当时的版本缺少后来的修复，会替换为新版本。当前的 Arch 软件包先用 SHA-256（<code>scripts/linux-container/packages.sha256</code>）和签名验证后再安装；当前软件包会用到新版 glibc 函数的 curl，则在镜像中用同一版本的 Arch PKGBUILD 重新构建。</li>
@@ -231,8 +243,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 </div>
 <p><code>build-linux.sh</code> 依次执行以下处理（在容器中，于容器内执行同样的处理）：</p>
 <ol>
-<li>检查所需工具（cmake、python3；推荐 ninja）</li>
-<li>配置 CMake 并以 Release 方式构建（ShogiBoardQ 与 Hayanagi）</li>
+<li>检查所需工具（cmake、python3、cargo、pkg-config 和 libsodium；推荐 ninja）</li>
+<li>配置 CMake 并以 Release 方式构建（ShogiBoardQ、P2P对局的通信进程 <code>shogiboardq-peer</code>、Hayanagi）</li>
 <li>检查可执行文件、翻译文件，以及 3〜13 手诘的题集（每种手数各 1 个文件）</li>
 <li>下载 linuxdeploy、其 Qt 插件、appimagetool 和 AppImage 运行时（仅首次；保存在构建目录中）。使用前与 <code>build-linux.sh</code> 中记录的 SHA-256 核对。它们都是上游会替换的 continuous 版本，被替换后核对不一致就会停止；此时先确认上游发布的 digest 和改动，再更新这些值</li>
 <li>创建 AppDir 并生成 AppImage（运行所需的文件，以及 Qt 与随附库的许可文档）</li>
@@ -251,6 +263,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
     └── usr/
         ├── bin/
         │   ├── ShogiBoardQ             ← 可执行文件
+        │   ├── shogiboardq-peer        ← P2P对局的通信进程
         │   ├── qt.conf                 ← Qt 插件的位置
         │   └── ShogiBoardQ_{ja_JP,en,zh_CN,zh_TW}.qm   ← 应用程序翻译（4 种语言）
         ├── lib/                        ← Qt 及其依赖库
@@ -267,10 +280,12 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
             ├── ShogiBoardQ/openssl.cnf ← 随附的 OpenSSL 读取的配置（为空，不读取系统的配置）
             └── licenses/ShogiBoardQ/
                 ├── NOTICE*.md, SOURCE_CODE*.md, GPL-3.0.txt, LGPL-3.0.txt
+                ├── RUST-NOTICES.md             ← 通信进程中 Rust 库的文档
                 ├── QT-NOTICES.md, qt/          ← 随附的 Qt 模块的文档
                 ├── QT-SOURCE.json, BUILD.json  ← Qt 的来源与构建时版本
                 └── THIRD-PARTY-NOTICES.md, third-party/   ← Qt 以外随附库的文档</code></pre>
 <ul>
+<li>P2P对局的通信进程 <code>shogiboardq-peer</code> 放在 <code>usr/bin/</code> 中（应用程序从可执行文件所在的文件夹启动它）。应用程序链接的 libsodium 和 QtKeychain 作为依赖库放入 <code>usr/lib/</code>（QtKeychain 使用的 libsecret 在运行时读取系统中的库）。通信进程所包含的 Rust 库（约 250 个 crate）的列表及许可原文在 <code>RUST-NOTICES.md</code> 中，应用程序中也内置了该文档（“版本信息”的“P2P对局所用库的许可证”）。该文档由 <code>scripts/rust_licenses.py</code> 根据 <code>Cargo.lock</code> 生成并保存在仓库中，如果不一致，<code>build-linux.sh</code> 会停止。</li>
 <li>不收录题集、普通对局用的 Hayanagi、说明文档和题集的校验记录（<code>validation_*.json</code>）。应用程序不会从 AppImage 内部读取它们，用户也无法在其中选择文件，因此只作为 ZIP 中 AppImage 之外的文件发布。诘棋练习用的 Hayanagi 已内置于应用程序中。</li>
 <li>删除 linuxdeploy 放入的 Qt 标准翻译（<code>usr/translations/</code>）。标准对话框的日语和中文翻译已内置于可执行文件，应用程序的翻译从 <code>usr/bin/</code> 读取。</li>
 <li>不收录用不到的插件：OpenGL 集成（<code>xcbglintegrations</code>）和 GIF 图像。没有使用 OpenGL 的界面部件。</li>
@@ -330,10 +345,12 @@ chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 ./ShogiBoardQ-linux-x86_64.AppImage --appimage-extract
 ls squashfs-root/usr/bin/ squashfs-root/usr/plugins/*/
 ls squashfs-root/usr/share/licenses/ShogiBoardQ/THIRD-PARTY-NOTICES.md
+squashfs-root/usr/bin/shogiboardq-peer --version
 test ! -e squashfs-root/usr/bin/hayanagi &amp;&amp; test ! -e squashfs-root/usr/translations &amp;&amp; echo OK
 
 # 所需的 glibc 版本
-find squashfs-root/usr -type f \( -name '*.so*' -o -name ShogiBoardQ \) -exec objdump -T {} + 2&gt;/dev/null \
+find squashfs-root/usr -type f \( -name '*.so*' -o -name ShogiBoardQ -o -name shogiboardq-peer \) \
+  -exec objdump -T {} + 2&gt;/dev/null \
   | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
 
 # ZIP 中的 Hayanagi 能作为 USI 引擎响应
@@ -383,6 +400,14 @@ gh release create 2026.10.07 --title "ShogiBoardQ 2026.10.07" \
 <h3>找不到 Qt</h3>
 <pre><code>Could not find a package configuration file provided by "Qt6"</code></pre>
 <p>确认已安装 Qt 6.7 及以上和所需模块。使用 Qt Online Installer 的 Qt 时，用 <code>-DCMAKE_PREFIX_PATH</code> 指定。更换 Qt 或 CMake 生成器后，请在新的 build 目录中重新开始。</p>
+</section>
+<section id="ts-p2p" class="level3">
+<h3>找不到 P2P对局所需的组件</h3>
+<pre><code>P2P play: a Rust toolchain (cargo, Rust 1.85 or later) was not found.
+
+    Install Rust from https://rustup.rs/ or from your package manager.
+    To build without P2P play, configure with -DENABLE_P2P_PLAY=OFF.</code></pre>
+<p>P2P对局默认启用，因此配置时需要 Rust（cargo）和 libsodium。请安装消息中提到的组件（<a href="#setup">第 2 章</a>）。发行版的 Rust 低于 1.85 时，请用 rustup 安装。如果不含 P2P对局，请加上 <code>-DENABLE_P2P_PLAY=OFF</code>。以前在不含 P2P对局的情况下配置过的 build 目录会保留该设置，仍为禁用；要启用，请加上 <code>-DENABLE_P2P_PLAY=ON</code> 重新配置。</p>
 </section>
 <section id="ts-submodule" class="level3">
 <h3>缺少 Hayanagi 的源代码</h3>

@@ -32,6 +32,7 @@ Release の添付は実行用 ZIP と、同じファイルを包んだインス�
 | CMake | 3.16 以上 |
 | Qt | 6.7 以上（Widgets, Charts, Network, Concurrent, Multimedia, Sql, LinguistTools） |
 | C++ | C++17 対応コンパイラ（MSVC 2019 以降） |
+| Rust・libsodium | P2P対局のビルドに使う。Rust 1.85 以上（cargo）と libsodium 1.0.18 以上のビルド済みの配布物（[3.4](#34-p2p対局rust-と-libsodium)）。P2P対局なしでビルドするなら要らない |
 
 ---
 
@@ -116,7 +117,8 @@ cd ShogiBoardQ
 > **重要**: Developer PowerShell for VS 2022 から実行すること（MSVC の環境変数が必要）。
 
 ```powershell
-# 通常ビルド + ZIP 作成
+# 通常ビルド + ZIP 作成（libsodium の場所を、環境変数 SODIUM_ROOT か -SodiumRoot で渡す。3.4）
+$env:SODIUM_ROOT = "C:\dev\libsodium-msvc\libsodium"
 .\scripts\build-windows.ps1
 
 # クリーンビルド、ZIP なし
@@ -135,14 +137,16 @@ cd ShogiBoardQ
 | `-BuildDir` | ビルドディレクトリ（既定: `build`） |
 | `-DeployDir` | 配布用ディレクトリ（既定: `deploy`） |
 | `-ZipPath` | 作成する ZIP ファイル（既定: `ShogiBoardQ-windows.zip`） |
+| `-SodiumRoot` | libsodium のビルド済みの配布物を展開した中の `libsodium` フォルダ（既定: 環境変数 `SODIUM_ROOT`）。P2P対局のビルドに使う（[3.4](#34-p2p対局rust-と-libsodium)） |
+| `-NoP2p` | P2P対局を入れずにビルドする（Rust と libsodium が要らない） |
 | `-Help` | ヘルプを表示 |
 
 スクリプトは以下の処理を自動実行する：
 
-1. 前提ツールの存在確認（cmake, ninja, cl, windeployqt, MSVC ランタイム DLL の場所）
-2. CMake Configure + ビルド（ShogiBoardQ・shogiboardq-cli・Hayanagi）
-3. ビルド成果物の確認（.exe、.qm 翻訳ファイル、hayanagi.exe と定跡、各手数1ファイルの問題集）
-4. deploy ディレクトリ作成 + 問題集・Hayanagi（定跡を含む）・LICENSE の配置 + windeployqt による DLL デプロイ +
+1. 前提ツールの存在確認（cmake, ninja, cl, windeployqt, MSVC ランタイム DLL の場所と、P2P対局に使う cargo・libsodium）
+2. CMake Configure + ビルド（ShogiBoardQ・shogiboardq-cli・P2P対局の通信プロセス shogiboardq-peer・Hayanagi）
+3. ビルド成果物の確認（.exe、.qm 翻訳ファイル、shogiboardq-peer.exe と libsodium.dll、hayanagi.exe と定跡、各手数1ファイルの問題集）
+4. deploy ディレクトリ作成 + shogiboardq-peer.exe と libsodium.dll・問題集・Hayanagi（定跡を含む）・LICENSE の配置 + windeployqt による DLL デプロイ +
    `qoffscreen.dll` の追加 + MSVC ランタイム DLL のコピー + 検証
 5. ZIP ファイル作成
 
@@ -213,20 +217,22 @@ dir build\Release\*.qm   # VS ジェネレータ
 .\build\ShogiBoardQ.exe
 ```
 
-### 3.4 P2P対局（実験版）を有効にしたビルド
+### 3.4 P2P対局（Rust と libsodium）
 
-P2P対局（`ENABLE_P2P_PLAY`、既定 OFF）は配布物には入れない。試すときは、次の2つを用意して MSVC でビルドする。
+P2P対局（`ENABLE_P2P_PLAY`）は既定で有効で、配布物にも入れる（`scripts/build-windows.ps1` もそのままビルドし、ZIP とインストーラに入る）。ビルドには次の2つが要る（MSVC でビルドする）。
 
 - **Rust**（1.85 以上。[rustup](https://rustup.rs/) の `x86_64-pc-windows-msvc`）。通信プロセス `shogiboardq-peer.exe` を cargo でビルドする
 - **libsodium**（1.0.18 以上）。公式のビルド済みの配布物（`libsodium-<版>-msvc.zip`）を展開し、中の `libsodium` フォルダ
   （`include\` と `x64\` がある）を `SODIUM_ROOT` で指定する。`libsodium.dll` はビルドがアプリの隣にコピーする
 
 ```powershell
-cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON `
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON `
     -DSODIUM_ROOT=C:\dev\libsodium-msvc\libsodium
 cmake --build build
 ctest --test-dir build -R tst_p2p --output-on-failure
 ```
+
+P2P対局なしでビルドするとき（Rust と libsodium が要らない）は、構成に `-DENABLE_P2P_PLAY=OFF` を付ける（配布スクリプトは `-NoP2p`）。以前に P2P対局なしで構成した build ディレクトリは、その設定が残って無効のままになる。有効にするには `-DENABLE_P2P_PLAY=ON` を付けて構成し直す。
 
 通信プロセスは、アプリが AppContainer・ジョブ・子プロセスの禁止を付けて起動する（`src/network/p2p/peerconfinement.cpp`、
 `protocol/ipc.md` 6.2節）。次の点が Linux と違う。
@@ -237,6 +243,8 @@ ctest --test-dir build -R tst_p2p --output-on-failure
 - `shogiboardq-peer.exe` を直接起動しても動かない（終了コード 3）。Rust の結合試験（`peer/tests/ipc.rs`）は Linux と macOS だけで動き、
   Windows の試験は `tst_p2p_sandbox`・`tst_p2p_endtoend` で行う
 - 協力ノード（`shogiboardq-peer --service`）は Windows では動かない
+- 配布物では、`shogiboardq-peer.exe` と `libsodium.dll` を `ShogiBoardQ.exe` と同じフォルダに置く（配布スクリプトとインストーラがそうする）。アプリは通信プロセスを自分と同じフォルダから起動する
+- 通信プロセスに取り込んだ Rust のライブラリの一覧とライセンスの本文（`resources/licenses/RUST-NOTICES.md`）と、libsodium のライセンスは、アプリに内蔵している（「バージョン情報」）。依存（`Cargo.lock`）を変えたら `python scripts/rust_licenses.py` で作り直す（合っていなければ配布スクリプトが停止する）
 
 ---
 
@@ -252,6 +260,8 @@ exe、翻訳ファイル、詰将棋問題集、Hayanagi とその定跡、LICEN
 mkdir deploy, deploy\Hayanagi\book, deploy\data\tsumeshogi
 copy build\ShogiBoardQ.exe deploy\
 copy build\shogiboardq-cli.exe deploy\
+copy build\shogiboardq-peer.exe deploy\
+copy build\libsodium.dll deploy\
 copy build\*.qm deploy\
 copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
 copy build\Hayanagi\book\hayanagi_book.db deploy\Hayanagi\book\
@@ -338,6 +348,10 @@ dir deploy\platforms\qoffscreen.dll
 # SQLite ドライバー（詰将棋の解答履歴の保存に使う）
 dir deploy\sqldrivers\qsqlite.dll
 
+# P2P対局の通信プロセスと libsodium
+dir deploy\shogiboardq-peer.exe
+dir deploy\libsodium.dll
+
 # Hayanagi・定跡と問題集（6ファイル）
 dir deploy\Hayanagi
 dir deploy\Hayanagi\book\hayanagi_book.db
@@ -350,6 +364,8 @@ dir deploy\data\tsumeshogi
 deploy/
 ├── ShogiBoardQ.exe                ← 実行ファイル
 ├── shogiboardq-cli.exe            ← CLI（MCP サーバーが呼び出す）
+├── shogiboardq-peer.exe           ← P2P対局の通信プロセス
+├── libsodium.dll                  ← libsodium（P2P対局の署名）
 ├── LICENSE                        ← ライセンス
 ├── ShogiBoardQ_ja_JP.qm           ← 日本語翻訳
 ├── ShogiBoardQ_en.qm              ← 英語翻訳
@@ -561,7 +577,7 @@ gh release create 2026.10.07 `
 # Windows SDK に含まれる signtool を使用
 signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
   /f "certificate.pfx" /p "password" `
-  deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe deploy\Hayanagi\hayanagi.exe
+  deploy\ShogiBoardQ.exe deploy\shogiboardq-cli.exe deploy\shogiboardq-peer.exe deploy\Hayanagi\hayanagi.exe
 ```
 
 署名は ZIP を作る前に行う。スクリプトを使うときは、`-SkipZip` で deploy フォルダまで作り、署名してから ZIP にする（[4.5](#45-zip-ファイルの作成) の手順）。

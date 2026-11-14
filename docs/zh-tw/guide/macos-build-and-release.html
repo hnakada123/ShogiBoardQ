@@ -96,6 +96,7 @@
 <tr><td>CMake</td><td>3.16 以上</td></tr>
 <tr><td>Qt</td><td>6.7 以上（Widgets、Charts、Network、Concurrent、Multimedia、Sql、LinguistTools）</td></tr>
 <tr><td>C++</td><td>支援 C++17 的編譯器</td></tr>
+<tr><td>Rust 與 libsodium</td><td>用於建置 <a href="p2p-game.html">P2P對局</a>。需要 Rust 1.85 以上（cargo）和 libsodium 1.0.18 以上（<a href="#build-p2p">3.4</a>）。不含 P2P對局時不需要</td></tr>
 </tbody>
 </table>
 </div>
@@ -108,8 +109,8 @@
 </section>
 <section id="setup-homebrew" class="level3">
 <h3>2.2 以 Homebrew 安裝相依工具</h3>
-<pre class="bash"><code>brew install cmake ninja create-dmg</code></pre>
-<p><code>create-dmg</code> 是發行指令碼製作 DMG 時使用的工具（使用 <code>--skip-dmg</code> 時不需要）。</p>
+<pre class="bash"><code>brew install cmake ninja create-dmg rust libsodium pkg-config</code></pre>
+<p><code>create-dmg</code> 是發行指令碼製作 DMG 時使用的工具（使用 <code>--skip-dmg</code> 時不需要）。<code>rust</code>、<code>libsodium</code>、<code>pkg-config</code> 用於建置 P2P對局（<a href="#build-p2p">3.4</a>）。</p>
 </section>
 <section id="setup-qt" class="level3">
 <h3>2.3 安裝 Qt 6</h3>
@@ -176,7 +177,7 @@ export APPLE_ID=&quot;your@email.com&quot; APPLE_TEAM_ID=&quot;TEAMID&quot; APPL
 <tr><th>選項</th><th>說明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>--universal</code></td><td>建置通用二進位檔（arm64 + x86_64）</td></tr>
+<tr><td><code>--universal</code></td><td>建置通用二進位檔（arm64 + x86_64。不含 P2P對局，請參閱 <a href="#build-p2p">3.4</a>）</td></tr>
 <tr><td><code>--deployment-target VER</code></td><td>最低支援的 macOS 版本（預設：環境變數 <code>MACOSX_DEPLOYMENT_TARGET</code>，未設定時為 <code>26.0</code>）</td></tr>
 <tr><td><code>--sign-identity ID</code></td><td>程式碼簽章身分（預設：<code>-</code> = 臨時（ad hoc）簽章）。指定 Developer ID 時，會啟用強化執行階段（Hardened Runtime）並加上時間戳記進行簽章，DMG 也會簽章</td></tr>
 <tr><td><code>--notarize</code></td><td>將 DMG 提交 Apple 公證，裝訂公證結果後再製作發行用 ZIP。需要以 <code>--sign-identity</code> 指定 Developer ID，並設定環境變數 <code>APPLE_ID</code>、<code>APPLE_TEAM_ID</code>、<code>APPLE_APP_PASSWORD</code>（App 專用密碼）</td></tr>
@@ -189,13 +190,13 @@ export APPLE_ID=&quot;your@email.com&quot; APPLE_TEAM_ID=&quot;TEAMID&quot; APPL
 </div>
 <p>指令碼會自動執行以下處理：</p>
 <ol type="1">
-<li>確認所需工具（cmake、ninja、macdeployqt、codesign、vtool、python3、create-dmg）</li>
+<li>確認所需工具（cmake、ninja、macdeployqt、codesign、vtool、python3、create-dmg，以及 P2P對局使用的 cargo、pkg-config、libsodium）</li>
 <li>CMake 設定（指定 <code>CMAKE_OSX_DEPLOYMENT_TARGET</code>）+ Ninja 建置</li>
-<li>確認建置產物（.app、執行檔的最低 macOS 版本、.qm 翻譯檔）</li>
+<li>確認建置產物（.app、執行檔和 P2P對局通訊程序的最低 macOS 版本、.qm 翻譯檔，以及 Rust 程式庫的授權清單與 <code>Cargo.lock</code> 一致）</li>
 <li>以 macdeployqt 打包框架</li>
 <li>刪除未使用的 Qt 元件，並將 Qt 二進位檔精簡為 arm64（<a href="#bundle-prune">4.4</a>。使用 <code>--universal</code> 時不精簡為 arm64）+ 驗證</li>
 <li>附帶 Qt 授權文件（使用 <code>--skip-qt-licenses</code> 時略過）</li>
-<li>對整個應用程式套件進行程式碼簽章 + 以 <code>codesign --verify --deep --strict</code> 驗證</li>
+<li>對 P2P對局的通訊程序和整個應用程式套件進行程式碼簽章 + 以 <code>codesign --verify --deep --strict</code> 驗證</li>
 <li>以 create-dmg 製作 DMG（使用 Developer ID 時也對 DMG 簽章）</li>
 <li>使用 <code>--notarize</code> 時，對 DMG 進行公證與裝訂 + 驗證</li>
 <li>製作包含 DMG、Hayanagi 與詰將棋題集的發行用 ZIP（<code>ShogiBoardQ-macos.zip</code>）（<a href="#dmg-zip">5.2</a>）</li>
@@ -251,26 +252,29 @@ find build/ShogiBoardQ.app -type f | head -20</code></pre>
 open build/ShogiBoardQ.app</code></pre>
 </section>
 <section id="build-p2p" class="level3">
-<h3>3.4 啟用P2P對局（實驗版）的建置</h3>
-<p><a href="p2p-game.html">P2P對局</a>（<code>ENABLE_P2P_PLAY</code>，預設 OFF）不包含在發布套件中（<code>scripts/build-macos.sh</code> 不會啟用它）。要試用時，請準備以下兩項後再建置。</p>
+<h3>3.4 P2P對局（Rust 與 libsodium）</h3>
+<p><a href="p2p-game.html">P2P對局</a>（<code>ENABLE_P2P_PLAY</code>）預設啟用，也包含在發行套件中（<code>scripts/build-macos.sh</code> 同樣會建置它）。建置需要以下兩項。</p>
 <ul>
 <li><strong>Rust</strong>（1.85 以上）。用 cargo 建置通訊程序 <code>shogiboardq-peer</code></li>
 <li><strong>libsodium</strong>（1.0.18 以上）。透過 pkg-config 尋找</li>
 </ul>
 <pre class="bash"><code>brew install rust libsodium pkg-config
 
-cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_P2P_PLAY=ON -DBUILD_TESTING=ON \
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON \
     -DCMAKE_PREFIX_PATH=&quot;$HOME/Qt/6.x.x/macos&quot;
 ninja -C build
 ctest --test-dir build -R tst_p2p --output-on-failure
 cargo test --locked --workspace</code></pre>
+<p>不含 P2P對局建置時（不需要 Rust 和 libsodium），請在設定時加上 <code>-DENABLE_P2P_PLAY=OFF</code>。以前在不含 P2P對局的情況下設定過的 build 目錄會保留該設定，仍為停用；要啟用，請加上 <code>-DENABLE_P2P_PLAY=ON</code> 重新設定。</p>
 <p>通訊程序產生在應用程式套件內（<code>ShogiBoardQ.app/Contents/MacOS/shogiboardq-peer</code>），由應用程式從該位置啟動。以下幾點與 Linux、Windows 不同。</p>
 <ul>
 <li>通訊程序啟動後會立即自行進入沙盒（Seatbelt）。讀寫檔案、啟動程式、連線到 Unix 網域通訊端等操作會被拒絕，拒絕記錄保留在「系統監視程式」App 的記錄中（傳送者為 <code>Sandbox</code>）</li>
 <li>不使用區域網路（同一台電腦、同一區域網路）時，應用程式會加上 <code>--no-loopback</code> 啟動，沙盒也會阻止向這台 Mac 自身發起的連線</li>
 <li>除錯器（lldb）無法附加到通訊程序</li>
-<li>指定 <code>CMAKE_OSX_DEPLOYMENT_TARGET</code> 後，通訊程序也以相同的最低 macOS 版本建置。不支援 Universal Binary（通訊程序只有建置所用 Mac 的架構）</li>
-<li>libsodium 連結到 Homebrew 的動態函式庫（<code>/opt/homebrew/opt/libsodium</code>）。要製作能拿到其他 Mac 上執行的應用程式套件，請用 macdeployqt 一併打包</li>
+<li>指定 <code>CMAKE_OSX_DEPLOYMENT_TARGET</code> 後，通訊程序也以相同的最低 macOS 版本建置。不支援 Universal Binary（通訊程序和 Homebrew 的 libsodium 只有建置所用 Mac 的架構）。<code>scripts/build-macos.sh --universal</code> 會在不含 P2P對局的情況下建置</li>
+<li>libsodium 連結到 Homebrew 的動態函式庫（<code>/opt/homebrew/opt/libsodium</code>），由 macdeployqt 打包到應用程式套件的 <code>Contents/Frameworks</code> 中。如果打包的 libsodium 的最低 macOS 版本高於應用程式的目標版本，發行指令碼會停止（此時請針對目標版本重新建置，例如 <code>MACOSX_DEPLOYMENT_TARGET=26.0 brew reinstall --build-from-source libsodium</code>）</li>
+<li>發行指令碼會在對應用程式套件簽署之前，先單獨對通訊程序簽署（使用 Developer ID 時啟用 Hardened Runtime 並附加時間戳記。不加入權限（entitlements））</li>
+<li>通訊程序所包含的 Rust 程式庫的清單及授權原文（<code>resources/licenses/RUST-NOTICES.md</code>）內建在應用程式中（「版本資訊」的「P2P對局所用程式庫的授權」）。變更相依項目（<code>Cargo.lock</code>）後，請用 <code>python3 scripts/rust_licenses.py</code> 重新產生（不一致時發行指令碼會停止）</li>
 <li>要把玩家金鑰儲存到鑰匙圈，需要 QtKeychain（選用。須用與應用程式相同的 Qt 建置。Homebrew 的 <code>qtkeychain</code> 是給 Homebrew 的 Qt 用的，不要與 Qt Online Installer 的 Qt 混用）。沒有時，金鑰儲存在用密碼片語加密的檔案中</li>
 <li>協作節點（<code>shogiboardq-peer --service</code>）也可以執行</li>
 </ul>
@@ -660,7 +664,7 @@ install_name_tool -change \
 </section>
 <section id="trouble-universal" class="level3">
 <h3>製作通用二進位檔（Intel + Apple 晶片）</h3>
-<p>使用發行指令碼時，可以用 <code>./scripts/build-macos.sh --universal</code> 建置（不會將 Qt 精簡為 arm64（<a href="#bundle-prune">4.4</a>））。</p>
+<p>使用發行指令碼時，可以用 <code>./scripts/build-macos.sh --universal</code> 建置（不會將 Qt 精簡為 arm64（<a href="#bundle-prune">4.4</a>），也不含 P2P對局）。</p>
 <p>製作同時支援兩種架構的二進位檔時：</p>
 <pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES=&quot;arm64;x86_64&quot;
