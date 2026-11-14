@@ -387,6 +387,9 @@ void MainWindowComposer::createDocks()
     m_c.dockRegistry = new DockRegistry(&m_window, m_ui.Display, &m_window);
     DockRegistry* docks = m_c.dockRegistry;
     docks->createAll(contents);
+    // ドックのドラッグ中は横幅を固定し直さず、浮動のドックを戻せるだけの余白を作る
+    QObject::connect(docks, &DockRegistry::dockDragStarted, m_c.appearance, &MainWindowAppearanceController::beginDockDrag);
+    QObject::connect(docks, &DockRegistry::dockDragFinished, m_c.appearance, &MainWindowAppearanceController::endDockDrag);
     // メニューウィンドウの分類に、ドックの表示の切り替えも入れる。ツールバーの「メニュー」はドックの表示を切り替える
     m_c.menuWindowController->collectCategoriesFromMenuBar();
     m_c.menuWindowController->attachDock(docks->dock(Id::Menu));

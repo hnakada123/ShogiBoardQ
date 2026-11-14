@@ -2,7 +2,7 @@
 
 > このファイルは `scripts/update-test-summary.sh` で生成します。
 
-- CTest ケース数: 152
+- CTest ケース数: 154
 - 取得コマンド: `ctest --test-dir build -N`
 
 ## テスト一覧
@@ -133,29 +133,31 @@
 124. `tst_kifupresentation`
 125. `tst_legal_move_highlights`
 126. `tst_board_drag_repaint`
-127. `tst_move_record_updates`
-128. `tst_thinking_display_updates`
-129. `tst_thinking_display_updates_scaled`
-130. `tst_thinking_display_updates_scaled15`
-131. `tst_application_style`
-132. `tst_application_rendering`
-133. `tst_table_header_view`
-134. `tst_layout_boundary_widget`
-135. `tst_incremental_table_view`
-136. `tst_incremental_table_view_scaled`
-137. `tst_candidate_arrows`
-138. `tst_plain_tooltip`
-139. `tst_i18n_workflows`
-140. `tst_applicationlogging`
-141. `tst_service_initialization`
-142. `tst_automation_security`
-143. `tst_position_collection_file`
-144. `tst_settings_form_binding`
-145. `tst_param_specs`
-146. `tst_p2p_protocol`
-147. `tst_p2p_match`
-148. `tst_p2p_coordinator`
-149. `tst_p2p_endtoend`
-150. `tst_p2p_sandbox`
-151. `tst_p2p_ui`
-152. `tst_p2p_identity`
+127. `tst_sent_move_display`
+128. `tst_move_record_updates`
+129. `tst_thinking_display_updates`
+130. `tst_thinking_display_updates_scaled`
+131. `tst_thinking_display_updates_scaled15`
+132. `tst_application_style`
+133. `tst_application_rendering`
+134. `tst_table_header_view`
+135. `tst_layout_boundary_widget`
+136. `tst_dock_drag`
+137. `tst_incremental_table_view`
+138. `tst_incremental_table_view_scaled`
+139. `tst_candidate_arrows`
+140. `tst_plain_tooltip`
+141. `tst_i18n_workflows`
+142. `tst_applicationlogging`
+143. `tst_service_initialization`
+144. `tst_automation_security`
+145. `tst_position_collection_file`
+146. `tst_settings_form_binding`
+147. `tst_param_specs`
+148. `tst_p2p_protocol`
+149. `tst_p2p_match`
+150. `tst_p2p_coordinator`
+151. `tst_p2p_endtoend`
+152. `tst_p2p_sandbox`
+153. `tst_p2p_ui`
+154. `tst_p2p_identity`

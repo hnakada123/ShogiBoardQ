@@ -4,6 +4,7 @@
 #include "dockregistry.h"
 
 #include "dialogutils.h"
+#include "dockdragtracker.h"
 #include "docksettings.h"
 #include "layoutboundarywidget.h"
 #include "opaquebackground.h"
@@ -23,7 +24,11 @@ namespace {
 class DockWidget : public QDockWidget
 {
 public:
-    using QDockWidget::QDockWidget;
+    DockWidget(const QString& title, QWidget* parent, DockDragTracker* dragTracker)
+        : QDockWidget(title, parent)
+        , m_dragTracker(dragTracker)
+    {
+    }
 
     void setVisible(bool visible) override
     {
@@ -44,8 +49,17 @@ protected:
         if ((type == QEvent::WindowActivate || type == QEvent::WindowDeactivate) && !isFloating()
             && palette().isEqual(QPalette::Active, QPalette::Inactive))
             return QWidget::event(event);
-        return QDockWidget::event(event);
+        // タイトルバーをつかんだドラッグの始まりと終わりを知らせる（QDockWidget は知らせない）
+        if (type != QEvent::MouseButtonPress && type != QEvent::MouseMove && type != QEvent::MouseButtonRelease)
+            return QDockWidget::event(event);
+        m_dragTracker->beforeEvent(this, event);
+        const bool handled = QDockWidget::event(event);
+        m_dragTracker->afterEvent(this, event);
+        return handled;
     }
+
+private:
+    DockDragTracker* const m_dragTracker;
 };
 
 constexpr Qt::DockWidgetArea kRight = Qt::RightDockWidgetArea;
@@ -109,8 +123,11 @@ DockRegistry::DockRegistry(QMainWindow* window, QMenu* displayMenu, QObject* par
     : QObject(parent)
     , m_window(window)
     , m_displayMenu(displayMenu)
+    , m_dragTracker(new DockDragTracker(this))
 {
     Q_ASSERT(m_window);
+    connect(m_dragTracker, &DockDragTracker::dragStarted, this, &DockRegistry::dockDragStarted);
+    connect(m_dragTracker, &DockDragTracker::dragFinished, this, &DockRegistry::dockDragFinished);
     m_window->setStyleSheet(m_window->styleSheet() + QStringLiteral(
         "QMainWindow > QTabBar::tab { background: #edf0f3; color: #596571;"
         " border: none; border-bottom: 2px solid transparent; padding: 6px 12px; }"
@@ -125,7 +142,7 @@ void DockRegistry::createAll(const Contents& contents)
         QWidget* content = contents.at(indexOf(entry.id));
         if (!content) continue;
         const QString dockTitle = title(entry.id);
-        auto* dock = new DockWidget(dockTitle, m_window);
+        auto* dock = new DockWidget(dockTitle, m_window, m_dragTracker);
         dock->setObjectName(QString::fromLatin1(entry.objectName));
         dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable
                           | QDockWidget::DockWidgetClosable);

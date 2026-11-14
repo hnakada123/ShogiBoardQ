@@ -12,6 +12,7 @@ class QWidget;
 class QVBoxLayout;
 class QToolBar;
 class QAction;
+class QDockWidget;
 class QMainWindow;
 
 /**
@@ -20,7 +21,8 @@ class QMainWindow;
  * 責務:
  * - セントラルウィジェットに盤を置き、盤の大きさの変化に合わせる
  * - ツールバーの設定と表示の切り替え、ツールバーのボタンのツールチップ
- * - 盤面・ドック配置に合わせたウィンドウ横幅の固定（全画面・最大化では外す）
+ * - 盤面・ドック配置に合わせたウィンドウ横幅の固定（全画面・最大化では外す）。ドックをドラッグしている間は
+ *   固定し直さず、浮動のドックを戻せるだけの余白を作る
  * - 盤の反転（駒の向きと時計の見た目を合わせる）と、メニューからの拡大・縮小
  *   （Ctrl+ホイールは ShogiView が自分で受ける）
  */
@@ -62,6 +64,12 @@ public slots:
     /// ツールバー表示/非表示切替（設定に保存する）
     void onToolBarVisibilityToggled(bool visible);
 
+    /// ドックのドラッグが始まる: 終わるまで横幅を固定し直さない。浮動のドックなら、盤の横や
+    /// ほかのドックの隣にも戻せるように、そのドックの分だけ先にウィンドウを広げる
+    void beginDockDrag(QDockWidget* dock);
+    /// ドックのドラッグが終わった: 今の配置に必要な横幅に固定し直す
+    void endDockDrag();
+
 private slots:
     /// 盤の大きさが変わったらセントラルウィジェットを盤に合わせ、マスの大きさを保存する
     void onBoardZoomed();
@@ -81,6 +89,11 @@ private:
     QWidget* m_central = nullptr;
     QVBoxLayout* m_centralLayout = nullptr;
     bool m_windowWidthUpdatePending = false;
+    bool m_dockDragActive = false;  ///< ドックをドラッグしている間（横幅を固定し直さない）
+    bool m_dockAnimationToRestore = true;  ///< ドラッグの前の、ドックのアニメーションの設定
+    /// 固定した横幅と違う幅にされたときに、続けて合わせ直した回数（幅が合うか、固定する幅が変わると 0 に戻す）
+    int m_widthCorrections = 0;
+    static constexpr int kMaxWidthCorrections = 5;
 };
 
 #endif // MAINWINDOWAPPEARANCECONTROLLER_H

@@ -857,6 +857,7 @@ add_shogi_test(tst_dock_layout
     tst_dock_layout.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/docks/docklayoutmanager.cpp
+    ${SRC}/ui/docks/dockdragtracker.cpp
     ${SRC}/ui/docks/dockregistry.cpp
     ${SRC}/ui/presenters/notificationpresenter.cpp
     ${SRC}/common/errorbus.cpp
@@ -1272,6 +1273,9 @@ add_shogi_test(tst_table_header_view tst_table_header_view.cpp)
 target_link_libraries(tst_table_header_view PRIVATE shogiboardq_static)
 add_shogi_test(tst_layout_boundary_widget tst_layout_boundary_widget.cpp)
 target_link_libraries(tst_layout_boundary_widget PRIVATE shogiboardq_static)
+# ドックのドラッグの知らせと、ドラッグの間の主画面の横幅（切り離したドックを盤の横へ戻せる）
+add_shogi_test(tst_dock_drag tst_dock_drag.cpp)
+target_link_libraries(tst_dock_drag PRIVATE shogiboardq_static)
 add_shogi_test(tst_incremental_table_view tst_incremental_table_view.cpp)
 target_link_libraries(tst_incremental_table_view PRIVATE shogiboardq_static)
 # 小数倍率では表示領域を不透明にせず、全体を描き直す経路を使う。その場合も画面が正しいことを確かめる

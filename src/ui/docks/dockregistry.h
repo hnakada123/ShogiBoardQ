@@ -8,6 +8,7 @@
 #include <QObject>
 #include <array>
 
+class DockDragTracker;
 class QDockWidget;
 class QMainWindow;
 class QMenu;
@@ -20,6 +21,7 @@ class QWidget;
  * 規定の配置は表の並びで決まる（同じ場所のドックは、表で前にあるドックのタブに後ろから重ねる）。
  * 起動時の配置と「レイアウトを元に戻す」（resetToDefault()）はどちらもこの表から作る。
  * 浮動・表示・位置はすべてのドックで同じ方式で保存する（saveStates()）。
+ * ドックをタイトルバーでつかんで動かすドラッグの始まりと終わりも知らせる（DockDragTracker）。
  */
 class DockRegistry : public QObject
 {
@@ -70,6 +72,12 @@ public:
     /// すべてのドックの浮動・表示・位置を保存する
     void saveStates() const;
 
+signals:
+    /// ドックをタイトルバーでつかんだドラッグが始まる（Qt がドロップ先を探し始める前。ドッキングできるドラッグだけ）
+    void dockDragStarted(QDockWidget* dock);
+    /// そのドラッグが終わった（ドッキングを始めたか、浮動のまま置いた）
+    void dockDragFinished();
+
 private:
     /// 表の順に、規定の場所へ置く（同じ場所の2つ目からは前のドックのタブに重ねる）
     void placeAll();
@@ -78,6 +86,7 @@ private:
 
     QMainWindow* m_window = nullptr;
     QMenu* m_displayMenu = nullptr;
+    DockDragTracker* const m_dragTracker;
     std::array<QDockWidget*, kDockCount> m_docks{};
 };
 

@@ -688,6 +688,59 @@ private slots:
         QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
         QVERIFY(table->visualRect(table->model()->index(1, 1)).right() < table->viewport()->width());
     }
+    /// 切り離した棋譜のドックを、タイトルバーのドラッグで盤の横へ戻せる。
+    /// 横幅は配置の最小に固定しているので、何もしなければ Qt は盤の横をドロップ先にしない
+    void floatingDockReturnsBesideBoard()
+    {
+        auto* dock = window->findChild<QDockWidget*>("RecordPaneDock");
+        QVERIFY(dock);
+        QTRY_COMPARE(window->width(), window->layout()->minimumSize().width());
+        QTRY_COMPARE(window->minimumWidth(), window->maximumWidth());
+        const int dockedWidth = window->width();
+        const QRect dockedGeometry = dock->geometry();
+        const int boardRow = board()->mapTo(window.get(), board()->rect().center()).y();
+        const auto titlePos = [dock] { return QPoint(dock->width() / 3, dock->widget()->geometry().top() / 2); };
+
+        // 引き出す間は横幅を変えず（途中で縮めると、中身が元の幅のまま残って右側が切れる）、離してから縮める
+        QPoint press = titlePos();
+        QTest::mousePress(dock, Qt::LeftButton, Qt::NoModifier, press);
+        QTest::mouseMove(dock, press + QPoint(40, 40));
+        QVERIFY(dock->isFloating());
+        const QPoint outside = window->mapToGlobal(QPoint(window->width() / 2, window->height() + 200));
+        QTest::mouseMove(dock, dock->mapFromGlobal(outside));
+        QTest::qWait(50);
+        QCOMPARE(window->width(), dockedWidth);
+        QTest::mouseRelease(dock, Qt::LeftButton, Qt::NoModifier, dock->mapFromGlobal(outside));
+        QVERIFY(dock->isFloating());
+        QTRY_VERIFY(window->width() < dockedWidth);
+        QTRY_COMPARE(window->width(), window->layout()->minimumSize().width());
+        const int boardOnlyWidth = window->width();
+        auto* thinking = window->findChild<QDockWidget*>("ThinkingDock");
+        QVERIFY(thinking);
+        QTRY_COMPARE(thinking->width(), boardOnlyWidth);
+        snapshot("dock-floated-board-only");
+
+        // 浮動のドックをつかむと、そのドックを入れられるだけ広がる
+        press = titlePos();
+        QTest::mousePress(dock, Qt::LeftButton, Qt::NoModifier, press);
+        QCOMPARE(window->width(), boardOnlyWidth);
+        QTest::mouseMove(dock, press + QPoint(-30, -30));
+        QVERIFY(window->width() >= boardOnlyWidth + dock->minimumWidth());
+
+        // 盤の右隣で離すと、切り離す前の配置に戻る
+        const QPoint beside = window->mapToGlobal(QPoint(window->width() - 20, boardRow));
+        QTest::mouseMove(dock, dock->mapFromGlobal(beside));
+        QTest::qWait(50);
+        QTest::mouseRelease(dock, Qt::LeftButton, Qt::NoModifier, dock->mapFromGlobal(beside));
+        QTRY_VERIFY(!dock->isFloating());
+        QCOMPARE(window->dockWidgetArea(dock), Qt::RightDockWidgetArea);
+        QTRY_COMPARE(window->width(), dockedWidth);
+        QTRY_COMPARE(dock->geometry(), dockedGeometry);
+        QCOMPARE(window->minimumWidth(), window->maximumWidth());
+        QTRY_COMPARE(thinking->width(), dockedWidth);
+        QVERIFY(window->isAnimated());
+        snapshot("dock-returned-beside-board");
+    }
     void captureKeepsWindowGeometry_data()
     {
         QTest::addColumn<int>("fontIncrease");

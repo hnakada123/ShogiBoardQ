@@ -3,8 +3,11 @@
 
 #include "mainwindowappearancecontroller.h"
 
+#include <QDockWidget>
 #include <QEvent>
+#include <QLayout>
 #include <QMainWindow>
+#include <QStyle>
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
@@ -52,8 +55,10 @@ bool MainWindowAppearanceController::eventFilter(QObject* watched, QEvent* event
         // 通常表示に戻った際は、現在の盤面・ドックに合わせた横幅に戻す。
         scheduleWindowWidthUpdate();
     }
+    // Resize: 固定した横幅と違う幅にされたとき（updateWindowWidth の説明）に合わせ直す
     if (watched == m_mainWindow
-        && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)) {
+        && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show
+            || event->type() == QEvent::Resize)) {
         scheduleWindowWidthUpdate();
     }
     return QObject::eventFilter(watched, event);
@@ -69,6 +74,9 @@ void MainWindowAppearanceController::scheduleWindowWidthUpdate()
 void MainWindowAppearanceController::updateWindowWidth()
 {
     m_windowWidthUpdatePending = false;
+    // ドックのドラッグ中は変えない: Qt はドラッグが終わるまでウィンドウの大きさの変更を配置に反映しないので、
+    // 途中で縮めると中身が元の幅のまま残る。終わったら endDockDrag() から固定し直す
+    if (m_dockDragActive) return;
     if (!m_mainWindow || !m_mainWindow->isVisible() || !m_mainWindow->layout()) return;
     // setFixedWidth() によるリサイズは全画面表示・最大化を解除してしまう。
     if (m_mainWindow->isFullScreen() || m_mainWindow->isMaximized()
@@ -78,10 +86,54 @@ void MainWindowAppearanceController::updateWindowWidth()
     // 高さは従来どおり変更でき、盤の拡縮やフォント変更時には横幅も追従する。
     m_mainWindow->layout()->activate();
     const int width = m_mainWindow->layout()->minimumSize().width();
-    if (width > 0
-        && (m_mainWindow->minimumWidth() != width || m_mainWindow->maximumWidth() != width)) {
+    if (width <= 0) return;
+    if (m_mainWindow->minimumWidth() != width || m_mainWindow->maximumWidth() != width) {
         m_mainWindow->setFixedWidth(width);
+        m_widthCorrections = 0;
+        return;
     }
+    // Wayland では、ウィンドウが自分で変えた大きさを、コンポジターが古い大きさで戻すことがある（前面・後ろの
+    // 切り替えなどの知らせが、行き違いで前の大きさを運んでくる。ドックを離した直後・切り離した直後に起きる）。
+    // 固定した幅と違う幅になっていたら合わせ直す。大きさを譲らない環境と押し合いにならないよう、回数を限る
+    if (m_mainWindow->width() == width) {
+        m_widthCorrections = 0;
+    } else if (m_widthCorrections < kMaxWidthCorrections) {
+        ++m_widthCorrections;
+        m_mainWindow->resize(width, m_mainWindow->height());
+    }
+}
+
+void MainWindowAppearanceController::beginDockDrag(QDockWidget* dock)
+{
+    if (!m_dockDragActive) {
+        m_dockDragActive = true;
+        // ドックをはめ込むアニメーションの間、Qt の配置は「ドックは入ったが、まだ浮動のウィンドウ」という
+        // 途中の状態になり、必要な横幅が一時的に小さく出る。ドラッグの間はアニメーションを切り、
+        // 離した時点ではめ込みが終わっているようにする
+        m_dockAnimationToRestore = m_mainWindow->isAnimated();
+        m_mainWindow->setAnimated(false);
+    }
+    // 収まっているドックを引き出すときは、今の横幅にそのドックの分が入っている
+    if (!dock || !dock->isFloating()) return;
+    if (!m_mainWindow->isVisible() || !m_mainWindow->layout()) return;
+    if (m_mainWindow->isFullScreen() || m_mainWindow->isMaximized() || m_mainWindow->isMinimized()) return;
+
+    // Qt は、ドックを入れた配置が今のウィンドウに収まる場所だけをドロップ先にする。横幅は配置の最小に
+    // 固定しているので、そのままでは幅の増える場所（盤の横・ほかのドックの隣や重ね）に戻せない。
+    // ドロップ先を探し始める前に、ドックの最小の幅と区切りの分だけ広げる
+    m_mainWindow->layout()->activate();
+    const int separator = m_mainWindow->style()->pixelMetric(QStyle::PM_DockWidgetSeparatorExtent, nullptr, m_mainWindow);
+    const int dockWidth = qMax(dock->minimumWidth(), dock->minimumSizeHint().width());
+    const int width = m_mainWindow->layout()->minimumSize().width() + separator + dockWidth;
+    if (width > m_mainWindow->width()) m_mainWindow->setFixedWidth(width);
+}
+
+void MainWindowAppearanceController::endDockDrag()
+{
+    if (!m_dockDragActive) return;
+    m_dockDragActive = false;
+    m_mainWindow->setAnimated(m_dockAnimationToRestore);
+    scheduleWindowWidthUpdate();
 }
 
 void MainWindowAppearanceController::configureToolBar(QToolBar* toolBar)

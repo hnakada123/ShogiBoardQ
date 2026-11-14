@@ -653,6 +653,8 @@ set(SRC_UI
     src/ui/policy/operationpolicy.h
     src/ui/policy/uistatepolicymanager.cpp
     src/ui/policy/uistatepolicymanager.h
+    src/ui/docks/dockdragtracker.cpp
+    src/ui/docks/dockdragtracker.h
     src/ui/docks/docklayoutmanager.cpp
     src/ui/docks/docklayoutmanager.h
     src/ui/docks/dockregistry.cpp

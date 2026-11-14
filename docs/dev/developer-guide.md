@@ -215,6 +215,7 @@
 | 2026-11-04 | 古い説明・コメントを直した（監査 2026-11-01 5章）。このガイドの本文の変更は無い（CLAUDE.md の `UnsavedChangesPrompt` の層・`dialogfontscale`・`MenuActionsWiring` の例外・`environment` の出力、composition-root.md の規則5・6と後から渡す例外、mcp-server.md のツールとメソッドの表・古い名前、versioning.md の MCP の版、src のコメントを直した。MCP サーバーの版は `mcp/shogiboardq_mcp/__init__.py` の1か所にした） |
 | 2026-11-06 | 思考タブの情報欄を1行の帯にし、先手・後手の項目と列を揃えたのに合わせて §11.2 の該当の表（`ThinkingPanel`・`EngineInfoWidget`）と §12.5 の設定の説明を更新（`EngineInfoWidget` は表をやめ、項目の幅は書体だけで決める。手番の印は `EngineDisplayPresenter` が決める。思考の表の列幅は `AnalysisSettings::ThinkingTable::Match` の1つにし、`engineInfoColumnWidths` は廃止。定跡手の探索手の表記は `KifuPresentation::bookMove`） |
 | 2026-11-07 | 定跡ウィンドウの「詳細」をやめて局面の行に SFEN とコピーを置き、定跡手ダイアログに盤を付けたのに合わせて §11.3 の該当の表と第18章を更新（`JosekiMoveBoard`、`JosekiWindow::m_sfenLabel`。`JosekiSettings::josekiWindowSfenDetailVisible` は削除） |
+| 2026-11-14 | 切り離したドックを盤の横へドラッグで戻せるようにしたのに合わせて §10.5 を更新（「ドックのドラッグと主画面の横幅」を追加。`DockDragTracker` がドラッグの始まりと終わりを求め、`DockRegistry::dockDragStarted`・`dockDragFinished` で知らせる。`MainWindowAppearanceController` はドラッグの間は横幅を固定し直さず、浮動のドックをつかんだら先に広げる） |
 
 <!-- chapter-0-end -->
 
@@ -5844,7 +5845,7 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 | `MenuWindowController` | `menuwindowcontroller.h` | メニューバーの項目を集めてメニューウィンドウを作る | `MenuWindow`, `QMenuBar` |
 | `BranchTreeEditController` | `branchtreeeditcontroller.h` | 分岐ツリーの右クリックメニューからの分岐の編集と、対局外の盤上の着手の記録 | `KifuBranchTree`, `BranchTreeView` |
 | `ImageExportController` | `imageexportcontroller.h` | 盤と評価値グラフの画像のコピー・保存 | `ShogiView`, `EvaluationChartWidget` |
-| `MainWindowAppearanceController` | `mainwindowappearancecontroller.h` | 盤の拡大・縮小・反転、ツールバー、ウィンドウの外観 | `ShogiView`, `TimeDisplayPresenter` |
+| `MainWindowAppearanceController` | `mainwindowappearancecontroller.h` | 盤の拡大・縮小・反転、ツールバー、ウィンドウの横幅（ドックのドラッグの間の扱いを含む） | `ShogiView`, `TimeDisplayPresenter` |
 | `SettingsResetController` | `settingsresetcontroller.h` | 全設定の初期化と終了確認 | `SettingsCommon` |
 
 #### BoardMoveController — 盤面操作
@@ -5924,7 +5925,7 @@ onPvRowClicked(ShogiEngineThinkingModel* model, row)
 | `MenuWindowController` | メニューバーの項目をカテゴリごとに集めて `MenuWindow` を作る（初回だけ）。押されたボタンは `MenuWindow` がその `QAction` を実行する |
 | `BranchTreeEditController` | 分岐ツリーの右クリックメニューで分岐を編集する（本譜にする・並べ替え・削除）。対局していないときの盤上の着手を、現在の手の次の手（変化）として記録する |
 | `ImageExportController` | メニューの「盤面の画像」「評価値グラフの画像」のコピー・保存（`copyBoardToClipboard()`・`saveBoardImage()` など） |
-| `MainWindowAppearanceController` | 盤の拡大・縮小・反転（`flipBoard()`）、ツールバーの表示、ウィンドウ幅と評価値グラフの高さの調整 |
+| `MainWindowAppearanceController` | 盤の拡大・縮小・反転（`flipBoard()`）、ツールバーの表示、ウィンドウ幅の調整（配置に必要な最小の幅に固定する。ドックのドラッグの間は固定し直さず、浮動のドックをつかんだらそのドックの分だけ先に広げる。10.5 節の「ドックのドラッグと主画面の横幅」） |
 | `SettingsResetController` | 確認のうえ全設定を初期化してアプリを終える |
 
 ### 10.4 Wiring — シグナル/スロット接続の一括管理
@@ -6174,6 +6175,25 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
 | `saveStates()` | すべてのドックの浮動・表示・位置を `DockSettings::setDockState()` で保存する |
 
 規定の配置は表の並びで決まる。同じ場所のドックは、その場所で表の前にあるドックのタブに後ろから重ねる（右は棋譜にメニュー、下は対局情報から棋譜解析までを1つのタブにまとめる）。起動時の配置と「ドックレイアウトをリセット」は同じ関数（`placeAll()`）で作る。状態はすべてのドックで同じ方式で、`<グループ>/floating`・`<グループ>/visible`・`<グループ>/geometry` に保存する（12.5 節の `DockSettings::DockState`）。
+
+| シグナル | 説明 |
+|---------|------|
+| `dockDragStarted(dock)` | ドックをタイトルバーでつかんだドラッグが始まる。Qt がドックを引き出してドロップ先を探し始める前に出す（`dock` は、まだ始まる前の状態）。ドッキングできるドラッグだけ |
+| `dockDragFinished()` | そのドラッグが終わった（ドッキングを始めたか、浮動のまま置いた） |
+
+#### ドックのドラッグと主画面の横幅
+
+**ソース**: `src/ui/docks/dockdragtracker.h`, `src/ui/controllers/mainwindowappearancecontroller.cpp`
+
+主画面の横幅は、盤とドックの配置に必要な最小の幅に固定している（`MainWindowAppearanceController::updateWindowWidth()`）。一方 Qt は、ドックをドラッグしている間、「そのドックを入れた配置の最小の大きさが、今のウィンドウに収まる場所」だけをドロップ先にする（`QMainWindowLayout::hover`）。何もしなければ、棋譜のドックを切り離した後は、幅の増える場所（盤の横・ほかのドックの隣）へドラッグで戻せない。そこで、ドラッグの間だけ次のようにする。
+
+1. **ドラッグの始まりと終わりを求める**（`DockDragTracker`）。`QDockWidget` は知らせないので、`DockRegistry` のドックが、受けたマウスのイベントを `QDockWidget` に渡す前と後に渡し、Qt と同じ条件（タイトルバーで左ボタンを押し、`QApplication::startDragDistance()` を超えて動かす）で始まりを決める。終わりは、X11 ではボタンを離したとき、Wayland では始まりのイベントの処理から戻ったとき（Qt はドラッグの全体を OS のドラッグ＆ドロップとして、そのイベントの処理の中で行う）。Ctrl を押したドラッグと固定中のドックはドッキングしないので知らせない。ボタンを離したのにドックへ届かなかった場合に備えて、ドラッグの間はボタンの状態も見る。
+2. **ドラッグの間は横幅を固定し直さない**（`beginDockDrag()`〜`endDockDrag()`）。Qt は、ドラッグが終わるまでウィンドウの大きさの変更を配置に反映しない（`QMainWindowLayout::setGeometry` が何もしない）ので、途中で縮めると中身が元の幅のまま残り、右側が切れる。
+3. **浮動のドックをつかんだら、先に広げる**。Qt がドロップ先を探し始める前に、ドックの最小の幅と区切りの分だけ横幅を広げる。収まっているドックを引き出すときは、今の幅にそのドックの分が入っているので広げない。
+4. **ドラッグの間はドックのアニメーションを切る**（`QMainWindow::setAnimated(false)`。終わったら戻す）。はめ込むアニメーションの間、Qt の配置は「ドックは入ったが、まだ浮動のウィンドウ」という途中の状態になり、必要な横幅が一時的に小さく出る。切っておけば、離した時点ではめ込みが終わっている。
+5. **固定した幅と違う幅にされたら合わせ直す**。Wayland では、ウィンドウが自分で変えた大きさを、コンポジターが前の大きさで戻すことがある（前面・後ろの切り替えなどの知らせが、行き違いで前の大きさを運んでくる）。大きさを譲らない環境と押し合いにならないよう、続けて合わせ直す回数を限る（`kMaxWidthCorrections`）。
+
+対象は Qt が描くタイトルバーのドラッグ（Linux の X11・Wayland の全部と、Windows・macOS の収まっているドック）。Windows・macOS の浮動のドックは OS のタイトルバーで動かすので、3 は働かない（タイトルバーのダブルクリックで元の場所へ戻せる）。テストは `tst_dock_drag`。
 
 #### DockLayoutManager — ドックレイアウト管理
 
