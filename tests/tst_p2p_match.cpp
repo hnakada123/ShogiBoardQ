@@ -521,7 +521,7 @@ private slots:
         pair.negotiateAndStart();
         pair.play(pair.black(), "7g7f");
         QVERIFY(pair.black().match->offer(Cause::AgreedDraw));
-        QVERIFY(!pair.black().match->offer(Cause::AgreedDraw));   // 同じ手数で1回まで
+        QVERIFY(!pair.black().match->offer(Cause::AgreedDraw));   // 答えを待っている間は送り直さない
         pair.pump();
         QVERIFY(pair.white().match->hasPendingOffer());
         pair.white().match->answerOffer(false);
@@ -536,6 +536,77 @@ private slots:
         pair.pump();
         QCOMPARE(pair.black().match->agreedResult()->outcome, Outcome::Aborted);
         QCOMPARE(pair.white().match->settlement(), Settlement::MutuallySigned);
+    }
+
+    /// 断られた申し出は、同じ手数でももう一度申し出られる（相手にもう一度尋ねる）。答えを待っている間は送り直さない
+    void declinedOfferCanBeMadeAgain()
+    {
+        Pair pair;
+        pair.negotiateAndStart();
+        pair.play(pair.black(), "7g7f");
+        Side& offerer = pair.white();   // 手番の側が申し出る
+        Side& asked = pair.black();
+        const auto offersReceived = [&asked]() {
+            return std::count_if(asked.events.begin(), asked.events.end(),
+                                 [](const MatchEvent& e) { return e.type == MatchEvent::Type::OfferReceived; });
+        };
+        const auto declines = [&offerer]() {
+            return std::count_if(offerer.events.begin(), offerer.events.end(),
+                                 [](const MatchEvent& e) { return e.type == MatchEvent::Type::ProposalDeclined; });
+        };
+
+        QVERIFY(offerer.match->offer(Cause::AgreedAbort));
+        pair.pump();
+        QCOMPARE(offersReceived(), 1);
+        // 答えを待っている間にもう一度押しても、相手に2回は尋ねない
+        QVERIFY(!offerer.match->offer(Cause::AgreedAbort));
+        pair.pump();
+        QCOMPARE(offersReceived(), 1);
+        asked.match->answerOffer(false);
+        pair.pump();
+        QCOMPARE(declines(), 1);
+        QCOMPARE(offerer.match->phase(), Match::Phase::Playing);
+
+        // 断られた後、同じ手数でもう一度申し出る: 相手にもう一度尋ねる
+        QVERIFY(offerer.match->offer(Cause::AgreedAbort));
+        pair.pump();
+        QCOMPARE(offersReceived(), 2);
+        QVERIFY(asked.match->hasPendingOffer());
+        asked.match->answerOffer(false);
+        pair.pump();
+        QCOMPARE(declines(), 2);
+        // 引き分けの申し出も同じ。答えを待つ間に中断へ替えることはできるが、相手が答えるまでは、引き分けと中断を
+        // 交互に送り直せない（相手に尋ねるのは、相手が答えるまでの間にそれぞれ1回まで）
+        QVERIFY(offerer.match->offer(Cause::AgreedDraw));
+        pair.pump();
+        QCOMPARE(offersReceived(), 3);
+        QVERIFY(offerer.match->offer(Cause::AgreedAbort));
+        pair.pump();
+        QCOMPARE(offersReceived(), 4);
+        QVERIFY(!offerer.match->offer(Cause::AgreedDraw));
+        QVERIFY(!offerer.match->offer(Cause::AgreedAbort));
+        pair.pump();
+        QCOMPARE(offersReceived(), 4);
+        asked.match->answerOffer(false);
+        pair.pump();
+        QCOMPARE(declines(), 3);
+        QVERIFY(offerer.match->offer(Cause::AgreedDraw));
+        pair.pump();
+        QCOMPARE(offersReceived(), 5);
+        asked.match->answerOffer(false);
+        pair.pump();
+        QCOMPARE(declines(), 4);
+
+        // 3回目の中断の申し出を相手が承諾すれば、合意の中断で終わる
+        QVERIFY(offerer.match->offer(Cause::AgreedAbort));
+        pair.pump();
+        asked.match->answerOffer(true);
+        pair.pump();
+        for (Side* s : {&offerer, &asked}) {
+            QCOMPARE(s->match->settlement(), Settlement::MutuallySigned);
+            QCOMPARE(s->match->agreedResult()->cause, Cause::AgreedAbort);
+            QCOMPARE(s->match->agreedResult()->ply, quint32(1));
+        }
     }
 
     /// 届くのが許容差より遅れた手（観測 − 申告 > 10秒）は承認せずに中断する

@@ -365,8 +365,10 @@ void P2pGameUiController::closeOfferBox()
 
 void P2pGameUiController::onProposalDeclined()
 {
-    NotificationPresenter::information(noticeParent(), tr("P2P対局"), tr("相手が申し出を断りました。対局を続けます。"),
-                                       NotificationPresenter::Wait::No);
+    // 断られた後は同じ手数でももう一度申し出られるので、前の知らせが残っていれば閉じてから出す（同じ知らせを重ねない）
+    NotificationPresenter::replaceInformation(m_declinedBox, noticeParent(), tr("P2P対局"),
+                                              tr("相手が申し出を断りました。対局を続けます。"),
+                                              NotificationPresenter::Wait::No);
 }
 
 void P2pGameUiController::onGameFinished(P2p::Settlement ending, std::optional<P2p::ErrorCode> error,

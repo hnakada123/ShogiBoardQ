@@ -70,6 +70,9 @@ void Match::handleControl(const ControlPayload& payload)
         if (declined && m_myProposal && *declined == m_myProposalHash) {
             m_myProposal.reset();
             m_myProposalHash.clear();
+            // 相手が答えたので、同じ手数でももう一度申し出られる
+            m_drawOfferAwaitingAnswer = false;
+            m_abortOfferAwaitingAnswer = false;
             emitEvent(MatchEvent{MatchEvent::Type::ProposalDeclined, {}, 0, std::nullopt});
         }
         return;
@@ -173,10 +176,12 @@ bool Match::resign()
 bool Match::offer(Cause cause)
 {
     if (cause != Cause::AgreedDraw && cause != Cause::AgreedAbort) return false;
-    quint32& offeredPly = cause == Cause::AgreedDraw ? m_offeredDrawPly : m_offeredAbortPly;
-    if (offeredPly == lastState().ply) return false;   // 同じ手数で1回まで
+    // 相手が答えるまでの間に申し出られるのは、引き分け・中断それぞれ1回まで（答えを待たずに送り直して、相手に何度も
+    // 尋ねない）。相手が断れば、同じ手数でももう一度申し出られる（手数が進んだときも。commit）
+    bool& awaitingAnswer = cause == Cause::AgreedDraw ? m_drawOfferAwaitingAnswer : m_abortOfferAwaitingAnswer;
+    if (awaitingAnswer) return false;
     if (!proposeResult(cause == Cause::AgreedDraw ? Outcome::Draw : Outcome::Aborted, cause)) return false;
-    offeredPly = lastState().ply;
+    awaitingAnswer = true;
     return true;
 }
 

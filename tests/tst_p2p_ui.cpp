@@ -747,6 +747,67 @@ private slots:
         QCOMPARE(declined.count(), 0);
     }
 
+    /// 相手が断った申し出は、同じ手数でももう一度申し出られ、相手にもう一度尋ねる（断られた後に「中断」を押し直しても、
+    /// 相手に何も出なかった）
+    void declinedOfferIsAskedAgain()
+    {
+        Seat applicant(QByteArray(38, 'h'));
+        Seat host(QByteArray(38, 'p'));
+        P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("reoffer-a")));
+        P2pRecordStore hostStore(m_dir.filePath(QStringLiteral("reoffer-h")));
+        P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("reoffer-a.cbor")));
+        P2pKnownPeers hostKnown(m_dir.filePath(QStringLiteral("reoffer-h.cbor")));
+        QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, &hostStore, &hostKnown));
+        Seat& black = applicant.game.match()->iAmBlack() ? applicant : host;
+        Seat& white = applicant.game.match()->iAmBlack() ? host : applicant;
+        const auto abortBox = [&white]() -> QMessageBox* {
+            const QList<QMessageBox*> boxes = white.window.findChildren<QMessageBox*>(QStringLiteral("p2pOfferBox"));
+            for (QMessageBox* box : boxes) {
+                if (box->isVisible() && box->text().contains(QStringLiteral("中断"))) return box;
+            }
+            return nullptr;
+        };
+
+        // 申し出た側に出ている「相手が申し出を断りました」の知らせの数
+        const auto declinedNotices = [&black]() {
+            int count = 0;
+            const QList<QMessageBox*> boxes = black.window.findChildren<QMessageBox*>();
+            for (QMessageBox* box : boxes) {
+                if (box->isVisible() && box->text().contains(QStringLiteral("断りました"))) ++count;
+            }
+            return count;
+        };
+
+        // 手番の先手が中断を申し出て、後手が断る。同じ手数のまま、これを繰り返せる
+        QTRY_VERIFY(black.game.isHumanToMove());
+        for (int round = 1; round <= 3; ++round) {
+            black.game.offerAbort();
+            QTRY_VERIFY2(abortBox(), qPrintable(QStringLiteral("round %1").arg(round)));
+            // 答えを待っている間に押し直しても、箱は1つのまま
+            QPointer<QMessageBox> box = abortBox();
+            black.game.offerAbort();
+            QCoreApplication::processEvents();
+            QCOMPARE(abortBox(), box.data());
+            QSignalSpy declined(&black.game, &P2pGameCoordinator::proposalDeclined);
+            box->button(QMessageBox::Cancel)->click();
+            // 申し出た側に、断られたことを知らせる。前の知らせを閉じていなくても、知らせは重ねない
+            QTRY_COMPARE(declined.count(), 1);
+            QTRY_COMPARE(declinedNotices(), 1);
+            QTRY_VERIFY(!abortBox());
+            QVERIFY(black.game.isInProgress() && white.game.isInProgress());
+            QCOMPARE(black.game.match()->lastState().ply, quint32(0));
+        }
+
+        // もう一度申し出て、後手が承諾すれば、合意の中断で終わる
+        black.game.offerAbort();
+        QTRY_VERIFY(abortBox());
+        QAbstractButton* accept = abortBox()->button(QMessageBox::Yes);
+        QTRY_VERIFY(accept->isEnabled());
+        accept->click();
+        QTRY_VERIFY(black.game.match()->agreedResult() && white.game.match()->agreedResult());
+        QCOMPARE(black.game.match()->agreedResult()->cause, Cause::AgreedAbort);
+    }
+
     /// 記録と相手の表は、通信プロセスの知らせ（数秒ごと）では作り直さず、対局の後・タブを開いたときに作り直す。
     /// 列は中身が切れない幅にし、行番号は出さない
     void recordTablesAreRebuiltOnlyWhenNeeded()

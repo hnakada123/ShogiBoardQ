@@ -358,6 +358,8 @@ void Match::commit(const SignedState& state)
     // ply が進んだら、それまでの提案と申し出は無効
     m_myProposal.reset();
     m_myProposalHash.clear();
+    m_drawOfferAwaitingAnswer = false;
+    m_abortOfferAwaitingAnswer = false;
     m_pendingOffer.reset();
     m_pendingOfferHash.clear();
     emitEvent(MatchEvent{MatchEvent::Type::MoveCommitted, state.state.moveUsi, state.state.spentMs, std::nullopt});

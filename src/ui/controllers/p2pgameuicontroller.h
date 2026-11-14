@@ -107,6 +107,7 @@ private:
     QPointer<P2pConfirmDialog> m_confirm;
     QPointer<QMessageBox> m_offerBox;   ///< 相手の申し出を尋ねる箱（モードレス。閉じたら消える）
     QPointer<QMessageBox> m_failureBox; ///< 通信プロセスの失敗の知らせ（モードレス。閉じたら消える）
+    QPointer<QMessageBox> m_declinedBox; ///< 申し出を断られた知らせ（モードレス。次に断られたら入れ替える）
     bool m_automationDisabled = false;
     bool m_startAfterUnlock = false;   ///< 鍵を読み込んだら参加する
 };

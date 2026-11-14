@@ -82,7 +82,8 @@ public:
     MoveError playMove(const UsiMove& move);
     /// 投了（自分の手番に限る）
     bool resign();
-    /// 合意引き分け・合意中断を申し出る（同じ手数でそれぞれ1回まで）
+    /// 合意引き分け・合意中断を申し出る（申し出たら true）。相手が答えるまでの間はそれぞれ1回までで、答えを待って
+    /// いる申し出は送り直さずに false。相手が断った後は、同じ手数でももう一度申し出られる
     bool offer(Cause cause);
     /// 相手の申し出に答える
     void answerOffer(bool accept);
@@ -215,8 +216,9 @@ private:
     QByteArray m_myProposalHash;
     std::optional<FinalResult> m_pendingOffer;   ///< 相手の申し出（利用者の答え待ち）
     QByteArray m_pendingOfferHash;
-    quint32 m_offeredDrawPly = 0xFFFFFFFFu;
-    quint32 m_offeredAbortPly = 0xFFFFFFFFu;
+    /// 自分の申し出に相手がまだ答えていない（断られるか手数が進むまで、同じ申し出を送り直さない）
+    bool m_drawOfferAwaitingAnswer = false;
+    bool m_abortOfferAwaitingAnswer = false;
     std::optional<FinalResult> m_agreedResult;
     QByteArray m_myResultSignature;
     QByteArray m_opponentResultSignature;
