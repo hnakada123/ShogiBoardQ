@@ -3,11 +3,9 @@
 
 #include "mainwindowappearancecontroller.h"
 
-#include <QDockWidget>
 #include <QEvent>
 #include <QLayout>
 #include <QMainWindow>
-#include <QStyle>
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
@@ -53,29 +51,29 @@ bool MainWindowAppearanceController::eventFilter(QObject* watched, QEvent* event
             m_mainWindow->setMaximumWidth(QWIDGETSIZE_MAX);
         }
         // 通常表示に戻った際は、現在の盤面・ドックに合わせた横幅に戻す。
-        scheduleWindowWidthUpdate();
+        scheduleWindowSizeUpdate();
     }
-    // Resize: 固定した横幅と違う幅にされたとき（updateWindowWidth の説明）に合わせ直す
+    // Resize: 決めた大きさと違う大きさにされたとき（updateWindowSize の説明）に合わせ直す
     if (watched == m_mainWindow
         && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show
             || event->type() == QEvent::Resize)) {
-        scheduleWindowWidthUpdate();
+        scheduleWindowSizeUpdate();
     }
     return QObject::eventFilter(watched, event);
 }
 
-void MainWindowAppearanceController::scheduleWindowWidthUpdate()
+void MainWindowAppearanceController::scheduleWindowSizeUpdate()
 {
-    if (m_windowWidthUpdatePending) return;
-    m_windowWidthUpdatePending = true;
-    QTimer::singleShot(0, this, &MainWindowAppearanceController::updateWindowWidth);
+    if (m_windowSizeUpdatePending) return;
+    m_windowSizeUpdatePending = true;
+    QTimer::singleShot(0, this, &MainWindowAppearanceController::updateWindowSize);
 }
 
-void MainWindowAppearanceController::updateWindowWidth()
+void MainWindowAppearanceController::updateWindowSize()
 {
-    m_windowWidthUpdatePending = false;
+    m_windowSizeUpdatePending = false;
     // ドックのドラッグ中は変えない: Qt はドラッグが終わるまでウィンドウの大きさの変更を配置に反映しないので、
-    // 途中で縮めると中身が元の幅のまま残る。終わったら endDockDrag() から固定し直す
+    // 途中で縮めると中身が元の大きさのまま残る。終わったら endDockDrag() から合わせ直す
     if (m_dockDragActive) return;
     if (!m_mainWindow || !m_mainWindow->isVisible() || !m_mainWindow->layout()) return;
     // setFixedWidth() によるリサイズは全画面表示・最大化を解除してしまう。
@@ -84,56 +82,59 @@ void MainWindowAppearanceController::updateWindowWidth()
 
     // 棋譜の列幅・ドック配置の再計算後、内容に必要な横幅に固定する。
     // 高さは従来どおり変更でき、盤の拡縮やフォント変更時には横幅も追従する。
-    m_mainWindow->layout()->activate();
-    const int width = m_mainWindow->layout()->minimumSize().width();
+    QLayout* layout = m_mainWindow->layout();
+    layout->activate();
+    const int width = layout->minimumSize().width();
     if (width <= 0) return;
+    // 高さは利用者が決める。今の配置に足りないときだけ、必要な高さにする
+    const QSize size(width, qMax(m_mainWindow->height(), layout->totalMinimumSize().height()));
     if (m_mainWindow->minimumWidth() != width || m_mainWindow->maximumWidth() != width) {
         m_mainWindow->setFixedWidth(width);
-        m_widthCorrections = 0;
+        m_sizeCorrections = 0;
+        if (m_mainWindow->size() != size) m_mainWindow->resize(size);
         return;
     }
     // Wayland では、ウィンドウが自分で変えた大きさを、コンポジターが古い大きさで戻すことがある（前面・後ろの
     // 切り替えなどの知らせが、行き違いで前の大きさを運んでくる。ドックを離した直後・切り離した直後に起きる）。
-    // 固定した幅と違う幅になっていたら合わせ直す。大きさを譲らない環境と押し合いにならないよう、回数を限る
-    if (m_mainWindow->width() == width) {
-        m_widthCorrections = 0;
-    } else if (m_widthCorrections < kMaxWidthCorrections) {
-        ++m_widthCorrections;
-        m_mainWindow->resize(width, m_mainWindow->height());
+    // 決めた大きさと違っていたら合わせ直す。大きさを譲らない環境と押し合いにならないよう、回数を限る
+    if (m_mainWindow->size() == size) {
+        m_sizeCorrections = 0;
+    } else if (m_sizeCorrections < kMaxSizeCorrections) {
+        ++m_sizeCorrections;
+        m_mainWindow->resize(size);
     }
 }
 
-void MainWindowAppearanceController::beginDockDrag(QDockWidget* dock)
+void MainWindowAppearanceController::beginDockDrag()
 {
-    if (!m_dockDragActive) {
-        m_dockDragActive = true;
-        // ドックをはめ込むアニメーションの間、Qt の配置は「ドックは入ったが、まだ浮動のウィンドウ」という
-        // 途中の状態になり、必要な横幅が一時的に小さく出る。ドラッグの間はアニメーションを切り、
-        // 離した時点ではめ込みが終わっているようにする
-        m_dockAnimationToRestore = m_mainWindow->isAnimated();
-        m_mainWindow->setAnimated(false);
-    }
-    // 収まっているドックを引き出すときは、今の横幅にそのドックの分が入っている
-    if (!dock || !dock->isFloating()) return;
-    if (!m_mainWindow->isVisible() || !m_mainWindow->layout()) return;
-    if (m_mainWindow->isFullScreen() || m_mainWindow->isMaximized() || m_mainWindow->isMinimized()) return;
-
-    // Qt は、ドックを入れた配置が今のウィンドウに収まる場所だけをドロップ先にする。横幅は配置の最小に
-    // 固定しているので、そのままでは幅の増える場所（盤の横・ほかのドックの隣や重ね）に戻せない。
-    // ドロップ先を探し始める前に、ドックの最小の幅と区切りの分だけ広げる
-    m_mainWindow->layout()->activate();
-    const int separator = m_mainWindow->style()->pixelMetric(QStyle::PM_DockWidgetSeparatorExtent, nullptr, m_mainWindow);
-    const int dockWidth = qMax(dock->minimumWidth(), dock->minimumSizeHint().width());
-    const int width = m_mainWindow->layout()->minimumSize().width() + separator + dockWidth;
-    if (width > m_mainWindow->width()) m_mainWindow->setFixedWidth(width);
+    if (m_dockDragActive) return;
+    m_dockDragActive = true;
+    // Qt は、ドックを入れた配置の最小の大きさが今のウィンドウに収まる場所だけをドロップ先にする。横幅は配置の
+    // 最小に固定しているので、そのままでは幅の増える場所（盤の横）に戻せず、高さの足りないウィンドウでは
+    // 下段・上端にも入れられない。ドラッグの間だけ、盤の領域を縮めてよいことにする（盤は欠けて見える）。
+    // ドックが入ったら、endDockDrag() で盤の領域を元に戻し、ウィンドウを必要な大きさへ広げる。
+    // ドラッグの間はウィンドウの大きさを変えない: Wayland（KWin）は、大きさが変わったウィンドウを動かし、
+    // その移動をドラッグの位置の知らせに反映しないので、ドロップ先がカーソルとずれる
+    // （盤の領域の最小の大きさは、中の配置の最小の大きさから決まるので、大きさの方針を Ignored にして外す。
+    // 最大は盤の大きさのままなので、盤より広がることはない）
+    m_centralPolicyToRestore = m_central->sizePolicy();
+    m_central->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    m_central->setMinimumSize(0, 0);
+    // ドックをはめ込むアニメーションの間、Qt の配置は「ドックは入ったが、まだ浮動のウィンドウ」という
+    // 途中の状態になり、必要な大きさが一時的に小さく出る。ドラッグの間はアニメーションを切り、
+    // 離した時点ではめ込みが終わっているようにする
+    m_dockAnimationToRestore = m_mainWindow->isAnimated();
+    m_mainWindow->setAnimated(false);
 }
 
 void MainWindowAppearanceController::endDockDrag()
 {
     if (!m_dockDragActive) return;
     m_dockDragActive = false;
+    m_central->setSizePolicy(m_centralPolicyToRestore);
+    fitCentralToBoard();
     m_mainWindow->setAnimated(m_dockAnimationToRestore);
-    scheduleWindowWidthUpdate();
+    scheduleWindowSizeUpdate();
 }
 
 void MainWindowAppearanceController::configureToolBar(QToolBar* toolBar)

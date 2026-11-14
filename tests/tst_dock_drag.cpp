@@ -1,22 +1,27 @@
 /// @file tst_dock_drag.cpp
-/// @brief ドックのドラッグの知らせ（DockDragTracker）と、ドラッグの間の主画面の横幅のテスト
+/// @brief ドックのドラッグの知らせ（DockDragTracker）と、ドラッグの間の主画面の大きさのテスト
 ///
 /// 主画面の横幅は、盤とドックの配置に必要な最小の幅に固定している。Qt は、ドックを入れた配置が
 /// 今のウィンドウに収まる場所だけをドロップ先にするので、何もしなければ、切り離したドックを
-/// 盤の横へドラッグで戻せない。
+/// 盤の横へドラッグで戻せず、高さの足りない主画面では下段にも入れられない。ドラッグの間は
+/// ウィンドウの大きさを変えず、盤の領域を縮めてよいことにして、ドロップ先を出させる。
 
 #include <QtTest>
 #include <QDockWidget>
+#include <QDragEnterEvent>
 #include <QLabel>
 #include <QLayout>
 #include <QMainWindow>
+#include <QMimeData>
 #include <QResizeEvent>
 #include <QSignalSpy>
-#include <QStyle>
 #include <QWindow>
 
+#include "appsettings.h"
 #include "dockregistry.h"
 #include "mainwindowappearancecontroller.h"
+#include "sfenutils.h"
+#include "shogiboard.h"
 #include "shogiview.h"
 
 /// ウィンドウが受けた大きさの変更の、幅の列
@@ -33,6 +38,21 @@ protected:
     }
 };
 
+/// どんなドラッグも受け付ける部品（分岐ツリー・評価値グラフの QGraphicsView の代わり）
+class DropTarget : public QWidget
+{
+public:
+    explicit DropTarget(QWidget* parent) : QWidget(parent) { setAcceptDrops(true); }
+    int entered = 0;
+
+protected:
+    void dragEnterEvent(QDragEnterEvent* event) override
+    {
+        ++entered;
+        event->acceptProposedAction();
+    }
+};
+
 class TestDockDrag : public QObject
 {
     Q_OBJECT
@@ -42,6 +62,7 @@ private:
 
     /// 盤（固定の大きさ）と、右の棋譜・下の思考のドックを持つ主画面
     struct Setup {
+        ShogiBoard board;
         QMainWindow window;
         ShogiView* view = nullptr;
         MainWindowAppearanceController* appearance = nullptr;
@@ -54,7 +75,10 @@ private:
             window.setDockNestingEnabled(true);
             auto* central = new QWidget;
             window.setCentralWidget(central);
+            // 実際の盤の大きさにする（ドックより大きい。盤なしの ShogiView は小さい）
+            board.setSfen(SfenUtils::hirateSfen());
             view = new ShogiView;
+            view->setBoard(&board);
             MainWindowAppearanceController::Deps ad;
             ad.window = &window;
             ad.centralWidget = central;
@@ -88,6 +112,13 @@ private:
         }
 
         int neededWidth() const { return window.layout()->minimumSize().width(); }
+        /// 盤の領域が、盤の大きさに固定されているか（ドラッグの間だけ縮められる）
+        bool boardAreaIsFixed() const
+        {
+            const QWidget* central = window.centralWidget();
+            return central->minimumSize() == view->sizeHint() && central->maximumSize() == view->sizeHint()
+                   && central->size() == view->sizeHint();
+        }
         /// 横幅が、今の配置に必要な幅に固定されているか
         bool isFitted() const
         {
@@ -104,6 +135,14 @@ private:
             QTest::mouseRelease(dock, Qt::LeftButton, Qt::NoModifier,
                                 dock->mapFromGlobal(window.mapToGlobal(inWindow)));
         }
+        /// 主画面を、今の配置に必要な最小の高さにする
+        bool shrinkToMinimumHeight()
+        {
+            window.resize(window.width(), window.minimumHeight());
+            return QTest::qWaitFor([this] { return window.height() == window.minimumHeight() && isFitted(); });
+        }
+        /// 本体の外（どのドロップ先でもない所。主画面の座標）
+        QPoint outside() const { return QPoint(window.width() / 2, window.height() + 300); }
         /// 盤の段の高さ（主画面の座標。ドラッグの前に読む: ドラッグ中は Qt がドロップ先の分だけ配置をずらす）
         int boardRow() const { return window.centralWidget()->geometry().center().y(); }
         /// 盤の右隣（右のドックの場所が空のとき、Qt がドロップ先にする右端の帯）
@@ -128,6 +167,9 @@ private:
     }
 
 private slots:
+    /// 盤の大きさは保存した値から始まるので、既定に戻しておく（盤を拡大するテストが値を保存する）
+    void init() { AppSettings::squareSize.set(AppSettings::squareSize.defaultValue()); }
+
     // --- ドラッグの知らせ ---
 
     void dragOfDockedDockIsReported()
@@ -205,7 +247,40 @@ private slots:
         QTRY_VERIFY(s.isFitted());
     }
 
-    // --- ドラッグの間の横幅 ---
+    /// ドックのドラッグの間は、ドロップを受け付ける子の部品に DragEnter を受けさせない。
+    /// Wayland では Qt がドックのドラッグを OS のドラッグ＆ドロップで行い、メインウィンドウが受けた知らせから
+    /// ドロップ先を決めるので、子の部品が先に受けると、その上ではドッキングできない
+    void dragEnterSkipsChildrenWhileDraggingDock()
+    {
+        Setup s;
+        auto* target = new DropTarget(s.thinking->widget());
+        target->setGeometry(0, 0, 60, 60);
+        QVERIFY(s.showAndSettle());
+        QMimeData mime;
+        mime.setText(QStringLiteral("dock"));
+        const auto enter = [&mime, target] {
+            QDragEnterEvent event(QPointF(5, 5), Qt::MoveAction, &mime, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(target, &event);
+            return event.isAccepted();
+        };
+        // ふだんは子の部品が受ける
+        QVERIFY(enter());
+        QCOMPARE(target->entered, 1);
+
+        const QPoint press = titlePos(s.record);
+        QTest::mousePress(s.record, Qt::LeftButton, Qt::NoModifier, press);
+        QTest::mouseMove(s.record, press + QPoint(40, 40));
+        QVERIFY(s.record->isFloating());
+        // ドラッグの間は子の部品を飛ばし、親（メインウィンドウ）まで渡る
+        enter();
+        QCOMPARE(target->entered, 1);
+
+        QTest::mouseRelease(s.record, Qt::LeftButton, Qt::NoModifier, titlePos(s.record));
+        QVERIFY(enter());
+        QCOMPARE(target->entered, 2);
+    }
+
+    // --- ドラッグの間の主画面の大きさ ---
 
     /// 収まっているドックを引き出す間は横幅を変えず、離してから縮める
     /// （Qt はドラッグの間のウィンドウの大きさの変更を配置に反映しない。途中で縮めると中身が切れる）
@@ -220,21 +295,22 @@ private slots:
         QTest::mouseMove(s.record, press + QPoint(40, 40));
         QVERIFY(s.record->isFloating());
         // 本体の下（どのドロップ先でもない所）へ運ぶ
-        const QPoint outside(s.window.width() / 2, s.window.height() + 300);
-        s.moveDragTo(s.record, outside);
+        s.moveDragTo(s.record, s.outside());
         QTest::qWait(50);  // 配置のやり直しの依頼を処理させる
         QCOMPARE(s.window.width(), dockedWidth);
         QCOMPARE(s.thinking->width(), dockedWidth);
 
-        s.releaseDragAt(s.record, outside);
+        s.releaseDragAt(s.record, s.outside());
         QVERIFY(s.record->isFloating());
         QTRY_VERIFY(s.window.width() < dockedWidth);
         QTRY_VERIFY(s.isFitted());
         // 中の配置も縮んだ幅に合っている
         QTRY_COMPARE(s.thinking->width(), s.window.width());
+        QVERIFY(s.boardAreaIsFixed());
     }
 
-    /// 浮動のドックを、盤の横へドラッグで戻せる
+    /// 浮動のドックを、盤の横へドラッグで戻せる。ドラッグの間はウィンドウの大きさを変えない
+    /// （Wayland では、大きさが変わったウィンドウをコンポジターが動かし、ドロップ先がカーソルとずれる）
     void floatingDockCanBeDroppedBesideBoard()
     {
         Setup s;
@@ -244,57 +320,115 @@ private slots:
         s.record->setFloating(true);
         QTRY_VERIFY(s.window.width() < dockedWidth);
         QTRY_VERIFY(s.isFitted());
-        const int boardWidth = s.window.width();
+        const QSize boardOnly = s.window.size();
         const int row = s.boardRow();
 
-        // つかむと、ドックを入れられるだけ広がる
         const QPoint press = titlePos(s.record);
         QTest::mousePress(s.record, Qt::LeftButton, Qt::NoModifier, press);
-        QCOMPARE(s.window.width(), boardWidth);
         QTest::mouseMove(s.record, press + QPoint(40, 40));
-        const int separator = s.window.style()->pixelMetric(QStyle::PM_DockWidgetSeparatorExtent, nullptr, &s.window);
-        QVERIFY2(s.window.width() >= boardWidth + separator + kRecordWidth, qPrintable(QString::number(s.window.width())));
-        const int widened = s.window.width();
+        QCOMPARE(s.window.size(), boardOnly);
 
-        // 盤の右隣へ運んで離す
+        // 盤の右隣（盤しかない主画面の右端）へ運ぶと、盤の領域を縮めてドロップ先を出す
         s.moveDragTo(s.record, s.besideBoardRight(row));
         QTest::qWait(50);
-        QCOMPARE(s.window.width(), widened);
+        QCOMPARE(s.window.size(), boardOnly);
+        QVERIFY(s.window.centralWidget()->width() < s.view->sizeHint().width());
         s.releaseDragAt(s.record, s.besideBoardRight(row));
 
+        // 離すと盤の右に入り、主画面が必要な幅へ広がる
         QTRY_VERIFY(!s.record->isFloating());
         QCOMPARE(s.window.dockWidgetArea(s.record), Qt::RightDockWidgetArea);
         QTRY_VERIFY(s.isFitted());
         QCOMPARE(s.window.width(), dockedWidth);
+        QVERIFY(s.boardAreaIsFixed());
         // 盤の右に、盤と同じ高さで並ぶ（下のドックは全幅）
-        QTRY_COMPARE(s.record->geometry().left() > s.window.centralWidget()->geometry().right(), true);
+        QTRY_VERIFY(s.record->geometry().left() > s.window.centralWidget()->geometry().right());
         QCOMPARE(s.thinking->width(), s.window.width());
+        QCOMPARE(s.window.height(), boardOnly.height());
         QVERIFY(s.window.isAnimated());
     }
 
-    /// 浮動のドックを動かして、どこにも入れずに離したら、元の横幅に戻る
-    void floatingDockDroppedOutsideRestoresWidth()
+    /// 高さの足りない主画面でも、浮動のドックを下段のドックに重ねられる。
+    /// 離すと、主画面が新しい配置に必要な高さへ広がる
+    void floatingDockCanBeDroppedOnBottomDockOfShortWindow()
     {
         Setup s;
         useQtTitleBar(s.record);
         QVERIFY(s.showAndSettle());
         s.record->setFloating(true);
         QTRY_VERIFY(s.isFitted());
-        const int boardWidth = s.window.width();
+        // 今の配置にちょうどの高さにする（棋譜のドックは下段の思考のドックより高い）
+        QVERIFY(s.shrinkToMinimumHeight());
+        const QSize shortSize = s.window.size();
+        QVERIFY(s.record->minimumSizeHint().height() > s.thinking->height());
 
         const QPoint press = titlePos(s.record);
         QTest::mousePress(s.record, Qt::LeftButton, Qt::NoModifier, press);
         QTest::mouseMove(s.record, press + QPoint(40, 40));
-        QVERIFY(s.window.width() > boardWidth);
-        const QPoint outside(s.window.width() / 2, s.window.height() + 300);
-        s.moveDragTo(s.record, outside);
-        s.releaseDragAt(s.record, outside);
+        // いったん本体の外へ出してから（Qt がドロップ先の分だけずらした配置を元に戻させる）、下段のドックの中央へ運ぶ
+        s.moveDragTo(s.record, s.outside());
+        const QPoint onThinking = s.thinking->geometry().center();
+        s.moveDragTo(s.record, onThinking);
+        QTest::qWait(50);
+        QCOMPARE(s.window.size(), shortSize);
+        s.releaseDragAt(s.record, onThinking);
+
+        QTRY_VERIFY(!s.record->isFloating());
+        QCOMPARE(s.window.dockWidgetArea(s.record), Qt::BottomDockWidgetArea);
+        QCOMPARE(s.window.tabifiedDockWidgets(s.record), QList<QDockWidget*>{s.thinking});
+        QTRY_VERIFY(s.window.height() > shortSize.height());
+        QTRY_COMPARE(s.window.height(), s.window.minimumHeight());
+        QTRY_VERIFY(s.isFitted());
+        QVERIFY(s.boardAreaIsFixed());
+    }
+
+    /// 浮動のドックを動かして、どこにも入れずに離したら、主画面は元のまま（盤の領域も元の大きさ）
+    void floatingDockDroppedOutsideLeavesWindowAsItWas()
+    {
+        Setup s;
+        useQtTitleBar(s.record);
+        QVERIFY(s.showAndSettle());
+        s.record->setFloating(true);
+        QTRY_VERIFY(s.isFitted());
+        QVERIFY(s.shrinkToMinimumHeight());
+        const QSize before = s.window.size();
+        const int row = s.boardRow();
+
+        const QPoint press = titlePos(s.record);
+        QTest::mousePress(s.record, Qt::LeftButton, Qt::NoModifier, press);
+        QTest::mouseMove(s.record, press + QPoint(40, 40));
+        // ドロップ先の上を通っても、主画面の大きさは変わらない
+        s.moveDragTo(s.record, s.besideBoardRight(row));
+        QTest::qWait(50);
+        QCOMPARE(s.window.size(), before);
+        s.moveDragTo(s.record, s.outside());
+        s.releaseDragAt(s.record, s.outside());
 
         QVERIFY(s.record->isFloating());
-        QTRY_COMPARE(s.window.width(), boardWidth);
+        QTRY_VERIFY(s.boardAreaIsFixed());
         QTRY_VERIFY(s.isFitted());
-        QTRY_COMPARE(s.thinking->width(), boardWidth);
+        QCOMPARE(s.window.size(), before);
+        QTRY_COMPARE(s.thinking->width(), before.width());
         QVERIFY(s.window.isAnimated());
+    }
+
+    /// 今の配置に高さが足りなくなったら（盤を大きくした等）、必要な高さにする。高さに余裕があれば変えない
+    void heightFollowsLayoutOnlyWhenTooShort()
+    {
+        Setup s;
+        QVERIFY(s.showAndSettle());
+        const int tall = s.window.height();
+        QVERIFY(tall > s.window.minimumHeight());
+        s.view->enlargeBoard();
+        QTRY_VERIFY(s.isFitted());
+        QCOMPARE(s.window.height(), tall);
+
+        QVERIFY(s.shrinkToMinimumHeight());
+        const int shortHeight = s.window.height();
+        for (int i = 0; i < 5; ++i) s.view->enlargeBoard();
+        QTRY_VERIFY(s.window.height() > shortHeight);
+        QTRY_COMPARE(s.window.height(), s.window.minimumHeight());
+        QTRY_VERIFY(s.isFitted());
     }
 
     /// 固定した横幅と違う幅にされたら（Wayland のコンポジターが古い大きさで戻す）、合わせ直す

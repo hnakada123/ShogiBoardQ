@@ -689,7 +689,8 @@ private slots:
         QVERIFY(table->visualRect(table->model()->index(1, 1)).right() < table->viewport()->width());
     }
     /// 切り離した棋譜のドックを、タイトルバーのドラッグで盤の横へ戻せる。
-    /// 横幅は配置の最小に固定しているので、何もしなければ Qt は盤の横をドロップ先にしない
+    /// 横幅は配置の最小に固定しているので、何もしなければ Qt は盤の横をドロップ先にしない。
+    /// ドラッグの間は主画面の大きさを変えず、盤の領域を縮めてドロップ先を出す
     void floatingDockReturnsBesideBoard()
     {
         auto* dock = window->findChild<QDockWidget*>("RecordPaneDock");
@@ -698,6 +699,7 @@ private slots:
         QTRY_COMPARE(window->minimumWidth(), window->maximumWidth());
         const int dockedWidth = window->width();
         const QRect dockedGeometry = dock->geometry();
+        const QSize boardSize = board()->size();
         const int boardRow = board()->mapTo(window.get(), board()->rect().center()).y();
         const auto titlePos = [dock] { return QPoint(dock->width() / 3, dock->widget()->geometry().top() / 2); };
 
@@ -714,23 +716,24 @@ private slots:
         QVERIFY(dock->isFloating());
         QTRY_VERIFY(window->width() < dockedWidth);
         QTRY_COMPARE(window->width(), window->layout()->minimumSize().width());
-        const int boardOnlyWidth = window->width();
+        const QSize boardOnly = window->size();
         auto* thinking = window->findChild<QDockWidget*>("ThinkingDock");
         QVERIFY(thinking);
-        QTRY_COMPARE(thinking->width(), boardOnlyWidth);
+        QTRY_COMPARE(thinking->width(), boardOnly.width());
         snapshot("dock-floated-board-only");
 
-        // 浮動のドックをつかむと、そのドックを入れられるだけ広がる
+        // 浮動のドックをつかんで盤の右端へ運ぶ。主画面の大きさは変わらない
         press = titlePos();
         QTest::mousePress(dock, Qt::LeftButton, Qt::NoModifier, press);
-        QCOMPARE(window->width(), boardOnlyWidth);
         QTest::mouseMove(dock, press + QPoint(-30, -30));
-        QVERIFY(window->width() >= boardOnlyWidth + dock->minimumWidth());
-
-        // 盤の右隣で離すと、切り離す前の配置に戻る
+        QCOMPARE(window->size(), boardOnly);
         const QPoint beside = window->mapToGlobal(QPoint(window->width() - 20, boardRow));
         QTest::mouseMove(dock, dock->mapFromGlobal(beside));
         QTest::qWait(50);
+        QCOMPARE(window->size(), boardOnly);
+        snapshot("dock-drop-target-beside-board");
+
+        // 離すと、切り離す前の配置に戻る（主画面が必要な幅へ広がり、盤は元の大きさ）
         QTest::mouseRelease(dock, Qt::LeftButton, Qt::NoModifier, dock->mapFromGlobal(beside));
         QTRY_VERIFY(!dock->isFloating());
         QCOMPARE(window->dockWidgetArea(dock), Qt::RightDockWidgetArea);
@@ -738,8 +741,63 @@ private slots:
         QTRY_COMPARE(dock->geometry(), dockedGeometry);
         QCOMPARE(window->minimumWidth(), window->maximumWidth());
         QTRY_COMPARE(thinking->width(), dockedWidth);
+        QCOMPARE(board()->size(), boardSize);
+        QCOMPARE(window->centralWidget()->size(), boardSize);
         QVERIFY(window->isAnimated());
         snapshot("dock-returned-beside-board");
+    }
+    /// 切り離した棋譜のドックを、高さが配置にちょうどの主画面でも、下段のドックへドラッグで重ねられる。
+    /// Qt は高さも「入れた配置が今のウィンドウに収まるか」で決める。ドラッグの間は盤の領域を縮めてよいことにし、
+    /// 離した後で主画面を必要な高さへ広げる
+    void floatingDockDocksIntoBottom()
+    {
+        auto* dock = window->findChild<QDockWidget*>("RecordPaneDock");
+        auto* thinking = window->findChild<QDockWidget*>("ThinkingDock");
+        QVERIFY(dock && thinking);
+        const auto fitted = [this] { return window->width() == window->layout()->minimumSize().width()
+                                            && window->minimumWidth() == window->maximumWidth(); };
+        const auto titlePos = [dock] { return QPoint(dock->width() / 3, dock->widget()->geometry().top() / 2); };
+        const auto outside = [this] { return window->mapToGlobal(QPoint(window->width() / 2, window->height() + 200)); };
+        QTRY_VERIFY(fitted());
+        const QSize boardSize = board()->size();
+        dock->setFloating(true);
+        QTRY_VERIFY(fitted());
+        // 今の配置にちょうどの高さにする（棋譜のドックは下段のドックより高い）
+        window->resize(window->width(), window->minimumHeight());
+        QTRY_COMPARE(window->height(), window->minimumHeight());
+        const QSize before = window->size();
+
+        // どこにも入れずに離すと、主画面は元のまま
+        QPoint press = titlePos();
+        QTest::mousePress(dock, Qt::LeftButton, Qt::NoModifier, press);
+        QTest::mouseMove(dock, press + QPoint(-30, -30));
+        QCOMPARE(window->size(), before);
+        QPoint away = outside();
+        QTest::mouseMove(dock, dock->mapFromGlobal(away));
+        QTest::mouseRelease(dock, Qt::LeftButton, Qt::NoModifier, dock->mapFromGlobal(away));
+        QVERIFY(dock->isFloating());
+        QTest::qWait(50);
+        QCOMPARE(window->size(), before);
+        QCOMPARE(window->centralWidget()->size(), boardSize);
+
+        // 下段のドックの中央で離すと、タブとして重なる。高さは新しい配置に必要な高さになる
+        press = titlePos();
+        QTest::mousePress(dock, Qt::LeftButton, Qt::NoModifier, press);
+        QTest::mouseMove(dock, press + QPoint(-30, -30));
+        const QPoint onBottom = window->mapToGlobal(thinking->geometry().center());
+        QTest::mouseMove(dock, dock->mapFromGlobal(onBottom));
+        QTest::qWait(50);
+        QCOMPARE(window->size(), before);
+        QTest::mouseRelease(dock, Qt::LeftButton, Qt::NoModifier, dock->mapFromGlobal(onBottom));
+        QTRY_VERIFY(!dock->isFloating());
+        QCOMPARE(window->dockWidgetArea(dock), Qt::BottomDockWidgetArea);
+        QVERIFY(window->tabifiedDockWidgets(dock).contains(thinking));
+        QTRY_VERIFY(fitted());
+        QTRY_VERIFY(window->height() > before.height());
+        QTRY_COMPARE(window->height(), window->minimumHeight());
+        QCOMPARE(window->width(), before.width());
+        QCOMPARE(window->centralWidget()->size(), boardSize);
+        snapshot("dock-record-tabbed-into-bottom");
     }
     void captureKeepsWindowGeometry_data()
     {

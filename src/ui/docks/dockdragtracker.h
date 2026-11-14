@@ -28,6 +28,11 @@ class QMouseEvent;
  *
  * 対象は、Qt が描くタイトルバーのドラッグ（Linux の X11・Wayland の全部と、Windows・macOS の
  * 収まっているドック）。Windows・macOS の浮動のドックは OS のタイトルバーで動かすので知らせない。
+ *
+ * ドラッグの間は、OS のドラッグ＆ドロップの知らせ（DragEnter）をメインウィンドウだけに受けさせる。
+ * Wayland では Qt がドックのドラッグを OS のドラッグ＆ドロップで行い、メインウィンドウが受けた知らせから
+ * ドロップ先を決める。ドロップを受け付ける子の部品（分岐ツリー・評価値グラフの QGraphicsView など）が
+ * 先に受け取ると、その部品の上ではドロップ先が出ない。
  */
 class DockDragTracker : public QObject
 {
@@ -49,6 +54,9 @@ signals:
     void dragStarted(QDockWidget* dock);
     /// ドラッグが終わった
     void dragFinished();
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private slots:
     /// ボタンを離したのにドックへ届かなかったとき（ドラッグを途中でやめた等）に終わらせる

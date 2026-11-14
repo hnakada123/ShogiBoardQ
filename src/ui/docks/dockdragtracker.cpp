@@ -7,6 +7,7 @@
 #include <QDockWidget>
 #include <QEvent>
 #include <QGuiApplication>
+#include <QMainWindow>
 #include <QMouseEvent>
 
 namespace {
@@ -55,6 +56,7 @@ void DockDragTracker::beforeEvent(QDockWidget* dock, QEvent* event)
         // QDockWidget は、押した位置からこの距離を超えて動いたときにドックを引き出す
         if ((mouse->position().toPoint() - m_pressPos).manhattanLength() <= QApplication::startDragDistance()) break;
         m_dragging = dock;
+        qApp->installEventFilter(this);
         if (!usesPlatformDrag()) m_releaseWatch.start();
         emit dragStarted(dock);
         break;
@@ -80,6 +82,18 @@ void DockDragTracker::afterEvent(QDockWidget* dock, QEvent* event)
     }
 }
 
+bool DockDragTracker::eventFilter(QObject* watched, QEvent* event)
+{
+    // ドックのドラッグの間、ドロップを受け付ける子の部品に DragEnter を受けさせない（受けなければ、Qt は親へ順に
+    // 渡し、メインウィンドウが受ける）。ウィンドウ（QWindow）へ届く元の知らせはそのまま通す
+    if (event->type() == QEvent::DragEnter && m_dragging && watched->isWidgetType()
+        && !qobject_cast<QMainWindow*>(watched)) {
+        event->ignore();
+        return true;
+    }
+    return QObject::eventFilter(watched, event);
+}
+
 void DockDragTracker::pressed(QDockWidget* dock, const QMouseEvent* event)
 {
     // 前のドラッグの終わりを受け取れていなければ、ここで終える
@@ -99,5 +113,6 @@ void DockDragTracker::finish()
     m_pressed = nullptr;
     if (!m_dragging) return;
     m_dragging = nullptr;
+    qApp->removeEventFilter(this);
     emit dragFinished();
 }
