@@ -115,6 +115,22 @@ grep -i -E "initializeGame|initPosNo|prepareData|performCleanup|ensureBranch|see
 | 不透明でない部品を描くと、下にある祖先も同じ範囲を描く（スタイルシートで背景を付けた表の表示領域も不透明でなくなる） | 小さな部品の描き直しが、ドックやメインウィンドウまで | `OpaqueBackground::keep`・`DockRegistry` の `opaqueContent` |
 | Fusion は範囲のない `QProgressBar` を毎秒60回描き直す。動きの知らせを断ると、動きを作り直して描き直しを続ける（Qt 6.12 の `QCommonStylePrivate::removeAnimation`） | 待つ間ずっと、帯と下のダイアログ | 知らせを受けて描かず、動きを一時停止する（通信対局の待機ダイアログ） |
 | Qt Charts は、点を入れ直すと同じ点でも線を描き直す | 表示中の手を移すたびに 0 の線の全体 | 変わった線だけを入れ直す |
+| `QWidget::winId()` は、OS のウィンドウをまだ持たない部品を `WA_NativeWindow` にし、親の子の部品もすべて OS の子ウィンドウに作り替える（`QWidgetPrivate::enforceNativeChildren`。1度だけ） | 本体を親に持つウィンドウで最初に呼んだとき、本体の中身（盤・ドック・ツールバー）がすべて作り直される。端数倍率の Wayland では最初の1コマが縮んで描かれ、その後も描くたびに部品ごとのバッファへ写す | 親のある部品で `winId()` を呼ばない。表示の前に OS のウィンドウが要るなら `createWinId()`（`DialogUtils::makeIndependentWindow`） |
+
+### 本体の部品が OS の子ウィンドウになっていないかの確認
+
+本体の中の部品は、どれも OS のウィンドウを持たない（本体の1枚のバッファに描く）。持たせてしまうと、Wayland では部品ごとにサブサーフェスができる。入れ子の KWin で、アプリの通信の記録から数える:
+
+```bash
+# 倍率 1.25 の画面で起動し、<script> の中で自動化 API から操作する。記録は $SBQ_WORK/kapp-<名前>.log
+WAYLAND_DEBUG=client SBQ_KWIN_SCALE=1.25 SBQ_KWIN_SIZE=2000x1500 \
+  scripts/docs/kwin_capture.sh <名前> ja_JP <script>
+grep -c get_subsurface "$SBQ_WORK/kapp-<名前>.log"   # 0 が正しい
+```
+
+- できたサブサーフェスの最初のバッファは、倍率の知らせ（`wp_fractional_scale_v1.preferred_scale`）が届く前に作られるので、大きさが合わない（1.25倍の画面で2倍。中身は 62.5% に縮んで見え、約 20ms 後に描き直される）。`wl_surface.damage_buffer` の大きさと `wp_viewport.set_destination` を比べると分かる
+- 一瞬だけ出るコマは、記録に目印の行（`get_subsurface` など）が出た直後にアプリを `kill -STOP` で止めて `spectacle -b -n -f -o out.png` で撮り、`kill -CONT` で続ける（止めている間も、KWin は最後に受けたコマを出している）。修正後は、操作からの同じ時間で止めて比べる
+- 単体の試験では、表示の後に本体の子の部品が `testAttribute(Qt::WA_NativeWindow)`・`internalWinId()` を持たないことを確かめる（`tst_p2p_ui`・`tst_dock_layout`）
 
 ## 実績: BoardSyncPresenter NULLポインタバグ（2026-02-16）
 

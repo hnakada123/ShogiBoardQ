@@ -206,7 +206,9 @@ void DialogUtils::makeIndependentWindow(QWidget* window)
     }
     // 親のウィンドウを閉じたとき、開いたままでもアプリの終了を止めない
     window->setAttribute(Qt::WA_QuitOnClose, false);
-    // Qt はウィンドウを作るたびに、親のウィンドウを OS の親にする。作った後で外す
-    window->winId();
+    // Qt はウィンドウを作るたびに、親のウィンドウを OS の親にする。作った後で外す。
+    // winId() では作らない: 部品を WA_NativeWindow にし、Qt が親（本体）の子の部品（盤・ドック・ツールバー）も
+    // すべて OS の子ウィンドウに作り替える（最初に開いたときに盤が一瞬小さく描かれ、その後の描画も重くなる）
+    window->createWinId();
     if (QWindow* handle = window->windowHandle()) handle->setTransientParent(nullptr);
 }

@@ -16,6 +16,7 @@
 #include <QLineEdit>
 #include <QAction>
 #include <QMainWindow>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QPaintEvent>
 #include <QPushButton>
@@ -335,6 +336,9 @@ private slots:
         ShogiClock clock;
         P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
         QMainWindow main;
+        auto* central = new QWidget(&main);
+        main.setCentralWidget(central);
+        auto* inner = new QLabel(QStringLiteral("board"), central);
         main.show();
         QVERIFY(QTest::qWaitForWindowExposed(&main));
         P2pGameUiController::Deps deps;
@@ -354,6 +358,14 @@ private slots:
             // Qt の所有関係は残し、開いたままでもアプリの終了を止めない
             QCOMPARE(window->parentWidget(), &main);
             QVERIFY(!window->testAttribute(Qt::WA_QuitOnClose));
+            // 本体の中の部品（盤・ドック・ツールバー）を、OS のウィンドウに作り替えない。作り替えると、最初に
+            // 開いたときに本体の全部の部品が OS の子ウィンドウになり、盤が一瞬小さく描かれる
+            QVERIFY(!window->testAttribute(Qt::WA_NativeWindow));
+            const QList<QWidget*> children{central, inner, main.menuBar()};
+            for (const QWidget* child : children) {
+                QVERIFY(!child->testAttribute(Qt::WA_NativeWindow));
+                QVERIFY(!child->internalWinId());
+            }
             QVERIFY(window->close());
         }
         ui.shutdown();

@@ -14,6 +14,8 @@
 #   - 終了時に、使い捨て D-Bus につながったまま残ったプロセスを止める
 # 環境変数は launch.sh と同じ（SBQ_WORK・SBQ_SOCKET_DIR・SBQ_APP・SBQ_ENGINES・SBQ_EXTRA_INI）。
 # 画面の大きさは SBQ_KWIN_SIZE（既定 1700x1300）、ウィンドウの大きさは SBQ_WINDOW（既定 1300x980）。
+# 画面の倍率は SBQ_KWIN_SCALE（既定は 1。端数倍率の表示を確かめるときは 1.25 など。画面の大きさは画素の数なので、
+# 倍率を上げたら SBQ_KWIN_SIZE も大きくする）。
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/../.." && pwd)
@@ -51,6 +53,11 @@ kwin_wayland --virtual --width "${SIZE%x*}" --height "${SIZE#*x}" --socket "$SOC
 KWIN=$!
 for _ in $(seq 1 60); do [ -S "$XDG_RUNTIME_DIR/$SOCKNAME" ] && break; sleep 0.25; done
 export WAYLAND_DISPLAY=$SOCKNAME QT_QPA_PLATFORM=wayland
+# 倍率は、起動の後で出力の設定として変える（kwin_wayland の --scale は仮想の画面の画素を増やすだけ）
+if [ -n "${SBQ_KWIN_SCALE:-}" ]; then
+  kscreen-doctor "output.1.scale.$SBQ_KWIN_SCALE" > "$WORK/kscreen-$NAME.log" 2>&1
+  sleep 1
+fi
 case $LANGUAGE_SETTING in
   en) LOC=en_US.UTF-8 ;;
   zh_CN|zh_TW)

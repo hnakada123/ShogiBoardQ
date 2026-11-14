@@ -234,6 +234,16 @@ void TestDockLayout::floatingDocks_allowIndependentWindows()
         // Qt の所有関係は維持し、ドックを閉じてもアプリの終了条件にしない。
         QCOMPARE(dock->parentWidget(), &setup.window);
         QVERIFY(!dock->testAttribute(Qt::WA_QuitOnClose));
+        // 本体の中の部品（盤・ほかのドック）を、OS のウィンドウに作り替えない
+        QVERIFY(!dock->testAttribute(Qt::WA_NativeWindow));
+        QVERIFY(!setup.window.centralWidget()->testAttribute(Qt::WA_NativeWindow));
+        QVERIFY(!setup.window.centralWidget()->internalWinId());
+        for (const auto& spec : DockRegistry::specs()) {
+            const QDockWidget* other = setup.registry->dock(spec.id);
+            if (other == dock || other->isFloating()) continue;
+            QVERIFY(!other->testAttribute(Qt::WA_NativeWindow));
+            QVERIFY(!other->internalWinId());
+        }
         dock->setGeometry(80, 100, 360, 260);
         const QRect geometry = dock->geometry();
         QVERIFY(dock->close());
