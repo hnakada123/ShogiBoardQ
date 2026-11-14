@@ -8,6 +8,7 @@
 #include <QItemSelectionModel>
 #include <QMouseEvent>
 #include <QPaintEvent>
+#include <QPalette>
 #include <QPixmap>
 #include <QTableView>
 
@@ -135,6 +136,19 @@ int TableHeaderView::selectionState(int logicalIndex) const
     if (horizontal ? selection->isColumnSelected(logicalIndex, root) : selection->isRowSelected(logicalIndex, root))
         state |= 2;
     return state;
+}
+
+// ウィンドウが前面になる・後ろに回ると、Qt は見出しの全体を描き直す（QAbstractItemView::viewportEvent。
+// ダイアログを開く・閉じるたびに起きる）。前面と後ろでパレットが同じなら見出しの見た目は変わらないので、
+// 描き直しを頼ませない（Qt の処理は描き直しを頼むだけなので、その先の処理へ渡す）
+bool TableHeaderView::viewportEvent(QEvent* event)
+{
+    const QEvent::Type type = event->type();
+    if ((type == QEvent::WindowActivate || type == QEvent::WindowDeactivate)
+        && palette().isEqual(QPalette::Active, QPalette::Inactive)
+        && viewport()->palette().isEqual(QPalette::Active, QPalette::Inactive))
+        return QAbstractScrollArea::viewportEvent(event);
+    return QHeaderView::viewportEvent(event);
 }
 
 void TableHeaderView::paintEvent(QPaintEvent* event)

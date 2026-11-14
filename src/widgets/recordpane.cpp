@@ -209,7 +209,9 @@ void RecordPane::buildNavigationPanel()
 
 void RecordPane::buildBranchPanel()
 {
-    m_branch = new QTableView(this);
+    // 候補が替わるたびにモデルをリセットする。棋譜欄と同じ表にして、リセットの描き直しを1回にまとめ、
+    // 表示領域を不透明にして下の親（表・入れ物・分割・パネル）まで描き直さない
+    m_branch = new IncrementalTableView(this);
     m_branch->setObjectName(QStringLiteral("kifuBranchTable"));
     m_branch->setItemDelegate(new RecordHighlightDelegate(m_branch));
     m_branch->setSelectionMode(QAbstractItemView::SingleSelection);

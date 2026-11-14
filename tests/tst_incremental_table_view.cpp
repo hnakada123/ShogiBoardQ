@@ -1,5 +1,9 @@
 #include <QtTest>
 #include <QAbstractTableModel>
+#include <QLineEdit>
+#include <QVBoxLayout>
+#include <QItemSelectionModel>
+#include <QFocusEvent>
 #include <QHeaderView>
 #include <QPaintEvent>
 #include <QScreen>
@@ -378,9 +382,9 @@ private slots:
                 view.viewport()->removeEventFilter(&spy);
                 const QString label = QStringLiteral("cycle %1 %2").arg(cycle).arg(fill ? "fill" : "clear");
                 QCOMPARE(view.verticalScrollBar()->isVisible(), fill);
-                // 消すときは、行を消した表を描いた後でスクロールバーが消えて幅が変わるので、
-                // 全体を2回描く（中身が無いので軽い）。足すときは幅が変わってから描くので1回。
-                QVERIFY2(spy.fullPaints == (fill ? 1 : 2),
+                // 消すときは行を描いていた範囲だけを描き、その後でスクロールバーが消えて幅が変わるので、
+                // 全体を1回描く。足すときも幅が変わってから描くので1回。
+                QVERIFY2(spy.fullPaints == 1,
                          qPrintable(label + QStringLiteral(": full repaints %1").arg(spy.fullPaints)));
                 verifySameLayout(view, reference, label);
                 if (QTest::currentTestFailed()) return;
@@ -644,6 +648,262 @@ private slots:
         settle();
         QCOMPARE(bar->maximum(), 0);
         QCOMPARE(stalePixels(view), 0);
+    }
+
+    // 思考表はエンジンが指すたびに消し、最初の思考情報が続けて届く（先頭へ2行以上）。
+    // 消すときは行を描いていた範囲だけを、足すときは足した行だけを描き直す
+    void clearAndRefillRepaintOnlyTheRows()
+    {
+        ShogiEngineThinkingModel model;
+        IncrementalTableView view;
+        setUpThinkingView(view, &model);
+        // フォーカスを受けると現在のセルができ、消したときにその列の見出しの強調が消える（見出しを描き直す）
+        view.setFocusPolicy(Qt::NoFocus);
+        view.resize(900, 400);
+        int next = 0;
+        for (; next < 3; ++next) model.prependRow(thinkingRecord(next), kUnlimitedRows);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        settle();
+        const QAbstractItemModel* items = &model;
+        QSignalSpy reset(items, &QAbstractItemModel::modelReset);
+        QSignalSpy removed(items, &QAbstractItemModel::rowsRemoved);
+
+        for (int round = 0; round < 3; ++round) {
+            // 見出しは描き直さない（リセットで知らせると、表は見出しまで作り直す）
+            PaintSpy header;
+            view.horizontalHeader()->viewport()->installEventFilter(&header);
+            verifyStep(view, [&] { model.clear(); }, 0.5, QStringLiteral("clear round %1").arg(round));
+            view.horizontalHeader()->viewport()->removeEventFilter(&header);
+            if (QTest::currentTestFailed()) return;
+            if (integralScale(view)) QVERIFY2(header.region.isEmpty(), "header repainted on clear");
+            QCOMPARE(model.rowCount(), 0);
+            verifyStep(view, [&] {
+                for (int i = 0; i < 3; ++i) model.prependRow(thinkingRecord(next++), kUnlimitedRows);
+            }, 0.5, QStringLiteral("refill round %1").arg(round));
+            if (QTest::currentTestFailed()) return;
+        }
+        QCOMPARE(reset.size(), 0);
+        QCOMPARE(removed.size(), 3);
+        // 空の表を消しても何も知らせない
+        model.clear();
+        model.clear();
+        QCOMPARE(removed.size(), 4);
+        // 消した直後（配置のやり直しの前）に足しても、描き残しが無い
+        for (int i = 0; i < 6; ++i) model.prependRow(thinkingRecord(next++), kUnlimitedRows);
+        settle();
+        verifyStep(view, [&] {
+            model.clear();
+            model.prependRow(thinkingRecord(next++), kUnlimitedRows);
+        }, 1.01, QStringLiteral("clear then prepend"));
+        // 下へスクロールしているときに消しても、描き残しが無い
+        for (int i = 0; i < 40; ++i) model.prependRow(thinkingRecord(next++), kUnlimitedRows);
+        settle();
+        verifyStep(view, [&] { view.verticalScrollBar()->setValue(7); }, 1.01, QStringLiteral("scroll"));
+        verifyStep(view, [&] { model.clear(); }, 1.01, QStringLiteral("clear while scrolled"));
+        verifyStep(view, [&] { model.prependRow(thinkingRecord(next++), kUnlimitedRows); }, 0.5,
+                   QStringLiteral("first row after scrolled clear"));
+    }
+
+    // 行の色を交互に変える表（棋譜解析の結果の表）も、末尾に足した行だけを描き直す
+    void appendWithAlternatingRowColors()
+    {
+        RecordRows rows;
+        IncrementalTableView view;
+        view.setAlternatingRowColors(true);
+        view.setSelectionBehavior(QAbstractItemView::SelectRows);
+        view.verticalHeader()->setVisible(false);
+        view.verticalHeader()->setDefaultSectionSize(view.fontMetrics().height() + 4);
+        view.verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+        view.setModel(&rows.model);
+        view.horizontalHeader()->setStretchLastSection(true);
+        view.resize(420, 260);
+        for (int ply = 1; ply <= 12; ++ply) rows.append(QStringLiteral("▲２六歩(27)"));
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        view.scrollToBottom();
+        settle();
+        for (int ply = 13; ply <= 30; ++ply) {
+            verifyStep(view, [&] {
+                rows.append(QStringLiteral("▲７六歩(77)"));
+                view.setCurrentIndex(rows.model.index(ply, 0));
+                view.scrollToBottom();
+            }, 0.5, QStringLiteral("append ply %1").arg(ply));
+            if (QTest::currentTestFailed()) return;
+        }
+    }
+
+    // モデルのリセット（分岐候補欄の候補の入れ替え）で、表示領域を描くのは1回だけ
+    void resetRepaintsViewportOnce()
+    {
+        RecordRows rows;
+        IncrementalTableView view;
+        view.verticalHeader()->setVisible(false);
+        view.verticalHeader()->setDefaultSectionSize(view.fontMetrics().height() + 4);
+        view.verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+        view.setStyleSheet(RecordPane::tableStyleSheet(10));
+        view.setModel(&rows.model);
+        view.horizontalHeader()->setStretchLastSection(true);
+        view.resize(420, 260);
+        for (int ply = 1; ply <= 5; ++ply) rows.append(QStringLiteral("▲２六歩(27)"));
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        settle();
+        for (int round = 0; round < 3; ++round) {
+            PaintSpy spy;
+            view.viewport()->installEventFilter(&spy);
+            rows.reset();
+            for (int i = 0; i < 2 + round; ++i) rows.append(QStringLiteral("▲７六歩(77)"));
+            settle();
+            view.viewport()->removeEventFilter(&spy);
+            QCOMPARE(spy.fullPaints, 1);
+            QCOMPARE(stalePixels(view), 0);
+        }
+    }
+
+    // スタイルシートで背景を付けた表は、スクロールバーの入れ物も塗る（スクロールバーの描き直しを、
+    // 表と下の親まで広げない）。塗っても画面は変わらない
+    void scrollBarContainersAreFilled()
+    {
+        RecordRows rows;
+        IncrementalTableView view;
+        view.verticalHeader()->setVisible(false);
+        view.verticalHeader()->setDefaultSectionSize(view.fontMetrics().height() + 4);
+        view.verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+        view.setStyleSheet(RecordPane::tableStyleSheet(10));
+        view.setModel(&rows.model);
+        view.horizontalHeader()->setStretchLastSection(true);
+        view.resize(420, 200);
+        for (int ply = 1; ply <= 30; ++ply) rows.append(QStringLiteral("▲２六歩(27)"));
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        settle();
+        QWidget* container = view.verticalScrollBar()->parentWidget();
+        QVERIFY(container != &view);
+        QVERIFY(view.verticalScrollBar()->isVisible());
+        QCOMPARE(container->testAttribute(Qt::WA_OpaquePaintEvent), integralScale(view));
+        // 入れ物を塗る表と、塗らない Qt の表で、画面が同じ
+        QTableView plainView;
+        plainView.verticalHeader()->setVisible(false);
+        plainView.verticalHeader()->setDefaultSectionSize(view.fontMetrics().height() + 4);
+        plainView.verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+        plainView.setStyleSheet(RecordPane::tableStyleSheet(10));
+        plainView.setModel(&rows.model);
+        plainView.horizontalHeader()->setStretchLastSection(true);
+        plainView.resize(view.size());
+        plainView.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&plainView));
+        settle();
+        QCOMPARE(view.grab().toImage(), plainView.grab().toImage());
+
+        // スクロールバーを描き直しても、表の枠（スクロールバーの下の親）は描き直さない
+        if (!integralScale(view)) return;
+        PaintSpy frame;
+        view.installEventFilter(&frame);
+        view.verticalScrollBar()->setValue(view.verticalScrollBar()->maximum() / 2);
+        settle();
+        view.removeEventFilter(&frame);
+        QVERIFY2(frame.region.isEmpty(), "table frame repainted with its scroll bar");
+        QCOMPARE(stalePixels(view), 0);
+    }
+
+    // フォーカスの出入り（ウィンドウが前面になる・後ろに回るときにも起きる）では、現在の行と選んだ行だけを
+    // 描き直す（Qt は表示領域の全体を描き直す）。全体を描き直した画面と同じになる
+    void focusChangeRepaintsOnlyCurrentAndSelectedRows()
+    {
+        RecordRows rows;
+        QWidget window;
+        auto* layout = new QVBoxLayout(&window);
+        auto* view = new IncrementalTableView(&window);
+        auto* other = new QLineEdit(&window);
+        layout->addWidget(view);
+        layout->addWidget(other);
+        view->setItemDelegate(new RecordHighlightDelegate(view));
+        view->setSelectionMode(QAbstractItemView::SingleSelection);
+        view->setSelectionBehavior(QAbstractItemView::SelectRows);
+        view->verticalHeader()->setVisible(false);
+        view->verticalHeader()->setDefaultSectionSize(view->fontMetrics().height() + 4);
+        view->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+        view->setWordWrap(false);
+        view->setStyleSheet(RecordPane::tableStyleSheet(10));
+        view->setModel(&rows.model);
+        view->horizontalHeader()->setStretchLastSection(true);
+        window.resize(440, 340);
+        for (int ply = 1; ply <= 10; ++ply) rows.append(QStringLiteral("▲２六歩(27)"));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowActive(&window));
+        view->setFocus();
+        view->selectRow(4);
+        settle();
+        QVERIFY(view->hasFocus());
+        QCOMPARE(stalePixels(*view), 0);
+
+        for (int round = 0; round < 2; ++round) {
+            verifyStep(*view, [&] { other->setFocus(); }, 0.4, QStringLiteral("focus out %1").arg(round));
+            if (QTest::currentTestFailed()) return;
+            QVERIFY(!view->hasFocus());
+            verifyStep(*view, [&] { view->setFocus(); }, 0.4, QStringLiteral("focus in %1").arg(round));
+            if (QTest::currentTestFailed()) return;
+            QVERIFY(view->hasFocus());
+        }
+        // 現在のセルと選んだ行が別の行のとき
+        view->selectionModel()->setCurrentIndex(rows.model.index(8, 0), QItemSelectionModel::NoUpdate);
+        settle();
+        verifyStep(*view, [&] { other->setFocus(); }, 0.4, QStringLiteral("focus out, current differs"));
+        verifyStep(*view, [&] { view->setFocus(); }, 0.4, QStringLiteral("focus in, current differs"));
+        // ウィンドウが前面になる・後ろに回る知らせでも、現在の行と選んだ行だけ
+        QVERIFY(view->palette().isEqual(QPalette::Active, QPalette::Inactive));
+        for (const QEvent::Type type : {QEvent::WindowDeactivate, QEvent::WindowActivate}) {
+            // 見出しは描き直さない
+            PaintSpy header;
+            view->horizontalHeader()->viewport()->installEventFilter(&header);
+            verifyStep(*view, [&] {
+                QEvent activation(type);
+                QCoreApplication::sendEvent(&window, &activation);
+            }, 0.4, QStringLiteral("window activation %1").arg(int(type)));
+            view->horizontalHeader()->viewport()->removeEventFilter(&header);
+            if (QTest::currentTestFailed()) return;
+            QVERIFY2(header.region.isEmpty(), "header repainted on window activation");
+        }
+        // 現在のセルも選んだ行も無ければ、何も描き直さない
+        other->setFocus();
+        view->clearSelection();
+        view->selectionModel()->clearCurrentIndex();
+        settle();
+        // （フォーカスを受けると Qt が現在のセルを決めるので、受ける前に試す）
+        {
+            PaintSpy spy;
+            view->viewport()->installEventFilter(&spy);
+            QFocusEvent out(QEvent::FocusOut, Qt::ActiveWindowFocusReason);
+            QCoreApplication::sendEvent(view, &out);
+            settle();
+            view->viewport()->removeEventFilter(&spy);
+            if (integralScale(*view)) QVERIFY2(spy.region.isEmpty(), "focus change without current or selected rows repainted");
+        }
+        QCOMPARE(stalePixels(*view), 0);
+        // 描き直しを止めたままにしない
+        QVERIFY(view->viewport()->updatesEnabled());
+
+        // 前面と後ろでパレットが違う表は、これまでどおり全体を描き直す（文字の色が変わる）
+        IncrementalTableView colored;
+        QPalette differs = colored.palette();
+        differs.setColor(QPalette::Active, QPalette::Text, Qt::black);
+        differs.setColor(QPalette::Inactive, QPalette::Text, Qt::darkGray);
+        colored.setPalette(differs);
+        colored.setModel(&rows.model);
+        colored.resize(420, 260);
+        colored.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&colored));
+        settle();
+        PaintSpy spy;
+        colored.viewport()->installEventFilter(&spy);
+        QEvent activation(QEvent::WindowDeactivate);
+        QCoreApplication::sendEvent(&colored, &activation);
+        settle();
+        colored.viewport()->removeEventFilter(&spy);
+        QVERIFY(spy.fullPaints >= 1);
     }
 
     // スクロールバーを替えても、表のスクロールと、一番下まで表示したときの読み足し

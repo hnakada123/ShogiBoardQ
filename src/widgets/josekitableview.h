@@ -4,8 +4,9 @@
 /// @file josekitableview.h
 /// @brief 定跡ウィンドウの定跡手の表（ボタンの列・ダブルクリック・右クリックのメニュー）
 
-#include <QTableView>
 #include <functional>
+
+#include "incrementaltableview.h"
 
 class JosekiTableModel;
 class QAction;
@@ -19,8 +20,9 @@ class QMenu;
  * （rowActionRequested）にして知らせる。何をするかは表を持つ側が決める。メニューの項目を押せるかは
  * setActionAvailability で渡した判定で、メニューを開くたびに決める。定跡手が無いときの案内も表の中に出す。
  * 横の見出しは TableHeaderView（利用者が列幅を変えたときだけ sectionResizedByUser を出す）。
+ * 表は IncrementalTableView（表示領域が不透明で、局面が替わるたびの描き直しを下のパネルまで広げない）。
  */
-class JosekiTableView : public QTableView
+class JosekiTableView : public IncrementalTableView
 {
     Q_OBJECT
 

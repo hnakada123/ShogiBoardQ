@@ -2,10 +2,13 @@
 /// @brief 行の追加で表示領域全体を描き直さない表の実装
 
 #include "incrementaltableview.h"
+#include "opaquebackground.h"
 #include "tableheaderview.h"
 
 #include <QAbstractItemDelegate>
 #include <QEvent>
+#include <QFocusEvent>
+#include <QItemSelectionModel>
 #include <QHeaderView>
 #include <QPaintEvent>
 #include <QScrollBar>
@@ -152,6 +155,7 @@ void IncrementalTableView::setModel(QAbstractItemModel* newModel)
                 this, &IncrementalTableView::onStructureChanged),
         connect(newModel, &QAbstractItemModel::columnsAboutToBeMoved, this, &IncrementalTableView::onStructureChanged),
         connect(newModel, &QAbstractItemModel::modelAboutToBeReset, this, &IncrementalTableView::onStructureChanged),
+        connect(newModel, &QAbstractItemModel::modelReset, this, &IncrementalTableView::onModelReset),
         connect(newModel, &QAbstractItemModel::layoutAboutToBeChanged, this, &IncrementalTableView::onStructureChanged),
     };
 }
@@ -172,7 +176,9 @@ void IncrementalTableView::onRowsAboutToBeInserted(const QModelIndex& parent, in
         m_change = first == rows ? Change::Append : first == 0 ? Change::Prepend : Change::Other;
         break;
     case Change::Append:
-        if (first == rows) m_insertedRows += count;
+        // 空の表に足し始めた行だけなら、どこに足しても表の行はすべて新しい行（思考表は、消した後の
+        // 最初の思考情報が続けて届くと、先頭へ2行以上足す）
+        if (first == rows || (m_firstRow == 0 && m_insertedRows == rows)) m_insertedRows += count;
         else m_change = Change::Other;
         break;
     case Change::Prepend:
@@ -193,6 +199,9 @@ void IncrementalTableView::onRowsAboutToBeInserted(const QModelIndex& parent, in
             m_change = Change::Other;
         }
         break;
+    case Change::RemoveAll:
+        m_change = Change::Other;
+        break;
     case Change::Other:
         break;
     }
@@ -203,7 +212,16 @@ void IncrementalTableView::onRowsAboutToBeInserted(const QModelIndex& parent, in
 // 行の位置は、見出しが追加の通知をその場で反映しているので、追加後の値で比べられる。
 void IncrementalTableView::onRowsAboutToBeRemoved(const QModelIndex& parent, int first, int last)
 {
-    Q_UNUSED(last)
+    // すべての行を消す（思考表の消去）なら、行を描いていた範囲だけを描き直す。行の位置は消す前に読む
+    if (m_change == Change::None && parent == rootIndex() && model() && isVisible() && first == 0
+        && last == model()->rowCount(rootIndex()) - 1) {
+        m_changedRows.clear();
+        m_change = Change::RemoveAll;
+        const int top = rowViewportPosition(first);
+        const int bottom = rowViewportPosition(last) + rowHeight(last);
+        m_removedRowsRect = QRect(0, top, viewport()->width(), bottom - top) & viewport()->rect();
+        return;
+    }
     const bool belowView = parent == rootIndex() && model() && isVisible()
         && verticalScrollBar()->value() == 0 && rowViewportPosition(first) >= viewport()->height();
     if (!belowView) {
@@ -223,6 +241,7 @@ void IncrementalTableView::onRowsAboutToBeRemoved(const QModelIndex& parent, int
     case Change::RemoveBelow:
         break;
     case Change::Append:
+    case Change::RemoveAll:
     case Change::Other:
         m_change = Change::Other;
         return;
@@ -252,6 +271,14 @@ void IncrementalTableView::onStructureChanged()
     m_change = Change::Other;
 }
 
+// モデルのリセットで、Qt はその場で表示領域全体の描き直しを頼み、後から配置をやり直してもう一度頼む。
+// 間に描画が入って、同じ内容を2回描く。配置をここでやり直して、1回にまとめる
+// （この知らせは、Qt の表と見出しがリセットを受けた後に届く）
+void IncrementalTableView::onModelReset()
+{
+    if (isVisible()) executeDelayedItemsLayout();
+}
+
 void IncrementalTableView::doItemsLayout()
 {
     const Change change = std::exchange(m_change, Change::None);
@@ -262,9 +289,11 @@ void IncrementalTableView::doItemsLayout()
 
     // 先頭への追加で画面をずらすのは、一番上を表示しているときだけ
     const bool atTop = verticalScrollBar()->value() == 0;
-    const bool incremental = sameSettings && isVisible() && model() && !alternatingRowColors()
-        && !isRightToLeft()
-        && (change == Change::Append || ((change == Change::Prepend || change == Change::RemoveBelow) && atTop));
+    // 行の色を交互に変える表は、先頭に足すと既にある行の色が入れ替わるので、画面のずらしを使わない
+    // （末尾への追加とすべての行の削除では、残る行の色は変わらない）
+    const bool incremental = sameSettings && isVisible() && model() && !isRightToLeft()
+        && (change == Change::Append || change == Change::RemoveAll
+            || ((change == Change::Prepend || change == Change::RemoveBelow) && atTop && !alternatingRowColors()));
     if (!incremental) {
         QTableView::doItemsLayout();
         return;
@@ -276,6 +305,12 @@ void IncrementalTableView::doItemsLayout()
     const int horizontalOffset = horizontalHeader()->offset();
     updateGeometries();
     if (!verticalHeader()->updatesEnabled()) verticalHeader()->setUpdatesEnabled(true);
+
+    // すべての行を消した後は、行を描いていた範囲が空になるだけ（残る行が無いので、画面のずらしは要らない）
+    if (change == Change::RemoveAll) {
+        if (!m_removedRowsRect.isEmpty()) viewport()->update(m_removedRowsRect);
+        return;
+    }
 
     // 行が増えると、スクロールバーの値が同じでも表示位置が変わることがある
     // （一番下まで表示していると、最後の行を下端に合わせていたのを行の上端に合わせ直す）。
@@ -339,7 +374,18 @@ void IncrementalTableView::onColumnResized(int column, int oldWidth, int newWidt
 
 bool IncrementalTableView::viewportEvent(QEvent* event)
 {
-    if (event->type() == QEvent::Paint) m_paintedViewportSize = viewport()->size();
+    const QEvent::Type type = event->type();
+    if (type == QEvent::Paint) m_paintedViewportSize = viewport()->size();
+    // ウィンドウが前面になる・後ろに回ると、Qt は表示領域の全体を描き直す（QAbstractItemView::viewportEvent。
+    // ダイアログを開く・閉じるたびに、見えている表の全部で起きる）。前面と後ろでパレットが同じなら、
+    // 見た目が変わりうるのは現在の行と選んだ行（スタイルが前面かどうかで描き分ける）だけなので、
+    // その行だけを描き直す。Qt の処理は全体の描き直しを頼むだけなので、その先の処理へ渡す
+    if ((type == QEvent::WindowActivate || type == QEvent::WindowDeactivate) && isVisible()
+        && palette().isEqual(QPalette::Active, QPalette::Inactive)
+        && viewport()->palette().isEqual(QPalette::Active, QPalette::Inactive)) {
+        updateCurrentAndSelectedRows();
+        return QAbstractScrollArea::viewportEvent(event);
+    }
     return QTableView::viewportEvent(event);
 }
 
@@ -349,6 +395,50 @@ void IncrementalTableView::resizeEvent(QResizeEvent* event)
     const bool resizing = std::exchange(m_resizingViewport, true);
     QTableView::resizeEvent(event);
     m_resizingViewport = resizing;
+}
+
+void IncrementalTableView::focusInEvent(QFocusEvent* event)
+{
+    changeFocus(event, true);
+}
+
+void IncrementalTableView::focusOutEvent(QFocusEvent* event)
+{
+    changeFocus(event, false);
+}
+
+void IncrementalTableView::changeFocus(QFocusEvent* event, bool gained)
+{
+    QWidget* area = viewport();
+    // Qt の処理が頼む表示領域の描き直し（全体）を受け付けずに処理させ、後から要る行だけを頼む。
+    // 既に描き直しを止められているときは、そのまま Qt に任せる
+    const bool limit = isVisible() && area->updatesEnabled();
+    const int verticalOffset = verticalHeader()->offset();
+    const int horizontalOffset = horizontalHeader()->offset();
+    const QPersistentModelIndex previous = currentIndex();
+    if (limit) area->setAttribute(Qt::WA_UpdatesDisabled, true);
+    if (gained) QTableView::focusInEvent(event);
+    else QTableView::focusOutEvent(event);
+    if (!limit) return;
+    area->setAttribute(Qt::WA_UpdatesDisabled, false);
+    // 表示位置が動いたとき（ふつうは動かない）は全体を描き直す
+    if (verticalOffset != verticalHeader()->offset() || horizontalOffset != horizontalHeader()->offset()) {
+        area->update();
+        return;
+    }
+    // フォーカスを受けたときに Qt が現在のセルを決めることがあるので、前の現在の行も描き直す
+    updateCurrentAndSelectedRows(previous);
+}
+
+void IncrementalTableView::updateCurrentAndSelectedRows(const QModelIndex& alsoRow)
+{
+    QWidget* area = viewport();
+    for (const QModelIndex& index : {alsoRow, currentIndex()}) {
+        if (!index.isValid()) continue;
+        area->update(0, rowViewportPosition(index.row()), area->width(), rowHeight(index.row()));
+    }
+    if (const QItemSelectionModel* selection = selectionModel())
+        area->update(visualRegionForSelection(selection->selection()));
 }
 
 bool IncrementalTableView::event(QEvent* event)
@@ -378,11 +468,17 @@ void IncrementalTableView::updateViewportFill()
     if (!area->testAttribute(Qt::WA_StyledBackground)) return;
     const qreal ratio = devicePixelRatioF();
     const bool integral = std::abs(ratio - std::round(ratio)) < 1e-9;
-    if (integral && area->palette().brush(area->backgroundRole()).isOpaque()) {
+    const QBrush background = area->palette().brush(area->backgroundRole());
+    const bool fill = integral && background.isOpaque();
+    if (fill) {
         area->setAutoFillBackground(true);
         m_viewportFilled = true;
     } else if (m_viewportFilled) {
         area->setAutoFillBackground(false);
         m_viewportFilled = false;
     }
+    // スクロールバーの入れ物も同じ条件で塗る。スクロールバーも入れ物も不透明でないので、スクロールバーを
+    // 描き直すたびに、表と、その下にある親（分割・パネル）まで同じ範囲を描いていた。下に見えているのは、
+    // スタイルシートが表の全体に塗る背景色（表示領域と同じ色）
+    OpaqueBackground::fillScrollBarContainers(this, fill ? std::optional<QBrush>(background) : std::nullopt);
 }

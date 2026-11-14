@@ -228,7 +228,10 @@ void ShogiEngineThinkingModel::trimToMaxRows(int maxRows)
 
 void ShogiEngineThinkingModel::clear()
 {
-    beginResetModel();
+    // 行の削除として知らせる。リセットで知らせると、表は見出しまで作り直し、表示領域の全体を2回描く
+    // （エンジンが指すたびに起きる）
+    if (m_rows.isEmpty()) return;
+    beginRemoveRows(QModelIndex(), 0, static_cast<int>(m_rows.size()) - 1);
     m_rows.clear();
-    endResetModel();
+    endRemoveRows();
 }

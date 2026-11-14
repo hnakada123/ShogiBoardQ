@@ -65,6 +65,7 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseDoubleClickEvent(QMouseEvent* event) override;
     bool event(QEvent* event) override;
+    bool viewportEvent(QEvent* event) override;
     void paintEvent(QPaintEvent* event) override;
     void selectionChanged(const QItemSelection& selected, const QItemSelection& deselected) override;
 

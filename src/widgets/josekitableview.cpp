@@ -21,12 +21,11 @@ int JosekiTableView::minimumColumnWidth(int column)
 }
 
 JosekiTableView::JosekiTableView(JosekiTableModel *model, QWidget *parent)
-    : QTableView(parent)
+    : IncrementalTableView(parent)
     , m_model(model)
 {
     setObjectName(QStringLiteral("josekiTable"));
-    // 利用者が列幅を変えたときだけ知らせる見出し（sectionResizedByUser）
-    TableHeaderView::install(this);
+    // 見出しは基底が入れる TableHeaderView（利用者が列幅を変えたときだけ sectionResizedByUser を出す）
     setModel(m_model);
     auto *moveDelegate = new KifuMoveDelegate(this);
     setItemDelegateForColumn(JosekiTableModel::Move, moveDelegate);
@@ -112,6 +111,10 @@ void JosekiTableView::setEmptyGuide(const QString &text)
     m_emptyGuide->setText(text);
     m_emptyGuide->setVisible(!text.isEmpty());
     if (!text.isEmpty()) m_emptyGuide->raise();
+    // 案内の出し入れと行の増減は、どちらも後から配置をやり直して描き直しを頼む。別々に届くと、局面が
+    // 替わるたびに表示領域を2〜3回描く。ここで配置を済ませて、1回の描き直しにまとめる
+    if (QLayout *guideLayout = viewport()->layout()) guideLayout->activate();
+    if (isVisible()) executeDelayedItemsLayout();
 }
 
 void JosekiTableView::onClicked(const QModelIndex &index)
