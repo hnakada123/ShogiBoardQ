@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="言語"><span aria-current="page">日本語</span><a href="../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ（将棋盤Q。P2P対局を有効にしたビルド）／プロトコルの版 1／文書の版 2026-11-13（<a href="#sec-B">変更履歴</a>）</p>
+<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 1／文書の版 2026-11-14（<a href="#sec-B">変更履歴</a>）</p>
 <p class="lead">通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
@@ -229,7 +229,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <h2 id="sec-1">1. この文書について</h2>
 
 <h3 id="sec-1-1">1.1 目的と適用範囲</h3>
-<p>この文書は、ShogiBoardQ（将棋盤Q。P2P対局を有効にしたビルド）の「P2P対局」と相互に対局できるソフトウェアを、別の実装として作るための仕様書である。ネットワークを流れるバイト列、手順、検査、時間の決まり、対局記録（証跡）のファイルの形を定める。この文書どおりに作った実装どうしは、招待文字列を渡して接続し、対局し、双方で確定した対局記録を残せる。</p>
+<p>この文書は、ShogiBoardQ（将棋盤Q）の「P2P対局」と相互に対局できるソフトウェアを、別の実装として作るための仕様書である。ネットワークを流れるバイト列、手順、検査、時間の決まり、対局記録（証跡）のファイルの形を定める。この文書どおりに作った実装どうしは、招待文字列を渡して接続し、対局し、双方で確定した対局記録を残せる。</p>
 <p>対象は、プロトコルの版 1（フレームの <code>version</code> が 1、各値の版が 1）である。次のものは対象外で、実装ごとに自由に決めてよい。</p>
 <ul>
 <li>画面と操作、設定の保存、プレイヤー鍵の保管の方法（OS の鍵の保管庫・暗号化したファイルなど）</li>
@@ -277,12 +277,12 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>版</th><th>表すもの</th><th>上げるとき</th></tr></thead>
 <tbody>
-<tr><td>プロトコルの版</td><td>通信の互換性。フレームの <code>version</code>（<a href="#sec-6-2">6.2節</a>）と、HELLO の対応する版の一覧（<a href="#sec-8-2">8.2節</a>）に出る。今は 1</td><td>前の版の実装と対局できなくなる変更をしたとき（実験版の間の例外は下に書く）</td></tr>
+<tr><td>プロトコルの版</td><td>通信の互換性。フレームの <code>version</code>（<a href="#sec-6-2">6.2節</a>）と、HELLO の対応する版の一覧（<a href="#sec-8-2">8.2節</a>）に出る。今は 1</td><td>前の版の実装と対局できなくなる変更をしたとき（2026-11-14 より前の例外は下に書く）</td></tr>
 <tr><td>文書の版</td><td>この文書の内容。変えた日の日付（YYYY-MM-DD）で、同じ日の2回目からは末尾に <code>.1</code>・<code>.2</code> と付ける</td><td>この文書を変えるたび（文の手直しだけでも）</td></tr>
 </tbody>
 </table></div>
 <p>版ごとの変更は<a href="#sec-B">付録 B</a>に書く。「互換実装の修正」が「要る」の変更は、決まり（しなければならないこと・してはならないこと・値・上限）を変えたもので、それより前の版に従って作った実装は、直さないと ShogiBoardQ と食い違うことがある。「要らない」は、文の手直しや、ShogiBoardQ の動きの説明を足しただけの変更である。互換実装は、自分が従った文書の版を記録し、それより後の「要る」の変更を確かめることが望ましい。</p>
-<p class="note">P2P対局は実験版で、参加できるネットワークは、ローカル検証用と限定試験用だけである（<a href="#sec-3-1">3.1節</a>）。この間は、互換性のない変更でも、プロトコルの版を上げずに版 1 の決まりを変えることがある（付録 B に「要る」と書く）。公開用のネットワークを設けた後は、互換性のない変更ではプロトコルの版を上げる。</p>
+<p class="note">P2P対局は、2026-11-14 に実験版から正式な機能になった（ShogiBoardQ 2026.11.14 から、既定で有効にして配布物に入れている。参加できるネットワークと networkName は変えていない。<a href="#sec-3-1">3.1節</a>）。それより前は、互換性のない変更でも、プロトコルの版を上げずに版 1 の決まりを変えることがあった（付録 B に「要る」と書いた変更）。これより後は、互換性のない変更ではプロトコルの版を上げる。</p>
 <p>この文書は日本語で書き、英語・簡体字中国語・繁体字中国語の訳を置く（冒頭の言語のリンク）。訳は日本語版の同じ文書の版を訳したもので、日本語版と食い違うときは日本語版に従う。日本語版を変えたら、訳も同じ版で直す。</p>
 </section>
 <section id="notation">
@@ -340,11 +340,11 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>networkName</th><th>用途</th><th>networkId（16進）</th></tr></thead>
 <tbody>
-<tr><td><code>sbq-local-1</code></td><td>ローカル検証用。同じ PC・同じ LAN の中だけでつなぐ（<a href="#sec-4-5">4.5節</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
-<tr><td><code>sbq-limited-1</code></td><td>限定試験用。インターネット上の相手とつなぐ</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
+<tr><td><code>sbq-local-1</code></td><td>ローカル（ShogiBoardQ の画面では「ローカル（同じPC・同じLAN）」）。同じ PC・同じ LAN の中だけでつなぐ（<a href="#sec-4-5">4.5節</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>インターネット（ShogiBoardQ の画面では「インターネット」。networkName は実験版のときに付けたまま変えていない）。インターネット上の相手とつなぐ</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
 </tbody>
 </table></div>
-<p>実装は、参加できる networkName の一覧を持ち、ほかの名前を断らなければならない。ShogiBoardQ は、ビルドから 180 日を過ぎると <code>sbq-limited-1</code> に参加しない（実験版の使用期限。互換実装が同じ期限を持つ必要はない）。</p>
+<p>実装は、参加できる networkName の一覧を持ち、ほかの名前を断らなければならない。ShogiBoardQ は、ビルドから 180 日を過ぎると <code>sbq-limited-1</code> に参加しない（ビルドの使用期限。互換実装が同じ期限を持つ必要はない）。</p>
 <p>libp2p の層には、ネットワークを分ける仕組み（private network の鍵など）を置いていない。ネットワークの違いは、招待文字列（<a href="#sec-5">5章</a>）と HELLO（<a href="#sec-8-2">8.2節</a>）の networkId で確かめる。</p>
 
 <h3 id="sec-3-2">3.2 PeerId</h3>
@@ -1154,7 +1154,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tbody>
 <tr><td>対局のプロトコル</td><td><code>/shogiboardq/game/1.0.0</code></td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>Identify の protocolVersion</td><td><code>/shogiboardq/1.0.0</code></td><td><a href="#sec-4-3">4.3</a></td></tr>
-<tr><td>ローカル検証用の待受のポート</td><td>48210（TCP・UDP）</td><td><a href="#sec-4-2">4.2</a></td></tr>
+<tr><td>ローカルのネットワーク（<code>sbq-local-1</code>）の待受のポート</td><td>48210（TCP・UDP）</td><td><a href="#sec-4-2">4.2</a></td></tr>
 <tr><td>中継の予約</td><td>2 件まで。断られた・失ったら 30 秒後に頼み直す</td><td><a href="#sec-4-4">4.4</a></td></tr>
 <tr><td>フレームの長さ</td><td>1〜65536 バイト</td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>CBOR の入れ子</td><td>16 段まで</td><td><a href="#sec-2-2">2.2</a></td></tr>
@@ -1307,6 +1307,11 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文書の版</th><th>プロトコルの版</th><th>互換実装の修正</th><th>変更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-14</td><td>1</td><td>要らない</td><td>P2P対局を実験版から正式な機能にしたことに合わせた（ShogiBoardQ 2026.11.14 から、既定で有効にして配布物に入れる。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>）。通信の決まりは変えていない。
+<ul>
+<li>実験版の間の例外（互換性のない変更でも、プロトコルの版を上げずに版 1 の決まりを変えることがある）を終えた。これより後は、互換性のない変更ではプロトコルの版を上げる（<a href="#sec-1-5">1.5節</a>）。</li>
+<li>ネットワークの呼び名を、ShogiBoardQ の画面に合わせて「ローカル」「インターネット」にした。networkName（<code>sbq-local-1</code>・<code>sbq-limited-1</code>）と networkId は変えていない（<a href="#sec-3-1">3.1節</a>）。</li>
+</ul></td></tr>
 <tr><td>2026-11-13</td><td>1</td><td>要る</td><td>ShogiBoardQ の P2P対局のセキュリティ監査（2026-11-13）の修正に合わせた（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/64dbc7d86394ed74e5a3ac02b054e40acce6845c">64dbc7d8</a>）。
 <ul>
 <li>到達性の確認を AutoNAT v2 にし、v1 は使わないことにした。ShogiBoardQ の協力ノードは v2 の確認にだけ応える（<a href="#sec-4-1">4.1節</a>）。</li>

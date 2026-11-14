@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="Language"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><span aria-current="page">English</span><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P Game Specification for Compatible Implementations</h1>
-<p>ShogiBoardQ (a build with P2P games enabled) / Protocol version 1 / Document version 2026-11-13 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
+<p>ShogiBoardQ / Protocol version 1 / Document version 2026-11-14 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
 <p class="lead">Defines the transport layer, invitation strings, frames, start negotiation, in-game steps, reconnection, and the format and verification of game records (evidence).</p>
 </header>
 <nav class="toc" aria-label="Contents">
@@ -229,7 +229,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <h2 id="sec-1">1. About This Document</h2>
 
 <h3 id="sec-1-1">1.1 Purpose and Scope</h3>
-<p>This document is a specification for building, as a separate implementation, software that can play against the "P2P games" of ShogiBoardQ (a build with P2P games enabled). It defines the byte sequences that travel over the network, the procedures, the checks, the time rules, and the file format of game records (evidence). Implementations built according to this document can connect to each other by passing an invitation string, play a game, and keep a game record confirmed by both sides.</p>
+<p>This document is a specification for building, as a separate implementation, software that can play against the "P2P games" of ShogiBoardQ. It defines the byte sequences that travel over the network, the procedures, the checks, the time rules, and the file format of game records (evidence). Implementations built according to this document can connect to each other by passing an invitation string, play a game, and keep a game record confirmed by both sides.</p>
 <p>It covers protocol version 1 (frame <code>version</code> 1, and version 1 of each value). The following are out of scope, and each implementation may decide them freely.</p>
 <ul>
 <li>The screens and controls, how settings are saved, and how the player key is stored (the OS keychain, an encrypted file, and so on)</li>
@@ -277,12 +277,12 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>Version</th><th>What it represents</th><th>When it is raised</th></tr></thead>
 <tbody>
-<tr><td>Protocol version</td><td>Compatibility of the communication. It appears in the frame <code>version</code> (<a href="#sec-6-2">section 6.2</a>) and in the list of supported versions in HELLO (<a href="#sec-8-2">section 8.2</a>). Currently 1</td><td>When a change makes it impossible to play against implementations of the previous version (for the exception during the experimental period, see below)</td></tr>
+<tr><td>Protocol version</td><td>Compatibility of the communication. It appears in the frame <code>version</code> (<a href="#sec-6-2">section 6.2</a>) and in the list of supported versions in HELLO (<a href="#sec-8-2">section 8.2</a>). Currently 1</td><td>When a change makes it impossible to play against implementations of the previous version (for the exception before 2026-11-14, see below)</td></tr>
 <tr><td>Document version</td><td>The content of this document. The date of the change (YYYY-MM-DD); from the second change on the same day, <code>.1</code>, <code>.2</code> is appended</td><td>Every time this document changes (even when only the wording is revised)</td></tr>
 </tbody>
 </table></div>
 <p>The changes in each version are listed in <a href="#sec-B">Appendix B</a>. A change whose "Fix needed in compatible implementations" is "Needed" changes a rule (what must or must not be done, a value, or a limit), and an implementation built according to an earlier version can disagree with ShogiBoardQ unless it is fixed. "Not needed" means a change that only revises the wording or adds an explanation of ShogiBoardQ's behavior. A compatible implementation should record the document version it followed and check the "Needed" changes made after it.</p>
-<p class="note">P2P games are experimental, and the only networks that can be joined are Local test and Limited test (<a href="#sec-3-1">section 3.1</a>). During this period, the rules of version 1 can be changed without raising the protocol version, even by incompatible changes (they are marked "Needed" in Appendix B). After a public network is set up, incompatible changes will raise the protocol version.</p>
+<p class="note">P2P games stopped being experimental and became a regular feature on 2026-11-14 (from ShogiBoardQ 2026.11.14 they are enabled by default and included in the distributed packages; the networks that can be joined and their networkNames did not change, <a href="#sec-3-1">section 3.1</a>). Before that, the rules of version 1 were sometimes changed without raising the protocol version, even by incompatible changes (the changes marked "Needed" in Appendix B). From now on, incompatible changes raise the protocol version.</p>
 <p>This document is written in Japanese, with English, Simplified Chinese, and Traditional Chinese translations (the language links at the top). Each translation is a translation of the same document version of the Japanese version, and where a translation disagrees with the Japanese version, the Japanese version prevails. When the Japanese version changes, the translations are corrected at the same version.</p>
 </section>
 <section id="notation">
@@ -340,11 +340,11 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>networkName</th><th>Use</th><th>networkId (hex)</th></tr></thead>
 <tbody>
-<tr><td><code>sbq-local-1</code></td><td>Local test. Connects only within the same PC or the same LAN (<a href="#sec-4-5">section 4.5</a>)</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
-<tr><td><code>sbq-limited-1</code></td><td>Limited test. Connects with opponents on the Internet</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
+<tr><td><code>sbq-local-1</code></td><td>Local (shown as "Local (same PC / same LAN)" in ShogiBoardQ). Connects only within the same PC or the same LAN (<a href="#sec-4-5">section 4.5</a>)</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>Internet (shown as "Internet" in ShogiBoardQ; the networkName is the one given during the experimental period and has not changed). Connects with opponents on the Internet</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
 </tbody>
 </table></div>
-<p>An implementation must keep a list of the networkNames it can join and refuse any other name. ShogiBoardQ does not join <code>sbq-limited-1</code> once 180 days have passed since the build (the expiry of the experimental build; compatible implementations do not need to have the same expiry).</p>
+<p>An implementation must keep a list of the networkNames it can join and refuse any other name. ShogiBoardQ does not join <code>sbq-limited-1</code> once 180 days have passed since the build (the expiry of the build; compatible implementations do not need to have the same expiry).</p>
 <p>The libp2p layer has no mechanism for separating networks (such as a private network key). The network is checked by the networkId in the invitation string (<a href="#sec-5">section 5</a>) and in HELLO (<a href="#sec-8-2">section 8.2</a>).</p>
 
 <h3 id="sec-3-2">3.2 PeerId</h3>
@@ -1154,7 +1154,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tbody>
 <tr><td>Game protocol</td><td><code>/shogiboardq/game/1.0.0</code></td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>Identify protocolVersion</td><td><code>/shogiboardq/1.0.0</code></td><td><a href="#sec-4-3">4.3</a></td></tr>
-<tr><td>Listening port for Local test</td><td>48210 (TCP, UDP)</td><td><a href="#sec-4-2">4.2</a></td></tr>
+<tr><td>Listening port of the Local network (<code>sbq-local-1</code>)</td><td>48210 (TCP, UDP)</td><td><a href="#sec-4-2">4.2</a></td></tr>
 <tr><td>Relay reservations</td><td>Up to 2. Requested again 30 seconds after being refused or lost</td><td><a href="#sec-4-4">4.4</a></td></tr>
 <tr><td>Frame length</td><td>1 to 65536 bytes</td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>CBOR nesting</td><td>Up to 16 levels</td><td><a href="#sec-2-2">2.2</a></td></tr>
@@ -1307,6 +1307,11 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>Document version</th><th>Protocol version</th><th>Fix needed in compatible implementations</th><th>Changes</th></tr></thead>
 <tbody>
+<tr><td>2026-11-14</td><td>1</td><td>Not needed</td><td>Aligned with P2P games becoming a regular feature instead of an experimental one (from ShogiBoardQ 2026.11.14 they are enabled by default and included in the distributed packages; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>). The communication rules did not change.
+<ul>
+<li>The exception of the experimental period (the rules of version 1 could be changed without raising the protocol version, even by incompatible changes) has ended. From now on, incompatible changes raise the protocol version (<a href="#sec-1-5">section 1.5</a>).</li>
+<li>The networks are now called "Local" and "Internet", as on the ShogiBoardQ screen. The networkNames (<code>sbq-local-1</code>, <code>sbq-limited-1</code>) and the networkIds did not change (<a href="#sec-3-1">section 3.1</a>).</li>
+</ul></td></tr>
 <tr><td>2026-11-13</td><td>1</td><td>Needed</td><td>Aligned with the fixes from the security audit of ShogiBoardQ's P2P games (2026-11-13) (<a href="https://github.com/hnakada123/ShogiBoardQ/commit/64dbc7d86394ed74e5a3ac02b054e40acce6845c">64dbc7d8</a>).
 <ul>
 <li>The reachability check now uses AutoNAT v2, and v1 is no longer used. ShogiBoardQ's cooperating nodes respond only to v2 checks (<a href="#sec-4-1">section 4.1</a>).</li>

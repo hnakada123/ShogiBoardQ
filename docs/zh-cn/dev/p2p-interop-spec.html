@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="语言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><span aria-current="page">简体中文</span><a href="../../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P对局 兼容实现规范</h1>
-<p>ShogiBoardQ（将棋盘Q。启用了P2P对局的构建）／协议版本 1／文档版本 2026-11-13（<a href="#sec-B">变更履历</a>）／日语原文的简体中文译本</p>
+<p>ShogiBoardQ（将棋盘Q）／协议版本 1／文档版本 2026-11-14（<a href="#sec-B">变更履历</a>）／日语原文的简体中文译本</p>
 <p class="lead">规定通信层、邀请字符串、帧、开始前的协商、对局中的步骤、重新连接，以及对局记录（凭证）的格式与验证。</p>
 </header>
 <nav class="toc" aria-label="目录">
@@ -229,7 +229,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <h2 id="sec-1">1. 关于本文档</h2>
 
 <h3 id="sec-1-1">1.1 目的与适用范围</h3>
-<p>本文档是一份规范，用于以另一种实现的形式，制作能与 ShogiBoardQ（将棋盘Q。启用了P2P对局的构建）的“P2P对局”相互对局的软件。它规定在网络上传输的字节序列、步骤、检查、时间规则，以及对局记录（凭证）的文件格式。按照本文档制作的实现之间，可以通过传递邀请字符串进行连接、对局，并留下双方都已确定的对局记录。</p>
+<p>本文档是一份规范，用于以另一种实现的形式，制作能与 ShogiBoardQ（将棋盘Q）的“P2P对局”相互对局的软件。它规定在网络上传输的字节序列、步骤、检查、时间规则，以及对局记录（凭证）的文件格式。按照本文档制作的实现之间，可以通过传递邀请字符串进行连接、对局，并留下双方都已确定的对局记录。</p>
 <p>本文档的对象是协议版本 1（帧的 <code>version</code> 为 1，各值的版本为 1）。以下内容不在对象范围内，各实现可以自由决定。</p>
 <ul>
 <li>画面与操作、设置的保存、玩家密钥的保管方法（操作系统的密钥库、加密的文件等）</li>
@@ -277,12 +277,12 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>版本</th><th>表示的内容</th><th>何时提升</th></tr></thead>
 <tbody>
-<tr><td>协议版本</td><td>通信的兼容性。出现在帧的 <code>version</code>（<a href="#sec-6-2">第 6.2 节</a>）和 HELLO 中支持的版本列表（<a href="#sec-8-2">第 8.2 节</a>）中。目前为 1</td><td>做出了无法再与上一版本的实现对局的变更时（实验版期间的例外写在下面）</td></tr>
+<tr><td>协议版本</td><td>通信的兼容性。出现在帧的 <code>version</code>（<a href="#sec-6-2">第 6.2 节</a>）和 HELLO 中支持的版本列表（<a href="#sec-8-2">第 8.2 节</a>）中。目前为 1</td><td>做出了无法再与上一版本的实现对局的变更时（2026-11-14 之前的例外写在下面）</td></tr>
 <tr><td>文档版本</td><td>本文档的内容。为变更当天的日期（YYYY-MM-DD），同一天的第 2 次起在末尾加上 <code>.1</code>、<code>.2</code></td><td>每次变更本文档时（即使只是修改文字）</td></tr>
 </tbody>
 </table></div>
 <p>各版本的变更写在<a href="#sec-B">附录 B</a>中。“兼容实现是否需要修改”为“需要”的变更，是改变了规定（必须做的事、不得做的事、值、上限）的变更，按照更早版本制作的实现，如果不修改，可能会与 ShogiBoardQ 不一致。“不需要”是只修改了文字，或只补充了 ShogiBoardQ 行为说明的变更。兼容实现应当记录自己所遵循的文档版本，并确认其后为“需要”的变更。</p>
-<p class="note">P2P对局是实验版，可以加入的网络只有本地验证用和限定测试用（<a href="#sec-3-1">第 3.1 节</a>）。在此期间，即使是不兼容的变更，也可能不提升协议版本而改变版本 1 的规定（在附录 B 中写为“需要”）。设立公开用的网络之后，不兼容的变更会提升协议版本。</p>
+<p class="note">P2P对局已于 2026-11-14 从实验版变为正式功能（自 ShogiBoardQ 2026.11.14 起默认启用，并包含在发布包中。可以加入的网络及其 networkName 没有改变，见<a href="#sec-3-1">第 3.1 节</a>）。在此之前，即使是不兼容的变更，也曾不提升协议版本而改变版本 1 的规定（附录 B 中写为“需要”的变更）。今后，不兼容的变更会提升协议版本。</p>
 <p>本文档用日语撰写，并提供英语、简体中文、繁体中文的译本（见开头的语言链接）。译本是对日语版同一文档版本的翻译，与日语版不一致时，以日语版为准。日语版变更后，译本也以相同的版本修改。</p>
 </section>
 <section id="notation">
@@ -340,11 +340,11 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>networkName</th><th>用途</th><th>networkId（十六进制）</th></tr></thead>
 <tbody>
-<tr><td><code>sbq-local-1</code></td><td>本地验证用。只在同一电脑、同一局域网内连接（<a href="#sec-4-5">第 4.5 节</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
-<tr><td><code>sbq-limited-1</code></td><td>限定测试用。与互联网上的对手连接</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
+<tr><td><code>sbq-local-1</code></td><td>本地（在 ShogiBoardQ 的画面中显示为“本地（同一电脑・同一局域网）”）。只在同一电脑、同一局域网内连接（<a href="#sec-4-5">第 4.5 节</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>互联网（在 ShogiBoardQ 的画面中显示为“互联网”。networkName 沿用实验版时的名称，没有改变）。与互联网上的对手连接</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
 </tbody>
 </table></div>
-<p>实现必须持有可加入的 networkName 列表，并拒绝其他名称。ShogiBoardQ 在构建后超过 180 天就不再加入 <code>sbq-limited-1</code>（实验版的使用期限。兼容实现不必有相同的期限）。</p>
+<p>实现必须持有可加入的 networkName 列表，并拒绝其他名称。ShogiBoardQ 在构建后超过 180 天就不再加入 <code>sbq-limited-1</code>（构建的使用期限。兼容实现不必有相同的期限）。</p>
 <p>libp2p 层中没有设置区分网络的机制（private network 的密钥等）。网络的差异通过邀请字符串（<a href="#sec-5">第 5 章</a>）和 HELLO（<a href="#sec-8-2">第 8.2 节</a>）中的 networkId 来确认。</p>
 
 <h3 id="sec-3-2">3.2 PeerId</h3>
@@ -1154,7 +1154,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tbody>
 <tr><td>对局的协议</td><td><code>/shogiboardq/game/1.0.0</code></td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>Identify 的 protocolVersion</td><td><code>/shogiboardq/1.0.0</code></td><td><a href="#sec-4-3">4.3</a></td></tr>
-<tr><td>本地验证用的监听端口</td><td>48210（TCP、UDP）</td><td><a href="#sec-4-2">4.2</a></td></tr>
+<tr><td>本地网络（<code>sbq-local-1</code>）的监听端口</td><td>48210（TCP、UDP）</td><td><a href="#sec-4-2">4.2</a></td></tr>
 <tr><td>中继的预约</td><td>最多 2 个。被拒绝或失去后 30 秒重新请求</td><td><a href="#sec-4-4">4.4</a></td></tr>
 <tr><td>帧的长度</td><td>1〜65536 字节</td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>CBOR 的嵌套</td><td>最多 16 层</td><td><a href="#sec-2-2">2.2</a></td></tr>
@@ -1307,6 +1307,11 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文档版本</th><th>协议版本</th><th>兼容实现是否需要修改</th><th>变更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-14</td><td>1</td><td>不需要</td><td>配合P2P对局从实验版变为正式功能进行了修改（自 ShogiBoardQ 2026.11.14 起默认启用，并包含在发布包中。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>）。通信的规定没有改变。
+<ul>
+<li>实验版期间的例外（即使是不兼容的变更，也可能不提升协议版本而改变版本 1 的规定）已经结束。今后，不兼容的变更会提升协议版本（<a href="#sec-1-5">第 1.5 节</a>）。</li>
+<li>网络的名称改为与 ShogiBoardQ 的画面一致的“本地”和“互联网”。networkName（<code>sbq-local-1</code>、<code>sbq-limited-1</code>）和 networkId 没有改变（<a href="#sec-3-1">第 3.1 节</a>）。</li>
+</ul></td></tr>
 <tr><td>2026-11-13</td><td>1</td><td>需要</td><td>配合 ShogiBoardQ 的 P2P对局安全审计（2026-11-13）的修正进行了修改（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/64dbc7d86394ed74e5a3ac02b054e40acce6845c">64dbc7d8</a>）。
 <ul>
 <li>把可达性确认改为 AutoNAT v2，不再使用 v1。ShogiBoardQ 的协作节点只响应 v2 的确认（<a href="#sec-4-1">第 4.1 节</a>）。</li>

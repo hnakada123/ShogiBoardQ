@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="語言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><span aria-current="page">繁體中文</span></nav>
 <h1>P2P對局相容實作規格書</h1>
-<p>ShogiBoardQ（將棋盤Q。啟用P2P對局的建置）／協定版本 1／文件版本 2026-11-13（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
+<p>ShogiBoardQ（將棋盤Q）／協定版本 1／文件版本 2026-11-14（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
 <p class="lead">規定通訊層、邀請字串、訊框、開始前的協商、對局中的步驟、重新連線，以及對局記錄（憑證）的格式與驗證。</p>
 </header>
 <nav class="toc" aria-label="目錄">
@@ -229,7 +229,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <h2 id="sec-1">1. 關於本文件</h2>
 
 <h3 id="sec-1-1">1.1 目的與適用範圍</h3>
-<p>本文件是一份規格書，用於另行實作能與 ShogiBoardQ（將棋盤Q。啟用P2P對局的建置）的「P2P對局」互相對局的軟體。本文件規定在網路上傳輸的位元組序列、步驟、檢查、時間規則，以及對局記錄（憑證）的檔案格式。依照本文件製作的實作之間，可以交付邀請字串來連線、對局，並留下雙方已確定的對局記錄。</p>
+<p>本文件是一份規格書，用於另行實作能與 ShogiBoardQ（將棋盤Q）的「P2P對局」互相對局的軟體。本文件規定在網路上傳輸的位元組序列、步驟、檢查、時間規則，以及對局記錄（憑證）的檔案格式。依照本文件製作的實作之間，可以交付邀請字串來連線、對局，並留下雙方已確定的對局記錄。</p>
 <p>適用對象為協定版本 1（訊框的 <code>version</code> 為 1，各值的版本為 1）。以下事項不在適用範圍內，各實作可以自由決定。</p>
 <ul>
 <li>畫面與操作、設定的儲存、玩家金鑰的保管方式（作業系統的金鑰庫、加密的檔案等）</li>
@@ -277,12 +277,12 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>版本</th><th>表示的內容</th><th>何時升版</th></tr></thead>
 <tbody>
-<tr><td>協定版本</td><td>通訊的相容性。出現在訊框的 <code>version</code>（<a href="#sec-6-2">第 6.2 節</a>）與 HELLO 中支援的版本清單（<a href="#sec-8-2">第 8.2 節</a>）中。目前為 1</td><td>做了導致無法與舊版本實作對局的變更時（實驗版期間的例外寫在下面）</td></tr>
+<tr><td>協定版本</td><td>通訊的相容性。出現在訊框的 <code>version</code>（<a href="#sec-6-2">第 6.2 節</a>）與 HELLO 中支援的版本清單（<a href="#sec-8-2">第 8.2 節</a>）中。目前為 1</td><td>做了導致無法與舊版本實作對局的變更時（2026-11-14 之前的例外寫在下面）</td></tr>
 <tr><td>文件版本</td><td>本文件的內容。以修改當天的日期（YYYY-MM-DD）表示，同一天第二次以後的修改在末尾加上 <code>.1</code>、<code>.2</code></td><td>每次修改本文件時（即使只是修潤文字）</td></tr>
 </tbody>
 </table></div>
 <p>各版本的變更寫在<a href="#sec-B">附錄 B</a>。「相容實作是否需要修改」為「需要」的變更，是修改了規則（必須做的事、不得做的事、值、上限）的變更；依照更早版本製作的實作若不修改，可能會與 ShogiBoardQ 不一致。「不需要」是只修潤文字，或只補充 ShogiBoardQ 行為說明的變更。相容實作應當記錄自己所依循的文件版本，並檢查其後標為「需要」的變更。</p>
-<p class="note">P2P對局是實驗版，可以加入的網路只有本機驗證用和限定測試用兩種（<a href="#sec-3-1">第 3.1 節</a>）。在此期間，即使是不相容的變更，也可能不升協定版本而直接修改版本 1 的規則（在附錄 B 中記為「需要」）。設立公開用的網路之後，不相容的變更會升協定版本。</p>
+<p class="note">P2P對局已於 2026-11-14 從實驗版成為正式功能（自 ShogiBoardQ 2026.11.14 起預設啟用，並包含在發行套件中。可以加入的網路及其 networkName 沒有改變，請參閱<a href="#sec-3-1">第 3.1 節</a>）。在此之前，即使是不相容的變更，也曾不升協定版本而直接修改版本 1 的規則（附錄 B 中記為「需要」的變更）。今後，不相容的變更會升協定版本。</p>
 <p>本文件以日文撰寫，並提供英文、簡體中文、繁體中文的譯本（開頭的語言連結）。譯本是翻譯日文版同一文件版本的內容，與日文版不一致時，以日文版為準。日文版修改後，譯本也會以同一版本修改。</p>
 </section>
 <section id="notation">
@@ -340,11 +340,11 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>networkName</th><th>用途</th><th>networkId（十六進位）</th></tr></thead>
 <tbody>
-<tr><td><code>sbq-local-1</code></td><td>本機驗證用。只在同一電腦、同一區域網路內連線（<a href="#sec-4-5">第 4.5 節</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
-<tr><td><code>sbq-limited-1</code></td><td>限定測試用。與網際網路上的對手連線</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
+<tr><td><code>sbq-local-1</code></td><td>本機（在 ShogiBoardQ 的畫面中顯示為「本機（同一電腦・同一區域網路）」）。只在同一電腦、同一區域網路內連線（<a href="#sec-4-5">第 4.5 節</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
+<tr><td><code>sbq-limited-1</code></td><td>網際網路（在 ShogiBoardQ 的畫面中顯示為「網際網路」。networkName 沿用實驗版時的名稱，沒有改變）。與網際網路上的對手連線</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
 </tbody>
 </table></div>
-<p>實作必須持有可加入的 networkName 清單，並拒絕其他名稱。ShogiBoardQ 在建置後超過 180 天就不再加入 <code>sbq-limited-1</code>（實驗版的使用期限。相容實作不需要有相同的期限）。</p>
+<p>實作必須持有可加入的 networkName 清單，並拒絕其他名稱。ShogiBoardQ 在建置後超過 180 天就不再加入 <code>sbq-limited-1</code>（建置的使用期限。相容實作不需要有相同的期限）。</p>
 <p>libp2p 層並未設有區分網路的機制（private network 的金鑰等）。網路的不同，透過邀請字串（<a href="#sec-5">第 5 章</a>）與 HELLO（<a href="#sec-8-2">第 8.2 節</a>）中的 networkId 檢查。</p>
 
 <h3 id="sec-3-2">3.2 PeerId</h3>
@@ -1154,7 +1154,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tbody>
 <tr><td>對局的協定</td><td><code>/shogiboardq/game/1.0.0</code></td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>Identify 的 protocolVersion</td><td><code>/shogiboardq/1.0.0</code></td><td><a href="#sec-4-3">4.3</a></td></tr>
-<tr><td>本機驗證用的監聽連接埠</td><td>48210（TCP、UDP）</td><td><a href="#sec-4-2">4.2</a></td></tr>
+<tr><td>本機網路（<code>sbq-local-1</code>）的監聽連接埠</td><td>48210（TCP、UDP）</td><td><a href="#sec-4-2">4.2</a></td></tr>
 <tr><td>中繼的預約</td><td>最多 2 個。被拒絕或失去時，30 秒後重新請求</td><td><a href="#sec-4-4">4.4</a></td></tr>
 <tr><td>訊框的長度</td><td>1〜65536 位元組</td><td><a href="#sec-6-1">6.1</a></td></tr>
 <tr><td>CBOR 的巢狀</td><td>最多 16 層</td><td><a href="#sec-2-2">2.2</a></td></tr>
@@ -1307,6 +1307,11 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文件版本</th><th>協定版本</th><th>相容實作是否需要修改</th><th>變更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-14</td><td>1</td><td>不需要</td><td>配合P2P對局從實驗版成為正式功能（自 ShogiBoardQ 2026.11.14 起預設啟用，並包含在發行套件中。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>）。通訊的規則沒有改變。
+<ul>
+<li>實驗版期間的例外（即使是不相容的變更，也可能不升協定版本而直接修改版本 1 的規則）已經結束。今後，不相容的變更會升協定版本（<a href="#sec-1-5">第 1.5 節</a>）。</li>
+<li>網路的名稱改為與 ShogiBoardQ 的畫面一致的「本機」和「網際網路」。networkName（<code>sbq-local-1</code>、<code>sbq-limited-1</code>）和 networkId 沒有改變（<a href="#sec-3-1">第 3.1 節</a>）。</li>
+</ul></td></tr>
 <tr><td>2026-11-13</td><td>1</td><td>需要</td><td>配合 ShogiBoardQ 的P2P對局安全性稽核（2026-11-13）的修正（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/64dbc7d86394ed74e5a3ac02b054e40acce6845c">64dbc7d8</a>）。
 <ul>
 <li>可達性確認改用 AutoNAT v2，不再使用 v1。ShogiBoardQ 的協作節點只回應 v2 的確認（<a href="#sec-4-1">第 4.1 節</a>）。</li>

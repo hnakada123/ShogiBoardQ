@@ -39,7 +39,7 @@
 - [sennichite-detection.md](sennichite-detection.md): 千日手の検出
 - [p2p-game-spec.md](p2p-game-spec.md): P2P対局と、双方が署名した対局記録の実装仕様（設計案。ブロックチェーン・ウォレットは使わない）
 - [p2p-interop-spec.html](p2p-interop-spec.html): P2P対局と相互に対局できるソフトウェアを別に作るための仕様書（通信の層・招待文字列・フレーム・交渉・対局・再接続・証跡の検証と、試験用の値）。訳は [English](../en/dev/p2p-interop-spec.html)・[简体中文](../zh-cn/dev/p2p-interop-spec.html)・[繁體中文](../zh-tw/dev/p2p-interop-spec.html)（正本は日本語版）
-- [p2p-development-strategy.md](p2p-development-strategy.md): 別リポジトリでのP2P実験版開発、配布・権限の分離と段階的な検証方針
+- [p2p-development-strategy.md](p2p-development-strategy.md): 別リポジトリでのP2P実験版開発、配布・権限の分離と段階的な検証方針（2026-11-11 に通常版へ取り込み、2026-11-14 に正式な機能にした。11.3節・11.4節）
 - [p2p-wallet-user-burden.md](p2p-wallet-user-burden.md): P2P対局にウォレットを導入した場合の利用者の負担（署名、暗号資産の手数料など）。ブロックチェーンとウォレットをやめた判断の記録
 
 ## 棋譜・解析
@@ -93,7 +93,7 @@
 セキュリティ監査:
 
 - [2026-10-23](reports/security-audit-2026-10-23.md)・[2026-11-07](reports/security-audit-2026-11-07.md)
-- [security-audit-p2p-2026-11-13.md](reports/security-audit-p2p-2026-11-13.md): P2P対局（実験版）のセキュリティ監査（Winny のような情報漏えいにならないかの確認を含む）と修正の記録
+- [security-audit-p2p-2026-11-13.md](reports/security-audit-p2p-2026-11-13.md): P2P対局（監査の時点では実験版）のセキュリティ監査（Winny のような情報漏えいにならないかの確認を含む）と修正の記録
 
 性能:
 
