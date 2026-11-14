@@ -7,9 +7,83 @@
 #include <QAbstractItemDelegate>
 #include <QEvent>
 #include <QHeaderView>
+#include <QPaintEvent>
 #include <QScrollBar>
+#include <QStyle>
+#include <QStyleOptionSlider>
 #include <cmath>
+#include <optional>
 #include <utility>
+
+namespace {
+
+/**
+ * @brief 見た目が変わらなければ描き直さないスクロールバー
+ *
+ * QTableView は行数が変わるたびに、スクロールバーの範囲と刻み（1ページの行数）を入れ直す。QAbstractSlider は
+ * そのたびに、見た目が変わるかを見ずに描き直しを頼む（sliderChange）。行が表示領域に収まっている間は、
+ * 行が増えるたびに刻みだけが変わり、つまみは全体のままで見た目は変わらない。スクロールバーは不透明で
+ * ないので、描き直すたびに下にある親の部品（表・分割・パネル）も同じ範囲を描く。
+ *
+ * 描いたときの見た目（つまみの位置と大きさ・範囲が空か・端にあるか・大きさ・有効か）を覚え、同じなら
+ * 描き直しを頼まない。マウスが乗った・押したときの描き直しは、QScrollBar が別に頼むので変わらない。
+ */
+class SteadyScrollBar : public QScrollBar
+{
+public:
+    using QScrollBar::QScrollBar;
+
+protected:
+    void sliderChange(SliderChange change) override
+    {
+        if (m_painted && *m_painted == look()) return;
+        QScrollBar::sliderChange(change);
+    }
+
+    void paintEvent(QPaintEvent* event) override
+    {
+        // 一部だけを描くときは、描かない所に前の見た目が残る。見た目が違えば、覚えを捨てる
+        const Look now = look();
+        const bool whole = (QRegion(rect()) - event->region()).isEmpty();
+        if (whole) m_painted = now;
+        else if (m_painted && !(*m_painted == now)) m_painted.reset();
+        QScrollBar::paintEvent(event);
+    }
+
+private:
+    struct Look {
+        QRect slider;        ///< つまみの位置と大きさ
+        bool empty = false;  ///< 範囲が空（動かせない）
+        bool atMinimum = false;
+        bool atMaximum = false;
+        QSize size;
+        bool enabled = false;
+
+        bool operator==(const Look& other) const
+        {
+            return slider == other.slider && empty == other.empty && atMinimum == other.atMinimum
+                && atMaximum == other.atMaximum && size == other.size && enabled == other.enabled;
+        }
+    };
+
+    Look look() const
+    {
+        QStyleOptionSlider option;
+        initStyleOption(&option);
+        Look result;
+        result.slider = style()->subControlRect(QStyle::CC_ScrollBar, &option, QStyle::SC_ScrollBarSlider, this);
+        result.empty = minimum() == maximum();
+        result.atMinimum = sliderPosition() == minimum();
+        result.atMaximum = sliderPosition() == maximum();
+        result.size = size();
+        result.enabled = isEnabled();
+        return result;
+    }
+
+    std::optional<Look> m_painted;  ///< 全体を描いたときの見た目（分からなければ nullopt）
+};
+
+} // namespace
 
 bool IncrementalTableView::Settings::operator==(const Settings& other) const
 {
@@ -26,6 +100,14 @@ IncrementalTableView::IncrementalTableView(QWidget* parent)
     // 表示領域の大きさの変化によるものかを見分ける
     disconnect(header, &QHeaderView::sectionResized, this, &IncrementalTableView::columnResized);
     connect(header, &QHeaderView::sectionResized, this, &IncrementalTableView::onColumnResized);
+
+    // 縦のスクロールバーを、見た目が変わらなければ描き直さないものに替える（行が増えるたびの刻みの変化で
+    // 描き直さない）。QAbstractItemView は、作ったときのスクロールバーにだけ自分の処理（一番下での fetchMore・
+    // スクロールの後のマウスの位置の確かめ）をつなぐので、替えたものにつなぎ直す
+    auto* bar = new SteadyScrollBar(Qt::Vertical, this);
+    setVerticalScrollBar(bar);
+    connect(bar, &QScrollBar::actionTriggered, this, &IncrementalTableView::verticalScrollbarAction);
+    connect(bar, &QScrollBar::valueChanged, this, &IncrementalTableView::verticalScrollbarValueChanged);
 }
 
 IncrementalTableView::Settings IncrementalTableView::currentSettings() const

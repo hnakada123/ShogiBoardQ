@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QAbstractTableModel>
 #include <QHeaderView>
 #include <QPaintEvent>
 #include <QScreen>
@@ -29,6 +30,31 @@
 /// 小数倍率（QT_SCALE_FACTOR=1.25 で同じテストを実行）では全体を描き直す経路を使う。
 /// 思考の表に足すときに、古い行を消さない
 constexpr int kUnlimitedRows = std::numeric_limits<int>::max();
+
+/// 一番下まで表示すると、続きの行を読み足すモデル
+class FetchingModel : public QAbstractTableModel
+{
+public:
+    int rows = 200;
+    int fetches = 0;
+
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override { return parent.isValid() ? 0 : rows; }
+    int columnCount(const QModelIndex& parent = QModelIndex()) const override { return parent.isValid() ? 0 : 2; }
+    QVariant data(const QModelIndex& index, int role) const override
+    {
+        return role == Qt::DisplayRole ? QVariant(QStringLiteral("%1-%2").arg(index.row()).arg(index.column()))
+                                       : QVariant();
+    }
+    bool canFetchMore(const QModelIndex& parent) const override { return !parent.isValid() && rows < 400; }
+    void fetchMore(const QModelIndex& parent) override
+    {
+        if (parent.isValid()) return;
+        ++fetches;
+        beginInsertRows(QModelIndex(), rows, rows + 49);
+        rows += 50;
+        endInsertRows();
+    }
+};
 
 class TestIncrementalTableView : public QObject
 {
@@ -561,6 +587,89 @@ private slots:
         view.viewport()->removeEventFilter(&spy);
         const qint64 whole = qint64(view.viewport()->width()) * view.viewport()->height();
         QCOMPARE(area(spy.region), whole);
+        QCOMPARE(stalePixels(view), 0);
+    }
+
+    // 縦のスクロールバーは、見た目が変わらなければ描き直さないものに替えてある。
+    // 行が表示領域に収まっている間は、行を足してもスクロールバーを描き直さない。
+    // つまみの位置・大きさが変わるときは描き直し、全体を描き直した絵と同じになる
+    void scrollBarRepaintsOnlyWhenItsLookChanges()
+    {
+        RecordRows rows;
+        IncrementalTableView view;
+        view.setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+        view.verticalHeader()->setVisible(false);
+        view.verticalHeader()->setDefaultSectionSize(view.fontMetrics().height() + 4);
+        view.verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+        view.setModel(&rows.model);
+        view.horizontalHeader()->setStretchLastSection(true);
+        view.resize(420, 260);
+        rows.append(QStringLiteral("▲２六歩(27)"));
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        settle();
+        QScrollBar* bar = view.verticalScrollBar();
+        QVERIFY(bar->isVisible());
+
+        int steady = 0;
+        int moved = 0;
+        for (int i = 0; i < 40; ++i) {
+            PaintSpy spy;
+            bar->installEventFilter(&spy);
+            const bool fitted = bar->maximum() == 0;
+            rows.append(QStringLiteral("▲７六歩(77)"));
+            view.scrollToBottom();
+            settle();
+            bar->removeEventFilter(&spy);
+            if (fitted && bar->maximum() == 0) {
+                QVERIFY2(spy.region.isEmpty(), qPrintable(QStringLiteral("row %1: scroll bar repainted").arg(i)));
+                ++steady;
+            } else if (!spy.region.isEmpty()) {
+                ++moved;
+            }
+            QVERIFY2(stalePixels(view) == 0, qPrintable(QStringLiteral("row %1").arg(i)));
+        }
+        QVERIFY2(steady >= 5, qPrintable(QString::number(steady)));
+        QVERIFY2(moved >= 5, qPrintable(QString::number(moved)));
+
+        // つまみを動かす・範囲が空に戻る（行を作り直す）ときも、描き残しが無い
+        bar->setValue(0);
+        settle();
+        QCOMPARE(stalePixels(view), 0);
+        bar->setValue(bar->maximum() / 2);
+        settle();
+        QCOMPARE(stalePixels(view), 0);
+        rows.reset();
+        rows.append(QStringLiteral("▲２六歩(27)"));
+        settle();
+        QCOMPARE(bar->maximum(), 0);
+        QCOMPARE(stalePixels(view), 0);
+    }
+
+    // スクロールバーを替えても、表のスクロールと、一番下まで表示したときの読み足し
+    // （QAbstractItemView がスクロールバーの値の変化で行う処理）は変わらない
+    void replacedScrollBarStillDrivesTheView()
+    {
+        FetchingModel model;
+        IncrementalTableView view;
+        view.verticalHeader()->setVisible(false);
+        view.setModel(&model);
+        view.resize(300, 240);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        settle();
+        // 表示した直後の配置で読み足す分を済ませる（最後の行は見えていないので読み足さない）
+        const int before = model.fetches;
+        QCOMPARE(view.rowAt(0), 0);
+
+        QScrollBar* bar = view.verticalScrollBar();
+        QVERIFY(bar->maximum() > 0);
+        bar->setValue(bar->maximum() / 2);
+        QVERIFY(view.rowAt(0) > 0);          // スクロールバーの値で表がスクロールする
+        QCOMPARE(model.fetches, before);     // 一番下でなければ読み足さない
+        bar->setValue(bar->maximum());
+        QCOMPARE(model.fetches, before + 1); // 一番下まで表示したら、値の変化の処理の中で読み足す
+        settle();
         QCOMPARE(stalePixels(view), 0);
     }
 };

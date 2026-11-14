@@ -495,7 +495,8 @@ private slots:
 
     // 対局中に1手足したとき、棋譜欄は足した行と現在行の強調が移る行だけを描き直す。
     // 表示領域の全体と見出しは描き直さない（分岐が増えていないのに全行の変更を知らせない・
-    // 現在行を移すたびに表示領域の全体を描き直さない）。部分描画でも、全体を描き直した絵と同じになる
+    // 現在行を移すたびに表示領域の全体を描き直さない）。行が表示領域に収まっている間は、縦のスクロールバーも
+    // 描き直さない（つまみは全体のままで、見た目が変わらない）。部分描画でも、全体を描き直した絵と同じになる
     void liveMoveRepaintsOnlyChangedRows()
     {
         KifuBranchTree tree;
@@ -522,6 +523,7 @@ private slots:
         QTableView* view = pane.kifuView();
         QWidget* area = view->viewport();
         QWidget* header = view->horizontalHeader()->viewport();
+        QScrollBar* bar = view->verticalScrollBar();
         const ShogiMove moves[] = {ShogiMove(UsiMove::fromString(u"2h3h"), Piece::BlackRook),
                                    ShogiMove(UsiMove::fromString(u"8b7b"), Piece::WhiteRook)};
         const QString texts[] = {QStringLiteral("▲３八飛(28)"), QStringLiteral("△７二飛(82)")};
@@ -536,15 +538,28 @@ private slots:
         QCOMPARE(stalePixels(pane), 0);
         const qint64 whole = qint64(area->width()) * area->height();
         const bool integralScale = std::abs(pane.devicePixelRatioF() - std::round(pane.devicePixelRatioF())) < 1e-9;
+        int steadyBarMoves = 0;
+        int movingBarMoves = 0;
         for (int ply = 2; ply <= 60; ++ply) {
             PaintRegionSpy rows;
             PaintRegionSpy headings;
+            PaintRegionSpy scrollBar;
             area->installEventFilter(&rows);
             header->installEventFilter(&headings);
+            bar->installEventFilter(&scrollBar);
+            const bool fitted = bar->maximum() == 0;
             play(ply);
             settle();
             area->removeEventFilter(&rows);
             header->removeEventFilter(&headings);
+            bar->removeEventFilter(&scrollBar);
+            if (fitted && bar->maximum() == 0) {
+                // 行が収まっている間は、行が増えてもスクロールバーの見た目は変わらない
+                QVERIFY2(scrollBar.area() == 0, qPrintable(QStringLiteral("ply %1: scroll bar repainted").arg(ply)));
+                ++steadyBarMoves;
+            } else if (scrollBar.area() > 0) {
+                ++movingBarMoves;
+            }
             const QString label = QStringLiteral("ply %1: repainted %2 of %3 px").arg(ply).arg(rows.area()).arg(whole);
             QCOMPARE(model.rowCount(), ply + 1);
             QVERIFY2(rows.area() > 0, qPrintable(label));
@@ -553,6 +568,9 @@ private slots:
             QVERIFY2(headings.area() == 0, qPrintable(QStringLiteral("ply %1: header repainted").arg(ply)));
             QVERIFY2(stalePixels(pane) == 0, qPrintable(label));
         }
+        // 収まっている間と、スクロールしてつまみが動く間の両方を通っている
+        QVERIFY2(steadyBarMoves >= 10, qPrintable(QString::number(steadyBarMoves)));
+        QVERIFY2(movingBarMoves >= 10, qPrintable(QString::number(movingBarMoves)));
 
         // 対局を終えて棋譜をたどる: 現在行の強調と選択が移る行を描き直す（描き残しが無い）
         live.commit();
