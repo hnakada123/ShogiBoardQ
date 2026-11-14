@@ -150,6 +150,9 @@ class Capture:
             for dock in docks['docks']:
                 if 'csa' in dock.get('object_name', '').lower():
                     await self.rpc('dock.configure', widget=dock['object_name'], operation='show')
+            # The status bar shows the game-start notice for 5 seconds. Moves are not reported there,
+            # so wait until it is gone: the image then shows the status bar as it is during a game.
+            await asyncio.sleep(5.5)
             await self.capture('csa-03-playing.png')
             await self.rpc('action.trigger', name='actionResign')
             await until('#WIN')
