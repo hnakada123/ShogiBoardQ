@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="言語"><span aria-current="page">日本語</span><a href="../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 1／文書の版 2026-11-14（<a href="#sec-B">変更履歴</a>）</p>
+<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 1／文書の版 2026-11-15（<a href="#sec-B">変更履歴</a>）</p>
 <p class="lead">通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
@@ -956,7 +956,7 @@ Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]    
 <tr><td>合意による引き分け・合意による中断（cause 6・8）</td><td>利用者に尋ねる。承諾なら同じ提案を送り返して一致、断るなら RESULT_DECLINE。答える前に自分が指したら、断ったことにする</td></tr>
 </tbody>
 </table></div>
-<p>合意による引き分け・中断の申し出は、利用者の操作としては、同じ手数でそれぞれ1回までとする。ただし、受ける側は、同じ手数で同じ提案が繰り返し届いても、違反として扱ってはならない（その都度、上の表のとおりに扱う）。ShogiBoardQ は、再接続の後に提案を送り直し（<a href="#sec-11-5">11.5節</a>）、1局の実時間の上限を超えた後は、断られるたびに合意による中断を提案し直す（10.5節）。</p>
+<p>合意による引き分け・中断の申し出は、利用者の操作としては、相手が断る（RESULT_DECLINE を返す）か手数が進むまでの間に、それぞれ1回までとする（答えを待たずに送り直して、相手に何度も尋ねない）。相手が断った後は、同じ手数でも、もう一度申し出てよい。受ける側は、同じ手数で同じ提案が繰り返し届いても、違反として扱ってはならない（その都度、上の表のとおりに扱う）。ShogiBoardQ は、断られた後に利用者がもう一度申し出れば同じ提案を送り、再接続の後に提案を送り直し（<a href="#sec-11-5">11.5節</a>）、1局の実時間の上限を超えた後は、断られるたびに合意による中断を提案し直す（10.5節）。</p>
 
 <h3 id="sec-10-3">10.3 棋譜から決まる終局</h3>
 <p>手が1つ進む（双方が承認した State が増える）たびに、双方が次の順で判定し、終局なら、その結果を RESULT_PROPOSE で提案する。双方が同じ判定をすれば、同じ提案を送り合って一致する。</p>
@@ -1307,6 +1307,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文書の版</th><th>プロトコルの版</th><th>互換実装の修正</th><th>変更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-15</td><td>1</td><td>要らない</td><td>合意による引き分け・中断の申し出を、相手が断った後は、同じ手数でももう一度できるようにした（<a href="#sec-10-2">10.2節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>）。以前は、利用者の操作としては同じ手数でそれぞれ1回までで、ShogiBoardQ では、断られた後に「中断」を押し直しても、相手に何も出なかった。相手が断るか手数が進むまでの間にそれぞれ1回まで、という決まりにした。受ける側は、同じ手数で同じ提案が繰り返し届いても違反として扱わない決まりのままで、フレームの形も変えていない。</td></tr>
 <tr><td>2026-11-14</td><td>1</td><td>要らない</td><td>P2P対局を実験版から正式な機能にしたことに合わせた（ShogiBoardQ 2026.11.14 から、既定で有効にして配布物に入れる。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>）。通信の決まりは変えていない。
 <ul>
 <li>実験版の間の例外（互換性のない変更でも、プロトコルの版を上げずに版 1 の決まりを変えることがある）を終えた。これより後は、互換性のない変更ではプロトコルの版を上げる（<a href="#sec-1-5">1.5節</a>）。</li>

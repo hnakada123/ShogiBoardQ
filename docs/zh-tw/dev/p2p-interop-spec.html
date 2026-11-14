@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="語言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><span aria-current="page">繁體中文</span></nav>
 <h1>P2P對局相容實作規格書</h1>
-<p>ShogiBoardQ（將棋盤Q）／協定版本 1／文件版本 2026-11-14（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
+<p>ShogiBoardQ（將棋盤Q）／協定版本 1／文件版本 2026-11-15（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
 <p class="lead">規定通訊層、邀請字串、訊框、開始前的協商、對局中的步驟、重新連線，以及對局記錄（憑證）的格式與驗證。</p>
 </header>
 <nav class="toc" aria-label="目錄">
@@ -956,7 +956,7 @@ Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]    
 <tr><td>協議和棋、協議中斷（cause 6、8）</td><td>詢問使用者。接受時回傳相同的提議而一致，拒絕時 RESULT_DECLINE。若在回覆前自己走了棋，視為拒絕</td></tr>
 </tbody>
 </table></div>
-<p>協議和棋、協議中斷的請求，作為使用者的操作，同一手數各最多一次。但是，即使同一手數反覆收到相同的提議，接收方也不得將其視為違規（每次都依上表處理）。ShogiBoardQ 在重新連線後會重新傳送提議（<a href="#sec-11-5">第 11.5 節</a>），並在超過每局實際時間的上限後，每次被拒絕都會重新提議協議中斷（第 10.5 節）。</p>
+<p>協議和棋、協議中斷的請求，作為使用者的操作，在對方拒絕（回傳 RESULT_DECLINE）或手數前進之前，各最多一次（不會不等回覆就重新傳送，以免反覆詢問對方）。對方拒絕之後，即使在同一手數，也可以再次提出請求。即使同一手數反覆收到相同的提議，接收方也不得將其視為違規（每次都依上表處理）。ShogiBoardQ 在被拒絕後使用者再次提出請求時會傳送相同的提議，在重新連線後會重新傳送提議（<a href="#sec-11-5">第 11.5 節</a>），並在超過每局實際時間的上限後，每次被拒絕都會重新提議協議中斷（第 10.5 節）。</p>
 
 <h3 id="sec-10-3">10.3 由棋譜決定的終局</h3>
 <p>每前進一手（雙方都已認可的 State 增加時），雙方都依下列順序判定，若為終局，就以 RESULT_PROPOSE 提議該結果。雙方做出相同的判定時，就會互相傳送相同的提議而一致。</p>
@@ -1307,6 +1307,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文件版本</th><th>協定版本</th><th>相容實作是否需要修改</th><th>變更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-15</td><td>1</td><td>不需要</td><td>協議和棋、協議中斷的請求在對方拒絕之後，即使在同一手數也可以再次提出（<a href="#sec-10-2">第 10.2 節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>）。以前，作為使用者的操作，同一手數各最多一次，在 ShogiBoardQ 中，被拒絕後再次按「中斷」，對方那裡什麼也不會顯示。現在的規則是：在對方拒絕或手數前進之前，各最多一次。即使同一手數反覆收到相同的提議，接收方也不得將其視為違規的規則沒有改變，訊框的格式也沒有改變。</td></tr>
 <tr><td>2026-11-14</td><td>1</td><td>不需要</td><td>配合P2P對局從實驗版成為正式功能（自 ShogiBoardQ 2026.11.14 起預設啟用，並包含在發行套件中。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>）。通訊的規則沒有改變。
 <ul>
 <li>實驗版期間的例外（即使是不相容的變更，也可能不升協定版本而直接修改版本 1 的規則）已經結束。今後，不相容的變更會升協定版本（<a href="#sec-1-5">第 1.5 節</a>）。</li>

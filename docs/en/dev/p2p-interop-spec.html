@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="Language"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><span aria-current="page">English</span><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P Game Specification for Compatible Implementations</h1>
-<p>ShogiBoardQ / Protocol version 1 / Document version 2026-11-14 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
+<p>ShogiBoardQ / Protocol version 1 / Document version 2026-11-15 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
 <p class="lead">Defines the transport layer, invitation strings, frames, start negotiation, in-game steps, reconnection, and the format and verification of game records (evidence).</p>
 </header>
 <nav class="toc" aria-label="Contents">
@@ -956,7 +956,7 @@ Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]    
 <tr><td>Draw by agreement, abort by agreement (cause 6, 8)</td><td>Ask the user. If the user accepts, send back the same proposal to match; if the user declines, RESULT_DECLINE. If one moves before answering, it counts as declining</td></tr>
 </tbody>
 </table></div>
-<p>As user operations, offers of a draw or abort by agreement are limited to once each per ply. However, the receiving side must not treat the same proposal arriving repeatedly at the same ply as a violation (it handles each one according to the table above). ShogiBoardQ resends its proposal after a reconnection (<a href="#sec-11-5">section 11.5</a>), and once the real-time limit of one game has been exceeded, it proposes an abort by agreement again each time it is declined (section 10.5).</p>
+<p>As user operations, offers of a draw or abort by agreement are limited to once each until the opponent declines (returns RESULT_DECLINE) or the ply advances (an offer is not resent without waiting for the answer, so the opponent is not asked over and over). After the opponent has declined, the offer may be made again, even at the same ply. The receiving side must not treat the same proposal arriving repeatedly at the same ply as a violation (it handles each one according to the table above). ShogiBoardQ sends the same proposal when the user offers again after being declined, resends its proposal after a reconnection (<a href="#sec-11-5">section 11.5</a>), and once the real-time limit of one game has been exceeded, it proposes an abort by agreement again each time it is declined (section 10.5).</p>
 
 <h3 id="sec-10-3">10.3 Game Ends Determined by the Moves</h3>
 <p>Each time the game advances by one move (the States approved by both sides increase), both sides judge in the following order, and if it is a game end, they propose that result with RESULT_PROPOSE. If both sides judge the same way, they send each other the same proposal and the result matches.</p>
@@ -1307,6 +1307,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>Document version</th><th>Protocol version</th><th>Fix needed in compatible implementations</th><th>Changes</th></tr></thead>
 <tbody>
+<tr><td>2026-11-15</td><td>1</td><td>Not needed</td><td>An offer of a draw or abort by agreement can now be made again, even at the same ply, after the opponent has declined it (<a href="#sec-10-2">section 10.2</a>; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>). Previously, as user operations, such offers were limited to once each per ply, and in ShogiBoardQ, pressing "Abort" again after being declined showed nothing to the opponent. The rule is now once each until the opponent declines or the ply advances. The rule that the receiving side must not treat the same proposal arriving repeatedly at the same ply as a violation is unchanged, and the frame formats did not change.</td></tr>
 <tr><td>2026-11-14</td><td>1</td><td>Not needed</td><td>Aligned with P2P games becoming a regular feature instead of an experimental one (from ShogiBoardQ 2026.11.14 they are enabled by default and included in the distributed packages; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>). The communication rules did not change.
 <ul>
 <li>The exception of the experimental period (the rules of version 1 could be changed without raising the protocol version, even by incompatible changes) has ended. From now on, incompatible changes raise the protocol version (<a href="#sec-1-5">section 1.5</a>).</li>
