@@ -326,7 +326,7 @@ void TsumeshogiGeneratorDialog::onResultTableActivated(const QModelIndex& index)
     dlg->setPlayerNames(tr("攻方"), tr("玉方"));
     dlg->setSquareSize(AppSettings::squareSize());   // 本体の盤と同じ大きさ（変わるたびに保存している）
     dlg->setAttribute(Qt::WA_DeleteOnClose);
-    dlg->show();
+    DialogUtils::showWindow(dlg);
 }
 
 void TsumeshogiGeneratorDialog::updateResultActions()

@@ -20,7 +20,6 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QLabel>
-#include <QTimer>
 #include <QMenu>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -48,10 +47,8 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
 
     // 初期盤面（平手初期局面）を表示する。局面集はまだ無い
     m_viewer->board()->setSfen(SfenUtils::hirateSfen());
+    // 盤の大きさを確定する。ウィンドウは、表示するときにビューアが盤に合わせる
     m_viewer->fitToBoard();
-
-    // レイアウト確定後に自動調整
-    QTimer::singleShot(0, m_viewer, &BoardViewerWidget::fitToBoard);
 }
 
 void SfenCollectionDialog::buildUi()

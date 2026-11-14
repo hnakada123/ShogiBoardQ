@@ -3,6 +3,7 @@
 
 #include "boardviewerwidget.h"
 #include "buttonstyles.h"
+#include "opaquebackground.h"
 #include "shogiboard.h"
 #include "shogiview.h"
 
@@ -11,6 +12,8 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollArea>
+#include <QShowEvent>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
@@ -60,7 +63,12 @@ BoardViewerWidget::BoardViewerWidget(Features features, ButtonLabels labels, Sho
         m_scroll->setAlignment(Qt::AlignCenter);
         m_scroll->setMinimumSize(300, 300);
         m_scroll->setWidget(m_view);
+        m_scroll->installEventFilter(this);
         layout->addWidget(m_scroll, 1);
+        m_fitTimer = new QTimer(this);
+        m_fitTimer->setSingleShot(true);
+        m_fitTimer->setInterval(300);
+        connect(m_fitTimer, &QTimer::timeout, this, &BoardViewerWidget::onFitTimeout);
     } else {
         layout->addWidget(m_view, 1, Qt::AlignHCenter);
     }
@@ -96,6 +104,8 @@ void BoardViewerWidget::buildNavigation(ButtonLabels labels)
     m_positionLabel->setWordWrap(true);
     m_positionLabel->setAlignment(Qt::AlignCenter);
     m_positionLabel->setStyleSheet(QStringLiteral("QLabel { font-weight: bold; padding: 4px; }"));
+    // 局面を送るたびに描き直す。下にあるこの部品とダイアログまで同じ範囲を描き直さない
+    OpaqueBackground::keep(m_positionLabel);
     mainLayout->addWidget(m_positionLabel);
 
     // ⏮⏭ は多くの日本語フォントに無く、代替フォントで小さく（環境によっては絵文字で）描かれるため、
@@ -220,8 +230,13 @@ void BoardViewerWidget::fitToBoard()
         return;
     }
     // スクロール領域の中の盤は自動では大きさが変わらないため、マスの大きさに合わせる
-    m_view->resize(m_view->sizeHint());
-    if (!(m_features & FitWindowOnZoom)) return;
+    const QSize boardSize = m_view->sizeHint();
+    // ウィンドウを合わせるのは表示してから。表示の前は部品の配置が決まっていないので、盤以外の部分の
+    // 寸法が分からない（外れた大きさで1度描いてから、合わせ直して描くことになる）。表示するときに合わせる
+    if (!(m_features & FitWindowOnZoom) || !m_shown) {
+        m_view->resize(boardSize);
+        return;
+    }
     // 通常表示は盤全体が入る寸法を優先し、小さい画面ではスクロールで補う。
     // 拡大・縮小の直後はスクロールバーが出ていることがあるため、ビューポートではなく
     // スクロール領域（枠なし）の大きさから盤以外の部分の寸法を求める。
@@ -229,11 +244,106 @@ void BoardViewerWidget::fitToBoard()
     QLayout* topLayout = top->layout();
     if (topLayout) topLayout->activate();
     const QSize controls = top->size() - m_scroll->size();
-    QSize target = m_view->size() + controls;
+    QSize target = boardSize + controls;
     // 折り返す部品（読み筋の帯など）の高さはウィンドウの幅で変わるので、合わせた後の幅での高さにする
     if (topLayout && topLayout->hasHeightForWidth())
         target.rheight() += topLayout->totalHeightForWidth(target.width()) - topLayout->totalHeightForWidth(top->width());
-    const QSize available = top->screen()->availableGeometry().size() - QSize(40, 80);
-    top->resize(target.boundedTo(available));
+    target = target.boundedTo(availableWindowSize()).expandedTo(top->minimumSize());
+    // 部品が詰められた配置（ウィンドウが推奨の大きさより小さい）で測ると、盤以外の部分を小さく見積もる。
+    // 合わせた後で盤が収まっていなければ、足りない分だけ1回広げ直す（growToShow）
+    m_fitRetryAllowed = true;
+
+    const bool boardOverflows = boardSize.width() > m_scroll->width() || boardSize.height() > m_scroll->height();
+    const bool windowFixed = top->isMaximized() || top->isFullScreen();
+    if (target == top->size() || !boardOverflows || windowFixed) {
+        // ウィンドウが変わらないか、盤が今のスクロール領域に収まる（縮小）: 盤を先に合わせる
+        finishFit(boardSize);
+        top->resize(target);
+        // 広げ直せるのは、この合わせ直しの間だけ（利用者が後でウィンドウを縮めても広げない）
+        if (m_fitRetryAllowed) m_fitTimer->start();
+        return;
+    }
+    // 盤が今のスクロール領域より大きくなる（拡大・文字を大きくした後）: 盤を先に大きくすると、ウィンドウが
+    // 広がるまでの間にスクロールバー付きで1度描き、広がってからもう1度描く。ウィンドウを先に広げ、
+    // スクロール領域が広がったときに盤を合わせる（その間は盤を描かず、スクロールバーも出さない）
+    holdBoard();
+    m_pendingBoardSize = boardSize;
+    top->resize(target);
+    // ウィンドウの大きさの変化が届かない場合（ウィンドウマネージャが断るなど）に備える
+    if (m_pendingBoardSize.isValid()) m_fitTimer->start();
 }
 
+QSize BoardViewerWidget::availableWindowSize() const
+{
+    return window()->screen()->availableGeometry().size() - QSize(40, 80);
+}
+
+bool BoardViewerWidget::growToShow(const QSize& boardSize)
+{
+    const QSize lacking = (boardSize - m_scroll->size()).expandedTo(QSize(0, 0));
+    if (lacking.isNull()) return false;
+    QWidget* top = window();
+    if (top->isMaximized() || top->isFullScreen()) return false;
+    const QSize target = (top->size() + lacking).boundedTo(availableWindowSize()).expandedTo(top->minimumSize());
+    if (target == top->size()) return false;
+    m_fitRetryAllowed = false;
+    top->resize(target);
+    return true;
+}
+
+void BoardViewerWidget::fitToBoardLater()
+{
+    // 配置が決まるまでの間に、縮んだスクロール領域で盤を描かせない
+    if (m_scroll && (m_features & FitWindowOnZoom) && m_shown) holdBoard();
+    QTimer::singleShot(0, this, &BoardViewerWidget::fitToBoard);
+}
+
+void BoardViewerWidget::holdBoard()
+{
+    if (m_boardHeld) return;
+    m_boardHeld = true;
+    m_view->setUpdatesEnabled(false);
+    m_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    // 合わせる処理が来ない場合に備える
+    m_fitTimer->start();
+}
+
+void BoardViewerWidget::finishFit(QSize boardSize)
+{
+    m_fitTimer->stop();
+    m_pendingBoardSize = QSize();
+    m_view->resize(boardSize);
+    if (!m_boardHeld) return;
+    m_boardHeld = false;
+    m_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_view->setUpdatesEnabled(true);
+}
+
+void BoardViewerWidget::onFitTimeout()
+{
+    m_fitRetryAllowed = false;
+    finishFit(m_view->sizeHint());
+}
+
+void BoardViewerWidget::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+    if (event->spontaneous() || m_shown) return;
+    // ここで初めて、部品が今のウィンドウの大きさで配置されている。ウィンドウが画面に出る前に盤に合わせる
+    m_shown = true;
+    if (m_scroll && (m_features & FitWindowOnZoom)) fitToBoard();
+}
+
+bool BoardViewerWidget::eventFilter(QObject* watched, QEvent* event)
+{
+    if (watched == m_scroll && event->type() == QEvent::Resize && (m_pendingBoardSize.isValid() || m_fitRetryAllowed)) {
+        // ウィンドウの大きさの変化がスクロール領域に届いた。盤がまだ収まらなければ、足りない分だけ1回広げ直して
+        // 次の変化を待つ。収まっていれば（広げられなければ）、待たせていた盤の大きさを合わせる
+        const QSize boardSize = m_pendingBoardSize.isValid() ? m_pendingBoardSize : m_view->size();
+        const bool grown = m_fitRetryAllowed && growToShow(boardSize);
+        if (!grown && m_pendingBoardSize.isValid()) finishFit(m_pendingBoardSize);
+    }
+    return QWidget::eventFilter(watched, event);
+}

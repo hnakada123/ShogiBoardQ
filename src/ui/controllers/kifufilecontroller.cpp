@@ -2,6 +2,7 @@
 /// @brief 棋譜の文書とファイルをつなぐ部品の実装
 
 #include "kifufilecontroller.h"
+#include "dialogutils.h"
 #include "notificationpresenter.h"
 
 #include "kifufilefilter.h"
@@ -96,7 +97,7 @@ void KifuFileController::pasteKifuFromClipboard()
     m_kifuPasteDialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(m_kifuPasteDialog, &KifuPasteDialog::importRequested,
             this, &KifuFileController::onKifuPasteImportRequested);
-    m_kifuPasteDialog->show();
+    DialogUtils::showWindow(m_kifuPasteDialog);
 }
 
 void KifuFileController::onKifuPasteImportRequested(const QString& content)
@@ -118,7 +119,7 @@ void KifuFileController::openSfenCollection()
     m_sfenCollectionDialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(m_sfenCollectionDialog, &SfenCollectionDialog::positionSelected,
             this, &KifuFileController::onSfenCollectionPositionSelected);
-    m_sfenCollectionDialog->show();
+    DialogUtils::showWindow(m_sfenCollectionDialog);
 }
 
 void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)

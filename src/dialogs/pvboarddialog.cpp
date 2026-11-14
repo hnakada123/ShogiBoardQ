@@ -17,7 +17,6 @@
 
 #include <QHBoxLayout>
 #include <QPushButton>
-#include <QTimer>
 #include <QVBoxLayout>
 
 namespace {
@@ -39,12 +38,9 @@ PvBoardDialog::PvBoardDialog(const PvText& pv, QWidget* parent)
     // 読み筋の各手数の局面を盤に渡す（0 が開始局面）。表示する手数はビューアの番号だけで持つ
     m_viewer->setSfenList(m_line->positions());
 
-    // ShogiViewの初期サイズを確定し、時計を隠す
+    // 盤の大きさを確定する。ウィンドウは、表示するときにビューアが盤に合わせる
     m_viewer->fitToBoard();
     updatePlyDisplay();
-
-    // レイアウト確定後に自動調整（起動直後のサイズ不足を防ぐ）
-    QTimer::singleShot(0, m_viewer, &BoardViewerWidget::fitToBoard);
 }
 
 PvBoardDialog::~PvBoardDialog() = default;
@@ -115,7 +111,7 @@ void PvBoardDialog::onPlyChanged(int)
 void PvBoardDialog::onFontSizeChanged()
 {
     // 部品の配置が新しい文字の大きさに合ってから、ウィンドウを盤に合わせる
-    QTimer::singleShot(0, m_viewer, &BoardViewerWidget::fitToBoard);
+    m_viewer->fitToBoardLater();
 }
 
 void PvBoardDialog::updatePlyDisplay()

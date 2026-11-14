@@ -131,7 +131,7 @@ void P2pGameUiController::openWindow()
         connect(m_window, &P2pWindow::leaveGameRequested, this, &P2pGameUiController::onLeaveGameRequested);
     }
     m_window->refresh();
-    m_window->show();
+    DialogUtils::showWindow(m_window);
     m_window->raise();
     m_window->activateWindow();
 }

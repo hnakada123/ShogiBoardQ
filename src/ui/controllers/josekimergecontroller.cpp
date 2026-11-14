@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウの「マージ」の実装
 
 #include "josekimergecontroller.h"
+#include "dialogutils.h"
 #include "notificationpresenter.h"
 
 #include "gamesettings.h"
@@ -101,5 +102,5 @@ void JosekiMergeController::openDialog(const RecordLine &line, const QString &ti
     auto *dialog = new JosekiMergeDialog(m_deps.session, line, m_deps.parentWidget);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     if (!title.isEmpty()) dialog->setWindowTitle(title);
-    dialog->show();
+    DialogUtils::showWindow(dialog);
 }

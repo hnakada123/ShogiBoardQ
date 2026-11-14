@@ -4,10 +4,14 @@
 #include <QImage>
 #include <QMenu>
 #include <QPaintEvent>
+#include <QDialog>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QScreen>
 #include <QTemporaryDir>
 #include <QWindow>
 #include <QtMath>
+#include <memory>
 
 #include "positioneditrules.h"
 #include "piecestylecatalog.h"
@@ -754,6 +758,177 @@ private slots:
             QCOMPARE(view->board()->position().boardSfen(), positions.at(index).section(QLatin1Char(' '), 0, 0));
         }
         GameSettings::sfenCollectionRecentFiles.set({});
+    }
+
+    // 矢印（検討の候補手・対局のエンジンの読み・定跡手）が替わるとき、盤は消える矢印と新しい矢印の周りだけを
+    // 描き直す（前後の矢印をまとめて1つの矩形で囲むと、候補手が1つ替わるだけで盤の半分を描き直す）
+    void arrowChangeRepaintsOnlyChangedArrows()
+    {
+        BoardUi ui(sfen(), false);
+        QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
+        settle();
+        using Arrow = ShogiViewHighlighting::Arrow;
+        const auto arrow = [](int fromFile, int fromRank, int toFile, int toRank, int priority) {
+            Arrow result;
+            result.fromFile = fromFile;
+            result.fromRank = fromRank;
+            result.toFile = toFile;
+            result.toRank = toRank;
+            result.priority = priority;
+            return result;
+        };
+        const auto areaOf = [](const QRegion& region) {
+            qint64 total = 0;
+            for (const QRect& rect : region) total += qint64(rect.width()) * rect.height();
+            return total;
+        };
+        const BoardGeometry& geometry = ui.view.boardGeometry();
+        ShogiViewHighlighting* highlighting = ui.view.highlighting();
+        const Arrow left = arrow(9, 7, 9, 6, 1);     // 盤の左端
+        const Arrow right = arrow(1, 7, 1, 6, 2);    // 盤の右端
+        const Arrow middle = arrow(5, 9, 5, 5, 3);   // 中央の筋
+        highlighting->setArrows({left, right, middle});
+        settle();
+        QCOMPARE(stalePixels(ui.view), 0);
+
+        // 3本目だけが別の手に替わる: 1本目・2本目の周りは描き直さない
+        QRegion repainted = repaintedDuring(ui.view, [&] { highlighting->setArrows({left, right, arrow(5, 9, 4, 8, 3)}); });
+        QVERIFY(!repainted.isEmpty());
+        for (const QRect& kept : {geometry.square(9, 7), geometry.square(9, 6), geometry.square(1, 7), geometry.square(1, 6)})
+            QVERIFY2(!repainted.intersects(kept), "an unchanged arrow was repainted");
+        QVERIFY2(repainted.contains(geometry.square(5, 5).center()), "the removed arrow was not repainted");
+        QVERIFY2(repainted.contains(geometry.square(4, 8).center()), "the new arrow was not repainted");
+        QCOMPARE(stalePixels(ui.view), 0);
+
+        // 同じ矢印を渡しても描き直さない
+        repainted = repaintedDuring(ui.view, [&] { highlighting->setArrows({left, right, arrow(5, 9, 4, 8, 3)}); });
+        QVERIFY(repainted.isEmpty());
+
+        // 斜めの長い矢印は、線に沿った範囲だけを描き直す（始点と終点を囲む矩形の半分未満）
+        highlighting->setArrows({});
+        settle();
+        const Arrow diagonal = arrow(8, 8, 3, 3, 1);
+        repainted = repaintedDuring(ui.view, [&] { highlighting->setArrows({diagonal}); });
+        const QRect bounds = geometry.square(8, 8) | geometry.square(3, 3);
+        QVERIFY2(areaOf(repainted) * 2 < qint64(bounds.width()) * bounds.height(),
+                 qPrintable(QStringLiteral("repainted %1 of bounds %2x%3").arg(areaOf(repainted)).arg(bounds.width()).arg(bounds.height())));
+        QCOMPARE(stalePixels(ui.view), 0);
+        repainted = repaintedDuring(ui.view, [&] { highlighting->setArrows({}); });
+        QVERIFY(!repainted.isEmpty());
+        QCOMPARE(stalePixels(ui.view), 0);
+
+        // 1本から2本になると、順位の数字が元の矢印にも付く（元の矢印も描き直す）。逆も同じ
+        highlighting->setArrows({left});
+        settle();
+        const QPoint leftLabel = (geometry.square(9, 7).center() + geometry.square(9, 6).center()) / 2;
+        repainted = repaintedDuring(ui.view, [&] { highlighting->setArrows({left, right}); });
+        QVERIFY2(repainted.contains(leftLabel), "the first arrow did not get its number");
+        QCOMPARE(stalePixels(ui.view), 0);
+        repainted = repaintedDuring(ui.view, [&] { highlighting->setArrows({left}); });
+        QVERIFY2(repainted.contains(leftLabel), "the first arrow kept its number");
+        QCOMPARE(stalePixels(ui.view), 0);
+
+        // 重なる矢印の順が入れ替わる・同じ矢印が2本あるときも、描き残しが無い
+        const Arrow crossing = arrow(9, 6, 1, 6, 2);
+        highlighting->setArrows({left, crossing, right});
+        settle();
+        QCOMPARE(stalePixels(ui.view), 0);
+        highlighting->setArrows({crossing, right, left});
+        settle();
+        QCOMPARE(stalePixels(ui.view), 0);
+        highlighting->setArrows({left, left, crossing});
+        settle();
+        QCOMPARE(stalePixels(ui.view), 0);
+        highlighting->setArrows({left, crossing});
+        settle();
+        QCOMPARE(stalePixels(ui.view), 0);
+        // 駒打ちの矢印（駒台から）
+        Arrow drop = arrow(0, 0, 5, 5, 1);
+        drop.dropPiece = Piece::BlackBishop;
+        highlighting->setArrows({drop, crossing});
+        settle();
+        QCOMPARE(stalePixels(ui.view), 0);
+        highlighting->setArrows({});
+        settle();
+        QCOMPARE(stalePixels(ui.view), 0);
+    }
+
+    // 読み筋ウィンドウ・局面集ビューアは、開いたときから盤に合った大きさで、盤を全体では1回だけ描く
+    // （表示の前は部品の配置が決まっておらず、外れた大きさで1度描いてから合わせ直していた）
+    void boardWindowsOpenAtTheirFinalSize_data()
+    {
+        QTest::addColumn<bool>("pv");
+        QTest::newRow("pv") << true;
+        QTest::newRow("sfen") << false;
+    }
+
+    void boardWindowsOpenAtTheirFinalSize()
+    {
+        QFETCH(bool, pv);
+        // テストの小さい画面（offscreen は 800x800）でも盤全体が入るマスの大きさにする
+        constexpr int kSmallSquare = 30;
+        const int savedSquare = GameSettings::sfenCollectionSquareSize();
+        std::unique_ptr<QDialog> dialog;
+        if (pv) {
+            auto pvDialog = std::make_unique<PvBoardDialog>(PvText::play(validSfen(), pvMoves()));
+            pvDialog->setSquareSize(kSmallSquare);
+            dialog = std::move(pvDialog);
+        } else {
+            GameSettings::sfenCollectionSquareSize.set(kSmallSquare);
+            dialog = std::make_unique<SfenCollectionDialog>();
+        }
+        auto* view = dialog->findChild<ShogiView*>();
+        auto* viewer = dialog->findChild<BoardViewerWidget*>();
+        QVERIFY(view != nullptr && viewer != nullptr);
+        // 盤とウィンドウが描かれたときの大きさを記録する
+        struct SizeSpy : QObject {
+            QList<QSize> sizes;
+            bool eventFilter(QObject* watched, QEvent* event) override
+            {
+                if (event->type() == QEvent::Paint) sizes.append(static_cast<QWidget*>(watched)->window()->size());
+                return QObject::eventFilter(watched, event);
+            }
+        } spy;
+        view->installEventFilter(&spy);
+        dialog->show();
+        QVERIFY(QTest::qWaitForWindowExposed(dialog.get()));
+        QTest::qWait(100);
+        view->removeEventFilter(&spy);
+        QVERIFY(!spy.sizes.isEmpty());
+        // 描いたときのウィンドウは、どれも落ち着いた後の大きさ
+        for (const QSize& size : std::as_const(spy.sizes)) QCOMPARE(size, dialog->size());
+        // 盤はスクロール領域に収まっている（スクロールバーは出ない）
+        QCOMPARE(view->size(), view->sizeHint());
+        auto* scroll = dialog->findChild<QScrollArea*>(QStringLiteral("boardScrollArea"));
+        QVERIFY(scroll);
+        QVERIFY(!scroll->horizontalScrollBar()->isVisible() && !scroll->verticalScrollBar()->isVisible());
+        QVERIFY(view->updatesEnabled());
+
+        // 拡大: ウィンドウを先に広げてから盤を合わせるので、盤を全体で描くのは1回だけ
+        PaintSpy zoom;
+        view->installEventFilter(&zoom);
+        viewer->enlargeBoard();
+        QTRY_COMPARE(view->size(), view->sizeHint());
+        settle();
+        QTest::qWait(50);
+        view->removeEventFilter(&zoom);
+        int fullPaints = 0;
+        for (const QRect& rect : std::as_const(zoom.rects))
+            if (rect == view->rect()) ++fullPaints;
+        QCOMPARE(fullPaints, 1);
+        QVERIFY(view->updatesEnabled());
+        QVERIFY(!scroll->horizontalScrollBar()->isVisible() && !scroll->verticalScrollBar()->isVisible());
+        QCOMPARE(stalePixels(*view), 0);
+        // 縮小しても盤に合う
+        viewer->reduceBoard();
+        viewer->reduceBoard();
+        QTRY_COMPARE(view->size(), view->sizeHint());
+        settle();
+        QVERIFY(view->updatesEnabled());
+        QCOMPARE(stalePixels(*view), 0);
+        dialog->reject();
+        dialog.reset();
+        GameSettings::sfenCollectionSquareSize.set(savedSquare);
     }
 
     // 対局画面の外観（将棋盤・駒台・対局者情報・背景の見本、駒、駒の大きさ・影・木目）を1つずつ変え、

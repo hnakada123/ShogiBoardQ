@@ -4,6 +4,7 @@
 /// @file boardviewerwidget.h
 /// @brief 盤（ShogiBoard + ShogiView）と、拡大・縮小・回転・局面送りの操作をまとめた部品
 
+#include <QSize>
 #include <QStringList>
 #include <QWidget>
 
@@ -13,6 +14,7 @@ class QHBoxLayout;
 class QLabel;
 class QPushButton;
 class QScrollArea;
+class QTimer;
 
 /**
  * @brief 読み筋・局面集・詰将棋・定跡手・外観の見本で共通に使う盤の表示部品
@@ -73,8 +75,11 @@ public:
     void setFlipped(bool flipped);
     bool isFlipped() const;
 
-    /// 盤の大きさを確定させ、時計を隠す。FitWindowOnZoom ならウィンドウも盤に合わせる
+    /// 盤の大きさをマスの大きさに合わせる。FitWindowOnZoom ならウィンドウも盤に合わせる
+    /// （表示の前は盤だけを合わせ、ウィンドウは表示するときに合わせる）
     void fitToBoard();
+    /// 部品の配置が変わる変更（文字の大きさ）の後で、配置が決まってからウィンドウを盤に合わせる
+    void fitToBoardLater();
 
 public slots:
     void setCurrentIndex(int index);
@@ -94,7 +99,22 @@ signals:
     /// 回転ボタンで向きを変えた
     void flipToggled(bool flipped);
 
+protected:
+    void showEvent(QShowEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
+private slots:
+    void onFitTimeout();
+
 private:
+    /// ウィンドウと盤の大きさが合うまで、盤を描かせず、スクロールバーも出さない
+    void holdBoard();
+    /// 盤の大きさを合わせ、holdBoard を解く
+    void finishFit(QSize boardSize);
+    /// 盤がスクロール領域に収まっていなければ、足りない分だけウィンドウを広げる（広げたら true）
+    bool growToShow(const QSize& boardSize);
+    /// ウィンドウを広げられる大きさ（画面から枠と余白を引いた大きさ）
+    QSize availableWindowSize() const;
     void buildToolbar(ButtonLabels labels);
     void buildNavigation(ButtonLabels labels);
     void showCurrent();
@@ -117,6 +137,11 @@ private:
     QPushButton* m_last = nullptr;
     QStringList m_sfens;
     int m_index = 0;
+    bool m_shown = false;         ///< 1度表示した（部品の配置が決まっている）
+    bool m_boardHeld = false;     ///< holdBoard の間
+    QSize m_pendingBoardSize;     ///< スクロール領域が広がったら合わせる盤の大きさ（待っていなければ無効）
+    bool m_fitRetryAllowed = false;  ///< 合わせ直しの間、盤が収まらなければ1回だけ広げ直せる
+    QTimer* m_fitTimer = nullptr; ///< 待っている大きさの変化が来ないときに、盤を合わせて描き直す
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(BoardViewerWidget::Features)

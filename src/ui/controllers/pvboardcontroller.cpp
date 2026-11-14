@@ -2,6 +2,7 @@
 /// @brief 読み筋の行から読み筋ダイアログを開く
 
 #include "pvboardcontroller.h"
+#include "dialogutils.h"
 
 #include "kifunavigationstate.h"
 #include "logcategories.h"
@@ -63,7 +64,7 @@ PvBoardDialog* PvBoardController::showPvBoard(const PvText& pv, const QString& l
     if (m_deps.shogiView) dlg->setSquareSize(m_deps.shogiView->squareSize());
     if (!lastUsiMove.isEmpty()) dlg->setLastMove(lastUsiMove);
     dlg->setAttribute(Qt::WA_DeleteOnClose);
-    dlg->show();
+    DialogUtils::showWindow(dlg);
     return dlg;
 }
 

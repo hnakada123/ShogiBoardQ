@@ -184,3 +184,11 @@ QMessageBox* createNoticeBox(QWidget* parent, QMessageBox::Icon icon, const QStr
 }
 
 } // namespace DialogUtils
+
+void DialogUtils::showWindow(QWidget* window)
+{
+    if (!window) return;
+    window->show();
+    // 表示で予約された描き直し（ウィンドウと中の部品の UpdateLater）を、最初の描画より前に済ませる
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::UpdateLater);
+}

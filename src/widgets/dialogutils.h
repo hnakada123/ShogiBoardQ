@@ -34,6 +34,13 @@ inline void saveDialogSize(const QWidget* dialog, const Setting<QSize>& setting)
     saveDialogSize(dialog, [&setting](const QSize& size) { setting.set(size); });
 }
 
+/// モーダルでないウィンドウを表示する（show の代わりに使う）。
+/// Qt は表示のたびに「後でウィンドウ全体を描き直す」知らせを予約する。画面に出た知らせのほうが先に
+/// 届くと、1度描いた後でその予約がもう1度全体を描かせる（開くたびに全部の部品を2回描く）。
+/// 予約を表示の直後に済ませて、開くときの描画を1回にする。モーダルの exec は、開いた直後に
+/// 予約が先に処理されるので、そのままでよい。
+void showWindow(QWidget* window);
+
 /// ウィジェットと全子ウィジェットにフォントを適用する。
 /// KDE Breeze テーマでは setFont() が子ウィジェットに伝播しないため、
 /// 明示的に全子ウィジェットにフォントを設定する。ダイアログが持つメニューにも適用する。

@@ -2,6 +2,7 @@
 /// @brief メニューから開くダイアログの起動の実装
 
 #include "dialoglauncher.h"
+#include "dialogutils.h"
 #include "notificationpresenter.h"
 #include "piecesoundplayer.h"
 #include "piecesoundsettingsdialog.h"
@@ -92,7 +93,7 @@ void DialogLauncher::displayBoardAppearanceDialog()
         m_appearanceDialog = new BoardAppearanceDialog(m_deps.parentWidget);
         m_appearanceDialog->setAttribute(Qt::WA_DeleteOnClose);
     }
-    m_appearanceDialog->show();
+    DialogUtils::showWindow(m_appearanceDialog);
     m_appearanceDialog->raise();
     m_appearanceDialog->activateWindow();
 }
