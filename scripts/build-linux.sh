@@ -18,6 +18,7 @@
 #   - Qt 6.x (Widgets, Charts, Network, Multimedia, LinguistTools)
 #   - CMake 3.16+
 #   - Ninja（推奨）
+#   - Rust 1.85+（cargo）と libsodium 1.0.18+（P2P対局。QtKeychain は任意）
 
 set -euo pipefail
 
@@ -33,6 +34,9 @@ APPIMAGE_NAME="${APP_NAME}-linux-x86_64.AppImage"
 PACKAGE_DIR="${BUILD_DIR}/${APP_NAME}-linux"
 ZIP_NAME="${APP_NAME}-linux.zip"
 HAYANAGI_EXE="${BUILD_DIR}/Hayanagi/hayanagi"
+# P2P対局の通信プロセス（Rust。CMake が cargo でビルドして実行ファイルと同じフォルダに置く）
+PEER_NAME="shogiboardq-peer"
+PEER_EXE="${BUILD_DIR}/${PEER_NAME}"
 # Hayanagi の定跡（ビルド時に hayanagi の横の book/ にコピーされる）
 HAYANAGI_BOOK="${BUILD_DIR}/Hayanagi/book/hayanagi_book.db"
 ICON_PATH="resources/icons/linux/shogiboardq.png"
@@ -112,7 +116,8 @@ done
 
 info "前提ツールを確認中..."
 
-REQUIRED_TOOLS=(cmake python3)
+# cargo・pkg-config は P2P対局のビルドに使う（通信プロセスは Rust、アプリは libsodium をリンクする）
+REQUIRED_TOOLS=(cmake python3 cargo pkg-config)
 MISSING_TOOLS=()
 for tool in "${REQUIRED_TOOLS[@]}"; do
     if ! command -v "$tool" &>/dev/null; then
@@ -125,6 +130,10 @@ if [[ ${#MISSING_TOOLS[@]} -gt 0 ]]; then
 fi
 
 info "cmake: $(cmake --version | head -1)"
+info "cargo: $(cargo --version)"
+pkg-config --exists 'libsodium >= 1.0.18' \
+    || die "libsodium（1.0.18 以上）が見つかりません。P2P対局のビルドに必要です。"
+info "libsodium: $(pkg-config --modversion libsodium)"
 
 # Ninja チェック（推奨）
 if command -v ninja &>/dev/null; then
@@ -201,6 +210,13 @@ if [[ ! -f "$EXE_PATH" ]]; then
 fi
 
 info "実行ファイル: $EXE_PATH"
+
+[[ -x "$PEER_EXE" ]] || die "P2P対局の通信プロセス ${PEER_EXE} が見つかりません。"
+info "通信プロセス: $PEER_EXE（$("$PEER_EXE" --version)）"
+# 通信プロセスに取り込んだ Rust のライブラリのライセンス一覧（アプリに内蔵する文書）が、今の Cargo.lock と
+# 合っていなければ配布物を作らない（ほかの OS だけで使うクレートの文書も確かめるので、無ければ cargo が取得する）
+python3 scripts/rust_licenses.py --check \
+    || die "resources/licenses/RUST-NOTICES.md が Cargo.lock と合っていません。scripts/rust_licenses.py で作り直してください。"
 
 # 翻訳ファイルの確認
 QM_COUNT=$(find "$BUILD_DIR" -maxdepth 1 -name "*.qm" 2>/dev/null | wc -l | tr -d ' ')
@@ -378,6 +394,8 @@ fi
 # AppImage 内からはファイル選択できないため、ZIP の外部ファイルとしてのみ配布する。
 mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/translations"
 cp "$EXE_PATH" "${APPDIR}/usr/bin/"
+# P2P対局の通信プロセスは、アプリが実行ファイルと同じフォルダから起動する
+cp "$PEER_EXE" "${APPDIR}/usr/bin/"
 
 # .qm ファイルをコピー
 for qm in "$BUILD_DIR"/*.qm; do
@@ -391,6 +409,7 @@ info "AppDir を構築中..."
 "$LINUXDEPLOY" \
     --appdir "$APPDIR" \
     --executable "${APPDIR}/usr/bin/${APP_NAME}" \
+    --executable "${APPDIR}/usr/bin/${PEER_NAME}" \
     --desktop-file "$DESKTOP_PATH" \
     --icon-file "$ICON_DEPLOY" \
     --plugin qt
@@ -463,6 +482,10 @@ OPENSSL_EOF
 info "Qt・同梱ライブラリのライセンスと対応ソース情報を同梱中..."
 [[ -f "${APPDIR}/usr/plugins/sqldrivers/libqsqlite.so" ]] || die "SQLite ドライバーが配布物にありません。"
 [[ -f "${APPDIR}/usr/plugins/tls/libqopensslbackend.so" ]] || die "TLS プラグイン（OpenSSL バックエンド）が配布物にありません。"
+# P2P対局: 通信プロセスと libsodium。通信プロセスはストリップした後も起動できることを確かめる
+[[ -x "${APPDIR}/usr/bin/${PEER_NAME}" ]] || die "P2P対局の通信プロセスが配布物にありません。"
+"${APPDIR}/usr/bin/${PEER_NAME}" --version >/dev/null || die "配布物の通信プロセスを起動できません。"
+compgen -G "${APPDIR}/usr/lib/libsodium.so*" >/dev/null || die "libsodium が配布物にありません。"
 # Qt の文書は同梱するモジュールの分だけ入れる（WebEngine など使わないモジュールの分は入れない）。
 # qtwayland: Qt 6.9 以前は日本語入力（fcitx5）が使う Qt Wayland Client がこのモジュールにある。
 # qttranslations: 標準ダイアログの訳（qtbase_*.qm）を実行ファイルに内蔵している。
@@ -474,6 +497,8 @@ python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
 # 「バージョン情報」の「同梱ライブラリのライセンス一覧」で表示する。
 python3 scripts/bundled_licenses.py --appdir "$APPDIR" --qt-plugins "$QT_PLUGINS_SRC" \
     --destination "${APPDIR}/usr/share/licenses/ShogiBoardQ"
+[[ -f "${APPDIR}/usr/share/licenses/ShogiBoardQ/RUST-NOTICES.md" ]] \
+    || die "P2P対局のライブラリのライセンス一覧（RUST-NOTICES.md）が配布物にありません。"
 
 info "AppImage を生成中..."
 "$APPIMAGETOOL" --runtime-file "$APPIMAGE_RUNTIME" "$APPDIR" "$APPIMAGE_NAME"

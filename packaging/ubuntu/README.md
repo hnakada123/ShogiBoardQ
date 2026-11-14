@@ -38,7 +38,7 @@ docker run --rm -v "$PWD:/packaging:ro" -v "$PWD/out:/out" ubuntu:26.04 bash /pa
 | 場所 | 内容 |
 |---|---|
 | `/usr/bin/ShogiBoardQ`、`/usr/bin/shogiboardq-cli` | アプリと CLI（`/usr/lib/shogiboardq/` の本体へのリンク） |
-| `/usr/lib/shogiboardq/` | 本体と翻訳（日本語・英語・中国語の `.qm`） |
+| `/usr/lib/shogiboardq/` | 本体と翻訳（日本語・英語・中国語の `.qm`）、P2P対局の通信プロセス（`shogiboardq-peer`） |
 | `/usr/lib/shogiboardq/Hayanagi/hayanagi` | 通常対局用の USI エンジン Hayanagi。定跡（`book/hayanagi_book.db`）は自動で読み込む |
 | `/usr/share/shogiboardq/tsumeshogi/` | 詰将棋問題集（3・5・7・9・11・13手詰、各1,000題） |
 | `/usr/share/applications/shogiboardq.desktop`、`/usr/share/icons/hicolor/512x512/apps/shogiboardq.png` | メニューの項目とアイコン |

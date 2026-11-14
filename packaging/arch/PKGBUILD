@@ -4,8 +4,9 @@
 # 使い方: このフォルダで `makepkg -si`（手順は README.md）
 #
 # 配置:
-#   /usr/lib/shogiboardq/          ShogiBoardQ・shogiboardq-cli の本体と翻訳（.qm）。
-#                                  アプリは実行ファイルと同じフォルダの .qm を読むため、ここにまとめる
+#   /usr/lib/shogiboardq/          ShogiBoardQ・shogiboardq-cli の本体と翻訳（.qm）、P2P対局の通信プロセス
+#                                  shogiboardq-peer。アプリは実行ファイルと同じフォルダの .qm と通信プロセスを
+#                                  使うため、ここにまとめる
 #   /usr/bin/ShogiBoardQ           本体へのリンク（shogiboardq-cli も同じ）
 #   /usr/lib/shogiboardq/Hayanagi/ 通常対局用の USI エンジン Hayanagi と定跡（book/）
 #   /usr/share/shogiboardq/tsumeshogi/  詰将棋問題集（3〜13手詰、各1,000題）
@@ -19,9 +20,12 @@ arch=('x86_64')
 url='https://hnakada123.github.io/ShogiBoardQ/'
 license=('GPL-3.0-only')
 # qt6-svg は駒の SVG を読むプラグインなので、実行ファイルのリンクには現れない（namcap の警告は無視する）
-depends=('glibc' 'hicolor-icon-theme' 'libgcc' 'libstdc++'
-         'qt6-base' 'qt6-charts' 'qt6-multimedia' 'qt6-svg')
-makedepends=('cmake' 'git' 'ninja' 'qt6-tools' 'qt6-translations')
+# libsodium と qtkeychain-qt6 は P2P対局（署名と、プレイヤー鍵を OS の鍵の保管庫に置く）に使う
+depends=('glibc' 'hicolor-icon-theme' 'libgcc' 'libsodium' 'libstdc++'
+         'qt6-base' 'qt6-charts' 'qt6-multimedia' 'qt6-svg' 'qtkeychain-qt6')
+# rust は P2P対局の通信プロセス shogiboardq-peer のビルドに使う（依存のクレートは cargo がビルド中に
+# crates.io から取得する。版とハッシュは Cargo.lock で固定）
+makedepends=('cmake' 'git' 'ninja' 'qt6-tools' 'qt6-translations' 'rust')
 # makepkg -si がデバッグ情報のパッケージ（約250 MB）まで入れないようにする
 options=('!debug')
 install=shogiboardq.install
@@ -39,6 +43,10 @@ prepare() {
 }
 
 build() {
+  # makepkg は C のコードも LTO でコンパイルする。P2P対局の通信プロセスが使う Rust のクレート ring は C と
+  # アセンブリを含み、LTO の中間表現だけのオブジェクトは Rust のリンク（lld）で読めずに未定義シンボルになるので、
+  # 機械語も入ったオブジェクトにする（Arch Linux の Rust パッケージの指針と同じ）
+  CFLAGS+=' -ffat-lto-objects'
   cmake -B build -S ShogiBoardQ -G Ninja \
     -DCMAKE_BUILD_TYPE=None \
     -DCMAKE_INSTALL_PREFIX=/usr \
@@ -46,6 +54,8 @@ build() {
     -DBUILD_TESTING=OFF \
     -Wno-dev
   cmake --build build
+  # P2P対局の通信プロセスが入っていないパッケージを作らない
+  [[ -x build/shogiboardq-peer ]]
 }
 
 package() {

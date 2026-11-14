@@ -61,3 +61,23 @@ RUN pacman -S --needed --noconfirm --disable-download-timeout git patchelf gnutl
  && rm -rf /tmp/updates \
  && pacman -Q openssl curl libnghttp2 libnghttp3 libngtcp2 libssh2 \
  && pacman -Scc --noconfirm
+
+# P2P対局のビルドに使うもの（2026-11-14 に既定で有効にした）。
+# - libsodium（アプリがリンクし、AppImage に同梱する）と QtKeychain（プレイヤー鍵を OS の鍵の保管庫に置く。
+#   libsecret は実行時にシステムのものを読み込むので同梱されない）は、スナップショットのパッケージを使う
+# - Rust は、スナップショットの版（1.79）では通信プロセス shogiboardq-peer をビルドできない（1.85 以上が要る）。
+#   公式の配布物を SHA-256 で確かめ、rustc・cargo・標準ライブラリだけを /usr/local に入れる。
+#   版を上げるときは https://static.rust-lang.org/dist/rust-<版>-x86_64-unknown-linux-gnu.tar.xz.sha256 の値に替える
+ARG RUST_VERSION=1.99.1
+ARG RUST_SHA256=231fcae47ee950621374725b5fc3b5441d2fbda2955ac45dd7dc816d8876cfe7
+RUN pacman -S --needed --noconfirm --disable-download-timeout libsodium qtkeychain-qt6 pkgconf \
+ && pacman -Q libsodium qtkeychain-qt6 \
+ && pacman -Scc --noconfirm
+RUN curl -fsSL --retry 5 -o /tmp/rust.tar.xz \
+      "https://static.rust-lang.org/dist/rust-${RUST_VERSION}-x86_64-unknown-linux-gnu.tar.xz" \
+ && echo "${RUST_SHA256}  /tmp/rust.tar.xz" | sha256sum -c - \
+ && mkdir /tmp/rust && tar -xJf /tmp/rust.tar.xz -C /tmp/rust --strip-components=1 \
+ && /tmp/rust/install.sh --prefix=/usr/local --disable-ldconfig \
+      --components=rustc,cargo,rust-std-x86_64-unknown-linux-gnu \
+ && rm -rf /tmp/rust /tmp/rust.tar.xz \
+ && rustc --version && cargo --version

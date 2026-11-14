@@ -40,6 +40,10 @@ jobs:
           version: ${{ env.QT_VERSION }}
           modules: "qtcharts qtmultimedia"
 
+      # P2P対局（既定で ON）のビルドに使う。Rust はランナーに入っている
+      - name: Install libsodium
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev
+
       - name: Configure
         run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=ON
 
@@ -117,7 +121,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfuse2 imagemagick
+          # libsodium-dev は P2P対局のビルドに使う（Rust はランナーに入っている）
+          sudo apt-get install -y libfuse2 imagemagick libsodium-dev pkg-config
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125  # v4.4.1
@@ -157,8 +162,9 @@ jobs:
           name: qt-license-documents
           path: build/qt-licenses
 
+      # libsodium・pkg-config は P2P対局のビルドに使う（Rust はランナーに入っている）
       - name: Install dependencies
-        run: brew install create-dmg
+        run: brew install create-dmg libsodium pkg-config
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125  # v4.4.1
@@ -248,6 +254,23 @@ jobs:
           version: ${{ env.QT_VERSION }}
           # 盤面画像の TIFF / WebP 書き出しのプラグイン（qtiff・qwebp）は qtimageformats にある
           modules: "qtcharts qtmultimedia qtimageformats"
+
+      # P2P対局: libsodium の公式のビルド済みの配布物を SHA-256 で確かめて展開し、場所を SODIUM_ROOT で
+      # build-windows.ps1 に渡す（Rust はランナーに入っている）。版を上げるときは、上流のリリースの digest に替える
+      - name: Download libsodium
+        shell: pwsh
+        env:
+          LIBSODIUM_VERSION: "1.0.22"
+          LIBSODIUM_SHA256: "3e03a726fac4bc09cb61d8f29d658ef7a5eca0811de59082130414f7ca2e4279"
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP "libsodium-msvc.zip"
+          $url = "https://github.com/jedisct1/libsodium/releases/download/$($env:LIBSODIUM_VERSION)-RELEASE/libsodium-$($env:LIBSODIUM_VERSION)-msvc.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $env:LIBSODIUM_SHA256) { throw "The SHA-256 of libsodium does not match: $hash" }
+          $root = Join-Path $env:RUNNER_TEMP "libsodium-msvc"
+          Expand-Archive -Path $zip -DestinationPath $root
+          "SODIUM_ROOT=$(Join-Path $root 'libsodium')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       # 手順書と同じく Developer PowerShell for VS の環境でスクリプトを実行する（cl・Ninja・
       # VCToolsRedistDir が揃い、ランナーに入っているツールでジェネレータが変わらない）。

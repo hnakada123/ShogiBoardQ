@@ -22,6 +22,8 @@ LICENSE_OVERRIDES = {
     ("libasyncns", "LGPL"): "LGPL-2.1-or-later",
     ("libidn2", "GPL2  LGPL3"): "LGPL-3.0-or-later OR GPL-2.0-or-later",
     ("fcitx5-qt", "GPL"): "LGPL-2.1-or-later  BSD-3-Clause  GPL-2.0-or-later",
+    ("libsodium", "custom:ISC"): "ISC",
+    ("qtkeychain-qt6", "BSD"): "BSD-3-Clause",
     ("keyutils", "GPL2  LGPL2.1"): "GPL-2.0-or-later  LGPL-2.1-or-later",
     ("lame", "LGPL"): "LGPL-2.0-only",
     ("libpulse", "LGPL"): "LGPL-2.1-or-later",

@@ -11,7 +11,7 @@
 #   ./scripts/build-macos.sh [OPTIONS]
 #
 # Options:
-#   --universal               Universal Binary (arm64 + x86_64) をビルド
+#   --universal               Universal Binary (arm64 + x86_64) をビルド（P2P対局は入らない）
 #   --deployment-target VER   最小対応 macOS バージョン（既定: 26.0）
 #   --sign-identity ID        コード署名 ID（既定: "-" = アドホック署名）
 #   --notarize                DMG を公証・ステープルしてから ZIP を作る（Developer ID と
@@ -36,6 +36,9 @@ HAYANAGI_EXE="${BUILD_DIR}/Hayanagi/hayanagi"
 # Hayanagi の定跡（ビルド時に hayanagi の横の book/ にコピーされる）
 HAYANAGI_BOOK="${BUILD_DIR}/Hayanagi/book/hayanagi_book.db"
 APP_BUNDLE="${BUILD_DIR}/${APP_NAME}.app"
+# P2P対局の通信プロセス（Rust。CMake が cargo でビルドしてバンドルの Contents/MacOS に置く）
+PEER_NAME="shogiboardq-peer"
+PEER_EXE="${APP_BUNDLE}/Contents/MacOS/${PEER_NAME}"
 ICON_PATH="resources/icons/shogiboardq.icns"
 DEFAULT_DEPLOYMENT_TARGET="26.0"
 
@@ -67,6 +70,15 @@ normalize_version() {
     printf '%s' "$v"
 }
 
+# 版 $1 が版 $2 以下か（"15.0" と "26" のような数字とピリオドの版）
+version_le() {
+    local a b
+    a="$(normalize_version "$1")"
+    b="$(normalize_version "$2")"
+    [[ "$a" == "$b" ]] && return 0
+    [[ "$(printf '%s\n%s\n' "$a" "$b" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)" == "$a" ]]
+}
+
 usage() {
     cat <<'EOF'
 Usage: ./scripts/build-macos.sh [OPTIONS]
@@ -75,6 +87,8 @@ macOS 用の Release ビルド〜DMG 作成を一括実行するスクリプト�
 
 Options:
   --universal               Universal Binary (arm64 + x86_64) をビルド
+                            （P2P対局は入らない。Homebrew の libsodium と通信プロセスが
+                            ビルドした Mac のアーキテクチャだけのため）
   --deployment-target VER   最小対応 macOS バージョン
                             （既定: 環境変数 MACOSX_DEPLOYMENT_TARGET、未設定なら 26.0）
   --sign-identity ID        コード署名 ID（既定: "-" = アドホック署名）
@@ -172,6 +186,23 @@ if [[ ${#MISSING_TOOLS[@]} -gt 0 ]]; then
   Qt の macdeployqt は PATH に含まれている必要があります。"
 fi
 
+# P2P対局（既定で有効）: 通信プロセスは Rust（cargo）で作り、アプリは libsodium をリンクする。
+# Universal Binary では入れない（Homebrew の libsodium と cargo の出力が、ビルドした Mac のアーキテクチャだけのため）
+ENABLE_P2P=true
+if [[ "$OPT_UNIVERSAL" = true ]]; then
+    ENABLE_P2P=false
+    warn "Universal Binary では P2P対局を入れません（-DENABLE_P2P_PLAY=OFF でビルドします）。"
+else
+    for tool in cargo pkg-config; do
+        command -v "$tool" &>/dev/null || die "${tool} が見つかりません。P2P対局のビルドに必要です。
+  brew install rust libsodium pkg-config"
+    done
+    pkg-config --exists 'libsodium >= 1.0.18' || die "libsodium（1.0.18 以上）が見つかりません。P2P対局のビルドに必要です。
+  brew install libsodium"
+    info "cargo:       $(cargo --version)"
+    info "libsodium:   $(pkg-config --modversion libsodium)"
+fi
+
 info "cmake:       $(cmake --version | head -1)"
 info "ninja:       $(ninja --version)"
 info "macdeployqt: $(command -v macdeployqt)"
@@ -235,6 +266,11 @@ if [[ "$OPT_UNIVERSAL" = true ]]; then
     info "Universal Binary モード: arm64 + x86_64"
     CMAKE_ARGS+=("-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64")
 fi
+if [[ "$ENABLE_P2P" = true ]]; then
+    CMAKE_ARGS+=(-DENABLE_P2P_PLAY=ON)
+else
+    CMAKE_ARGS+=(-DENABLE_P2P_PLAY=OFF)
+fi
 
 cmake "${CMAKE_ARGS[@]}"
 
@@ -263,6 +299,20 @@ if [[ -z "$BINARY_MINOS" \
     die "実行ファイルの最小 macOS が ${BINARY_MINOS:-不明} です（期待値: ${OPT_DEPLOYMENT_TARGET}）。"
 fi
 info "最小 macOS: ${BINARY_MINOS}"
+
+# P2P対局の通信プロセス（アプリが Contents/MacOS から起動する）。最小 macOS はアプリと同じにしてある
+if [[ "$ENABLE_P2P" = true ]]; then
+    [[ -x "$PEER_EXE" ]] || die "P2P対局の通信プロセス ${PEER_EXE} が見つかりません。"
+    PEER_MINOS=$(vtool -show-build "$PEER_EXE" 2>/dev/null | awk '/minos/ { print $2; exit }')
+    if [[ -z "$PEER_MINOS" ]] || ! version_le "$PEER_MINOS" "$OPT_DEPLOYMENT_TARGET"; then
+        die "通信プロセスの最小 macOS が ${PEER_MINOS:-不明} です（${OPT_DEPLOYMENT_TARGET} 以下であること）。"
+    fi
+    info "通信プロセス: $("$PEER_EXE" --version)（最小 macOS ${PEER_MINOS}）"
+    # 通信プロセスに取り込んだ Rust のライブラリのライセンス一覧（アプリに内蔵する文書）が、今の Cargo.lock と
+    # 合っていなければ配布物を作らない
+    python3 scripts/rust_licenses.py --check \
+        || die "resources/licenses/RUST-NOTICES.md が Cargo.lock と合っていません。scripts/rust_licenses.py で作り直してください。"
+fi
 
 # 翻訳ファイルの確認
 QM_COUNT=$(find "$APP_BUNDLE" -name "*.qm" 2>/dev/null | wc -l | tr -d ' ')
@@ -358,6 +408,19 @@ if [[ -n "$EXTERNAL_DEPS" ]]; then
     warn "配布用バンドルとして不完全な可能性があります。"
 fi
 
+# P2P対局: libsodium（Homebrew の動的ライブラリ）は macdeployqt が Frameworks に入れる。Homebrew の配布物は
+# 新しい macOS 向けに作られていることがあるので、最小 macOS がアプリの対象より新しければ配布物にしない
+if [[ "$ENABLE_P2P" = true ]]; then
+    SODIUM_DYLIB=$(find "$APP_BUNDLE/Contents/Frameworks" -maxdepth 1 -name 'libsodium*.dylib' | head -1)
+    [[ -n "$SODIUM_DYLIB" ]] || die "libsodium がバンドルにありません。macdeployqt の出力を確認してください。"
+    SODIUM_MINOS=$(vtool -show-build "$SODIUM_DYLIB" 2>/dev/null | awk '/minos/ { print $2; exit }')
+    if [[ -z "$SODIUM_MINOS" ]] || ! version_le "$SODIUM_MINOS" "$OPT_DEPLOYMENT_TARGET"; then
+        die "同梱する libsodium の最小 macOS が ${SODIUM_MINOS:-不明} です（${OPT_DEPLOYMENT_TARGET} 以下であること）。
+  対象の macOS 向けに作り直してください: MACOSX_DEPLOYMENT_TARGET=${OPT_DEPLOYMENT_TARGET} brew reinstall --build-from-source libsodium"
+    fi
+    info "libsodium:  $(basename "$SODIUM_DYLIB")（最小 macOS ${SODIUM_MINOS}）"
+fi
+
 info "Frameworks: $(ls "$APP_BUNDLE/Contents/Frameworks/" | wc -l | tr -d ' ') 個"
 info "PlugIns:    $(find "$APP_BUNDLE/Contents/PlugIns" -type f 2>/dev/null | wc -l | tr -d ' ') 個"
 
@@ -391,9 +454,23 @@ if [[ "$OPT_SIGN_IDENTITY" != "-" ]]; then
     CODESIGN_ARGS+=(--options runtime --timestamp)
 fi
 
+# P2P対局の通信プロセスは、バンドルより先に単独で署名する（アプリとは別の実行ファイルとして起動され、
+# 公証では Hardened Runtime とタイムスタンプ付きの署名が要る）。権限（entitlements）は付けない
+if [[ "$ENABLE_P2P" = true ]]; then
+    PEER_SIGN_ARGS=(--force --sign "$OPT_SIGN_IDENTITY")
+    if [[ "$OPT_SIGN_IDENTITY" != "-" ]]; then
+        PEER_SIGN_ARGS+=(--options runtime --timestamp)
+    fi
+    codesign "${PEER_SIGN_ARGS[@]}" "$PEER_EXE"
+fi
+
 codesign "${CODESIGN_ARGS[@]}" "$APP_BUNDLE"
 codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE" \
     || die "コード署名の検証に失敗しました。"
+if [[ "$ENABLE_P2P" = true ]]; then
+    codesign --verify --strict "$PEER_EXE" || die "通信プロセスのコード署名の検証に失敗しました。"
+    "$PEER_EXE" --version >/dev/null || die "署名した通信プロセスを起動できません。"
+fi
 
 # ──────────────────────────────────────────────
 # Step 10: DMG 作成

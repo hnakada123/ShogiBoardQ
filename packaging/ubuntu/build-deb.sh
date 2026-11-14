@@ -10,8 +10,9 @@
 # 動かないので、必ず古い方の 26.04 でビルドする。
 #
 # 配置:
-#   /usr/lib/shogiboardq/          ShogiBoardQ・shogiboardq-cli の本体と翻訳（.qm）。
-#                                  アプリは実行ファイルと同じフォルダの .qm を読むため、ここにまとめる
+#   /usr/lib/shogiboardq/          ShogiBoardQ・shogiboardq-cli の本体と翻訳（.qm）、P2P対局の通信プロセス
+#                                  shogiboardq-peer。アプリは実行ファイルと同じフォルダの .qm と通信プロセスを
+#                                  使うため、ここにまとめる
 #   /usr/bin/ShogiBoardQ           本体へのリンク（shogiboardq-cli も同じ）
 #   /usr/lib/shogiboardq/Hayanagi/ 通常対局用の USI エンジン Hayanagi と定跡（book/）
 #   /usr/share/shogiboardq/tsumeshogi/  詰将棋問題集（3〜13手詰、各1,000題）
@@ -38,7 +39,10 @@ apt-get update -qq
 apt-get install -y -qq --no-install-recommends \
   build-essential ca-certificates cmake dpkg-dev git ninja-build libgl-dev \
   qt6-base-dev qt6-charts-dev qt6-multimedia-dev qt6-svg-dev \
-  qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools linguist-qt6 qt6-translations-l10n
+  qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools linguist-qt6 qt6-translations-l10n \
+  cargo rustc libsodium-dev pkg-config qtkeychain-qt6-dev
+# cargo・rustc・libsodium-dev・qtkeychain-qt6-dev は P2P対局に使う（通信プロセス shogiboardq-peer は Rust。依存の
+# クレートは cargo がビルド中に crates.io から取得する。版とハッシュは Cargo.lock で固定）
 
 git clone --depth 1 --branch "$pkgver" --recurse-submodules --shallow-submodules \
   https://github.com/hnakada123/ShogiBoardQ.git "$srcdir"
@@ -52,6 +56,8 @@ cmake -B "$builddir" -S "$srcdir" -G Ninja \
 cmake --build "$builddir"
 
 DESTDIR="$pkgdir" cmake --install "$builddir"
+# P2P対局の通信プロセスが入っていないパッケージを作らない
+test -x "$pkgdir/usr/lib/$pkgname/shogiboardq-peer"
 
 libdir="$pkgdir/usr/lib/$pkgname"
 install -d "$pkgdir/usr/bin"
@@ -72,7 +78,8 @@ install -Dm644 -t "$pkgdir/usr/share/$pkgname/tsumeshogi" \
   "$srcdir"/data/tsumeshogi/tsume_*ply_1000_20261001.txt \
   "$srcdir/data/tsumeshogi/README.md"
 
-strip --strip-unneeded "$libdir/ShogiBoardQ" "$libdir/shogiboardq-cli" "$libdir/Hayanagi/hayanagi"
+strip --strip-unneeded "$libdir/ShogiBoardQ" "$libdir/shogiboardq-cli" "$libdir/shogiboardq-peer" \
+  "$libdir/Hayanagi/hayanagi"
 
 # Qt の非公開 API を使うと、Qt の版が変わると動かなくなり、26.10 に入れられない
 if objdump -T "$libdir/ShogiBoardQ" "$libdir/shogiboardq-cli" | grep -q 'PRIVATE_API'; then
@@ -114,7 +121,8 @@ EOF
 mkdir -p /deb/debian "$pkgdir/DEBIAN"
 printf 'Source: %s\n\nPackage: %s\nArchitecture: amd64\n' "$pkgname" "$pkgname" > /deb/debian/control
 shlibdeps=$(cd /deb && dpkg-shlibdeps -O \
-  "$libdir/ShogiBoardQ" "$libdir/shogiboardq-cli" "$libdir/Hayanagi/hayanagi" | sed -e 's/^shlibs:Depends=//')
+  "$libdir/ShogiBoardQ" "$libdir/shogiboardq-cli" "$libdir/shogiboardq-peer" "$libdir/Hayanagi/hayanagi" \
+  | sed -e 's/^shlibs:Depends=//')
 
 cat > "$pkgdir/DEBIAN/control" <<EOF
 Package: $pkgname
@@ -134,6 +142,7 @@ Description: Shogi board GUI for playing, kifu management and analysis
  .
  The package also contains the command line tool shogiboardq-cli, the USI
  engine Hayanagi with its opening book, and tsume-shogi problem collections.
+ Games can also be played peer to peer with people you invite.
 EOF
 
 dpkg-deb --root-owner-group -Zxz --build "$pkgdir" "/out/${pkgname}_${pkgver}-${pkgrel}_amd64.deb"
@@ -143,5 +152,6 @@ echo "ShogiBoardQ: $(git -C "$srcdir" rev-parse HEAD)"
 echo "Hayanagi:    $(git -C "$srcdir/Hayanagi" rev-parse HEAD)"
 echo "Qt:          $(dpkg-query -W -f='${Version}' qt6-base-dev)"
 echo "g++:         $(g++ -dumpfullversion)"
+echo "rustc:       $(rustc --version)"
 echo "glibc:       $(dpkg-query -W -f='${Version}' libc6)"
 cat "$pkgdir/DEBIAN/control"

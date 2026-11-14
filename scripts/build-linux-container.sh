@@ -4,7 +4,8 @@
 #
 # 最新の Arch でビルドすると AppImage が新しい glibc を必要とし、Ubuntu 24.04 などで起動できない。
 # このスクリプトは scripts/linux-container/Dockerfile の環境（2024-07-15 の Arch: glibc 2.39・Qt 6.7.2。
-# 同梱する OpenSSL・curl などの通信のライブラリだけは新しい版に替える）で
+# 同梱する OpenSSL・curl などの通信のライブラリだけは新しい版に替え、P2P対局の通信プロセスを作る Rust は
+# 公式の配布物を入れる）で
 # scripts/build-linux.sh を実行する。ビルドディレクトリは普段の build と分けて build-container を使い、
 # 出力（ShogiBoardQ-linux-x86_64.AppImage / ShogiBoardQ-linux.zip）はリポジトリ直下に置く。
 # 詳細: docs/dev/linux-build-and-release.md
@@ -50,10 +51,13 @@ fi
 # 自分のユーザーで実行し、作られるファイルの所有者をそろえる。FUSE は使えないので AppImage 形式の
 # ツールは展開して実行する。
 # イメージの時間帯は UTC なので、手元の時間帯を渡してビルド日時を手元と同じ時刻で記録する。
+# P2P対局の通信プロセスが使う Rust のクレートは、cargo がビルド中に crates.io から取得する（版とハッシュは
+# Cargo.lock で固定）。取得したものはビルドディレクトリの中に残し、次のビルドで使い回す。
 TZ_ARGS=()
 [[ -e /etc/localtime ]] && TZ_ARGS=(-v /etc/localtime:/etc/localtime:ro)
 info "コンテナでビルド中..."
 "${DOCKER_CMD[@]}" run --rm --user "$(id -u):$(id -g)" \
     -e HOME=/tmp/home -e SHOGIBOARDQ_BUILD_DIR="$BUILD_DIR" -e APPIMAGE_EXTRACT_AND_RUN=1 \
+    -e CARGO_HOME="/src/$BUILD_DIR/cargo-home" \
     "${TZ_ARGS[@]}" -v "$PWD:/src" -w /src "$IMAGE" \
     bash -c 'mkdir -p "$HOME" && exec ./scripts/build-linux.sh "$@"' build-linux "$@"

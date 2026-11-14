@@ -69,6 +69,28 @@ glibc の古い Arch Linux（Arch Linux Archive の 2024-07-15）のコンテナ
 Qt 文書もその版で準備する）。Ubuntu など他の環境（CI を含む）で配布物を作るには、そのパッケージ管理
 （dpkg と `/usr/share/doc/<パッケージ名>/copyright` など）への対応を追加する必要がある。
 
+## P2P対局のライブラリ（Rust のクレートと libsodium）
+
+P2P対局の通信プロセス `shogiboardq-peer` は Rust で書かれ、依存のクレート（rust-libp2p など約250個。MIT・Apache-2.0・
+BSD・ISC・Unicode-3.0・Zlib・MPL-2.0 など）を実行ファイルに取り込む。どの OS の配布物にも入るので、著作権表示と
+ライセンス本文をアプリに内蔵する。
+
+- `scripts/rust_licenses.py` が、`Cargo.lock` で固定した版の依存の一覧（`cargo tree`。Linux・Windows・macOS の全部の
+  ターゲットの和集合）と、各クレートに入っているライセンスの文書を集め、1つの文書 `resources/licenses/RUST-NOTICES.md`
+  にする。この文書はリポジトリに置き、アプリのリソースに入れて「バージョン情報」の「P2P対局のライブラリの
+  ライセンス一覧」で表示する。Linux・macOS の配布物の `licenses` にも入る。
+- ライセンスの文書を同梱していないクレートには、ライセンスの標準の本文（著作権者は `Cargo.toml` の authors）を付ける。
+- 受け付けるライセンスはスクリプトの `ALLOWED_LICENSES` に並べたものだけで、それ以外のライセンスのクレートが依存に
+  入ると止まる。条件を確かめてから足す。
+- 依存（`Cargo.lock`）を変えたら `python3 scripts/rust_licenses.py` で作り直す（先に `cargo fetch --locked` でクレートの
+  ソースを取得しておく）。古いままだと、試験 `tst_rust_licenses` と配布用のスクリプト（`build-linux.sh`・
+  `build-macos.sh`・`build-windows.ps1`）が失敗する。
+
+アプリがリンクする libsodium（ISC License）は、Windows と macOS の配布物と Linux の AppImage に同梱する。著作権表示と
+ライセンス本文は `resources/licenses/NOTICE*.md` の末尾に置く（Linux の AppImage では、`bundled_licenses.py` も
+パッケージの文書を `THIRD-PARTY-NOTICES.md` に入れる）。Linux の AppImage に同梱する QtKeychain（BSD-3-Clause）は、
+パッケージの本文に著作権表示が無いので、`scripts/license-texts/qtkeychain-qt6/` に著作権表示付きの本文を置いている。
+
 ## 利用者向けの表示
 
 「バージョン情報」に使用中／ビルド時の Qt バージョン、Qt の著作権表示、
@@ -168,7 +190,8 @@ Qt 文書を使っても旧方針の「Release の別添付から取得する」
 
 この仕組みは Qt と Qt ソースに収録された第三者コードを扱う。Qt SQL / QSQLITE も文書抽出の対象に含む。
 Linux AppImage で配布ツールが OS から追加する Qt 外の共有ライブラリと外付けプラグインは、
-`scripts/bundled_licenses.py` が扱う（上記「Qt 以外の同梱ライブラリ」）。macOS・Windows で追加される
+`scripts/bundled_licenses.py` が扱う（上記「Qt 以外の同梱ライブラリ」）。P2P対局の通信プロセスに取り込む Rust の
+クレートと libsodium は、上記「P2P対局のライブラリ」のとおりアプリに内蔵する。macOS・Windows で追加される
 Qt 外のライブラリや MSVC ランタイム等については、配布元の条件と対応ソースの要否を別途確認する。
 
 参照:

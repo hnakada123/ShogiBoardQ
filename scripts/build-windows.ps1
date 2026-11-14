@@ -2,8 +2,9 @@
 # Windows ビルドスクリプト for ShogiBoardQ
 #
 # Release ビルド → windeployqt → ZIP 作成を一括実行する。
-# ZIP には ShogiBoardQ・shogiboardq-cli・Hayanagi（通常対局用 USI エンジンとその定跡）と
-# data/tsumeshogi の詰将棋問題集（3〜13手詰の各1ファイル）を同梱する。
+# ZIP には ShogiBoardQ・shogiboardq-cli・P2P対局の通信プロセス shogiboardq-peer と libsodium.dll・
+# Hayanagi（通常対局用 USI エンジンとその定跡）と data/tsumeshogi の詰将棋問題集（3〜13手詰の各1ファイル）を
+# 同梱する。
 # 詳細: docs/dev/windows-build-and-release.md
 #
 # Usage:
@@ -15,6 +16,9 @@
 #   -BuildDir    ビルドディレクトリ（既定: build）
 #   -DeployDir   配布用ディレクトリ（既定: deploy）
 #   -ZipPath     作成する ZIP ファイル（既定: ShogiBoardQ-windows.zip）
+#   -SodiumRoot  libsodium の公式のビルド済みの配布物（libsodium-<版>-msvc.zip）を展開した中の libsodium フォルダ
+#                （include\ と x64\ がある。既定: 環境変数 SODIUM_ROOT）。P2P対局のビルドに使う
+#   -NoP2p       P2P対局を入れずにビルドする（Rust と libsodium が要らない）
 #   -Help        このヘルプを表示
 #
 # Prerequisites:
@@ -22,6 +26,7 @@
 #   - Qt 6.x (Widgets, Charts, Network, Multimedia, LinguistTools)
 #   - CMake 3.16+
 #   - Ninja（推奨）
+#   - Rust 1.85+（rustup の x86_64-pc-windows-msvc）と libsodium 1.0.18+ のビルド済みの配布物（P2P対局）
 #
 # 実行前に以下のいずれかで環境を準備:
 #   - "Developer PowerShell for VS 2022" を使用
@@ -33,6 +38,8 @@ param(
     [string]$BuildDir = "build",
     [string]$DeployDir = "deploy",
     [string]$ZipPath = "ShogiBoardQ-windows.zip",
+    [string]$SodiumRoot = $env:SODIUM_ROOT,
+    [switch]$NoP2p,
     [switch]$Help
 )
 
@@ -45,6 +52,8 @@ $ErrorActionPreference = "Stop"
 
 $APP_NAME = "ShogiBoardQ"
 $CLI_NAME = "shogiboardq-cli"
+# P2P対局の通信プロセス（Rust。CMake が cargo でビルドして実行ファイルと同じフォルダに置く）
+$PEER_NAME = "shogiboardq-peer"
 $BUILD_DIR = $BuildDir
 $DEPLOY_DIR = $DeployDir
 $ZIP_NAME = $ZipPath
@@ -108,6 +117,9 @@ Options:
   -BuildDir    ビルドディレクトリ（既定: build）
   -DeployDir   配布用ディレクトリ（既定: deploy）
   -ZipPath     作成する ZIP ファイル（既定: ShogiBoardQ-windows.zip）
+  -SodiumRoot  libsodium のビルド済みの配布物（libsodium-<版>-msvc.zip）を展開した中の
+               libsodium フォルダ（既定: 環境変数 SODIUM_ROOT）。P2P対局のビルドに使う
+  -NoP2p       P2P対局を入れずにビルドする（Rust と libsodium が要らない）
   -Help        このヘルプを表示
 
 Examples:
@@ -186,6 +198,22 @@ if (-not $windeployqtExe) {
 }
 Write-Info "windeployqt: $($windeployqtExe.Source)"
 
+# P2P対局（既定で有効）: 通信プロセスは Rust（cargo）で作り、アプリは libsodium をリンクする
+if ($NoP2p) {
+    Write-Warn "P2P対局を入れずにビルドします（-NoP2p）。"
+} else {
+    $cargoExe = Get-Command cargo -ErrorAction SilentlyContinue
+    if (-not $cargoExe) {
+        Stop-WithError "cargo が見つかりません。P2P対局のビルドに必要です。https://rustup.rs/ から Rust を入れるか、-NoP2p を付けてください。"
+    }
+    Write-Info "cargo: $(cargo --version)"
+    if (-not $SodiumRoot -or -not (Test-Path (Join-Path $SodiumRoot "include/sodium.h"))) {
+        Stop-WithError "libsodium が見つかりません。公式のビルド済みの配布物（libsodium-<版>-msvc.zip）を展開し、中の libsodium フォルダを -SodiumRoot（または環境変数 SODIUM_ROOT）で指定するか、-NoP2p を付けてください。"
+    }
+    $SodiumRoot = (Resolve-Path $SodiumRoot).Path
+    Write-Info "libsodium: $SodiumRoot"
+}
+
 # MSVC ランタイム DLL（配布先に Visual C++ 再頒布可能パッケージがなくても起動できるよう同梱する）
 $targetArch = if ($env:VSCMD_ARG_TGT_ARCH) { $env:VSCMD_ARG_TGT_ARCH } else { "x64" }
 $vcRuntimeDir = Find-VcRuntimeDir $targetArch
@@ -231,6 +259,12 @@ $cmakeArgs = @(
 
 if ($generator) {
     $cmakeArgs += @("-G", $generator)
+}
+
+if ($NoP2p) {
+    $cmakeArgs += "-DENABLE_P2P_PLAY=OFF"
+} else {
+    $cmakeArgs += @("-DENABLE_P2P_PLAY=ON", "-DSODIUM_ROOT=$SodiumRoot")
 }
 
 cmake @cmakeArgs
@@ -285,6 +319,29 @@ $exeDir = Split-Path -Parent $exePath
 $cliPath = Join-Path $exeDir "${CLI_NAME}.exe"
 if (-not (Test-Path $cliPath)) {
     Stop-WithError "${CLI_NAME}.exe が見つかりません: $cliPath"
+}
+
+# P2P対局の通信プロセスと libsodium.dll（どちらもビルドがアプリの隣に置く）
+$peerPath = Join-Path $exeDir "${PEER_NAME}.exe"
+$sodiumDllPath = Join-Path $exeDir "libsodium.dll"
+if (-not $NoP2p) {
+    foreach ($path in @($peerPath, $sodiumDllPath)) {
+        if (-not (Test-Path $path)) {
+            Stop-WithError "P2P対局のファイルが見つかりません: $path"
+        }
+    }
+    Write-Info "通信プロセス: $peerPath"
+    # 通信プロセスに取り込んだ Rust のライブラリのライセンス一覧（アプリに内蔵する文書）が、今の Cargo.lock と
+    # 合っていなければ配布物を作らない（Python があるときだけ確かめる。試験 tst_rust_licenses でも確かめる）
+    $pythonExe = Get-Command python -ErrorAction SilentlyContinue
+    if ($pythonExe) {
+        python scripts/rust_licenses.py --check
+        if ($LASTEXITCODE -ne 0) {
+            Stop-WithError "resources/licenses/RUST-NOTICES.md が Cargo.lock と合っていません。scripts/rust_licenses.py で作り直してください。"
+        }
+    } else {
+        Write-Warn "python が見つからないので、RUST-NOTICES.md と Cargo.lock の照合を省きます。"
+    }
 }
 
 # Hayanagi（Ninja: build/Hayanagi/、VS: build/Hayanagi/Release/）
@@ -345,6 +402,11 @@ New-Item -ItemType Directory -Path $DEPLOY_DIR | Out-Null
 # exe をコピー
 Copy-Item $exePath $DEPLOY_DIR
 Copy-Item $cliPath $DEPLOY_DIR
+# P2P対局の通信プロセスと libsodium.dll は、アプリと同じフォルダに置く（アプリがそこから起動・読み込みする）
+if (-not $NoP2p) {
+    Copy-Item $peerPath $DEPLOY_DIR
+    Copy-Item $sodiumDllPath $DEPLOY_DIR
+}
 
 # Hayanagi と問題集。ZIP 展開後すぐエンジン登録・問題集の選択ができるよう exe の横に置く。
 $deployHayanagiDir = Join-Path $DEPLOY_DIR "Hayanagi"
@@ -469,6 +531,16 @@ if ($missingRuntimeDlls.Count -gt 0) {
     Stop-WithError "以下の MSVC ランタイム DLL が見つかりません: $($missingRuntimeDlls -join ', ')"
 } else {
     Write-Info "MSVC ランタイム DLL: すべて存在を確認"
+}
+
+# P2P対局の通信プロセスと libsodium.dll の確認
+if (-not $NoP2p) {
+    foreach ($name in @("${PEER_NAME}.exe", "libsodium.dll")) {
+        if (-not (Test-Path (Join-Path $DEPLOY_DIR $name))) {
+            Stop-WithError "P2P対局のファイルが配布物にありません: $name"
+        }
+    }
+    Write-Info "P2P対局（${PEER_NAME}.exe・libsodium.dll）: OK"
 }
 
 # Hayanagi・問題集の確認

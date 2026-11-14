@@ -53,6 +53,17 @@ foreach ($required in @("ShogiBoardQ.exe", "shogiboardq-cli.exe", "LICENSE", "Ha
     }
 }
 
+# P2P対局のファイルは、通信プロセスと libsodium.dll の両方がそろっているときだけ包む
+# （build-windows.ps1 を -NoP2p で動かした配布用ディレクトリには、どちらもない）
+$hasPeer = Test-Path (Join-Path $deployPath "shogiboardq-peer.exe")
+$hasSodium = Test-Path (Join-Path $deployPath "libsodium.dll")
+if ($hasPeer -ne $hasSodium) {
+    throw "配布用ディレクトリの P2P対局のファイルがそろっていません（shogiboardq-peer.exe と libsodium.dll）: $deployPath"
+}
+if (-not $hasPeer) {
+    Write-Host "==> WARNING: P2P対局を含まない配布用ディレクトリです。" -ForegroundColor Yellow
+}
+
 $versionJson = & (Join-Path $deployPath "shogiboardq-cli.exe") version
 if ($LASTEXITCODE -ne 0) {
     throw "shogiboardq-cli.exe version に失敗しました。"
