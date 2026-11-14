@@ -73,7 +73,9 @@ public:
 
 private:
     /// 矢印（線・矢じり・順位の丸印）が掛かる範囲。描き直す範囲を矢印の分だけに絞るために使う
-    QRect arrowsPaintRect(const QList<Arrow>& arrows) const;
+    QRegion arrowsPaintRegion(const QList<Arrow>& arrows) const;
+    /// 前後に共通の矢印の見た目が変わらないか（変わらなければ、消える矢印と新しい矢印の範囲だけを描き直せる）
+    static bool keepsCommonArrows(const QList<Arrow>& before, const QList<Arrow>& after);
     /// マスを描き直す（座標が盤の外なら盤全体）
     void updateSquares(const QList<QPoint>& squares);
 

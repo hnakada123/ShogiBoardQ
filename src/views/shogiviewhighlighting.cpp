@@ -4,7 +4,9 @@
 #include "shogiviewhighlighting.h"
 #include "shogiview.h"
 
+#include <QLineF>
 #include <QPainter>
+#include <QtMath>
 
 #include <utility>
 
@@ -81,29 +83,73 @@ void ShogiViewHighlighting::updateSquares(const QList<QPoint>& squares)
 void ShogiViewHighlighting::setArrows(const QList<ShogiViewHighlighting::Arrow>& arrows)
 {
     // エンジンの候補手が届くたびに呼ばれるため、矢印が変わらなければ描き直さない。
-    // 変わったときも、前の矢印と新しい矢印が掛かる範囲だけを描き直す（盤全体の描き直しは
-    // 1倍で約0.5ms、2倍で約3ms。検討で候補手を表示していると候補が替わるたびに起きる）。
+    // 変わったときも、変わった矢印（消える矢印と新しい矢印）が掛かる範囲だけを描き直す。前後の矢印を
+    // まとめて1つの矩形で囲むと、候補手が1つ替わるだけで盤の半分を描き直す（検討で候補手を3つ表示して
+    // いると、1倍で約22万画素）。
     if (m_arrows == arrows) return;
-    const QRect dirty = arrowsPaintRect(m_arrows) | arrowsPaintRect(arrows);
-    m_arrows = arrows;
-    if (dirty.isEmpty()) m_view->update();
-    else m_view->update(dirty);
+    const QList<Arrow> previous = std::exchange(m_arrows, arrows);
+    if (!m_view->board()) {
+        m_view->update();
+        return;
+    }
+    QRegion dirty;
+    if (keepsCommonArrows(previous, arrows)) {
+        QList<Arrow> changed;
+        for (const Arrow& arrow : previous)
+            if (!arrows.contains(arrow)) changed.append(arrow);
+        for (const Arrow& arrow : arrows)
+            if (!previous.contains(arrow)) changed.append(arrow);
+        dirty = arrowsPaintRegion(changed);
+    } else {
+        dirty = arrowsPaintRegion(previous) | arrowsPaintRegion(arrows);
+    }
+    if (!dirty.isEmpty()) m_view->update(dirty);
 }
 
-QRect ShogiViewHighlighting::arrowsPaintRect(const QList<ShogiViewHighlighting::Arrow>& arrows) const
+bool ShogiViewHighlighting::keepsCommonArrows(const QList<Arrow>& before, const QList<Arrow>& after)
+{
+    // 順位の数字は矢印が2本以上のときだけ描くので、1本と2本以上の間で変わると全部の矢印の見た目が変わる
+    if ((before.size() >= 2) != (after.size() >= 2)) return false;
+    // 半透明の矢印は重なった所の色が描く順で決まる。前後に共通の矢印が同じ順に並んでいれば、共通の矢印
+    // どうしが重なる所の見た目は変わらない（同じ矢印が2本ある一覧は扱わない）
+    QList<Arrow> commonBefore;
+    for (qsizetype i = 0; i < before.size(); ++i) {
+        if (before.indexOf(before.at(i)) != i) return false;
+        if (after.contains(before.at(i))) commonBefore.append(before.at(i));
+    }
+    QList<Arrow> commonAfter;
+    for (qsizetype i = 0; i < after.size(); ++i) {
+        if (after.indexOf(after.at(i)) != i) return false;
+        if (before.contains(after.at(i))) commonAfter.append(after.at(i));
+    }
+    return commonBefore == commonAfter;
+}
+
+QRegion ShogiViewHighlighting::arrowsPaintRegion(const QList<ShogiViewHighlighting::Arrow>& arrows) const
 {
     if (!m_view->board()) return {};
     const BoardGeometry& geometry = m_view->boardGeometry();
-    // 描く矢印と同じ太さ・矢じり・順位の丸印の大きさに、アンチエイリアスの分を足す
+    // 線・矢じり・順位の丸印は、始点と終点のマスの中心を結ぶ線分から、この幅の中に収まる
+    // （描く矢印と同じ太さ・矢じり・丸印の大きさに、アンチエイリアスの分を足す）
     const ArrowMetrics metrics(geometry.squareSize());
     const int margin = qMax(metrics.headSize, metrics.circleRadius) + metrics.width + 2;
-    QRect rect;
+    QRegion region;
     for (const ShogiViewHighlighting::Arrow& arrow : arrows) {
         const auto [fromRect, toRect] = arrowEnds(geometry, arrow);
         if (fromRect.isEmpty() || toRect.isEmpty()) continue;
-        rect |= (fromRect | toRect).adjusted(-margin, -margin, margin, margin);
+        // 斜めの矢印を1つの矩形で囲むと、矢印の無い所まで広く含む。線分をマス1つ分ほどに区切り、
+        // 区切りごとの矩形を合わせる
+        const QPointF from(fromRect.center());
+        const QPointF to(toRect.center());
+        const int pieces = qMax(1, qCeil(QLineF(from, to).length() / qMax(1, geometry.squareSize())));
+        QPointF start = from;
+        for (int piece = 1; piece <= pieces; ++piece) {
+            const QPointF end = from + (to - from) * (static_cast<qreal>(piece) / pieces);
+            region += QRectF(start, end).normalized().toAlignedRect().adjusted(-margin, -margin, margin, margin);
+            start = end;
+        }
     }
-    return rect;
+    return region;
 }
 
 void ShogiViewHighlighting::drawHighlights(QPainter& painter, const QRegion& dirty)
