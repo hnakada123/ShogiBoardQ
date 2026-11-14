@@ -3,6 +3,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QLineEdit>
+#include <QPaintEvent>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollBar>
@@ -281,6 +282,74 @@ private slots:
             QVERIFY(input->text().isEmpty());
             QVERIFY(!send->isEnabled());
         }
+    }
+
+    // 折り返しなしで長い行があると、縦と横のスクロールバーが両方出る。行を足しても、横のスクロールバーの
+    // 範囲が変わらなければ、横のスクロールバーも、その下の枠も描き直さない（Qt の内蔵の横スクロールバーは、
+    // 縦の範囲が変わるたびに描き直される）
+    void appendDoesNotRepaintHorizontalScrollBar()
+    {
+        AnalysisSettings::usiLogWrapLines.set(false);
+        UsiLogPanel panel;
+        QWidget* page = &panel;
+        page->resize(700, 300);
+        page->show();
+        QVERIFY(QTest::qWaitForWindowExposed(page));
+        auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
+        QVERIFY(view);
+        const QString longLine = QStringLiteral("◀ E1: info depth 20 pv ") + QStringLiteral("7g7f 3c3d ").repeated(40);
+        for (int i = 0; i < 40; ++i) panel.appendColoredLog(longLine, QColor(Qt::blue));
+        for (int i = 0; i < 5; ++i) QCoreApplication::processEvents();
+
+        // 内蔵の横スクロールバーは出さず、同じ範囲と位置のスクロールバーを表示領域の下に置く
+        QScrollBar* inner = view->horizontalScrollBar();
+        QVERIFY(inner->maximum() > 0);
+        QVERIFY(!inner->isVisible());
+        QScrollBar* bar = nullptr;
+        const QList<QScrollBar*> bars = view->findChildren<QScrollBar*>(Qt::FindDirectChildrenOnly);
+        for (QScrollBar* candidate : bars)
+            if (candidate->orientation() == Qt::Horizontal) bar = candidate;
+        QVERIFY(bar && bar->isVisible());
+        QVERIFY(view->verticalScrollBar()->isVisible());
+        QCOMPARE(bar->maximum(), inner->maximum());
+        QCOMPARE(bar->pageStep(), inner->pageStep());
+        QCOMPARE(bar->geometry(), QRect(view->viewport()->geometry().left(), view->viewport()->geometry().bottom() + 1,
+                                        view->viewport()->width(), bar->sizeHint().height()));
+
+        struct PaintSpy : QObject {
+            QRegion region;
+            bool eventFilter(QObject* watched, QEvent* event) override
+            {
+                if (event->type() == QEvent::Paint) region += static_cast<QPaintEvent*>(event)->region();
+                return QObject::eventFilter(watched, event);
+            }
+        } barSpy, frameSpy;
+        bar->installEventFilter(&barSpy);
+        view->installEventFilter(&frameSpy);
+        for (int i = 0; i < 10; ++i) {
+            panel.appendColoredLog(longLine, QColor(Qt::darkGreen));
+            for (int j = 0; j < 5; ++j) QCoreApplication::processEvents();
+        }
+        bar->removeEventFilter(&barSpy);
+        view->removeEventFilter(&frameSpy);
+        QVERIFY2(barSpy.region.isEmpty(), "the horizontal scroll bar was repainted");
+        QVERIFY2(!frameSpy.region.intersects(bar->geometry()), "the frame under the horizontal scroll bar was repainted");
+
+        // 置いたスクロールバーと内蔵のスクロールバーの位置は、どちらを動かしても合う
+        bar->setValue(bar->maximum());
+        QCOMPARE(inner->value(), inner->maximum());
+        inner->setValue(3);
+        QCOMPARE(bar->value(), 3);
+        // 折り返すと横のスクロールバーは要らなくなり、表示領域が元の高さに戻る
+        const int narrowed = view->viewport()->height();
+        page->findChild<QAction*>("usiLogWrap")->trigger();
+        for (int i = 0; i < 5; ++i) QCoreApplication::processEvents();
+        QVERIFY(!bar->isVisible());
+        QCOMPARE(view->viewport()->height(), narrowed + bar->sizeHint().height());
+        page->findChild<QAction*>("usiLogWrap")->trigger();
+        for (int i = 0; i < 5; ++i) QCoreApplication::processEvents();
+        QVERIFY(bar->isVisible());
+        QCOMPARE(view->viewport()->height(), narrowed);
     }
 
     void restoresWrapAndTarget()

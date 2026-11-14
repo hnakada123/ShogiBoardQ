@@ -15,6 +15,9 @@
 #include <QLineEdit>
 #include <QPlainTextDocumentLayout>
 #include <QPlainTextEdit>
+#include <QPainter>
+#include <QStyle>
+#include <QStyleOption>
 #include <QPushButton>
 #include <QScrollBar>
 #include <QTextCharFormat>
@@ -49,6 +52,97 @@ protected:
     }
 };
 
+// 横のスクロールバーを自分で持つログの表示。
+// QAbstractScrollArea は、スクロールバーの範囲が変わるたびに（ログが1行増えるたびに）、縦と横のスクロールバーの
+// 入れ物を順に前面へ出す（layoutChildren の raise）。両方が出ていると、どちらも毎回「最前面ではない」ので、
+// 両方のスクロールバーと下にある親を描き直す（1行の文字の描き直しより広い）。内蔵の横スクロールバーは出さず、
+// その範囲と位置を写したスクロールバーを、表示領域の下の同じ場所に置く。右下の角も同じ場所に同じ描き方で描くので、
+// 見た目は内蔵のスクロールバーと変わらない。
+class LogTextView final : public QPlainTextEdit
+{
+public:
+    explicit LogTextView(QWidget* parent)
+        : QPlainTextEdit(parent)
+        , m_bar(new QScrollBar(Qt::Horizontal, this))
+        , m_corner(new QWidget(this))
+    {
+        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        m_bar->hide();
+        m_corner->hide();
+        // 範囲と位置は内蔵のスクロールバーが持つ（文書の幅と表示領域の幅から QPlainTextEdit が決める）
+        QScrollBar* inner = horizontalScrollBar();
+        connect(inner, &QScrollBar::rangeChanged, this, &LogTextView::syncBar);
+        connect(inner, &QScrollBar::valueChanged, m_bar, &QScrollBar::setValue);
+        connect(m_bar, &QScrollBar::valueChanged, inner, &QScrollBar::setValue);
+    }
+
+protected:
+    // 表示領域の大きさの変化は、QAbstractScrollArea がこの関数に渡す
+    void resizeEvent(QResizeEvent* event) override
+    {
+        QPlainTextEdit::resizeEvent(event);
+        syncBar();
+    }
+
+    bool event(QEvent* event) override
+    {
+        // 右下の角（縦と横のスクロールバーが両方出ているときの空き）は、Qt が内蔵の横スクロールバーを
+        // 出したときと同じく、枠より先に同じ描き方で描く（角の部品は場所を空けるだけで、何も描かない）
+        if (event->type() == QEvent::Paint && m_barShown && !m_corner->geometry().isEmpty()) {
+            QStyleOption option;
+            option.initFrom(this);
+            option.rect = m_corner->geometry();
+            QPainter painter(this);
+            style()->drawPrimitive(QStyle::PE_PanelScrollAreaCorner, &option, &painter, this);
+        }
+        return QPlainTextEdit::event(event);
+    }
+
+private:
+    void syncBar()
+    {
+        const QScrollBar* inner = horizontalScrollBar();
+        m_bar->setRange(inner->minimum(), inner->maximum());
+        m_bar->setPageStep(inner->pageStep());
+        m_bar->setSingleStep(inner->singleStep());
+        m_bar->setValue(inner->value());
+        placeBar();
+        // 出す・隠すは、Qt の内蔵のスクロールバーと同じく後で行う（範囲は、文書の配置の途中で一時的に変わる。
+        // その場で表示領域の大きさを変えると、QPlainTextEdit のスクロールの計算の途中に割り込む）
+        if ((inner->minimum() < inner->maximum()) == m_barShown || m_showOrHideQueued) return;
+        m_showOrHideQueued = true;
+        QMetaObject::invokeMethod(this, &LogTextView::showOrHideBar, Qt::QueuedConnection);
+    }
+
+    void showOrHideBar()
+    {
+        m_showOrHideQueued = false;
+        const QScrollBar* inner = horizontalScrollBar();
+        const bool needed = inner->minimum() < inner->maximum();
+        if (needed == m_barShown) return;
+        m_barShown = needed;
+        // 表示領域の下を空けて置く。角の部品があると、Qt は縦のスクロールバーを角の上までにする
+        // （横のスクロールバーを出したときと同じ配置）
+        setViewportMargins(0, 0, 0, needed ? m_bar->sizeHint().height() : 0);
+        setCornerWidget(needed ? m_corner : nullptr);
+        m_bar->setVisible(needed);
+        placeBar();
+    }
+
+    void placeBar()
+    {
+        if (!m_barShown) return;
+        const QRect area = viewport()->geometry();
+        const QRect place(area.left(), area.bottom() + 1, area.width(), m_bar->sizeHint().height());
+        if (m_bar->geometry() != place) m_bar->setGeometry(place);
+    }
+
+    QScrollBar* m_bar;
+    QWidget* m_corner;   ///< 右下の角の場所を空ける部品（縦のスクロールバーを角の上までにする）
+    bool m_barShown = false;
+    bool m_showOrHideQueued = false;
+};
+
 /// 生きているパネル（同じ設定を使うパネルに変更を伝える。UI のスレッドだけで使う）
 QList<LogPanel*>& livePanels()
 {
@@ -70,7 +164,7 @@ LogPanel::LogPanel(const BoundedSetting<int>& fontSize, const Setting<bool>& wra
     buildToolbar(names);
     layout->addWidget(m_toolbar);
 
-    m_logView = new QPlainTextEdit(this);
+    m_logView = new LogTextView(this);
     {
         // QPlainTextEdit が自分で作る文書と同じ設定にして、行の配置だけを差し替える
         auto* document = new QTextDocument(m_logView);
