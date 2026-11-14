@@ -207,7 +207,8 @@ private:
     bool intersectsPaintRegion(const QRectF& rect) const { return m_paintRegion.intersects(rect.toAlignedRect()); }
     // マスに描くもの（はみ出す駒の影を含む）を覆う範囲。部分的な再描画に使う
     QRect fieldPaintRect(const QPoint& field) const;
-    // 盤のマス・駒台の枚数が変わったときに、その部分（局面編集中は駒箱も）だけを描き直す
+    // 盤のマス・駒台の枚数が変わったときに、その部分（局面編集中は駒箱も）だけを描き直す。
+    // もう同じ駒・枚数を出しているマス・セルは描き直さない（確認待ちの手の表示の後に盤が動いたとき）
     void onBoardSquareChanged(int file, int rank);
     void onBoardStandChanged(Piece piece);
     // 局面を丸ごと替えたとき（棋譜をたどる・待った・読み込みなど）は、画面に出ている駒と
@@ -215,6 +216,9 @@ private:
     void onBoardReset();
     // 画面に出ている駒が shownPosition() と違うマス・駒台のセルだけを描き直す
     void updateStaleCells();
+    // マス・駒台のセルに、shownPosition() と同じ駒・枚数がもう描いてあるか（分からなければ false）
+    bool showsSquare(int file, int rank) const;
+    bool showsStandCount(Piece piece) const;
 
     // 画面に出す局面（確認待ちの手があればそれを指した後の局面、無ければ盤の局面）
     const Position& shownPosition() const;

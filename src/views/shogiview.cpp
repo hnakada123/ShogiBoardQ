@@ -442,7 +442,9 @@ QRect ShogiView::fieldPaintRect(const QPoint& field) const
 
 void ShogiView::onBoardSquareChanged(int file, int rank)
 {
-    update(fieldPaintRect(QPoint(file, rank)));
+    // 画面に出ている駒と違うときだけ描き直す。通信対局・P2P対局で送った手は、確認待ちの間にもう指した後の駒を
+    // 出しているので、確認を受けて盤が動いても描き直さない
+    if (!showsSquare(file, rank)) update(fieldPaintRect(QPoint(file, rank)));
     // 駒箱の枚数は盤と駒台の駒から数えるため、局面編集中は一緒に描き直す
     update(pieceBoxRect());
 }
@@ -453,10 +455,26 @@ void ShogiView::onBoardStandChanged(Piece piece)
     if (cell.isEmpty()) {
         update(m_geometry.stand(Turn::Black));
         update(m_geometry.stand(Turn::White));
-    } else {
+    } else if (!showsStandCount(piece)) {
         update(cell);
     }
     update(pieceBoxRect());
+}
+
+bool ShogiView::showsSquare(int file, int rank) const
+{
+    const int files = m_board->files();
+    if (file < 1 || file > files || rank < 1 || rank > m_board->ranks()) return false;
+    const qsizetype index = qsizetype(rank - 1) * files + (file - 1);
+    if (index >= m_shownSquares.size()) return false;
+    const std::optional<Piece>& shown = m_shownSquares.at(index);
+    return shown && *shown == shownPosition().pieceAt(file, rank);
+}
+
+bool ShogiView::showsStandCount(Piece piece) const
+{
+    const auto shown = m_shownStandCounts.constFind(piece);
+    return shown != m_shownStandCounts.cend() && shown.value() == shownPosition().handCount(piece);
 }
 
 void ShogiView::onBoardReset()
@@ -469,7 +487,6 @@ void ShogiView::onBoardReset()
 
 void ShogiView::updateStaleCells()
 {
-    const Position& position = shownPosition();
     const int files = m_board->files();
     if (m_shownSquares.size() != qsizetype(files) * m_board->ranks()) {
         update();
@@ -477,15 +494,12 @@ void ShogiView::updateStaleCells()
     }
     for (int rank = 1; rank <= m_board->ranks(); ++rank) {
         for (int file = 1; file <= files; ++file) {
-            const std::optional<Piece>& shown = m_shownSquares.at(qsizetype(rank - 1) * files + (file - 1));
-            if (!shown || *shown != position.pieceAt(file, rank)) update(fieldPaintRect(QPoint(file, rank)));
+            if (!showsSquare(file, rank)) update(fieldPaintRect(QPoint(file, rank)));
         }
     }
     for (const Turn side : {Turn::Black, Turn::White}) {
         for (const Piece piece : BoardGeometry::standPieces(side)) {
-            const auto shown = m_shownStandCounts.constFind(piece);
-            if (shown == m_shownStandCounts.cend() || shown.value() != position.handCount(piece))
-                update(standPieceRect(piece));
+            if (!showsStandCount(piece)) update(standPieceRect(piece));
         }
     }
 }

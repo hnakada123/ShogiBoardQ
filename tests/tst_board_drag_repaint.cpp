@@ -214,8 +214,8 @@ class TestBoardDragRepaint : public QObject
         return history;
     }
 
-    /// 局面を替える操作の後、盤が描き直した範囲が盤の4分の1未満で、描き残しが無いこと
-    static void verifyPartialStep(ShogiView& view, const std::function<void()>& step, const QString& label)
+    /// step の間に盤（ShogiView）が描き直した範囲
+    static QRegion repaintedDuring(ShogiView& view, const std::function<void()>& step)
     {
         PaintSpy spy;
         view.installEventFilter(&spy);
@@ -224,6 +224,13 @@ class TestBoardDragRepaint : public QObject
         view.removeEventFilter(&spy);
         QRegion repainted;
         for (const QRect& rect : std::as_const(spy.regionRects)) repainted += rect;
+        return repainted;
+    }
+
+    /// 局面を替える操作の後、盤が描き直した範囲が盤の4分の1未満で、描き残しが無いこと
+    static void verifyPartialStep(ShogiView& view, const std::function<void()>& step, const QString& label)
+    {
+        const QRegion repainted = repaintedDuring(view, step);
         qint64 area = 0;
         for (const QRect& rect : repainted) area += qint64(rect.width()) * rect.height();
         const qint64 whole = qint64(view.width()) * view.height();
@@ -563,8 +570,9 @@ private slots:
         QCOMPARE(stalePixels(ui), 0);
     }
 
-    // 通信対局・P2P対局で送って確認を待つ手は、盤を変えずに指した後の表示にする。表示するとき・確認を受けて
-    // 盤が動いたとき・確認が届かないままやめたときのどれも、変わった所だけを描き直して描き残しが無い
+    // 通信対局・P2P対局で送って確認を待つ手は、盤を変えずに指した後の表示にする。表示するとき・確認が届かない
+    // ままやめたときは、変わった所だけを描き直して描き残しが無い。確認を受けて盤が動いたときは、もう指した後の駒を
+    // 出しているので、盤のマスも駒台も描き直さない（通常の対局より多く描かない）
     void sentMoveRepaintsOnlyChangedSquares()
     {
         BoardUi ui(sfen(), false);
@@ -600,8 +608,13 @@ private slots:
             QVERIFY2(sent.has_value(), qPrintable(label));
             QVERIFY2(ui.view.hasPendingPosition(), qPrintable(label));
             QCOMPARE(ui.gc.board()->toSfen(), before);
-            verifyPartialStep(ui.view, [&ui, &sent] { QVERIFY(ui.gc.applyMove(*sent, {}).has_value()); },
-                              QStringLiteral("confirmed ") + label);
+            const QRegion confirmed =
+                repaintedDuring(ui.view, [&ui, &sent] { QVERIFY(ui.gc.applyMove(*sent, {}).has_value()); });
+            const BoardGeometry& geometry = ui.view.boardGeometry();
+            QVERIFY2(!confirmed.intersects(geometry.board()), qPrintable(QStringLiteral("confirmed (board) ") + label));
+            QVERIFY2(!confirmed.intersects(geometry.stand(Turn::Black)) && !confirmed.intersects(geometry.stand(Turn::White)),
+                     qPrintable(QStringLiteral("confirmed (stands) ") + label));
+            QVERIFY2(stalePixels(ui) == 0, qPrintable(QStringLiteral("confirmed ") + label));
             QVERIFY2(!ui.view.hasPendingPosition(), qPrintable(label));
             QVERIFY(ui.gc.board()->toSfen() != before);
         }
