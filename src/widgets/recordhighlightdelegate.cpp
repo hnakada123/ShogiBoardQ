@@ -8,7 +8,6 @@
 #include "tablestyles.h"
 
 #include <QApplication>
-#include <QFontMetricsF>
 #include <QPainter>
 
 bool RecordHighlightDelegate::SizeKey::operator==(const SizeKey& other) const
@@ -47,34 +46,47 @@ QSize RecordHighlightDelegate::sizeHint(const QStyleOptionViewItem& option, cons
         } else {
             return size;
         }
-        // プロポーショナル数字を持つ書体でも、数字の入れ替わりで幅を変えない。
-        opt.text.replace(QLatin1Char('9'), widestDigit(opt.font));
-        size.setWidth(qMax(size.width(), textSize(opt).width()));
+        // 数字の入れ替わりで幅を変えない（幅が1画素でも変わると、棋譜欄と一緒にウィンドウの幅が変わり、
+        // 全体を描き直す）。数字ごとに幅が違う書体や、数字と記号の間を詰める・空ける書体がある
+        // （「4/」だけ1画素広いなど）ので、どの数字に替えても収まる幅を確保する
+        size.setWidth(qMax(size.width(), widthForAnyDigit(opt)));
     }
     return size;
 }
 
-QChar RecordHighlightDelegate::widestDigit(const QFont& font) const
+int RecordHighlightDelegate::widthForAnyDigit(QStyleOptionViewItem& option) const
 {
-    if (const auto it = m_widestDigits.constFind(font); it != m_widestDigits.cend()) return it.value();
-    // 整数へ丸めて比べると同じ幅に見える数字も、文字列全体では数ピクセル差が出る。
-    const QFontMetricsF metrics(font);
-    QChar widest = QLatin1Char('0');
-    for (const QChar digit : QStringLiteral("123456789")) {
-        if (metrics.horizontalAdvance(digit) > metrics.horizontalAdvance(widest)) widest = digit;
+    // option.text の「9」を 0〜9 のそれぞれに替えた文字列の、いちばん広い幅。条件ごとに覚える
+    // （覚えの鍵は、実際の文字列と重ならないよう先頭に制御文字を付ける）
+    const QString pattern = option.text;
+    option.text = QChar(0x01) + pattern;
+    const SizeKey key = sizeKey(option);
+    if (const auto it = m_sizeCache.constFind(key); it != m_sizeCache.cend()) return it.value().width();
+    int width = 0;
+    for (const QChar digit : QStringLiteral("0123456789")) {
+        option.text = pattern;
+        option.text.replace(QLatin1Char('9'), digit);
+        width = qMax(width, textSize(option).width());
     }
-    if (m_widestDigits.size() >= kMaxCachedSizes) m_widestDigits.clear();
-    m_widestDigits.insert(font, widest);
-    return widest;
+    if (m_sizeCache.size() >= kMaxCachedSizes) m_sizeCache.clear();
+    m_sizeCache.insert(key, QSize(width, 0));
+    return width;
+}
+
+RecordHighlightDelegate::SizeKey RecordHighlightDelegate::sizeKey(const QStyleOptionViewItem& option)
+{
+    const QWidget* widget = option.widget;
+    const QStyle* style = widget ? widget->style() : QApplication::style();
+    const bool wrap = option.features.testFlag(QStyleOptionViewItem::WrapText);
+    return SizeKey{option.text, option.font, style, int(option.features), int(option.state),
+                   int(option.decorationPosition), wrap ? option.rect.width() : 0};
 }
 
 QSize RecordHighlightDelegate::textSize(const QStyleOptionViewItem& option) const
 {
     const QWidget* widget = option.widget;
     QStyle* style = widget ? widget->style() : QApplication::style();
-    const bool wrap = option.features.testFlag(QStyleOptionViewItem::WrapText);
-    const SizeKey key{option.text, option.font, style, int(option.features), int(option.state),
-                      int(option.decorationPosition), wrap ? option.rect.width() : 0};
+    const SizeKey key = sizeKey(option);
     if (const auto it = m_sizeCache.constFind(key); it != m_sizeCache.cend()) return it.value();
 
     const QSize size = style->sizeFromContents(QStyle::CT_ItemViewItem, &option, QSize(), widget);

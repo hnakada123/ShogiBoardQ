@@ -36,11 +36,12 @@ public:
 
 private:
     QSize textSize(const QStyleOptionViewItem& option) const;
-    QChar widestDigit(const QFont& font) const;
+    /// option.text の「9」をどの数字に替えても収まる幅（option.text は書き換える）
+    int widthForAnyDigit(QStyleOptionViewItem& option) const;
+    static SizeKey sizeKey(const QStyleOptionViewItem& option);
 
     static constexpr qsizetype kMaxCachedSizes = 4096;
     mutable QHash<SizeKey, QSize> m_sizeCache;
-    mutable QHash<QFont, QChar> m_widestDigits;
 };
 
 size_t qHash(const RecordHighlightDelegate::SizeKey& key, size_t seed = 0);
