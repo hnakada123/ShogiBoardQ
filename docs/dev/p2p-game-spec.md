@@ -791,11 +791,11 @@ Evidence = ["SBQ-MATCH", 1,
 | `src/network/p2p/p2pgamecoordinator.h/.cpp` | 交渉と対局の状態機械を、盤・時計・棋譜・動作状態・証跡へつなぐ司令塔 |
 | `src/network/p2p/p2pgamechannel.h/.cpp` | GameChannelを実装。送信直後はMoveResult::Sent |
 | `src/headless/matchverificationservice.h/.cpp`・`src/cli/clicommands_p2p.cpp` | 証跡の検証サービスと `verify-match` コマンド |
-| `src/dialogs/p2pwindow.h/.cpp`・`p2phistorypanel`・`p2ppeerspanel` | 接続と条件、招待、対局中、記録、相手、設定のタブ |
+| `src/dialogs/p2pwindow.h/.cpp`・`p2phistorypanel`・`p2ppeerspanel` | 接続と条件、招待、対局中、記録、相手、設定のタブ。対局中も開いたまま本体の盤と行き来して使うので、本体の前面に固定しない独立したウィンドウにする（`DialogUtils::makeIndependentWindow`） |
 | `src/dialogs/p2pconfirmdialog.h/.cpp` | 条件、相手の確認、対局記録に残る内容の確認 |
 | `src/dialogs/p2pidentitydialog.h/.cpp` | プレイヤー鍵の作成・読み込み |
 | `src/dialogs/p2pwindowtext.h/.cpp` | P2P対局の画面で共通の文 |
-| `src/ui/controllers/p2pgameuicontroller.h/.cpp` | 「P2P対局」を開いたときに部品を作り、プレイヤー鍵の準備・条件確認・申し出・終局の知らせをつなぐ |
+| `src/ui/controllers/p2pgameuicontroller.h/.cpp` | 「P2P対局」を開いたときに部品を作り、プレイヤー鍵の準備・条件確認・申し出・終局の知らせをつなぐ。相手・通信プロセスから届いた知らせは、利用者が使っている側のウィンドウ（P2P対局のウィンドウか本体）に出す |
 | `peer/` | Rust。通信プロセス（P2P、招待、識別鍵）と `--service` モード |
 | `protocol/` | スキーマ、C++・Rust 共通の署名・エンコードのテストベクトル、形式検査用の Rust crate |
 

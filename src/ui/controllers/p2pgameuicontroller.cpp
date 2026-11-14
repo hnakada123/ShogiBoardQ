@@ -4,6 +4,7 @@
 #include "p2pgameuicontroller.h"
 
 #include <QAction>
+#include <QApplication>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QTimer>
@@ -58,7 +59,23 @@ P2pGameUiController::~P2pGameUiController() = default;
 
 QWidget* P2pGameUiController::dialogParent() const
 {
-    return m_window ? static_cast<QWidget*>(m_window) : m_deps.parentWidget;
+    // 閉じた（隠れた）ウィンドウは親にしない。OS の親のないダイアログになり、本体の後ろに隠れうる
+    return m_window && m_window->isVisible() ? static_cast<QWidget*>(m_window) : m_deps.parentWidget;
+}
+
+QWidget* P2pGameUiController::noticeParent() const
+{
+    // P2P対局のウィンドウか、そこから開いたダイアログを使っている間だけ、P2P対局のウィンドウに出す。
+    // 後ろに回したウィンドウを親にすると、OS が知らせと一緒にそのウィンドウも前面に出し、指している盤を隠す
+    if (!m_window || !m_window->isVisible()) return m_deps.parentWidget;
+    for (QWidget* window = QApplication::activeWindow(); window;) {
+        if (window == m_window) return m_window;
+        const QWidget* owner = window->parentWidget();
+        window = owner ? owner->window() : nullptr;
+    }
+    // 本体を最小化しているときは、見えている側に出す
+    const QWidget* main = m_deps.parentWidget;
+    return main && main->isVisible() && !main->isMinimized() ? m_deps.parentWidget : static_cast<QWidget*>(m_window);
 }
 
 void P2pGameUiController::disableForAutomation()
@@ -270,7 +287,7 @@ void P2pGameUiController::onNegotiationChanged()
     }
     if (!m_lobby) return;
     m_confirm = new P2pConfirmDialog(m_deps.game, m_profile->knownPeers(), NetworkSettings::p2pHideUnknownNames(),
-                                     dialogParent());
+                                     noticeParent());
     m_confirm->setAttribute(Qt::WA_DeleteOnClose);
     m_confirm->show();
     m_confirm->raise();
@@ -286,7 +303,7 @@ void P2pGameUiController::onNegotiationEnded(bool started, std::optional<P2p::Er
     QString text = byPeer ? tr("相手が対局を始めませんでした。") : tr("対局を始められませんでした。");
     if (*code == P2p::ErrorCode::Cancelled) text = tr("相手が取りやめました。");
     else text += P2pWindowText::errorText(*code);
-    NotificationPresenter::information(dialogParent(), tr("P2P対局"), text, NotificationPresenter::Wait::No);
+    NotificationPresenter::information(noticeParent(), tr("P2P対局"), text, NotificationPresenter::Wait::No);
 }
 
 // ---------------------------------------------------------------- 対局
@@ -308,7 +325,7 @@ void P2pGameUiController::onOfferReceived(P2p::Cause cause)
     closeOfferBox();
     const QString question = cause == P2p::Cause::AgreedDraw ? tr("相手が引き分けを申し出ました。承諾しますか？")
                                                               : tr("相手が対局の中断を申し出ました。承諾しますか？");
-    m_offerBox = DialogUtils::createConfirmBox(dialogParent(), tr("P2P対局"), question, tr("承諾"));
+    m_offerBox = DialogUtils::createConfirmBox(noticeParent(), tr("P2P対局"), question, tr("承諾"));
     m_offerBox->setObjectName(QStringLiteral("p2pOfferBox"));
     connect(m_offerBox, &QMessageBox::finished, this, &P2pGameUiController::onOfferAnswered);
     // 出してすぐは「承諾」を押せない。相手が引き分けと中断の申し出を続けて送ると箱が入れ替わり、前の申し出に向けた
@@ -348,7 +365,7 @@ void P2pGameUiController::closeOfferBox()
 
 void P2pGameUiController::onProposalDeclined()
 {
-    NotificationPresenter::information(dialogParent(), tr("P2P対局"), tr("相手が申し出を断りました。対局を続けます。"),
+    NotificationPresenter::information(noticeParent(), tr("P2P対局"), tr("相手が申し出を断りました。対局を続けます。"),
                                        NotificationPresenter::Wait::No);
 }
 
@@ -366,7 +383,7 @@ void P2pGameUiController::onGameFinished(P2p::Settlement ending, std::optional<P
     }
     lines << P2pWindowText::settlementText(ending, error);
     if (evidencePath.isEmpty()) lines << tr("対局の記録（証跡）を保存できませんでした。");
-    NotificationPresenter::information(dialogParent(), tr("P2P対局"), lines.join(QLatin1Char('\n')),
+    NotificationPresenter::information(noticeParent(), tr("P2P対局"), lines.join(QLatin1Char('\n')),
                                        NotificationPresenter::Wait::No);
     if (m_window) m_window->refresh();
 }
@@ -378,6 +395,6 @@ void P2pGameUiController::onPeerFailed(PeerProcess::Failure failure, const QStri
     // 通信プロセスから届いた知らせの処理の中なので、閉じるのを待たない（待つと入れ子のイベントループの中で通信プロセスの
     // 部品が消え、戻った先で消えたものを読む。監査 2026-11-13 P4）。続けて届いたら前の箱を閉じる
     if (m_failureBox) m_failureBox->close();
-    m_failureBox = NotificationPresenter::warning(dialogParent(), tr("P2P対局"), text, NotificationPresenter::Wait::No);
+    m_failureBox = NotificationPresenter::warning(noticeParent(), tr("P2P対局"), text, NotificationPresenter::Wait::No);
     if (m_window) m_window->refresh();
 }

@@ -3,6 +3,7 @@
 
 #include "dockregistry.h"
 
+#include "dialogutils.h"
 #include "docksettings.h"
 #include "layoutboundarywidget.h"
 #include "opaquebackground.h"
@@ -14,7 +15,6 @@
 #include <QMainWindow>
 #include <QMenu>
 #include <QPalette>
-#include <QWindow>
 
 using DockId = DockRegistry::DockId;
 
@@ -27,21 +27,10 @@ public:
 
     void setVisible(bool visible) override
     {
-        if (visible && isFloating()) {
-            // Qt は切り離し・レイアウト復元のたびに Qt::Tool を設定する。
-            // topLevelChanged だけでは、浮動状態を再適用した場合を拾えない。
-            const Qt::WindowFlags flags = (windowFlags() & ~Qt::WindowType_Mask) | Qt::Window;
-            if (windowFlags() != flags) {
-                const QRect previousGeometry = geometry();
-                setWindowFlags(flags);
-                setGeometry(previousGeometry);
-                setAttribute(Qt::WA_QuitOnClose, false);
-            }
-            if (!testAttribute(Qt::WA_WState_Created)) create();
-            // OS の親子関係による前面固定も解除する。QWidget の親は残すので、
-            // 本体による所有・再ドッキング・レイアウト保存は従来どおり行える。
-            windowHandle()->setTransientParent(nullptr);
-        }
+        // Qt は切り離し・レイアウト復元のたびに Qt::Tool を設定する。
+        // topLevelChanged だけでは、浮動状態を再適用した場合を拾えないので、表示のたびに直す。
+        // QWidget の親は残るので、本体による所有・再ドッキング・レイアウト保存は従来どおり行える。
+        if (visible && isFloating()) DialogUtils::makeIndependentWindow(this);
         QDockWidget::setVisible(visible);
     }
 

@@ -50,6 +50,9 @@ public:
     /// 対局中のタブを出す
     void showGameTab();
 
+    /// 本体と前後を入れ替えられる、独立したウィンドウとして出す（対局中も開いたまま、本体の盤と行き来して使う）
+    void setVisible(bool visible) override;
+
 signals:
     /// 接続（通信プロセスの起動）・切断
     void startRequested();

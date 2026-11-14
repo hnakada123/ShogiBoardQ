@@ -23,6 +23,7 @@
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QTemporaryDir>
+#include <QWindow>
 
 #include "appactivitystate.h"
 #include "gameboard.h"
@@ -318,6 +319,104 @@ private slots:
         QCOMPARE(resigned.count(), 1);
         QCOMPARE(brokeOff.count(), 1);
         ui.shutdown();
+        if (savedData.isNull()) qunsetenv("SHOGIBOARDQ_DATA_HOME");
+        else qputenv("SHOGIBOARDQ_DATA_HOME", savedData);
+    }
+
+    /// P2P対局のウィンドウは、対局中も開いたまま本体の盤と行き来して使う。親（本体）のあるダイアログを OS は本体の
+    /// 子ウィンドウとして扱い、いつも本体の前面に置く（本体を前面に出せない）ので、通常のウィンドウにして OS の
+    /// 親子関係を外す。閉じて開き直しても同じ
+    void windowIsNotKeptAboveMainWindow()
+    {
+        const QByteArray savedData = qgetenv("SHOGIBOARDQ_DATA_HOME");
+        qputenv("SHOGIBOARDQ_DATA_HOME", m_dir.filePath(QStringLiteral("independent-data")).toUtf8());
+        AppActivityState activity;
+        GameBoard board;
+        ShogiClock clock;
+        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
+        QMainWindow main;
+        main.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&main));
+        P2pGameUiController::Deps deps;
+        deps.game = &game;
+        deps.activity = &activity;
+        deps.parentWidget = &main;
+        P2pGameUiController ui(deps);
+        for (int cycle = 0; cycle < 2; ++cycle) {
+            ui.openWindow();
+            auto* window = main.findChild<P2pWindow*>();
+            QVERIFY(window);
+            QVERIFY(QTest::qWaitForWindowExposed(window));
+            QCOMPARE(window->windowType(), Qt::Window);
+            QVERIFY(!window->windowFlags().testFlag(Qt::WindowStaysOnTopHint));
+            QVERIFY(window->windowHandle());
+            QVERIFY(!window->windowHandle()->transientParent());
+            // Qt の所有関係は残し、開いたままでもアプリの終了を止めない
+            QCOMPARE(window->parentWidget(), &main);
+            QVERIFY(!window->testAttribute(Qt::WA_QuitOnClose));
+            QVERIFY(window->close());
+        }
+        ui.shutdown();
+        if (savedData.isNull()) qunsetenv("SHOGIBOARDQ_DATA_HOME");
+        else qputenv("SHOGIBOARDQ_DATA_HOME", savedData);
+    }
+
+    /// 相手から届いた知らせ（申し出の箱など）は、利用者が使っている側のウィンドウに出す。P2P対局のウィンドウを使って
+    /// いる間はそのウィンドウに、本体の盤で指している間は本体に出す（後ろに回した P2P対局のウィンドウを親にすると、
+    /// OS が知らせと一緒にそのウィンドウも前面に出し、盤を隠す）
+    void noticesFollowTheWindowInUse()
+    {
+        const QByteArray savedData = qgetenv("SHOGIBOARDQ_DATA_HOME");
+        qputenv("SHOGIBOARDQ_DATA_HOME", m_dir.filePath(QStringLiteral("notice-data")).toUtf8());
+        {
+            Seat applicant(QByteArray(38, 'g'));
+            Seat host(QByteArray(38, 'n'));
+            P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("notice-a")));
+            P2pRecordStore hostStore(m_dir.filePath(QStringLiteral("notice-h")));
+            P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("notice-a.cbor")));
+            P2pKnownPeers hostKnown(m_dir.filePath(QStringLiteral("notice-h.cbor")));
+            QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, &hostStore, &hostKnown));
+            Seat& black = applicant.game.match()->iAmBlack() ? applicant : host;
+            Seat& white = applicant.game.match()->iAmBlack() ? host : applicant;
+            const auto offerBox = [](const QString& word) -> QMessageBox* {
+                const QWidgetList windows = QApplication::topLevelWidgets();
+                for (QWidget* widget : windows) {
+                    auto* box = qobject_cast<QMessageBox*>(widget);
+                    if (box && box->objectName() == QStringLiteral("p2pOfferBox") && box->isVisible()
+                        && box->text().contains(word))
+                        return box;
+                }
+                return nullptr;
+            };
+
+            white.window.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&white.window));
+            white.ui->openWindow();
+            auto* p2p = white.window.findChild<P2pWindow*>();
+            QVERIFY(p2p);
+            QVERIFY(QTest::qWaitForWindowExposed(p2p));
+
+            // P2P対局のウィンドウを使っている間は、そのウィンドウに出す
+            QTRY_COMPARE(QApplication::activeWindow(), p2p);
+            QTRY_VERIFY(black.game.isHumanToMove());
+            black.game.offerDraw();
+            QTRY_VERIFY(offerBox(QStringLiteral("引き分け")));
+            QPointer<QMessageBox> first = offerBox(QStringLiteral("引き分け"));
+            QCOMPARE(first->parentWidget(), p2p);
+            // 先手が指すと申し出は無効になり、箱は閉じる
+            QCOMPARE(black.game.playMove(UsiMove::fromString(u"2g2f")), GameChannel::MoveResult::Sent);
+            QTRY_VERIFY(!first);
+            QTRY_VERIFY(black.game.match()->lastState().ply == 1 && !black.game.match()->hasPendingMove());
+
+            // 本体を使っている間（P2P対局のウィンドウは開いたまま後ろ）は、本体に出す
+            white.window.activateWindow();
+            QTRY_COMPARE(QApplication::activeWindow(), &white.window);
+            QVERIFY(p2p->isVisible());
+            black.game.offerAbort();
+            QTRY_VERIFY(offerBox(QStringLiteral("中断")));
+            QCOMPARE(offerBox(QStringLiteral("中断"))->parentWidget(), &white.window);
+            white.ui->shutdown();
+        }
         if (savedData.isNull()) qunsetenv("SHOGIBOARDQ_DATA_HOME");
         else qputenv("SHOGIBOARDQ_DATA_HOME", savedData);
     }

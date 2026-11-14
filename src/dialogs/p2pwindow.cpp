@@ -58,7 +58,7 @@ QString dateText(quint64 seconds)
 } // namespace
 
 P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* parent)
-    : QDialog(parent)
+    : QDialog(parent, Qt::Window)
     , m_lobby(lobby)
     , m_game(game)
     , m_player(lobby && lobby->profile() ? lobby->profile()->playerNumber() : 1)
@@ -403,6 +403,13 @@ bool P2pWindow::checkDisplayName()
 void P2pWindow::showGameTab()
 {
     m_tabs->setCurrentWidget(m_gameTab);
+}
+
+void P2pWindow::setVisible(bool visible)
+{
+    // 親（本体）のあるダイアログは、OS がいつも本体の前面に置き、盤を前面に出せない
+    if (visible) DialogUtils::makeIndependentWindow(this);
+    QDialog::setVisible(visible);
 }
 
 void P2pWindow::refresh()

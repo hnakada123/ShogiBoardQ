@@ -11,6 +11,7 @@
 #include <QComboBox>
 #include <QMenu>
 #include <QAbstractItemView>
+#include <QWindow>
 #include <utility>
 
 namespace DialogUtils {
@@ -191,4 +192,21 @@ void DialogUtils::showWindow(QWidget* window)
     window->show();
     // 表示で予約された描き直し（ウィンドウと中の部品の UpdateLater）を、最初の描画より前に済ませる
     QCoreApplication::sendPostedEvents(nullptr, QEvent::UpdateLater);
+}
+
+void DialogUtils::makeIndependentWindow(QWidget* window)
+{
+    if (!window) return;
+    // ダイアログ・ツールの型のままだと、親を外しても X11 ではアプリのウィンドウの組の前面に置かれる
+    const Qt::WindowFlags flags = (window->windowFlags() & ~Qt::WindowType_Mask) | Qt::Window;
+    if (window->windowFlags() != flags) {
+        const QRect previousGeometry = window->geometry();
+        window->setWindowFlags(flags);
+        window->setGeometry(previousGeometry);
+    }
+    // 親のウィンドウを閉じたとき、開いたままでもアプリの終了を止めない
+    window->setAttribute(Qt::WA_QuitOnClose, false);
+    // Qt はウィンドウを作るたびに、親のウィンドウを OS の親にする。作った後で外す
+    window->winId();
+    if (QWindow* handle = window->windowHandle()) handle->setTransientParent(nullptr);
 }

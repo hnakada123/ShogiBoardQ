@@ -93,7 +93,10 @@ private:
     bool ensureLobby();
     /// ネットワークに参加する（プレイヤー鍵は読み込み済み）
     void beginNetwork();
+    /// P2P対局のウィンドウの操作から出すダイアログの親（ウィンドウを閉じていれば本体）
     QWidget* dialogParent() const;
+    /// 相手・通信プロセスから届いた知らせの親（利用者が使っている側。P2P対局のウィンドウは本体の後ろにも回せる）
+    QWidget* noticeParent() const;
     /// 尋ねる箱を、答えとして扱わずに閉じる
     void closeOfferBox();
 
