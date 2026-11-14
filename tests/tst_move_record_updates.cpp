@@ -4,8 +4,12 @@
 #include <QSignalSpy>
 #include <QScopeGuard>
 #include <QHeaderView>
+#include <QItemSelectionModel>
 #include <QLabel>
+#include <QPaintEvent>
+#include <QScreen>
 #include <QStyledItemDelegate>
+#include <QWindow>
 #include <QScrollBar>
 #include <QTableView>
 #include <QTemporaryDir>
@@ -52,6 +56,63 @@ class TestMoveRecordUpdates : public QObject
             return QObject::eventFilter(watched, event);
         }
     };
+
+    /// 受け取った描き直しの範囲を集める
+    class PaintRegionSpy : public QObject
+    {
+    public:
+        QRegion region;
+
+        qint64 area() const
+        {
+            qint64 total = 0;
+            for (const QRect& rect : region) total += qint64(rect.width()) * rect.height();
+            return total;
+        }
+
+    protected:
+        bool eventFilter(QObject* watched, QEvent* event) override
+        {
+            if (event->type() == QEvent::Paint) region += static_cast<QPaintEvent*>(event)->region();
+            return QObject::eventFilter(watched, event);
+        }
+    };
+
+    static void settle()
+    {
+        for (int i = 0; i < 3; ++i) QCoreApplication::processEvents();
+    }
+
+    static QImage screenImage(QWidget& widget)
+    {
+        QWidget* window = widget.window();
+        return window->windowHandle()->screen()->grabWindow(window->winId()).toImage()
+            .convertToFormat(QImage::Format_ARGB32);
+    }
+
+    /// 画面に出ている棋譜欄と、全体を描き直した棋譜欄とで違う画素の数
+    /// （部分描画での半透明の合成は、全体を描いたときと丸めが1だけ違うことがあるため、それは数えない）
+    static int stalePixels(RecordPane& pane)
+    {
+        const QImage partial = screenImage(pane);
+        pane.kifuView()->viewport()->repaint();
+        pane.kifuView()->horizontalHeader()->viewport()->repaint();
+        pane.repaint();
+        QCoreApplication::processEvents();
+        const QImage full = screenImage(pane);
+        if (partial.size() != full.size()) return -1;
+        int stale = 0;
+        for (int y = 0; y < full.height(); ++y) {
+            const auto* a = reinterpret_cast<const QRgb*>(partial.constScanLine(y));
+            const auto* b = reinterpret_cast<const QRgb*>(full.constScanLine(y));
+            for (int x = 0; x < full.width(); ++x) {
+                if (qAbs(qRed(a[x]) - qRed(b[x])) > 1 || qAbs(qGreen(a[x]) - qGreen(b[x])) > 1
+                    || qAbs(qBlue(a[x]) - qBlue(b[x])) > 1)
+                    ++stale;
+            }
+        }
+        return stale;
+    }
 
     /// 飛車を左右に往復させる棋譜（対局外で指した手と同じく、ツリーにだけ記録する）
     static KifuBranchNode* buildLine(KifuBranchTree& tree, int plies)
@@ -430,6 +491,90 @@ private slots:
         }
         QCOMPARE(previous, 120);
         QVERIFY2(axis.count() <= 20, qPrintable(QStringLiteral("x axis changed %1 times").arg(axis.count())));
+    }
+
+    // 対局中に1手足したとき、棋譜欄は足した行と現在行の強調が移る行だけを描き直す。
+    // 表示領域の全体と見出しは描き直さない（分岐が増えていないのに全行の変更を知らせない・
+    // 現在行を移すたびに表示領域の全体を描き直さない）。部分描画でも、全体を描き直した絵と同じになる
+    void liveMoveRepaintsOnlyChangedRows()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(SfenUtils::hirateSfen());
+        KifuNavigationState nav(&tree);
+        LiveGameSession live(&tree, &nav);
+        KifuRecordListModel model(&tree);
+        KifuBranchListModel branches(&tree);
+        RecordPane pane;
+        pane.setModels(&model, &branches);
+        pane.resize(620, 540);
+        KifuDisplayPresenter::Deps deps;
+        deps.navState = &nav;
+        deps.liveSession = &live;
+        deps.recordModel = &model;
+        deps.branchModel = &branches;
+        deps.recordView = pane.kifuView();
+        KifuDisplayPresenter presenter(deps);
+        pane.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&pane));
+        live.startFromRoot();
+        settle();
+
+        QTableView* view = pane.kifuView();
+        QWidget* area = view->viewport();
+        QWidget* header = view->horizontalHeader()->viewport();
+        const ShogiMove moves[] = {ShogiMove(UsiMove::fromString(u"2h3h"), Piece::BlackRook),
+                                   ShogiMove(UsiMove::fromString(u"8b7b"), Piece::WhiteRook)};
+        const QString texts[] = {QStringLiteral("▲３八飛(28)"), QStringLiteral("△７二飛(82)")};
+        const auto play = [&](int ply) {
+            live.appendRecord(RecordEntry::played(moves[(ply - 1) % 2], texts[(ply - 1) % 2],
+                                                  QStringLiteral("sfen-%1").arg(ply), {}));
+        };
+        // 1手目は列の幅が決まる（指し手の行は開始局面の行より幅が要る）ので、測るのは2手目から。
+        // 表示領域に収まる間（スクロールしない間）と、一番下へスクロールし続ける間の両方を通す
+        play(1);
+        settle();
+        QCOMPARE(stalePixels(pane), 0);
+        const qint64 whole = qint64(area->width()) * area->height();
+        const bool integralScale = std::abs(pane.devicePixelRatioF() - std::round(pane.devicePixelRatioF())) < 1e-9;
+        for (int ply = 2; ply <= 60; ++ply) {
+            PaintRegionSpy rows;
+            PaintRegionSpy headings;
+            area->installEventFilter(&rows);
+            header->installEventFilter(&headings);
+            play(ply);
+            settle();
+            area->removeEventFilter(&rows);
+            header->removeEventFilter(&headings);
+            const QString label = QStringLiteral("ply %1: repainted %2 of %3 px").arg(ply).arg(rows.area()).arg(whole);
+            QCOMPARE(model.rowCount(), ply + 1);
+            QVERIFY2(rows.area() > 0, qPrintable(label));
+            // 小数倍率では、スクロールするときに Qt が表示領域の全体を描き直す
+            if (integralScale) QVERIFY2(rows.area() * 4 < whole, qPrintable(label));
+            QVERIFY2(headings.area() == 0, qPrintable(QStringLiteral("ply %1: header repainted").arg(ply)));
+            QVERIFY2(stalePixels(pane) == 0, qPrintable(label));
+        }
+
+        // 対局を終えて棋譜をたどる: 現在行の強調と選択が移る行を描き直す（描き残しが無い）
+        live.commit();
+        settle();
+        QCOMPARE(stalePixels(pane), 0);
+        for (const int ply : {30, 59, 3, 60, 0}) {
+            nav.setCurrentNode(TestTree::findByPlyOnMainLine(tree, ply));
+            settle();
+            QCOMPARE(view->currentIndex().row(), ply);
+            QVERIFY2(stalePixels(pane) == 0, qPrintable(QStringLiteral("goto ply %1").arg(ply)));
+        }
+        // 利用者が別の行を選んだ後で表示中の手に合わせ直すと、選択だけが移る（強調の行は同じ）。
+        // 選択の変更の通知は止めているので、選択が外れた行と付いた行を描き直す
+        nav.setCurrentNode(TestTree::findByPlyOnMainLine(tree, 59));
+        settle();
+        view->selectionModel()->setCurrentIndex(model.index(56, 0),
+                                                QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+        settle();
+        presenter.refresh();
+        settle();
+        QCOMPARE(view->currentIndex().row(), 59);
+        QCOMPARE(stalePixels(pane), 0);
     }
 };
 

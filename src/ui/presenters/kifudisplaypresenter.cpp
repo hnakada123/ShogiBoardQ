@@ -14,6 +14,22 @@
 #include <QSignalBlocker>
 #include <QTableView>
 
+#include <utility>
+
+namespace {
+
+/// 表の1行を描き直す（表示領域に掛からなければ何もしない）
+void updateRow(QTableView* view, int row)
+{
+    if (row < 0 || !view->model() || row >= view->model()->rowCount(view->rootIndex())) return;
+    QWidget* area = view->viewport();
+    const int top = view->rowViewportPosition(row);
+    const int height = view->rowHeight(row);
+    if (top + height > 0 && top < area->height()) area->update(0, top, area->width(), height);
+}
+
+} // namespace
+
 KifuDisplayPresenter::KifuDisplayPresenter(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
@@ -22,7 +38,7 @@ KifuDisplayPresenter::KifuDisplayPresenter(const Deps& deps, QObject* parent)
     connect(m_deps.navState, &KifuNavigationState::changed, this, &KifuDisplayPresenter::refresh);
     connect(m_deps.liveSession, &LiveGameSession::activeChanged, this, &KifuDisplayPresenter::refresh);
     KifuBranchTree* tree = m_deps.navState->tree();
-    connect(tree, &KifuBranchTree::nodeAppended, this, &KifuDisplayPresenter::refreshBranchMarks);
+    connect(tree, &KifuBranchTree::nodeAppended, this, &KifuDisplayPresenter::onNodeAppended);
     connect(tree, &KifuBranchTree::childrenReordered, this, &KifuDisplayPresenter::refreshBranchMarks);
     connect(tree, &KifuBranchTree::subtreeRemoved, this, &KifuDisplayPresenter::refreshBranchMarks);
     connect(tree, &KifuBranchTree::reset, this, &KifuDisplayPresenter::refreshBranchMarks);
@@ -32,6 +48,16 @@ KifuDisplayPresenter::KifuDisplayPresenter(const Deps& deps, QObject* parent)
 void KifuDisplayPresenter::refreshBranchMarks()
 {
     m_deps.recordModel->refreshAll();
+}
+
+void KifuDisplayPresenter::onNodeAppended(int parentId)
+{
+    // 分岐の印（「+」と行の色）は、その手の親に子が2つ以上あるかで決まる（KifuRecordListModel::isBranchRow）。
+    // 手順の末尾に1手足しただけ（親の子がその1手だけ）なら、どの行の印も変わらない。対局中は1手ごとにここへ
+    // 来るので、そのたびに全行の変更を知らせない（表が全行を描き直し、列幅も全行ぶん測り直す）
+    const KifuBranchNode* parent = m_deps.navState->tree()->nodeAt(parentId);
+    if (parent && !parent->hasBranch()) return;
+    refreshBranchMarks();
 }
 
 void KifuDisplayPresenter::refresh()
@@ -66,10 +92,18 @@ void KifuDisplayPresenter::selectCurrentRow(int row)
     QTableView* view = m_deps.recordView;
     if (!view || !view->selectionModel() || row < 0) return;
     const QModelIndex index = m_deps.recordModel->index(row, 0);
-    if (view->selectionModel()->currentIndex().row() != row) {
-        // 選択の変更の通知は refresh() が止めている
-        view->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-        view->viewport()->update();
+    QItemSelectionModel* selection = view->selectionModel();
+    QList<int> changedRows;
+    if (selection->currentIndex().row() != row) {
+        // 選択の変更の通知は refresh() が止めているので、表は選択の変わった行を自分では描き直さない。
+        // 選択が外れる行と付く行を覚えておき、その行だけを描き直す（表示領域の全体は描き直さない。
+        // 対局中は1手ごとに現在行が移る）
+        changedRows = {selection->currentIndex().row(), row};
+        const QModelIndexList selected = selection->selectedRows();
+        for (const QModelIndex& selectedRow : selected) changedRows.append(selectedRow.row());
+        selection->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
     }
     view->scrollTo(index);
+    // 行の位置はスクロールで変わるので、表示位置を決めてから描き直しを頼む
+    for (const int changed : std::as_const(changedRows)) updateRow(view, changed);
 }

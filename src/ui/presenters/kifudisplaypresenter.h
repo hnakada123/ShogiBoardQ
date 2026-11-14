@@ -40,6 +40,10 @@ public slots:
     /// 表示中の手・手順・ツリーに合わせて描き直す
     void refresh();
 
+private slots:
+    /// ツリーに手が足された。分岐ができたときだけ、棋譜欄の分岐の印を描き直す
+    void onNodeAppended(int parentId);
+
 private:
     /// 分岐が増えた・減った・並びが変わったので、棋譜欄の分岐の印（「+」）を描き直す
     void refreshBranchMarks();
