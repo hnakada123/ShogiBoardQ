@@ -9,7 +9,8 @@
 <p align="center">
   <a href="https://hnakada123.github.io/ShogiBoardQ/">Webサイト</a>&nbsp;|&nbsp;
   <a href="https://hnakada123.github.io/ShogiBoardQ/guide/index.html">利用ガイド</a>&nbsp;|&nbsp;
-  <a href="https://github.com/hnakada123/ShogiBoardQ/releases">ダウンロード（リリース）</a>
+  <a href="https://github.com/hnakada123/ShogiBoardQ/releases">ダウンロード（リリース）</a>&nbsp;|&nbsp;
+  <a href="https://github.com/hnakada123/ShogiBoardQ/discussions">質問・要望（Discussions）</a>
 </p>
 
 <p align="center">
@@ -114,6 +115,12 @@ makepkg -si
 ```
 
 2026-11-09 の履歴の書き換えより前に clone したリポジトリでは `git pull` をせず、[ビルド手順](#ビルド手順)の注意に従ってください。
+
+## 質問・要望・不具合の報告
+
+- 使い方の質問、機能の要望、感想は [Discussions](https://github.com/hnakada123/ShogiBoardQ/discussions) に書いてください。日本語でも英語でも書けます。
+- 再現の手順が分かっている不具合は [Issue](https://github.com/hnakada123/ShogiBoardQ/issues/new/choose) に報告してください。
+- 脆弱性は公開の場に書かず、[SECURITY.md](SECURITY.md) の手順で知らせてください。
 
 ## ソースからのビルド
 
