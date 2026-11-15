@@ -224,7 +224,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                         <tr><td><strong><code>--listen &lt;位址&gt;</code></strong></td><td>監聽的位址和連接埠。<code>0.0.0.0</code> 表示在所有網路介面上監聽。連接埠不一定是 4001。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">啟動後，<code>service started as</code> 後面會顯示 PeerId。要停止時按 Ctrl+C。</p>
+                <p class="guide-step-text">啟動後，<code>service started as</code> 後面會顯示 PeerId。要停止時按 Ctrl+C。啟動之後，每分鐘輸出一次已連線的應用程式數量（<code>peers=</code>），加上 <code>--relay</code> 啟動時還會輸出正在中繼的連線數量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。不輸出連線來源的 IP 位址。</p>
                 <p class="guide-step-text">協作節點沒有使用期限（期限只在應用程式加入「網際網路」時起作用）。</p>
             </div>
 
@@ -352,16 +352,16 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">路徑：中繼與直接</span>
                 </div>
-                <p class="guide-step-text">對手首先經由協作節點的中繼連線。連線後，雙方的應用程式會立即嘗試穿過各自的路由器直接連線（打洞）。成功後，「對局中」分頁的「路徑」會變為「直接」（多半在對局開始前完成）。</p>
-                <p class="guide-step-text">「路徑」變為「直接」時也需要協作節點。可以從外部直接到達的電腦，用它來確認放入邀請字串的位址；其他電腦用它來中繼最初的連線並切換為直接連線。沒有設定「不使用直接連線」時也是如此。變為「直接」之後，著手不再經過協作節點。</p>
-                <p class="guide-step-text">在每次連線都更換來源連接埠的路由器後面，或在行動網路這類多層位址轉換的線路上，無法直接連線，會一直以「中繼」對局。透過中繼也可以對局，但著手要繞經協作節點送達，可能會稍有延遲。ShogiBoardQ 的協作節點每條中繼 30 分鐘後會斷線，因此長時間的對局中途可能會自動重新連線（「正在重新連線」）。</p>
+                <p class="guide-step-text">對手首先經由協作節點的中繼連線。連線後，雙方的應用程式會立即嘗試穿過各自的路由器直接連線（打洞）。在 3 秒內直接連線成功時，會關閉經由中繼的連線，條件確認和對局都透過直接連線進行（「對局中」分頁的「路徑」為「直接」）。沒有成功時，就繼續使用經由中繼的連線（「路徑」為「中繼」）。在確認能否直接連線期間，被邀請方的畫面一直顯示「正在連線…」。</p>
+                <p class="guide-step-text">「路徑」變為「直接」時也需要協作節點。可以從外部直接到達的電腦，用它來確認放入邀請字串的位址；其他電腦用它來中繼最初的連線，並協助建立直接連線。沒有設定「不使用直接連線」時也是如此。「路徑」為「直接」期間，著手不經過協作節點。</p>
+                <p class="guide-step-text">在每次連線都更換來源連接埠的路由器後面，或在行動網路這類多層位址轉換的線路上，無法直接連線，會一直以「中繼」對局。透過中繼也可以對局，但著手要繞經協作節點送達，可能會稍有延遲。ShogiBoardQ 的協作節點每條中繼 30 分鐘後會斷線，因此長時間的對局中途可能會自動重新連線（「正在重新連線」）。重新連線時，也會再次嘗試直接連線。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-tw/p2p-game/p2p-internet-relay.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-relay.png" alt="路徑為中繼的「對局中」分頁" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">「路徑：中繼」：路由器沒有讓直接連線通過時</p>
                 </div>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-tw/p2p-game/p2p-internet-direct.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-direct.png" alt="路徑為直接的「對局中」分頁" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">「路徑：直接」：經由中繼連線後切換為直接連線時</p>
+                    <p class="screenshot-caption">「路徑：直接」：經由中繼連線後，穿過路由器直接連線成功時</p>
                 </div>
                 <p class="guide-step-text">本頁的截圖是在 Docker 中的虛擬網路上重現協作節點和家用路由器（NAT），用兩個應用程式實際對局擷取的。「中繼」的截圖使用了每次連線都更換來源連接埠的路由器。</p>
             </div>
@@ -399,12 +399,12 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     </thead>
                     <tbody>
                         <tr><td><strong>放入邀請字串的連線位址</strong></td><td>經由協作節點的位址（電腦可以從外部直接到達時，還有該電腦的 IP 位址）</td><td>只有經由協作節點的位址</td></tr>
-                        <tr><td><strong>切換為直接連線</strong></td><td>會嘗試</td><td>不嘗試</td></tr>
-                        <tr><td><strong>對局中的「路徑」</strong></td><td>「直接」（無法切換時為「中繼」）</td><td>一直是「中繼」</td></tr>
+                        <tr><td><strong>與對手直接連線</strong></td><td>會嘗試</td><td>不嘗試</td></tr>
+                        <tr><td><strong>對局中的「路徑」</strong></td><td>「直接」（無法直接連線時為「中繼」）</td><td>一直是「中繼」</td></tr>
                         <tr><td><strong>您的 IP 位址</strong></td><td>對手可以得知</td><td>對手看不到（協作節點的營運者可以看到）</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">無論哪種情況都需要協作節點。這個設定改變的不是是否使用協作節點，而是連線後是否切換為直接連線。</p>
+                <p class="guide-step-text">無論哪種情況都需要協作節點。這個設定改變的不是是否使用協作節點，而是是否與對手直接連線。</p>
                 <ul class="guide-step-text">
                     <li><strong>需要協作節點</strong>：請在「連線候選」中填入可以中繼的協作節點。沒有填入時，「邀請的路徑」中顯示「無法使用中繼。…」，即使邀請，對手也無法連線。</li>
                     <li><strong>與對手相同的協作節點</strong>：在此設定下用收到的邀請字串連線時，只連線經由您所填協作節點的位址。邀請方也必須在「連線候選」中填入相同的協作節點（不同時會顯示「此邀請字串中沒有透過您的協作節點中繼的連線位址。…」）。</li>
@@ -489,7 +489,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <li>用「連線」連線並開始對局後，兩人的「對局中」分頁的「路徑」都是「中繼」。</li>
                 </ul>
                 <p class="guide-step-text">位址的數量和可用的數量因電腦而異。「本機」的邀請字串中，依下列順序最多放入 8 個：邀請方電腦在區域網路內的位址（每個網路介面各有 UDP 和 TCP 一個，也包括 Docker 等的虛擬介面）、經由協作節點的位址（協作節點監聽 <code>0.0.0.0</code> 時，協作節點所在電腦的每個位址各一個）、只能在同一台電腦內使用的位址。設定了「不使用直接連線」的人只能使用其中經由協作節點的位址。</p>
-                <p class="guide-step-text">在區域網路內可以確認的是協作節點的啟動、「連線候選」的填寫，以及經由中繼的邀請和對局。可達性確認、穿過路由器切換為直接連線（打洞）和使用期限只屬於「網際網路」，在區域網路內無法試用。要用於透過網際網路的對局時，請用 <code>--network sbq-limited-1</code> 重新啟動協作節點，並把應用程式的「網路」改回「網際網路」。</p>
+                <p class="guide-step-text">在區域網路內可以確認的是協作節點的啟動、「連線候選」的填寫，以及經由中繼的邀請和對局。可達性確認、穿過路由器直接連線（打洞）和使用期限只屬於「網際網路」，在區域網路內無法試用。要用於透過網際網路的對局時，請用 <code>--network sbq-limited-1</code> 重新啟動協作節點，並把應用程式的「網路」改回「網際網路」。</p>
             </div>
 
         </div>
@@ -576,7 +576,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">不設定「不使用直接連線」就會與對手直接連線，那還需要協作節點嗎</span>
                 </div>
-                <p class="guide-step-text">在「網際網路」下需要。沒有協作節點，就沒有可以放入邀請字串的連線位址。家用網路的電腦之間，首先經由協作節點的中繼連線，然後再切換為直接連線（<a href="#play">路徑：中繼與直接</a>）。在「本機」下，沒有協作節點也同樣會直接連線，因此不需要（<a href="p2p-direct.html">不使用協作節點對局</a>）。</p>
+                <p class="guide-step-text">在「網際網路」下需要。沒有協作節點，就沒有可以放入邀請字串的連線位址。家用網路的電腦之間，首先經由協作節點的中繼連線，能夠直接連線時就透過直接連線對局（<a href="#play">路徑：中繼與直接</a>）。在「本機」下，沒有協作節點也同樣會直接連線，因此不需要（<a href="p2p-direct.html">不使用協作節點對局</a>）。</p>
             </div>
 
             <div class="guide-step">
@@ -590,24 +590,24 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">設定「不使用直接連線」對局時，協作節點的畫面上也只顯示 <code>peers=2</code>。對局的資料真的經過協作節點嗎</span>
+                    <span class="guide-step-title">設定「不使用直接連線」對局時，對局的資料真的經過協作節點嗎</span>
                 </div>
-                <p class="guide-step-text">經過。協作節點只輸出已連線的應用程式數量（<code>peers=N</code>，每分鐘一次），不輸出中繼的開始、中繼的資料量和連線來源的 IP 位址。「路徑」為「直接」和「中繼」時的差別如下。</p>
+                <p class="guide-step-text">經過。協作節點每分鐘輸出一次已連線的應用程式數量（<code>peers=</code>）和正在中繼的連線數量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。對局的資料經過協作節點期間，<code>relays</code> 為 1 以上。不輸出中繼的資料量和連線來源的 IP 位址。與對手直接連線的對局和經由中繼的對局，差別如下。</p>
                 <table class="info-table">
                     <thead>
-                        <tr><th scope="col">比較的內容</th><th scope="col">「路徑：直接」</th><th scope="col">「路徑：中繼」</th></tr>
+                        <tr><th scope="col">比較的內容</th><th scope="col">與對手直接連線的對局</th><th scope="col">經由中繼的對局</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>出現的情況</strong></td><td>兩人都沒有設定「不使用直接連線」，並且能夠直接連線時</td><td>兩人中有一人設定了「不使用直接連線」，或無法直接連線時</td></tr>
+                        <tr><td><strong>出現的情況</strong></td><td>能夠直接連線到對手的電腦時（「本機」的對局、穿過路由器直接連線成功的網際網路對局）</td><td>無法直接連線時，或設定了「不使用直接連線」時</td></tr>
                         <tr><td><strong>著手的傳送路徑</strong></td><td>您的應用程式 ⇄ 對手的應用程式</td><td>您的應用程式 → 協作節點 → 對手的應用程式</td></tr>
                         <tr><td><strong>協作節點的通訊量</strong></td><td>只有保持連線所需的量，下棋時不會增加</td><td>每下一手，把從一方收到的資料以大致相同的量傳送給另一方</td></tr>
-                        <tr><td><strong>協作節點的輸出</strong></td><td><code>peers=2</code></td><td><code>peers=2</code>（相同）</td></tr>
+                        <tr><td><strong>協作節點的輸出</strong></td><td><code>peers=2 relays=0</code></td><td><code>peers=2 relays=1</code></td></tr>
                         <tr><td><strong>對局中停止協作節點時</strong></td><td>對局的連線不會中斷</td><td>對局的連線會中斷（120 秒內無法重新連線就會中斷對局）</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">正在用哪條路徑下棋，可以在應用程式的「對局中」分頁的「路徑」中看到。在執行協作節點的電腦（Linux）上，可以用下面的指令查看協作節點每個連線的通訊量（<code>bytes_received</code> 是收到的量，<code>bytes_sent</code> 是傳送的量）。<code>4001</code> 是 <code>--listen</code> 中寫的連接埠。</p>
+                <p class="guide-step-text">是直接連線還是經由中繼，可以從應用程式的「對局中」分頁的「路徑」和協作節點輸出的 <code>relays</code> 看出。在執行協作節點的電腦（Linux）上，可以用下面的指令查看協作節點每個連線的通訊量（<code>bytes_received</code> 是收到的量，<code>bytes_sent</code> 是傳送的量）。<code>4001</code> 是 <code>--listen</code> 中寫的連接埠。</p>
                 <div class="build-steps"><pre><code>$ ss -tin 'sport = :4001'</code></pre></div>
-                <p class="guide-step-text">「中繼」時，每下一手，一個連線的 <code>bytes_received</code> 和另一個連線的 <code>bytes_sent</code> 會增加大致相同的量。「直接」時，下棋也不會增加。在從一方向另一方傳送約 31 KB 資料的測試中，協作節點收到的量在「直接」時為 124 位元組，在「中繼」時約為 35 KB（由於加密和中繼的封裝，比傳送的量多一成左右）。</p>
+                <p class="guide-step-text">經由中繼時，每下一手，一個連線的 <code>bytes_received</code> 和另一個連線的 <code>bytes_sent</code> 會增加大致相同的量。直接連線時，下棋也不會增加。在從一方向另一方傳送約 31 KB 資料的測試中，協作節點收到的量在直接連線時為 124 位元組，在經由中繼時約為 35 KB（由於加密和中繼的封裝，比傳送的量多一成左右）。</p>
                 <p class="guide-step-text">即使在中繼，協作節點也讀不到內容（著手、玩家ID、顯示名稱）（<a href="#node">協作節點做什麼、不做什麼</a>）。</p>
             </div>
 

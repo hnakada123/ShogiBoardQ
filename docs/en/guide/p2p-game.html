@@ -163,7 +163,7 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">The operator of the cooperating node can see IP addresses and which IP addresses connected to each other (<a href="#visibility">What Opponents and the Network Can See</a>). The node can stop or delay the traffic it relays, but cannot alter it (altered traffic fails the encryption check, and the apps reject it). If the traffic stops, it is handled the same way as a dropped connection (<a href="#disconnect">When the Connection Drops</a>).</p>
-                <p class="guide-step-text">Even after connecting through a relay, the two apps try to switch to a direct connection. Once they switch, the traffic no longer goes through the cooperating node, and Route on the Game tab changes to direct. If either player uses Do not use direct connections, the apps do not switch, and the whole game goes through the relay.</p>
+                <p class="guide-step-text">Right after connecting through a relay, the two apps try to connect directly. If they can, the game traffic does not go through the cooperating node, and Route on the Game tab shows direct. If they cannot, the game goes through the relay, and the apps try again when they reconnect. If either player uses Do not use direct connections, the apps do not try, and the whole game goes through the relay.</p>
             </div>
 
             <div class="guide-step" id="protocol">

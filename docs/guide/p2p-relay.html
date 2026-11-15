@@ -224,7 +224,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                         <tr><td><strong><code>--listen &lt;アドレス&gt;</code></strong></td><td>待ち受けるアドレスとポートです。<code>0.0.0.0</code> は、すべてのネットワークの口で待ちます。ポートは 4001 でなくてもかまいません。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">起動すると、<code>service started as</code> の後に PeerId が出ます。止めるときは Ctrl+C を押します。</p>
+                <p class="guide-step-text">起動すると、<code>service started as</code> の後に PeerId が出ます。止めるときは Ctrl+C を押します。起動した後は、1分ごとに、つながっているアプリの数（<code>peers=</code>）と、<code>--relay</code> を付けていれば中継している接続の数（<code>relays=</code>）を出します（例: <code>shogiboardq-peer: peers=2 relays=1</code>）。接続元の IP アドレスは出しません。</p>
                 <p class="guide-step-text">協力ノードには使用期限はありません（期限で止まるのは、アプリが「インターネット」に参加するときだけです）。</p>
             </div>
 
@@ -352,16 +352,16 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">経路：中継と直接</span>
                 </div>
-                <p class="guide-step-text">相手は、まず協力ノードの中継を通ってつながります。つながるとすぐ、双方のアプリが、それぞれのルーターを通り抜けて直接つなげないかを試します（ホールパンチング）。うまくいけば、「対局中」タブの「経路」が「直接」になります（多くは対局が始まる前に済みます）。</p>
-                <p class="guide-step-text">「経路」が「直接」になる場合も、協力ノードは要ります。外から直接届くPCは、招待文字列に入れるアドレスを確かめるのに協力ノードを使い、そうでないPCは、最初の接続の中継と、直接の接続への切り替えに使います。「直接接続を使わない」にしていなくても同じです。「直接」になった後は、指し手は協力ノードを通りません。</p>
-                <p class="guide-step-text">接続ごとに送り元のポートを変えるルーターや、携帯電話の回線のように何段も変換を重ねる回線では、直接つなげず、「中継」のまま対局します。中継でも対局はできますが、指し手は協力ノードを回って届くので、少し遅れることがあります。ShogiBoardQ の協力ノードは中継1本を30分で切るので、長い対局では途中で自動のつなぎ直し（「再接続中」）が入ることがあります。</p>
+                <p class="guide-step-text">相手は、まず協力ノードの中継を通ってつながります。つながるとすぐ、双方のアプリが、それぞれのルーターを通り抜けて直接つなげないかを試します（ホールパンチング）。3秒までの間に直接つなげれば、中継の接続を閉じて、条件の確認と対局を直接の接続で行います（「対局中」タブの「経路」は「直接」）。つなげなければ、中継の接続のまま進めます（「経路」は「中継」）。直接つなげるかを確かめる間、招待された人の画面は「接続しています…」のままです。</p>
+                <p class="guide-step-text">「経路」が「直接」になる場合も、協力ノードは要ります。外から直接届くPCは、招待文字列に入れるアドレスを確かめるのに協力ノードを使い、そうでないPCは、最初の接続の中継と、直接つなぐための仲立ちに使います。「直接接続を使わない」にしていなくても同じです。「直接」で指している間は、指し手は協力ノードを通りません。</p>
+                <p class="guide-step-text">接続ごとに送り元のポートを変えるルーターや、携帯電話の回線のように何段も変換を重ねる回線では、直接つなげず、「中継」のまま対局します。中継でも対局はできますが、指し手は協力ノードを回って届くので、少し遅れることがあります。ShogiBoardQ の協力ノードは中継1本を30分で切るので、長い対局では途中で自動のつなぎ直し（「再接続中」）が入ることがあります。つなぎ直すときにも、直接つなげないかをもう一度試します。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../images/p2p-game/p2p-internet-relay.png"><img src="../images/p2p-game/p2p-internet-relay.png" alt="経路が中継の「対局中」タブ" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">「経路: 中継」：ルーターが直接の接続を通さなかったとき</p>
                 </div>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../images/p2p-game/p2p-internet-direct.png"><img src="../images/p2p-game/p2p-internet-direct.png" alt="経路が直接の「対局中」タブ" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">「経路: 直接」：中継でつながった後、直接の接続に切り替わったとき</p>
+                    <p class="screenshot-caption">「経路: 直接」：中継でつながった後、ルーターを通り抜けて直接つなげたとき</p>
                 </div>
                 <p class="guide-step-text">このページの画像は、協力ノードと家庭のルーター（NAT）を Docker の中の仮想のネットワークで再現し、2つのアプリで実際に対局して撮りました。「中継」の画像は、接続ごとに送り元のポートを変えるルーターにしたものです。</p>
             </div>
@@ -399,12 +399,12 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     </thead>
                     <tbody>
                         <tr><td><strong>招待文字列に入る接続先</strong></td><td>協力ノードを経由する宛先（外から直接届くPCなら、そのPCの IP アドレスも）</td><td>協力ノードを経由する宛先だけ</td></tr>
-                        <tr><td><strong>直接の接続への切り替え</strong></td><td>試す</td><td>試さない</td></tr>
-                        <tr><td><strong>対局中の「経路」</strong></td><td>「直接」（切り替えられなければ「中継」）</td><td>ずっと「中継」</td></tr>
+                        <tr><td><strong>相手と直接つなぐこと</strong></td><td>試す</td><td>試さない</td></tr>
+                        <tr><td><strong>対局中の「経路」</strong></td><td>「直接」（直接つなげなければ「中継」）</td><td>ずっと「中継」</td></tr>
                         <tr><td><strong>あなたの IP アドレス</strong></td><td>相手は知ることができる</td><td>相手には見えない（協力ノードの運営者には見える）</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">どちらの場合も、協力ノードは要ります。この設定で変わるのは、協力ノードを使うかどうかではなく、つながった後に直接の接続へ切り替えるかどうかです。</p>
+                <p class="guide-step-text">どちらの場合も、協力ノードは要ります。この設定で変わるのは、協力ノードを使うかどうかではなく、相手と直接つなぐかどうかです。</p>
                 <ul class="guide-step-text">
                     <li><strong>協力ノードが要ります</strong>：「接続候補」に、中継のできる協力ノードを入れてください。入っていないと、「招待の経路」に「中継を使えません。…」と出て、招待しても相手は接続できません。</li>
                     <li><strong>相手と同じ協力ノード</strong>：この設定で、受け取った招待文字列で接続するときは、あなたが入れた協力ノードを通る宛先にしかつなぎません。招待した相手も同じ協力ノードを「接続候補」に入れている必要があります（違うと「この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。…」と出ます）。</li>
@@ -489,7 +489,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <li>「接続する」で接続して対局を始めると、2人とも「対局中」タブの「経路」が「中継」になります。</li>
                 </ul>
                 <p class="guide-step-text">到達候補と使える候補の数は、PCによって変わります。「ローカル」の招待文字列には、招待した人のPCのLANの中のアドレス（ネットワークの口ごとに、UDP と TCP で1つずつ。Docker などの仮想の口も含みます）、協力ノードを経由する宛先（協力ノードを <code>0.0.0.0</code> で待ち受けさせたときは、協力ノードのPCのアドレスごとに1つ）、同じPCの中だけで使えるアドレスが、この順に8件まで入ります。「直接接続を使わない」にした人が使えるのは、このうち協力ノードを経由する宛先だけです。</p>
-                <p class="guide-step-text">LANの中で確かめられるのは、協力ノードの起動、「接続候補」の入れ方、中継を通る招待と対局です。到達性の確認、ルーターを通り抜けて直接の接続に切り替える動き（ホールパンチング）、使用期限は「インターネット」だけのものなので、LANの中では試せません。インターネット越しの対局に使うときは、協力ノードを <code>--network sbq-limited-1</code> で起動し直し、アプリの「ネットワーク」を「インターネット」に戻します。</p>
+                <p class="guide-step-text">LANの中で確かめられるのは、協力ノードの起動、「接続候補」の入れ方、中継を通る招待と対局です。到達性の確認、ルーターを通り抜けて直接つなぐ動き（ホールパンチング）、使用期限は「インターネット」だけのものなので、LANの中では試せません。インターネット越しの対局に使うときは、協力ノードを <code>--network sbq-limited-1</code> で起動し直し、アプリの「ネットワーク」を「インターネット」に戻します。</p>
             </div>
 
         </div>
@@ -576,7 +576,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">「直接接続を使わない」にしなければ相手と直接つながるのなら、協力ノードは要らないのでは</span>
                 </div>
-                <p class="guide-step-text">「インターネット」では要ります。協力ノードが無いと、招待文字列に入れる接続先ができません。家庭の回線のPCどうしは、まず協力ノードの中継でつながり、その後で直接の接続に切り替わります（<a href="#play">経路：中継と直接</a>）。「ローカル」では、協力ノードが無くても同じように直接つながるので、要りません（<a href="p2p-direct.html">協力ノードなしで対局する</a>）。</p>
+                <p class="guide-step-text">「インターネット」では要ります。協力ノードが無いと、招待文字列に入れる接続先ができません。家庭の回線のPCどうしは、まず協力ノードの中継でつながり、直接つなげれば、直接の接続で対局します（<a href="#play">経路：中継と直接</a>）。「ローカル」では、協力ノードが無くても同じように直接つながるので、要りません（<a href="p2p-direct.html">協力ノードなしで対局する</a>）。</p>
             </div>
 
             <div class="guide-step">
@@ -590,24 +590,24 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">「直接接続を使わない」で対局しても、協力ノードの画面には <code>peers=2</code> としか出ません。対局のデータは協力ノードを通っているのですか</span>
+                    <span class="guide-step-title">「直接接続を使わない」で対局しているとき、対局のデータは協力ノードを通っているのですか</span>
                 </div>
-                <p class="guide-step-text">通っています。協力ノードが出力するのは、つながっているアプリの数（<code>peers=N</code>。1分に1回）だけです。中継を始めたこと、中継した量、接続元の IP アドレスは出力しません。「経路」が「直接」のときと「中継」のときの違いは、次のとおりです。</p>
+                <p class="guide-step-text">通っています。協力ノードは1分に1回、つながっているアプリの数（<code>peers=</code>）と、中継している接続の数（<code>relays=</code>）を出力します（例: <code>shogiboardq-peer: peers=2 relays=1</code>）。対局のデータが協力ノードを通っている間は、<code>relays</code> が 1 以上になります。中継した量と、接続元の IP アドレスは出力しません。相手と直接つながっている対局と、中継を通っている対局の違いは、次のとおりです。</p>
                 <table class="info-table">
                     <thead>
-                        <tr><th scope="col">比べること</th><th scope="col">「経路: 直接」</th><th scope="col">「経路: 中継」</th></tr>
+                        <tr><th scope="col">比べること</th><th scope="col">相手と直接つながっている対局</th><th scope="col">中継を通っている対局</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>そうなるとき</strong></td><td>だれも「直接接続を使わない」にしていなくて、直接つなげたとき</td><td>2人のどちらかが「直接接続を使わない」にしているとき。または、直接つなげなかったとき</td></tr>
+                        <tr><td><strong>そうなるとき</strong></td><td>相手のPCへ直接つなげたとき（「ローカル」の対局、ルーターを通り抜けて直接つなげたインターネット越しの対局）</td><td>直接つなげなかったとき、「直接接続を使わない」にしたとき</td></tr>
                         <tr><td><strong>指し手の通り道</strong></td><td>あなたのアプリ ⇄ 相手のアプリ</td><td>あなたのアプリ → 協力ノード → 相手のアプリ</td></tr>
                         <tr><td><strong>協力ノードの通信量</strong></td><td>接続を保つ分だけで、指しても増えない</td><td>指すたびに、片方から受け取った量とほぼ同じ量を、もう片方へ送る</td></tr>
-                        <tr><td><strong>協力ノードの出力</strong></td><td><code>peers=2</code></td><td><code>peers=2</code>（同じ）</td></tr>
+                        <tr><td><strong>協力ノードの出力</strong></td><td><code>peers=2 relays=0</code></td><td><code>peers=2 relays=1</code></td></tr>
                         <tr><td><strong>対局中に協力ノードを止めると</strong></td><td>対局の接続は切れない</td><td>対局の接続が切れる（120秒以内につなぎ直せなければ中断）</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">どちらの経路で指しているかは、アプリの「対局中」タブの「経路」で分かります。協力ノードを動かしているPC（Linux）では、次のコマンドで、協力ノードの接続ごとの通信量を見られます（<code>bytes_received</code> が受け取った量、<code>bytes_sent</code> が送った量）。<code>4001</code> は <code>--listen</code> に書いたポートです。</p>
+                <p class="guide-step-text">どちらで指しているかは、アプリの「対局中」タブの「経路」と、協力ノードの出力の <code>relays</code> で分かります。協力ノードを動かしているPC（Linux）では、次のコマンドで、協力ノードの接続ごとの通信量を見られます（<code>bytes_received</code> が受け取った量、<code>bytes_sent</code> が送った量）。<code>4001</code> は <code>--listen</code> に書いたポートです。</p>
                 <div class="build-steps"><pre><code>$ ss -tin 'sport = :4001'</code></pre></div>
-                <p class="guide-step-text">「中継」なら、1手指すたびに、片方の接続の <code>bytes_received</code> と、もう片方の接続の <code>bytes_sent</code> が同じくらい増えます。「直接」なら、指しても増えません。片方からもう片方へ約31KBのデータを送って試したところ、協力ノードが受け取った量は、「直接」で124バイト、「中継」で約35KBでした（暗号化と中継の包みの分、送った量より1割ほど多くなります）。</p>
+                <p class="guide-step-text">中継を通っていれば、1手指すたびに、片方の接続の <code>bytes_received</code> と、もう片方の接続の <code>bytes_sent</code> が同じくらい増えます。直接つながっていれば、指しても増えません。片方からもう片方へ約31KBのデータを送って試したところ、協力ノードが受け取った量は、直接つながっているときで124バイト、中継を通っているときで約35KBでした（暗号化と中継の包みの分、送った量より1割ほど多くなります）。</p>
                 <p class="guide-step-text">中継していても、協力ノードは中身（指し手・プレイヤーID・表示名）を読めません（<a href="#node">協力ノードがすること・しないこと</a>）。</p>
             </div>
 
