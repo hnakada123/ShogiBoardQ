@@ -45,8 +45,8 @@ void MainWindowAppearanceController::setupCentralWidgetContainer(QWidget* centra
 bool MainWindowAppearanceController::eventFilter(QObject* watched, QEvent* event)
 {
     if (watched == m_mainWindow && event->type() == QEvent::WindowStateChange) {
-        // 通常表示の固定幅が全画面表示・最大化時のサイズ変更を妨げないようにする。
-        if (m_mainWindow->isFullScreen() || m_mainWindow->isMaximized()) {
+        // 通常表示の固定幅が全画面表示・最大化時のサイズ変更を妨げないようにする（macOS の最大化は fillsScreen() の説明）。
+        if (fillsScreen()) {
             m_mainWindow->setMinimumWidth(0);
             m_mainWindow->setMaximumWidth(QWIDGETSIZE_MAX);
         }
@@ -60,6 +60,20 @@ bool MainWindowAppearanceController::eventFilter(QObject* watched, QEvent* event
         scheduleWindowSizeUpdate();
     }
     return QObject::eventFilter(watched, event);
+}
+
+bool MainWindowAppearanceController::fillsScreen() const
+{
+    if (m_mainWindow->isFullScreen()) return true;
+#ifdef Q_OS_MACOS
+    // macOS の最大化（ズーム）は、最大の大きさまでしか広げない: 横幅を固定したウィンドウは、幅はそのままで
+    // 高さだけが画面いっぱいになる。そのうえ、画面より高いウィンドウの幅を変えただけでも最大化と報告される
+    // （上端のドックを盤の横へ移した直後など。OS は画面に収まる高さに縮め、幅も前の値に戻す）。ここで横幅の
+    // 固定をやめると、配置に足りない幅のまま残り、右のドックがウィンドウの外に出て見えなくなる
+    return false;
+#else
+    return m_mainWindow->isMaximized();
+#endif
 }
 
 void MainWindowAppearanceController::scheduleWindowSizeUpdate()
@@ -77,8 +91,7 @@ void MainWindowAppearanceController::updateWindowSize()
     if (m_dockDragActive) return;
     if (!m_mainWindow || !m_mainWindow->isVisible() || !m_mainWindow->layout()) return;
     // setFixedWidth() によるリサイズは全画面表示・最大化を解除してしまう。
-    if (m_mainWindow->isFullScreen() || m_mainWindow->isMaximized()
-        || m_mainWindow->isMinimized()) return;
+    if (fillsScreen() || m_mainWindow->isMinimized()) return;
 
     // 棋譜の列幅・ドック配置の再計算後、内容に必要な横幅に固定する。
     // 高さは従来どおり変更でき、盤の拡縮やフォント変更時には横幅も追従する。

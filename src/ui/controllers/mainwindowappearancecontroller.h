@@ -81,6 +81,8 @@ private:
     void configureToolBar(QToolBar* toolBar);
     void setupBoardInCenter();
     bool eventFilter(QObject* watched, QEvent* event) override;
+    /// 画面いっぱいに広げているか（全画面・最大化。横幅を配置に合わせて固定しない）
+    bool fillsScreen() const;
     void scheduleWindowSizeUpdate();
     /// 横幅を今の配置に必要な幅に固定する。高さは、今の配置に足りないときだけ必要な高さにする
     void updateWindowSize();

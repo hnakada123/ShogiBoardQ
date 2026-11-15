@@ -521,6 +521,31 @@ private slots:
         QTRY_VERIFY(s.isFitted());
     }
 
+    /// macOS の最大化（ズーム）は、横幅を固定したまま高さだけを画面に合わせる。画面より高いウィンドウの幅を
+    /// 変えただけでも最大化と報告されるので、最大化でも横幅を配置に合わせ続ける
+    void widthFollowsLayoutWhileZoomedOnMac()
+    {
+#ifndef Q_OS_MACOS
+        QSKIP("macOS の最大化（ズーム）の扱い");
+#else
+        Setup s;
+        QVERIFY(s.showAndSettle());
+        const int dockedWidth = s.window.width();
+        s.window.setWindowState(Qt::WindowMaximized);
+        QTRY_VERIFY(s.window.isMaximized());
+        QTRY_VERIFY(s.isFitted());
+        QCOMPARE(s.window.width(), dockedWidth);
+
+        s.record->setFloating(true);
+        QTRY_VERIFY(s.window.width() < dockedWidth);
+        QTRY_VERIFY(s.isFitted());
+        s.record->setFloating(false);
+        QTRY_COMPARE(s.window.width(), dockedWidth);
+        QTRY_VERIFY(s.isFitted());
+        QTRY_VERIFY(s.record->geometry().right() < s.window.width());
+#endif
+    }
+
     /// 固定した横幅と違う幅にされたら（Wayland のコンポジターが古い大きさで戻す）、合わせ直す
     void widthImposedFromOutsideIsCorrected()
     {
