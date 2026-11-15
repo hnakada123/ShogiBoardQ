@@ -3,3 +3,9 @@ contact_links:
   - name: 脆弱性の非公開の報告
     url: https://github.com/hnakada123/ShogiBoardQ/security/advisories/new
     about: 脆弱性は公開の Issue に書かず、こちらから報告してください（SECURITY.md）
+  - name: 機能の要望・提案
+    url: https://github.com/hnakada123/ShogiBoardQ/discussions/new?category=ideas
+    about: ほしい機能や変えてほしい点は、Discussions の Ideas に書いてください
+  - name: 使い方の質問
+    url: https://github.com/hnakada123/ShogiBoardQ/discussions/new?category=q-a
+    about: 使い方の質問や、不具合かどうか分からないことは、Discussions の Q&A に書いてください
