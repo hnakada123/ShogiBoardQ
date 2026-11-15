@@ -84,6 +84,7 @@
             <li><a href="#invite-rules">How Many People You Can Invite, and How Often</a></li>
             <li><a href="#lan">Play Another PC on the Same LAN</a></li>
             <li><a href="#same-pc">Try It on One PC</a></li>
+            <li><a href="#qa">Questions and Answers</a></li>
         </ol>
     </div>
 </nav>
@@ -296,6 +297,74 @@
                 </div>
                 <p class="guide-step-text">If you start this app several times on the same PC and open P2P Game in each, the second one opens automatically as Player 2, the third as Player 3, and so on (up to eight at a time). The window title and the note at the top show which player it is. When only one app is running, it is always Player 1.</p>
                 <p class="guide-step-text">The player key (player ID), display name, game records and opponent list are saved separately for each player. Connect both to Local (same PC / same LAN), then paste the invitation created in one into the other to play without a cooperating node. Since the connection stays within the same PC, you usually do not need to change the firewall either.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="qa" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Questions and Answers</h2>
+        <p class="section-desc">Common questions about playing without a cooperating node, and their answers</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">Do I really not need a cooperating node?</span>
+                </div>
+                <p class="guide-step-text">No, you do not. On Local (same PC / same LAN), the invitation contains this PC's address on the LAN, and the opponent's PC can reach it directly. You cannot connect to an opponent on the Internet this way (<a href="p2p-relay.html">Playing with a Cooperating Node</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">"Could not connect to the opponent." appears, and I cannot connect</span>
+                </div>
+                <p class="guide-step-text">The firewall on the inviter's PC may be blocking connections to TCP and UDP port 48210. Open the port, or swap who creates the invitation (<a href="#lan">Play Another PC on the Same LAN</a>). On a network that blocks traffic between connected devices, such as guest Wi-Fi, you cannot connect even on the same LAN.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">How many times can an invitation be used? Can I give invitations to several people?</span>
+                </div>
+                <p class="guide-step-text">Only one person can connect with an invitation, once, and it stops working 10 minutes after it is created. To play the same opponent again, create a new invitation. To invite several people, create one invitation for each (up to four can be valid at the same time). You can play only one game at a time (<a href="#invite-rules">How Many People You Can Invite, and How Often</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">What does the number of addresses mean?</span>
+                </div>
+                <p class="guide-step-text">It is the number of addresses the invitation contains (up to 8). On Local, the invitation contains this PC's addresses on the LAN (one each for UDP and TCP per network interface, including those of VPNs and virtual devices) and addresses used only within the same PC, so the number differs from PC to PC.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">Should I check Do not use direct connections?</span>
+                </div>
+                <p class="guide-step-text">No. When checked, the app stops using direct connections within the LAN, so you cannot connect (Invitation route shows "No relay is available. …"). On Local, your opponent can see only your address on the LAN. This setting is for hiding your IP address from your opponent in games over the Internet (<a href="p2p-relay.html#relay-only">Play Without Showing Your IP Address</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">Can I try a game on one PC?</span>
+                </div>
+                <p class="guide-step-text">Yes. Start this app twice on the same PC and open P2P Game in each; the second one opens automatically as Player 2. The player key, display name and game records are saved separately for each player (<a href="#same-pc">Try It on One PC</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">What happens to the connection and my invitations if I quit ShogiBoardQ?</span>
+                </div>
+                <p class="guide-step-text">The connection is closed, and valid invitations stop working. If you quit during a game, the game cannot be resumed and the result stays unconfirmed (<a href="p2p-game.html#disconnect">When the Connection Drops</a>). If you only close the P2P Game window, the connection and the game continue.</p>
             </div>
 
         </div>

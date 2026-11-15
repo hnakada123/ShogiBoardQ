@@ -87,6 +87,7 @@
             <li><a href="#playing">During the Game</a></li>
             <li><a href="#records">Game Records and Verification</a></li>
             <li><a href="#limits">What Cannot Be Prevented and What Others See</a></li>
+            <li><a href="#qa">Questions and Answers</a></li>
         </ol>
     </div>
 </nav>
@@ -831,6 +832,90 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">The app never publishes your game records or sends them anywhere.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 9 -->
+<section id="qa" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Questions and Answers</h2>
+        <p class="section-desc">Common questions about P2P games, and their answers</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">With no game server, how are illegal moves and the result decided?</span>
+                </div>
+                <p class="guide-step-text">The two apps take on the referee's job. Each app checks the opponent's moves by the same rules, rejects a move that breaks them, and interrupts the game. When the game ends, both apps determine the result from the game record and compare them; if they match, the apps confirm the result with their player keys (<a href="#how-it-works">Why Games Work without a Server</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">How do I find an opponent?</span>
+                </div>
+                <p class="guide-step-text">By invitation. The inviter creates an invitation and sends it to the opponent, for example in a private message. The feature is meant for playing people you know; there is no public list for finding strangers (<a href="p2p-direct.html#steps">Steps to Start a Game</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">What do I need to play someone far away?</span>
+                </div>
+                <p class="guide-step-text">One cooperating node. Someone who can provide a server reachable from the Internet runs it, and both players enter its address in Bootstrap nodes on the Settings tab and connect to Internet (<a href="p2p-relay.html">Playing with a Cooperating Node</a>). To play someone on the same PC or LAN, you do not need a cooperating node (<a href="p2p-direct.html">Playing Without a Cooperating Node</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">Can my opponent see my IP address?</span>
+                </div>
+                <p class="guide-step-text">On Local, your opponent can see only your address on the LAN. With a direct connection on Internet, your opponent can find your IP address on the Internet by inspecting the traffic (it is not shown on screen). With Do not use direct connections on the Settings tab, your opponent sees only the cooperating node's address (<a href="p2p-relay.html#relay-only">Play Without Showing Your IP Address</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">What is the difference between "direct" and "relay" in Route on the Game tab?</span>
+                </div>
+                <p class="guide-step-text">"direct" means you are connected directly to the opponent's app; "relay" means the connection goes through the relay of a cooperating node. Even through the relay, the two apps check the moves and confirm the result, and the cooperating node only passes along traffic that stays encrypted (<a href="#relay-not-server">A Relay Does Not Make the Cooperating Node a Game Server</a>). Through the relay, moves may arrive a little later (<a href="p2p-relay.html#play">Route: Relay and Direct</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">What happens if I close the P2P Game window or quit ShogiBoardQ?</span>
+                </div>
+                <p class="guide-step-text">Closing the window does not end the connection or the game (to open it again, choose Game → P2P Game…). Quitting ShogiBoardQ closes the connection. If you quit during a game, the game cannot be resumed and the result stays unconfirmed. The record up to that point appears as an unconfirmed record the next time you open the window (<a href="#tabs">The Tabs of the Window</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">Do I lose if the connection drops during a game?</span>
+                </div>
+                <p class="guide-step-text">No. The app reconnects automatically. If the connection cannot be restored within 120 seconds, or the total disconnection time in one game exceeds 10 minutes, the game ends as Communication lost (unconfirmed). A failure on your own line cannot be told apart from a deliberate disconnection, so a disconnection is not treated as a loss (<a href="#disconnect">When the Connection Drops</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">Can I use consideration or game analysis during a game?</span>
+                </div>
+                <p class="guide-step-text">No. P2P games are played between humans, and consideration, mate search, game analysis, and the opening book display are unavailable during a game (Game Rules under <a href="#about">What Are P2P Games?</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">What does a game record (evidence) prove?</span>
+                </div>
+                <p class="guide-step-text">A record with the status Confirmed by both shows that both players agreed on the result. Anyone can verify the evidence, and any change made after confirmation is caught by verification. A record does not prove the actual thinking time, that humans played, or when the game was played (<a href="#records">Game Records and Verification</a>).</p>
             </div>
 
         </div>

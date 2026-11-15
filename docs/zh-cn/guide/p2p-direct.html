@@ -84,6 +84,7 @@
             <li><a href="#invite-rules">可以邀请的人数与次数</a></li>
             <li><a href="#lan">与同一局域网的另一台电脑对局</a></li>
             <li><a href="#same-pc">在同一台电脑上试用</a></li>
+            <li><a href="#qa">常见问题</a></li>
         </ol>
     </div>
 </nav>
@@ -296,6 +297,74 @@
                 </div>
                 <p class="guide-step-text">在同一台电脑上多次启动本应用，并分别打开“P2P对局”，第二个会自动以“第2位玩家”的身份打开，第三个为“第3位玩家”（最多同时8个）。窗口标题和顶部的说明会显示是第几位玩家。只启动一个应用时，始终是第1位玩家。</p>
                 <p class="guide-step-text">玩家密钥（玩家ID）、显示名、对局记录和对手列表会按玩家分别保存。两边都以“本地（同一电脑・同一局域网）”连接，然后把其中一个生成的邀请字符串粘贴到另一个，无需协作节点即可对局。由于是同一台电脑内的连接，通常也不需要设置防火墙。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="qa" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">常见问题</h2>
+        <p class="section-desc">不使用协作节点对局时常见的疑问及其解答</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">真的不需要协作节点吗</span>
+                </div>
+                <p class="guide-step-text">不需要。在“本地（同一电脑・同一局域网）”下，邀请字符串中包含这台电脑在局域网内的地址，对手的电脑可以直接到达。用这种方式无法连接互联网上的对手（<a href="p2p-relay.html">使用协作节点对局</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">显示“无法连接到对手。”，连接不上</span>
+                </div>
+                <p class="guide-step-text">可能是邀请方电脑的防火墙阻止了到 TCP 和 UDP 的 48210 号端口的连接。请开放端口，或交换邀请方（<a href="#lan">与同一局域网的另一台电脑对局</a>）。在访客 Wi-Fi 等阻止已连接设备之间通信的网络中，即使在同一局域网也无法连接。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">邀请字符串可以用几次？可以交给几个人吗</span>
+                </div>
+                <p class="guide-step-text">一个邀请字符串只能让一个人连接一次，生成 10 分钟后失效。与同一对手再下一局时，请重新生成邀请字符串。要交给几个人时，为每个人各生成一个（同时有效的最多 4 个）。一次只能下一局（<a href="#invite-rules">可以邀请的人数与次数</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">“地址”的数量是什么的数量</span>
+                </div>
+                <p class="guide-step-text">是邀请字符串中包含的连接地址的数量（最多 8 个）。在“本地”下，其中包含这台电脑在局域网内的地址（每个网络接口各有 UDP 和 TCP 一个，也包括 VPN 和虚拟设备的地址）和只在同一台电脑内使用的地址，因此数量因电脑而异。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">应该勾选“不使用直接连接”吗</span>
+                </div>
+                <p class="guide-step-text">不要勾选。勾选后，局域网内的直接连接也不再使用，因此无法连接（“邀请的路径”中显示“无法使用中继。…”）。在“本地”下，对手能看到的只有局域网内的地址。这个设置用于在通过互联网对局时不让对手看到 IP 地址（<a href="p2p-relay.html#relay-only">不让对手看到 IP 地址对局</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">可以用一台电脑试用对局吗</span>
+                </div>
+                <p class="guide-step-text">可以。在同一台电脑上启动两个本应用，并分别打开“P2P对局”，第二个会自动以“第2位玩家”的身份打开。玩家密钥、显示名和对局记录按第几位玩家分别保存（<a href="#same-pc">在同一台电脑上试用</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">退出 ShogiBoardQ 时，连接和邀请字符串会怎样</span>
+                </div>
+                <p class="guide-step-text">连接会断开，有效的邀请字符串也会失效。对局中退出时，无法回到同一局对局，结果不会确定（<a href="p2p-game.html#disconnect">线路断开时</a>）。只关闭 P2P对局的窗口时，连接和对局都会继续。</p>
             </div>
 
         </div>

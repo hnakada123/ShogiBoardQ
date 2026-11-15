@@ -87,6 +87,7 @@
             <li><a href="#playing">对局中</a></li>
             <li><a href="#records">对局记录与验证</a></li>
             <li><a href="#limits">无法防止的情况与对方可以看到的信息</a></li>
+            <li><a href="#qa">常见问题</a></li>
         </ol>
     </div>
 </nav>
@@ -831,6 +832,90 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">本应用不会公开对局记录，也不会把它发送到任何地方。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 9 -->
+<section id="qa" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">常见问题</h2>
+        <p class="section-desc">关于P2P对局的常见疑问及其解答</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">没有对局服务器，犯规和胜负是怎么决定的</span>
+                </div>
+                <p class="guide-step-text">裁判的工作由双方的应用承担。双方的应用按同样的规则验证对手的着手，不符合规则的着手不会被接受，并中断对局。终局后，双方的应用根据棋谱决定结果并相互对照，一致时用玩家密钥确定（<a href="#how-it-works">没有服务器也能对局的原因</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">怎样寻找对局的对手</span>
+                </div>
+                <p class="guide-step-text">通过邀请决定。邀请方生成邀请字符串，通过私信等方式交给对方。这是与熟人下棋的功能，没有寻找不特定对手的公开招募（<a href="p2p-direct.html#steps">开始对局的步骤</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">与远方的对手对局需要什么</span>
+                </div>
+                <p class="guide-step-text">需要一个协作节点。由能够准备互联网可以到达的服务器的人启动，两人都把它的地址填入“设置”标签页的“连接候选”，并以“互联网”连接（<a href="p2p-relay.html">使用协作节点对局</a>）。与同一电脑・同一局域网的对手对局时，不需要协作节点（<a href="p2p-direct.html">不使用协作节点对局</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">对手能看到我的 IP 地址吗</span>
+                </div>
+                <p class="guide-step-text">在“本地”下，对手能看到的只有局域网内的地址。在“互联网”下直接连接时，对手通过检查通信可以得知您在互联网上的 IP 地址（画面上不显示）。在“设置”标签页中选择“不使用直接连接”后，对手只能看到协作节点的地址（<a href="p2p-relay.html#relay-only">不让对手看到 IP 地址对局</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">“对局中”标签页的“路径”中，“直接”和“中继”有什么区别</span>
+                </div>
+                <p class="guide-step-text">“直接”表示与对手的应用直接连接，“中继”表示经过协作节点的中继。经过中继时，着手的验证和结果的确定仍由双方的应用进行，协作节点只是转发保持加密的通信（<a href="#relay-not-server">经过中继时，协作节点也不是对局服务器</a>）。经过中继时，着手可能会稍有延迟（<a href="p2p-relay.html#play">路径：中继与直接</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">关闭 P2P对局的窗口或退出 ShogiBoardQ 时会怎样</span>
+                </div>
+                <p class="guide-step-text">关闭窗口后，连接和对局仍会继续（要再次打开，请选择“对局”→“P2P对局…”）。退出 ShogiBoardQ 时，连接会断开。对局中退出时，无法回到同一局对局，结果不会确定。到那时为止的记录，会在下次打开时作为“结果未确定”的记录保留（<a href="#tabs">窗口的标签页</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">对局中线路断开，会判负吗</span>
+                </div>
+                <p class="guide-step-text">不会。应用会自动重新连接。120 秒内无法恢复连接时，或一局的断线时间总计超过 10 分钟时，对局以“通信中断（结果未确定）”结束。由于无法区分自己线路的故障和对手的故意断线，断线不会被视为输棋（<a href="#disconnect">线路断开时</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">对局中可以使用研究或棋谱分析吗</span>
+                </div>
+                <p class="guide-step-text">不可以。P2P对局是人与人之间的对局，对局中不能使用研究、诘棋搜索、棋谱分析和定式显示（<a href="#about">什么是P2P对局</a>中的“对局规则”）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">对局记录（凭证）能证明什么</span>
+                </div>
+                <p class="guide-step-text">“双方已确定”的记录能表明双方同意了同一结果。凭证任何人都可以验证，确定之后的改动会在验证时被发现。记录不能证明实际思考时间、是否由人类下棋以及对局日期（<a href="#records">对局记录与验证</a>）。</p>
             </div>
 
         </div>

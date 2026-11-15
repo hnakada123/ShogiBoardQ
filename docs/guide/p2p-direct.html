@@ -84,6 +84,7 @@
             <li><a href="#invite-rules">招待できる人数と回数</a></li>
             <li><a href="#lan">同じLANの別のPCと対局する</a></li>
             <li><a href="#same-pc">同じPCで試す</a></li>
+            <li><a href="#qa">よくある質問</a></li>
         </ol>
     </div>
 </nav>
@@ -296,6 +297,74 @@
                 </div>
                 <p class="guide-step-text">このアプリを同じPCでいくつか起動して、それぞれで「P2P対局」を開くと、2つ目は自動で「2人目」、3つ目は「3人目」として開きます（同時に8つまで）。何人目かは、ウィンドウの題名と上の案内に出ます。アプリを1つだけ起動しているときは、いつも1人目です。</p>
                 <p class="guide-step-text">プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、何人目かごとに別に保存します。両方とも「ローカル（同じPC・同じLAN）」で接続し、片方で作った招待文字列をもう片方に貼り付ければ、協力ノードなしで対局できます。同じPCの中の接続なので、ふつうはファイアウォールの設定も要りません。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="qa" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">よくある質問</h2>
+        <p class="section-desc">協力ノードなしの対局で、よく出る疑問と、その答えです</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">協力ノードは、本当に要りませんか</span>
+                </div>
+                <p class="guide-step-text">要りません。「ローカル（同じPC・同じLAN）」では、招待文字列にこのPCのLANの中のアドレスが入り、相手のPCからそのまま届きます。インターネット上の相手とは、このしかたではつながりません（<a href="p2p-relay.html">協力ノードを使って対局する</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">「相手に接続できませんでした。」と出て、つながりません</span>
+                </div>
+                <p class="guide-step-text">招待した人のPCのファイアウォールが、TCP と UDP の 48210 番ポートへの接続を止めていることがあります。ポートを開けるか、招待する人を入れ替えます（<a href="#lan">同じLANの別のPCと対局する</a>）。ゲスト用の Wi-Fi など、つないだ機器どうしの通信を止めているネットワークでは、同じLANでもつながりません。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">招待文字列は、何回使えますか。何人かに渡せますか</span>
+                </div>
+                <p class="guide-step-text">1つの招待文字列でつなげるのは1人・1回だけで、作ってから10分で使えなくなります。同じ相手ともう1局指すときは、新しい招待文字列を作ります。何人かに渡すときは、1人に1つずつ作ります（同時に有効にできるのは4つまで）。指せるのは一度に1局です（<a href="#invite-rules">招待できる人数と回数</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">「到達候補」の数は、何の数ですか</span>
+                </div>
+                <p class="guide-step-text">招待文字列に入っている接続先の数です（8件まで）。「ローカル」では、このPCのLANの中のアドレス（ネットワークの口ごとに、UDP と TCP で1つずつ。VPN や仮想の機器のアドレスも含みます）と、同じPCの中だけで使うアドレスが入るので、PCによって数が違います。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">「直接接続を使わない」にチェックを付けた方がよいですか</span>
+                </div>
+                <p class="guide-step-text">付けません。付けると、LANの中の直接の接続を使わなくなるので、つながりません（「招待の経路」に「中継を使えません。…」と出ます）。「ローカル」で相手に見えるのは、LANの中のアドレスだけです。この設定は、インターネット越しの対局で、相手に IP アドレスを見せないためのものです（<a href="p2p-relay.html#relay-only">相手に IP アドレスを見せずに対局する</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">1台のPCで、対局を試せますか</span>
+                </div>
+                <p class="guide-step-text">試せます。このアプリを同じPCで2つ起動し、それぞれで「P2P対局」を開くと、2つ目は自動で「2人目」として開きます。プレイヤー鍵・表示名・対局記録は、何人目かごとに別に保存します（<a href="#same-pc">同じPCで試す</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">ShogiBoardQ を終了すると、接続や招待文字列はどうなりますか</span>
+                </div>
+                <p class="guide-step-text">接続は切れ、有効な招待文字列も使えなくなります。対局中に終了すると、同じ対局には戻れず、結果は確定しません（<a href="p2p-game.html#disconnect">回線が切れたとき</a>）。P2P対局のウィンドウを閉じただけなら、接続と対局は続きます。</p>
             </div>
 
         </div>

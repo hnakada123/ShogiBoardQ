@@ -87,6 +87,7 @@
             <li><a href="#playing">對局中</a></li>
             <li><a href="#records">對局記錄與驗證</a></li>
             <li><a href="#limits">無法防止的情況與對方可以看到的資訊</a></li>
+            <li><a href="#qa">常見問題</a></li>
         </ol>
     </div>
 </nav>
@@ -831,6 +832,90 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">本應用程式不會公開對局記錄，也不會把它傳送到任何地方。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 9 -->
+<section id="qa" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">常見問題</h2>
+        <p class="section-desc">關於P2P對局的常見疑問及其解答</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">沒有對局伺服器，犯規和勝負是怎麼決定的</span>
+                </div>
+                <p class="guide-step-text">裁判的工作由雙方的應用程式承擔。雙方的應用程式按同樣的規則驗證對手的著手，不符合規則的著手不會被接受，並中斷對局。終局後，雙方的應用程式根據棋譜決定結果並相互對照，一致時用玩家金鑰確定（<a href="#how-it-works">沒有伺服器也能對局的原因</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">怎樣尋找對局的對手</span>
+                </div>
+                <p class="guide-step-text">透過邀請決定。邀請方產生邀請字串，透過私訊等方式交給對方。這是與熟人下棋的功能，沒有尋找不特定對手的公開招募（<a href="p2p-direct.html#steps">開始對局的步驟</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">與遠方的對手對局需要什麼</span>
+                </div>
+                <p class="guide-step-text">需要一個協作節點。由能夠準備網際網路可以到達的伺服器的人啟動，兩人都把它的位址填入「設定」分頁的「連線候選」，並以「網際網路」連線（<a href="p2p-relay.html">使用協作節點對局</a>）。與同一電腦・同一區域網路的對手對局時，不需要協作節點（<a href="p2p-direct.html">不使用協作節點對局</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">對手能看到我的 IP 位址嗎</span>
+                </div>
+                <p class="guide-step-text">在「本機」下，對手能看到的只有區域網路內的位址。在「網際網路」下直接連線時，對手透過檢查通訊可以得知您在網際網路上的 IP 位址（畫面上不顯示）。在「設定」分頁中選擇「不使用直接連線」後，對手只能看到協作節點的位址（<a href="p2p-relay.html#relay-only">不讓對手看到 IP 位址對局</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">「對局中」分頁的「路徑」中，「直接」和「中繼」有什麼差別</span>
+                </div>
+                <p class="guide-step-text">「直接」表示與對手的應用程式直接連線，「中繼」表示經過協作節點的中繼。經過中繼時，著手的驗證和結果的確定仍由雙方的應用程式進行，協作節點只是轉送保持加密的通訊（<a href="#relay-not-server">經過中繼時，協作節點也不是對局伺服器</a>）。經過中繼時，著手可能會稍有延遲（<a href="p2p-relay.html#play">路徑：中繼與直接</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">關閉 P2P對局的視窗或結束 ShogiBoardQ 時會怎樣</span>
+                </div>
+                <p class="guide-step-text">關閉視窗後，連線和對局仍會繼續（要再次開啟，請選擇「對局」→「P2P對局…」）。結束 ShogiBoardQ 時，連線會中斷。對局中結束時，無法回到同一局對局，結果不會確定。到那時為止的記錄，會在下次開啟時作為「結果未確定」的記錄保留（<a href="#tabs">視窗的分頁</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">對局中線路中斷，會判負嗎</span>
+                </div>
+                <p class="guide-step-text">不會。應用程式會自動重新連線。120 秒內無法恢復連線時，或一局的斷線時間總計超過 10 分鐘時，對局以「通訊中斷（結果未確定）」結束。由於無法區分自己線路的故障和對手的故意斷線，斷線不會被視為輸棋（<a href="#disconnect">線路中斷時</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">對局中可以使用研究或棋譜分析嗎</span>
+                </div>
+                <p class="guide-step-text">不可以。P2P對局是人與人之間的對局，對局中不能使用研究、詰棋搜尋、棋譜分析和定式顯示（<a href="#about">什麼是P2P對局</a>中的「對局規則」）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">對局記錄（憑證）能證明什麼</span>
+                </div>
+                <p class="guide-step-text">「雙方已確定」的記錄能表明雙方同意了同一結果。憑證任何人都可以驗證，確定之後的改動會在驗證時被發現。記錄不能證明實際思考時間、是否由人類下棋以及對局日期（<a href="#records">對局記錄與驗證</a>）。</p>
             </div>
 
         </div>

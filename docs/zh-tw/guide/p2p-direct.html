@@ -84,6 +84,7 @@
             <li><a href="#invite-rules">可以邀請的人數與次數</a></li>
             <li><a href="#lan">與同一區域網路的另一台電腦對局</a></li>
             <li><a href="#same-pc">在同一台電腦上試用</a></li>
+            <li><a href="#qa">常見問題</a></li>
         </ol>
     </div>
 </nav>
@@ -296,6 +297,74 @@
                 </div>
                 <p class="guide-step-text">在同一台電腦上多次啟動本應用程式，並分別開啟「P2P對局」，第二個會自動以「第2位玩家」的身分開啟，第三個為「第3位玩家」（最多同時8個）。視窗標題和頂端的說明會顯示是第幾位玩家。只啟動一個應用程式時，一律是第1位玩家。</p>
                 <p class="guide-step-text">玩家金鑰（玩家ID）、顯示名稱、對局記錄和對手清單會依玩家分別儲存。兩邊都以「本機（同一電腦・同一區域網路）」連線，然後把其中一個產生的邀請字串貼到另一個，無需協作節點即可對局。由於是同一台電腦內的連線，通常也不需要設定防火牆。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="qa" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">常見問題</h2>
+        <p class="section-desc">不使用協作節點對局時常見的疑問及其解答</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">真的不需要協作節點嗎</span>
+                </div>
+                <p class="guide-step-text">不需要。在「本機（同一電腦・同一區域網路）」下，邀請字串中包含這台電腦在區域網路內的位址，對手的電腦可以直接到達。用這種方式無法連線到網際網路上的對手（<a href="p2p-relay.html">使用協作節點對局</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">顯示「無法連線到對手。」，連線不上</span>
+                </div>
+                <p class="guide-step-text">可能是邀請方電腦的防火牆阻擋了到 TCP 和 UDP 的 48210 連接埠的連線。請開放連接埠，或交換邀請方（<a href="#lan">與同一區域網路的另一台電腦對局</a>）。在訪客 Wi-Fi 等阻擋已連線裝置之間通訊的網路中，即使在同一區域網路也無法連線。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">邀請字串可以用幾次？可以交給幾個人嗎</span>
+                </div>
+                <p class="guide-step-text">一個邀請字串只能讓一個人連線一次，產生 10 分鐘後失效。與同一對手再下一局時，請重新產生邀請字串。要交給幾個人時，為每個人各產生一個（同時有效的最多 4 個）。一次只能下一局（<a href="#invite-rules">可以邀請的人數與次數</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">「位址」的數量是什麼的數量</span>
+                </div>
+                <p class="guide-step-text">是邀請字串中包含的連線位址的數量（最多 8 個）。在「本機」下，其中包含這台電腦在區域網路內的位址（每個網路介面各有 UDP 和 TCP 一個，也包括 VPN 和虛擬裝置的位址）和只在同一台電腦內使用的位址，因此數量因電腦而異。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">應該勾選「不使用直接連線」嗎</span>
+                </div>
+                <p class="guide-step-text">不要勾選。勾選後，區域網路內的直接連線也不再使用，因此無法連線（「邀請的路徑」中顯示「無法使用中繼。…」）。在「本機」下，對手能看到的只有區域網路內的位址。這個設定用於在透過網際網路對局時不讓對手看到 IP 位址（<a href="p2p-relay.html#relay-only">不讓對手看到 IP 位址對局</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">可以用一台電腦試用對局嗎</span>
+                </div>
+                <p class="guide-step-text">可以。在同一台電腦上啟動兩個本應用程式，並分別開啟「P2P對局」，第二個會自動以「第2位玩家」的身分開啟。玩家金鑰、顯示名稱和對局記錄按第幾位玩家分別儲存（<a href="#same-pc">在同一台電腦上試用</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">結束 ShogiBoardQ 時，連線和邀請字串會怎樣</span>
+                </div>
+                <p class="guide-step-text">連線會中斷，有效的邀請字串也會失效。對局中結束時，無法回到同一局對局，結果不會確定（<a href="p2p-game.html#disconnect">線路中斷時</a>）。只關閉 P2P對局的視窗時，連線和對局都會繼續。</p>
             </div>
 
         </div>
