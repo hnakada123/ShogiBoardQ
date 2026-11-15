@@ -629,6 +629,19 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                 </table>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">ネットワークに接続したまま ShogiBoardQ を終了すると、接続はどうなりますか</span>
+                </div>
+                <p class="guide-step-text">切断されます。ShogiBoardQ を終了すると、P2P対局の通信を受け持つ通信プロセス（<code>shogiboardq-peer</code>）も一緒に終わり、協力ノードと相手との接続はすべて閉じます。協力ノードの出力では、<code>peers</code> がその分だけ減ります。アプリが異常終了したときも、通信プロセスだけが残って通信を続けることはありません。</p>
+                <ul class="guide-step-text">
+                    <li><strong>対局中に終了したとき</strong>：対局は中断（結果未確定）になります。条件の確認の途中なら、取りやめになります。</li>
+                    <li><strong>P2P対局のウィンドウを閉じただけのとき</strong>：接続と対局は続きます。接続を切るには、「接続と条件」タブの「切断」を押すか、ShogiBoardQ を終了します（<a href="p2p-game.html#tabs">ウィンドウのタブ</a>）。</li>
+                    <li><strong>協力ノード</strong>：ターミナルで起動した協力ノード（<code>shogiboardq-peer --service …</code>）は別のプロセスなので、ShogiBoardQ を終了しても動き続けます。止めるときは Ctrl+C を押します。</li>
+                </ul>
+            </div>
+
         </div>
     </div>
 </section>

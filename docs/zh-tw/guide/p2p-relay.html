@@ -629,6 +629,19 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                 </table>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">連線到網路時結束 ShogiBoardQ，連線會怎樣</span>
+                </div>
+                <p class="guide-step-text">會中斷。結束 ShogiBoardQ 時，負責 P2P對局通訊的通訊程序（<code>shogiboardq-peer</code>）也會一起結束，與協作節點和對手的連線全部關閉。在協作節點的輸出中，<code>peers</code> 會相應減少。即使應用程式異常結束，通訊程序也不會單獨留下來繼續通訊。</p>
+                <ul class="guide-step-text">
+                    <li><strong>對局中結束時</strong>：對局會中斷（結果未確定）。如果是在條件確認的途中，則會取消。</li>
+                    <li><strong>只關閉 P2P對局的視窗時</strong>：連線和對局都會繼續。要中斷連線，請按一下「連線與條件」分頁的「中斷連線」，或結束 ShogiBoardQ（<a href="p2p-game.html#tabs">視窗的分頁</a>）。</li>
+                    <li><strong>協作節點</strong>：在終端機中啟動的協作節點（<code>shogiboardq-peer --service …</code>）是另一個程序，結束 ShogiBoardQ 後仍會繼續執行。要停止時按 Ctrl+C。</li>
+                </ul>
+            </div>
+
         </div>
     </div>
 </section>

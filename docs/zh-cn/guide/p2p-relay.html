@@ -629,6 +629,19 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                 </table>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">连接着网络时退出 ShogiBoardQ，连接会怎样</span>
+                </div>
+                <p class="guide-step-text">会断开。退出 ShogiBoardQ 时，负责 P2P对局通信的通信进程（<code>shogiboardq-peer</code>）也会一起结束，与协作节点和对手的连接全部关闭。在协作节点的输出中，<code>peers</code> 会相应减少。即使应用异常结束，通信进程也不会单独留下来继续通信。</p>
+                <ul class="guide-step-text">
+                    <li><strong>对局中退出时</strong>：对局会中断（结果未确定）。如果是在条件确认的途中，则会取消。</li>
+                    <li><strong>只关闭 P2P对局的窗口时</strong>：连接和对局都会继续。要断开连接，请点击“连接与条件”标签页的“断开”，或退出 ShogiBoardQ（<a href="p2p-game.html#tabs">窗口的标签页</a>）。</li>
+                    <li><strong>协作节点</strong>：在终端中启动的协作节点（<code>shogiboardq-peer --service …</code>）是另一个进程，退出 ShogiBoardQ 后仍会继续运行。要停止时按 Ctrl+C。</li>
+                </ul>
+            </div>
+
         </div>
     </div>
 </section>

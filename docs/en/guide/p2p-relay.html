@@ -629,6 +629,19 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
                 </table>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">What happens to the connection if I quit ShogiBoardQ while connected to the network?</span>
+                </div>
+                <p class="guide-step-text">It is closed. When you quit ShogiBoardQ, the communication process for P2P games (<code>shogiboardq-peer</code>) ends with it, and all connections to the cooperating node and to your opponent are closed. In the output of the cooperating node, <code>peers</code> goes down by that much. Even if the app ends abnormally, the communication process does not stay behind and keep communicating.</p>
+                <ul class="guide-step-text">
+                    <li><strong>If you quit during a game</strong>: The game is aborted (result unconfirmed). If you quit while the conditions are being confirmed, the negotiation is cancelled.</li>
+                    <li><strong>If you only close the P2P Game window</strong>: The connection and the game continue. To disconnect, click Disconnect on the Connection and Conditions tab or quit ShogiBoardQ (<a href="p2p-game.html#tabs">The Tabs of the Window</a>).</li>
+                    <li><strong>The cooperating node</strong>: A cooperating node started in a terminal (<code>shogiboardq-peer --service …</code>) is a separate process, so it keeps running after you quit ShogiBoardQ. Press Ctrl+C to stop it.</li>
+                </ul>
+            </div>
+
         </div>
     </div>
 </section>
