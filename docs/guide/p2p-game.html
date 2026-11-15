@@ -335,9 +335,14 @@
                 <ul class="guide-step-text">
                     <li><strong>OSの鍵の保管庫（推奨）</strong>：OS の鍵の保管庫（Windows は資格情報マネージャー、macOS はキーチェーン、Linux は KWallet・GNOME キーリングなど）に保存します。QtKeychain なしでビルドしたアプリ（バージョン 2026.11.15 までの Windows と macOS の配布版）では選べないので、新しい版に入れ替えるか、「パスフレーズで暗号化したファイル」を選んでください。macOS では、アプリを新しい版に入れ替えた後の最初の接続で、キーチェーンの項目を使う許可（ログインのパスワード）を求められることがあります。</li>
                     <li><strong>パスフレーズで暗号化したファイル</strong>：パスフレーズから作った鍵で暗号化したファイルに保存します。アプリを起動して最初に接続するときに、パスフレーズを尋ねます。</li>
-                    <li><strong>暗号化しないファイル</strong>：このPCのファイルを読める人や持ち出した人が、あなたになりすまして対局できます。</li>
+                    <li><strong>暗号化しないファイル</strong>：鍵をそのままファイルに保存します。パスフレーズの入力は要りません。自分だけが使うPC向けの方法です。このファイルを読める人や写しを持ち出した人は、あなたのプレイヤーIDを名乗って対局できるので、ほかの人も使うPCでは上の2つを選んでください。鍵で守っているのはP2P対局でのあなたの名義（プレイヤーID）だけで、知られたかもしれないときは、鍵を作り直せば古い鍵は使えなくなります（<a href="#settings-key">プレイヤー鍵と使用期限</a>）。</li>
                 </ul>
-                <p class="guide-step-text">鍵のファイルは <code>~/.local/share/ShogiBoardQ/p2p/identity</code> に置きます。</p>
+                <p class="guide-step-text">鍵のファイルは、アプリのデータのフォルダの <code>p2p/identity</code> に置きます。「OSの鍵の保管庫」を選んだときは、鍵そのものは保管庫に入り、このフォルダには公開鍵などの情報だけを置きます。</p>
+                <ul class="guide-step-text">
+                    <li><strong>Windows</strong>：<code>%APPDATA%\ShogiBoardQ\p2p\identity</code>（<code>C:\Users\&lt;ユーザー名&gt;\AppData\Roaming\ShogiBoardQ\p2p\identity</code>）</li>
+                    <li><strong>macOS</strong>：<code>~/Library/Application Support/ShogiBoardQ/p2p/identity</code></li>
+                    <li><strong>Linux</strong>：<code>~/.local/share/ShogiBoardQ/p2p/identity</code></li>
+                </ul>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../images/p2p-game/p2p-identity.png"><img src="../images/p2p-game/p2p-identity.png" alt="プレイヤー鍵の保管の方法を選ぶ3つの選択肢と、防げないことの一覧が並ぶ「P2P対局の準備」ダイアログ" width="669" height="516" loading="lazy"></a>
                     <p class="screenshot-caption">初めて接続するときに開く「P2P対局の準備」</p>
@@ -714,7 +719,7 @@
                         <tr><td><strong>結果未確定</strong></td><td>どちらでもありません。投了や時間切れの後に相手の確定が届かなかったときや、中断したときです。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">証跡は <code>~/.local/share/ShogiBoardQ/p2p/evidence</code> に保存されます。対局中にアプリが終了しても、それまでの記録は次に開いたときに「結果未確定」の記録として残ります。</p>
+                <p class="guide-step-text">証跡は、アプリのデータのフォルダの <code>p2p/evidence</code> に保存されます（Windows は <code>%APPDATA%\ShogiBoardQ\p2p\evidence</code>、macOS は <code>~/Library/Application Support/ShogiBoardQ/p2p/evidence</code>、Linux は <code>~/.local/share/ShogiBoardQ/p2p/evidence</code>）。対局中にアプリが終了しても、それまでの記録は次に開いたときに「結果未確定」の記録として残ります。</p>
             </div>
 
             <div class="guide-step">

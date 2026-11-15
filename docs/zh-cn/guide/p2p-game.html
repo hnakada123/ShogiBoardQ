@@ -335,9 +335,14 @@
                 <ul class="guide-step-text">
                     <li><strong>操作系统的密钥库（推荐）</strong>：保存在操作系统的密钥库（Windows 为凭据管理器，macOS 为钥匙串，Linux 为 KWallet、GNOME 密钥环等）中。未使用 QtKeychain 构建的应用（2026.11.15 及之前版本的 Windows 和 macOS 发行版）无法选择此项，请更新到新版本，或选择“用密码短语加密的文件”。在 macOS 上，把应用换成新版本后第一次连接时，系统可能会要求您允许使用钥匙串中的项目（输入登录密码）。</li>
                     <li><strong>用密码短语加密的文件</strong>：保存在用由密码短语生成的密钥加密的文件中。启动应用后第一次连接时会询问密码短语。</li>
-                    <li><strong>不加密的文件</strong>：能读取或带走此电脑文件的人可以冒充您进行对局。</li>
+                    <li><strong>不加密的文件</strong>：把密钥原样保存在文件中，不需要输入密码短语。适合只有您自己使用的电脑。能读取此文件或带走其副本的人，可以用您的玩家ID进行对局，因此在其他人也使用的电脑上，请选择上面两种方式。密钥保护的只是您在P2P对局中的名义（玩家ID）；如果密钥可能已被他人得知，重新生成密钥后，旧密钥就不能再使用（<a href="#settings-key">玩家密钥与使用期限</a>）。</li>
                 </ul>
-                <p class="guide-step-text">密钥文件保存在 <code>~/.local/share/ShogiBoardQ/p2p/identity</code>。</p>
+                <p class="guide-step-text">密钥文件保存在应用数据文件夹的 <code>p2p/identity</code> 中。选择“操作系统的密钥库”时，密钥本身保存在密钥库中，此文件夹只保存公钥等信息。</p>
+                <ul class="guide-step-text">
+                    <li><strong>Windows</strong>：<code>%APPDATA%\ShogiBoardQ\p2p\identity</code>（<code>C:\Users\&lt;用户名&gt;\AppData\Roaming\ShogiBoardQ\p2p\identity</code>）</li>
+                    <li><strong>macOS</strong>：<code>~/Library/Application Support/ShogiBoardQ/p2p/identity</code></li>
+                    <li><strong>Linux</strong>：<code>~/.local/share/ShogiBoardQ/p2p/identity</code></li>
+                </ul>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-cn/p2p-game/p2p-identity.png"><img src="../../images/zh-cn/p2p-game/p2p-identity.png" alt="显示玩家密钥的三种保存方式和无法防止的情况列表的“准备P2P对局”对话框" width="670" height="478" loading="lazy"></a>
                     <p class="screenshot-caption">首次连接时打开的“准备P2P对局”</p>
@@ -714,7 +719,7 @@
                         <tr><td><strong>结果未确定</strong></td><td>两者都不是。例如认输或超时负之后没有收到对手的确定，或对局被中断时。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">凭证保存在 <code>~/.local/share/ShogiBoardQ/p2p/evidence</code>。对局中应用退出时，到那时为止的记录会在下次打开时作为“结果未确定”的记录保留。</p>
+                <p class="guide-step-text">凭证保存在应用数据文件夹的 <code>p2p/evidence</code> 中（Windows 为 <code>%APPDATA%\ShogiBoardQ\p2p\evidence</code>，macOS 为 <code>~/Library/Application Support/ShogiBoardQ/p2p/evidence</code>，Linux 为 <code>~/.local/share/ShogiBoardQ/p2p/evidence</code>）。对局中应用退出时，到那时为止的记录会在下次打开时作为“结果未确定”的记录保留。</p>
             </div>
 
             <div class="guide-step">

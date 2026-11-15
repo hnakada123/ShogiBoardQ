@@ -117,7 +117,9 @@ void P2pIdentityDialog::updateState()
     if (m_mode == Mode::Create && needsPassphrase) ok = ok && m_passphrase->text() == m_confirm->text();
     m_buttons->button(QDialogButtonBox::Ok)->setEnabled(ok);
     if (m_plainFile && m_plainFile->isChecked() && !m_working) {
-        m_status->setText(tr("暗号化しないファイルは、このPCのファイルを読める人や持ち出した人が、あなたになりすまして対局できます。"));
+        m_status->setText(tr("暗号化しないファイルは、自分だけが使うPC向けです。このファイルを読める人や写しを持ち出した人は、"
+                             "あなたのプレイヤーIDを名乗って対局できます。"
+                             "知られたかもしれないときは、「設定」タブで鍵を作り直せます。"));
     } else if (!m_working) {
         m_status->clear();
     }

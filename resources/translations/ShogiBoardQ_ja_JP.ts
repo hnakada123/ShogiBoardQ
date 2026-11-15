@@ -11884,8 +11884,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
     <message>
         <location filename="../../src/dialogs/p2pidentitydialog.cpp" line="120"/>
-        <source>暗号化しないファイルは、このPCのファイルを読める人や持ち出した人が、あなたになりすまして対局できます。</source>
-        <translation>暗号化しないファイルは、このPCのファイルを読める人や持ち出した人が、あなたになりすまして対局できます。</translation>
+        <source>暗号化しないファイルは、自分だけが使うPC向けです。このファイルを読める人や写しを持ち出した人は、あなたのプレイヤーIDを名乗って対局できます。知られたかもしれないときは、「設定」タブで鍵を作り直せます。</source>
+        <translation>暗号化しないファイルは、自分だけが使うPC向けです。このファイルを読める人や写しを持ち出した人は、あなたのプレイヤーIDを名乗って対局できます。知られたかもしれないときは、「設定」タブで鍵を作り直せます。</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2pidentitydialog.cpp" line="130"/>

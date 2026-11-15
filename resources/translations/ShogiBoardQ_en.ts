@@ -13397,8 +13397,8 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2pidentitydialog.cpp" line="120"/>
-        <source>暗号化しないファイルは、このPCのファイルを読める人や持ち出した人が、あなたになりすまして対局できます。</source>
-        <translation>With an unencrypted file, anyone who can read or copy the files on this PC can play while impersonating you.</translation>
+        <source>暗号化しないファイルは、自分だけが使うPC向けです。このファイルを読める人や写しを持ち出した人は、あなたのプレイヤーIDを名乗って対局できます。知られたかもしれないときは、「設定」タブで鍵を作り直せます。</source>
+        <translation>An unencrypted file is for a PC that only you use. Anyone who can read this file or take a copy of it can play under your player ID. If the key may have become known, you can recreate it on the Settings tab.</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2pidentitydialog.cpp" line="130"/>

@@ -11563,8 +11563,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
     <message>
         <location filename="../../src/dialogs/p2pidentitydialog.cpp" line="120"/>
-        <source>暗号化しないファイルは、このPCのファイルを読める人や持ち出した人が、あなたになりすまして対局できます。</source>
-        <translation>使用不加密的文件时，能读取或带走此电脑文件的人可以冒充您进行对局。</translation>
+        <source>暗号化しないファイルは、自分だけが使うPC向けです。このファイルを読める人や写しを持ち出した人は、あなたのプレイヤーIDを名乗って対局できます。知られたかもしれないときは、「設定」タブで鍵を作り直せます。</source>
+        <translation>不加密的文件适合只有您自己使用的电脑。能读取此文件或带走其副本的人，可以用您的玩家ID进行对局。如果密钥可能已被他人得知，可以在“设置”标签页重新生成密钥。</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/p2pidentitydialog.cpp" line="130"/>
