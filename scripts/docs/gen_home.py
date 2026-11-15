@@ -182,7 +182,8 @@ T["ja"] = {
         "ライセンス全文は <a href=\"{license}\">LICENSE</a> ファイルをご覧ください。",
     ],
     "foot_tag": "将棋の対局・検討・棋譜解析・詰将棋ソフト",
-    "foot_site": "サイト", "foot_links": "リンク", "foot_releases": "リリース", "foot_issues": "不具合の報告・要望",
+    "foot_site": "サイト", "foot_links": "リンク", "foot_releases": "リリース",
+    "foot_discussions": "質問・要望（Discussions）", "foot_issues": "不具合の報告",
 }
 
 T["en"] = {
@@ -319,7 +320,8 @@ T["en"] = {
         "For the full license text, see the <a href=\"{license}\">LICENSE</a> file.",
     ],
     "foot_tag": "Shogi software for playing, analysis, and tsume shogi",
-    "foot_site": "Site", "foot_links": "Links", "foot_releases": "Releases", "foot_issues": "Bug reports &amp; requests",
+    "foot_site": "Site", "foot_links": "Links", "foot_releases": "Releases",
+    "foot_discussions": "Questions &amp; requests (Discussions)", "foot_issues": "Bug reports",
 }
 
 T["zh-cn"] = {
@@ -456,7 +458,8 @@ T["zh-cn"] = {
         "许可证全文请参阅 <a href=\"{license}\">LICENSE</a> 文件。",
     ],
     "foot_tag": "将棋对局、研究、棋谱分析与诘棋软件",
-    "foot_site": "网站", "foot_links": "链接", "foot_releases": "发布页面", "foot_issues": "问题反馈与建议",
+    "foot_site": "网站", "foot_links": "链接", "foot_releases": "发布页面",
+    "foot_discussions": "提问与建议（Discussions）", "foot_issues": "问题反馈",
 }
 
 T["zh-tw"] = {
@@ -593,7 +596,8 @@ T["zh-tw"] = {
         "授權條款全文請參閱 <a href=\"{license}\">LICENSE</a> 檔案。",
     ],
     "foot_tag": "將棋對局、研究、棋譜分析與詰棋軟體",
-    "foot_site": "網站", "foot_links": "連結", "foot_releases": "發行頁面", "foot_issues": "問題回報與建議",
+    "foot_site": "網站", "foot_links": "連結", "foot_releases": "發行頁面",
+    "foot_discussions": "提問與建議（Discussions）", "foot_issues": "問題回報",
 }
 
 DL_FILES = {
@@ -932,6 +936,7 @@ def page(code):
             <ul>
                 <li><a href="{REPO}">GitHub</a></li>
                 <li><a href="{RELEASES}">{t['foot_releases']}</a></li>
+                <li><a href="{REPO}/discussions">{t['foot_discussions']}</a></li>
                 <li><a href="{REPO}/issues">{t['foot_issues']}</a></li>
             </ul>
         </nav>
