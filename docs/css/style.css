@@ -227,10 +227,28 @@ html:lang(en) .nav-links a {
     letter-spacing: 0;
 }
 
+/* A note that fits on one line stays centered. A note that wraps becomes a block as wide as
+   the content column below, with its lines starting from the left. */
 .screenshot-note {
-    margin-top: 1rem;
+    width: fit-content;
+    max-width: min(100%, 60rem);
+    margin: 1rem auto 0;
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.85);
+    text-align: left;
+}
+
+/* Links on the sage hero: the default dark green is hard to read there. */
+.screenshot-note a {
+    color: #fff;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.6);
+    text-underline-offset: 0.2em;
+}
+
+.screenshot-note a:hover {
+    color: #fff;
+    text-decoration-color: #fff;
 }
 
 .nav-logo:hover {
