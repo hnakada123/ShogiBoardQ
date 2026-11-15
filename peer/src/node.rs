@@ -1,7 +1,8 @@
 //! 対局・UI側から使うときの通信プロセス（IPC の要求を受けて Swarm を動かす）
 //!
 //! 主ループと Swarm の作成はここに置き、役割ごとに分ける: 要求の処理（requests）、Swarm の出来事（events）、
-//! 対局ストリーム（streams）、作った招待（invites）、中継の予約（reservations）。待受は crate::listen
+//! 対局ストリーム（streams）、作った招待（invites）、中継の予約（reservations）、協力ノードが中継している回路の数
+//! （circuits）。待受は crate::listen
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -26,6 +27,7 @@ use crate::listen;
 use crate::sandbox::SandboxReport;
 use crate::swarm::{self, Behaviour, SwarmOptions};
 
+mod circuits;
 mod events;
 mod invites;
 mod requests;
@@ -94,6 +96,8 @@ pub struct Node {
     pub bootstrap: HashMap<PeerId, Multiaddr>,
     /// 協力ノードの中継の予約
     pub reservations: reservations::Reservations,
+    /// 中継している回路（中継を受け持つ協力ノードだけ。ログに数を書く）
+    pub circuits: Option<circuits::Circuits>,
     pub listen_addrs: Vec<Multiaddr>,
     pub reachability: ipc::Reachability,
     pub last_status: Option<ipc::NetworkStatus>,
@@ -272,6 +276,7 @@ impl Node {
             addr_book: HashMap::new(),
             bootstrap: HashMap::new(),
             reservations: reservations::Reservations::default(),
+            circuits: config.relay_server.then(circuits::Circuits::default),
             listen_addrs: Vec::new(),
             reachability: ipc::Reachability::Unknown,
             last_status: None,
@@ -365,8 +370,9 @@ impl Node {
         self.emit_status();
         if self.service && self.last_service_log.elapsed() >= Duration::from_secs(60) {
             self.last_service_log = Instant::now();
-            // 接続元の IP は書かない（数だけ）
-            eprintln!("shogiboardq-peer: peers={}", self.peer_conns.len());
+            // 接続元の IP もピアの ID も書かない（数だけ）
+            let relays = self.circuits.as_ref().map(circuits::Circuits::count);
+            eprintln!("{}", crate::service::log_line(self.peer_conns.len(), relays));
         }
     }
 

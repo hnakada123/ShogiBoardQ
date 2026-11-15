@@ -357,6 +357,7 @@ shogiboardq-peer --service --network <networkName> --identity <鍵ファイル> 
 - 利用者のアプリが最初に接続する相手になり、到達性の確認（AutoNAT v2）に応える。`--relay` で Circuit Relay v2 の中継を
   有効にする。対局ストリームは受け付けない（指し手もプレイヤーID も読まない。中継する通信は当事者間で暗号化されている）。
 - 中継の上限: 予約 128、1ピアあたりの回路 4、1回路 30 分・8 MiB。
-- ログは標準エラーに、起動・停止・接続数だけを書く（接続元の IP は書かない）。
+- ログは標準エラーに、起動・停止と、1分ごとの接続の数だけを書く（`shogiboardq-peer: peers=<つながっているピアの数>`。
+  `--relay` のときは、続けて ` relays=<中継している回路の数>`）。接続元の IP とピアの ID は書かない。
 - 権限の制限は6章と同じだが、親の終了では終わらない（`mechanisms` に `parent_death_signal`・`parent_death_watch` が
   入らない）。

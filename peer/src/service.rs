@@ -107,6 +107,15 @@ fn load_identity(path: &Path) -> Result<Keypair, String> {
     }
 }
 
+/// 1分ごとに標準エラーへ書く行。つながっている相手の数と、中継を受け持つとき（--relay）は中継している回路の数
+/// だけを書く（接続元の IP もピアの ID も書かない）
+pub fn log_line(peers: usize, relays: Option<usize>) -> String {
+    match relays {
+        Some(relays) => format!("shogiboardq-peer: peers={peers} relays={relays}"),
+        None => format!("shogiboardq-peer: peers={peers}"),
+    }
+}
+
 /// 協力ノードとして動かす。戻らない（失敗は終了コードで返す）
 pub fn run(args: &[String]) -> i32 {
     // 識別鍵のファイルを読んだ後に自分で制限を掛けられる OS だけで動かす（鍵のファイルを作る前に断る）
@@ -165,4 +174,17 @@ pub fn run(args: &[String]) -> i32 {
         node.run_loop(None).await;
         0
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn log_line_shows_relays_only_when_relaying_is_enabled() {
+        assert_eq!(log_line(2, Some(1)), "shogiboardq-peer: peers=2 relays=1");
+        assert_eq!(log_line(0, Some(0)), "shogiboardq-peer: peers=0 relays=0");
+        // --relay を付けていない協力ノードは、中継の数を書かない
+        assert_eq!(log_line(2, None), "shogiboardq-peer: peers=2");
+    }
 }

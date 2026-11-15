@@ -146,6 +146,24 @@ impl Node {
             BehaviourEvent::RelayClient(relay::client::Event::ReservationReqAccepted { relay_peer_id, .. }) => {
                 self.reservations.accepted(relay_peer_id);
             }
+            // 協力ノードが中継している回路の数（ログに書く）
+            BehaviourEvent::RelayServer(relay::Event::CircuitReqAccepted {
+                src_peer_id,
+                dst_peer_id,
+            }) => {
+                if let Some(circuits) = self.circuits.as_mut() {
+                    circuits.opened(src_peer_id, dst_peer_id);
+                }
+            }
+            BehaviourEvent::RelayServer(relay::Event::CircuitClosed {
+                src_peer_id,
+                dst_peer_id,
+                ..
+            }) => {
+                if let Some(circuits) = self.circuits.as_mut() {
+                    circuits.closed(src_peer_id, dst_peer_id);
+                }
+            }
             BehaviourEvent::AutonatClient(autonat::v2::client::Event { result, .. }) => {
                 // 確かめた候補のどれかに外から届けば、インターネットから届く。届かなかった候補しかなければ届かない
                 self.reachability = match (result, self.reachability) {
