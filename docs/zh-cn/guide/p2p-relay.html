@@ -87,6 +87,7 @@
             <li><a href="#relay-only">不让对手看到 IP 地址对局</a></li>
             <li><a href="#lan-test">在局域网内试用</a></li>
             <li><a href="#trouble">无法连接时・使用期限</a></li>
+            <li><a href="#qa">常见问题</a></li>
         </ol>
     </div>
 </nav>
@@ -338,6 +339,7 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                 </div>
                 <p class="guide-step-text">邀请方在“通过邀请连接”标签页中用“生成邀请字符串”生成邀请字符串，通过只能送达对方的方式交给对方，对方点击“检查邀请字符串”。“地址：N 个（可用 N 个）”中可用的地址有 1 个以上，就可以用“连接”连接。可用的地址为 0 个时，无法点击“连接”（<a href="#trouble">无法连接时</a>）。之后的条件确认画面和对局，与<a href="p2p-direct.html#steps">不使用协作节点的对局</a>相同。</p>
                 <p class="guide-step-text">邀请字符串中放入经由协作节点的地址（如果邀请方的电脑可以从外部直接到达，还会放入那台电脑的 IP 地址）。请不要贴在公开的地方。</p>
+                <p class="guide-step-text">“地址：N 个（可用 N 个）”中，前一个数字是邀请字符串中包含的连接地址的数量（最多 8 个），“可用”是其中按您应用的设置可以连接的数量。两个数字都会随邀请方电脑和协作节点的地址数量而变化。</p>
                 <p class="guide-step-text">一个邀请字符串只能让一个人连接一次，10 分钟后失效。同时有效的最多 4 个，一次只能下一局（详见<a href="p2p-direct.html#invite-rules">可以邀请的人数与次数</a>）。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-cn/p2p-game/p2p-internet-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-invite.png" alt="检查收到的邀请字符串后，显示邀请方 PeerId、期限和地址数量的“通过邀请连接”标签页" width="900" height="790" loading="lazy"></a>
@@ -351,6 +353,7 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                     <span class="guide-step-title">路径：中继与直接</span>
                 </div>
                 <p class="guide-step-text">对手首先经由协作节点的中继连接。连接后，双方的应用会立即尝试穿过各自的路由器直接连接（打洞）。成功后，“对局中”标签页的“路径”会变为“直接”（多数在对局开始前完成）。</p>
+                <p class="guide-step-text">“路径”变为“直接”时也需要协作节点。可以从外部直接到达的电脑，用它来确认放入邀请字符串的地址；其他电脑用它来中继最初的连接并切换为直接连接。没有设置“不使用直接连接”时也是如此。变为“直接”之后，着手不再经过协作节点。</p>
                 <p class="guide-step-text">在每次连接都改变源端口的路由器后面，或在手机网络这类多层地址转换的线路上，无法直接连接，会一直以“中继”对局。通过中继也可以对局，但着手要绕经协作节点送达，可能会稍有延迟。ShogiBoardQ 的协作节点每条中继 30 分钟后会断开，因此长时间的对局中途可能会自动重新连接（“正在重新连接”）。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-cn/p2p-game/p2p-internet-relay.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-relay.png" alt="路径为中继的“对局中”标签页" width="900" height="790" loading="lazy"></a>
@@ -389,6 +392,19 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                     <span class="guide-step-title">使用“不使用直接连接”</span>
                 </div>
                 <p class="guide-step-text">在“设置”标签页中勾选“不使用直接连接”后，与对手一定经由协作节点的中继连接，邀请字符串中也只放入经由协作节点的地址。对手只能看到协作节点的地址，能看到您 IP 地址的只有您填入“连接候选”的协作节点的运营者。与互联网上不太了解的对手下棋时使用。</p>
+                <p class="guide-step-text">勾选与否的区别如下。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">变化的内容</th><th scope="col">不勾选</th><th scope="col">勾选</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>放入邀请字符串的连接地址</strong></td><td>经由协作节点的地址（电脑可以从外部直接到达时，还有该电脑的 IP 地址）</td><td>只有经由协作节点的地址</td></tr>
+                        <tr><td><strong>切换为直接连接</strong></td><td>会尝试</td><td>不尝试</td></tr>
+                        <tr><td><strong>对局中的“路径”</strong></td><td>“直接”（无法切换时为“中继”）</td><td>一直是“中继”</td></tr>
+                        <tr><td><strong>您的 IP 地址</strong></td><td>对手可以得知</td><td>对手看不到（协作节点的运营者可以看到）</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">无论哪种情况都需要协作节点。这个设置改变的不是是否使用协作节点，而是连接后是否切换为直接连接。</p>
                 <ul class="guide-step-text">
                     <li><strong>需要协作节点</strong>：请在“连接候选”中填入可以中继的协作节点。没有填入时，“邀请的路径”中显示“无法使用中继。…”，即使邀请，对手也无法连接。</li>
                     <li><strong>与对手相同的协作节点</strong>：在此设置下用收到的邀请字符串连接时，只连接经由您所填协作节点的地址。邀请方也必须在“连接候选”中填入相同的协作节点（不同时会显示“此邀请字符串中没有通过您的协作节点中继的连接地址。…”）。</li>
@@ -464,13 +480,15 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                     <span class="guide-step-number">3</span>
                     <span class="guide-step-title">试用经由中继的对局</span>
                 </div>
-                <p class="guide-step-text">就这样邀请的话，邀请字符串中会放入局域网内的地址，与对手直接连接（“对局中”标签页的“路径”为“直接”），不会使用协作节点的中继。</p>
-                <p class="guide-step-text">要试用经由中继的对局，被邀请方在“设置”标签页中勾选“不使用直接连接”，断开后重新连接（两人都勾选也可以）。</p>
+                <p class="guide-step-text">就这样邀请的话，邀请字符串中会放入局域网内的地址，与对手直接连接（“对局中”标签页的“路径”为“直接”），不会使用协作节点的中继。这与没有协作节点时相同，到这里能确认的只是已连接到协作节点并预约到中继。</p>
+                <p class="guide-step-text">要试用经由中继的对局，两人中的任何一人（两人都勾选也可以）在“设置”标签页中勾选“不使用直接连接”，断开后重新连接。都不勾选时“路径”为“直接”，只要有一人勾选就是“中继”。</p>
                 <ul class="guide-step-text">
-                    <li>“邀请的路径”中显示“仅通过协作节点的中继（已设置不使用直接连接）。”。</li>
-                    <li>检查收到的邀请字符串时，可用的只有经由协作节点的地址（“地址：N 个（可用 M 个）”中，可用的数量比地址的数量少）。</li>
+                    <li>勾选的人的“邀请的路径”中显示“仅通过协作节点的中继（已设置不使用直接连接）。”。</li>
+                    <li>勾选的人生成的邀请字符串中只放入经由协作节点的地址。</li>
+                    <li>勾选的人检查收到的邀请字符串时，可用的只有经由协作节点的地址（邀请方没有勾选时，“地址：N 个（可用 M 个）”中可用的数量比地址的数量少）。</li>
                     <li>用“连接”连接并开始对局后，两人的“对局中”标签页的“路径”都是“中继”。</li>
                 </ul>
+                <p class="guide-step-text">地址的数量和可用的数量因电脑而异。“本地”的邀请字符串中，按以下顺序最多放入 8 个：邀请方电脑在局域网内的地址（每个网络接口各有 UDP 和 TCP 一个，也包括 Docker 等的虚拟接口）、经由协作节点的地址（协作节点监听 <code>0.0.0.0</code> 时，协作节点所在电脑的每个地址各一个）、只能在同一台电脑内使用的地址。设置了“不使用直接连接”的人只能使用其中经由协作节点的地址。</p>
                 <p class="guide-step-text">在局域网内可以确认的是协作节点的启动、“连接候选”的填写，以及经由中继的邀请和对局。可达性确认、穿过路由器切换为直接连接（打洞）和使用期限只属于“互联网”，在局域网内无法试用。要用于通过互联网的对局时，请用 <code>--network sbq-limited-1</code> 重新启动协作节点，并把应用的“网络”改回“互联网”。</p>
             </div>
 
@@ -515,6 +533,82 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                 </div>
                 <p class="guide-step-text">可以加入“互联网”的期限是从构建应用之日起 180 天（显示在“设置”标签页的“此版本的使用期限”中）。P2P对局没有可以停止旧版本的服务器，因此这样做是为了不让未修复缺陷或安全漏洞的旧版本一直留在网络中。过期后，请更新到新版本（从源代码构建时，请重新构建）。</p>
                 <p class="guide-step-text">只有应用的“互联网”有期限。协作节点、“本地”的对局，以及查看和验证已保存的记录都没有期限。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 9 -->
+<section id="qa" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">常见问题</h2>
+        <p class="section-desc">使用协作节点时常见的疑问及其解答</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">已把协作节点的地址填入“连接候选”，但被邀请方无法点击“连接”</span>
+                </div>
+                <p class="guide-step-text">邀请字符串中没有连接地址时会出现这种情况（被邀请方的画面上显示“地址：0 个（可用 0 个）”）。在“互联网”下，局域网内地址（<code>192.168.…</code> 等）的协作节点不会被使用，因此邀请字符串中不会放入连接地址。要在局域网内试用协作节点，请用 <code>--network sbq-local-1</code> 启动协作节点，并把应用的“网络”设为“本地”（<a href="#lan-test">在局域网内试用</a>）。其他原因请参阅<a href="#trouble">无法连接时</a>。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title"><code>--network</code> 中的 <code>sbq-limited-1</code> 和 <code>sbq-local-1</code> 是什么</span>
+                </div>
+                <p class="guide-step-text">它们是与应用的“网络”对应的名称。“互联网”是 <code>sbq-limited-1</code>，“本地（同一电脑・同一局域网）”是 <code>sbq-local-1</code>。协作节点要按使用它的应用的“网络”来启动。不一致时，即使连接上也无法使用中继（<a href="#lan-test">在局域网内试用</a>中的对应表）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">“地址：8 个（可用 3 个）”这样的数字是怎么决定的</span>
+                </div>
+                <p class="guide-step-text">前一个数字是邀请字符串中包含的连接地址的数量（最多 8 个），“可用”是其中按您应用的设置可以连接的数量。它们随邀请方电脑的网络接口数量和协作节点的地址数量而变化，因此每台电脑都不同。设置了“不使用直接连接”的人只能使用经由协作节点的地址，所以可用的数量会变少（<a href="#lan-test">在局域网内试用</a>的 3）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">不设置“不使用直接连接”就会与对手直接连接，那还需要协作节点吗</span>
+                </div>
+                <p class="guide-step-text">在“互联网”下需要。没有协作节点，就没有可以放入邀请字符串的连接地址。家庭网络的电脑之间，首先经由协作节点的中继连接，然后再切换为直接连接（<a href="#play">路径：中继与直接</a>）。在“本地”下，没有协作节点也同样会直接连接，因此不需要（<a href="p2p-direct.html">不使用协作节点对局</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">在局域网内试用时，应该勾选“不使用直接连接”吗</span>
+                </div>
+                <p class="guide-step-text">想试用经由中继的对局时，两人中的任何一人勾选即可。不勾选就会直接连接，协作节点不会用于对局。如果只想确认能连接到协作节点并预约到中继，可以不勾选（<a href="#lan-test">在局域网内试用</a>的 3）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">设置“不使用直接连接”对局时，协作节点的画面上也只显示 <code>peers=2</code>。对局的数据真的经过协作节点吗</span>
+                </div>
+                <p class="guide-step-text">经过。协作节点只输出已连接的应用数量（<code>peers=N</code>，每分钟一次），不输出中继的开始、中继的数据量和连接来源的 IP 地址。“路径”为“直接”和“中继”时的区别如下。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">比较的内容</th><th scope="col">“路径：直接”</th><th scope="col">“路径：中继”</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>出现的情况</strong></td><td>两人都没有设置“不使用直接连接”，并且能够直接连接时</td><td>两人中有一人设置了“不使用直接连接”，或无法直接连接时</td></tr>
+                        <tr><td><strong>着手的传送路径</strong></td><td>您的应用 ⇄ 对手的应用</td><td>您的应用 → 协作节点 → 对手的应用</td></tr>
+                        <tr><td><strong>协作节点的通信量</strong></td><td>只有保持连接所需的量，下棋时不会增加</td><td>每下一手，把从一方收到的数据以大致相同的量发送给另一方</td></tr>
+                        <tr><td><strong>协作节点的输出</strong></td><td><code>peers=2</code></td><td><code>peers=2</code>（相同）</td></tr>
+                        <tr><td><strong>对局中停止协作节点时</strong></td><td>对局的连接不会断开</td><td>对局的连接会断开（120 秒内无法重新连接就会中断）</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">正在用哪条路径下棋，可以在应用的“对局中”标签页的“路径”中看到。在运行协作节点的电脑（Linux）上，可以用下面的命令查看协作节点每个连接的通信量（<code>bytes_received</code> 是收到的量，<code>bytes_sent</code> 是发送的量）。<code>4001</code> 是 <code>--listen</code> 中写的端口。</p>
+                <div class="build-steps"><pre><code>$ ss -tin 'sport = :4001'</code></pre></div>
+                <p class="guide-step-text">“中继”时，每下一手，一个连接的 <code>bytes_received</code> 和另一个连接的 <code>bytes_sent</code> 会增加大致相同的量。“直接”时，下棋也不会增加。在从一方向另一方发送约 31 KB 数据的测试中，协作节点收到的量在“直接”时为 124 字节，在“中继”时约为 35 KB（由于加密和中继的封装，比发送的量多一成左右）。</p>
+                <p class="guide-step-text">即使在中继，协作节点也读不到内容（着手、玩家ID、显示名）（<a href="#node">协作节点做什么、不做什么</a>）。</p>
             </div>
 
         </div>
