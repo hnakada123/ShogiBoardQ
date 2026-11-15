@@ -24,6 +24,7 @@
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QWindow>
 
 #include "appactivitystate.h"
@@ -179,6 +180,12 @@ private slots:
         QVERIFY(profile.open());
         P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, &profile);
         P2pWindow window(&lobby, &game);
+        // ウィンドウは1秒ごとに、状態の文を対局の状態から書き直す。この試験は対局を始めずに文をラベルへ直接
+        // 書くので、途中で書き直されると（「対局していません。」の1行になる）、描いた回数とラベルの高さが変わる。
+        // 文を書く前に止める（止めないと、ウィンドウを作ってから約1秒後に終わるこの試験は、時々落ちる）
+        const QList<QTimer*> statusTimers = window.findChildren<QTimer*>(Qt::FindDirectChildrenOnly);
+        QVERIFY(!statusTimers.isEmpty());
+        for (QTimer* timer : statusTimers) timer->stop();
         window.resize(820, 640);
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
