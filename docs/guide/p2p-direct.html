@@ -255,7 +255,7 @@
                 <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
                 <p class="guide-step-text">ufw なら <code>sudo ufw allow 48210</code> で許可できます（要らなくなったら <code>sudo ufw delete allow 48210</code>）。アプリは接続元がLANの中のアドレスの接続だけを受け付けるので、ポートを開けても、インターネットから届いた接続は断ります。</p>
                 <p class="guide-step-text">Windows では、待受を始めてもファイアウォールの確認の画面は出ません（通信を受け持つプロセスは、同じLANとの通信を許した入れ物（AppContainer）の中で動きます）。同じPCどうしの対局は確かめてあります。別のPCから届く接続が通るかは、Windows がそのネットワークを「プライベート」と扱っているかと、Windows のファイアウォールの設定によります（別のPCとの対局は、まだ確かめていません）。</p>
-                <p class="guide-step-text">macOS でも、同じPCどうしの対局は確かめてあります。別のPCとつなぐときは、macOS のファイアウォールを有効にしていると着信の許可を、初めてLANの相手と通信するときに「ローカルネットワーク」へのアクセスの許可を、macOS から求められることがあります（別のPCとの対局は、まだ確かめていません）。</p>
+                <p class="guide-step-text">macOS でも、同じPCどうしの対局は確かめてあります。別のPCとつなぐときは、macOS のファイアウォールを有効にしていると着信の許可を、初めてLANの相手と通信するときに「ローカルネットワーク」へのアクセスの許可を、macOS から求められることがあります（macOS のPCで招待し、同じLANの Linux のPCから接続する対局は確かめてあります）。</p>
             </div>
 
             <div class="guide-step">
@@ -325,6 +325,14 @@
                     <span class="guide-step-title">「相手に接続できませんでした。」と出て、つながりません</span>
                 </div>
                 <p class="guide-step-text">招待した人のPCのファイアウォールが、TCP と UDP の 48210 番ポートへの接続を止めていることがあります。ポートを開けるか、招待する人を入れ替えます（<a href="#lan">同じLANの別のPCと対局する</a>）。ゲスト用の Wi-Fi など、つないだ機器どうしの通信を止めているネットワークでは、同じLANでもつながりません。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">招待する人を入れ替えると、なぜつながるのですか</span>
+                </div>
+                <p class="guide-step-text">接続を待つのは、招待した人のPCだけだからです。招待された人のPCは自分から接続を始めるので、ふつうはファイアウォールに止められません。そのため、外から届く接続を止めていないほうのPCで招待すれば、つながります。たとえば、Linux のPCで招待して macOS のPCからつながらなかった組み合わせが、macOS のPCで招待して Linux のPCから接続すると対局できました（Linux では、firewalld や ufw が外から届く接続を止めていることがよくあります）。どちらのPCでも招待できるようにするには、それぞれのPCでポートを開けます（<a href="#lan">ファイアウォールでポートを開ける</a>）。</p>
             </div>
 
             <div class="guide-step">

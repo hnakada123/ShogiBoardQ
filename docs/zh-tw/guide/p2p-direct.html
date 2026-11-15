@@ -255,7 +255,7 @@
                 <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
                 <p class="guide-step-text">使用 ufw 時，可以用 <code>sudo ufw allow 48210</code> 允許（不再需要時用 <code>sudo ufw delete allow 48210</code>）。應用程式只接受來源為區域網路內位址的連線，因此即使開放連接埠，來自網際網路的連線也會被拒絕。</p>
                 <p class="guide-step-text">在 Windows 上，開始監聽時不會出現防火牆的確認畫面（通訊程序在允許與同一區域網路通訊的容器（AppContainer）中執行）。同一台電腦上兩個應用程式之間的對局已經確認可用。來自其他電腦的連線能否通過，取決於 Windows 是否把該網路視為「私人」網路以及 Windows 防火牆的設定（與其他電腦的對局尚未確認）。</p>
-                <p class="guide-step-text">在 macOS 上，同一台電腦上兩個應用程式之間的對局也已經確認可用。與其他電腦連線時，如果開啟了 macOS 的防火牆，macOS 可能會詢問是否允許傳入連線；第一次與區域網路內的對方通訊時，可能會詢問是否允許存取「區域網路」（與其他電腦的對局尚未確認）。</p>
+                <p class="guide-step-text">在 macOS 上，同一台電腦上兩個應用程式之間的對局也已經確認可用。與其他電腦連線時，如果開啟了 macOS 的防火牆，macOS 可能會詢問是否允許傳入連線；第一次與區域網路內的對方通訊時，可能會詢問是否允許存取「區域網路」（由 macOS 電腦邀請、同一區域網路的 Linux 電腦連線的對局已經確認可用）。</p>
             </div>
 
             <div class="guide-step">
@@ -325,6 +325,14 @@
                     <span class="guide-step-title">顯示「無法連線到對手。」，連線不上</span>
                 </div>
                 <p class="guide-step-text">可能是邀請方電腦的防火牆阻擋了到 TCP 和 UDP 的 48210 連接埠的連線。請開放連接埠，或交換邀請方（<a href="#lan">與同一區域網路的另一台電腦對局</a>）。在訪客 Wi-Fi 等阻擋已連線裝置之間通訊的網路中，即使在同一區域網路也無法連線。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">為什麼交換邀請方後就能連上</span>
+                </div>
+                <p class="guide-step-text">因為等待連線的只有邀請方的電腦。被邀請方的電腦是自己發起連線的，通常不會被防火牆阻擋。因此，由沒有阻擋外來連線的那台電腦邀請，就能連上。例如，由 Linux 電腦邀請、macOS 電腦連線時連不上的一組電腦，改為由 macOS 電腦邀請、Linux 電腦連線後，就可以對局了（在 Linux 上，firewalld 或 ufw 經常會阻擋外來的連線）。要讓兩台電腦都能邀請，請在各自的電腦上開放連接埠（<a href="#lan">在防火牆中開放連接埠</a>）。</p>
             </div>
 
             <div class="guide-step">

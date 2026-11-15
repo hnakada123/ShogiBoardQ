@@ -255,7 +255,7 @@
                 <div class="build-steps"><pre><code>$ sudo firewall-cmd --add-port=48210/tcp --add-port=48210/udp</code></pre></div>
                 <p class="guide-step-text">With ufw, <code>sudo ufw allow 48210</code> allows it (remove it later with <code>sudo ufw delete allow 48210</code>). The app accepts connections only from addresses on the LAN, so even with the port open, connections from the Internet are refused.</p>
                 <p class="guide-step-text">On Windows, no firewall prompt appears when the app starts listening (the communication process runs inside a container, an AppContainer, that is allowed to talk to the same LAN). Games between two apps on the same PC have been verified. Whether connections from another PC get through depends on whether Windows treats the network as Private and on the Windows firewall settings (games with another PC have not been verified yet).</p>
-                <p class="guide-step-text">On macOS, too, games between two apps on the same computer have been verified. When you connect to another computer, macOS may ask you to allow incoming connections (if the macOS firewall is on) and, the first time the app talks to a computer on the LAN, to allow access to the local network (games with another computer have not been verified yet).</p>
+                <p class="guide-step-text">On macOS, too, games between two apps on the same computer have been verified. When you connect to another computer, macOS may ask you to allow incoming connections (if the macOS firewall is on) and, the first time the app talks to a computer on the LAN, to allow access to the local network (a game where the macOS computer invited and a Linux computer on the same LAN joined has been verified).</p>
             </div>
 
             <div class="guide-step">
@@ -325,6 +325,14 @@
                     <span class="guide-step-title">"Could not connect to the opponent." appears, and I cannot connect</span>
                 </div>
                 <p class="guide-step-text">The firewall on the inviter's PC may be blocking connections to TCP and UDP port 48210. Open the port, or swap who creates the invitation (<a href="#lan">Play Another PC on the Same LAN</a>). On a network that blocks traffic between connected devices, such as guest Wi-Fi, you cannot connect even on the same LAN.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">Why does swapping who creates the invitation help?</span>
+                </div>
+                <p class="guide-step-text">Because only the inviter's PC waits for a connection. The invited player's PC starts the connection itself, which a firewall normally does not block. So if you create the invitation on the PC that does not block incoming connections, you can connect. For example, a pair that could not connect when the Linux PC invited and the macOS PC joined was able to play when the macOS PC invited and the Linux PC joined (on Linux, firewalld or ufw often blocks incoming connections). To be able to invite from either PC, open the port on each of them (<a href="#lan">Open the Port in the Firewall</a>).</p>
             </div>
 
             <div class="guide-step">

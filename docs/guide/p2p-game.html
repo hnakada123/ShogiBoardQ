@@ -873,6 +873,14 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">同じLANの別のPCと対局しようとすると、「相手に接続できませんでした。」と出ます</span>
+                </div>
+                <p class="guide-step-text">招待した人のPCのファイアウォールが、相手から届く接続（TCP と UDP の 48210 番ポート）を止めていることが多いです。招待する人を入れ替えると、ファイアウォールの設定を変えなくても、つながることがあります。たとえば、Linux のPCで招待して macOS のPCからつながらなかった組み合わせが、macOS のPCで招待して Linux のPCから接続すると対局できました。入れ替えずに指すときは、招待する人のPCでポートを開けます（<a href="p2p-direct.html#lan">同じLANの別のPCと対局する</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">相手に、自分の IP アドレスは見えますか</span>
                 </div>
                 <p class="guide-step-text">「ローカル」で相手に見えるのは、LANの中のアドレスだけです。「インターネット」で直接つなぐと、相手は通信を調べれば、あなたのインターネット上の IP アドレスを知ることができます（画面には出ません）。「設定」タブの「直接接続を使わない」にすると、相手には協力ノードのアドレスだけが見えます（<a href="p2p-relay.html#relay-only">相手に IP アドレスを見せずに対局する</a>）。</p>
