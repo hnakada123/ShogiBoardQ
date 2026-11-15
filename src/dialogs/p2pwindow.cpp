@@ -391,8 +391,18 @@ bool P2pWindow::hideUnknownNames() const { return m_hideUnknown->isChecked(); }
 bool P2pWindow::checkDisplayName()
 {
     if (P2p::DisplayName::isValid(displayName())) return true;
-    DialogUtils::warning(this, tr("表示名"),
-                         tr("表示名は1〜32文字で、前後に空白を置かず、英数字・記号・かな・漢字・全角英数だけを使ってください。"));
+    QString text;
+    if (!displayName().isEmpty()) {
+        text = tr("表示名は1〜32文字で、前後に空白を置かず、英数字・記号・かな・漢字・全角英数だけを使ってください。");
+    } else if (m_player > 1) {
+        // 表示名はプレイヤーごとに覚えるので、2人目からは1人目の名前が入っていない
+        text = tr("「接続と条件」の「表示名」に、相手に見える名前を入れてください。"
+                  "表示名は%1人目用に別に保存するので、1人目の表示名は入っていません。")
+                   .arg(m_player);
+    } else {
+        text = tr("「接続と条件」の「表示名」に、相手に見える名前を入れてください。");
+    }
+    DialogUtils::warning(this, tr("表示名"), text);
     m_tabs->setCurrentIndex(0);
     m_displayName->setFocus();
     return false;
