@@ -606,7 +606,7 @@ private slots:
                 settle();
                 QVERIFY2(stalePixels(ui) == 0, qPrintable(label));
             } else {
-                verifyPartialStep(ui.view, [&ui, to = to] { ui.controller->onLeftClick(to); },
+                verifyPartialStep(ui.view, [&ui, target = to] { ui.controller->onLeftClick(target); },
                                   QStringLiteral("sent ") + label);
             }
             QVERIFY2(sent.has_value(), qPrintable(label));
