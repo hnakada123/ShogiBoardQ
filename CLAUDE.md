@@ -32,7 +32,8 @@ python3 -m pytest -q mcp/tests
 
 # P2P対局（既定で有効。Linux・Windows・macOS。libsodium と Rust が要る。QtKeychain は任意）。通信プロセス shogiboardq-peer も cargo でビルドして同梱する
 # Windows（MSVC）は libsodium の公式のビルド済みの配布物の場所を -DSODIUM_ROOT=... で渡す（docs/dev/windows-build-and-release.md 3.4節）
-# macOS は brew install rust libsodium pkg-config（docs/dev/macos-build-and-release.md 3.4節）
+# macOS は brew install rust libsodium pkg-config（docs/dev/macos-build-and-release.md 3.4節）。プレイヤー鍵をキーチェーンに置く QtKeychain（任意）は
+# scripts/build-qtkeychain-macos.sh --qt-prefix <Qt の場所> でビルドし、最後の行に出る -DQt6Keychain_DIR=... を付けて構成する（配布スクリプトは自分で行う）
 # P2P対局なしでビルドするとき（libsodium と Rust が要らない）は -DENABLE_P2P_PLAY=OFF
 cmake -B build -S . -G Ninja -DBUILD_TESTING=ON
 # 通信プロセスの依存（Cargo.lock）を変えたら、アプリに内蔵する Rust のライブラリのライセンス一覧を作り直す（tst_rust_licenses が古さを検査する）

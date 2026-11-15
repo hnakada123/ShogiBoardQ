@@ -240,7 +240,7 @@ export APPLE_ID=&quot;your@email.com&quot; APPLE_TEAM_ID=&quot;TEAMID&quot; APPL
 <p>スクリプトは以下の処理を自動実行する：</p>
 <ol type="1">
 <li>前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, python3, create-dmg と、P2P対局に使う cargo, pkg-config, libsodium）</li>
-<li>CMake Configure（<code>CMAKE_OSX_DEPLOYMENT_TARGET</code> を指定）+ Ninja ビルド</li>
+<li>CMake Configure（<code>CMAKE_OSX_DEPLOYMENT_TARGET</code> を指定）+ P2P対局に使う QtKeychain のビルドと構成のやり直し（<a href="#34-p2p対局rust-と-libsodium">3.4</a>）+ Ninja ビルド</li>
 <li>ビルド成果物の確認（.app、実行ファイルと P2P対局の通信プロセスの最小 macOS バージョン、.qm 翻訳ファイル、Rust のライブラリのライセンス一覧が <code>Cargo.lock</code> と合っていること）</li>
 <li>macdeployqt によるフレームワークバンドル</li>
 <li>未使用の Qt 部品の削除と、Qt バイナリの arm64 化（<a href="#44-未使用の-qt-部品の削除最小構成">4.4</a>。<code>--universal</code> 時は arm64 化しない）+ 検証</li>
@@ -324,7 +324,7 @@ cargo test --locked --workspace</code></pre>
 <li>libsodium は Homebrew の動的ライブラリ（<code>/opt/homebrew/opt/libsodium</code>）にリンクし、macdeployqt がバンドルの <code>Contents/Frameworks</code> に同梱する。配布スクリプトは、同梱した libsodium の最小の macOS の版がアプリの対象より新しければ停止する（そのときは <code>MACOSX_DEPLOYMENT_TARGET=26.0 brew reinstall --build-from-source libsodium</code> のように、対象の版向けに作り直す）</li>
 <li>配布スクリプトは、通信プロセスをバンドルより先に単独で署名する（Developer ID のときは Hardened Runtime とタイムスタンプ付き。権限（entitlements）は付けない）</li>
 <li>通信プロセスに取り込んだ Rust のライブラリの一覧とライセンスの本文（<code>resources/licenses/RUST-NOTICES.md</code>）は、アプリに内蔵している（「バージョン情報」の「P2P対局のライブラリのライセンス一覧」）。依存（<code>Cargo.lock</code>）を変えたら <code>python3 scripts/rust_licenses.py</code> で作り直す（合っていなければ配布スクリプトが停止する）</li>
-<li>プレイヤー鍵をキーチェーンに置くには QtKeychain が要る（任意。アプリと同じ Qt でビルドしたもの。Homebrew の <code>qtkeychain</code> は Homebrew の Qt 用なので、Qt Online Installer の Qt と混ぜない）。無ければ、鍵はパスフレーズで暗号化したファイルに置く</li>
+<li>プレイヤー鍵をキーチェーンに置くには QtKeychain が要る（任意。無ければ、鍵の保管で「OSの鍵の保管庫」を選べず、鍵はパスフレーズで暗号化したファイルに置く）。アプリと同じ Qt でビルドしたものが要る（Homebrew の <code>qtkeychain</code> は Homebrew の Qt 用なので、Qt Online Installer の Qt と混ぜない）ので、<code>scripts/build-qtkeychain-macos.sh</code> が、公式のソース（版と SHA-256 はスクリプトで固定）を静的ライブラリとしてビルドする。開発用のビルドでは、<code>./scripts/build-qtkeychain-macos.sh --qt-prefix ~/Qt/6.x.x/macos</code> を実行し、最後の行に出るオプション（<code>-DQt6Keychain_DIR=...</code>）を付けて構成し直す。配布スクリプトは自分でビルドし、アプリに組み込めなければ停止する。鍵はログインキーチェーン（iCloud には同期されない）に入り、アドホック署名の配布物では、アプリを新しい版に入れ替えた後の最初の読み出しで、macOS が許可（ログインのパスワード）を求めることがある</li>
 <li>協力ノード（<code>shogiboardq-peer --service</code>）も動く</li>
 </ul>
 </section>

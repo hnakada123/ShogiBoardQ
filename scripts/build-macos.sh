@@ -5,6 +5,8 @@
 # Release ビルド → macdeployqt → コード署名 → DMG 作成（→ 公証）→ 配布 ZIP 作成を一括実行する。
 # ZIP（ShogiBoardQ-macos.zip）には DMG・通常対局用 Hayanagi（定跡を含む）・詰将棋問題集を入れる。
 # Hayanagi と問題集は DMG（アプリバンドル）には入れない。
+# P2P対局のプレイヤー鍵をキーチェーンに置くための QtKeychain は、scripts/build-qtkeychain-macos.sh が
+# アプリと同じ Qt でソースからビルドし、アプリに静的に取り込む（build-qtkeychain-release/ に残して使い回す）。
 # 詳細: docs/dev/macos-build-and-release.md
 #
 # Usage:
@@ -41,6 +43,9 @@ PEER_NAME="shogiboardq-peer"
 PEER_EXE="${APP_BUNDLE}/Contents/MacOS/${PEER_NAME}"
 ICON_PATH="resources/icons/shogiboardq.icns"
 DEFAULT_DEPLOYMENT_TARGET="26.0"
+# 配布用の QtKeychain のビルド先（--clean でも消さずに使い回す。開発用の build-qtkeychain/ とは、
+# 最小の macOS の版が違うので分ける）
+QTKEYCHAIN_WORK_DIR="build-qtkeychain-release"
 
 # ──────────────────────────────────────────────
 # デフォルトオプション
@@ -193,9 +198,9 @@ if [[ "$OPT_UNIVERSAL" = true ]]; then
     ENABLE_P2P=false
     warn "Universal Binary では P2P対局を入れません（-DENABLE_P2P_PLAY=OFF でビルドします）。"
 else
-    for tool in cargo pkg-config; do
+    for tool in cargo pkg-config curl shasum; do
         command -v "$tool" &>/dev/null || die "${tool} が見つかりません。P2P対局のビルドに必要です。
-  brew install rust libsodium pkg-config"
+  brew install rust libsodium pkg-config（curl・shasum は macOS に付属）"
     done
     pkg-config --exists 'libsodium >= 1.0.18' || die "libsodium（1.0.18 以上）が見つかりません。P2P対局のビルドに必要です。
   brew install libsodium"
@@ -273,6 +278,22 @@ else
 fi
 
 cmake "${CMAKE_ARGS[@]}"
+
+# P2P対局: プレイヤー鍵をキーチェーンに置くための QtKeychain を、いま構成したアプリと同じ Qt でビルドし、
+# その場所を渡して構成し直す（無いと、プレイヤー鍵の保管で「OSの鍵の保管庫」を選べない配布物になる）
+if [[ "$ENABLE_P2P" = true ]]; then
+    QT6_DIR=$(sed -n 's/^Qt6_DIR:[A-Z]*=//p' "$BUILD_DIR/CMakeCache.txt")
+    [[ -n "$QT6_DIR" && -d "$QT6_DIR" ]] || die "アプリの構成から Qt の場所（Qt6_DIR）を読めません。"
+    QT_PREFIX="$(cd "$QT6_DIR/../../.." && pwd)"
+    info "Qt:          ${QT_PREFIX}"
+    QTKEYCHAIN_ARG=$("$SCRIPT_DIR/build-qtkeychain-macos.sh" \
+        --qt-prefix "$QT_PREFIX" --deployment-target "$OPT_DEPLOYMENT_TARGET" \
+        --work-dir "$QTKEYCHAIN_WORK_DIR" | tail -1)
+    [[ "$QTKEYCHAIN_ARG" == -DQt6Keychain_DIR=* ]] || die "QtKeychain をビルドできません。"
+    cmake "${CMAKE_ARGS[@]}" "$QTKEYCHAIN_ARG"
+    grep -q 'SBQ_HAVE_QTKEYCHAIN' "$BUILD_DIR/build.ninja" \
+        || die "QtKeychain がアプリのビルドに組み込まれていません（${QTKEYCHAIN_ARG}）。"
+fi
 
 # ──────────────────────────────────────────────
 # Step 5: ビルド

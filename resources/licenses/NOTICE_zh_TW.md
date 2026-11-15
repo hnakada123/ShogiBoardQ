@@ -24,6 +24,10 @@ Linux 版 AppImage，授權原文請參閱本文件末尾）。P2P對局的通�
 並包含 rust-libp2p 等 Rust 程式庫，各程式庫適用其各自的授權。清單及授權原文請參閱
 「[P2P對局所用程式庫的授權](qrc:/licenses/RUST-NOTICES.md)」。
 
+為了把P2P對局的玩家金鑰保存在作業系統的金鑰庫中，使用了 QtKeychain
+（https://github.com/frankosterfeld/qtkeychain ，BSD 3-Clause License；編入 macOS 版應用程式，
+隨附於 Linux 版 AppImage，授權原文請參閱本文件末尾）。
+
 本軟體不附加禁止修改 Qt、替換為介面相容的程式庫，或為偵錯此類修改而進行還原工程的限制。
 本軟體在適用授權規定的範圍內不提供擔保。
 
@@ -45,3 +49,34 @@ Linux 版 AppImage，授權原文請參閱本文件末尾）。P2P對局的通�
     WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
     ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+## QtKeychain
+
+    BSD 3-Clause License
+
+    Copyright (C) 2011-2015 Frank Osterfeld <frank.osterfeld@gmail.com>
+    Copyright (C) 2016 Mathias Hasselmann <mathias.hasselmann@kdab.com>
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+    3. The name of the author may not be used to
+       endorse or promote products derived from this software without
+       specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+    IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+    OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+    IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+    NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+    THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

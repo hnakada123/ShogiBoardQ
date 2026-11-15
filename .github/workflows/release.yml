@@ -162,7 +162,8 @@ jobs:
           name: qt-license-documents
           path: build/qt-licenses
 
-      # libsodium・pkg-config は P2P対局のビルドに使う（Rust はランナーに入っている）
+      # libsodium・pkg-config は P2P対局のビルドに使う（Rust はランナーに入っている）。プレイヤー鍵をキーチェーンに置く
+      # QtKeychain は、scripts/build-macos.sh がソースを SHA-256 で確かめてビルドする
       - name: Install dependencies
         run: brew install create-dmg libsodium pkg-config
 

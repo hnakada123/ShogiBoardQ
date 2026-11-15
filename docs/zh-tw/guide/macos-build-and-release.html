@@ -191,7 +191,7 @@ export APPLE_ID=&quot;your@email.com&quot; APPLE_TEAM_ID=&quot;TEAMID&quot; APPL
 <p>指令碼會自動執行以下處理：</p>
 <ol type="1">
 <li>確認所需工具（cmake、ninja、macdeployqt、codesign、vtool、python3、create-dmg，以及 P2P對局使用的 cargo、pkg-config、libsodium）</li>
-<li>CMake 設定（指定 <code>CMAKE_OSX_DEPLOYMENT_TARGET</code>）+ Ninja 建置</li>
+<li>CMake 設定（指定 <code>CMAKE_OSX_DEPLOYMENT_TARGET</code>）+ 建置 P2P對局所用的 QtKeychain 並重新設定 + Ninja 建置</li>
 <li>確認建置產物（.app、執行檔和 P2P對局通訊程序的最低 macOS 版本、.qm 翻譯檔，以及 Rust 程式庫的授權清單與 <code>Cargo.lock</code> 一致）</li>
 <li>以 macdeployqt 打包框架</li>
 <li>刪除未使用的 Qt 元件，並將 Qt 二進位檔精簡為 arm64（<a href="#bundle-prune">4.4</a>。使用 <code>--universal</code> 時不精簡為 arm64）+ 驗證</li>
@@ -275,7 +275,7 @@ cargo test --locked --workspace</code></pre>
 <li>libsodium 連結到 Homebrew 的動態函式庫（<code>/opt/homebrew/opt/libsodium</code>），由 macdeployqt 打包到應用程式套件的 <code>Contents/Frameworks</code> 中。如果打包的 libsodium 的最低 macOS 版本高於應用程式的目標版本，發行指令碼會停止（此時請針對目標版本重新建置，例如 <code>MACOSX_DEPLOYMENT_TARGET=26.0 brew reinstall --build-from-source libsodium</code>）</li>
 <li>發行指令碼會在對應用程式套件簽署之前，先單獨對通訊程序簽署（使用 Developer ID 時啟用 Hardened Runtime 並附加時間戳記。不加入權限（entitlements））</li>
 <li>通訊程序所包含的 Rust 程式庫的清單及授權原文（<code>resources/licenses/RUST-NOTICES.md</code>）內建在應用程式中（「版本資訊」的「P2P對局所用程式庫的授權」）。變更相依項目（<code>Cargo.lock</code>）後，請用 <code>python3 scripts/rust_licenses.py</code> 重新產生（不一致時發行指令碼會停止）</li>
-<li>要把玩家金鑰儲存到鑰匙圈，需要 QtKeychain（選用。須用與應用程式相同的 Qt 建置。Homebrew 的 <code>qtkeychain</code> 是給 Homebrew 的 Qt 用的，不要與 Qt Online Installer 的 Qt 混用）。沒有時，金鑰儲存在用密碼片語加密的檔案中</li>
+<li>要把玩家金鑰保存在鑰匙圈中，需要 QtKeychain（選用；沒有時，金鑰的保管方式無法選擇「作業系統的金鑰庫」，金鑰保存在用密碼短語加密的檔案中）。它必須用與應用程式相同的 Qt 建置（Homebrew 的 <code>qtkeychain</code> 是給 Homebrew 的 Qt 用的，請勿與 Qt Online Installer 的 Qt 混用），因此由 <code>scripts/build-qtkeychain-macos.sh</code> 把官方原始碼（版本和 SHA-256 固定在指令碼中）建置為靜態程式庫。開發用的建置請執行 <code>./scripts/build-qtkeychain-macos.sh --qt-prefix ~/Qt/6.x.x/macos</code>，並加上最後一行輸出的選項（<code>-DQt6Keychain_DIR=...</code>）重新設定。發行指令碼會自行建置，無法編入應用程式時會停止。金鑰保存在登入鑰匙圈中（不會同步到 iCloud）；使用臨時簽署（ad hoc）的發行套件時，把應用程式換成新版本後第一次讀取金鑰，macOS 可能會要求許可（輸入登入密碼）</li>
 <li>協作節點（<code>shogiboardq-peer --service</code>）也可以執行</li>
 </ul>
 </section>

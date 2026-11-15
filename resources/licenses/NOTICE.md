@@ -42,12 +42,21 @@ Rust のライブラリを取り込んでいます。各ライブラリにはそ
 適用されます。一覧と本文は
 「[P2P対局のライブラリのライセンス一覧](qrc:/licenses/RUST-NOTICES.md)」にあります。
 
+P2P対局のプレイヤー鍵を OS の鍵の保管庫に置くために QtKeychain
+（https://github.com/frankosterfeld/qtkeychain 、BSD 3-Clause License）を使用しています
+（macOS 版はアプリに取り込み、Linux の AppImage は同梱。ライセンスの本文はこの文書の末尾）。
+
 P2P games use libsodium (https://libsodium.org/, ISC License; bundled in the
 Windows and macOS packages and in the Linux AppImage; its license text is at the
 end of this document). The communication process of P2P games (shogiboardq-peer)
 is written in Rust and is built from Rust libraries such as rust-libp2p, each under
 its own license. They are listed with their license texts in
 "[Licenses of the libraries for P2P games](qrc:/licenses/RUST-NOTICES.md)".
+
+To store the player key of P2P games in the OS keychain, QtKeychain
+(https://github.com/frankosterfeld/qtkeychain, BSD 3-Clause License) is used (built
+into the macOS app and bundled in the Linux AppImage; its license text is at the end
+of this document).
 
 Qt の改変、互換性のあるライブラリへの差し替え、およびそのデバッグに必要な
 リバースエンジニアリングを禁止する追加条件は設けていません。
@@ -75,3 +84,34 @@ The software is provided without warranty as specified in its licenses.
     WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
     ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+## QtKeychain
+
+    BSD 3-Clause License
+
+    Copyright (C) 2011-2015 Frank Osterfeld <frank.osterfeld@gmail.com>
+    Copyright (C) 2016 Mathias Hasselmann <mathias.hasselmann@kdab.com>
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+    3. The name of the author may not be used to
+       endorse or promote products derived from this software without
+       specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+    IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+    OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+    IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+    NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+    THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

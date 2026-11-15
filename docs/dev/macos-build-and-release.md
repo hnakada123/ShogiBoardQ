@@ -143,7 +143,7 @@ export APPLE_ID="your@email.com" APPLE_TEAM_ID="TEAMID" APPLE_APP_PASSWORD="app-
 スクリプトは以下の処理を自動実行する：
 
 1. 前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, python3, create-dmg と、P2P対局に使う cargo, pkg-config, libsodium）
-2. CMake Configure（`CMAKE_OSX_DEPLOYMENT_TARGET` を指定）+ Ninja ビルド
+2. CMake Configure（`CMAKE_OSX_DEPLOYMENT_TARGET` を指定）+ P2P対局に使う QtKeychain のビルドと構成のやり直し（[3.4](#34-p2p対局rust-と-libsodium)）+ Ninja ビルド
 3. ビルド成果物の確認（.app、実行ファイルと P2P対局の通信プロセスの最小 macOS バージョン、.qm 翻訳ファイル、Rust のライブラリのライセンス一覧が `Cargo.lock` と合っていること）
 4. macdeployqt によるフレームワークバンドル
 5. 未使用の Qt 部品の削除と、Qt バイナリの arm64 化（[4.4](#44-未使用の-qt-部品の削除最小構成)。`--universal` 時は arm64 化しない）+ 検証
@@ -250,7 +250,11 @@ P2P対局なしでビルドするとき（Rust と libsodium が要らない）�
 - libsodium は Homebrew の動的ライブラリ（`/opt/homebrew/opt/libsodium`）にリンクし、macdeployqt がバンドルの `Contents/Frameworks` に同梱する。配布スクリプトは、同梱した libsodium の最小の macOS の版がアプリの対象より新しければ停止する（そのときは `MACOSX_DEPLOYMENT_TARGET=26.0 brew reinstall --build-from-source libsodium` のように、対象の版向けに作り直す）
 - 配布スクリプトは、通信プロセスをバンドルより先に単独で署名する（Developer ID のときは Hardened Runtime とタイムスタンプ付き。権限（entitlements）は付けない）
 - 通信プロセスに取り込んだ Rust のライブラリの一覧とライセンスの本文（`resources/licenses/RUST-NOTICES.md`）は、アプリに内蔵している（「バージョン情報」の「P2P対局のライブラリのライセンス一覧」）。依存（`Cargo.lock`）を変えたら `python3 scripts/rust_licenses.py` で作り直す（合っていなければ配布スクリプトが停止する）
-- プレイヤー鍵をキーチェーンに置くには QtKeychain が要る（任意。アプリと同じ Qt でビルドしたもの。Homebrew の `qtkeychain` は Homebrew の Qt 用なので、Qt Online Installer の Qt と混ぜない）。無ければ、鍵はパスフレーズで暗号化したファイルに置く
+- プレイヤー鍵をキーチェーンに置くには QtKeychain が要る（任意。無ければ、鍵の保管で「OSの鍵の保管庫」を選べず、鍵はパスフレーズで暗号化したファイルに置く）。アプリと同じ Qt でビルドしたものが要る（Homebrew の `qtkeychain` は Homebrew の Qt 用なので、Qt Online Installer の Qt と混ぜない）ので、`scripts/build-qtkeychain-macos.sh` が、公式のソース（版と SHA-256 はスクリプトで固定）を静的ライブラリとしてビルドする。アプリに取り込まれるので、バンドルに同梱する動的ライブラリは増えない
+  - 開発用のビルドでは、`./scripts/build-qtkeychain-macos.sh --qt-prefix ~/Qt/6.x.x/macos` を実行し（`build-qtkeychain/` に作る）、最後の行に出るオプション（`-DQt6Keychain_DIR=...`）を付けて構成し直す
+  - 配布スクリプトは、アプリを構成した Qt で自分でビルドし（`build-qtkeychain-release/`。`--clean` でも消さずに使い回す）、アプリに組み込めなければ停止する
+  - アプリに権限（entitlements）を付けていないので、鍵はログインキーチェーン（ファイルのキーチェーン。iCloud には同期されない）に入る。項目を黙って読めるのは書き込んだアプリの署名だけなので、アドホック署名の配布物では、アプリを新しい版に入れ替えた後の最初の読み出しで、macOS が許可（ログインのパスワード）を求めることがある
+  - QtKeychain（BSD 3-Clause）の著作権表示とライセンスの本文は `resources/licenses/NOTICE*.md` にある。版を上げたら著作権表示を確かめる
 - 協力ノード（`shogiboardq-peer --service`）も動く
 
 ---

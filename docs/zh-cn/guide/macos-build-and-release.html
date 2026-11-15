@@ -191,7 +191,7 @@ export APPLE_ID=&quot;your@email.com&quot; APPLE_TEAM_ID=&quot;TEAMID&quot; APPL
 <p>脚本会自动执行以下处理：</p>
 <ol type="1">
 <li>确认所需工具（cmake、ninja、macdeployqt、codesign、vtool、python3、create-dmg，以及 P2P对局使用的 cargo、pkg-config、libsodium）</li>
-<li>CMake 配置（指定 <code>CMAKE_OSX_DEPLOYMENT_TARGET</code>）+ Ninja 构建</li>
+<li>CMake 配置（指定 <code>CMAKE_OSX_DEPLOYMENT_TARGET</code>）+ 构建 P2P对局所用的 QtKeychain 并重新配置 + Ninja 构建</li>
 <li>确认构建产物（.app、可执行文件和 P2P对局通信进程的最低 macOS 版本、.qm 翻译文件，以及 Rust 库的许可证列表与 <code>Cargo.lock</code> 一致）</li>
 <li>用 macdeployqt 打包框架</li>
 <li>删除未使用的 Qt 组件，并把 Qt 二进制精简为 arm64（<a href="#bundle-prune">4.4</a>。使用 <code>--universal</code> 时不精简为 arm64）+ 验证</li>
@@ -275,7 +275,7 @@ cargo test --locked --workspace</code></pre>
 <li>libsodium 链接到 Homebrew 的动态库（<code>/opt/homebrew/opt/libsodium</code>），由 macdeployqt 打包到应用程序包的 <code>Contents/Frameworks</code> 中。如果打包的 libsodium 的最低 macOS 版本高于应用的目标版本，发布脚本会停止（此时请针对目标版本重新构建，例如 <code>MACOSX_DEPLOYMENT_TARGET=26.0 brew reinstall --build-from-source libsodium</code>）</li>
 <li>发布脚本会在对应用程序包签名之前，先单独对通信进程签名（使用 Developer ID 时启用 Hardened Runtime 并附加时间戳。不添加权限（entitlements））</li>
 <li>通信进程所包含的 Rust 库的列表及许可原文（<code>resources/licenses/RUST-NOTICES.md</code>）内置在应用中（“版本信息”的“P2P对局所用库的许可证”）。更改依赖（<code>Cargo.lock</code>）后，请用 <code>python3 scripts/rust_licenses.py</code> 重新生成（不一致时发布脚本会停止）</li>
-<li>要把玩家密钥保存到钥匙串，需要 QtKeychain（可选。须用与应用相同的 Qt 构建。Homebrew 的 <code>qtkeychain</code> 面向 Homebrew 的 Qt，不要与 Qt Online Installer 的 Qt 混用）。没有时，密钥保存在用密码短语加密的文件中</li>
+<li>要把玩家密钥保存在钥匙串中，需要 QtKeychain（可选；没有时，密钥的保管方式无法选择“操作系统的密钥库”，密钥保存在用密码短语加密的文件中）。它必须用与应用相同的 Qt 构建（Homebrew 的 <code>qtkeychain</code> 面向 Homebrew 的 Qt，请勿与 Qt Online Installer 的 Qt 混用），因此由 <code>scripts/build-qtkeychain-macos.sh</code> 把官方源代码（版本和 SHA-256 固定在脚本中）构建为静态库。开发用的构建请运行 <code>./scripts/build-qtkeychain-macos.sh --qt-prefix ~/Qt/6.x.x/macos</code>，并加上最后一行输出的选项（<code>-DQt6Keychain_DIR=...</code>）重新配置。发布脚本会自行构建，无法编入应用时会停止。密钥保存在登录钥匙串中（不会同步到 iCloud）；使用临时签名（ad hoc）的发行包时，把应用换成新版本后第一次读取密钥，macOS 可能会要求许可（输入登录密码）</li>
 <li>协作节点（<code>shogiboardq-peer --service</code>）也可以运行</li>
 </ul>
 </section>
