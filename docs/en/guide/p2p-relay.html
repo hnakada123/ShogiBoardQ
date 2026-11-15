@@ -224,7 +224,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                         <tr><td><strong><code>--listen &lt;address&gt;</code></strong></td><td>The address and port to listen on. <code>0.0.0.0</code> listens on all network interfaces. The port does not have to be 4001.</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">When it starts, the PeerId is shown after <code>service started as</code>. Press Ctrl+C to stop it. After that, once a minute it prints the number of connected apps (<code>peers=</code>) and, when started with <code>--relay</code>, the number of connections it is relaying (<code>relays=</code>), for example <code>shogiboardq-peer: peers=2 relays=1</code>. It does not print the IP addresses that connected.</p>
+                <p class="guide-step-text">When it starts, the PeerId is shown after <code>service started as</code>. Press Ctrl+C to stop it. After that, it prints the number of connected apps (<code>peers=</code>) and, when started with <code>--relay</code>, the number of connections it is relaying (<code>relays=</code>) whenever they change, for example <code>shogiboardq-peer: peers=2 relays=1</code>. <code>relays</code> is not the number of players; it is 1 for each pair of players connected through the relay. It does not print the IP addresses that connected.</p>
                 <p class="guide-step-text">A cooperating node does not expire (the expiry applies only when the app joins the Internet network).</p>
             </div>
 
@@ -592,7 +592,7 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">With Do not use direct connections, does the game data really go through the cooperating node?</span>
                 </div>
-                <p class="guide-step-text">Yes. Once a minute, the cooperating node prints the number of connected apps (<code>peers=</code>) and the number of connections it is relaying (<code>relays=</code>), for example <code>shogiboardq-peer: peers=2 relays=1</code>. While game data goes through the cooperating node, <code>relays</code> is 1 or more. It does not print how much it relayed or the IP addresses that connected. A game connected directly and a game going through the relay differ as follows.</p>
+                <p class="guide-step-text">Yes. The cooperating node prints the number of connected apps (<code>peers=</code>) and the number of connections it is relaying (<code>relays=</code>) whenever they change, for example <code>shogiboardq-peer: peers=2 relays=1</code>. While game data goes through the cooperating node, <code>relays</code> is 1 or more. It does not print how much it relayed or the IP addresses that connected. A game connected directly and a game going through the relay differ as follows.</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">Compared</th><th scope="col">A game connected directly</th><th scope="col">A game going through the relay</th></tr>
@@ -609,6 +609,24 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
                 <div class="build-steps"><pre><code>$ ss -tin 'sport = :4001'</code></pre></div>
                 <p class="guide-step-text">Through the relay, every move increases <code>bytes_received</code> of one connection and <code>bytes_sent</code> of the other by about the same amount. With a direct connection, they do not grow when you move. In a test that sent about 31 KB from one app to the other, the cooperating node received 124 bytes with a direct connection and about 35 KB through the relay (about a tenth more than what was sent, for encryption and the relay framing).</p>
                 <p class="guide-step-text">Even while relaying, the cooperating node cannot read the content (moves, player IDs, display names) (<a href="#node">What a Cooperating Node Does and Does Not Do</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">Two players are playing through the relay, but the cooperating node prints <code>relays=1</code>. Shouldn't it be <code>relays=2</code>?</span>
+                </div>
+                <p class="guide-step-text"><code>relays=1</code> is correct. <code>relays</code> is not the number of players; it is the number of connections the cooperating node is relaying. In a game between two players, the invited player's app makes a single connection to the opponent through the cooperating node, and moves flow over it in both directions. The number of players appears in <code>peers</code> (the number of apps connected to the cooperating node).</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Situation</th><th scope="col">Output of the cooperating node</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Two players are connected to the cooperating node, and no game is being played</strong></td><td><code>peers=2 relays=0</code></td></tr>
+                        <tr><td><strong>Two players are playing one game through the relay</strong></td><td><code>peers=2 relays=1</code></td></tr>
+                        <tr><td><strong>Four players are playing two games through the relay</strong></td><td><code>peers=4 relays=2</code></td></tr>
+                    </tbody>
+                </table>
             </div>
 
         </div>

@@ -224,7 +224,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                         <tr><td><strong><code>--listen &lt;地址&gt;</code></strong></td><td>监听的地址和端口。<code>0.0.0.0</code> 表示在所有网络接口上监听。端口不一定是 4001。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">启动后，<code>service started as</code> 后面会显示 PeerId。要停止时按 Ctrl+C。启动之后，每分钟输出一次已连接的应用数量（<code>peers=</code>），加上 <code>--relay</code> 启动时还会输出正在中继的连接数量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。不输出连接来源的 IP 地址。</p>
+                <p class="guide-step-text">启动后，<code>service started as</code> 后面会显示 PeerId。要停止时按 Ctrl+C。启动之后，每当数量变化时，输出已连接的应用数量（<code>peers=</code>），加上 <code>--relay</code> 启动时还会输出正在中继的连接数量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。<code>relays</code> 不是人数，每一对经由中继连接的两人计为 1。不输出连接来源的 IP 地址。</p>
                 <p class="guide-step-text">协作节点没有使用期限（期限只在应用加入“互联网”时起作用）。</p>
             </div>
 
@@ -592,7 +592,7 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">设置“不使用直接连接”对局时，对局的数据真的经过协作节点吗</span>
                 </div>
-                <p class="guide-step-text">经过。协作节点每分钟输出一次已连接的应用数量（<code>peers=</code>）和正在中继的连接数量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。对局的数据经过协作节点期间，<code>relays</code> 为 1 以上。不输出中继的数据量和连接来源的 IP 地址。与对手直接连接的对局和经由中继的对局，区别如下。</p>
+                <p class="guide-step-text">经过。协作节点在数量变化时输出已连接的应用数量（<code>peers=</code>）和正在中继的连接数量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。对局的数据经过协作节点期间，<code>relays</code> 为 1 以上。不输出中继的数据量和连接来源的 IP 地址。与对手直接连接的对局和经由中继的对局，区别如下。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">比较的内容</th><th scope="col">与对手直接连接的对局</th><th scope="col">经由中继的对局</th></tr>
@@ -609,6 +609,24 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                 <div class="build-steps"><pre><code>$ ss -tin 'sport = :4001'</code></pre></div>
                 <p class="guide-step-text">经由中继时，每下一手，一个连接的 <code>bytes_received</code> 和另一个连接的 <code>bytes_sent</code> 会增加大致相同的量。直接连接时，下棋也不会增加。在从一方向另一方发送约 31 KB 数据的测试中，协作节点收到的量在直接连接时为 124 字节，在经由中继时约为 35 KB（由于加密和中继的封装，比发送的量多一成左右）。</p>
                 <p class="guide-step-text">即使在中继，协作节点也读不到内容（着手、玩家ID、显示名）（<a href="#node">协作节点做什么、不做什么</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">两人正在经由中继对局，协作节点的输出却是 <code>relays=1</code>。不应该是 <code>relays=2</code> 吗</span>
+                </div>
+                <p class="guide-step-text"><code>relays=1</code> 是正确的。<code>relays</code> 不是对局的人数，而是协作节点正在中继的连接的数量。两人对局时，被邀请方的应用经由协作节点与对手只建立一条连接，着手在这一条连接上双向传送。人数显示在 <code>peers</code>（连接到协作节点的应用数量）中。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">情况</th><th scope="col">协作节点的输出</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>两人只是连接到协作节点，没有对局</strong></td><td><code>peers=2 relays=0</code></td></tr>
+                        <tr><td><strong>两人经由中继下一局</strong></td><td><code>peers=2 relays=1</code></td></tr>
+                        <tr><td><strong>四人经由中继下两局</strong></td><td><code>peers=4 relays=2</code></td></tr>
+                    </tbody>
+                </table>
             </div>
 
         </div>

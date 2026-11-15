@@ -224,7 +224,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                         <tr><td><strong><code>--listen &lt;アドレス&gt;</code></strong></td><td>待ち受けるアドレスとポートです。<code>0.0.0.0</code> は、すべてのネットワークの口で待ちます。ポートは 4001 でなくてもかまいません。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">起動すると、<code>service started as</code> の後に PeerId が出ます。止めるときは Ctrl+C を押します。起動した後は、1分ごとに、つながっているアプリの数（<code>peers=</code>）と、<code>--relay</code> を付けていれば中継している接続の数（<code>relays=</code>）を出します（例: <code>shogiboardq-peer: peers=2 relays=1</code>）。接続元の IP アドレスは出しません。</p>
+                <p class="guide-step-text">起動すると、<code>service started as</code> の後に PeerId が出ます。止めるときは Ctrl+C を押します。起動した後は、つながっているアプリの数（<code>peers=</code>）と、<code>--relay</code> を付けていれば中継している接続の数（<code>relays=</code>）を、数が変わるたびに出します（例: <code>shogiboardq-peer: peers=2 relays=1</code>）。<code>relays</code> は人数ではなく、中継でつながっている2人1組につき 1 です。接続元の IP アドレスは出しません。</p>
                 <p class="guide-step-text">協力ノードには使用期限はありません（期限で止まるのは、アプリが「インターネット」に参加するときだけです）。</p>
             </div>
 
@@ -592,7 +592,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">「直接接続を使わない」で対局しているとき、対局のデータは協力ノードを通っているのですか</span>
                 </div>
-                <p class="guide-step-text">通っています。協力ノードは1分に1回、つながっているアプリの数（<code>peers=</code>）と、中継している接続の数（<code>relays=</code>）を出力します（例: <code>shogiboardq-peer: peers=2 relays=1</code>）。対局のデータが協力ノードを通っている間は、<code>relays</code> が 1 以上になります。中継した量と、接続元の IP アドレスは出力しません。相手と直接つながっている対局と、中継を通っている対局の違いは、次のとおりです。</p>
+                <p class="guide-step-text">通っています。協力ノードは、つながっているアプリの数（<code>peers=</code>）と、中継している接続の数（<code>relays=</code>）を、数が変わるたびに出力します（例: <code>shogiboardq-peer: peers=2 relays=1</code>）。対局のデータが協力ノードを通っている間は、<code>relays</code> が 1 以上になります。中継した量と、接続元の IP アドレスは出力しません。相手と直接つながっている対局と、中継を通っている対局の違いは、次のとおりです。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">比べること</th><th scope="col">相手と直接つながっている対局</th><th scope="col">中継を通っている対局</th></tr>
@@ -609,6 +609,24 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                 <div class="build-steps"><pre><code>$ ss -tin 'sport = :4001'</code></pre></div>
                 <p class="guide-step-text">中継を通っていれば、1手指すたびに、片方の接続の <code>bytes_received</code> と、もう片方の接続の <code>bytes_sent</code> が同じくらい増えます。直接つながっていれば、指しても増えません。片方からもう片方へ約31KBのデータを送って試したところ、協力ノードが受け取った量は、直接つながっているときで124バイト、中継を通っているときで約35KBでした（暗号化と中継の包みの分、送った量より1割ほど多くなります）。</p>
                 <p class="guide-step-text">中継していても、協力ノードは中身（指し手・プレイヤーID・表示名）を読めません（<a href="#node">協力ノードがすること・しないこと</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">2人で中継を通って対局しているのに、協力ノードの出力は <code>relays=1</code> です。<code>relays=2</code> ではないのですか</span>
+                </div>
+                <p class="guide-step-text"><code>relays=1</code> で合っています。<code>relays</code> は対局している人数ではなく、協力ノードが中継している接続の本数です。2人の対局では、招待された人のアプリが協力ノードを通って相手へつなぐ接続が1本だけでき、指し手は両方向とも、その1本を流れます。人数は <code>peers</code>（協力ノードにつながっているアプリの数）に出ます。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">場面</th><th scope="col">協力ノードの出力</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>2人が協力ノードにつながっているだけで、対局していない</strong></td><td><code>peers=2 relays=0</code></td></tr>
+                        <tr><td><strong>2人が中継を通って1局指している</strong></td><td><code>peers=2 relays=1</code></td></tr>
+                        <tr><td><strong>4人が中継を通って2局指している</strong></td><td><code>peers=4 relays=2</code></td></tr>
+                    </tbody>
+                </table>
             </div>
 
         </div>

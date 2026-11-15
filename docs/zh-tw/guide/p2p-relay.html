@@ -224,7 +224,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                         <tr><td><strong><code>--listen &lt;位址&gt;</code></strong></td><td>監聽的位址和連接埠。<code>0.0.0.0</code> 表示在所有網路介面上監聽。連接埠不一定是 4001。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">啟動後，<code>service started as</code> 後面會顯示 PeerId。要停止時按 Ctrl+C。啟動之後，每分鐘輸出一次已連線的應用程式數量（<code>peers=</code>），加上 <code>--relay</code> 啟動時還會輸出正在中繼的連線數量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。不輸出連線來源的 IP 位址。</p>
+                <p class="guide-step-text">啟動後，<code>service started as</code> 後面會顯示 PeerId。要停止時按 Ctrl+C。啟動之後，每當數量變化時，輸出已連線的應用程式數量（<code>peers=</code>），加上 <code>--relay</code> 啟動時還會輸出正在中繼的連線數量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。<code>relays</code> 不是人數，每一對經由中繼連線的兩人計為 1。不輸出連線來源的 IP 位址。</p>
                 <p class="guide-step-text">協作節點沒有使用期限（期限只在應用程式加入「網際網路」時起作用）。</p>
             </div>
 
@@ -592,7 +592,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">設定「不使用直接連線」對局時，對局的資料真的經過協作節點嗎</span>
                 </div>
-                <p class="guide-step-text">經過。協作節點每分鐘輸出一次已連線的應用程式數量（<code>peers=</code>）和正在中繼的連線數量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。對局的資料經過協作節點期間，<code>relays</code> 為 1 以上。不輸出中繼的資料量和連線來源的 IP 位址。與對手直接連線的對局和經由中繼的對局，差別如下。</p>
+                <p class="guide-step-text">經過。協作節點在數量變化時輸出已連線的應用程式數量（<code>peers=</code>）和正在中繼的連線數量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。對局的資料經過協作節點期間，<code>relays</code> 為 1 以上。不輸出中繼的資料量和連線來源的 IP 位址。與對手直接連線的對局和經由中繼的對局，差別如下。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">比較的內容</th><th scope="col">與對手直接連線的對局</th><th scope="col">經由中繼的對局</th></tr>
@@ -609,6 +609,24 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                 <div class="build-steps"><pre><code>$ ss -tin 'sport = :4001'</code></pre></div>
                 <p class="guide-step-text">經由中繼時，每下一手，一個連線的 <code>bytes_received</code> 和另一個連線的 <code>bytes_sent</code> 會增加大致相同的量。直接連線時，下棋也不會增加。在從一方向另一方傳送約 31 KB 資料的測試中，協作節點收到的量在直接連線時為 124 位元組，在經由中繼時約為 35 KB（由於加密和中繼的封裝，比傳送的量多一成左右）。</p>
                 <p class="guide-step-text">即使在中繼，協作節點也讀不到內容（著手、玩家ID、顯示名稱）（<a href="#node">協作節點做什麼、不做什麼</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">兩人正在經由中繼對局，協作節點的輸出卻是 <code>relays=1</code>。不應該是 <code>relays=2</code> 嗎</span>
+                </div>
+                <p class="guide-step-text"><code>relays=1</code> 是正確的。<code>relays</code> 不是對局的人數，而是協作節點正在中繼的連線的數量。兩人對局時，被邀請方的應用程式經由協作節點與對手只建立一條連線，著手在這一條連線上雙向傳送。人數顯示在 <code>peers</code>（連線到協作節點的應用程式數量）中。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">情況</th><th scope="col">協作節點的輸出</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>兩人只是連線到協作節點，沒有對局</strong></td><td><code>peers=2 relays=0</code></td></tr>
+                        <tr><td><strong>兩人經由中繼下一局</strong></td><td><code>peers=2 relays=1</code></td></tr>
+                        <tr><td><strong>四人經由中繼下兩局</strong></td><td><code>peers=4 relays=2</code></td></tr>
+                    </tbody>
+                </table>
             </div>
 
         </div>
