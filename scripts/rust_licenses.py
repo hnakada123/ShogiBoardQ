@@ -78,7 +78,10 @@ class NoticeError(Exception):
 def run_cargo(arguments, offline):
     command = ["cargo", *arguments, "--locked"] + (["--offline"] if offline else [])
     try:
-        result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
+        # cargo writes UTF-8 whatever the locale (crate descriptions and authors hold non-ASCII text),
+        # so do not let Python decode it with the locale's encoding (CP932 on Japanese Windows).
+        result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+                                check=False)
     except OSError as error:
         raise NoticeError(f"cargo could not be started: {error}") from error
     if result.returncode != 0:
