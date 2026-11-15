@@ -25,6 +25,7 @@ use crate::game::ConnEvent;
 use crate::ipc::{self, Method, Out, Request};
 use crate::listen;
 use crate::sandbox::SandboxReport;
+use crate::service;
 use crate::swarm::{self, Behaviour, SwarmOptions};
 
 mod circuits;
@@ -109,7 +110,8 @@ pub struct Node {
     pub reachability: ipc::Reachability,
     pub last_status: Option<ipc::NetworkStatus>,
     pub last_second: Instant,
-    pub last_service_log: Instant,
+    /// 協力ノードが最後にログへ書いた数（変わったときだけ書く）
+    pub logged_counts: Option<service::Counts>,
     pub shutdown_at: Option<Instant>,
     /// 主ループが受け取る、接続のタスクからの知らせ（start で作り、run_loop が取り出す）
     pub pending_streams: Option<(mpsc::UnboundedReceiver<ConnEvent>, mpsc::UnboundedReceiver<Internal>)>,
@@ -291,7 +293,7 @@ impl Node {
             reachability: ipc::Reachability::Unknown,
             last_status: None,
             last_second: Instant::now(),
-            last_service_log: Instant::now(),
+            logged_counts: None,
             shutdown_at: None,
             pending_streams: Some((conn_rx, internal_rx)),
         })
@@ -380,11 +382,16 @@ impl Node {
             }
         }
         self.emit_status();
-        if self.service && self.last_service_log.elapsed() >= Duration::from_secs(60) {
-            self.last_service_log = Instant::now();
-            // 接続元の IP もピアの ID も書かない（数だけ）
-            let relays = self.circuits.as_ref().map(circuits::Circuits::count);
-            eprintln!("{}", crate::service::log_line(self.peer_conns.len(), relays));
+        if self.service {
+            // 接続元の IP もピアの ID も書かない（数だけ）。数が変わったときに書く（ここは1秒に1回なので、
+            // 続けて変わっても1秒に1行まで）
+            let counts = service::Counts {
+                peers: self.peer_conns.len(),
+                relays: self.circuits.as_ref().map(circuits::Circuits::count),
+            };
+            if let Some(line) = service::log_line_if_changed(&mut self.logged_counts, counts) {
+                eprintln!("{line}");
+            }
         }
     }
 

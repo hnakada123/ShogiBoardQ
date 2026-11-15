@@ -466,6 +466,23 @@ struct Service {
     child: Child,
     addr: String,
     dir: std::path::PathBuf,
+    /// 標準エラーに書かれた行（起動の行の後）
+    log: mpsc::Receiver<String>,
+}
+
+impl Service {
+    /// 標準エラーに、この行が書かれるのを待つ
+    fn wait_log(&self, expected: &str) -> bool {
+        let deadline = Instant::now() + TIMEOUT;
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            match self.log.recv_timeout(remaining) {
+                Ok(line) if line == expected => return true,
+                Ok(_) => {}
+                Err(_) => return false,
+            }
+        }
+    }
 }
 
 impl Drop for Service {
@@ -501,9 +518,12 @@ fn spawn_service() -> Service {
     stderr.read_line(&mut line).unwrap();
     let peer = line.trim().rsplit(' ').next().unwrap().to_owned();
     assert!(line.contains("service started"), "{line}");
+    let (log_tx, log) = mpsc::channel();
     std::thread::spawn(move || {
-        let mut sink = String::new();
-        let _ = stderr.read_to_string(&mut sink);
+        for line in stderr.lines().map_while(Result::ok) {
+            // 受け手がいなくなっても読み続ける（協力ノードが書き込みで止まらないように）
+            let _ = log_tx.send(line);
+        }
     });
     #[cfg(unix)]
     {
@@ -515,6 +535,7 @@ fn spawn_service() -> Service {
         child,
         addr: format!("{listen}/p2p/{peer}"),
         dir,
+        log,
     }
 }
 
@@ -532,6 +553,42 @@ fn invite_routes(text: &str) -> (usize, usize) {
         }
     }
     (direct, relayed)
+}
+
+/// 協力ノードは、つながっている相手の数と中継している回路の数を、変わったときに標準エラーへ書く
+/// （決まった間隔では書かない。接続元の IP もピアの ID も書かない）
+#[test]
+fn service_logs_the_counts_when_they_change() {
+    let service = spawn_service();
+    // 起動した直後の数
+    assert!(service.wait_log("shogiboardq-peer: peers=0 relays=0"));
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    a.start(vec![service.addr.clone()]);
+    b.start_with(vec![service.addr.clone()], true);
+    a.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("A reserved the relay");
+    b.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("B reserved the relay");
+    // 2人がつながっただけでは、中継の数は増えない
+    assert!(service.wait_log("shogiboardq-peer: peers=2 relays=0"));
+
+    // 中継を通る対局の接続が1本できると、中継の数は1になる（人数ではなく、中継している回路の数）
+    let invite = a.ok("createInvite", json!({}))["invite"].as_str().unwrap().to_owned();
+    let conn_b = b.ok("connectInvite", json!({ "invite": invite, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let opened_b = b
+        .wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B opened");
+    assert_eq!(opened_b["route"], "relay");
+    assert!(service.wait_log("shogiboardq-peer: peers=2 relays=1"));
+
+    // 2人が終了すると、どちらの数も0に戻る
+    drop(b);
+    drop(a);
+    assert!(service.wait_log("shogiboardq-peer: peers=0 relays=0"));
 }
 
 /// 「直接接続を使わない」: 相手の直接のアドレスへはつながず、指定した協力ノードの中継だけを通る。

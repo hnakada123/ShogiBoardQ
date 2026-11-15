@@ -107,13 +107,32 @@ fn load_identity(path: &Path) -> Result<Keypair, String> {
     }
 }
 
-/// 1分ごとに標準エラーへ書く行。つながっている相手の数と、中継を受け持つとき（--relay）は中継している回路の数
-/// だけを書く（接続元の IP もピアの ID も書かない）
-pub fn log_line(peers: usize, relays: Option<usize>) -> String {
-    match relays {
-        Some(relays) => format!("shogiboardq-peer: peers={peers} relays={relays}"),
-        None => format!("shogiboardq-peer: peers={peers}"),
+/// 協力ノードがログに書く数
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Counts {
+    /// つながっている相手の数
+    pub peers: usize,
+    /// 中継している回路の数（中継を受け持つとき（--relay）だけ）
+    pub relays: Option<usize>,
+}
+
+/// 標準エラーへ書く行。つながっている相手の数と、中継を受け持つときは中継している回路の数だけを書く
+/// （接続元の IP もピアの ID も書かない）
+pub fn log_line(counts: Counts) -> String {
+    match counts.relays {
+        Some(relays) => format!("shogiboardq-peer: peers={} relays={relays}", counts.peers),
+        None => format!("shogiboardq-peer: peers={}", counts.peers),
     }
+}
+
+/// 前に書いた数から変わっていれば、書く行を返す（起動した直後の最初の数も書く）。決まった間隔では書かない
+/// （変化がその場で分かるように。変わらない間は何も書かない）
+pub fn log_line_if_changed(logged: &mut Option<Counts>, counts: Counts) -> Option<String> {
+    if *logged == Some(counts) {
+        return None;
+    }
+    *logged = Some(counts);
+    Some(log_line(counts))
 }
 
 /// 協力ノードとして動かす。戻らない（失敗は終了コードで返す）
@@ -180,11 +199,42 @@ pub fn run(args: &[String]) -> i32 {
 mod tests {
     use super::*;
 
+    fn counts(peers: usize, relays: Option<usize>) -> Counts {
+        Counts { peers, relays }
+    }
+
     #[test]
     fn log_line_shows_relays_only_when_relaying_is_enabled() {
-        assert_eq!(log_line(2, Some(1)), "shogiboardq-peer: peers=2 relays=1");
-        assert_eq!(log_line(0, Some(0)), "shogiboardq-peer: peers=0 relays=0");
+        assert_eq!(log_line(counts(2, Some(1))), "shogiboardq-peer: peers=2 relays=1");
+        assert_eq!(log_line(counts(0, Some(0))), "shogiboardq-peer: peers=0 relays=0");
         // --relay を付けていない協力ノードは、中継の数を書かない
-        assert_eq!(log_line(2, None), "shogiboardq-peer: peers=2");
+        assert_eq!(log_line(counts(2, None)), "shogiboardq-peer: peers=2");
+    }
+
+    #[test]
+    fn log_line_is_written_only_when_the_counts_change() {
+        let mut logged = None;
+        // 起動した直後の数は書く
+        assert_eq!(
+            log_line_if_changed(&mut logged, counts(0, Some(0))).as_deref(),
+            Some("shogiboardq-peer: peers=0 relays=0")
+        );
+        // 変わらない間は書かない
+        assert_eq!(log_line_if_changed(&mut logged, counts(0, Some(0))), None);
+        assert_eq!(
+            log_line_if_changed(&mut logged, counts(2, Some(0))).as_deref(),
+            Some("shogiboardq-peer: peers=2 relays=0")
+        );
+        // 中継の数だけが変わっても書く
+        assert_eq!(
+            log_line_if_changed(&mut logged, counts(2, Some(1))).as_deref(),
+            Some("shogiboardq-peer: peers=2 relays=1")
+        );
+        assert_eq!(log_line_if_changed(&mut logged, counts(2, Some(1))), None);
+        // 元の数に戻ったときも書く
+        assert_eq!(
+            log_line_if_changed(&mut logged, counts(0, Some(0))).as_deref(),
+            Some("shogiboardq-peer: peers=0 relays=0")
+        );
     }
 }
