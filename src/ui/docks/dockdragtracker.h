@@ -26,8 +26,10 @@ class QMouseEvent;
  * - dragStarted は、Qt がドックを引き出してドロップ先を探し始める前に出す
  * - dragFinished は、Qt がドラッグを終えた（ドッキングを始めた・浮動のまま置いた）後に出す
  *
- * 対象は、Qt が描くタイトルバーのドラッグ（Linux の X11・Wayland の全部と、Windows・macOS の
- * 収まっているドック）。Windows・macOS の浮動のドックは OS のタイトルバーで動かすので知らせない。
+ * Qt が描くタイトルバーのドラッグ（Linux の X11・Wayland の全部と、Windows・macOS の収まっているドック）は
+ * マウスのイベントから、OS が描くタイトルバーのドラッグ（Windows・macOS の浮動のドック）は、ウィンドウの枠の
+ * マウスのイベント（NonClientArea…）から求める。後者は、Qt がタイトルバーを押した時点でドラッグを始めるので、
+ * 押した時点で始まりを知らせる（動かさずに離しても、始まりと終わりを知らせる）。
  *
  * ドラッグの間は、OS のドラッグ＆ドロップの知らせ（DragEnter）をメインウィンドウだけに受けさせる。
  * Wayland では Qt がドックのドラッグを OS のドラッグ＆ドロップで行い、メインウィンドウが受けた知らせから
@@ -64,11 +66,14 @@ private slots:
 
 private:
     void pressed(QDockWidget* dock, const QMouseEvent* event);
+    /// 浮動のドックの、OS が描くタイトルバーを押した
+    void nativeTitlePressed(QDockWidget* dock, const QMouseEvent* event);
     void finish();
 
     QPointer<QDockWidget> m_pressed;   ///< タイトルバーを押したドック（まだ動かしていない）
     QPointer<QDockWidget> m_dragging;  ///< ドラッグしているドック
     QPoint m_pressPos;                 ///< 押した位置（ドックの座標）
+    bool m_nativeTitleDrag = false;    ///< ドラッグは OS が描くタイトルバーでつかんだものか
     QTimer m_releaseWatch;
 };
 

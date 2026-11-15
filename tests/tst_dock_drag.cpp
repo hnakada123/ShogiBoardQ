@@ -166,6 +166,30 @@ private:
         dock->setTitleBarWidget(bar);
     }
 
+    /// OS が描くタイトルバーの中の位置（ドックの座標。中身のすぐ上なので負の y。offscreen の枠は細い）
+    static QPoint nativeTitlePos() { return QPoint(40, -1); }
+
+    /// OS のタイトルバーでつかんだドラッグを Qt が終えるイベント（QDockWidgetPrivate::nonClientAreaMouseEvent）
+    static QEvent::Type nativeTitleDragEnd()
+    {
+#if defined(Q_OS_MACOS) || defined(Q_OS_WASM) || defined(Q_OS_HARMONY)
+        return QEvent::NonClientAreaMouseButtonRelease;
+#else
+        return QEvent::NonClientAreaMouseMove;
+#endif
+    }
+
+    /// ウィンドウの枠のマウスのイベントを、浮動のドックへ送る
+    static void sendNativeTitleEvent(QDockWidget* dock, QEvent::Type type, const QPoint& pos,
+                                     Qt::KeyboardModifiers modifiers = Qt::NoModifier)
+    {
+        const bool move = type == QEvent::NonClientAreaMouseMove;
+        const bool press = type == QEvent::NonClientAreaMouseButtonPress;
+        QMouseEvent event(type, QPointF(pos), QPointF(dock->mapToGlobal(pos)), move ? Qt::NoButton : Qt::LeftButton,
+                          press ? Qt::LeftButton : Qt::NoButton, modifiers);
+        QApplication::sendEvent(dock, &event);
+    }
+
 private slots:
     /// 盤の大きさは保存した値から始まるので、既定に戻しておく（盤を拡大するテストが値を保存する）
     void init() { AppSettings::squareSize.set(AppSettings::squareSize.defaultValue()); }
@@ -345,6 +369,72 @@ private slots:
         QTRY_VERIFY(s.record->geometry().left() > s.window.centralWidget()->geometry().right());
         QCOMPARE(s.thinking->width(), s.window.width());
         QCOMPARE(s.window.height(), boardOnly.height());
+        QVERIFY(s.window.isAnimated());
+    }
+
+    /// OS が描くタイトルバー（Windows・macOS の浮動のドック）でつかんだドラッグも知らせる。
+    /// Qt はタイトルバーを押した時点でドラッグを始めるので、押した時点で始まりを知らせる
+    void dragByNativeTitleBarIsReported()
+    {
+        Setup s;
+        QVERIFY(s.showAndSettle());
+        s.record->setFloating(true);
+        QTRY_VERIFY(s.isFitted());
+        QSignalSpy started(s.registry, &DockRegistry::dockDragStarted);
+        QSignalSpy finished(s.registry, &DockRegistry::dockDragFinished);
+
+        // 中身の上（枠の下の辺など）で押しても始まらない
+        sendNativeTitleEvent(s.record, QEvent::NonClientAreaMouseButtonPress, QPoint(40, s.record->height() + 2));
+        QCOMPARE(started.count(), 0);
+        // Ctrl を押したドラッグはドッキングしない
+        sendNativeTitleEvent(s.record, QEvent::NonClientAreaMouseButtonPress, nativeTitlePos(), Qt::ControlModifier);
+        QCOMPARE(started.count(), 0);
+        sendNativeTitleEvent(s.record, nativeTitleDragEnd(), nativeTitlePos());
+        QCOMPARE(finished.count(), 0);
+
+        sendNativeTitleEvent(s.record, QEvent::NonClientAreaMouseButtonPress, nativeTitlePos());
+        QCOMPARE(started.count(), 1);
+        QCOMPARE(started.first().first().value<QDockWidget*>(), s.record);
+        QCOMPARE(finished.count(), 0);
+        QVERIFY(!s.boardAreaIsFixed());
+        sendNativeTitleEvent(s.record, nativeTitleDragEnd(), nativeTitlePos());
+        QCOMPARE(finished.count(), 1);
+        QTRY_VERIFY(s.boardAreaIsFixed());
+        QTRY_VERIFY(s.isFitted());
+    }
+
+    /// OS が描くタイトルバーでつかんだ浮動のドックを、盤の横へ戻せる（macOS・Windows）
+    void floatingDockWithNativeTitleBarCanBeDroppedBesideBoard()
+    {
+        Setup s;
+        QVERIFY(s.showAndSettle());
+        const int dockedWidth = s.window.width();
+        s.record->setFloating(true);
+        QTRY_VERIFY(s.window.width() < dockedWidth);
+        QTRY_VERIFY(s.isFitted());
+        // Qt は、ウィンドウの枠の上の辺（タイトルバー）で押したときだけドラッグを始める
+        if (s.record->frameGeometry().top() >= s.record->geometry().top())
+            QSKIP("浮動のドックに OS のタイトルバーが付かない環境");
+        const QSize boardOnly = s.window.size();
+        const int row = s.boardRow();
+
+        const QPoint press = nativeTitlePos();
+        sendNativeTitleEvent(s.record, QEvent::NonClientAreaMouseButtonPress, press);
+        // OS がウィンドウを動かすと、Qt は押した位置から求めたマウスの位置でドロップ先を探す
+        const QPoint target = s.window.mapToGlobal(s.besideBoardRight(row));
+        const QPoint clientPos = target - press;
+        s.record->move(s.record->pos() + clientPos - s.record->geometry().topLeft());
+        QTRY_COMPARE(s.record->geometry().topLeft(), clientPos);
+        QTRY_VERIFY(s.window.centralWidget()->width() < s.view->sizeHint().width());
+        QCOMPARE(s.window.size(), boardOnly);
+        sendNativeTitleEvent(s.record, nativeTitleDragEnd(), press);
+
+        QTRY_VERIFY(!s.record->isFloating());
+        QCOMPARE(s.window.dockWidgetArea(s.record), Qt::RightDockWidgetArea);
+        QTRY_VERIFY(s.isFitted());
+        QCOMPARE(s.window.width(), dockedWidth);
+        QVERIFY(s.boardAreaIsFixed());
+        QTRY_VERIFY(s.record->geometry().left() > s.window.centralWidget()->geometry().right());
         QVERIFY(s.window.isAnimated());
     }
 

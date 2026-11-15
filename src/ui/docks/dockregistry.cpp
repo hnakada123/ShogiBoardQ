@@ -50,7 +50,10 @@ protected:
             && palette().isEqual(QPalette::Active, QPalette::Inactive))
             return QWidget::event(event);
         // タイトルバーをつかんだドラッグの始まりと終わりを知らせる（QDockWidget は知らせない）
-        if (type != QEvent::MouseButtonPress && type != QEvent::MouseMove && type != QEvent::MouseButtonRelease)
+        // （浮動のドックのタイトルバーを OS が描く Windows・macOS では、ウィンドウの枠のマウスのイベントで届く）
+        if (type != QEvent::MouseButtonPress && type != QEvent::MouseMove && type != QEvent::MouseButtonRelease
+            && type != QEvent::NonClientAreaMouseButtonPress && type != QEvent::NonClientAreaMouseMove
+            && type != QEvent::NonClientAreaMouseButtonRelease)
             return QDockWidget::event(event);
         m_dragTracker->beforeEvent(this, event);
         const bool handled = QDockWidget::event(event);

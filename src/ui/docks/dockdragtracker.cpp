@@ -19,14 +19,28 @@ bool usesPlatformDrag()
     return wayland;
 }
 
+/// OS のタイトルバーでつかんだドラッグを、Qt がボタンを離した知らせで終えるか
+/// （QDockWidgetPrivate::nonClientAreaMouseEvent と同じ。ほかの OS では、動かし終えた後の最初のマウスの移動で終える）
+constexpr bool kNativeTitleDragEndsOnRelease =
+#if defined(Q_OS_MACOS) || defined(Q_OS_WASM) || defined(Q_OS_HARMONY)
+    true;
+#else
+    false;
+#endif
+
+/// ドラッグでドッキングできるドックか（Ctrl を押したドラッグと固定中のドックは、動かせてもドッキングしない）
+bool canDockByDrag(const QDockWidget* dock, const QMouseEvent* event)
+{
+    if (event->modifiers().testFlag(Qt::ControlModifier)) return false;
+    if (!dock->features().testFlag(QDockWidget::DockWidgetMovable)) return false;
+    return dock->allowedAreas() != Qt::NoDockWidgetArea;
+}
+
 /// タイトルバーを押してドッキングできるドラッグを始められるか（QDockWidget が押下を受ける条件に合わせる）
 bool startsDockingDrag(const QDockWidget* dock, const QMouseEvent* event)
 {
     if (event->button() != Qt::LeftButton) return false;
-    // Ctrl を押したドラッグと固定中のドックは、動かせてもドッキングしない
-    if (event->modifiers().testFlag(Qt::ControlModifier)) return false;
-    if (!dock->features().testFlag(QDockWidget::DockWidgetMovable)) return false;
-    if (dock->allowedAreas() == Qt::NoDockWidgetArea) return false;
+    if (!canDockByDrag(dock, event)) return false;
     // タイトルバーは中身の上にある（中身の上で押したイベントが届くのは、中身が受けなかったとき）
     const QWidget* content = dock->widget();
     return !content || event->position().toPoint().y() < content->geometry().top();
@@ -45,6 +59,9 @@ void DockDragTracker::beforeEvent(QDockWidget* dock, QEvent* event)
     switch (event->type()) {
     case QEvent::MouseButtonPress:
         pressed(dock, static_cast<const QMouseEvent*>(event));
+        break;
+    case QEvent::NonClientAreaMouseButtonPress:
+        nativeTitlePressed(dock, static_cast<const QMouseEvent*>(event));
         break;
     case QEvent::MouseMove: {
         if (m_pressed != dock || m_dragging) break;
@@ -77,6 +94,13 @@ void DockDragTracker::afterEvent(QDockWidget* dock, QEvent* event)
         if (m_pressed == dock) m_pressed = nullptr;
         if (m_dragging == dock) finish();
         break;
+    // OS のタイトルバーでつかんだドラッグは、Qt が終える知らせで終える
+    case QEvent::NonClientAreaMouseButtonRelease:
+        if (m_dragging == dock && m_nativeTitleDrag && kNativeTitleDragEndsOnRelease) finish();
+        break;
+    case QEvent::NonClientAreaMouseMove:
+        if (m_dragging == dock && m_nativeTitleDrag && !kNativeTitleDragEndsOnRelease) finish();
+        break;
     default:
         break;
     }
@@ -102,6 +126,20 @@ void DockDragTracker::pressed(QDockWidget* dock, const QMouseEvent* event)
     m_pressPos = event->position().toPoint();
 }
 
+void DockDragTracker::nativeTitlePressed(QDockWidget* dock, const QMouseEvent* event)
+{
+    finish();
+    // 浮動のドックの、OS が描くタイトルバーを押した（Windows・macOS）。Qt は押した時点でドラッグを始め、
+    // ウィンドウが動くたびにドロップ先を探す（QDockWidgetPrivate::nonClientAreaMouseEvent・moveEvent）
+    if (!dock->isFloating() || !canDockByDrag(dock, event)) return;
+    // タイトルバーは中身（ウィンドウの領域）の上にある。枠のほかの辺は大きさの変更
+    if (event->globalPosition().toPoint().y() >= dock->geometry().top()) return;
+    m_dragging = dock;
+    m_nativeTitleDrag = true;
+    qApp->installEventFilter(this);
+    emit dragStarted(dock);
+}
+
 void DockDragTracker::finishIfReleased()
 {
     if (!QGuiApplication::mouseButtons().testFlag(Qt::LeftButton)) finish();
@@ -113,6 +151,7 @@ void DockDragTracker::finish()
     m_pressed = nullptr;
     if (!m_dragging) return;
     m_dragging = nullptr;
+    m_nativeTitleDrag = false;
     qApp->removeEventFilter(this);
     emit dragFinished();
 }
