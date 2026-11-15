@@ -70,7 +70,7 @@
             <span class="badge">可隐藏IP的设置</span>
             <span class="badge">Linux / macOS</span>
         </div>
-        <p class="screenshot-note">P2P对局的准备（玩家密钥・显示名）、窗口和对局记录请参阅<a href="p2p-game.html">P2P对局</a>。与同一电脑・同一局域网的对手对局请参阅<a href="p2p-direct.html">不使用协作节点对局</a>。</p>
+        <p class="screenshot-note">P2P对局的准备（玩家密钥・显示名）、窗口和对局记录请参阅<a href="p2p-game.html">P2P对局</a>。与同一电脑・同一局域网的对手对局请参阅<a href="p2p-direct.html">不使用协作节点对局</a>。在局域网内试用协作节点的方法请参阅<a href="#lan-test">在局域网内试用</a>。</p>
     </div>
 </section>
 
@@ -158,6 +158,7 @@
                     <li><strong>持续运行</strong>：两人对局期间请不要停止。通过中继下棋的对局会在协作节点停止时断开，如果 120 秒内无法重新连接，就会中断（结果未确定）。</li>
                 </ul>
                 <p class="guide-step-text">运营者能看到使用者的 IP 地址。请事先告知使用者。</p>
+                <p class="guide-step-text">在准备服务器之前，也可以先在同一局域网内试用协作节点的启动和中继（<a href="#lan-test">在局域网内试用</a>）。</p>
             </div>
 
         </div>
@@ -200,7 +201,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                     <tbody>
                         <tr><td><strong><code>--service</code></strong></td><td>作为协作节点运行。</td></tr>
                         <tr><td><strong><code>--relay</code></strong></td><td>负责中继。家庭网络之间的对局几乎都需要。</td></tr>
-                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>用于通过互联网对局的网络。应用的“互联网”会加入这个名称的网络。</td></tr>
+                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>用于通过互联网对局的网络。应用的“互联网”会加入这个名称的网络。配合应用的“本地”使用的协作节点，要用 <code>sbq-local-1</code> 启动（<a href="#lan-test">在局域网内试用</a>）。</td></tr>
                         <tr><td><strong><code>--identity &lt;文件&gt;</code></strong></td><td>协作节点的身份密钥文件。不存在时会生成（只有所有者可以读写的权限）。只要一直使用同一个文件，PeerId 就不会变。删除后 PeerId 会变，需要重新告知地址。</td></tr>
                         <tr><td><strong><code>--listen &lt;地址&gt;</code></strong></td><td>监听的地址和端口。<code>0.0.0.0</code> 表示在所有网络接口上监听。端口不一定是 4001。</td></tr>
                     </tbody>
@@ -231,6 +232,7 @@ $ sudo ufw allow 4001/tcp</code></pre></div>
                 <p class="guide-step-text">协作节点的地址是下面的形式。PeerId 是启动时 <code>service started as</code> 后面显示的字符串。</p>
                 <div class="build-steps"><pre><code>/ip4/&lt;服务器的公网IP地址&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
                 <p class="guide-step-text">请用 IP 地址书写（不能使用域名）。把这个地址告诉对局的人。</p>
+                <p class="guide-step-text">“互联网”只能使用互联网上的 IP 地址（公网 IP 地址）。即使填入 <code>192.168.…</code>、<code>10.…</code>、<code>172.16.…</code>～<code>172.31.…</code> 这样的局域网内地址或 <code>127.0.0.1</code>，该行也不会被使用（画面上不会有提示）。用局域网内的地址试用的方法请参阅<a href="#lan-test">在局域网内试用</a>。</p>
                 <p class="guide-step-text">可以在应用中确认它是否在运行。把地址填入“连接候选”并以“互联网”连接，如果节点数变为 1 以上，并且“邀请的路径”中显示“通过协作节点的中继（…）。”或“直接连接（也可使用协作节点的中继）。”，就说明协作节点和中继可以使用。</p>
             </div>
 
@@ -293,7 +295,7 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                     <a href="../../images/zh-cn/p2p-game/p2p-internet-connected.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-connected.png" alt="以“互联网”连接，邀请的路径显示通过协作节点中继的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">连接到协作节点后</p>
                 </div>
-                <p class="guide-step-text">不填协作节点就连接时，不会连接到任何地方（“已连接（已连接的节点：0）”），“邀请的路径”中显示“尚无可从外部到达的连接地址。…”。在这种状态下生成的邀请字符串中没有连接地址，“生成邀请字符串”下方会显示“此邀请字符串中没有连接地址，对手无法连接。…”。</p>
+                <p class="guide-step-text">不填协作节点就连接时，不会连接到任何地方（“已连接（已连接的节点：0）”），“邀请的路径”中显示“尚无可从外部到达的连接地址。…”。在这种状态下生成的邀请字符串中没有连接地址，“生成邀请字符串”下方会显示“此邀请字符串中没有连接地址，对手无法连接。…”。“连接候选”中只填了局域网内的地址时，也是同样的状态（<a href="#lan-test">在局域网内试用</a>）。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-cn/p2p-game/p2p-internet-no-node.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-no-node.png" alt="不填协作节点就以“互联网”连接，显示尚无可从外部到达的连接地址的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">不填协作节点就连接后</p>
@@ -317,7 +319,7 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">用邀请字符串连接</span>
                 </div>
-                <p class="guide-step-text">邀请方在“通过邀请连接”标签页中用“生成邀请字符串”生成邀请字符串，通过只能送达对方的方式交给对方，对方点击“检查邀请字符串”。“地址：N 个（可用 N 个）”中可用的地址有 1 个以上，就可以用“连接”连接。之后的条件确认画面和对局，与<a href="p2p-direct.html#steps">不使用协作节点的对局</a>相同。</p>
+                <p class="guide-step-text">邀请方在“通过邀请连接”标签页中用“生成邀请字符串”生成邀请字符串，通过只能送达对方的方式交给对方，对方点击“检查邀请字符串”。“地址：N 个（可用 N 个）”中可用的地址有 1 个以上，就可以用“连接”连接。可用的地址为 0 个时，无法点击“连接”（<a href="#trouble">无法连接时</a>）。之后的条件确认画面和对局，与<a href="p2p-direct.html#steps">不使用协作节点的对局</a>相同。</p>
                 <p class="guide-step-text">邀请字符串中放入经由协作节点的地址（如果邀请方的电脑可以从外部直接到达，还会放入那台电脑的 IP 地址）。请不要贴在公开的地方。</p>
                 <p class="guide-step-text">一个邀请字符串只能让一个人连接一次，10 分钟后失效。同时有效的最多 4 个，一次只能下一局（详见<a href="p2p-direct.html#invite-rules">可以邀请的人数与次数</a>）。</p>
                 <div class="screenshot-item screenshot-item--compact">
@@ -387,7 +389,80 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
 </section>
 
 <!-- Section 7 -->
-<section id="trouble" class="section section--alt">
+<section id="lan-test" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">在局域网内试用</h2>
+        <p class="section-desc">在准备服务器之前，可以先在同一局域网内确认协作节点的启动和中继</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">“互联网”不能使用局域网内的协作节点</span>
+                </div>
+                <p class="guide-step-text">在“互联网”下，应用只连接互联网上的地址。即使在自己的电脑或同一局域网的电脑上启动协作节点，并在“连接候选”中填入局域网内的地址（如 <code>/ip4/192.168.10.16/tcp/4001/p2p/…</code>），该行也不会被使用，结果与没有填协作节点时相同。</p>
+                <ul class="guide-step-text">
+                    <li><strong>邀请方</strong>：“状态”一直是“已连接（已连接的节点：0）”，“邀请的路径”中显示“尚无可从外部到达的连接地址。…”。生成邀请字符串后，会显示“此邀请字符串中没有连接地址，对手无法连接。…”。</li>
+                    <li><strong>被邀请方</strong>：点击“检查邀请字符串”后显示“地址：0 个（可用 0 个）”，无法点击“连接”。</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-lan-address.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-lan-address.png" alt="显示地址为 0 个、无法点击“连接”的“通过邀请连接”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">被邀请方：检查了没有连接地址的邀请字符串（无法点击“连接”）</p>
+                </div>
+                <p class="guide-step-text">只是与同一局域网的对手对局的话，不需要协作节点（<a href="p2p-direct.html">不使用协作节点对局</a>）。想在局域网内试用协作节点的启动、“连接候选”的填写和经由中继的对局时，请使用下面的方法。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">把协作节点和应用都设为“本地”</span>
+                </div>
+                <p class="guide-step-text">用 <code>--network sbq-local-1</code> 启动协作节点。其他选项相同。</p>
+                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --network sbq-local-1 \
+      --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001</code></pre></div>
+                <p class="guide-step-text">填入“连接候选”的地址，请用运行协作节点的电脑在局域网内的 IP 地址书写（在同一台电脑上运行的应用也可以用这个地址）。身份密钥文件相同的话，PeerId 与用 <code>sbq-limited-1</code> 启动时相同。</p>
+                <div class="build-steps"><pre><code>/ip4/&lt;协作节点所在电脑的局域网IP地址&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
+                <p class="guide-step-text">两人都把这个地址填入“设置”标签页的“连接候选”，在“连接与条件”标签页中把“网络”设为“本地（同一电脑・同一局域网）”，点击“连接”。节点数变为 1，并且“邀请的路径”中显示“与同一电脑・同一局域网的对手直接连接（也可使用协作节点的中继）。”，就说明已连接到协作节点并预约到中继。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-cn/p2p-game/p2p-lan-node-connected.png"><img src="../../images/zh-cn/p2p-game/p2p-lan-node-connected.png" alt="以“本地”连接、“邀请的路径”中显示也可使用协作节点的中继的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以“本地”连接到局域网内的协作节点</p>
+                </div>
+                <p class="guide-step-text">协作节点的 <code>--network</code> 要与应用的“网络”一致。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">应用的“网络”</th><th scope="col">协作节点的 <code>--network</code></th><th scope="col">可以填入“连接候选”的地址</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>互联网</strong></td><td><code>sbq-limited-1</code></td><td>互联网上的地址（公网 IP 地址）</td></tr>
+                        <tr><td><strong>本地（同一电脑・同一局域网）</strong></td><td><code>sbq-local-1</code></td><td>局域网内的地址（<code>192.168.…</code> 等）</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">不一致时无法使用中继。以“本地”连接仍用 <code>sbq-limited-1</code> 运行的协作节点时，节点数会变为 1，但预约不到中继，“邀请的路径”一直是“与同一电脑・同一局域网的对手直接连接。”。</p>
+                <p class="guide-step-text">在运行协作节点的电脑的防火墙中，请允许对 <code>--listen</code> 所写端口（TCP 4001）的连接（<a href="#start">开放端口</a>）。对局者电脑的端口请参阅<a href="p2p-direct.html#lan">与同一局域网的另一台电脑对局</a>。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">试用经由中继的对局</span>
+                </div>
+                <p class="guide-step-text">就这样邀请的话，邀请字符串中会放入局域网内的地址，与对手直接连接（“对局中”标签页的“路径”为“直接”），不会使用协作节点的中继。</p>
+                <p class="guide-step-text">要试用经由中继的对局，被邀请方在“设置”标签页中勾选“不使用直接连接”，断开后重新连接（两人都勾选也可以）。</p>
+                <ul class="guide-step-text">
+                    <li>“邀请的路径”中显示“仅通过协作节点的中继（已设置不使用直接连接）。”。</li>
+                    <li>检查收到的邀请字符串时，可用的只有经由协作节点的地址（“地址：N 个（可用 M 个）”中，可用的数量比地址的数量少）。</li>
+                    <li>用“连接”连接并开始对局后，两人的“对局中”标签页的“路径”都是“中继”。</li>
+                </ul>
+                <p class="guide-step-text">在局域网内可以确认的是协作节点的启动、“连接候选”的填写，以及经由中继的邀请和对局。可达性确认、穿过路由器切换为直接连接（打洞）和使用期限只属于“互联网”，在局域网内无法试用。要用于通过互联网的对局时，请用 <code>--network sbq-limited-1</code> 重新启动协作节点，并把应用的“网络”改回“互联网”。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 8 -->
+<section id="trouble" class="section">
     <div class="section-inner">
         <h2 class="section-title">无法连接时・使用期限</h2>
         <p class="section-desc">根据画面上显示的消息，就能知道要检查什么</p>
@@ -404,11 +479,13 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                         <tr><th scope="col">显示的消息・状态</th><th scope="col">要检查的内容</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>一直是“已连接（已连接的节点：0）”</strong></td><td>“连接候选”的地址有误、协作节点已停止、服务器的防火墙未开放，三者之一。地址请用 IP 地址书写（不能使用域名和局域网内的地址）。</td></tr>
+                        <tr><td><strong>一直是“已连接（已连接的节点：0）”</strong></td><td>“连接候选”的地址有误、协作节点已停止、服务器的防火墙未开放，三者之一。地址请用 IP 地址书写（不能使用域名）。在“互联网”下，填入局域网内地址（<code>192.168.…</code> 等）的行不会被使用（<a href="#lan-test">在局域网内试用</a>）。</td></tr>
                         <tr><td><strong>“邀请的路径”中显示“尚无可从外部到达的连接地址。…”</strong></td><td>还没有连接到协作节点，或还没有预约到中继。稍等后仍无变化，请检查上一行。</td></tr>
+                        <tr><td><strong>检查邀请字符串后显示“地址：0 个（可用 0 个）”，无法点击“连接”</strong></td><td>邀请字符串中没有连接地址。这是邀请方的应用还没有连接到协作节点，或还没有预约到中继时生成的邀请字符串。请邀请方确认“邀请的路径”是否仍是上一行的消息，等它变为“通过协作节点的中继（…）。”等之后，重新生成邀请字符串。</td></tr>
                         <tr><td><strong>“邀请的路径”中显示“无法使用中继。…”</strong></td><td>设置了“不使用直接连接”，但“连接候选”中没有可以中继的协作节点。还要确认协作节点是否加上 <code>--relay</code> 启动。</td></tr>
                         <tr><td><strong>“此邀请字符串中没有通过您的协作节点中继的连接地址。…”</strong></td><td>设置了“不使用直接连接”，且与邀请方的协作节点不同。请填入相同的协作节点。</td></tr>
-                        <tr><td><strong>“这是其他网络的邀请字符串。”</strong></td><td>两人的“网络”不同。两人都以“互联网”连接。</td></tr>
+                        <tr><td><strong>“这是其他网络的邀请字符串。”</strong></td><td>两人的“网络”不同。两人都以“互联网”连接（在局域网内试用时，两人都用“本地”）。</td></tr>
+                        <tr><td><strong>在“本地”下，“邀请的路径”中没有显示“（也可使用协作节点的中继）”</strong></td><td>请确认协作节点是否加上 <code>--network sbq-local-1</code> 和 <code>--relay</code> 启动，以及“连接候选”的地址是否为局域网内的地址（<a href="#lan-test">在局域网内试用</a>）。</td></tr>
                         <tr><td><strong>“此版本已过使用期限，无法加入「互联网」网络。…”</strong></td><td>这是已过使用期限的版本（下面的 2）。</td></tr>
                     </tbody>
                 </table>

@@ -70,7 +70,7 @@
             <span class="badge">Option to Hide Your IP</span>
             <span class="badge">Linux / macOS</span>
         </div>
-        <p class="screenshot-note">Setting up P2P games (player key and display name), the window, and game records are covered in <a href="p2p-game.html">P2P Games</a>. To play someone on the same PC or LAN, see <a href="p2p-direct.html">Playing Without a Cooperating Node</a>.</p>
+        <p class="screenshot-note">Setting up P2P games (player key and display name), the window, and game records are covered in <a href="p2p-game.html">P2P Games</a>. To play someone on the same PC or LAN, see <a href="p2p-direct.html">Playing Without a Cooperating Node</a>. To try a cooperating node inside your own LAN, see <a href="#lan-test">Trying It on a LAN</a>.</p>
     </div>
 </section>
 
@@ -158,6 +158,7 @@
                     <li><strong>Keep it running</strong>: Do not stop it while the two players are playing. A game played over the relay is cut off when the cooperating node stops, and is aborted (result unconfirmed) if it cannot reconnect within 120 seconds.</li>
                 </ul>
                 <p class="guide-step-text">The operator can see the users' IP addresses. Let the users know this.</p>
+                <p class="guide-step-text">Before you set up a server, you can also try running a cooperating node and its relay inside your own LAN (<a href="#lan-test">Trying It on a LAN</a>).</p>
             </div>
 
         </div>
@@ -200,7 +201,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                     <tbody>
                         <tr><td><strong><code>--service</code></strong></td><td>Runs as a cooperating node.</td></tr>
                         <tr><td><strong><code>--relay</code></strong></td><td>Provides the relay. Games between home connections almost always need it.</td></tr>
-                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>The network for games over the Internet. The app's Internet network joins the network with this name.</td></tr>
+                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>The network for games over the Internet. The app's Internet network joins the network with this name. A cooperating node for the app's Local network is started with <code>sbq-local-1</code> (<a href="#lan-test">Trying It on a LAN</a>).</td></tr>
                         <tr><td><strong><code>--identity &lt;file&gt;</code></strong></td><td>The file with the cooperating node's identity key. It is created if missing (readable and writable only by its owner). As long as you keep using the same file, the PeerId does not change. If you delete it, the PeerId changes and you have to share the address again.</td></tr>
                         <tr><td><strong><code>--listen &lt;address&gt;</code></strong></td><td>The address and port to listen on. <code>0.0.0.0</code> listens on all network interfaces. The port does not have to be 4001.</td></tr>
                     </tbody>
@@ -231,6 +232,7 @@ $ sudo ufw allow 4001/tcp</code></pre></div>
                 <p class="guide-step-text">A cooperating node's address has the following form. The PeerId is the string shown after <code>service started as</code> when it started.</p>
                 <div class="build-steps"><pre><code>/ip4/&lt;server's global IP address&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
                 <p class="guide-step-text">Write it with an IP address (domain names cannot be used). Give this address to the players.</p>
+                <p class="guide-step-text">The Internet network uses only addresses on the Internet (global IP addresses). If you enter a LAN address such as <code>192.168.…</code>, <code>10.…</code> or <code>172.16.…</code>–<code>172.31.…</code>, or <code>127.0.0.1</code>, that line is not used, and the app shows no message about it. To try a cooperating node at a LAN address, see <a href="#lan-test">Trying It on a LAN</a>.</p>
                 <p class="guide-step-text">You can check that it works in the app. Enter it in Bootstrap nodes and connect to Internet. If the peer count becomes 1 or more and Invitation route shows "Through the relay of your cooperating node (…)." or "Direct connection (the relay of your cooperating node is also available).", the cooperating node and its relay are working.</p>
             </div>
 
@@ -293,7 +295,7 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
                     <a href="../../images/en/p2p-game/p2p-internet-connected.png"><img src="../../images/en/p2p-game/p2p-internet-connected.png" alt="Connection and Conditions tab connected to Internet, with Invitation route going through the cooperating node&#x27;s relay" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">Connected to a cooperating node</p>
                 </div>
-                <p class="guide-step-text">If you connect without a cooperating node, your app connects to no one ("Connected (peers: 0)"), and Invitation route shows "There is no address yet that can be reached from outside. …". An invitation created in this state contains no address, and "This invitation contains no address, so your opponent cannot connect. …" appears below Create Invitation.</p>
+                <p class="guide-step-text">If you connect without a cooperating node, your app connects to no one ("Connected (peers: 0)"), and Invitation route shows "There is no address yet that can be reached from outside. …". An invitation created in this state contains no address, and "This invitation contains no address, so your opponent cannot connect. …" appears below Create Invitation. The same happens when Bootstrap nodes contains only LAN addresses (<a href="#lan-test">Trying It on a LAN</a>).</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/en/p2p-game/p2p-internet-no-node.png"><img src="../../images/en/p2p-game/p2p-internet-no-node.png" alt="Connection and Conditions tab connected to Internet without a cooperating node, saying there is no address reachable from outside yet" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">Connected without a cooperating node</p>
@@ -317,7 +319,7 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">Connect with an Invitation</span>
                 </div>
-                <p class="guide-step-text">The inviter creates an invitation with Create Invitation on the Connect by Invitation tab and sends it by a channel that reaches only the opponent, and the opponent clicks Check Invitation. If "Addresses: N (N usable)" shows at least one usable address, Connect connects to the inviter. The confirmation screen and the game that follow are the same as in <a href="p2p-direct.html#steps">games without a cooperating node</a>.</p>
+                <p class="guide-step-text">The inviter creates an invitation with Create Invitation on the Connect by Invitation tab and sends it by a channel that reaches only the opponent, and the opponent clicks Check Invitation. If "Addresses: N (N usable)" shows at least one usable address, Connect connects to the inviter. If no address is usable, Connect cannot be clicked (<a href="#trouble">If You Cannot Connect</a>). The confirmation screen and the game that follow are the same as in <a href="p2p-direct.html#steps">games without a cooperating node</a>.</p>
                 <p class="guide-step-text">The invitation contains addresses that go through the cooperating node (and, if the inviter's PC can be reached directly from outside, that PC's IP address too). Do not post it in public.</p>
                 <p class="guide-step-text">An invitation lets one person connect once and stops working after 10 minutes. Up to four can be valid at the same time, and you can play one game at a time (see <a href="p2p-direct.html#invite-rules">How Many People You Can Invite, and How Often</a>).</p>
                 <div class="screenshot-item screenshot-item--compact">
@@ -387,7 +389,80 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
 </section>
 
 <!-- Section 7 -->
-<section id="trouble" class="section section--alt">
+<section id="lan-test" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Trying It on a LAN</h2>
+        <p class="section-desc">Before you set up a server, you can check running a cooperating node and its relay inside your own LAN</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">The Internet Network Cannot Use a Cooperating Node on Your LAN</span>
+                </div>
+                <p class="guide-step-text">On the Internet network, the app connects only to addresses on the Internet. If you run a cooperating node on your own PC or on another PC on the same LAN and enter its LAN address (such as <code>/ip4/192.168.10.16/tcp/4001/p2p/…</code>) in Bootstrap nodes, that line is not used, and the result is the same as having no cooperating node.</p>
+                <ul class="guide-step-text">
+                    <li><strong>The inviter</strong>: Status stays at "Connected (peers: 0)", and Invitation route shows "There is no address yet that can be reached from outside. …". Creating an invitation shows "This invitation contains no address, so your opponent cannot connect. …".</li>
+                    <li><strong>The invited player</strong>: Clicking Check Invitation shows "Addresses: 0 (0 usable)", and Connect cannot be clicked.</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-internet-lan-address.png"><img src="../../images/en/p2p-game/p2p-internet-lan-address.png" alt="Connect by Invitation tab showing 0 addresses, with the Connect button disabled" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">The invited player: after checking an invitation that contains no address (Connect cannot be clicked)</p>
+                </div>
+                <p class="guide-step-text">If you only want to play someone on the same LAN, you do not need a cooperating node (<a href="p2p-direct.html">Playing Without a Cooperating Node</a>). To try starting a cooperating node, entering it in Bootstrap nodes, and playing through its relay inside a LAN, use the steps below.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Set Both the Cooperating Node and the App to Local</span>
+                </div>
+                <p class="guide-step-text">Start the cooperating node with <code>--network sbq-local-1</code>. The other options are the same.</p>
+                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --network sbq-local-1 \
+      --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001</code></pre></div>
+                <p class="guide-step-text">Write the address for Bootstrap nodes with the LAN IP address of the PC that runs the cooperating node (an app running on that same PC can use this address too). With the same identity key file, the PeerId is the same as when the node was started with <code>sbq-limited-1</code>.</p>
+                <div class="build-steps"><pre><code>/ip4/&lt;LAN IP address of the cooperating node's PC&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
+                <p class="guide-step-text">Both players enter this address in Bootstrap nodes on the Settings tab, set Network to Local (same PC / same LAN) on the Connection and Conditions tab, and click Connect. If the peer count becomes 1 and Invitation route shows "Direct connection to an opponent on the same PC or LAN (the relay of your cooperating node is also available).", your app has connected to the cooperating node and reserved a relay slot.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-lan-node-connected.png"><img src="../../images/en/p2p-game/p2p-lan-node-connected.png" alt="Connection and Conditions tab connected to Local, with Invitation route showing that the relay of the cooperating node is also available" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connected to a cooperating node on the LAN with the Local network</p>
+                </div>
+                <p class="guide-step-text">Match the cooperating node's <code>--network</code> to Network in the app.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th scope="col">Network in the app</th><th scope="col"><code>--network</code> of the cooperating node</th><th scope="col">Addresses you can enter in Bootstrap nodes</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Internet</strong></td><td><code>sbq-limited-1</code></td><td>Addresses on the Internet (global IP addresses)</td></tr>
+                        <tr><td><strong>Local (same PC / same LAN)</strong></td><td><code>sbq-local-1</code></td><td>LAN addresses (such as <code>192.168.…</code>)</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">If they do not match, the relay cannot be used. When the app connects on Local to a cooperating node still running with <code>sbq-limited-1</code>, the peer count becomes 1, but no relay slot is reserved, and Invitation route stays at "Direct connection to an opponent on the same PC or LAN."</p>
+                <p class="guide-step-text">On the firewall of the PC that runs the cooperating node, allow connections to the port given to <code>--listen</code> (TCP 4001) (<a href="#start">Open the Port</a>). For the ports on the players' PCs, see <a href="p2p-direct.html#lan">Play Another PC on the Same LAN</a>.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Try a Game Through the Relay</span>
+                </div>
+                <p class="guide-step-text">If you invite your opponent as it is, the invitation contains LAN addresses and the two apps connect directly (Route on the Game tab shows "direct"). The relay of the cooperating node is not used.</p>
+                <p class="guide-step-text">To try a game through the relay, the invited player checks Do not use direct connections on the Settings tab, disconnects, and connects again (both players may check it).</p>
+                <ul class="guide-step-text">
+                    <li>Invitation route shows "Only through the relay of your cooperating node (direct connections are turned off)."</li>
+                    <li>When the invited player checks the invitation, only the addresses that go through the cooperating node are usable (in "Addresses: N (M usable)", the usable count is smaller than the address count).</li>
+                    <li>After connecting with Connect and starting the game, Route on the Game tab shows "relay" for both players.</li>
+                </ul>
+                <p class="guide-step-text">What you can check on a LAN is starting the cooperating node, entering it in Bootstrap nodes, and inviting and playing through the relay. The reachability check, switching to a direct connection through routers (hole punching), and the expiry belong only to the Internet network, so they cannot be tried on a LAN. To use the cooperating node for games over the Internet, start it again with <code>--network sbq-limited-1</code> and set Network in the app back to Internet.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 8 -->
+<section id="trouble" class="section">
     <div class="section-inner">
         <h2 class="section-title">If You Cannot Connect, and Expiry</h2>
         <p class="section-desc">The message on the screen tells you what to check</p>
@@ -404,11 +479,13 @@ $ journalctl -u sbq-coop-node    # check the PeerId</code></pre></div>
                         <tr><th scope="col">Message or state</th><th scope="col">What to check</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>The peer count stays at 0 ("Connected (peers: 0)")</strong></td><td>The address in Bootstrap nodes is wrong, the cooperating node is down, or the server's firewall is closed. Write the address with an IP address (domain names and LAN addresses cannot be used).</td></tr>
+                        <tr><td><strong>The peer count stays at 0 ("Connected (peers: 0)")</strong></td><td>The address in Bootstrap nodes is wrong, the cooperating node is down, or the server's firewall is closed. Write the address with an IP address (domain names cannot be used). On the Internet network, a line with a LAN address (such as <code>192.168.…</code>) is not used (<a href="#lan-test">Trying It on a LAN</a>).</td></tr>
                         <tr><td><strong>Invitation route shows "There is no address yet that can be reached from outside. …"</strong></td><td>Your app has not connected to the cooperating node yet, or has not reserved a relay slot yet. If it does not change after a while, check the row above.</td></tr>
+                        <tr><td><strong>Check Invitation shows "Addresses: 0 (0 usable)", and Connect cannot be clicked</strong></td><td>The invitation contains no address. The inviter created it before their app connected to the cooperating node or reserved a relay slot. Ask the inviter to check that Invitation route no longer shows the message in the row above, and to create a new invitation after it changes to "Through the relay of your cooperating node (…)." or a similar message.</td></tr>
                         <tr><td><strong>Invitation route shows "No relay is available. …"</strong></td><td>Do not use direct connections is on, and Bootstrap nodes has no cooperating node that provides a relay. Also check that the cooperating node was started with <code>--relay</code>.</td></tr>
                         <tr><td><strong>"This invitation has no address that goes through the relay of your cooperating nodes. …"</strong></td><td>Do not use direct connections is on, and your cooperating node differs from the inviter's. Enter the same cooperating node.</td></tr>
-                        <tr><td><strong>"The invitation is for another network."</strong></td><td>The two players chose different networks. Both connect to Internet.</td></tr>
+                        <tr><td><strong>"The invitation is for another network."</strong></td><td>The two players chose different networks. Both connect to Internet (or both to Local when trying it on a LAN).</td></tr>
+                        <tr><td><strong>On Local, Invitation route does not show "(the relay of your cooperating node is also available)"</strong></td><td>Check that the cooperating node was started with <code>--network sbq-local-1</code> and <code>--relay</code>, and that the address in Bootstrap nodes is a LAN address (<a href="#lan-test">Trying It on a LAN</a>).</td></tr>
                         <tr><td><strong>"This build has expired and cannot join the "Internet" network. …"</strong></td><td>The build has passed its expiry (step 2 below).</td></tr>
                     </tbody>
                 </table>
