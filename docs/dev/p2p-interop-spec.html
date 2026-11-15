@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="言語"><span aria-current="page">日本語</span><a href="../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 1／文書の版 2026-11-15（<a href="#sec-B">変更履歴</a>）</p>
+<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 1／文書の版 2026-11-15.1（<a href="#sec-B">変更履歴</a>）</p>
 <p class="lead">通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
@@ -401,7 +401,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <tr><td>識別</td><td>Identify（<code>/ipfs/id/1.0.0</code>）</td><td>4.3節</td></tr>
 <tr><td>死活</td><td>Ping（<code>/ipfs/ping/1.0.0</code>）</td><td><strong>必須</strong>。10 秒ごとに送り、30 秒応答がなければ接続を閉じる。Ping に対応しない相手との接続は、すぐに閉じる</td></tr>
 <tr><td>中継</td><td>Circuit Relay v2（<code>/libp2p/circuit/relay/0.2.0/hop</code>・<code>/stop</code>）</td><td>4.4節。<code>sbq-limited-1</code> で使う</td></tr>
-<tr><td>直接接続への切り替え</td><td>DCUtR（<code>/libp2p/dcutr</code>）</td><td>省いてよい。中継だけを使う設定では行ってはならない</td></tr>
+<tr><td>直接接続への切り替え</td><td>DCUtR（<code>/libp2p/dcutr</code>）</td><td>省いてよい。中継だけを使う設定では行ってはならない。行うときの対局ストリームの開き方は <a href="#sec-6-3">6.3節</a></td></tr>
 <tr><td>到達性の確認</td><td>AutoNAT v2（<code>/libp2p/autonat/2/dial-request</code>・<code>/libp2p/autonat/2/dial-back</code>）</td><td>省いてよい。中継だけを使う設定では行ってはならない。確かめてもらうのは、相手が観測した自分のアドレスの候補のうちインターネット上の直接のアドレスだけにする。待受のアドレス（私設・loopback・link-local を含む）を相手に送る AutoNAT v1（<code>/libp2p/autonat/1.0.0</code>）は使わない。ShogiBoardQ の協力ノードは v2 の確認に応え、ふつうのプレイヤーは応えない</td></tr>
 <tr><td>対局</td><td><code>/shogiboardq/game/1.0.0</code></td><td>6章以降。この文書の本体</td></tr>
 </tbody>
@@ -579,6 +579,13 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <li>それ以外（時間内に届かない・INVITE_TOKEN でない・token が一致しない）は、何も返さずにストリームを閉じる。</li>
 </ul>
 <p>INVITE_TOKEN の requestId は 0、gameId は zero32 でなければならない。INVITE_TOKEN を、ストリームの最初以外で送ってはならない（受けたら外枠の違反として閉じる）。対局中に受け付けるストリームについては <a href="#sec-11-1">11.1節</a>に書く。</p>
+<p><strong>ストリームを開く接続</strong>：ストリームは、開いた接続の上に乗ったまま動かせない。中継経由の接続の上で開くと、その後に DCUtR で直接の接続ができても、フレームは中継を通り続け、中継の制限（<a href="#sec-4-4">4.4節</a>）も掛かり続ける。DCUtR を行う実装は、ストリームを開く側（申込側。再接続でも同じ。<a href="#sec-11-1">11.1節</a>）で、次のようにすることが望ましい（ShogiBoardQ はこうする）。</p>
+<ul>
+<li>相手との直接の接続があれば、その上でストリームを開く。中継経由の接続も残っているときは、中継経由の接続を閉じてから開く。</li>
+<li>中継経由の接続しかなければ、直接の接続ができるのを少し待ち（ShogiBoardQ は 3 秒まで）、できなければ中継経由の接続の上で開く。</li>
+<li>中継経由の接続の上で開いた後にできた直接の接続は、使わないので閉じる。次につなぎ直すときに、もう一度直接の接続を試す。</li>
+</ul>
+<p>このため、ShogiBoardQ が申込側のときは、中継経由の接続ができてからストリームが届くまでに 3 秒ほどかかることがある。ストリームが届く前に中継経由の接続が閉じられること、DCUtR でできた直接の接続がすぐに閉じられることもある。どれも異常ではない。</p>
 
 <h3 id="sec-6-4">6.4 頻度と大きさの上限</h3>
 <p>ShogiBoardQ は、次を超えたストリームを閉じる。互換実装は、この範囲で送らなければならない。</p>
@@ -1307,6 +1314,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文書の版</th><th>プロトコルの版</th><th>互換実装の修正</th><th>変更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-15.1</td><td>1</td><td>要らない</td><td>対局ストリームを開く接続の選び方を足した（<a href="#sec-6-3">6.3節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/78c04567189db3c6542211d181f842f1deb1dbd8">78c04567</a>）。ShogiBoardQ は、中継でつながった直後に対局ストリームを開いていたので、その後に DCUtR で直接の接続ができても、フレームは中継を通り続けていた。申込側が、直接の接続ができるのを 3 秒まで待ち、できたら中継経由の接続を閉じてから、直接の接続の上でストリームを開くようにした。フレームの形と手順は変えていない。DCUtR を行う互換実装も、同じようにすることが望ましい。</td></tr>
 <tr><td>2026-11-15</td><td>1</td><td>要らない</td><td>合意による引き分け・中断の申し出を、相手が断った後は、同じ手数でももう一度できるようにした（<a href="#sec-10-2">10.2節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>）。以前は、利用者の操作としては同じ手数でそれぞれ1回までで、ShogiBoardQ では、断られた後に「中断」を押し直しても、相手に何も出なかった。相手が断るか手数が進むまでの間にそれぞれ1回まで、という決まりにした。受ける側は、同じ手数で同じ提案が繰り返し届いても違反として扱わない決まりのままで、フレームの形も変えていない。</td></tr>
 <tr><td>2026-11-14</td><td>1</td><td>要らない</td><td>P2P対局を実験版から正式な機能にしたことに合わせた（ShogiBoardQ 2026.11.14 から、既定で有効にして配布物に入れる。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>）。通信の決まりは変えていない。
 <ul>

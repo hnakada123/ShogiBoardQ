@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="語言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><span aria-current="page">繁體中文</span></nav>
 <h1>P2P對局相容實作規格書</h1>
-<p>ShogiBoardQ（將棋盤Q）／協定版本 1／文件版本 2026-11-15（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
+<p>ShogiBoardQ（將棋盤Q）／協定版本 1／文件版本 2026-11-15.1（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
 <p class="lead">規定通訊層、邀請字串、訊框、開始前的協商、對局中的步驟、重新連線，以及對局記錄（憑證）的格式與驗證。</p>
 </header>
 <nav class="toc" aria-label="目錄">
@@ -401,7 +401,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <tr><td>識別</td><td>Identify（<code>/ipfs/id/1.0.0</code>）</td><td>第 4.3 節</td></tr>
 <tr><td>存活檢測</td><td>Ping（<code>/ipfs/ping/1.0.0</code>）</td><td><strong>必須</strong>。每 10 秒傳送一次，30 秒沒有回應就關閉連線。與不支援 Ping 的對象的連線，立即關閉</td></tr>
 <tr><td>中繼</td><td>Circuit Relay v2（<code>/libp2p/circuit/relay/0.2.0/hop</code>、<code>/stop</code>）</td><td>第 4.4 節。用於 <code>sbq-limited-1</code></td></tr>
-<tr><td>切換為直接連線</td><td>DCUtR（<code>/libp2p/dcutr</code>）</td><td>可以省略。在只使用中繼的設定下不得進行</td></tr>
+<tr><td>切換為直接連線</td><td>DCUtR（<code>/libp2p/dcutr</code>）</td><td>可以省略。在只使用中繼的設定下不得進行。進行時對局串流的開啟方式見<a href="#sec-6-3">第 6.3 節</a></td></tr>
 <tr><td>可達性確認</td><td>AutoNAT v2（<code>/libp2p/autonat/2/dial-request</code>、<code>/libp2p/autonat/2/dial-back</code>）</td><td>可以省略。在只使用中繼的設定下不得進行。請對方確認的，只限於對方觀測到的自身位址候選中、網際網路上的直接位址。不使用會把監聽位址（包括私人、loopback、link-local 位址）傳給對方的 AutoNAT v1（<code>/libp2p/autonat/1.0.0</code>）。ShogiBoardQ 的協作節點會回應 v2 的確認，一般玩家則不回應</td></tr>
 <tr><td>對局</td><td><code>/shogiboardq/game/1.0.0</code></td><td>第 6 章以後。本文件的主體</td></tr>
 </tbody>
@@ -579,6 +579,13 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <li>其他情況（未在時限內到達、不是 INVITE_TOKEN、token 不一致），不回傳任何東西就關閉串流。</li>
 </ul>
 <p>INVITE_TOKEN 的 requestId 必須為 0，gameId 必須為 zero32。不得在串流開頭以外的位置傳送 INVITE_TOKEN（收到時視為違反外框規則而關閉）。對局中接受的串流寫在<a href="#sec-11-1">第 11.1 節</a>。</p>
+<p><strong>開啟串流的連線</strong>：串流開啟後無法離開它所在的連線。如果在經由中繼的連線上開啟，即使之後透過 DCUtR 建立了直接連線，訊框仍然會一直經過中繼，中繼的限制（<a href="#sec-4-4">第 4.4 節</a>）也會一直適用。進行 DCUtR 的實作，最好在開啟串流的一方（申請方。重新連線時相同，<a href="#sec-11-1">第 11.1 節</a>）依下列方式處理（ShogiBoardQ 就是這樣做的）。</p>
+<ul>
+<li>與對方有直接連線時，在直接連線上開啟串流。如果還留有經由中繼的連線，先關閉經由中繼的連線再開啟。</li>
+<li>只有經由中繼的連線時，稍等直接連線的建立（ShogiBoardQ 最多等 3 秒），建立不了就在經由中繼的連線上開啟。</li>
+<li>在經由中繼的連線上開啟串流之後才建立的直接連線不會被使用，因此將其關閉。下次重新連線時再嘗試直接連線。</li>
+</ul>
+<p>因此，ShogiBoardQ 作為申請方時，從經由中繼的連線建立到串流到達，可能需要 3 秒左右。串流到達之前經由中繼的連線可能被關閉，透過 DCUtR 建立的直接連線也可能立即被關閉。這些都不是異常。</p>
 
 <h3 id="sec-6-4">6.4 頻率與大小的上限</h3>
 <p>ShogiBoardQ 會關閉超過以下上限的串流。相容實作必須在此範圍內傳送。</p>
@@ -1307,6 +1314,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文件版本</th><th>協定版本</th><th>相容實作是否需要修改</th><th>變更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-15.1</td><td>1</td><td>不需要</td><td>增加了選擇開啟對局串流的連線的方法（<a href="#sec-6-3">第 6.3 節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/78c04567189db3c6542211d181f842f1deb1dbd8">78c04567</a>）。ShogiBoardQ 以前在經由中繼連線後立即開啟對局串流，因此即使之後透過 DCUtR 建立了直接連線，訊框仍然一直經過中繼。現在申請方最多等待 3 秒直接連線的建立，建立後先關閉經由中繼的連線，再在直接連線上開啟串流。訊框的格式和步驟沒有改變。進行 DCUtR 的相容實作最好也這樣做。</td></tr>
 <tr><td>2026-11-15</td><td>1</td><td>不需要</td><td>協議和棋、協議中斷的請求在對方拒絕之後，即使在同一手數也可以再次提出（<a href="#sec-10-2">第 10.2 節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>）。以前，作為使用者的操作，同一手數各最多一次，在 ShogiBoardQ 中，被拒絕後再次按「中斷」，對方那裡什麼也不會顯示。現在的規則是：在對方拒絕或手數前進之前，各最多一次。即使同一手數反覆收到相同的提議，接收方也不得將其視為違規的規則沒有改變，訊框的格式也沒有改變。</td></tr>
 <tr><td>2026-11-14</td><td>1</td><td>不需要</td><td>配合P2P對局從實驗版成為正式功能（自 ShogiBoardQ 2026.11.14 起預設啟用，並包含在發行套件中。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>）。通訊的規則沒有改變。
 <ul>

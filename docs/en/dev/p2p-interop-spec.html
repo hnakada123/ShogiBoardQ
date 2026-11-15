@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="Language"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><span aria-current="page">English</span><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P Game Specification for Compatible Implementations</h1>
-<p>ShogiBoardQ / Protocol version 1 / Document version 2026-11-15 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
+<p>ShogiBoardQ / Protocol version 1 / Document version 2026-11-15.1 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
 <p class="lead">Defines the transport layer, invitation strings, frames, start negotiation, in-game steps, reconnection, and the format and verification of game records (evidence).</p>
 </header>
 <nav class="toc" aria-label="Contents">
@@ -401,7 +401,7 @@ group g (0 to 5) = read the 5 bytes digest[5g .. 5g+4] as a big-endian integer, 
 <tr><td>Identification</td><td>Identify (<code>/ipfs/id/1.0.0</code>)</td><td>Section 4.3</td></tr>
 <tr><td>Liveness</td><td>Ping (<code>/ipfs/ping/1.0.0</code>)</td><td><strong>Required</strong>. Sent every 10 seconds; if there is no response for 30 seconds, the connection is closed. A connection with a peer that does not support Ping is closed immediately</td></tr>
 <tr><td>Relay</td><td>Circuit Relay v2 (<code>/libp2p/circuit/relay/0.2.0/hop</code>, <code>/stop</code>)</td><td>Section 4.4. Used on <code>sbq-limited-1</code></td></tr>
-<tr><td>Switching to a direct connection</td><td>DCUtR (<code>/libp2p/dcutr</code>)</td><td>May be omitted. Must not be performed with the setting that uses only the relay</td></tr>
+<tr><td>Switching to a direct connection</td><td>DCUtR (<code>/libp2p/dcutr</code>)</td><td>May be omitted. Must not be performed with the setting that uses only the relay. When it is performed, see <a href="#sec-6-3">section 6.3</a> for how to open the game stream</td></tr>
 <tr><td>Reachability check</td><td>AutoNAT v2 (<code>/libp2p/autonat/2/dial-request</code>, <code>/libp2p/autonat/2/dial-back</code>)</td><td>May be omitted. Must not be performed with the setting that uses only the relay. Ask for a check only of the direct Internet addresses among the candidates for your own address that peers observed. AutoNAT v1 (<code>/libp2p/autonat/1.0.0</code>), which sends the listen addresses (including private, loopback, and link-local ones) to the peer, is not used. ShogiBoardQ's cooperating nodes respond to v2 checks; ordinary players do not</td></tr>
 <tr><td>Game</td><td><code>/shogiboardq/game/1.0.0</code></td><td>Section 6 onward. The main body of this document</td></tr>
 </tbody>
@@ -579,6 +579,13 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <li>Otherwise (it does not arrive in time, it is not INVITE_TOKEN, or the token does not match), the inviter closes the stream without returning anything.</li>
 </ul>
 <p>INVITE_TOKEN must have requestId 0 and gameId zero32. INVITE_TOKEN must not be sent anywhere but as the first frame of a stream (if one is received elsewhere, the stream is closed as an envelope violation). Streams accepted during a game are described in <a href="#sec-11-1">section 11.1</a>.</p>
+<p><strong>The connection on which the stream is opened</strong>: A stream cannot be moved off the connection it was opened on. If it is opened on a relayed connection, frames keep going through the relay even after DCUtR establishes a direct connection, and the limits of the relay (<a href="#sec-4-4">section 4.4</a>) keep applying. An implementation that performs DCUtR should do the following on the side that opens the stream (the joiner; the same applies to reconnection, <a href="#sec-11-1">section 11.1</a>). ShogiBoardQ does this.</p>
+<ul>
+<li>If there is a direct connection to the peer, open the stream on it. If relayed connections also remain, close them before opening the stream.</li>
+<li>If there are only relayed connections, wait a short while for a direct connection (ShogiBoardQ waits up to 3 seconds), and open the stream on the relayed connection if none is established.</li>
+<li>Close a direct connection that is established after the stream was opened on a relayed connection, since it will not be used. Try a direct connection again at the next reconnection.</li>
+</ul>
+<p>For this reason, when ShogiBoardQ is the joiner, the stream may arrive about 3 seconds after the relayed connection is established. The relayed connection may be closed before the stream arrives, and a direct connection established by DCUtR may be closed right away. None of these is an error.</p>
 
 <h3 id="sec-6-4">6.4 Rate and Size Limits</h3>
 <p>ShogiBoardQ closes streams that exceed the following. Compatible implementations must send within these limits.</p>
@@ -1307,6 +1314,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>Document version</th><th>Protocol version</th><th>Fix needed in compatible implementations</th><th>Changes</th></tr></thead>
 <tbody>
+<tr><td>2026-11-15.1</td><td>1</td><td>Not needed</td><td>Added how to choose the connection on which the game stream is opened (<a href="#sec-6-3">section 6.3</a>; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/78c04567189db3c6542211d181f842f1deb1dbd8">78c04567</a>). ShogiBoardQ used to open the game stream right after connecting through the relay, so frames kept going through the relay even after DCUtR established a direct connection. The joiner now waits up to 3 seconds for a direct connection and, if one is established, closes the relayed connection and opens the stream on the direct connection. The frame format and the procedures are unchanged. Compatible implementations that perform DCUtR should do the same.</td></tr>
 <tr><td>2026-11-15</td><td>1</td><td>Not needed</td><td>An offer of a draw or abort by agreement can now be made again, even at the same ply, after the opponent has declined it (<a href="#sec-10-2">section 10.2</a>; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>). Previously, as user operations, such offers were limited to once each per ply, and in ShogiBoardQ, pressing "Abort" again after being declined showed nothing to the opponent. The rule is now once each until the opponent declines or the ply advances. The rule that the receiving side must not treat the same proposal arriving repeatedly at the same ply as a violation is unchanged, and the frame formats did not change.</td></tr>
 <tr><td>2026-11-14</td><td>1</td><td>Not needed</td><td>Aligned with P2P games becoming a regular feature instead of an experimental one (from ShogiBoardQ 2026.11.14 they are enabled by default and included in the distributed packages; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>). The communication rules did not change.
 <ul>
