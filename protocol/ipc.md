@@ -114,6 +114,8 @@
   ストリームが開けたら `connectionOpened`、開けなければ `connectionClosed`（`reason` は `unreachable`・`timeout`、
   `relayOnly` で招待に使える中継経由の宛先が無いときは `no_relay_route`。全体で 30 秒）が届く。
   `connectPeer` は `setGamePeer` の相手にだけ使える（再接続。つなぐのに使った宛先を覚えておいて使う）。
+  ストリームは、相手との直接の接続があればその上で開く。中継経由でつながったときは、直接の接続ができるのを
+  3 秒まで待つので、`connectionOpened` はその分だけ遅れる（5章「対局ストリームを開く接続」）。
 - 受け付けた側（inbound）の `connectionOpened` は、相手の最初のフレームが届いてから出す（最初のフレームを 5 秒待つ）。
   `origin` が `game` なら、続けてそのフレームを `frameReceived` で渡す（`invite` の最初のフレームは
   INVITE_TOKEN なので渡さない）。したがって接続を開いた側（outbound）は、`connectionOpened` を受けたら先にフレームを
@@ -134,7 +136,7 @@
 |---|---|
 | `networkStatus` | `{"state": "connecting"\|"online"\|"offline", "connectedPeers": 整数, "reachability": "unknown"\|"public"\|"private", "relayReservations": 整数}` |
 | `connectionOpened` | `{"connection", "peerId", "peerIdBytes", "route": "direct"\|"relay", "direction": "inbound"\|"outbound", "origin": "invite"\|"game"}` |
-| `connectionRoute` | `{"connection", "route"}`（中継から直接接続に移ったときなど） |
+| `connectionRoute` | `{"connection", "route"}`（受け付けた側で、相手との接続が増減して経路が変わったとき） |
 | `frameReceived` | `{"connection", "frame"}` |
 | `connectionClosed` | `{"connection", "reason"}` |
 
@@ -142,8 +144,10 @@
   `privateAddresses` だけ）。
 - `state` は、接続しているピアがある（または協力ノードを指定せずに待受を始めた）とき `online`、協力ノードへ接続中のとき
   `connecting`、それ以外は `offline`。値が変わったときにだけ、1秒に1回まで出す。
-- `reachability` は到達性の確認（AutoNAT v2）の結果（`relayOnly` では確かめないので `unknown` のまま）。`route` は、その相手との接続が
-  すべて中継経由なら `relay`、1つでも直接の接続があれば `direct`。
+- `reachability` は到達性の確認（AutoNAT v2）の結果（`relayOnly` では確かめないので `unknown` のまま）。`route` は対局ストリームの経路。
+  接続を開いた側（outbound）は、ストリームを開いた接続の経路を知らせる（開いた後は変わらないので、`connectionRoute` は
+  出さない）。受け付けた側（inbound）は、ストリームがどの接続の上にあるかを知れないので、その相手との接続がすべて
+  中継経由なら `relay`、1つでも直接の接続があれば `direct` とし、接続が増減して変わったら `connectionRoute` で知らせる。
 - `frameReceived` は外枠を確かめたフレームだけを運ぶ。INVITE_TOKEN は運ばない。
 - `connectionClosed` の `reason` は `closed`・`reset`・`timeout`・`unreachable`・`no_relay_route`・`invalid_frame`・`rate_limited`・`limit`。
   `shutdown` の後は、開いている接続を知らせずに終わる（接続は通信プロセスとともに閉じる）。
@@ -196,6 +200,17 @@ loopback（127.0.0.0/8、::1）、私設（10/8、172.16/12、192.168/16）、li
   観測されたアドレスを待受のポートに直して候補にする。
 - 中継の hop に対応する協力ノードには、自分の到達性によらず予約を取る（2件まで）。中継経由のアドレスは、利用者が
   指定した協力ノードの宛先から作り、招待に入れる（`relayOnly` の相手は、中継経由のアドレスでしかつなげない）。
+- 対局ストリームを開く接続（`peer/src/node/outbound.rs`）: 対局ストリームは、開いた接続の上に乗ったまま動かせない。
+  中継でつながった直後に開くと、その後に直接の接続（DCUtR）ができても、フレームは中継を通り続ける。接続を開く側
+  （`connectInvite`・`connectPeer`）は、次の順でストリームを開く。
+  - 相手との直接の接続があれば、中継経由の接続を閉じてから開く（libp2p-stream は、相手との接続のどれかを無作為に
+    選んでストリームを開くので、直接の接続だけを残す）。
+  - 中継経由の接続しかなければ、直接の接続ができるのを 3 秒まで待ち、できなければ中継経由の接続の上で開く。
+    `relayOnly` では待たない。相手が DCUtR を使うかは前もって分からない（DCUtR は中継経由の接続を受けた側が始め、
+    受けた側は Identify で名乗らない）ので、`relayOnly` の相手とも同じ時間だけ待つ。3 秒は、対局・UI側が切れた対局の
+    相手へつなぎ直す間隔（5 秒）より短くしてある。
+  - 中継経由の接続の上で開いた後にできた直接の接続は、使わないので閉じる。次につなぎ直すとき（中継の制限で
+    切れたときなど）に、もう一度直接の接続を試す。
 - ping（10秒ごと、30秒で失敗）に応えない接続は閉じる。
 - 公開募集のための発見（Kademlia）と配信（GossipSub）は持たない。協力ノードと招待・対局の相手のほかへ、
   自分から接続を始めない。

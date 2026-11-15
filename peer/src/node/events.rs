@@ -5,7 +5,7 @@ use std::time::Instant;
 use libp2p::core::ConnectedPoint;
 use libp2p::multiaddr::Protocol;
 use libp2p::swarm::{DialError, SwarmEvent};
-use libp2p::{autonat, identify, ping, relay, Multiaddr, PeerId};
+use libp2p::{autonat, dcutr, identify, ping, relay, Multiaddr, PeerId};
 use sbq_protocol::network::Profile;
 
 use super::{ConnState, Node};
@@ -53,16 +53,25 @@ impl Node {
                         return;
                     }
                 }
+                // 中継経由の接続の上で対局ストリームを開いた後にできた直接の接続は、使わないので閉じる（開いた
+                // ストリームは動かせない。残すと、使われないまましばらくして閉じる。次につなぎ直すときに試し直す）
+                if !relayed && self.has_relayed_stream_to(&peer_id) {
+                    self.swarm.close_connection(connection_id);
+                    return;
+                }
                 self.peer_conns
                     .entry(peer_id)
                     .or_default()
                     .insert(connection_id, relayed);
+                self.conn_since.insert(connection_id, Instant::now());
                 self.update_routes(&peer_id);
+                self.advance_opening(&peer_id);
             }
             SwarmEvent::ConnectionClosed {
                 peer_id, connection_id, ..
             } => {
                 self.inbound_prefixes.remove(&connection_id);
+                self.conn_since.remove(&connection_id);
                 if let Some(conns) = self.peer_conns.get_mut(&peer_id) {
                     conns.remove(&connection_id);
                     if conns.is_empty() {
@@ -70,13 +79,25 @@ impl Node {
                     }
                 }
                 self.update_routes(&peer_id);
+                if self.peer_conns.contains_key(&peer_id) {
+                    self.advance_opening(&peer_id);
+                } else {
+                    // 対局ストリームを開く前に、相手との接続がなくなった
+                    self.fail_openings_of(&peer_id);
+                }
             }
-            SwarmEvent::OutgoingConnectionError {
-                error: DialError::Transport(errors),
-                ..
-            } => {
-                for (address, _) in errors {
-                    self.policy.record_failure(&address);
+            SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
+                if let DialError::Transport(errors) = &error {
+                    for (address, _) in errors {
+                        self.policy.record_failure(address);
+                    }
+                }
+                // つながっていない相手への接続に失敗したら、対局ストリームを開くのをやめる。中継でつながった相手への
+                // 直接の接続（穴あけ）の失敗は、相手がやり直すことがあるので、待つ時間が過ぎるまで待つ
+                if let Some(peer) = peer_id {
+                    if !self.peer_conns.contains_key(&peer) {
+                        self.fail_openings_of(&peer);
+                    }
                 }
             }
             SwarmEvent::ExternalAddrConfirmed { address } => {
@@ -114,7 +135,8 @@ impl Node {
         let route = self.route_of(peer);
         let mut changed = Vec::new();
         for (id, conn) in self.conns.iter_mut() {
-            if &conn.peer != peer {
+            // つないだ側は、対局ストリームを開いた接続の経路を知っている（接続が増減しても変わらない）
+            if &conn.peer != peer || conn.known_route.is_some() {
                 continue;
             }
             if let ConnState::Open { route: current, .. } = &mut conn.state {
@@ -146,6 +168,11 @@ impl Node {
             BehaviourEvent::RelayClient(relay::client::Event::ReservationReqAccepted { relay_peer_id, .. }) => {
                 self.reservations.accepted(relay_peer_id);
             }
+            // 穴あけをあきらめた（決まった回数だけ失敗した・手続きに失敗した）相手とは、直接の接続を待たない
+            BehaviourEvent::Dcutr(dcutr::Event {
+                remote_peer_id,
+                result: Err(_),
+            }) => self.give_up_hole_punching(&remote_peer_id),
             // 協力ノードが中継している回路の数（ログに書く）
             BehaviourEvent::RelayServer(relay::Event::CircuitReqAccepted {
                 src_peer_id,

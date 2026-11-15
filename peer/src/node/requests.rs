@@ -176,6 +176,7 @@ impl Node {
                     origin: ipc::Origin::Invite,
                     direction: ipc::Direction::Outbound,
                     state: ConnState::Connecting,
+                    known_route: None,
                 },
             );
             let _ = self.internal.send(super::Internal::OutboundFailed { conn, reason });

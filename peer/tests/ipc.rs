@@ -591,6 +591,122 @@ fn relay_only_uses_only_the_node_relay() {
     assert!(relayed >= 1);
 }
 
+/// 招待の到達候補を、中継経由のものだけにする（最初の接続が中継経由になる。家庭の回線どうしのインターネット越しの
+/// 対局と同じ形）
+fn relayed_addrs_only(text: &str) -> String {
+    let mut invite = Invite::decode(text).unwrap();
+    invite.addrs.retain(|bytes| {
+        libp2p::Multiaddr::try_from(bytes.clone())
+            .unwrap()
+            .to_string()
+            .contains("/p2p-circuit")
+    });
+    assert!(!invite.addrs.is_empty(), "the invite has no relayed address");
+    invite.encode().unwrap()
+}
+
+/// 中継でつながった後に直接の接続ができたら、対局ストリームは直接の接続の上で開く。
+/// 中継の上で開いてしまうと、画面は「直接」と出るのに指し手は協力ノードを通り続け、使われない直接の接続は
+/// しばらくして閉じる。直接の接続の上にあれば、協力ノードを止めても対局ストリームは切れない
+#[test]
+fn game_stream_opens_on_the_direct_connection_after_hole_punching() {
+    let service = spawn_service();
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    a.start(vec![service.addr.clone()]);
+    b.start(vec![service.addr.clone()]);
+    a.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("A reserved the relay");
+    b.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("B reserved the relay");
+
+    let text = a.ok("createInvite", json!({}))["invite"].as_str().unwrap().to_owned();
+    let invite = relayed_addrs_only(&text);
+    let conn_b = b.ok("connectInvite", json!({ "invite": invite, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let opened_b = b
+        .wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B opened");
+    let opened_a = a.wait("connectionOpened", |_| true, TIMEOUT).expect("A opened");
+    assert_eq!(opened_b["route"], "direct");
+    assert_eq!(opened_a["route"], "direct");
+    let conn_a = opened_a["connection"].as_str().unwrap().to_owned();
+
+    // 協力ノードを止めても、対局ストリームは切れず、フレームが届く
+    drop(service);
+    std::thread::sleep(Duration::from_secs(2));
+    let frame = hello_frame(1);
+    b.ok("sendFrame", json!({ "connection": conn_b, "frame": frame }));
+    let got = a
+        .wait("frameReceived", |p| p["connection"] == conn_a.as_str(), TIMEOUT)
+        .expect("A frame");
+    assert_eq!(got["frame"], frame.as_str());
+    assert!(b
+        .wait(
+            "connectionClosed",
+            |p| p["connection"] == conn_b.as_str(),
+            Duration::from_secs(2)
+        )
+        .is_none());
+    assert!(a
+        .wait(
+            "connectionClosed",
+            |p| p["connection"] == conn_a.as_str(),
+            Duration::from_secs(1)
+        )
+        .is_none());
+    // 経路は直接のまま変わらない
+    assert!(b.wait("connectionRoute", |_| true, Duration::from_secs(1)).is_none());
+}
+
+/// 直接の接続ができない相手（ここでは「直接接続を使わない」相手。穴あけを始めない）とは、少し待ってから、
+/// 中継経由の接続の上で対局ストリームを開く。待ち続けて開かないままにならない
+#[test]
+fn game_stream_opens_on_the_relay_when_no_direct_connection_comes() {
+    let service = spawn_service();
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    a.start_with(vec![service.addr.clone()], true);
+    b.start(vec![service.addr.clone()]);
+    a.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("A reserved the relay");
+    b.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("B reserved the relay");
+
+    // A の招待には中継経由のアドレスだけが入る
+    let invite = a.ok("createInvite", json!({}))["invite"].as_str().unwrap().to_owned();
+    let (direct, relayed) = invite_routes(&invite);
+    assert_eq!(direct, 0);
+    assert!(relayed >= 1);
+    let started = Instant::now();
+    let conn_b = b.ok("connectInvite", json!({ "invite": invite, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let opened_b = b
+        .wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B opened");
+    // 直接の接続を待つ時間（3秒）の後に開く
+    let waited = started.elapsed();
+    assert!(waited >= Duration::from_secs(2), "opened after {waited:?}");
+    assert!(waited < Duration::from_secs(10), "opened after {waited:?}");
+    assert_eq!(opened_b["route"], "relay");
+    let opened_a = a.wait("connectionOpened", |_| true, TIMEOUT).expect("A opened");
+    assert_eq!(opened_a["route"], "relay");
+    let conn_a = opened_a["connection"].as_str().unwrap().to_owned();
+    let frame = hello_frame(1);
+    b.ok("sendFrame", json!({ "connection": conn_b, "frame": frame }));
+    let got = a
+        .wait("frameReceived", |p| p["connection"] == conn_a.as_str(), TIMEOUT)
+        .expect("A frame");
+    assert_eq!(got["frame"], frame.as_str());
+    // 経路は中継のまま変わらない
+    assert!(b.wait("connectionRoute", |_| true, Duration::from_secs(2)).is_none());
+    assert!(a.wait("connectionRoute", |_| true, Duration::from_secs(1)).is_none());
+}
+
 /// 「直接接続を使わない」側は、中継を通る宛先の無い招待にはつながない（相手の直接のアドレスへ自分の IP を見せない）
 #[test]
 fn relay_only_refuses_direct_only_invites() {

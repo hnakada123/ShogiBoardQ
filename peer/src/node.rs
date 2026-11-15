@@ -1,8 +1,8 @@
 //! 対局・UI側から使うときの通信プロセス（IPC の要求を受けて Swarm を動かす）
 //!
 //! 主ループと Swarm の作成はここに置き、役割ごとに分ける: 要求の処理（requests）、Swarm の出来事（events）、
-//! 対局ストリーム（streams）、作った招待（invites）、中継の予約（reservations）、協力ノードが中継している回路の数
-//! （circuits）。待受は crate::listen
+//! 対局ストリーム（streams）、対局ストリームを開く接続の選び方（outbound）、作った招待（invites）、中継の予約
+//! （reservations）、協力ノードが中継している回路の数（circuits）。待受は crate::listen
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -30,6 +30,7 @@ use crate::swarm::{self, Behaviour, SwarmOptions};
 mod circuits;
 mod events;
 mod invites;
+mod outbound;
 mod requests;
 mod reservations;
 mod streams;
@@ -84,11 +85,17 @@ pub struct Node {
     pub internal: mpsc::UnboundedSender<Internal>,
     pub conns: HashMap<u64, Conn>,
     pub next_conn: u64,
+    /// 対局ストリームを開くのを待っている接続（つなぐ側。どの接続の上で開くかが決まるまで）
+    pub opening: HashMap<u64, outbound::Opening>,
+    /// 直接の接続（穴あけ）を試すか（「直接接続を使わない」と協力ノードは試さない）
+    pub hole_punching: bool,
     pub invites: invites::Invites,
     pub game_peer: Option<PeerId>,
     /// 最初のフレームを待つ届いた対局ストリームの数と、対局中の相手（受け付けのタスクと共有する）
     pub accept_gate: Arc<streams::AcceptGate>,
     pub peer_conns: HashMap<PeerId, HashMap<ConnectionId, bool>>,
+    /// 接続ができた時刻（中継経由の接続で、直接の接続を待つ時間を測る）
+    pub conn_since: HashMap<ConnectionId, Instant>,
     /// 受け付けた接続の接続元のアドレス帯
     pub inbound_prefixes: HashMap<ConnectionId, Vec<u8>>,
     pub addr_book: HashMap<PeerId, Vec<Multiaddr>>,
@@ -268,10 +275,13 @@ impl Node {
             internal: internal_tx,
             conns: HashMap::new(),
             next_conn: 1,
+            opening: HashMap::new(),
+            hole_punching: !config.relay_only && !config.service,
             invites: invites::Invites::default(),
             game_peer: None,
             accept_gate,
             peer_conns: HashMap::new(),
+            conn_since: HashMap::new(),
             inbound_prefixes: HashMap::new(),
             addr_book: HashMap::new(),
             bootstrap: HashMap::new(),
@@ -356,6 +366,8 @@ impl Node {
                 std::process::exit(0);
             }
         }
+        // 直接の接続を待つ時間が過ぎた対局ストリームを開く
+        self.advance_all_openings();
         if self.last_second.elapsed() < Duration::from_secs(1) {
             return;
         }

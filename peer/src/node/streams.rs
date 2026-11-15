@@ -5,14 +5,16 @@
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use futures::{AsyncReadExt, StreamExt};
+use libp2p::swarm::DialError;
 use libp2p::{Multiaddr, PeerId, Stream, StreamProtocol};
 use sbq_protocol::frame::{self, FrameHeader, GAME_PROTOCOL};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use tokio::task::AbortHandle;
 
+use super::outbound::{self, Links, Opening, Step};
 use super::{unix_now, Node};
 use crate::game::{self, ConnEvent, ConnShared};
 use crate::ipc;
@@ -121,6 +123,8 @@ pub struct Conn {
     pub origin: ipc::Origin,
     pub direction: ipc::Direction,
     pub state: ConnState,
+    /// 対局ストリームを開いた接続の経路（つなぐ側だけが決められる。届いた側は None で、相手との接続から決める）
+    pub known_route: Option<ipc::Route>,
 }
 
 impl Drop for Conn {
@@ -143,6 +147,8 @@ impl Node {
         self.conns.len()
     }
 
+    /// 相手との接続から見た経路（1つでも直接の接続があれば直接）。届いた対局ストリームは、どの接続の上にあるか
+    /// 分からないので、これで決める
     pub fn route_of(&self, peer: &PeerId) -> ipc::Route {
         match self.peer_conns.get(peer) {
             Some(conns) if conns.values().any(|relayed| !relayed) => ipc::Route::Direct,
@@ -166,13 +172,15 @@ impl Node {
         }
         // つなぐのに使った宛先を覚える（対局中に切れたときの再接続に使う）
         self.remember_addrs(peer, &addrs);
-        if !connected {
+        // 接続を始められなければ（宛先がない・上限）、開くのを待たずにやめる。相手へ接続している途中
+        // （DialPeerConditionFalse）なら、その結果を待つ
+        let dial_failed = !connected && {
             let opts = libp2p::swarm::dial_opts::DialOpts::peer_id(peer)
                 .addresses(addrs.clone())
                 .extend_addresses_through_behaviour()
                 .build();
-            let _ = self.swarm.dial(opts);
-        }
+            matches!(self.swarm.dial(opts), Err(e) if !matches!(e, DialError::DialPeerConditionFalse(_)))
+        };
         self.conns.insert(
             conn,
             Conn {
@@ -180,15 +188,31 @@ impl Node {
                 origin,
                 direction: ipc::Direction::Outbound,
                 state: ConnState::Connecting,
+                known_route: None,
+            },
+        );
+        // どの接続の上で開くかは主ループが決める（outbound）。決まるまで、開くタスクは待つ
+        let (go, go_rx) = oneshot::channel();
+        self.opening.insert(
+            conn,
+            Opening {
+                peer,
+                go,
+                no_hole_punch: false,
             },
         );
         let mut control = self.control.clone();
         let internal = self.internal.clone();
         tokio::spawn(async move {
-            let result = tokio::time::timeout(
-                CONNECT_TIMEOUT,
-                control.open_stream(peer, StreamProtocol::new(GAME_PROTOCOL)),
-            )
+            let result = tokio::time::timeout(CONNECT_TIMEOUT, async {
+                match go_rx.await {
+                    Ok(true) => control
+                        .open_stream(peer, StreamProtocol::new(GAME_PROTOCOL))
+                        .await
+                        .map_err(|_| ()),
+                    _ => Err(()),
+                }
+            })
             .await;
             let event = match result {
                 Ok(Ok(mut stream)) => {
@@ -218,12 +242,134 @@ impl Node {
             };
             let _ = internal.send(event);
         });
+        if dial_failed {
+            self.fail_opening(conn);
+        } else {
+            self.advance_opening(&peer);
+        }
+    }
+
+    /// 相手との接続の様子（対局ストリームを開く前に見る）
+    fn links_of(&self, peer: &PeerId, no_hole_punch: bool) -> Links {
+        let now = Instant::now();
+        let mut links = Links {
+            direct: 0,
+            relayed: 0,
+            relayed_for: Duration::ZERO,
+            hole_punching: self.hole_punching && !no_hole_punch,
+        };
+        for (id, relayed) in self.peer_conns.get(peer).into_iter().flatten() {
+            if *relayed {
+                links.relayed = links.relayed.saturating_add(1);
+                // 時刻を覚えていない接続は、待ち終えたものとして扱う
+                let age = self
+                    .conn_since
+                    .get(id)
+                    .map_or(outbound::HOLE_PUNCH_WAIT, |since| now.saturating_duration_since(*since));
+                links.relayed_for = links.relayed_for.max(age);
+            } else {
+                links.direct = links.direct.saturating_add(1);
+            }
+        }
+        links
+    }
+
+    /// 相手への対局ストリームを開けるようになったか確かめ、開く（相手との接続が変わったとき・穴あけの結果が
+    /// 分かったとき・時間が過ぎたときに呼ぶ）
+    pub(super) fn advance_opening(&mut self, peer: &PeerId) {
+        let waiting: Vec<(u64, bool)> = self
+            .opening
+            .iter()
+            .filter(|(_, o)| &o.peer == peer)
+            .map(|(conn, o)| (*conn, o.no_hole_punch))
+            .collect();
+        for (conn, no_hole_punch) in waiting {
+            match outbound::next_step(self.links_of(peer, no_hole_punch)) {
+                Step::Wait => {}
+                Step::CloseRelayed => {
+                    // 閉じ終わると ConnectionClosed が届き、もう一度ここへ来る
+                    let relayed: Vec<_> = self
+                        .peer_conns
+                        .get(peer)
+                        .into_iter()
+                        .flatten()
+                        .filter(|(_, relayed)| **relayed)
+                        .map(|(id, _)| *id)
+                        .collect();
+                    for id in relayed {
+                        self.swarm.close_connection(id);
+                    }
+                }
+                Step::OpenDirect => self.release_opening(conn, ipc::Route::Direct),
+                Step::OpenRelayed => self.release_opening(conn, ipc::Route::Relay),
+            }
+        }
+    }
+
+    pub(super) fn advance_all_openings(&mut self) {
+        if self.opening.is_empty() {
+            return;
+        }
+        let mut peers: Vec<PeerId> = self.opening.values().map(|o| o.peer).collect();
+        peers.sort_unstable();
+        peers.dedup();
+        for peer in peers {
+            self.advance_opening(&peer);
+        }
+    }
+
+    /// 相手との穴あけをあきらめた（直接の接続を待たない）
+    pub(super) fn give_up_hole_punching(&mut self, peer: &PeerId) {
+        for opening in self.opening.values_mut().filter(|o| &o.peer == peer) {
+            opening.no_hole_punch = true;
+        }
+        self.advance_opening(peer);
+    }
+
+    /// 相手への接続に失敗した・相手との接続がなくなった: 開くのを待っている対局ストリームをやめる
+    pub(super) fn fail_openings_of(&mut self, peer: &PeerId) {
+        let waiting: Vec<u64> = self
+            .opening
+            .iter()
+            .filter(|(_, o)| &o.peer == peer)
+            .map(|(conn, _)| *conn)
+            .collect();
+        for conn in waiting {
+            self.fail_opening(conn);
+        }
+    }
+
+    fn release_opening(&mut self, conn: u64, route: ipc::Route) {
+        let Some(opening) = self.opening.remove(&conn) else {
+            return;
+        };
+        if let Some(entry) = self.conns.get_mut(&conn) {
+            entry.known_route = Some(route);
+        }
+        let _ = opening.go.send(true);
+    }
+
+    /// 開くタスクに、やめるよう知らせる（タスクが OutboundFailed を返し、connectionClosed を知らせる）
+    fn fail_opening(&mut self, conn: u64) {
+        if let Some(opening) = self.opening.remove(&conn) {
+            let _ = opening.go.send(false);
+        }
+    }
+
+    /// 中継経由の接続の上で対局ストリームを開いた（開いている途中の）相手か。その後にできた直接の接続は使えない
+    pub(super) fn has_relayed_stream_to(&self, peer: &PeerId) -> bool {
+        !self.opening.values().any(|o| &o.peer == peer)
+            && self
+                .conns
+                .values()
+                .any(|c| &c.peer == peer && c.known_route == Some(ipc::Route::Relay))
     }
 
     /// 開いたストリームの読み書きを始め、connectionOpened を知らせる
     pub fn open_conn(&mut self, conn: u64, stream: Stream) {
         let Some(entry) = self.conns.get(&conn) else { return };
         let peer = entry.peer;
+        let known_route = entry.known_route;
         let (reader, writer) = stream.split();
         let shared = Arc::new(ConnShared::default());
         let (frame_tx, frame_rx) = mpsc::channel(64);
@@ -235,7 +381,7 @@ impl Node {
         ));
         // 送信のタスクは、送る列（writer）が閉じれば（接続を消せば）終わる
         tokio::spawn(game::writer_task(conn, writer, frame_rx, self.conn_events.clone()));
-        let route = self.route_of(&peer);
+        let route = known_route.unwrap_or_else(|| self.route_of(&peer));
         if let Some(entry) = self.conns.get_mut(&conn) {
             entry.state = ConnState::Open {
                 writer: frame_tx,
@@ -256,6 +402,8 @@ impl Node {
 
     /// 接続を閉じて connectionClosed を知らせる
     pub fn close_conn(&mut self, conn: u64, reason: ipc::CloseReason, notify: bool) {
+        // 開くのを待っていたら、やめる（知らせる側を捨てると、開くタスクが終わる）
+        self.opening.remove(&conn);
         if self.conns.remove(&conn).is_some() && notify {
             self.out.notify(ipc::Notification::ConnectionClosed {
                 connection: conn,
@@ -334,6 +482,7 @@ impl Node {
                 origin,
                 direction: ipc::Direction::Inbound,
                 state: ConnState::Connecting,
+                known_route: None,
             },
         );
         self.open_conn(conn, stream);
