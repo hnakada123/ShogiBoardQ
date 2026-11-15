@@ -194,7 +194,7 @@ $env:SODIUM_ROOT = &quot;C:\dev\libsodium-msvc\libsodium&quot;
 <p>The script performs the following steps automatically:</p>
 <ol type="1">
 <li>Checks that the required tools exist (cmake, ninja, cl, windeployqt, the location of the MSVC runtime DLLs, and cargo and libsodium for P2P games)</li>
-<li>CMake configure + build (ShogiBoardQ, shogiboardq-cli, the P2P communication process shogiboardq-peer, and Hayanagi)</li>
+<li>CMake configure + build QtKeychain for P2P games and configure again + build (ShogiBoardQ, shogiboardq-cli, the P2P communication process shogiboardq-peer, and Hayanagi)</li>
 <li>Checks the build outputs (.exe, .qm translation files, shogiboardq-peer.exe and libsodium.dll, hayanagi.exe and its opening book, and one collection file per move count)</li>
 <li>Creates the deploy directory + places shogiboardq-peer.exe and libsodium.dll, the collections, Hayanagi (including its opening book), and LICENSE + deploys the DLLs with windeployqt + adds <code>qoffscreen.dll</code> + copies the MSVC runtime DLLs + verifies the result</li>
 <li>Creates the ZIP file</li>
@@ -270,6 +270,7 @@ cargo test --locked --workspace</code></pre>
 <li>A cooperating node (<code>shogiboardq-peer --service</code>) does not run on Windows</li>
 <li>In the distributed package, <code>shogiboardq-peer.exe</code> and <code>libsodium.dll</code> are placed in the same folder as <code>ShogiBoardQ.exe</code> (the distribution script and the installer do this). The app starts the communication process from its own folder</li>
 <li>The list of the Rust libraries built into the communication process, with their license texts (<code>resources/licenses/RUST-NOTICES.md</code>), and the license of libsodium are built into the app (the About dialog). After changing the dependencies (<code>Cargo.lock</code>), regenerate the list with <code>python scripts/rust_licenses.py</code> (the distribution script stops if it is out of date)</li>
+<li>Storing the player key in the Windows Credential Manager needs QtKeychain (optional; without it, "OS keychain" cannot be selected as the key storage and the key is stored in a file encrypted with a passphrase). The Qt from the Qt Online Installer does not include it, so <code>scripts/build-qtkeychain-windows.ps1</code> builds the official source (version and SHA-256 pinned in the script) as a static library with the same Qt as the app. For a development build, run <code>.\scripts\build-qtkeychain-windows.ps1 -QtPrefix C:\Qt\6.x.x\msvc2022_64</code> in Developer PowerShell for VS and configure again with the option printed on its last line (<code>-DQt6Keychain_DIR=...</code>); add <code>-BuildType Debug</code> when it goes into a Debug build of the app. The distribution script builds it by itself and stops if it cannot be built into the app. The key is stored in the user's Credential Manager as a generic credential named <code>player-key-v1@ShogiBoardQ</code></li>
 </ul>
 </section>
 </section>

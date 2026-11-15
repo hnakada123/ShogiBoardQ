@@ -257,7 +257,8 @@ jobs:
           modules: "qtcharts qtmultimedia qtimageformats"
 
       # P2P対局: libsodium の公式のビルド済みの配布物を SHA-256 で確かめて展開し、場所を SODIUM_ROOT で
-      # build-windows.ps1 に渡す（Rust はランナーに入っている）。版を上げるときは、上流のリリースの digest に替える
+      # build-windows.ps1 に渡す（Rust はランナーに入っている）。版を上げるときは、上流のリリースの digest に替える。
+      # プレイヤー鍵を資格情報マネージャーに置く QtKeychain は、scripts/build-windows.ps1 がソースを SHA-256 で確かめてビルドする
       - name: Download libsodium
         shell: pwsh
         env:

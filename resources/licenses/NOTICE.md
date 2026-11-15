@@ -44,7 +44,7 @@ Rust のライブラリを取り込んでいます。各ライブラリにはそ
 
 P2P対局のプレイヤー鍵を OS の鍵の保管庫に置くために QtKeychain
 （https://github.com/frankosterfeld/qtkeychain 、BSD 3-Clause License）を使用しています
-（macOS 版はアプリに取り込み、Linux の AppImage は同梱。ライセンスの本文はこの文書の末尾）。
+（Windows 版と macOS 版はアプリに取り込み、Linux の AppImage は同梱。ライセンスの本文はこの文書の末尾）。
 
 P2P games use libsodium (https://libsodium.org/, ISC License; bundled in the
 Windows and macOS packages and in the Linux AppImage; its license text is at the
@@ -55,8 +55,8 @@ its own license. They are listed with their license texts in
 
 To store the player key of P2P games in the OS keychain, QtKeychain
 (https://github.com/frankosterfeld/qtkeychain, BSD 3-Clause License) is used (built
-into the macOS app and bundled in the Linux AppImage; its license text is at the end
-of this document).
+into the Windows and macOS apps and bundled in the Linux AppImage; its license text is
+at the end of this document).
 
 Qt の改変、互換性のあるライブラリへの差し替え、およびそのデバッグに必要な
 リバースエンジニアリングを禁止する追加条件は設けていません。

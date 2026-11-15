@@ -197,7 +197,7 @@ $env:SODIUM_ROOT = &quot;C:\dev\libsodium-msvc\libsodium&quot;
 <p>指令碼會自動執行以下處理：</p>
 <ol type="1">
 <li>確認所需工具（cmake、ninja、cl、windeployqt、MSVC 執行階段 DLL 的位置，以及 P2P對局使用的 cargo、libsodium）</li>
-<li>CMake 設定 + 建置（ShogiBoardQ、shogiboardq-cli、P2P對局的通訊程序 shogiboardq-peer、Hayanagi）</li>
+<li>CMake 設定 + 建置 P2P對局所用的 QtKeychain 並重新設定 + 建置（ShogiBoardQ、shogiboardq-cli、P2P對局的通訊程序 shogiboardq-peer、Hayanagi）</li>
 <li>確認建置產物（.exe、.qm 翻譯檔、shogiboardq-peer.exe 與 libsodium.dll、hayanagi.exe 與定跡檔案、每種手數各 1 個檔案的題集）</li>
 <li>建立 deploy 目錄 + 放置 shogiboardq-peer.exe 與 libsodium.dll、題集、Hayanagi（含定跡檔案）與 LICENSE + 以 windeployqt 部署 DLL + 加入 <code>qoffscreen.dll</code> + 複製 MSVC 執行階段 DLL + 驗證</li>
 <li>製作 ZIP 檔案</li>
@@ -273,6 +273,7 @@ cargo test --locked --workspace</code></pre>
 <li>協作節點（<code>shogiboardq-peer --service</code>）不能在 Windows 上執行</li>
 <li>在發行套件中，<code>shogiboardq-peer.exe</code> 和 <code>libsodium.dll</code> 放在與 <code>ShogiBoardQ.exe</code> 相同的資料夾中（發行指令碼和安裝程式會這樣放置）。應用程式從自己所在的資料夾啟動通訊程序</li>
 <li>通訊程序所包含的 Rust 程式庫的清單及授權原文（<code>resources/licenses/RUST-NOTICES.md</code>）和 libsodium 的授權內建在應用程式中（「版本資訊」）。變更相依項目（<code>Cargo.lock</code>）後，請用 <code>python scripts/rust_licenses.py</code> 重新產生（不一致時發行指令碼會停止）</li>
+<li>要把玩家金鑰保存在 Windows 的認證管理員中，需要 QtKeychain（選用；沒有時，金鑰的保管方式無法選擇「作業系統的金鑰庫」，金鑰保存在用密碼短語加密的檔案中）。Qt Online Installer 的 Qt 不包含它，因此由 <code>scripts/build-qtkeychain-windows.ps1</code> 用與應用程式相同的 Qt 把官方原始碼（版本和 SHA-256 固定在指令碼中）建置為靜態程式庫。開發用的建置請在 Developer PowerShell for VS 中執行 <code>.\scripts\build-qtkeychain-windows.ps1 -QtPrefix C:\Qt\6.x.x\msvc2022_64</code>，並加上最後一行輸出的選項（<code>-DQt6Keychain_DIR=...</code>）重新設定（編入 Debug 建置的應用程式時請加上 <code>-BuildType Debug</code>）。發行指令碼會自行建置，無法編入應用程式時會停止。金鑰以 <code>player-key-v1@ShogiBoardQ</code> 的名稱保存在使用者的認證管理員的「一般認證」中</li>
 </ul>
 </section>
 </section>

@@ -5,6 +5,9 @@
 # ZIP には ShogiBoardQ・shogiboardq-cli・P2P対局の通信プロセス shogiboardq-peer と libsodium.dll・
 # Hayanagi（通常対局用 USI エンジンとその定跡）と data/tsumeshogi の詰将棋問題集（3〜13手詰の各1ファイル）を
 # 同梱する。
+# P2P対局のプレイヤー鍵を Windows の資格情報マネージャーに置くための QtKeychain は、
+# scripts/build-qtkeychain-windows.ps1 がアプリと同じ Qt でソースからビルドし、アプリに静的に取り込む
+# （build-qtkeychain-release/ に残して使い回す）。
 # 詳細: docs/dev/windows-build-and-release.md
 #
 # Usage:
@@ -59,6 +62,8 @@ $DEPLOY_DIR = $DeployDir
 $ZIP_NAME = $ZipPath
 # 同梱する詰将棋問題集の手数（各手数 data/tsumeshogi/tsume_<手数>ply_*.txt が1ファイルだけあること）
 $TSUME_PLIES = @(3, 5, 7, 9, 11, 13)
+# 配布用の QtKeychain のビルド先（-Clean でも消さずに使い回す。開発用の build-qtkeychain/ とは分ける）
+$QTKEYCHAIN_WORK_DIR = "build-qtkeychain-release"
 
 # ──────────────────────────────────────────────
 # ヘルパー関数
@@ -270,6 +275,32 @@ if ($NoP2p) {
 cmake @cmakeArgs
 if ($LASTEXITCODE -ne 0) {
     Stop-WithError "CMake Configure に失敗しました。"
+}
+
+# P2P対局: プレイヤー鍵を資格情報マネージャーに置くための QtKeychain を、いま構成したアプリと同じ Qt でビルドし、
+# その場所を渡して構成し直す（無いと、プレイヤー鍵の保管で「OSの鍵の保管庫」を選べない配布物になる）
+if (-not $NoP2p) {
+    $cachePath = Join-Path $BUILD_DIR "CMakeCache.txt"
+    $qt6DirLine = Select-String -Path $cachePath -Pattern '^Qt6_DIR:[A-Z]*=(.+)$' | Select-Object -First 1
+    if (-not $qt6DirLine -or -not (Test-Path $qt6DirLine.Matches[0].Groups[1].Value)) {
+        Stop-WithError "アプリの構成から Qt の場所（Qt6_DIR）を読めません。"
+    }
+    $qtPrefix = (Resolve-Path (Join-Path $qt6DirLine.Matches[0].Groups[1].Value "..\..\..")).Path
+    Write-Info "Qt: $qtPrefix"
+    $qtKeychainArg = & (Join-Path $SCRIPT_DIR "build-qtkeychain-windows.ps1") -QtPrefix $qtPrefix -WorkDir $QTKEYCHAIN_WORK_DIR |
+        Select-Object -Last 1
+    if ($LASTEXITCODE -ne 0 -or "$qtKeychainArg" -notlike "-DQt6Keychain_DIR=*") {
+        Stop-WithError "QtKeychain をビルドできません。"
+    }
+    cmake @cmakeArgs $qtKeychainArg
+    if ($LASTEXITCODE -ne 0) {
+        Stop-WithError "CMake Configure に失敗しました。"
+    }
+    $qtKeychainFound = Select-String -Path $cachePath -Pattern '^Qt6Keychain_DIR:[A-Z]*=' |
+        Where-Object { $_.Line -notmatch 'NOTFOUND$' }
+    if (-not $qtKeychainFound) {
+        Stop-WithError "QtKeychain がアプリのビルドに組み込まれていません（$qtKeychainArg）。"
+    }
 }
 
 # ──────────────────────────────────────────────

@@ -31,8 +31,8 @@ its own license. They are listed with their license texts in
 
 To store the player key of P2P games in the OS keychain, QtKeychain
 (https://github.com/frankosterfeld/qtkeychain, BSD 3-Clause License) is used (built
-into the macOS app and bundled in the Linux AppImage; its license text is at the end
-of this document).
+into the Windows and macOS apps and bundled in the Linux AppImage; its license text is
+at the end of this document).
 
 No additional restriction is imposed on modifying Qt, replacing it with an
 interface-compatible library, or reverse engineering to debug such changes.

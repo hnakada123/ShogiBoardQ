@@ -144,7 +144,7 @@ $env:SODIUM_ROOT = "C:\dev\libsodium-msvc\libsodium"
 スクリプトは以下の処理を自動実行する：
 
 1. 前提ツールの存在確認（cmake, ninja, cl, windeployqt, MSVC ランタイム DLL の場所と、P2P対局に使う cargo・libsodium）
-2. CMake Configure + ビルド（ShogiBoardQ・shogiboardq-cli・P2P対局の通信プロセス shogiboardq-peer・Hayanagi）
+2. CMake Configure + P2P対局に使う QtKeychain のビルドと構成のやり直し（[3.4](#34-p2p対局rust-と-libsodium)）+ ビルド（ShogiBoardQ・shogiboardq-cli・P2P対局の通信プロセス shogiboardq-peer・Hayanagi）
 3. ビルド成果物の確認（.exe、.qm 翻訳ファイル、shogiboardq-peer.exe と libsodium.dll、hayanagi.exe と定跡、各手数1ファイルの問題集）
 4. deploy ディレクトリ作成 + shogiboardq-peer.exe と libsodium.dll・問題集・Hayanagi（定跡を含む）・LICENSE の配置 + windeployqt による DLL デプロイ +
    `qoffscreen.dll` の追加 + MSVC ランタイム DLL のコピー + 検証
@@ -245,6 +245,11 @@ P2P対局なしでビルドするとき（Rust と libsodium が要らない）�
 - 協力ノード（`shogiboardq-peer --service`）は Windows では動かない
 - 配布物では、`shogiboardq-peer.exe` と `libsodium.dll` を `ShogiBoardQ.exe` と同じフォルダに置く（配布スクリプトとインストーラがそうする）。アプリは通信プロセスを自分と同じフォルダから起動する
 - 通信プロセスに取り込んだ Rust のライブラリの一覧とライセンスの本文（`resources/licenses/RUST-NOTICES.md`）と、libsodium のライセンスは、アプリに内蔵している（「バージョン情報」）。依存（`Cargo.lock`）を変えたら `python scripts/rust_licenses.py` で作り直す（合っていなければ配布スクリプトが停止する）
+- プレイヤー鍵を Windows の資格情報マネージャーに置くには QtKeychain が要る（任意。無ければ、鍵の保管で「OSの鍵の保管庫」を選べず、鍵はパスフレーズで暗号化したファイルに置く）。Qt Online Installer の Qt には入っていないので、`scripts/build-qtkeychain-windows.ps1` が、公式のソース（版と SHA-256 はスクリプトで固定。macOS 用のスクリプトと同じ版）をアプリと同じ Qt で静的ライブラリとしてビルドする。アプリに取り込まれるので、同梱する DLL は増えない
+  - 開発用のビルドでは、Developer PowerShell for VS で `.\scripts\build-qtkeychain-windows.ps1 -QtPrefix C:\Qt\6.x.x\msvc2022_64` を実行し（`build-qtkeychain\` に作る）、最後の行に出るオプション（`-DQt6Keychain_DIR=...`）を付けて構成し直す。Debug のアプリに組み込むときは `-BuildType Debug` を付ける（MSVC は Debug と Release で C++ のランタイムが違い、混ぜるとリンクできない）
+  - 配布スクリプトは、アプリを構成した Qt で自分でビルドし（`build-qtkeychain-release\`。`-Clean` でも消さずに使い回す）、アプリに組み込めなければ停止する
+  - 鍵は、利用者の資格情報マネージャーの「汎用資格情報」に `player-key-v1@ShogiBoardQ` の名前で入る（同じ PC の2人目からのプレイヤーは `player-key-v1@<保存先から決まる語>@ShogiBoardQ`）（「コントロール パネル」の「資格情報マネージャー」の「Windows 資格情報」で見られ、消せる）。利用者のアカウントで動くプログラムは読めるので、守れるのはほかの利用者と、PC の外へ持ち出されたファイルからである
+  - QtKeychain（BSD 3-Clause）の著作権表示とライセンスの本文は `resources/licenses/NOTICE*.md` にある。版を上げたら著作権表示を確かめる
 
 ---
 

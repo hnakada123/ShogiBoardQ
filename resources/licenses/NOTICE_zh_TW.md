@@ -25,7 +25,7 @@ Linux 版 AppImage，授權原文請參閱本文件末尾）。P2P對局的通�
 「[P2P對局所用程式庫的授權](qrc:/licenses/RUST-NOTICES.md)」。
 
 為了把P2P對局的玩家金鑰保存在作業系統的金鑰庫中，使用了 QtKeychain
-（https://github.com/frankosterfeld/qtkeychain ，BSD 3-Clause License；編入 macOS 版應用程式，
+（https://github.com/frankosterfeld/qtkeychain ，BSD 3-Clause License；編入 Windows 版和 macOS 版應用程式，
 隨附於 Linux 版 AppImage，授權原文請參閱本文件末尾）。
 
 本軟體不附加禁止修改 Qt、替換為介面相容的程式庫，或為偵錯此類修改而進行還原工程的限制。

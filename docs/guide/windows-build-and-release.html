@@ -246,7 +246,7 @@ $env:SODIUM_ROOT = &quot;C:\dev\libsodium-msvc\libsodium&quot;
 <p>スクリプトは以下の処理を自動実行する：</p>
 <ol type="1">
 <li>前提ツールの存在確認（cmake, ninja, cl, windeployqt, MSVC ランタイム DLL の場所と、P2P対局に使う cargo・libsodium）</li>
-<li>CMake Configure + ビルド（ShogiBoardQ・shogiboardq-cli・P2P対局の通信プロセス shogiboardq-peer・Hayanagi）</li>
+<li>CMake Configure + P2P対局に使う QtKeychain のビルドと構成のやり直し（<a href="#34-p2p対局rust-と-libsodium">3.4</a>）+ ビルド（ShogiBoardQ・shogiboardq-cli・P2P対局の通信プロセス shogiboardq-peer・Hayanagi）</li>
 <li>ビルド成果物の確認（.exe、.qm 翻訳ファイル、shogiboardq-peer.exe と libsodium.dll、hayanagi.exe と定跡、各手数1ファイルの問題集）</li>
 <li>deploy ディレクトリ作成 + shogiboardq-peer.exe と libsodium.dll・問題集・Hayanagi（定跡を含む）・LICENSE の配置 + windeployqt による DLL デプロイ + <code>qoffscreen.dll</code> の追加 + MSVC ランタイム DLL のコピー + 検証</li>
 <li>ZIP ファイル作成</li>
@@ -322,6 +322,7 @@ cargo test --locked --workspace</code></pre>
 <li>協力ノード（<code>shogiboardq-peer --service</code>）は Windows では動かない</li>
 <li>配布物では、<code>shogiboardq-peer.exe</code> と <code>libsodium.dll</code> を <code>ShogiBoardQ.exe</code> と同じフォルダに置く（配布スクリプトとインストーラがそうする）。アプリは通信プロセスを自分と同じフォルダから起動する</li>
 <li>通信プロセスに取り込んだ Rust のライブラリの一覧とライセンスの本文（<code>resources/licenses/RUST-NOTICES.md</code>）と、libsodium のライセンスは、アプリに内蔵している（「バージョン情報」）。依存（<code>Cargo.lock</code>）を変えたら <code>python scripts/rust_licenses.py</code> で作り直す（合っていなければ配布スクリプトが停止する）</li>
+<li>プレイヤー鍵を Windows の資格情報マネージャーに置くには QtKeychain が要る（任意。無ければ、鍵の保管で「OSの鍵の保管庫」を選べず、鍵はパスフレーズで暗号化したファイルに置く）。Qt Online Installer の Qt には入っていないので、<code>scripts/build-qtkeychain-windows.ps1</code> が、公式のソース（版と SHA-256 はスクリプトで固定）をアプリと同じ Qt で静的ライブラリとしてビルドする。開発用のビルドでは、Developer PowerShell for VS で <code>.\scripts\build-qtkeychain-windows.ps1 -QtPrefix C:\Qt\6.x.x\msvc2022_64</code> を実行し、最後の行に出るオプション（<code>-DQt6Keychain_DIR=...</code>）を付けて構成し直す（Debug のアプリに組み込むときは <code>-BuildType Debug</code> を付ける）。配布スクリプトは自分でビルドし、アプリに組み込めなければ停止する。鍵は、利用者の資格情報マネージャーの「汎用資格情報」に <code>player-key-v1@ShogiBoardQ</code> の名前で入る</li>
 </ul>
 </section>
 </section>
