@@ -37,7 +37,7 @@ public:
     /// 結果テーブルビューを返す
     PvTableView* view() const { return m_view; }
 
-    /// 解析の進み（進み具合の文・中止ボタン・行の選択と盤面の表示を受け付けるかを決める）
+    /// 解析の進み（進み具合の文・中止ボタン・行の選択を受け付けるかを決める）
     enum class RunState {
         Idle,       ///< まだ解析していない
         Running,
@@ -83,7 +83,7 @@ private slots:
     /// レイアウト変更時に再配置を行う
     void onLayoutChanged();
 
-    /// 「盤面」が押された（解析中でなければ boardRequested で知らせる）
+    /// 「盤面」が押された（解析中も boardRequested で知らせる）
     void onBoardRequested(int row);
 
     /// 選択行変更時に通知を行う
@@ -116,7 +116,7 @@ private:
     int m_reflowFromRow = -1;      ///< 次の列幅合わせで測り始める行（足した・変わった行。-1 は無し）
     int m_totalPositions = 0;
 
-    RunState m_runState = RunState::Idle;   ///< 解析中は最後に確定した行を選び、利用者の選択・盤面の表示は無視する
+    RunState m_runState = RunState::Idle;   ///< 解析中は最後に確定した行を選び、行選択による棋譜の移動は通知しない
 };
 
 #endif // ANALYSISRESULTSPANEL_H

@@ -240,8 +240,7 @@ void AnalysisResultsPanel::onLayoutChanged()
 
 void AnalysisResultsPanel::onBoardRequested(int row)
 {
-    // 解析中は盤面を開かない
-    if (m_runState == RunState::Running) return;
+    // 確定済みの読み筋は別の盤に出すため、解析中も開ける。
     qCDebug(lcAnalysis).noquote() << "onBoardRequested: row=" << row;
     Q_EMIT boardRequested(row);
 }

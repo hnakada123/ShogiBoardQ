@@ -27,6 +27,7 @@
 #include "dialogfontscale.h"
 #include "fontsizehelper.h"
 #include "appactivitystate.h"
+#include "boardviewerwidget.h"
 #include "considerationpanel.h"
 #include "considerationuicontroller.h"
 #include "engineslots.h"
@@ -40,10 +41,13 @@
 #include "kifuanalysissession.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "kifudocument.h"
 #include "branchtree_test_util.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
 #include "notificationpresenter.h"
+#include "pvboardcontroller.h"
+#include "pvboarddialog.h"
 #include "settingscommon.h"
 #include "sfenutils.h"
 #include "shogiclock.h"
@@ -155,7 +159,7 @@ public:
     }
 
     /// 解析の実行（borrowEngine ならテスト用のエンジンを使い、そうでなければ枠 E1 に作る）と画面
-    std::unique_ptr<KifuAnalysisController> controller(bool borrowEngine = true)
+    std::unique_ptr<KifuAnalysisController> controller(bool borrowEngine = true, PvBoardController* pvBoards = nullptr)
     {
         session = std::make_unique<KifuAnalysisSession>(
             KifuAnalysisSession::Deps{&engines, &activity, borrowEngine ? usi : nullptr});
@@ -166,6 +170,7 @@ public:
         d.evalGraph = &evalGraph;
         d.navState = &nav;
         d.navController = &navController;
+        d.pvBoards = pvBoards;
         return std::make_unique<KifuAnalysisController>(d);
     }
 
@@ -710,6 +715,65 @@ private slots:
         QCOMPARE(h.nav.currentPly(), 2);
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
         QVERIFY(h.lastError().isEmpty());
+    }
+
+    /// 解析中の「表示」で確定済みの読み筋を開き、盤面を操作している間も残りの解析が進む。
+    void resultsOpenPvBoardWhileAnalysisContinues()
+    {
+        const ScopedEnv noReply("SBQ_MATCH_REPLY_DELAY_MS", "60000");
+        TestHelper h;
+        KifuDocument document(&h.tree);
+        PvBoardController pvBoards({&h.nav, &document, &h.activity, nullptr}, &h.resultsPanel);
+        auto ctrl = h.controller(true, &pvBoards);
+        QSignalSpy started(h.session.get(), &KifuAnalysisSession::plyStarted);
+        QSignalSpy selected(&h.resultsPanel, &AnalysisResultsPanel::rowSelected);
+        h.resultsPanel.resize(1200, 400);
+        h.resultsPanel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&h.resultsPanel));
+
+        KifuAnalysisRequest request = h.request();
+        request.enginePath = mockEngine();
+        request.options.movetimeMs = 60000;
+        QVERIFY(ctrl->start(request, {h.lineEnd(), {}}));
+        QTRY_COMPARE_WITH_TIMEOUT(started.size(), 1, 5000);
+        h.engineReplies(QStringLiteral("info depth 10 score cp 30 pv 7g7f 3c3d"));
+        // 現局面だけの思考を終えて、次の局面の解析を待つ。
+        h.usi->session()->stop();
+        QTRY_COMPARE_WITH_TIMEOUT(started.size(), 2, 5000);
+        h.usi->session()->stop();
+        QTRY_COMPARE_WITH_TIMEOUT(started.size(), 3, 5000);
+        QCOMPARE(h.analysisModel.rowCount(), 2);
+        QCOMPARE(h.nav.currentPly(), 2);
+
+        auto* view = h.resultsPanel.view();
+        const QModelIndex board = h.analysisModel.index(0, KifuAnalysisListModel::BoardColumn);
+        view->scrollTo(board);
+        QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->visualRect(board).center());
+        auto* dialog = h.resultsPanel.findChild<PvBoardDialog*>();
+        QVERIFY(dialog);
+        QVERIFY(dialog->isVisible());
+        QVERIFY(!dialog->isModal());
+        QVERIFY(ctrl->isRunning());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringAnalysis);
+        QCOMPARE(h.nav.currentPly(), 2);
+        QCOMPARE(selected.size(), 0);
+
+        auto* viewer = dialog->findChild<BoardViewerWidget*>();
+        QVERIFY(viewer);
+        QCOMPARE(viewer->currentSfen(), h.sfenRecord.at(0));
+        viewer->setCurrentIndex(1);
+        QCOMPARE(viewer->currentSfen(), h.sfenRecord.at(1));
+
+        // ウィンドウを開いたまま解析が完了しても、読み筋の表示局面は変わらない。
+        h.usi->session()->stop();
+        QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 5000);
+        QCOMPARE(h.analysisModel.rowCount(), 3);
+        QCOMPARE(h.resultsPanel.runState(), AnalysisResultsPanel::RunState::Completed);
+        QVERIFY(dialog->isVisible());
+        QCOMPARE(viewer->currentSfen(), h.sfenRecord.at(1));
+        QCOMPARE(selected.size(), 0);
+        QVERIFY(h.lastError().isEmpty());
+        dialog->close();
     }
 
     void resultsFollowRecordAndGraphSelection_data()
