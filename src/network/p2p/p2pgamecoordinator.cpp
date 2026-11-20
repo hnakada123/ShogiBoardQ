@@ -279,10 +279,14 @@ void P2pGameCoordinator::onConnectionClosed(quint64 connection)
     if (!ownsConnection(connection)) return;
     m_connection = 0;
     if (m_phase == Phase::Negotiating && m_negotiation) {
+        // 招待で接続した側が、相手の応答を受ける前に閉じられたら、招待が受け付けられなかった
+        const bool refused = m_role == P2p::kRoleApplicant
+                             && m_negotiation->stage() == P2p::Negotiation::Stage::AwaitingHello;
         // 開始前に切れたら交渉をやめる
         m_negotiation->cancel();
         m_negotiation->takeOutgoing();
         endNegotiation(false);
+        if (refused) emit inviteRefused();
         return;
     }
     if (m_phase == Phase::Playing && m_match) {

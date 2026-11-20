@@ -390,6 +390,31 @@ private slots:
         QCOMPARE(inspect.last().at(0).toString(), QStringLiteral("sbqinv1.AAAA.00000000"));
         emit lobby.inviteRejected(PeerIpc::InviteRejection::Unreadable);
         QCOMPARE(result->text(), QStringLiteral("招待文字列を読めません。"));
+
+        // 接続した後に、相手が招待を受け付けなかった（合言葉が違う・期限切れ・使用済み）: 「接続しています…」のまま
+        // 残さず、理由を出す
+        QLineEdit* name = window.findChild<QLineEdit*>(QStringLiteral("p2pDisplayName"));
+        QVERIFY(name);
+        name->setText(QStringLiteral("試験"));
+        input->setPlainText(QStringLiteral("008Q-4HMA-SW95"));
+        QVERIFY(QMetaObject::invokeMethod(&window, "onConnectInvite"));
+        QCOMPARE(result->text(), QStringLiteral("接続しています…"));
+        QVERIFY(input->toPlainText().isEmpty());
+        emit game.negotiationEnded(false, P2p::ErrorCode::Cancelled, false);
+        QVERIFY(result->text().isEmpty());
+        emit game.inviteRefused();
+        QVERIFY(result->text().contains(QStringLiteral("合言葉が受け付けられませんでした")));
+        // 招待文字列で接続したときは、招待文字列の文
+        input->setPlainText(QStringLiteral("sbqinv1.AAAA.00000000"));
+        QVERIFY(QMetaObject::invokeMethod(&window, "onConnectInvite"));
+        emit game.negotiationEnded(false, P2p::ErrorCode::Cancelled, false);
+        emit game.inviteRefused();
+        QVERIFY(result->text().contains(QStringLiteral("招待文字列が受け付けられませんでした")));
+        // 対局が始まったときは、途中の文を消すだけ
+        input->setPlainText(QStringLiteral("008Q-4HMA-SW95"));
+        QVERIFY(QMetaObject::invokeMethod(&window, "onConnectInvite"));
+        emit game.negotiationEnded(true, std::nullopt, false);
+        QVERIFY(result->text().isEmpty());
     }
 
     /// ウィンドウの操作は意図のシグナルで画面の部品が受け、投了と合意中断はメニューと同じ QAction を通る

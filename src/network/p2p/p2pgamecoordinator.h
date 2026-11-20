@@ -152,6 +152,10 @@ signals:
     void negotiationChanged();
     /// 交渉が終わった（started なら対局が始まった。そうでなければ code が理由）
     void negotiationEnded(bool started, std::optional<P2p::ErrorCode> code, bool byPeer);
+    /// 招待で接続した側で、相手の応答（HELLO）が1つも届かないうちに接続が閉じた。招待した側は、招待のトークンが
+    /// 合わない接続を何も返さずに閉じるので、合言葉・招待文字列が違う・期限が過ぎた・もう使われた・取り消された
+    /// ときに起こる（negotiationEnded の後に出す。negotiationEnded の理由は自分の取りやめと同じで、知らせが出ない）
+    void inviteRefused();
     /// 対局が始まった（棋譜を作り、P2P対局中にした後）
     void gameStarted();
     /// エンジンで指す交渉を始める（エンジンを起動する前。前の対局の通信ログを消す）

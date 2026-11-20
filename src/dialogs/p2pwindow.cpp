@@ -118,6 +118,8 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
         connect(m_game, &P2pGameCoordinator::gameFinished, this, &P2pWindow::refresh);
         connect(m_game, &P2pGameCoordinator::gameFinished, this, &P2pWindow::reloadRecords);
         connect(m_game, &P2pGameCoordinator::negotiationEnded, this, &P2pWindow::refresh);
+        connect(m_game, &P2pGameCoordinator::negotiationEnded, this, &P2pWindow::clearConnectProgress);
+        connect(m_game, &P2pGameCoordinator::inviteRefused, this, &P2pWindow::onInviteRefused);
         // 対局が始まると相手の対局数が増える
         connect(m_game, &P2pGameCoordinator::gameStarted, this, &P2pWindow::reloadRecords);
     }
@@ -767,6 +769,7 @@ void P2pWindow::onConnectInvite()
     // 招待文字列・合言葉はもう使わない（ログ・設定に残さない）
     m_inviteIn->clear();
     m_inviteInInfo->setText(tr("接続しています…"));
+    m_connectingByInvite = true;
 }
 
 void P2pWindow::onInviteRejected(PeerIpc::InviteRejection rejection)
@@ -794,8 +797,30 @@ void P2pWindow::onInviteRejected(PeerIpc::InviteRejection rejection)
     m_inviteInInfo->setText(text);
 }
 
+void P2pWindow::clearConnectProgress()
+{
+    if (!m_connectingByInvite) return;
+    m_connectingByInvite = false;
+    m_inviteInInfo->clear();
+}
+
+void P2pWindow::onInviteRefused()
+{
+    clearConnectProgress();
+    // 招待した側は、招待のトークンが合わない接続を何も返さずに閉じる。合言葉は、形が正しければ中身の違いを
+    // こちらでは見分けられない（期限も入っていない）ので、考えられる理由を並べる
+    const QString text = m_inviteInIsCode
+        ? tr("相手につながりましたが、合言葉が受け付けられませんでした。合言葉が違うか、期限（10分）が過ぎたか、"
+             "もう使われています。相手に新しい招待を作ってもらってください。")
+        : tr("相手につながりましたが、招待文字列が受け付けられませんでした。もう使われたか、取り消されています。"
+             "相手に新しい招待を作ってもらってください。");
+    m_inviteInInfo->setText(text);
+    growToFit();
+}
+
 void P2pWindow::onConnectFailed(PeerIpc::CloseReason reason)
 {
+    m_connectingByInvite = false;
     QString text;
     if (reason == PeerIpc::CloseReason::NoRelayRoute) {
         text = tr("この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。「直接接続を使わない」設定では、"

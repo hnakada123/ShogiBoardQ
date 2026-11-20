@@ -481,6 +481,59 @@ private slots:
         QVERIFY(applicant.activity.is(AppActivityState::Activity::Idle));
     }
 
+    /// 招待で接続した側は、相手の応答を1つも受けないうちに接続を閉じられたら、招待が受け付けられなかったと知らせる
+    /// （招待した側は、招待のトークンの合わない接続を、何も返さずに閉じる。合言葉が違う・期限切れ・使用済み）。
+    /// 相手の応答を受けた後に切れたとき・招待した側では知らせない
+    void closedBeforeTheHostAnswersIsARefusedInvite()
+    {
+        const QByteArray applicantId(38, 'b');
+        const QByteArray hostId(38, 'i');
+        {
+            // 相手（招待した側）が何も返さずに閉じた
+            Side applicant(applicantId, m_dir.filePath(QStringLiteral("a-refused")));
+            QSignalSpy ended(&applicant.coordinator, &P2pGameCoordinator::negotiationEnded);
+            QSignalSpy refused(&applicant.coordinator, &P2pGameCoordinator::inviteRefused);
+            QVERIFY(applicant.coordinator.startNegotiation(request(kRoleApplicant, hostId, QStringLiteral("申込"))));
+            settle();
+            QCOMPARE(applicant.coordinator.negotiation()->stage(), Negotiation::Stage::AwaitingHello);
+            applicant.coordinator.onConnectionClosed(1);
+            QCOMPARE(ended.count(), 1);
+            QCOMPARE(ended.first().at(0).toBool(), false);
+            QCOMPARE(refused.count(), 1);
+            QVERIFY(!applicant.coordinator.isBusy());
+            // ほかの接続が閉じても知らせない
+            applicant.coordinator.onConnectionClosed(1);
+            QCOMPARE(refused.count(), 1);
+        }
+        {
+            // 条件確認まで進んだ後に切れたときは、招待は受け付けられている
+            Side applicant(applicantId, m_dir.filePath(QStringLiteral("a-answered")));
+            Side host(hostId, m_dir.filePath(QStringLiteral("h-answered")));
+            applicant.transport.other = &host;
+            host.transport.other = &applicant;
+            QSignalSpy applicantRefused(&applicant.coordinator, &P2pGameCoordinator::inviteRefused);
+            QSignalSpy hostRefused(&host.coordinator, &P2pGameCoordinator::inviteRefused);
+            QVERIFY(host.coordinator.startNegotiation(request(kRoleHost, applicantId, QStringLiteral("募集"))));
+            QVERIFY(applicant.coordinator.startNegotiation(request(kRoleApplicant, hostId, QStringLiteral("申込"))));
+            settle();
+            QCOMPARE(applicant.coordinator.negotiation()->stage(), Negotiation::Stage::Confirming);
+            applicant.coordinator.onConnectionClosed(1);
+            host.coordinator.onConnectionClosed(1);
+            QCOMPARE(applicantRefused.count(), 0);
+            QCOMPARE(hostRefused.count(), 0);
+        }
+        {
+            // 招待した側: 相手が HELLO を送る前に切れても、招待を断られたのではない
+            Side host(hostId, m_dir.filePath(QStringLiteral("h-waiting")));
+            QSignalSpy refused(&host.coordinator, &P2pGameCoordinator::inviteRefused);
+            QVERIFY(host.coordinator.startNegotiation(request(kRoleHost, applicantId, QStringLiteral("募集"))));
+            settle();
+            host.coordinator.onConnectionClosed(1);
+            QCOMPARE(refused.count(), 0);
+            QVERIFY(!host.coordinator.isBusy());
+        }
+    }
+
     void journalIsRecoveredAsUnconfirmedRecord()
     {
         // 対局の途中でアプリが終わった: ジャーナルを証跡に直す（対局は続けない）

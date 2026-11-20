@@ -93,6 +93,10 @@ private slots:
     void onConnectInvite();
     void onInviteRejected(PeerIpc::InviteRejection rejection);
     void onConnectFailed(PeerIpc::CloseReason reason);
+    /// 招待で接続したが、相手が招待を受け付けなかった（合言葉・招待文字列が違う・期限切れ・使用済み）
+    void onInviteRefused();
+    /// 招待での接続の途中の文（「接続しています…」）を消す（交渉が終わった・対局が始まった）
+    void clearConnectProgress();
     void onCopyPlayerId();
     void onEngineSettingsRequested(const EngineEntry& engine);
     void saveSettings();
@@ -150,6 +154,7 @@ private:
     QPushButton* m_inspectInvite = nullptr;
     QLabel* m_inviteInInfo = nullptr;
     QPointer<QMessageBox> m_connectFailedBox;   ///< 招待の接続に失敗した知らせ（モードレス。閉じたら消える）
+    bool m_connectingByInvite = false;           ///< 招待で接続している途中（欄の下に「接続しています…」を出している）
     quint64 m_inviteExpiresAt = 0;               ///< 作った招待の期限（UNIX 秒）
     QString m_copiedInvite;                      ///< コピーした招待文字列・合言葉（期限が過ぎたらクリップボードから消す）
     bool m_inviteInIsCode = false;               ///< 確かめた・接続に使った文字列が合言葉だった（断られた理由の文を選ぶ）
