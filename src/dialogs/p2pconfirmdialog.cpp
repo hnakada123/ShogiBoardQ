@@ -168,8 +168,10 @@ void P2pConfirmDialog::refresh()
 
     QStringList conditions;
     if (n->agreement()) {
-        conditions << (n->iAmBlack() ? tr("あなたは先手です。") : tr("あなたは後手です。"))
-                          + (n->sidesByCoin() ? tr("先後は双方の乱数で決めました。") : tr("先後は希望どおりです。"));
+        // 2つの文のつなぎ方は言語で違う（英語は間に空白が要る）ので、つなぐ形も訳に任せる
+        conditions << tr("%1%2", "side sentence followed by how the sides were decided")
+                          .arg(n->iAmBlack() ? tr("あなたは先手です。") : tr("あなたは後手です。"),
+                               n->sidesByCoin() ? tr("先後は双方の乱数で決めました。") : tr("先後は希望どおりです。"));
     } else {
         conditions << tr("先後を決めています…");
     }

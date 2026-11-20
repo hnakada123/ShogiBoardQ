@@ -1389,6 +1389,9 @@ if(ENABLE_P2P_PLAY)
     target_link_libraries(tst_p2p_ui PRIVATE shogiboardq_static)
     # 条件確認画面の、エンジンの初期化の待ちは、対局用のモックのエンジンで確かめる
     add_dependencies(tst_p2p_ui mock_usi_match)
+    # 条件確認画面の文のつなぎ方は、英語の訳を読み込んで確かめる
+    target_compile_definitions(tst_p2p_ui PRIVATE TRANSLATION_DIR="${CMAKE_BINARY_DIR}")
+    add_dependencies(tst_p2p_ui translations)
 endif()
 if(ENABLE_P2P_PLAY)
     # プレイヤー鍵の保管（暗号化したファイル・誤ったパスフレーズ・書き換えたパラメータ・範囲外・権限・作り直し）

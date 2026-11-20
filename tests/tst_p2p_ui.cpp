@@ -25,6 +25,7 @@
 #include <QTableWidget>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QTranslator>
 #include <QWindow>
 
 #include "appactivitystate.h"
@@ -805,6 +806,17 @@ private slots:
         hostDialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&hostDialog));
         saveShot(&hostDialog, QStringLiteral("p2p-confirm-engine-self"));
+        // 先後の文とその決め方の文は、訳に任せた形でつなぐ（英語では間に空白が入る。以前は「…Black.Sides…」と続いていた）
+        {
+            QTranslator translator;
+            QVERIFY(translator.load(QStringLiteral(TRANSLATION_DIR "/ShogiBoardQ_en.qm")));
+            QVERIFY(qApp->installTranslator(&translator));
+            P2pConfirmDialog english(&applicant, &known, false);
+            const QString firstLine = textOf(english, QStringLiteral("p2pConfirmConditions")).section(QLatin1Char('\n'), 0, 0);
+            qApp->removeTranslator(&translator);
+            QVERIFY2(firstLine.startsWith(QStringLiteral("You play ")), qPrintable(firstLine));
+            QVERIFY2(firstLine.contains(QStringLiteral(". Sides ")), qPrintable(firstLine));
+        }
         // 取りやめると、起動したエンジンを手放す
         hostDialog.reject();
         QTRY_VERIFY(host.phase() == P2pGameCoordinator::Phase::Idle);

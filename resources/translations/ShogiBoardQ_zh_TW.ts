@@ -11007,6 +11007,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>對手的著手由人類來走（對手的申報）。</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="172"/>
+        <source>%1%2</source>
+        <comment>side sentence followed by how the sides were decided</comment>
+        <translation>%1%2</translation>
+    </message>
+    <message>
         <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="173"/>
         <source>あなたは先手です。</source>
         <translation>您執先手。</translation>

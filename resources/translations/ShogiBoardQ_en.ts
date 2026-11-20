@@ -12841,6 +12841,12 @@ Are you sure you want to declare?</translation>
         <translation>The opponent&apos;s moves are played by a human (as declared by the opponent).</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="172"/>
+        <source>%1%2</source>
+        <comment>side sentence followed by how the sides were decided</comment>
+        <translation>%1 %2</translation>
+    </message>
+    <message>
         <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="173"/>
         <source>あなたは先手です。</source>
         <translation>You play Black.</translation>
