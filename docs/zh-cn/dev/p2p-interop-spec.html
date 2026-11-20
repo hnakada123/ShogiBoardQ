@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="语言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><span aria-current="page">简体中文</span><a href="../../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P对局 兼容实现规范</h1>
-<p>ShogiBoardQ（将棋盘Q）／协议版本 1／文档版本 2026-11-15.1（<a href="#sec-B">变更履历</a>）／日语原文的简体中文译本</p>
+<p>ShogiBoardQ（将棋盘Q）／协议版本 2／文档版本 2026-11-20（<a href="#sec-B">变更履历</a>）／日语原文的简体中文译本</p>
 <p class="lead">规定通信层、邀请字符串、帧、开始前的协商、对局中的步骤、重新连接，以及对局记录（凭证）的格式与验证。</p>
 </header>
 <nav class="toc" aria-label="目录">
@@ -230,7 +230,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 
 <h3 id="sec-1-1">1.1 目的与适用范围</h3>
 <p>本文档是一份规范，用于以另一种实现的形式，制作能与 ShogiBoardQ（将棋盘Q）的“P2P对局”相互对局的软件。它规定在网络上传输的字节序列、步骤、检查、时间规则，以及对局记录（凭证）的文件格式。按照本文档制作的实现之间，可以通过传递邀请字符串进行连接、对局，并留下双方都已确定的对局记录。</p>
-<p>本文档的对象是协议版本 1（帧的 <code>version</code> 为 1，各值的版本为 1）。以下内容不在对象范围内，各实现可以自由决定。</p>
+<p>本文档的对象是协议版本 1 和版本 2（版本 2 是在版本 1 上增加了对局者类别的版本。<a href="#sec-1-5">第 1.5 节</a>）。以下内容不在对象范围内，各实现可以自由决定。</p>
 <ul>
 <li>画面与操作、设置的保存、玩家密钥的保管方法（操作系统的密钥库、加密的文件等）</li>
 <li>负责通信的部分与负责对局和画面的部分的划分方式（ShogiBoardQ 将其分为不同的进程，并用 JSON 的 IPC 连接，但这与兼容性无关）</li>
@@ -268,7 +268,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li>显示名是自报的。识别对手的依据只有玩家密钥的公钥（玩家ID）和确认码（<a href="#sec-3-5">第 3.5 节</a>）。</li>
 <li>如果输方不对结果签名，就不会留下双方都已签名的记录。</li>
 <li>消耗时间是自报的。无法识别每手最多 10 秒的虚报，以及利用断线拖延时间（每局合计最多 10 分钟）。</li>
-<li>无法识别由引擎下的对局或串通的对局。</li>
+<li>对局者类别（由人类下棋还是由引擎下棋。<a href="#sec-7-1">第 7.1 节</a>）是自报的。无法识别申报为“人类”的一方按引擎的着手下的对局，或串通的对局。</li>
 <li>直接连接时，对方查看通信就能得知 IP 地址（使用仅通过中继的设置可以避免。<a href="#sec-4-6">第 4.6 节</a>）。</li>
 </ul>
 
@@ -277,12 +277,18 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>版本</th><th>表示的内容</th><th>何时提升</th></tr></thead>
 <tbody>
-<tr><td>协议版本</td><td>通信的兼容性。出现在帧的 <code>version</code>（<a href="#sec-6-2">第 6.2 节</a>）和 HELLO 中支持的版本列表（<a href="#sec-8-2">第 8.2 节</a>）中。目前为 1</td><td>做出了无法再与上一版本的实现对局的变更时（2026-11-14 之前的例外写在下面）</td></tr>
+<tr><td>协议版本</td><td>通信的兼容性。出现在 HELLO 中支持的版本列表（<a href="#sec-8-2">第 8.2 节</a>）中。目前为 2（与只支持版本 1 的实现之间，仍可进行双方都是人类的对局）。帧的 <code>version</code>（<a href="#sec-6-2">第 6.2 节</a>）是外层格式的版本，在版本 2 中仍为 1</td><td>做出了使某些对局无法与上一版本的实现进行的变更时（2026-11-14 之前的例外写在下面）</td></tr>
 <tr><td>文档版本</td><td>本文档的内容。为变更当天的日期（YYYY-MM-DD），同一天的第 2 次起在末尾加上 <code>.1</code>、<code>.2</code></td><td>每次变更本文档时（即使只是修改文字）</td></tr>
 </tbody>
 </table></div>
 <p>各版本的变更写在<a href="#sec-B">附录 B</a>中。“兼容实现是否需要修改”为“需要”的变更，是改变了规定（必须做的事、不得做的事、值、上限）的变更，按照更早版本制作的实现，如果不修改，可能会与 ShogiBoardQ 不一致。“不需要”是只修改了文字，或只补充了 ShogiBoardQ 行为说明的变更。兼容实现应当记录自己所遵循的文档版本，并确认其后为“需要”的变更。</p>
 <p class="note">P2P对局已于 2026-11-14 从实验版变为正式功能（自 ShogiBoardQ 2026.11.14 起默认启用，并包含在发布包中。可以加入的网络及其 networkName 没有改变，见<a href="#sec-3-1">第 3.1 节</a>）。在此之前，即使是不兼容的变更，也曾不提升协议版本而改变版本 1 的规定（附录 B 中写为“需要”的变更）。今后，不兼容的变更会提升协议版本。</p>
+<p><strong>版本 2</strong> 是在版本 1 上增加了对局者类别（自己的着手由人类下还是由引擎下）的版本。发生变化的只有：HELLO 中支持的版本列表（<a href="#sec-8-2">第 8.2 节</a>）、邀请方的 HELLO 的格式（同上）、Rules 末尾的 2 个值（<a href="#sec-7-1">第 7.1 节</a>）、START_AGREEMENT 的检查（<a href="#sec-8-3">第 8.3 节</a>）。帧的外层（<code>version</code> 仍为 1）以及其他的帧、值和流程，都与版本 1 相同。双方都是人类的对局，即使在支持版本 2 的实现之间，也与版本 1 的字节序列相同（HELLO 中支持的版本列表除外）。</p>
+<ul>
+<li>只支持版本 1 的实现（支持的版本列表为 <code>[1]</code>）与支持版本 2 的实现之间，双方都是人类的对局可以照常进行。</li>
+<li>由引擎下棋的对局，只有在双方都支持版本 2 时才能进行。支持版本 2 的实现不会与只支持版本 1 的对手开始由引擎下棋的对局，而是以 REJECT（UNSUPPORTED_VERSION）拒绝。</li>
+<li>只支持版本 1 的实现无需修改，即可与支持版本 2 的实现进行人与人的对局。但必须接受含有 1 以外的值的支持版本列表（第 8.2 节。这从版本 1 起就是规定）。</li>
+</ul>
 <p>本文档用日语撰写，并提供英语、简体中文、繁体中文的译本（见开头的语言链接）。译本是对日语版同一文档版本的翻译，与日语版不一致时，以日语版为准。日语版变更后，译本也以相同的版本修改。</p>
 </section>
 <section id="notation">
@@ -540,7 +546,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <div class="table-wrap"><table>
 <thead><tr><th>项目</th><th>类型</th><th>规则</th></tr></thead>
 <tbody>
-<tr><td>version</td><td>uint</td><td>1</td></tr>
+<tr><td>version</td><td>uint</td><td>1（外层格式的版本。在协议版本 2 中仍为 1。<a href="#sec-1-5">第 1.5 节</a>）</td></tr>
 <tr><td>type</td><td>uint</td><td>1〜11（下表）</td></tr>
 <tr><td>requestId</td><td>uint</td><td>发送方附加的编号（0〜2<sup>64</sup>−1）。接收方不看这个值。ShogiBoardQ 把协商的第一帧设为 1，每发送一次加 1（重新连接后也接着计数）。只有 INVITE_TOKEN 固定为 0</td></tr>
 <tr><td>gameId</td><td>bstr(32)</td><td>对局ID（<a href="#sec-7-4">第 7.4 节</a>）。对局ID 确定之前的帧为 zero32</td></tr>
@@ -607,18 +613,18 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 
 <h3 id="sec-7-1">7.1 条件</h3>
 <pre><code>Rules         = ["SBQ-RULES", 1, initialSfen, 512, "fourfold-draw", "perpetual-check-loss",
-                 "no-declaration", "human", "human"]
+                 "no-declaration", blackKind, whiteKind]
 TimeControl   = ["SBQ-TIME", 1, mainMs, byoyomiMs, 0, 0]
 NetworkPolicy = ["SBQ-NET", 1, 10000, 30000, 120000, 5000, 86400000, 10000, 600000]</code></pre>
 <ul>
-<li><strong>Rules</strong>：v1 中可用的值只有一个。<code>initialSfen</code> 是平手的初始局面 <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>。其含义为：平手、512 手为和棋、千日手为和棋、连续王手千日手为王手方负、无入玉宣言、人与人对局。</li>
+<li><strong>Rules</strong>：<code>initialSfen</code> 是平手的初始局面 <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>。<code>blackKind</code>、<code>whiteKind</code> 是先手、后手的对局者类别，为 <code>"human"</code>（由人类下棋）或 <code>"engine"</code>（由引擎下棋）。可用的值只有这 4 种。其含义为：平手、512 手为和棋、千日手为和棋、连续王手千日手为王手方负、无入玉宣言，以及先手、后手的着手由谁来下。双方均为 <code>"human"</code> 的值是版本 1 的 Rules，含有 <code>"engine"</code> 的值只在双方都支持版本 2 时使用（<a href="#sec-1-5">第 1.5 节</a>）。类别是自报的（<a href="#sec-1-4">第 1.4 节</a>）。</li>
 <li><strong>TimeControl</strong>：<code>mainMs</code> 是基本用时（0〜86,400,000），<code>byoyomiMs</code> 是读秒（0〜600,000）。拒收两者都为 0 的值。后面的 2 个 0 是保留值（加秒、延迟。v1 中只能为 0）。</li>
 <li><strong>NetworkPolicy</strong>：v1 中可用的值只有一个。依次为：ping 的间隔 10 秒、收不到着手确认就视为断线的时间 30 秒、等待重新连接的时间 120 秒、重发的间隔 5 秒、每局实际时间的上限 24 小时、消耗时间的容许误差 10 秒、每局断线时间合计的上限 600 秒。</li>
 </ul>
-<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7
+<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7   ; 双方均为 "human" 时（其他值见附录 A.1）
 timeControlHash   = H(CBOR(TimeControl))
 networkPolicyHash = H(CBOR(NetworkPolicy))</code></pre>
-<p>Rules、NetworkPolicy 只有在收到的值与上述值完全一致时才接受。</p>
+<p>Rules 只有在收到的值与上述 4 种值之一完全一致时才接受，NetworkPolicy 只有在与上述值完全一致时才接受。在对方支持的版本列表中没有 2 的对局（使用版本 1 的对局）中，只接受双方均为 <code>"human"</code> 的 Rules。</p>
 
 <h3 id="sec-7-2">7.2 状态（State）</h3>
 <pre><code>State      = ["SBQ-STATE", 1, gameId, ply, previousStateHash, moveUsi, sfen, spentMs, blackMainMs, whiteMainMs]
@@ -700,8 +706,8 @@ resultDigest   = H(CBOR(FinalResult))    ; 结果的标识符</code></pre>
 <pre><code>A（申请方）                                   B（邀请方）
   ── INVITE_TOKEN ─────────────────────────→   核对口令（第 6.3 节）
   ── HELLO（role 1, commitA）───────────────→   检查。拒绝时发送 REJECT
-  ←─────────────── HELLO（role 2, nonceB, 条件）──
-  决定先后手，生成 StartAgreement
+  ←───────── HELLO（role 2, nonceB, 条件, 类别）──
+  决定先后手，生成 Rules 和 StartAgreement
   ── START_AGREEMENT ──────────────────────→   检查（第 8.3 节）
             ［双方的用户在条件确认画面上确认对手和条件］
   用户点击“开始”
@@ -714,18 +720,22 @@ resultDigest   = H(CBOR(FinalResult))    ; 结果的标识符</code></pre>
 <li>A 在发送自己的 START_SIGNATURE 之前，不接受 B 的 START_SIGNATURE。</li>
 <li>B 在确认 A 的 START_SIGNATURE 之前，不得发送自己的 START_SIGNATURE。如果 B 的用户先点击了“开始”，则在确认 A 的签名时发送。</li>
 <li>双方在用户点击“开始”之前，都不得用玩家密钥签名。</li>
+<li>对局者类别（<a href="#sec-7-1">第 7.1 节</a>）由邀请方在 HELLO 中、由申请方在 START_AGREEMENT 的 Rules 中告知对方。双方的用户都必须能在点击“开始”之前，在条件确认画面上看到对手的类别。</li>
 </ul>
 
 <h3 id="sec-8-2">8.2 HELLO（开始前）</h3>
 <pre><code>Frame   = [1, 1, requestId, zero32, payload]
-payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playerKey, sessionKey,
-           displayName, sidePreference, offerId, coin, conditions]</code></pre>
+payload = ["SBQ-HELLO", 1, role, networkId, versions, peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions]
+          ; 版本 2 的格式（仅邀请方。见下文）
+payload = ["SBQ-HELLO", 2, 2, networkId, versions, peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions, playerKind]</code></pre>
 <div class="table-wrap"><table>
 <thead><tr><th>项目</th><th>类型</th><th>规则</th></tr></thead>
 <tbody>
 <tr><td>role</td><td>uint</td><td>1＝申请方、2＝邀请方</td></tr>
 <tr><td>networkId</td><td>bstr(32)</td><td>自己的网络。与对方不同则 REJECT（WRONG_NETWORK）</td></tr>
-<tr><td>（支持的版本）</td><td>uint 的数组</td><td>支持的协议版本列表（最多 8 个）。v1 为 <code>[1]</code>。不包含 1 则拒收</td></tr>
+<tr><td>versions</td><td>uint 的数组</td><td>支持的协议版本列表（最多 8 个）。只支持版本 1 的实现为 <code>[1]</code>，支持版本 2 的实现为 <code>[1, 2]</code>。不包含 1 则拒收。不得以其中含有 1 以外的值（包括未知的值）为由拒收。对方的列表中没有 2 时，把对方当作只支持版本 1 的实现（<a href="#sec-1-5">第 1.5 节</a>）</td></tr>
 <tr><td>peerId</td><td>bstr</td><td>自己 PeerId 的二进制表示（1〜64 字节）。接收方确认它与流的对方的 PeerId 一致</td></tr>
 <tr><td>connectionRandom</td><td>bstr(32)</td><td>为该连接生成的随机数。用于最初的 connectionId（<a href="#sec-7-5">第 7.5 节</a>）</td></tr>
 <tr><td>playerKey</td><td>bstr(32)</td><td>玩家密钥的公钥（自报。在确认开始签名之前，不作为身份对待）</td></tr>
@@ -734,7 +744,8 @@ payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playe
 <tr><td>sidePreference</td><td>uint</td><td>先后手的希望。0＝不指定、1＝先手、2＝后手</td></tr>
 <tr><td>offerId</td><td>bstr(32)</td><td>保留。始终放入 zero32。不是 zero32 则拒绝（邀请方返回 EXPIRED，申请方返回 CONDITION_MISMATCH）</td></tr>
 <tr><td>coin</td><td>bstr(32)</td><td>申请方为 <code>commitA</code>，邀请方为 <code>nonceB</code>（<a href="#sec-8-4">第 8.4 节</a>）</td></tr>
-<tr><td>conditions</td><td>数组</td><td>申请方为空数组 <code>[]</code>。邀请方为 <code>[Rules, TimeControl, NetworkPolicy]</code>（<a href="#sec-7-1">第 7.1 节</a>）</td></tr>
+<tr><td>conditions</td><td>数组</td><td>申请方为空数组 <code>[]</code>。邀请方为 <code>[Rules, TimeControl, NetworkPolicy]</code>（<a href="#sec-7-1">第 7.1 节</a>）。由于此时先后手尚未决定，这里的 Rules 使用双方均为 <code>"human"</code> 的值</td></tr>
+<tr><td>playerKind</td><td>tstr</td><td>仅存在于版本 2 的格式中。邀请方的对局者类别（<code>"human"</code> 或 <code>"engine"</code>）</td></tr>
 </tbody>
 </table></div>
 <p>接收方除格式外还要确认以下各项，不符时发送 REJECT（CONDITION_MISMATCH。写有其他编号的则用该编号）。</p>
@@ -745,13 +756,21 @@ payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playe
 <li>邀请方：申请时自报的 playerKey 不是用户屏蔽的对手（对屏蔽的对手，不告知其已被屏蔽，而是返回 BUSY）。双方的 sidePreference 可以兼容（第 8.4 节）。</li>
 </ul>
 <p>即使在核对口令之后，如果用户在此期间取消了邀请，邀请方也要发送 REJECT（EXPIRED）并关闭流。已经在与其他对手协商时，不返回 HELLO，而是发送 REJECT（BUSY）并关闭流（对局中不接受对局对手以外的流。<a href="#sec-11-1">第 11.1 节</a>）。拒绝时，不返回 HELLO 而返回 REJECT，不让对方知道自己的公钥。</p>
+<p><strong>版本 2 的格式</strong>把值的版本（第 2 个元素）设为 2，并在末尾增加 playerKind，共 15 个元素。遵循以下规定。</p>
+<ul>
+<li>只有邀请方（role = 2）可以发送版本 2 的格式，并且仅限于申请方的 versions 中有 2 时。申请方发送的版本 2 的格式，以及 versions 中没有 2 的版本 2 的格式，一律拒收。</li>
+<li>发送版本 1 格式的 HELLO 的邀请方，其类别为 <code>"human"</code>。ShogiBoardQ 只在邀请方的着手由引擎下时发送版本 2 的格式，由人类下时发送版本 1 的格式（只支持版本 1 的申请方也能读取）。</li>
+<li>申请方的 HELLO 是在得知对方的版本之前发送的，因此始终使用版本 1 的格式。申请方的类别通过 START_AGREEMENT 的 Rules 告知（<a href="#sec-8-3">第 8.3 节</a>）。</li>
+<li>由引擎下棋的邀请方，在申请方的 versions 中没有 2 时，不返回 HELLO，而是发送 REJECT（UNSUPPORTED_VERSION）。由引擎下棋的申请方，在邀请方的 versions 中没有 2 时，不发送 START_AGREEMENT，而是发送 REJECT（UNSUPPORTED_VERSION）。</li>
+</ul>
 
 <h3 id="sec-8-3">8.3 START_AGREEMENT</h3>
 <pre><code>Frame   = [1, 2, requestId, zero32, payload]
 payload = [StartAgreement, Rules, TimeControl, NetworkPolicy]</code></pre>
-<p>申请方通过邀请方的 HELLO 才首次得知条件（用时），决定先后手后生成。<code>startBefore</code> 设为当前时刻的 180 秒后。邀请方确认以下全部各项，不符时发送 REJECT（未写编号的为 CONDITION_MISMATCH）。</p>
+<p>申请方通过邀请方的 HELLO 才首次得知条件（用时和邀请方的对局者类别），决定先后手后生成。Rules 使用按决定的先后手填入先手类别、后手类别的值（自己的类别和邀请方 HELLO 中的类别）。<code>startBefore</code> 设为当前时刻的 180 秒后。邀请方确认以下全部各项，不符时发送 REJECT（未写编号的为 CONDITION_MISMATCH）。</p>
 <ul>
-<li>Rules、NetworkPolicy 为 v1 的值，TimeControl 与自己在 HELLO 中出示的相同。3 个哈希与 StartAgreement 中的值一致。</li>
+<li>Rules 为<a href="#sec-7-1">第 7.1 节</a>的 4 种值之一，NetworkPolicy 为 v1 的值，TimeControl 与自己在 HELLO 中出示的相同。3 个哈希与 StartAgreement 中的值一致。</li>
+<li>Rules 中自己一侧（先手或后手）的类别是自己的类别（在 HELLO 中告知的类别）。对方一侧的类别作为申请方的类别接收，并在条件确认画面上向用户显示。申请方的 versions 中没有 2 时，对方一侧的类别必须是 <code>"human"</code>。</li>
 <li>networkId 是自己的网络。</li>
 <li>自己的 playerKey、sessionKey、nonce（nonceB）、PeerIdHash 正确地放在同一侧（先手或后手）。对方的 playerKey、sessionKey、PeerIdHash 与对方的 HELLO 及流的对方一致，并放在相反的一侧。</li>
 <li>对于对方一侧的 nonce（nonceA），<code>H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code> 与对方 HELLO 中的 coin（commitA）一致。</li>
@@ -1068,7 +1087,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <div class="table-wrap"><table>
 <thead><tr><th>编号</th><th>名称</th><th>含义</th></tr></thead>
 <tbody>
-<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>不支持的版本</td></tr>
+<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>不支持的版本（试图与不支持版本 2 的对手开始由引擎下棋的对局。<a href="#sec-8-2">第 8.2 节</a>）</td></tr>
 <tr><td>2</td><td>WRONG_NETWORK</td><td>networkId 不同</td></tr>
 <tr><td>3</td><td>BUSY</td><td>正在与其他对手协商或对局（对屏蔽的对手也返回这个编号）</td></tr>
 <tr><td>4</td><td>EXPIRED</td><td>已过期（开始协议的期限、开始手续的期限）</td></tr>
@@ -1116,12 +1135,13 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <li>FinalResult 为 <code>[]</code> 时，两个结果签名栏都设为长度 0。</li>
 <li>对方的认可未到达的自己的最后一手，可以作为只附有自己认可的 State 放在序列的最后。只有一方认可的 State 之后，不得放置其他 State。</li>
 <li>不放入显示名、IP 地址、PeerId 本身、邀请口令、本地备注名（PeerId 只作为 StartAgreement 中的哈希保留）。</li>
+<li>Rules 中包含对局者类别（双方在开始协议中签名的申报）。不包含引擎的名称。</li>
 </ul>
 
 <h3 id="sec-13-2">13.2 验证步骤</h3>
 <p>验证方依次确认以下各项。各项的结果分别显示（不把“签名正确”“棋谱符合规则”“时间计算一致”混在一起）。签名的验证全部按<a href="#sec-2-4">第 2.4 节</a>进行（包括公钥的检查）。</p>
 <ol>
-<li><strong>格式</strong>：不超过 8 MiB，是确定性CBOR，符合第 13.1 节的格式。Rules、NetworkPolicy 为 v1 的值，TimeControl 在<a href="#sec-7-1">第 7.1 节</a>的范围内。</li>
+<li><strong>格式</strong>：不超过 8 MiB，是确定性CBOR，符合第 13.1 节的格式。Rules 为<a href="#sec-7-1">第 7.1 节</a>的 4 种值之一，NetworkPolicy 为 v1 的值，TimeControl 在<a href="#sec-7-1">第 7.1 节</a>的范围内。</li>
 <li><strong>条件</strong>：Rules、TimeControl、NetworkPolicy 的哈希与 StartAgreement 中的 3 个哈希一致。</li>
 <li><strong>开始签名</strong>：2 个开始签名分别用 StartAgreement 的 blackPlayerKey、whitePlayerKey 验证正确。计算 <code>gameId = H(CBOR(StartAgreement))</code>。</li>
 <li><strong>State 的序列</strong>：从开头依次确认以下各项。
@@ -1152,7 +1172,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>结果未确定</td><td>以上都不是</td><td>只有到此为止的着法序列（无法表明胜负）</td></tr>
 </tbody>
 </table></div>
-<p>无论哪个类别，都有凭证无法表明的内容。<strong>实际思考的时间</strong>（消耗时间是自报的）、<strong>是否由人类下棋</strong>、<strong>对局的日期时间</strong>，都无法从凭证中确认。输出验证结果的实现，应当一并表明这一点。</p>
+<p>无论哪个类别，都有凭证无法表明的内容。<strong>实际思考的时间</strong>（消耗时间是自报的）、<strong>实际由谁下棋</strong>（Rules 中的对局者类别是双方的申报）、<strong>对局的日期时间</strong>，都无法从凭证中确认。输出验证结果的实现，应当一并表明这一点。</p>
 </section>
 <section id="constants">
 <h2 id="sec-14">14. 常量一览</h2>
@@ -1203,6 +1223,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td><code>frames.txt</code></td><td><code>valid &lt;hex&gt;</code>／<code>invalid &lt;hex&gt;</code></td><td>作为帧的外层是否正确（<a href="#sec-6-2">第 6.2 节</a>）</td></tr>
 <tr><td><code>displayname.txt</code></td><td><code>accept &lt;hex(UTF-8)&gt;</code>／<code>reject &lt;hex(UTF-8)&gt;</code></td><td>显示名的规则（<a href="#sec-3-6">第 3.6 节</a>）</td></tr>
 <tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId 和 rulesHash（<a href="#sec-3-1">第 3.1 节</a>、<a href="#sec-7-1">第 7.1 节</a>）</td></tr>
+<tr><td><code>rules.txt</code></td><td><code>&lt;blackKind&gt; &lt;whiteKind&gt; &lt;hex(rulesHash)&gt; &lt;hex(CBOR(Rules))&gt;</code></td><td>各种对局者类别组合的 Rules（4 种）的字节序列和哈希（<a href="#sec-7-1">第 7.1 节</a>）</td></tr>
 </tbody>
 </table></div>
 
@@ -1214,6 +1235,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <li><strong>邀请字符串</strong>：能读取 ShogiBoardQ 生成的邀请字符串，并且自己生成的邀请字符串能用 ShogiBoardQ 的“检查邀请字符串”读取。</li>
 <li><strong>连接与协商</strong>：把网络设为 <code>sbq-local-1</code>，与同一电脑上的 ShogiBoardQ，分别作为邀请方和被邀请方，进行到条件确认画面。</li>
 <li><strong>对局</strong>：在执先手和执后手两种情况下，分别下到认输、将死、超时、协议和棋，双方的凭证都成为“双方已确定”。用 <code>shogiboardq-cli verify-match --input-path &lt;文件&gt;</code> 验证自己写出的凭证，<code>valid</code> 为 true，<code>category</code> 为 <code>mutually_signed</code>。</li>
+<li><strong>由引擎下棋的对局</strong>（支持版本 2 时）：分别作为邀请方和被邀请方，开始自己或对手的类别为 <code>"engine"</code> 的对局，确认条件确认画面上显示对手的类别，并且凭证的 Rules 中保留了类别。只支持版本 1 的实现，确认会被在 ShogiBoardQ 中把“对局者”设为引擎的对手以 REJECT（UNSUPPORTED_VERSION）拒绝。</li>
 <li><strong>重新连接</strong>：在对局中切断流，能重新连接并继续（分别在自己是申请方和邀请方时、有和没有未被认可的着手时）。</li>
 <li><strong>拒绝</strong>：发送不正确的签名、不合法的着法、时间计算不符的 State、编号跳跃的 CONTROL 等，确认对方不判胜负而终止。自己的实现对相同的输入也同样拒绝。</li>
 </ol>
@@ -1225,14 +1247,21 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <p>这里列出的值是 ShogiBoardQ 的实现输出的值，并已确认与只根据本文档的描述计算出的值一致。<code>aa…</code> 表示由 32 个该字节组成的 bstr(32)。十六进制每 64 位换一行（换行不包含在字节序列中）。</p>
 
 <h3 id="sec-A-1">A.1 条件的哈希</h3>
-<p class="vec-title">CBOR(Rules)</p>
+<p class="vec-title">CBOR(Rules)（双方均为 human）</p>
 <pre class="vec"><code>89695342512d52554c455301783f6c6e73676b67736e6c2f31723562312f7070
 707070707070702f392f392f392f5050505050505050502f31423552312f4c4e
 53474b47534e4c2062202d20311902006d666f7572666f6c642d647261777470
 657270657475616c2d636865636b2d6c6f73736e6e6f2d6465636c6172617469
 6f6e6568756d616e6568756d616e</code></pre>
-<p class="vec-title">rulesHash</p>
+<p class="vec-title">rulesHash（双方均为 human）</p>
 <pre class="vec"><code>e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7</code></pre>
+<p class="vec-title">rulesHash（先手 human、后手 engine）</p>
+<pre class="vec"><code>2cfd140708a8d9f05cd3904ed6f23e20b77c4469fd3cef3d8f3f52e75dd32a7c</code></pre>
+<p class="vec-title">rulesHash（先手 engine、后手 human）</p>
+<pre class="vec"><code>86bcb45c5c66ec58ca5bcfca2ca40f5ad6378ed1838972e59f0d6caa8d85db86</code></pre>
+<p class="vec-title">rulesHash（双方均为 engine）</p>
+<pre class="vec"><code>6e84365278aec13a21c14d1a2de8d8460964011278bffb033bfa897e4627d36c</code></pre>
+<p>类别为 <code>"engine"</code> 的 Rules 的 CBOR，只是把该侧的 <code>6568756d616e</code>（"human"）换成 <code>66656e67696e65</code>（"engine"）。4 种字节序列见 <code>protocol/testvectors/rules.txt</code>。</p>
 <p class="vec-title">networkPolicyHash</p>
 <pre class="vec"><code>9b7c8316692cc4e6593d4266afcb0d90670a0edb948920c920ef64a7fefebe73</code></pre>
 <p class="vec-title">CBOR(TimeControl)（基本用时 600,000 ms、读秒 30,000 ms）</p>
@@ -1314,6 +1343,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文档版本</th><th>协议版本</th><th>兼容实现是否需要修改</th><th>变更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-20</td><td>2</td><td>不需要（仅在要支持由引擎下棋的对局时需要）</td><td>增加了协议版本 2（对局者类别。<a href="#sec-1-5">第 1.5 节</a>、<a href="#sec-7-1">第 7.1 节</a>、<a href="#sec-8-2">第 8.2 节</a>、<a href="#sec-8-3">第 8.3 节</a>、<a href="#sec-13">第 13 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/a8192d98a3790df05b074fd68843bb5a7e7713e1">a8192d98</a>）。这是因为 ShogiBoardQ 现在可以让已注册的引擎来下自己的着手。Rules 末尾的 2 个值（先手、后手的对局者类别）可以写 <code>"engine"</code>，HELLO 中支持的版本列表改为 <code>[1, 2]</code>，由引擎下棋的邀请方的 HELLO 使用版本 2 的格式（末尾增加 playerKind）。申请方的类别通过 START_AGREEMENT 的 Rules 告知。双方都是人类的对局仍与版本 1 的字节序列相同，只支持版本 1 的实现无需修改即可与 ShogiBoardQ 进行人与人的对局（须接受含有 1 以外的值的支持版本列表）。由引擎下棋的对局不会与只支持版本 1 的对手开始，而是以 REJECT（UNSUPPORTED_VERSION）拒绝。在 <code>verify-match</code> 的结果中增加了 <code>black_player_kind</code>、<code>white_player_kind</code>，在附录 A.1 中增加了各类别组合的 rulesHash，在测试输入中增加了 <code>rules.txt</code>。</td></tr>
 <tr><td>2026-11-15.1</td><td>1</td><td>不需要</td><td>增加了选择打开对局流的连接的方法（<a href="#sec-6-3">第 6.3 节</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/78c04567189db3c6542211d181f842f1deb1dbd8">78c04567</a>）。ShogiBoardQ 以前在经由中继连接后立即打开对局流，因此即使之后通过 DCUtR 建立了直接连接，帧仍然一直经过中继。现在申请方最多等待 3 秒直接连接的建立，建立后先关闭经由中继的连接，再在直接连接上打开流。帧的格式和步骤没有改变。进行 DCUtR 的兼容实现最好也这样做。</td></tr>
 <tr><td>2026-11-15</td><td>1</td><td>不需要</td><td>协议和棋、协议中断的请求在对方拒绝之后，即使在同一手数上也可以再次提出（<a href="#sec-10-2">第 10.2 节</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>）。以前，作为用户的操作，在同一手数上各限一次，在 ShogiBoardQ 中，被拒绝后再次按“中断”，对方那里什么也不显示。现在的规定是：在对方拒绝或手数前进之前各限一次。接收方即使在同一手数上多次收到相同的提议也不得将其视为违规的规定没有改变，帧的格式也没有改变。</td></tr>
 <tr><td>2026-11-14</td><td>1</td><td>不需要</td><td>配合P2P对局从实验版变为正式功能进行了修改（自 ShogiBoardQ 2026.11.14 起默认启用，并包含在发布包中。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>）。通信的规定没有改变。

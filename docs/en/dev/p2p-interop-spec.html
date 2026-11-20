@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="Language"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><span aria-current="page">English</span><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P Game Specification for Compatible Implementations</h1>
-<p>ShogiBoardQ / Protocol version 1 / Document version 2026-11-15.1 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
+<p>ShogiBoardQ / Protocol version 2 / Document version 2026-11-20 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
 <p class="lead">Defines the transport layer, invitation strings, frames, start negotiation, in-game steps, reconnection, and the format and verification of game records (evidence).</p>
 </header>
 <nav class="toc" aria-label="Contents">
@@ -230,7 +230,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 
 <h3 id="sec-1-1">1.1 Purpose and Scope</h3>
 <p>This document is a specification for building, as a separate implementation, software that can play against the "P2P games" of ShogiBoardQ. It defines the byte sequences that travel over the network, the procedures, the checks, the time rules, and the file format of game records (evidence). Implementations built according to this document can connect to each other by passing an invitation string, play a game, and keep a game record confirmed by both sides.</p>
-<p>It covers protocol version 1 (frame <code>version</code> 1, and version 1 of each value). The following are out of scope, and each implementation may decide them freely.</p>
+<p>It covers protocol versions 1 and 2 (version 2 adds player kinds to version 1; <a href="#sec-1-5">section 1.5</a>). The following are out of scope, and each implementation may decide them freely.</p>
 <ul>
 <li>The screens and controls, how settings are saved, and how the player key is stored (the OS keychain, an encrypted file, and so on)</li>
 <li>How the part that handles communication is separated from the part that handles the game and the screens (ShogiBoardQ splits them into separate processes connected by JSON IPC, but this has no bearing on compatibility)</li>
@@ -268,7 +268,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li>Display names are self-declared. The only grounds for telling opponents apart are the public key of the player key (the player ID) and the verification code (<a href="#sec-3-5">section 3.5</a>).</li>
 <li>If the losing side does not sign the result, no record signed by both sides remains.</li>
 <li>Time used is self-reported. Padding of up to 10 seconds per move and stalling by disconnecting (up to 10 minutes in total per game) cannot be detected.</li>
-<li>Games played by engines and arranged games cannot be detected.</li>
+<li>The player kind (whether a human or an engine plays; <a href="#sec-7-1">section 7.1</a>) is self-declared. Games in which a side declared as human played an engine's moves, and arranged games, cannot be detected.</li>
 <li>With a direct connection, the opponent can learn your IP address by examining the traffic (this can be avoided with the setting that uses only the relay; <a href="#sec-4-6">section 4.6</a>).</li>
 </ul>
 
@@ -277,12 +277,18 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>Version</th><th>What it represents</th><th>When it is raised</th></tr></thead>
 <tbody>
-<tr><td>Protocol version</td><td>Compatibility of the communication. It appears in the frame <code>version</code> (<a href="#sec-6-2">section 6.2</a>) and in the list of supported versions in HELLO (<a href="#sec-8-2">section 8.2</a>). Currently 1</td><td>When a change makes it impossible to play against implementations of the previous version (for the exception before 2026-11-14, see below)</td></tr>
+<tr><td>Protocol version</td><td>Compatibility of the communication. It appears in the list of supported versions in HELLO (<a href="#sec-8-2">section 8.2</a>). Currently 2 (games in which both sides are human can still be played against version-1-only implementations). The frame <code>version</code> (<a href="#sec-6-2">section 6.2</a>) is the version of the envelope format and stays 1 in version 2</td><td>When a change introduces games that cannot be played against implementations of the previous version (for the exception before 2026-11-14, see below)</td></tr>
 <tr><td>Document version</td><td>The content of this document. The date of the change (YYYY-MM-DD); from the second change on the same day, <code>.1</code>, <code>.2</code> is appended</td><td>Every time this document changes (even when only the wording is revised)</td></tr>
 </tbody>
 </table></div>
 <p>The changes in each version are listed in <a href="#sec-B">Appendix B</a>. A change whose "Fix needed in compatible implementations" is "Needed" changes a rule (what must or must not be done, a value, or a limit), and an implementation built according to an earlier version can disagree with ShogiBoardQ unless it is fixed. "Not needed" means a change that only revises the wording or adds an explanation of ShogiBoardQ's behavior. A compatible implementation should record the document version it followed and check the "Needed" changes made after it.</p>
 <p class="note">P2P games stopped being experimental and became a regular feature on 2026-11-14 (from ShogiBoardQ 2026.11.14 they are enabled by default and included in the distributed packages; the networks that can be joined and their networkNames did not change, <a href="#sec-3-1">section 3.1</a>). Before that, the rules of version 1 were sometimes changed without raising the protocol version, even by incompatible changes (the changes marked "Needed" in Appendix B). From now on, incompatible changes raise the protocol version.</p>
+<p><strong>Version 2</strong> adds player kinds (whether a human or an engine plays one's moves) to version 1. Only the following change: the list of supported versions in HELLO (<a href="#sec-8-2">section 8.2</a>), the form of the inviter's HELLO (same section), the last two values of Rules (<a href="#sec-7-1">section 7.1</a>), and the checks of START_AGREEMENT (<a href="#sec-8-3">section 8.3</a>). The frame envelope (<code>version</code> stays 1) and all other frames, values, and procedures are the same as in version 1. A game in which both sides are human produces the same bytes as in version 1 even between version-2 implementations (except for the list of supported versions in HELLO).</p>
+<ul>
+<li>A version-1-only implementation (whose list of supported versions is <code>[1]</code>) and a version-2 implementation can play games in which both sides are human, as before.</li>
+<li>Games played by an engine are possible only when both sides support version 2. A version-2 implementation does not start a game played by an engine against a version-1-only opponent; it refuses with REJECT (UNSUPPORTED_VERSION).</li>
+<li>A version-1-only implementation can play human-versus-human games against a version-2 implementation without any change, provided it accepts a list of supported versions that contains values other than 1 (section 8.2; this has been the rule since version 1).</li>
+</ul>
 <p>This document is written in Japanese, with English, Simplified Chinese, and Traditional Chinese translations (the language links at the top). Each translation is a translation of the same document version of the Japanese version, and where a translation disagrees with the Japanese version, the Japanese version prevails. When the Japanese version changes, the translations are corrected at the same version.</p>
 </section>
 <section id="notation">
@@ -540,7 +546,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <div class="table-wrap"><table>
 <thead><tr><th>Field</th><th>Type</th><th>Rules</th></tr></thead>
 <tbody>
-<tr><td>version</td><td>uint</td><td>1</td></tr>
+<tr><td>version</td><td>uint</td><td>1 (the version of the envelope format; it stays 1 in protocol version 2, <a href="#sec-1-5">section 1.5</a>)</td></tr>
 <tr><td>type</td><td>uint</td><td>1 to 11 (table below)</td></tr>
 <tr><td>requestId</td><td>uint</td><td>A number assigned by the sender (0 to 2<sup>64</sup>−1). The receiver does not look at the value. ShogiBoardQ numbers the first frame of the negotiation 1 and increases it by 1 for each frame it sends (continuing the count after a reconnection). Only INVITE_TOKEN is fixed at 0</td></tr>
 <tr><td>gameId</td><td>bstr(32)</td><td>The game ID (<a href="#sec-7-4">section 7.4</a>). Frames sent before the game ID is determined use zero32</td></tr>
@@ -607,18 +613,18 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 
 <h3 id="sec-7-1">7.1 Conditions</h3>
 <pre><code>Rules         = ["SBQ-RULES", 1, initialSfen, 512, "fourfold-draw", "perpetual-check-loss",
-                 "no-declaration", "human", "human"]
+                 "no-declaration", blackKind, whiteKind]
 TimeControl   = ["SBQ-TIME", 1, mainMs, byoyomiMs, 0, 0]
 NetworkPolicy = ["SBQ-NET", 1, 10000, 30000, 120000, 5000, 86400000, 10000, 600000]</code></pre>
 <ul>
-<li><strong>Rules</strong>: Only one value can be used in v1. <code>initialSfen</code> is the initial position of an even game, <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>. It means: an even game, a draw at 512 moves, repetition is a draw, perpetual check is a loss for the checking side, no entering-king declaration, and human versus human.</li>
+<li><strong>Rules</strong>: <code>initialSfen</code> is the initial position of an even game, <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>. <code>blackKind</code> and <code>whiteKind</code> are the player kinds of Black and White, each <code>"human"</code> (a human plays) or <code>"engine"</code> (an engine plays). Only these four values can be used. It means: an even game, a draw at 512 moves, repetition is a draw, perpetual check is a loss for the checking side, no entering-king declaration, and who plays the moves of Black and of White. The value in which both are <code>"human"</code> is the Rules of version 1; values containing <code>"engine"</code> are used only when both sides support version 2 (<a href="#sec-1-5">section 1.5</a>). The kinds are self-declared (<a href="#sec-1-4">section 1.4</a>).</li>
 <li><strong>TimeControl</strong>: <code>mainMs</code> is the main time (0 to 86,400,000), and <code>byoyomiMs</code> is the byoyomi (0 to 600,000). Both being 0 is rejected. The two trailing 0s are reserved (increment and delay; only 0 in v1).</li>
 <li><strong>NetworkPolicy</strong>: Only one value can be used in v1. In order: the ping interval of 10 seconds, the time after which a missing move confirmation is treated as a disconnection (30 seconds), the time to wait for reconnection (120 seconds), the resend interval (5 seconds), the limit on the real time of one game (24 hours), the tolerance for time used (10 seconds), and the limit on the total disconnection time in one game (600 seconds).</li>
 </ul>
-<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7
+<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7   ; when both are "human" (other values: Appendix A.1)
 timeControlHash   = H(CBOR(TimeControl))
 networkPolicyHash = H(CBOR(NetworkPolicy))</code></pre>
-<p>Rules and NetworkPolicy are accepted only when the received value exactly matches the value above.</p>
+<p>Rules is accepted only when the received value exactly matches one of the four values above, and NetworkPolicy only when it exactly matches the value above. In a game where the opponent's list of supported versions does not contain 2 (a game using version 1), only the Rules in which both are <code>"human"</code> is accepted.</p>
 
 <h3 id="sec-7-2">7.2 State</h3>
 <pre><code>State      = ["SBQ-STATE", 1, gameId, ply, previousStateHash, moveUsi, sfen, spentMs, blackMainMs, whiteMainMs]
@@ -700,8 +706,8 @@ resultDigest   = H(CBOR(FinalResult))    ; identifier of the result</code></pre>
 <pre><code>A (joiner)                                        B (inviter)
   ── INVITE_TOKEN ────────────────────────────→   check the token (section 6.3)
   ── HELLO (role 1, commitA) ─────────────────→   check; to refuse, send REJECT
-  ←─────── HELLO (role 2, nonceB, conditions) ──
-  decide the sides, build the StartAgreement
+  ←─ HELLO (role 2, nonceB, conditions, kind) ──
+  decide the sides, build Rules and the StartAgreement
   ── START_AGREEMENT ─────────────────────────→   check (section 8.3)
             [both users check the opponent and conditions on the confirmation screen]
   user clicks Start
@@ -714,18 +720,22 @@ resultDigest   = H(CBOR(FinalResult))    ; identifier of the result</code></pre>
 <li>A does not accept B's START_SIGNATURE until after it has sent its own START_SIGNATURE.</li>
 <li>B must not send its own START_SIGNATURE until it has verified A's START_SIGNATURE. If B's user clicked Start first, B sends it at the moment it has verified A's signature.</li>
 <li>Each side must not sign with its player key until its user clicks Start.</li>
+<li>The player kind (<a href="#sec-7-1">section 7.1</a>) is conveyed by the inviter in HELLO and by the joiner in the Rules of START_AGREEMENT. Both users must be able to see the opponent's kind on the confirmation screen before clicking Start.</li>
 </ul>
 
 <h3 id="sec-8-2">8.2 HELLO (Before the Start)</h3>
 <pre><code>Frame   = [1, 1, requestId, zero32, payload]
-payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playerKey, sessionKey,
-           displayName, sidePreference, offerId, coin, conditions]</code></pre>
+payload = ["SBQ-HELLO", 1, role, networkId, versions, peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions]
+          ; version-2 form (inviter only; see below)
+payload = ["SBQ-HELLO", 2, 2, networkId, versions, peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions, playerKind]</code></pre>
 <div class="table-wrap"><table>
 <thead><tr><th>Field</th><th>Type</th><th>Rules</th></tr></thead>
 <tbody>
 <tr><td>role</td><td>uint</td><td>1 = joiner, 2 = inviter</td></tr>
 <tr><td>networkId</td><td>bstr(32)</td><td>Own network. If it differs from the opponent's, REJECT (WRONG_NETWORK)</td></tr>
-<tr><td>(supported versions)</td><td>array of uint</td><td>List of supported protocol versions (up to 8). <code>[1]</code> for v1. Rejected if it does not contain 1</td></tr>
+<tr><td>versions</td><td>array of uint</td><td>List of supported protocol versions (up to 8). <code>[1]</code> for a version-1-only implementation, <code>[1, 2]</code> for an implementation that supports version 2. Rejected if it does not contain 1. It must not be rejected because it contains values other than 1 (including unknown values). If the opponent's list does not contain 2, the opponent is treated as a version-1-only implementation (<a href="#sec-1-5">section 1.5</a>)</td></tr>
 <tr><td>peerId</td><td>bstr</td><td>Binary representation of own PeerId (1 to 64 bytes). The receiver checks that it matches the PeerId of the peer on the stream</td></tr>
 <tr><td>connectionRandom</td><td>bstr(32)</td><td>Random value for this connection. Used for the first connectionId (<a href="#sec-7-5">section 7.5</a>)</td></tr>
 <tr><td>playerKey</td><td>bstr(32)</td><td>Public key of the player key (claimed; not treated as an identity until the start signature has been verified)</td></tr>
@@ -734,7 +744,8 @@ payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playe
 <tr><td>sidePreference</td><td>uint</td><td>Preferred side. 0 = No preference, 1 = Black, 2 = White</td></tr>
 <tr><td>offerId</td><td>bstr(32)</td><td>Reserved. Always zero32. If it is not zero32, it is refused (the inviter returns EXPIRED, and the joiner returns CONDITION_MISMATCH)</td></tr>
 <tr><td>coin</td><td>bstr(32)</td><td><code>commitA</code> for the joiner, <code>nonceB</code> for the inviter (<a href="#sec-8-4">section 8.4</a>)</td></tr>
-<tr><td>conditions</td><td>array</td><td>An empty array <code>[]</code> for the joiner. <code>[Rules, TimeControl, NetworkPolicy]</code> for the inviter (<a href="#sec-7-1">section 7.1</a>)</td></tr>
+<tr><td>conditions</td><td>array</td><td>An empty array <code>[]</code> for the joiner. <code>[Rules, TimeControl, NetworkPolicy]</code> for the inviter (<a href="#sec-7-1">section 7.1</a>). This Rules is the value in which both are <code>"human"</code>, because the sides are not decided yet</td></tr>
+<tr><td>playerKind</td><td>tstr</td><td>Only in the version-2 form. The inviter's player kind (<code>"human"</code> or <code>"engine"</code>)</td></tr>
 </tbody>
 </table></div>
 <p>In addition to the form, the receiving side checks the following, and if any check fails, it sends REJECT (CONDITION_MISMATCH, or the code given where a different one is stated).</p>
@@ -745,13 +756,21 @@ payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playe
 <li>Inviter: the playerKey claimed by the joiner is not an opponent the user has blocked (BUSY is returned to a blocked opponent without saying that it is blocked). Both sidePreferences are compatible (section 8.4).</li>
 </ul>
 <p>Even after the token has been matched, if the user has cancelled the invitation in the meantime, the inviter sends REJECT (EXPIRED) and closes the stream. If it is already negotiating with another opponent, it sends REJECT (BUSY) without returning HELLO and closes the stream (during a game, no stream other than the game opponent's is accepted; <a href="#sec-11-1">section 11.1</a>). When refusing, it returns REJECT without returning HELLO, and does not reveal its own public keys.</p>
+<p>The <strong>version-2 form</strong> sets the version of the value (the second element) to 2 and appends playerKind, giving 15 elements. It follows these rules.</p>
+<ul>
+<li>Only the inviter (role = 2) may send the version-2 form, and only when the joiner's versions contains 2. A version-2 form sent by a joiner, and a version-2 form whose versions does not contain 2, are rejected.</li>
+<li>The kind of an inviter that sent a HELLO in the version-1 form is <code>"human"</code>. ShogiBoardQ sends the version-2 form only when an engine plays the inviter's moves, and sends the version-1 form when a human plays (so that a version-1-only joiner can read it).</li>
+<li>The joiner's HELLO is always in the version-1 form, because it is sent before the joiner knows the opponent's versions. The joiner's kind is conveyed in the Rules of START_AGREEMENT (<a href="#sec-8-3">section 8.3</a>).</li>
+<li>An inviter whose moves are played by an engine sends REJECT (UNSUPPORTED_VERSION) without returning HELLO if the joiner's versions does not contain 2. A joiner whose moves are played by an engine sends REJECT (UNSUPPORTED_VERSION) without sending START_AGREEMENT if the inviter's versions does not contain 2.</li>
+</ul>
 
 <h3 id="sec-8-3">8.3 START_AGREEMENT</h3>
 <pre><code>Frame   = [1, 2, requestId, zero32, payload]
 payload = [StartAgreement, Rules, TimeControl, NetworkPolicy]</code></pre>
-<p>The joiner, which first learns the conditions (the time control) from the inviter's HELLO, decides the sides and builds it. <code>startBefore</code> is set to 180 seconds after the current time. The inviter checks all of the following, and if any check fails, it sends REJECT (CONDITION_MISMATCH where no code is stated).</p>
+<p>The joiner, which first learns the conditions (the time control and the inviter's player kind) from the inviter's HELLO, decides the sides and builds it. Rules is the value holding Black's kind and White's kind according to the decided sides (the joiner's own kind and the kind in the inviter's HELLO). <code>startBefore</code> is set to 180 seconds after the current time. The inviter checks all of the following, and if any check fails, it sends REJECT (CONDITION_MISMATCH where no code is stated).</p>
 <ul>
-<li>Rules and NetworkPolicy are the v1 values, and TimeControl is the same as the one presented in its own HELLO. The three hashes match the values in the StartAgreement.</li>
+<li>Rules is one of the four values of <a href="#sec-7-1">section 7.1</a>, NetworkPolicy is the v1 value, and TimeControl is the same as the one presented in its own HELLO. The three hashes match the values in the StartAgreement.</li>
+<li>The kind on its own side (Black or White) in Rules is its own kind (the one conveyed in HELLO). The kind on the opponent's side is taken as the joiner's kind and shown to the user on the confirmation screen. If the joiner's versions does not contain 2, the kind on the opponent's side must be <code>"human"</code>.</li>
 <li>networkId is its own network.</li>
 <li>Its own playerKey, sessionKey, nonce (nonceB), and PeerIdHash are placed correctly on the same side (Black or White). The opponent's playerKey, sessionKey, and PeerIdHash match the opponent's HELLO and the peer on the stream, and are placed on the opposite side.</li>
 <li>For the nonce on the opponent's side (nonceA), <code>H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code> matches the coin (commitA) in the opponent's HELLO.</li>
@@ -1068,7 +1087,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <div class="table-wrap"><table>
 <thead><tr><th>Code</th><th>Name</th><th>Meaning</th></tr></thead>
 <tbody>
-<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>Unsupported version</td></tr>
+<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>Unsupported version (a game played by an engine was attempted against an opponent that does not support version 2; <a href="#sec-8-2">section 8.2</a>)</td></tr>
 <tr><td>2</td><td>WRONG_NETWORK</td><td>The networkId differs</td></tr>
 <tr><td>3</td><td>BUSY</td><td>Negotiating or playing with another opponent (this is also returned to blocked opponents)</td></tr>
 <tr><td>4</td><td>EXPIRED</td><td>Expired (the start agreement deadline or the deadline of the start procedure)</td></tr>
@@ -1116,12 +1135,13 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <li>When FinalResult is <code>[]</code>, both result signature fields are of length 0.</li>
 <li>One's own last move, whose approval by the opponent did not arrive, may be put at the end of the sequence as a State with only one's own approval. Other States must not be placed after a State that has only one approval.</li>
 <li>Display names, IP addresses, the PeerIds themselves, invitation tokens, and local names are not included (PeerIds remain only as hashes inside the StartAgreement).</li>
+<li>Rules holds the player kinds (declarations that both sides signed in the start agreement). Engine names are not included.</li>
 </ul>
 
 <h3 id="sec-13-2">13.2 Verification Steps</h3>
 <p>The verifier checks the following in order. Each result is reported separately ("the signatures are valid", "the moves follow the rules", and "the time arithmetic matches" are not mixed). All signature verification is done as in <a href="#sec-2-4">section 2.4</a> (including the public key check).</p>
 <ol>
-<li><strong>Format</strong>: at most 8 MiB, deterministic CBOR, and in the form of section 13.1. Rules and NetworkPolicy are the v1 values, and TimeControl is within the ranges of <a href="#sec-7-1">section 7.1</a>.</li>
+<li><strong>Format</strong>: at most 8 MiB, deterministic CBOR, and in the form of section 13.1. Rules is one of the four values of <a href="#sec-7-1">section 7.1</a>, NetworkPolicy is the v1 value, and TimeControl is within the ranges of <a href="#sec-7-1">section 7.1</a>.</li>
 <li><strong>Conditions</strong>: the hashes of Rules, TimeControl, and NetworkPolicy match the three hashes in the StartAgreement.</li>
 <li><strong>Start signatures</strong>: the two start signatures are valid for blackPlayerKey and whitePlayerKey in the StartAgreement, respectively. Compute <code>gameId = H(CBOR(StartAgreement))</code>.</li>
 <li><strong>Sequence of States</strong>: from the beginning, check the following in order.
@@ -1152,7 +1172,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>Unconfirmed</td><td>Neither of the above</td><td>Only the moves up to that point (a win or loss cannot be shown)</td></tr>
 </tbody>
 </table></div>
-<p>Whatever the status, there are things the evidence cannot show. <strong>The time actually spent thinking</strong> (time used is self-reported), <strong>that humans played</strong>, and <strong>when the game was played</strong> cannot be confirmed from the evidence. An implementation that outputs verification results should show this along with them.</p>
+<p>Whatever the status, there are things the evidence cannot show. <strong>The time actually spent thinking</strong> (time used is self-reported), <strong>who actually played the moves</strong> (the player kinds in Rules are what both sides declared), and <strong>when the game was played</strong> cannot be confirmed from the evidence. An implementation that outputs verification results should show this along with them.</p>
 </section>
 <section id="constants">
 <h2 id="sec-14">14. List of Constants</h2>
@@ -1203,6 +1223,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td><code>frames.txt</code></td><td><code>valid &lt;hex&gt;</code> / <code>invalid &lt;hex&gt;</code></td><td>Whether the input is a valid frame envelope (<a href="#sec-6-2">section 6.2</a>)</td></tr>
 <tr><td><code>displayname.txt</code></td><td><code>accept &lt;hex(UTF-8)&gt;</code> / <code>reject &lt;hex(UTF-8)&gt;</code></td><td>Display name rules (<a href="#sec-3-6">section 3.6</a>)</td></tr>
 <tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId and rulesHash (<a href="#sec-3-1">section 3.1</a>, <a href="#sec-7-1">section 7.1</a>)</td></tr>
+<tr><td><code>rules.txt</code></td><td><code>&lt;blackKind&gt; &lt;whiteKind&gt; &lt;hex(rulesHash)&gt; &lt;hex(CBOR(Rules))&gt;</code></td><td>Bytes and hash of Rules for each combination of player kinds (four values; <a href="#sec-7-1">section 7.1</a>)</td></tr>
 </tbody>
 </table></div>
 
@@ -1214,6 +1235,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <li><strong>Invitation strings</strong>: you can read invitation strings created by ShogiBoardQ, and ShogiBoardQ's Check Invitation can read invitation strings you created.</li>
 <li><strong>Connection and negotiation</strong>: with the network set to <code>sbq-local-1</code>, get as far as the confirmation screen with ShogiBoardQ on the same PC, both as the inviting side and as the invited side.</li>
 <li><strong>Game</strong>: as both Black and White, play games to resignation, checkmate, time loss, and draw by agreement, and the evidence of both sides becomes "Confirmed by both". Verify the evidence you wrote with <code>shogiboardq-cli verify-match --input-path &lt;file&gt;</code>; <code>valid</code> is true and <code>category</code> is <code>mutually_signed</code>.</li>
+<li><strong>Games played by an engine</strong> (if version 2 is supported): start games in which your own kind and the opponent's kind are each <code>"engine"</code>, both as the inviting side and as the invited side, and check that the opponent's kind appears on the confirmation screen and that the kinds remain in the Rules of the evidence. A version-1-only implementation checks that it is refused with REJECT (UNSUPPORTED_VERSION) by an opponent whose "Player" in ShogiBoardQ is set to an engine.</li>
 <li><strong>Reconnection</strong>: cut the stream during a game, and the game can be reconnected and continued (when you are the joiner and when you are the inviter, and with and without an unapproved move).</li>
 <li><strong>Refusal</strong>: send invalid signatures, illegal moves, States with wrong time calculations, CONTROL messages with skipped numbers, and so on, and confirm that the opponent stops without assigning a win or loss. Your own implementation refuses the same inputs in the same way.</li>
 </ol>
@@ -1225,14 +1247,21 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <p>The values listed here were output by ShogiBoardQ's implementation, and have been confirmed to match the values computed from the descriptions in this document alone. <code>aa…</code> denotes a bstr(32) consisting of that byte repeated 32 times. The hex is broken into lines every 64 digits (the line breaks are not part of the byte sequence).</p>
 
 <h3 id="sec-A-1">A.1 Condition Hash</h3>
-<p class="vec-title">CBOR(Rules)</p>
+<p class="vec-title">CBOR(Rules) (both human)</p>
 <pre class="vec"><code>89695342512d52554c455301783f6c6e73676b67736e6c2f31723562312f7070
 707070707070702f392f392f392f5050505050505050502f31423552312f4c4e
 53474b47534e4c2062202d20311902006d666f7572666f6c642d647261777470
 657270657475616c2d636865636b2d6c6f73736e6e6f2d6465636c6172617469
 6f6e6568756d616e6568756d616e</code></pre>
-<p class="vec-title">rulesHash</p>
+<p class="vec-title">rulesHash (both human)</p>
 <pre class="vec"><code>e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7</code></pre>
+<p class="vec-title">rulesHash (Black human, White engine)</p>
+<pre class="vec"><code>2cfd140708a8d9f05cd3904ed6f23e20b77c4469fd3cef3d8f3f52e75dd32a7c</code></pre>
+<p class="vec-title">rulesHash (Black engine, White human)</p>
+<pre class="vec"><code>86bcb45c5c66ec58ca5bcfca2ca40f5ad6378ed1838972e59f0d6caa8d85db86</code></pre>
+<p class="vec-title">rulesHash (both engine)</p>
+<pre class="vec"><code>6e84365278aec13a21c14d1a2de8d8460964011278bffb033bfa897e4627d36c</code></pre>
+<p>The CBOR of a Rules with an <code>"engine"</code> kind differs only in that <code>6568756d616e</code> ("human") on that side is replaced by <code>66656e67696e65</code> ("engine"). The four byte strings are in <code>protocol/testvectors/rules.txt</code>.</p>
 <p class="vec-title">networkPolicyHash</p>
 <pre class="vec"><code>9b7c8316692cc4e6593d4266afcb0d90670a0edb948920c920ef64a7fefebe73</code></pre>
 <p class="vec-title">CBOR(TimeControl) (main time 600,000 ms, byoyomi 30,000 ms)</p>
@@ -1314,6 +1343,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>Document version</th><th>Protocol version</th><th>Fix needed in compatible implementations</th><th>Changes</th></tr></thead>
 <tbody>
+<tr><td>2026-11-20</td><td>2</td><td>Not needed (needed only to support games played by an engine)</td><td>Added protocol version 2 (player kinds; <a href="#sec-1-5">section 1.5</a>, <a href="#sec-7-1">section 7.1</a>, <a href="#sec-8-2">section 8.2</a>, <a href="#sec-8-3">section 8.3</a>, <a href="#sec-13">chapter 13</a>; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/a8192d98a3790df05b074fd68843bb5a7e7713e1">a8192d98</a>), because ShogiBoardQ can now have a registered engine play one's moves. The last two values of Rules (the player kinds of Black and White) may now be <code>"engine"</code>, the list of supported versions in HELLO became <code>[1, 2]</code>, and the HELLO of an inviter whose moves are played by an engine takes the version-2 form (playerKind appended). The joiner's kind is conveyed in the Rules of START_AGREEMENT. Games in which both sides are human keep the same bytes as version 1, and a version-1-only implementation can play human-versus-human games against ShogiBoardQ without any change (it must accept a list of supported versions that contains values other than 1). Games played by an engine are not started against a version-1-only opponent; they are refused with REJECT (UNSUPPORTED_VERSION). Added <code>black_player_kind</code> and <code>white_player_kind</code> to the result of <code>verify-match</code>, the rulesHash of each kind combination to Appendix A.1, and <code>rules.txt</code> to the test inputs.</td></tr>
 <tr><td>2026-11-15.1</td><td>1</td><td>Not needed</td><td>Added how to choose the connection on which the game stream is opened (<a href="#sec-6-3">section 6.3</a>; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/78c04567189db3c6542211d181f842f1deb1dbd8">78c04567</a>). ShogiBoardQ used to open the game stream right after connecting through the relay, so frames kept going through the relay even after DCUtR established a direct connection. The joiner now waits up to 3 seconds for a direct connection and, if one is established, closes the relayed connection and opens the stream on the direct connection. The frame format and the procedures are unchanged. Compatible implementations that perform DCUtR should do the same.</td></tr>
 <tr><td>2026-11-15</td><td>1</td><td>Not needed</td><td>An offer of a draw or abort by agreement can now be made again, even at the same ply, after the opponent has declined it (<a href="#sec-10-2">section 10.2</a>; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>). Previously, as user operations, such offers were limited to once each per ply, and in ShogiBoardQ, pressing "Abort" again after being declined showed nothing to the opponent. The rule is now once each until the opponent declines or the ply advances. The rule that the receiving side must not treat the same proposal arriving repeatedly at the same ply as a violation is unchanged, and the frame formats did not change.</td></tr>
 <tr><td>2026-11-14</td><td>1</td><td>Not needed</td><td>Aligned with P2P games becoming a regular feature instead of an experimental one (from ShogiBoardQ 2026.11.14 they are enabled by default and included in the distributed packages; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>). The communication rules did not change.

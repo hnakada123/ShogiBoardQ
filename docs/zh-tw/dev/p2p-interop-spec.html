@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="語言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><span aria-current="page">繁體中文</span></nav>
 <h1>P2P對局相容實作規格書</h1>
-<p>ShogiBoardQ（將棋盤Q）／協定版本 1／文件版本 2026-11-15.1（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
+<p>ShogiBoardQ（將棋盤Q）／協定版本 2／文件版本 2026-11-20（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
 <p class="lead">規定通訊層、邀請字串、訊框、開始前的協商、對局中的步驟、重新連線，以及對局記錄（憑證）的格式與驗證。</p>
 </header>
 <nav class="toc" aria-label="目錄">
@@ -230,7 +230,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 
 <h3 id="sec-1-1">1.1 目的與適用範圍</h3>
 <p>本文件是一份規格書，用於另行實作能與 ShogiBoardQ（將棋盤Q）的「P2P對局」互相對局的軟體。本文件規定在網路上傳輸的位元組序列、步驟、檢查、時間規則，以及對局記錄（憑證）的檔案格式。依照本文件製作的實作之間，可以交付邀請字串來連線、對局，並留下雙方已確定的對局記錄。</p>
-<p>適用對象為協定版本 1（訊框的 <code>version</code> 為 1，各值的版本為 1）。以下事項不在適用範圍內，各實作可以自由決定。</p>
+<p>適用對象為協定版本 1 與版本 2（版本 2 是在版本 1 上增加了對局者類別的版本。<a href="#sec-1-5">第 1.5 節</a>）。以下事項不在適用範圍內，各實作可以自由決定。</p>
 <ul>
 <li>畫面與操作、設定的儲存、玩家金鑰的保管方式（作業系統的金鑰庫、加密的檔案等）</li>
 <li>負責通訊的部分與負責對局、畫面的部分如何劃分（ShogiBoardQ 將其分為不同的程序，以 JSON 的 IPC 連接，但這與相容性無關）</li>
@@ -268,7 +268,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li>顯示名稱為自稱。辨別對手的依據只有玩家金鑰的公開金鑰（玩家ID）與確認碼（<a href="#sec-3-5">第 3.5 節</a>）。</li>
 <li>輸方若不對結果簽章，就不會留下雙方都簽章的記錄。</li>
 <li>消耗時間為自報。無法識別每步最多 10 秒的虛報，以及利用斷線拖延時間（每局合計最多 10 分鐘）。</li>
-<li>無法識別由引擎下的對局或串通的對局。</li>
+<li>對局者類別（由人類下棋還是由引擎下棋。<a href="#sec-7-1">第 7.1 節</a>）為自報。無法識別申報為「人類」的一方照引擎的著手下的對局，或串通的對局。</li>
 <li>直接連線時，對手查看通訊就能得知 IP 位址（可用只使用中繼的設定避免。<a href="#sec-4-6">第 4.6 節</a>）。</li>
 </ul>
 
@@ -277,12 +277,18 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>版本</th><th>表示的內容</th><th>何時升版</th></tr></thead>
 <tbody>
-<tr><td>協定版本</td><td>通訊的相容性。出現在訊框的 <code>version</code>（<a href="#sec-6-2">第 6.2 節</a>）與 HELLO 中支援的版本清單（<a href="#sec-8-2">第 8.2 節</a>）中。目前為 1</td><td>做了導致無法與舊版本實作對局的變更時（2026-11-14 之前的例外寫在下面）</td></tr>
+<tr><td>協定版本</td><td>通訊的相容性。出現在 HELLO 中支援的版本清單（<a href="#sec-8-2">第 8.2 節</a>）中。目前為 2（與只支援版本 1 的實作之間，仍可進行雙方都是人類的對局）。訊框的 <code>version</code>（<a href="#sec-6-2">第 6.2 節</a>）是外框格式的版本，在版本 2 中仍為 1</td><td>做了導致某些對局無法與舊版本實作進行的變更時（2026-11-14 之前的例外寫在下面）</td></tr>
 <tr><td>文件版本</td><td>本文件的內容。以修改當天的日期（YYYY-MM-DD）表示，同一天第二次以後的修改在末尾加上 <code>.1</code>、<code>.2</code></td><td>每次修改本文件時（即使只是修潤文字）</td></tr>
 </tbody>
 </table></div>
 <p>各版本的變更寫在<a href="#sec-B">附錄 B</a>。「相容實作是否需要修改」為「需要」的變更，是修改了規則（必須做的事、不得做的事、值、上限）的變更；依照更早版本製作的實作若不修改，可能會與 ShogiBoardQ 不一致。「不需要」是只修潤文字，或只補充 ShogiBoardQ 行為說明的變更。相容實作應當記錄自己所依循的文件版本，並檢查其後標為「需要」的變更。</p>
 <p class="note">P2P對局已於 2026-11-14 從實驗版成為正式功能（自 ShogiBoardQ 2026.11.14 起預設啟用，並包含在發行套件中。可以加入的網路及其 networkName 沒有改變，請參閱<a href="#sec-3-1">第 3.1 節</a>）。在此之前，即使是不相容的變更，也曾不升協定版本而直接修改版本 1 的規則（附錄 B 中記為「需要」的變更）。今後，不相容的變更會升協定版本。</p>
+<p><strong>版本 2</strong> 是在版本 1 上增加了對局者類別（自己的著手由人類下還是由引擎下）的版本。有變化的只有：HELLO 中支援的版本清單（<a href="#sec-8-2">第 8.2 節</a>）、邀請方的 HELLO 的格式（同上）、Rules 末尾的 2 個值（<a href="#sec-7-1">第 7.1 節</a>）、START_AGREEMENT 的檢查（<a href="#sec-8-3">第 8.3 節</a>）。訊框的外框（<code>version</code> 仍為 1）以及其他的訊框、值與流程，都與版本 1 相同。雙方都是人類的對局，即使在支援版本 2 的實作之間，也與版本 1 的位元組序列相同（HELLO 中支援的版本清單除外）。</p>
+<ul>
+<li>只支援版本 1 的實作（支援的版本清單為 <code>[1]</code>）與支援版本 2 的實作之間，雙方都是人類的對局可以照常進行。</li>
+<li>由引擎下棋的對局，只有在雙方都支援版本 2 時才能進行。支援版本 2 的實作不會與只支援版本 1 的對手開始由引擎下棋的對局，而是以 REJECT（UNSUPPORTED_VERSION）拒絕。</li>
+<li>只支援版本 1 的實作不需修改，即可與支援版本 2 的實作進行人與人的對局。但必須接受含有 1 以外的值的支援版本清單（第 8.2 節。這從版本 1 起就是規定）。</li>
+</ul>
 <p>本文件以日文撰寫，並提供英文、簡體中文、繁體中文的譯本（開頭的語言連結）。譯本是翻譯日文版同一文件版本的內容，與日文版不一致時，以日文版為準。日文版修改後，譯本也會以同一版本修改。</p>
 </section>
 <section id="notation">
@@ -540,7 +546,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <div class="table-wrap"><table>
 <thead><tr><th>項目</th><th>型別</th><th>規則</th></tr></thead>
 <tbody>
-<tr><td>version</td><td>uint</td><td>1</td></tr>
+<tr><td>version</td><td>uint</td><td>1（外框格式的版本。在協定版本 2 中仍為 1。<a href="#sec-1-5">第 1.5 節</a>）</td></tr>
 <tr><td>type</td><td>uint</td><td>1〜11（下表）</td></tr>
 <tr><td>requestId</td><td>uint</td><td>傳送方賦予的編號（0〜2<sup>64</sup>−1）。接收方不看這個值。ShogiBoardQ 以協商的第一個訊框為 1，每傳送一次就加 1（重新連線後也接續計數）。只有 INVITE_TOKEN 固定為 0</td></tr>
 <tr><td>gameId</td><td>bstr(32)</td><td>對局ID（<a href="#sec-7-4">第 7.4 節</a>）。對局ID 決定之前的訊框為 zero32</td></tr>
@@ -607,18 +613,18 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 
 <h3 id="sec-7-1">7.1 條件</h3>
 <pre><code>Rules         = ["SBQ-RULES", 1, initialSfen, 512, "fourfold-draw", "perpetual-check-loss",
-                 "no-declaration", "human", "human"]
+                 "no-declaration", blackKind, whiteKind]
 TimeControl   = ["SBQ-TIME", 1, mainMs, byoyomiMs, 0, 0]
 NetworkPolicy = ["SBQ-NET", 1, 10000, 30000, 120000, 5000, 86400000, 10000, 600000]</code></pre>
 <ul>
-<li><strong>Rules</strong>：v1 可用的值只有一個。<code>initialSfen</code> 是平手的初始局面 <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>。其意義為：平手、512 手和棋、千日手為和棋、連續王手千日手由王手方判負、沒有入玉宣言、人與人對局。</li>
+<li><strong>Rules</strong>：<code>initialSfen</code> 是平手的初始局面 <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>。<code>blackKind</code>、<code>whiteKind</code> 是先手、後手的對局者類別，為 <code>"human"</code>（由人類下棋）或 <code>"engine"</code>（由引擎下棋）。可用的值只有這 4 種。其意義為：平手、512 手和棋、千日手為和棋、連續王手千日手由王手方判負、沒有入玉宣言，以及先手、後手的著手由誰來下。雙方均為 <code>"human"</code> 的值是版本 1 的 Rules，含有 <code>"engine"</code> 的值只在雙方都支援版本 2 時使用（<a href="#sec-1-5">第 1.5 節</a>）。類別為自報（<a href="#sec-1-4">第 1.4 節</a>）。</li>
 <li><strong>TimeControl</strong>：<code>mainMs</code> 為基本用時（0〜86,400,000），<code>byoyomiMs</code> 為讀秒（0〜600,000）。兩者皆為 0 時拒收。後面的 2 個 0 為保留欄位（加秒、延遲。v1 中只能為 0）。</li>
 <li><strong>NetworkPolicy</strong>：v1 可用的值只有一個。依序為：ping 間隔 10 秒、著手的確認未到達即視為斷線的時間 30 秒、等待重新連線的時間 120 秒、重送間隔 5 秒、每局實際時間的上限 24 小時、消耗時間的容許誤差 10 秒、每局斷線時間合計的上限 600 秒。</li>
 </ul>
-<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7
+<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7   ; 雙方均為 "human" 時（其他值見附錄 A.1）
 timeControlHash   = H(CBOR(TimeControl))
 networkPolicyHash = H(CBOR(NetworkPolicy))</code></pre>
-<p>Rules、NetworkPolicy 只在收到的值與上面的值完全一致時才接受。</p>
+<p>Rules 只在收到的值與上面 4 種值之一完全一致時才接受，NetworkPolicy 只在與上面的值完全一致時才接受。在對方支援的版本清單中沒有 2 的對局（使用版本 1 的對局）中，只接受雙方均為 <code>"human"</code> 的 Rules。</p>
 
 <h3 id="sec-7-2">7.2 狀態（State）</h3>
 <pre><code>State      = ["SBQ-STATE", 1, gameId, ply, previousStateHash, moveUsi, sfen, spentMs, blackMainMs, whiteMainMs]
@@ -700,8 +706,8 @@ resultDigest   = H(CBOR(FinalResult))    ; 結果的識別碼</code></pre>
 <pre><code>A（申請方）                                    B（邀請方）
   ── INVITE_TOKEN ─────────────────────────→   比對通關密語（第 6.3 節）
   ── HELLO（role 1, commitA）──────────────→   檢查。拒絕時傳送 REJECT
-  ←───────── HELLO（role 2, nonceB, 條件）──
-  決定先後手，產生 StartAgreement
+  ←─── HELLO（role 2, nonceB, 條件, 類別）──
+  決定先後手，產生 Rules 與 StartAgreement
   ── START_AGREEMENT ──────────────────────→   檢查（第 8.3 節）
             ［雙方的使用者在條件確認畫面確認對手與條件］
   使用者按下「開始」
@@ -714,18 +720,22 @@ resultDigest   = H(CBOR(FinalResult))    ; 結果的識別碼</code></pre>
 <li>A 在送出自己的 START_SIGNATURE 之前，不接受 B 的 START_SIGNATURE。</li>
 <li>B 在檢查 A 的 START_SIGNATURE 之前，不得傳送自己的 START_SIGNATURE。若 B 的使用者先按下了「開始」，就在檢查完 A 的簽章時傳送。</li>
 <li>雙方在使用者按下「開始」之前，都不得用玩家金鑰簽章。</li>
+<li>對局者類別（<a href="#sec-7-1">第 7.1 節</a>）由邀請方在 HELLO 中、由申請方在 START_AGREEMENT 的 Rules 中告知對方。雙方的使用者都必須能在按下「開始」之前，在條件確認畫面看到對手的類別。</li>
 </ul>
 
 <h3 id="sec-8-2">8.2 HELLO（開始前）</h3>
 <pre><code>Frame   = [1, 1, requestId, zero32, payload]
-payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playerKey, sessionKey,
-           displayName, sidePreference, offerId, coin, conditions]</code></pre>
+payload = ["SBQ-HELLO", 1, role, networkId, versions, peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions]
+          ; 版本 2 的格式（僅邀請方。見下文）
+payload = ["SBQ-HELLO", 2, 2, networkId, versions, peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions, playerKind]</code></pre>
 <div class="table-wrap"><table>
 <thead><tr><th>項目</th><th>型別</th><th>規則</th></tr></thead>
 <tbody>
 <tr><td>role</td><td>uint</td><td>1＝申請方，2＝邀請方</td></tr>
 <tr><td>networkId</td><td>bstr(32)</td><td>自己的網路。與對方不同時 REJECT（WRONG_NETWORK）</td></tr>
-<tr><td>（支援的版本）</td><td>uint 的陣列</td><td>支援的協定版本清單（最多 8 個）。v1 為 <code>[1]</code>。不含 1 時拒收</td></tr>
+<tr><td>versions</td><td>uint 的陣列</td><td>支援的協定版本清單（最多 8 個）。只支援版本 1 的實作為 <code>[1]</code>，支援版本 2 的實作為 <code>[1, 2]</code>。不含 1 時拒收。不得以其中含有 1 以外的值（包括未知的值）為由拒收。對方的清單中沒有 2 時，把對方視為只支援版本 1 的實作（<a href="#sec-1-5">第 1.5 節</a>）</td></tr>
 <tr><td>peerId</td><td>bstr</td><td>自己 PeerId 的二進位表示（1〜64 位元組）。接收方檢查它與串流對方的 PeerId 一致</td></tr>
 <tr><td>connectionRandom</td><td>bstr(32)</td><td>用於此連線的亂數。用於第一個 connectionId（<a href="#sec-7-5">第 7.5 節</a>）</td></tr>
 <tr><td>playerKey</td><td>bstr(32)</td><td>玩家金鑰的公開金鑰（自報值。在檢查開始簽章之前，不當作身分處理）</td></tr>
@@ -734,7 +744,8 @@ payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playe
 <tr><td>sidePreference</td><td>uint</td><td>先後手的希望。0＝不指定，1＝先手，2＝後手</td></tr>
 <tr><td>offerId</td><td>bstr(32)</td><td>保留欄位。一律放入 zero32。不是 zero32 時拒絕（邀請方回傳 EXPIRED，申請方回傳 CONDITION_MISMATCH）</td></tr>
 <tr><td>coin</td><td>bstr(32)</td><td>申請方為 <code>commitA</code>，邀請方為 <code>nonceB</code>（<a href="#sec-8-4">第 8.4 節</a>）</td></tr>
-<tr><td>conditions</td><td>陣列</td><td>申請方為空陣列 <code>[]</code>。邀請方為 <code>[Rules, TimeControl, NetworkPolicy]</code>（<a href="#sec-7-1">第 7.1 節</a>）</td></tr>
+<tr><td>conditions</td><td>陣列</td><td>申請方為空陣列 <code>[]</code>。邀請方為 <code>[Rules, TimeControl, NetworkPolicy]</code>（<a href="#sec-7-1">第 7.1 節</a>）。由於此時先後手尚未決定，這裡的 Rules 使用雙方均為 <code>"human"</code> 的值</td></tr>
+<tr><td>playerKind</td><td>tstr</td><td>只存在於版本 2 的格式中。邀請方的對局者類別（<code>"human"</code> 或 <code>"engine"</code>）</td></tr>
 </tbody>
 </table></div>
 <p>接收方除了格式之外，還要檢查以下項目，不符時傳送 REJECT（CONDITION_MISMATCH。寫明其他編號的則用該編號）。</p>
@@ -745,13 +756,21 @@ payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playe
 <li>邀請方：申請時自報的 playerKey 不是使用者已封鎖的對手（對已封鎖的對手，不告知原因而回傳 BUSY）。雙方的 sidePreference 可以相容（第 8.4 節）。</li>
 </ul>
 <p>即使在比對通關密語之後，若使用者在此期間取消了邀請，邀請方就傳送 REJECT（EXPIRED）並關閉串流。已經在與其他對手協商時，不回傳 HELLO，而是傳送 REJECT（BUSY）並關閉串流（對局中，不接受對局對手以外的串流。<a href="#sec-11-1">第 11.1 節</a>）。拒絕時，不回傳 HELLO 而回傳 REJECT，不讓對方知道自己的公開金鑰。</p>
+<p><strong>版本 2 的格式</strong>把值的版本（第 2 個元素）設為 2，並在末尾增加 playerKind，共 15 個元素。遵循以下規定。</p>
+<ul>
+<li>只有邀請方（role = 2）可以傳送版本 2 的格式，並且僅限於申請方的 versions 中有 2 時。申請方傳送的版本 2 的格式，以及 versions 中沒有 2 的版本 2 的格式，一律拒收。</li>
+<li>傳送版本 1 格式的 HELLO 的邀請方，其類別為 <code>"human"</code>。ShogiBoardQ 只在邀請方的著手由引擎下時傳送版本 2 的格式，由人類下時傳送版本 1 的格式（只支援版本 1 的申請方也能讀取）。</li>
+<li>申請方的 HELLO 是在得知對方的版本之前傳送的，因此一律使用版本 1 的格式。申請方的類別透過 START_AGREEMENT 的 Rules 告知（<a href="#sec-8-3">第 8.3 節</a>）。</li>
+<li>由引擎下棋的邀請方，在申請方的 versions 中沒有 2 時，不回傳 HELLO，而是傳送 REJECT（UNSUPPORTED_VERSION）。由引擎下棋的申請方，在邀請方的 versions 中沒有 2 時，不傳送 START_AGREEMENT，而是傳送 REJECT（UNSUPPORTED_VERSION）。</li>
+</ul>
 
 <h3 id="sec-8-3">8.3 START_AGREEMENT</h3>
 <pre><code>Frame   = [1, 2, requestId, zero32, payload]
 payload = [StartAgreement, Rules, TimeControl, NetworkPolicy]</code></pre>
-<p>申請方透過邀請方的 HELLO 才首次得知條件（用時），決定先後手後產生 START_AGREEMENT。<code>startBefore</code> 設為目前時刻的 180 秒後。邀請方檢查以下所有項目，不符時傳送 REJECT（未寫明編號的為 CONDITION_MISMATCH）。</p>
+<p>申請方透過邀請方的 HELLO 才首次得知條件（用時與邀請方的對局者類別），決定先後手後產生 START_AGREEMENT。Rules 使用依決定的先後手填入先手類別、後手類別的值（自己的類別與邀請方 HELLO 中的類別）。<code>startBefore</code> 設為目前時刻的 180 秒後。邀請方檢查以下所有項目，不符時傳送 REJECT（未寫明編號的為 CONDITION_MISMATCH）。</p>
 <ul>
-<li>Rules、NetworkPolicy 為 v1 的值，TimeControl 與自己在 HELLO 中出示的相同。3 個雜湊與 StartAgreement 中的值一致。</li>
+<li>Rules 為<a href="#sec-7-1">第 7.1 節</a>的 4 種值之一，NetworkPolicy 為 v1 的值，TimeControl 與自己在 HELLO 中出示的相同。3 個雜湊與 StartAgreement 中的值一致。</li>
+<li>Rules 中自己一側（先手或後手）的類別是自己的類別（在 HELLO 中告知的類別）。對方一側的類別視為申請方的類別，並在條件確認畫面向使用者顯示。申請方的 versions 中沒有 2 時，對方一側的類別必須是 <code>"human"</code>。</li>
 <li>networkId 是自己的網路。</li>
 <li>自己的 playerKey、sessionKey、nonce（nonceB）、PeerIdHash 正確地放在同一方（先手或後手）。對方的 playerKey、sessionKey、PeerIdHash 與對方的 HELLO、串流的對方一致，並放在相反的一方。</li>
 <li>對於對方那一方的 nonce（nonceA），<code>H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code> 與對方 HELLO 中的 coin（commitA）一致。</li>
@@ -1068,7 +1087,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <div class="table-wrap"><table>
 <thead><tr><th>編號</th><th>名稱</th><th>意義</th></tr></thead>
 <tbody>
-<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>不支援的版本</td></tr>
+<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>不支援的版本（試圖與不支援版本 2 的對手開始由引擎下棋的對局。<a href="#sec-8-2">第 8.2 節</a>）</td></tr>
 <tr><td>2</td><td>WRONG_NETWORK</td><td>networkId 不同</td></tr>
 <tr><td>3</td><td>BUSY</td><td>正在與其他對手協商或對局（對已封鎖的對手也回傳此編號）</td></tr>
 <tr><td>4</td><td>EXPIRED</td><td>過期（開始協議的期限、開始程序的期限）</td></tr>
@@ -1116,12 +1135,13 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <li>FinalResult 為 <code>[]</code> 時，對結果的兩個簽章欄都設為長度 0。</li>
 <li>未收到對方認可的自己的最後一手，可以作為只附上自己認可的 State，放在序列的最後。只有單方認可的 State 之後，不得放置其他 State。</li>
 <li>不放入顯示名稱、IP 位址、PeerId 本身、邀請的通關密語、本機備註名稱（PeerId 只以 StartAgreement 中的雜湊形式保留）。</li>
+<li>Rules 中包含對局者類別（雙方在開始協議中簽章的申報）。不包含引擎的名稱。</li>
 </ul>
 
 <h3 id="sec-13-2">13.2 驗證步驟</h3>
 <p>驗證方依序檢查以下項目。各項結果分別呈現（不混淆「簽章正確」「棋譜符合規則」「時間計算相符」）。簽章的驗證全部依<a href="#sec-2-4">第 2.4 節</a>進行（包含公開金鑰的檢查）。</p>
 <ol>
-<li><strong>格式</strong>：在 8 MiB 以下，為確定性CBOR，且為第 13.1 節的格式。Rules、NetworkPolicy 為 v1 的值，TimeControl 在<a href="#sec-7-1">第 7.1 節</a>的範圍內。</li>
+<li><strong>格式</strong>：在 8 MiB 以下，為確定性CBOR，且為第 13.1 節的格式。Rules 為<a href="#sec-7-1">第 7.1 節</a>的 4 種值之一，NetworkPolicy 為 v1 的值，TimeControl 在<a href="#sec-7-1">第 7.1 節</a>的範圍內。</li>
 <li><strong>條件</strong>：Rules、TimeControl、NetworkPolicy 的雜湊與 StartAgreement 中的 3 個雜湊一致。</li>
 <li><strong>開始簽章</strong>：2 個開始簽章分別以 StartAgreement 的 blackPlayerKey、whitePlayerKey 驗證正確。計算 <code>gameId = H(CBOR(StartAgreement))</code>。</li>
 <li><strong>State 的序列</strong>：從開頭依序檢查以下項目。
@@ -1152,7 +1172,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>結果未確定</td><td>不屬於上面任何一類</td><td>只有到目前為止的著手序列（無法表明勝負）</td></tr>
 </tbody>
 </table></div>
-<p>無論哪個類別，都有憑證無法表明的事。<strong>實際思考的時間</strong>（消耗時間為自報）、<strong>是否由人類下棋</strong>、<strong>對局的日期與時間</strong>，都無法從憑證確認。輸出驗證結果的實作，應當一併表明這一點。</p>
+<p>無論哪個類別，都有憑證無法表明的事。<strong>實際思考的時間</strong>（消耗時間為自報）、<strong>實際由誰下棋</strong>（Rules 中的對局者類別為雙方的申報）、<strong>對局的日期與時間</strong>，都無法從憑證確認。輸出驗證結果的實作，應當一併表明這一點。</p>
 </section>
 <section id="constants">
 <h2 id="sec-14">14. 常數一覽</h2>
@@ -1203,6 +1223,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td><code>frames.txt</code></td><td><code>valid &lt;hex&gt;</code>／<code>invalid &lt;hex&gt;</code></td><td>作為訊框外框是否正確（<a href="#sec-6-2">第 6.2 節</a>）</td></tr>
 <tr><td><code>displayname.txt</code></td><td><code>accept &lt;hex(UTF-8)&gt;</code>／<code>reject &lt;hex(UTF-8)&gt;</code></td><td>顯示名稱的規則（<a href="#sec-3-6">第 3.6 節</a>）</td></tr>
 <tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId 與 rulesHash（<a href="#sec-3-1">第 3.1 節</a>、<a href="#sec-7-1">第 7.1 節</a>）</td></tr>
+<tr><td><code>rules.txt</code></td><td><code>&lt;blackKind&gt; &lt;whiteKind&gt; &lt;hex(rulesHash)&gt; &lt;hex(CBOR(Rules))&gt;</code></td><td>各種對局者類別組合的 Rules（4 種）的位元組序列與雜湊（<a href="#sec-7-1">第 7.1 節</a>）</td></tr>
 </tbody>
 </table></div>
 
@@ -1214,6 +1235,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <li><strong>邀請字串</strong>：能讀取 ShogiBoardQ 產生的邀請字串，且自己產生的邀請字串能以 ShogiBoardQ 的「檢查邀請字串」讀取。</li>
 <li><strong>連線與協商</strong>：把網路設為 <code>sbq-local-1</code>，與同一台電腦上的 ShogiBoardQ，在邀請方與被邀請方兩種角色下都能進行到條件確認畫面。</li>
 <li><strong>對局</strong>：在先手、後手兩種情況下，分別下到認輸、將死、超時負、協議和棋，雙方的憑證都成為「雙方已確定」。以 <code>shogiboardq-cli verify-match --input-path &lt;檔案&gt;</code> 驗證自己寫出的憑證，<code>valid</code> 為 true，<code>category</code> 為 <code>mutually_signed</code>。</li>
+<li><strong>由引擎下棋的對局</strong>（支援版本 2 時）：在邀請方與被邀請方兩種角色下，開始自己或對手的類別為 <code>"engine"</code> 的對局，確認條件確認畫面顯示對手的類別，並且憑證的 Rules 中保留了類別。只支援版本 1 的實作，確認會被在 ShogiBoardQ 中把「對局者」設為引擎的對手以 REJECT（UNSUPPORTED_VERSION）拒絕。</li>
 <li><strong>重新連線</strong>：對局中切斷串流後，能重新連線並繼續（自己是申請方時、是邀請方時，以及有未獲認可的著手時、沒有時）。</li>
 <li><strong>拒絕</strong>：傳送不正確的簽章、不合法的著手、時間計算不符的 State、編號跳號的 CONTROL 等，確認對方不判定勝負而停止。自己的實作也要以同樣方式拒絕同樣的輸入。</li>
 </ol>
@@ -1225,14 +1247,21 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <p>這裡列出的值是 ShogiBoardQ 的實作輸出的值，並已確認與僅依本文件的描述計算出的值一致。<code>aa…</code> 表示把該位元組排列 32 個而成的 bstr(32)。十六進位每 64 位數換行（換行不包含在位元組序列中）。</p>
 
 <h3 id="sec-A-1">A.1 條件的雜湊</h3>
-<p class="vec-title">CBOR(Rules)</p>
+<p class="vec-title">CBOR(Rules)（雙方均為 human）</p>
 <pre class="vec"><code>89695342512d52554c455301783f6c6e73676b67736e6c2f31723562312f7070
 707070707070702f392f392f392f5050505050505050502f31423552312f4c4e
 53474b47534e4c2062202d20311902006d666f7572666f6c642d647261777470
 657270657475616c2d636865636b2d6c6f73736e6e6f2d6465636c6172617469
 6f6e6568756d616e6568756d616e</code></pre>
-<p class="vec-title">rulesHash</p>
+<p class="vec-title">rulesHash（雙方均為 human）</p>
 <pre class="vec"><code>e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7</code></pre>
+<p class="vec-title">rulesHash（先手 human、後手 engine）</p>
+<pre class="vec"><code>2cfd140708a8d9f05cd3904ed6f23e20b77c4469fd3cef3d8f3f52e75dd32a7c</code></pre>
+<p class="vec-title">rulesHash（先手 engine、後手 human）</p>
+<pre class="vec"><code>86bcb45c5c66ec58ca5bcfca2ca40f5ad6378ed1838972e59f0d6caa8d85db86</code></pre>
+<p class="vec-title">rulesHash（雙方均為 engine）</p>
+<pre class="vec"><code>6e84365278aec13a21c14d1a2de8d8460964011278bffb033bfa897e4627d36c</code></pre>
+<p>類別為 <code>"engine"</code> 的 Rules 的 CBOR，只是把該側的 <code>6568756d616e</code>（"human"）換成 <code>66656e67696e65</code>（"engine"）。4 種位元組序列見 <code>protocol/testvectors/rules.txt</code>。</p>
 <p class="vec-title">networkPolicyHash</p>
 <pre class="vec"><code>9b7c8316692cc4e6593d4266afcb0d90670a0edb948920c920ef64a7fefebe73</code></pre>
 <p class="vec-title">CBOR(TimeControl)（基本 600,000 ms、讀秒 30,000 ms）</p>
@@ -1314,6 +1343,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文件版本</th><th>協定版本</th><th>相容實作是否需要修改</th><th>變更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-20</td><td>2</td><td>不需要（只有要支援由引擎下棋的對局時才需要）</td><td>增加了協定版本 2（對局者類別。<a href="#sec-1-5">第 1.5 節</a>、<a href="#sec-7-1">第 7.1 節</a>、<a href="#sec-8-2">第 8.2 節</a>、<a href="#sec-8-3">第 8.3 節</a>、<a href="#sec-13">第 13 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/a8192d98a3790df05b074fd68843bb5a7e7713e1">a8192d98</a>）。這是因為 ShogiBoardQ 現在可以讓已註冊的引擎來下自己的著手。Rules 末尾的 2 個值（先手、後手的對局者類別）可以寫 <code>"engine"</code>，HELLO 中支援的版本清單改為 <code>[1, 2]</code>，由引擎下棋的邀請方的 HELLO 使用版本 2 的格式（末尾增加 playerKind）。申請方的類別透過 START_AGREEMENT 的 Rules 告知。雙方都是人類的對局仍與版本 1 的位元組序列相同，只支援版本 1 的實作不需修改即可與 ShogiBoardQ 進行人與人的對局（須接受含有 1 以外的值的支援版本清單）。由引擎下棋的對局不會與只支援版本 1 的對手開始，而是以 REJECT（UNSUPPORTED_VERSION）拒絕。在 <code>verify-match</code> 的結果中增加了 <code>black_player_kind</code>、<code>white_player_kind</code>，在附錄 A.1 中增加了各類別組合的 rulesHash，在測試輸入中增加了 <code>rules.txt</code>。</td></tr>
 <tr><td>2026-11-15.1</td><td>1</td><td>不需要</td><td>增加了選擇開啟對局串流的連線的方法（<a href="#sec-6-3">第 6.3 節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/78c04567189db3c6542211d181f842f1deb1dbd8">78c04567</a>）。ShogiBoardQ 以前在經由中繼連線後立即開啟對局串流，因此即使之後透過 DCUtR 建立了直接連線，訊框仍然一直經過中繼。現在申請方最多等待 3 秒直接連線的建立，建立後先關閉經由中繼的連線，再在直接連線上開啟串流。訊框的格式和步驟沒有改變。進行 DCUtR 的相容實作最好也這樣做。</td></tr>
 <tr><td>2026-11-15</td><td>1</td><td>不需要</td><td>協議和棋、協議中斷的請求在對方拒絕之後，即使在同一手數也可以再次提出（<a href="#sec-10-2">第 10.2 節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>）。以前，作為使用者的操作，同一手數各最多一次，在 ShogiBoardQ 中，被拒絕後再次按「中斷」，對方那裡什麼也不會顯示。現在的規則是：在對方拒絕或手數前進之前，各最多一次。即使同一手數反覆收到相同的提議，接收方也不得將其視為違規的規則沒有改變，訊框的格式也沒有改變。</td></tr>
 <tr><td>2026-11-14</td><td>1</td><td>不需要</td><td>配合P2P對局從實驗版成為正式功能（自 ShogiBoardQ 2026.11.14 起預設啟用，並包含在發行套件中。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>）。通訊的規則沒有改變。

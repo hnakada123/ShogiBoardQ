@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="言語"><span aria-current="page">日本語</span><a href="../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 1／文書の版 2026-11-15.1（<a href="#sec-B">変更履歴</a>）</p>
+<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 2／文書の版 2026-11-20（<a href="#sec-B">変更履歴</a>）</p>
 <p class="lead">通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
@@ -230,7 +230,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 
 <h3 id="sec-1-1">1.1 目的と適用範囲</h3>
 <p>この文書は、ShogiBoardQ（将棋盤Q）の「P2P対局」と相互に対局できるソフトウェアを、別の実装として作るための仕様書である。ネットワークを流れるバイト列、手順、検査、時間の決まり、対局記録（証跡）のファイルの形を定める。この文書どおりに作った実装どうしは、招待文字列を渡して接続し、対局し、双方で確定した対局記録を残せる。</p>
-<p>対象は、プロトコルの版 1（フレームの <code>version</code> が 1、各値の版が 1）である。次のものは対象外で、実装ごとに自由に決めてよい。</p>
+<p>対象は、プロトコルの版 1 と版 2 である（版 2 は、版 1 に対局者の種別を足したもの。<a href="#sec-1-5">1.5節</a>）。次のものは対象外で、実装ごとに自由に決めてよい。</p>
 <ul>
 <li>画面と操作、設定の保存、プレイヤー鍵の保管の方法（OS の鍵の保管庫・暗号化したファイルなど）</li>
 <li>通信を受け持つ部分と対局・画面の部分の分け方（ShogiBoardQ は別プロセスに分け、JSON の IPC でつなぐが、互換性には関係しない）</li>
@@ -268,7 +268,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li>表示名は自己申告である。相手を見分ける根拠は、プレイヤー鍵の公開鍵（プレイヤーID）と確認コード（<a href="#sec-3-5">3.5節</a>）だけである。</li>
 <li>負けた側が結果に署名しなければ、双方が署名した記録は残らない。</li>
 <li>消費時間は自己申告である。1手あたり 10 秒までの水増しと、切断を使った時間稼ぎ（1局で合計10分まで）は見分けられない。</li>
-<li>エンジンが指した対局や、示し合わせた対局は見分けられない。</li>
+<li>対局者の種別（人間が指すか、エンジンが指すか。<a href="#sec-7-1">7.1節</a>）は自己申告である。「人間」と申告した側がエンジンの手を指した対局や、示し合わせた対局は見分けられない。</li>
 <li>直接つなぐと、相手は通信を調べて IP アドレスを知ることができる（中継だけを使う設定で避けられる。<a href="#sec-4-6">4.6節</a>）。</li>
 </ul>
 
@@ -277,12 +277,18 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>版</th><th>表すもの</th><th>上げるとき</th></tr></thead>
 <tbody>
-<tr><td>プロトコルの版</td><td>通信の互換性。フレームの <code>version</code>（<a href="#sec-6-2">6.2節</a>）と、HELLO の対応する版の一覧（<a href="#sec-8-2">8.2節</a>）に出る。今は 1</td><td>前の版の実装と対局できなくなる変更をしたとき（2026-11-14 より前の例外は下に書く）</td></tr>
+<tr><td>プロトコルの版</td><td>通信の互換性。HELLO の対応する版の一覧（<a href="#sec-8-2">8.2節</a>）に出る。今は 2（版 1 だけの実装とも、双方が人間の対局はできる）。フレームの <code>version</code>（<a href="#sec-6-2">6.2節</a>）は外枠の形の版で、版 2 でも 1 のままである</td><td>前の版の実装とはできない対局のある変更をしたとき（2026-11-14 より前の例外は下に書く）</td></tr>
 <tr><td>文書の版</td><td>この文書の内容。変えた日の日付（YYYY-MM-DD）で、同じ日の2回目からは末尾に <code>.1</code>・<code>.2</code> と付ける</td><td>この文書を変えるたび（文の手直しだけでも）</td></tr>
 </tbody>
 </table></div>
 <p>版ごとの変更は<a href="#sec-B">付録 B</a>に書く。「互換実装の修正」が「要る」の変更は、決まり（しなければならないこと・してはならないこと・値・上限）を変えたもので、それより前の版に従って作った実装は、直さないと ShogiBoardQ と食い違うことがある。「要らない」は、文の手直しや、ShogiBoardQ の動きの説明を足しただけの変更である。互換実装は、自分が従った文書の版を記録し、それより後の「要る」の変更を確かめることが望ましい。</p>
 <p class="note">P2P対局は、2026-11-14 に実験版から正式な機能になった（ShogiBoardQ 2026.11.14 から、既定で有効にして配布物に入れている。参加できるネットワークと networkName は変えていない。<a href="#sec-3-1">3.1節</a>）。それより前は、互換性のない変更でも、プロトコルの版を上げずに版 1 の決まりを変えることがあった（付録 B に「要る」と書いた変更）。これより後は、互換性のない変更ではプロトコルの版を上げる。</p>
+<p><strong>版 2</strong> は、版 1 に、対局者の種別（自分の手を人間が指すか、エンジンが指すか）を足したものである。変わるのは、HELLO の対応する版の一覧（<a href="#sec-8-2">8.2節</a>）、招待側の HELLO の形（同）、Rules の末尾の 2 つの値（<a href="#sec-7-1">7.1節</a>）、START_AGREEMENT の検査（<a href="#sec-8-3">8.3節</a>）だけである。フレームの外枠（<code>version</code> は 1 のまま）と、そのほかのフレーム・値・手順は、版 1 と同じである。双方が人間の対局は、版 2 の実装どうしでも、版 1 と同じバイト列になる（HELLO の対応する版の一覧を除く）。</p>
+<ul>
+<li>版 1 だけの実装（対応する版の一覧が <code>[1]</code>）と版 2 の実装は、双方が人間の対局なら、今までどおり対局できる。</li>
+<li>エンジンが指す対局は、双方が版 2 に対応するときだけできる。版 2 の実装は、エンジンが指す対局を版 1 だけの相手と始めず、REJECT（UNSUPPORTED_VERSION）で断る。</li>
+<li>版 1 だけの実装は、直さなくても、版 2 の実装と人間どうしの対局ができる。ただし、対応する版の一覧に 1 のほかの値があっても受け付けなければならない（8.2節。版 1 のときからの決まりである）。</li>
+</ul>
 <p>この文書は日本語で書き、英語・簡体字中国語・繁体字中国語の訳を置く（冒頭の言語のリンク）。訳は日本語版の同じ文書の版を訳したもので、日本語版と食い違うときは日本語版に従う。日本語版を変えたら、訳も同じ版で直す。</p>
 </section>
 <section id="notation">
@@ -540,7 +546,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <div class="table-wrap"><table>
 <thead><tr><th>項目</th><th>型</th><th>規則</th></tr></thead>
 <tbody>
-<tr><td>version</td><td>uint</td><td>1</td></tr>
+<tr><td>version</td><td>uint</td><td>1（外枠の形の版。プロトコルの版 2 でも 1 のまま。<a href="#sec-1-5">1.5節</a>）</td></tr>
 <tr><td>type</td><td>uint</td><td>1〜11（下の表）</td></tr>
 <tr><td>requestId</td><td>uint</td><td>送る側が付ける番号（0〜2<sup>64</sup>−1）。受ける側は、値を見ない。ShogiBoardQ は、交渉の最初のフレームを 1 として、送るたびに 1 ずつ増やす（再接続の後も続きから数える）。INVITE_TOKEN だけは 0 に決まっている</td></tr>
 <tr><td>gameId</td><td>bstr(32)</td><td>対局ID（<a href="#sec-7-4">7.4節</a>）。対局ID が決まる前のフレームは zero32</td></tr>
@@ -607,18 +613,18 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 
 <h3 id="sec-7-1">7.1 条件</h3>
 <pre><code>Rules         = ["SBQ-RULES", 1, initialSfen, 512, "fourfold-draw", "perpetual-check-loss",
-                 "no-declaration", "human", "human"]
+                 "no-declaration", blackKind, whiteKind]
 TimeControl   = ["SBQ-TIME", 1, mainMs, byoyomiMs, 0, 0]
 NetworkPolicy = ["SBQ-NET", 1, 10000, 30000, 120000, 5000, 86400000, 10000, 600000]</code></pre>
 <ul>
-<li><strong>Rules</strong>：v1 で使える値は1つだけである。<code>initialSfen</code> は平手の初期局面 <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>。意味は、平手・512 手で引き分け・千日手は引き分け・連続王手の千日手は王手をかけた側の負け・入玉宣言なし・人間どうし、である。</li>
+<li><strong>Rules</strong>：<code>initialSfen</code> は平手の初期局面 <code>lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1</code>。<code>blackKind</code>・<code>whiteKind</code> は、先手・後手の対局者の種別で、<code>"human"</code>（人間が指す）か <code>"engine"</code>（エンジンが指す）である。使える値は、この 4 通りだけである。意味は、平手・512 手で引き分け・千日手は引き分け・連続王手の千日手は王手をかけた側の負け・入玉宣言なしと、先手・後手の手をだれが指すか、である。双方が <code>"human"</code> の値が版 1 の Rules で、<code>"engine"</code> を含む値は、双方が版 2 に対応するときだけ使う（<a href="#sec-1-5">1.5節</a>）。種別は自己申告である（<a href="#sec-1-4">1.4節</a>）。</li>
 <li><strong>TimeControl</strong>：<code>mainMs</code> は基本の持ち時間（0〜86,400,000）、<code>byoyomiMs</code> は秒読み（0〜600,000）。両方 0 は拒否する。後ろの 2 つの 0 は予約（加算・遅延。v1 では 0 だけ）。</li>
 <li><strong>NetworkPolicy</strong>：v1 で使える値は1つだけである。順に、ping の間隔 10 秒・着手の確認が届かないと切断とみなす時間 30 秒・再接続を待つ時間 120 秒・再送の間隔 5 秒・1局の実時間の上限 24 時間・消費時間の許容差 10 秒・1局の切断時間の合計の上限 600 秒。</li>
 </ul>
-<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7
+<pre><code>rulesHash         = H(CBOR(Rules))          = e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7   ; 双方が "human" のとき（ほかの値は付録 A.1）
 timeControlHash   = H(CBOR(TimeControl))
 networkPolicyHash = H(CBOR(NetworkPolicy))</code></pre>
-<p>Rules・NetworkPolicy は、受け取った値が上の値と完全に一致するときだけ受け付ける。</p>
+<p>Rules は上の 4 通りの値のどれかと、NetworkPolicy は上の値と、完全に一致するときだけ受け付ける。相手の対応する版の一覧に 2 がない対局（版 1 を使う対局）では、双方が <code>"human"</code> の Rules だけを受け付ける。</p>
 
 <h3 id="sec-7-2">7.2 状態（State）</h3>
 <pre><code>State      = ["SBQ-STATE", 1, gameId, ply, previousStateHash, moveUsi, sfen, spentMs, blackMainMs, whiteMainMs]
@@ -700,8 +706,8 @@ resultDigest   = H(CBOR(FinalResult))    ; 結果の識別子</code></pre>
 <pre><code>A（申込側）                                   B（招待側）
   ── INVITE_TOKEN ─────────────────────────→   合言葉を照合（6.3節）
   ── HELLO（role 1, commitA）───────────────→   検査。断るなら REJECT
-  ←─────────────── HELLO（role 2, nonceB, 条件）──
-  先後を決め、StartAgreement を作る
+  ←───────── HELLO（role 2, nonceB, 条件, 種別）──
+  先後を決め、Rules と StartAgreement を作る
   ── START_AGREEMENT ──────────────────────→   検査（8.3節）
             ［双方の利用者が、条件確認画面で相手と条件を確かめる］
   利用者が「開始」を押す
@@ -714,18 +720,22 @@ resultDigest   = H(CBOR(FinalResult))    ; 結果の識別子</code></pre>
 <li>A は、自分の START_SIGNATURE を送った後でなければ、B の START_SIGNATURE を受け付けない。</li>
 <li>B は、A の START_SIGNATURE を確かめるまで、自分の START_SIGNATURE を送ってはならない。B の利用者が先に「開始」を押していたら、A の署名を確かめた時点で送る。</li>
 <li>どちらも、利用者が「開始」を押すまで、プレイヤー鍵で署名してはならない。</li>
+<li>対局者の種別（<a href="#sec-7-1">7.1節</a>）は、招待側は HELLO で、申込側は START_AGREEMENT の Rules で伝える。どちらの利用者も、「開始」を押す前に、条件確認画面で相手の種別を見られなければならない。</li>
 </ul>
 
 <h3 id="sec-8-2">8.2 HELLO（開始前）</h3>
 <pre><code>Frame   = [1, 1, requestId, zero32, payload]
-payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playerKey, sessionKey,
-           displayName, sidePreference, offerId, coin, conditions]</code></pre>
+payload = ["SBQ-HELLO", 1, role, networkId, versions, peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions]
+          ; 版 2 の形（招待側だけ。下の説明）
+payload = ["SBQ-HELLO", 2, 2, networkId, versions, peerId, connectionRandom, playerKey, sessionKey,
+           displayName, sidePreference, offerId, coin, conditions, playerKind]</code></pre>
 <div class="table-wrap"><table>
 <thead><tr><th>項目</th><th>型</th><th>規則</th></tr></thead>
 <tbody>
 <tr><td>role</td><td>uint</td><td>1＝申込側、2＝招待側</td></tr>
 <tr><td>networkId</td><td>bstr(32)</td><td>自分のネットワーク。相手と違えば REJECT（WRONG_NETWORK）</td></tr>
-<tr><td>（対応する版）</td><td>uint の配列</td><td>対応するプロトコルの版の一覧（8 件まで）。v1 は <code>[1]</code>。1 を含まなければ拒否する</td></tr>
+<tr><td>versions</td><td>uint の配列</td><td>対応するプロトコルの版の一覧（8 件まで）。版 1 だけの実装は <code>[1]</code>、版 2 に対応する実装は <code>[1, 2]</code>。1 を含まなければ拒否する。1 のほかの値（知らない値を含む）が入っていることを理由に拒否してはならない。相手の一覧に 2 がなければ、相手を版 1 だけの実装として扱う（<a href="#sec-1-5">1.5節</a>）</td></tr>
 <tr><td>peerId</td><td>bstr</td><td>自分の PeerId のバイナリ表現（1〜64 バイト）。受けた側は、ストリームの相手の PeerId と一致することを確かめる</td></tr>
 <tr><td>connectionRandom</td><td>bstr(32)</td><td>この接続のための乱数。最初の connectionId に使う（<a href="#sec-7-5">7.5節</a>）</td></tr>
 <tr><td>playerKey</td><td>bstr(32)</td><td>プレイヤー鍵の公開鍵（申告。開始署名を確かめるまで、身元として扱わない）</td></tr>
@@ -734,7 +744,8 @@ payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playe
 <tr><td>sidePreference</td><td>uint</td><td>先後の希望。0＝指定なし、1＝先手、2＝後手</td></tr>
 <tr><td>offerId</td><td>bstr(32)</td><td>予約。常に zero32 を入れる。zero32 でなければ断る（招待側は EXPIRED、申込側は CONDITION_MISMATCH を返す）</td></tr>
 <tr><td>coin</td><td>bstr(32)</td><td>申込側は <code>commitA</code>、招待側は <code>nonceB</code>（<a href="#sec-8-4">8.4節</a>）</td></tr>
-<tr><td>conditions</td><td>配列</td><td>申込側は空の配列 <code>[]</code>。招待側は <code>[Rules, TimeControl, NetworkPolicy]</code>（<a href="#sec-7-1">7.1節</a>）</td></tr>
+<tr><td>conditions</td><td>配列</td><td>申込側は空の配列 <code>[]</code>。招待側は <code>[Rules, TimeControl, NetworkPolicy]</code>（<a href="#sec-7-1">7.1節</a>）。この Rules は、先後が決まる前なので、双方が <code>"human"</code> の値にする</td></tr>
+<tr><td>playerKind</td><td>tstr</td><td>版 2 の形だけにある。招待側の対局者の種別（<code>"human"</code> か <code>"engine"</code>）</td></tr>
 </tbody>
 </table></div>
 <p>受けた側は、形のほかに次を確かめ、外れれば REJECT（CONDITION_MISMATCH。別の番号を書いたものはその番号）を送る。</p>
@@ -745,13 +756,21 @@ payload = ["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playe
 <li>招待側：申込みで名乗った playerKey が、利用者がブロックした相手でない（ブロックした相手には、そうと知らせずに BUSY を返す）。双方の sidePreference が両立する（8.4節）。</li>
 </ul>
 <p>招待側は、合言葉を照合した後でも、利用者がその間に招待を取り消していれば、REJECT（EXPIRED）を送ってストリームを閉じる。すでにほかの相手と交渉中のときは、HELLO を返さずに REJECT（BUSY）を送ってストリームを閉じる（対局中は、対局の相手のほかのストリームを受け付けない。<a href="#sec-11-1">11.1節</a>）。断るときは、HELLO を返さずに REJECT を返し、自分の公開鍵を知らせない。</p>
+<p><strong>版 2 の形</strong>は、値の版（2 番目の要素）を 2 にし、末尾に playerKind を足した 15 要素である。次の決まりに従う。</p>
+<ul>
+<li>版 2 の形を送れるのは、招待側（role = 2）だけで、申込側の versions に 2 があるときに限る。申込側が送った版 2 の形と、versions に 2 のない版 2 の形は、拒否する。</li>
+<li>版 1 の形の HELLO を送った招待側の種別は <code>"human"</code> である。ShogiBoardQ は、招待側の手をエンジンが指すときだけ版 2 の形を送り、人間が指すときは版 1 の形を送る（版 1 だけの申込側も読める）。</li>
+<li>申込側の HELLO は、相手の版を知る前に送るので、常に版 1 の形にする。申込側の種別は、START_AGREEMENT の Rules で伝える（<a href="#sec-8-3">8.3節</a>）。</li>
+<li>エンジンが指す招待側は、申込側の versions に 2 がなければ、HELLO を返さずに REJECT（UNSUPPORTED_VERSION）を送る。エンジンが指す申込側は、招待側の versions に 2 がなければ、START_AGREEMENT を送らずに REJECT（UNSUPPORTED_VERSION）を送る。</li>
+</ul>
 
 <h3 id="sec-8-3">8.3 START_AGREEMENT</h3>
 <pre><code>Frame   = [1, 2, requestId, zero32, payload]
 payload = [StartAgreement, Rules, TimeControl, NetworkPolicy]</code></pre>
-<p>申込側が、招待側の HELLO で初めて条件（持ち時間）を知り、先後を決めて作る。<code>startBefore</code> は今の時刻の 180 秒後にする。招待側は、次をすべて確かめ、外れれば REJECT を送る（番号を書いていないものは CONDITION_MISMATCH）。</p>
+<p>申込側が、招待側の HELLO で初めて条件（持ち時間と、招待側の対局者の種別）を知り、先後を決めて作る。Rules は、決まった先後に従って、先手の種別・後手の種別を入れた値にする（自分の種別と、招待側の HELLO の種別）。<code>startBefore</code> は今の時刻の 180 秒後にする。招待側は、次をすべて確かめ、外れれば REJECT を送る（番号を書いていないものは CONDITION_MISMATCH）。</p>
 <ul>
-<li>Rules・NetworkPolicy が v1 の値で、TimeControl が自分の HELLO で示したものと同じである。3 つのハッシュが StartAgreement の中の値と一致する。</li>
+<li>Rules が <a href="#sec-7-1">7.1節</a>の 4 通りの値のどれかで、NetworkPolicy が v1 の値であり、TimeControl が自分の HELLO で示したものと同じである。3 つのハッシュが StartAgreement の中の値と一致する。</li>
+<li>Rules の自分の側（先手か後手か）の種別が、自分の種別（HELLO で伝えたもの）である。相手の側の種別は、申込側の種別として受け取り、条件確認画面で利用者に示す。申込側の versions に 2 がなければ、相手の側の種別は <code>"human"</code> でなければならない。</li>
 <li>networkId が自分のネットワークである。</li>
 <li>自分の playerKey・sessionKey・nonce（nonceB）・PeerIdHash が、同じ側（先手か後手か）に正しく入っている。相手の playerKey・sessionKey・PeerIdHash が、相手の HELLO・ストリームの相手と一致し、反対の側に入っている。</li>
 <li>相手の側の nonce（nonceA）について、<code>H(CBOR(["SBQ-COMMIT", 1, nonceA]))</code> が、相手の HELLO の coin（commitA）と一致する。</li>
@@ -1068,7 +1087,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <div class="table-wrap"><table>
 <thead><tr><th>番号</th><th>名前</th><th>意味</th></tr></thead>
 <tbody>
-<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>対応していない版</td></tr>
+<tr><td>1</td><td>UNSUPPORTED_VERSION</td><td>対応していない版（エンジンが指す対局を、版 2 に対応しない相手と始めようとした。<a href="#sec-8-2">8.2節</a>）</td></tr>
 <tr><td>2</td><td>WRONG_NETWORK</td><td>networkId が違う</td></tr>
 <tr><td>3</td><td>BUSY</td><td>ほかの相手と交渉中・対局中（ブロックした相手にも、これを返す）</td></tr>
 <tr><td>4</td><td>EXPIRED</td><td>期限切れ（開始合意の期限・開始の手続きの期限）</td></tr>
@@ -1116,12 +1135,13 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <li>FinalResult が <code>[]</code> のときは、結果への署名の欄を両方とも長さ 0 にする。</li>
 <li>相手の承認が届かなかった自分の最後の手は、自分の承認だけを付けた State として、列の最後に入れてよい。片方の承認しかない State の後ろに、ほかの State を置いてはならない。</li>
 <li>表示名・IP アドレス・PeerId そのもの・招待の合言葉・手元で付けた名前は入れない（PeerId は、StartAgreement の中のハッシュとしてだけ残る）。</li>
+<li>Rules には、対局者の種別が入る（双方が開始合意で署名した申告）。エンジンの名前は入れない。</li>
 </ul>
 
 <h3 id="sec-13-2">13.2 検証の手順</h3>
 <p>検証する側は、次を順に確かめる。それぞれの結果は別々に示す（「署名が正しい」「棋譜が規則に合う」「時間の計算が合う」を混ぜない）。署名の検証は、すべて <a href="#sec-2-4">2.4節</a>のとおりに行う（公開鍵の検査を含む）。</p>
 <ol>
-<li><strong>形</strong>：8 MiB 以下で、決定的CBORであり、13.1節の形である。Rules・NetworkPolicy が v1 の値で、TimeControl が <a href="#sec-7-1">7.1節</a>の範囲にある。</li>
+<li><strong>形</strong>：8 MiB 以下で、決定的CBORであり、13.1節の形である。Rules が <a href="#sec-7-1">7.1節</a>の 4 通りの値のどれかで、NetworkPolicy が v1 の値で、TimeControl が <a href="#sec-7-1">7.1節</a>の範囲にある。</li>
 <li><strong>条件</strong>：Rules・TimeControl・NetworkPolicy のハッシュが、StartAgreement の中の 3 つのハッシュと一致する。</li>
 <li><strong>開始署名</strong>：2 つの開始署名が、StartAgreement の blackPlayerKey・whitePlayerKey でそれぞれ正しい。<code>gameId = H(CBOR(StartAgreement))</code> を計算する。</li>
 <li><strong>State の列</strong>：先頭から順に、次を確かめる。
@@ -1152,7 +1172,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>結果未確定</td><td>上のどちらでもない</td><td>ここまでの手順だけ（勝ち負けは示せない）</td></tr>
 </tbody>
 </table></div>
-<p>どの区分でも、証跡が示せないことがある。<strong>実際に考えた時間</strong>（消費時間は自己申告である）、<strong>人間が指したこと</strong>、<strong>対局した日時</strong>は、証跡からは確かめられない。検証の結果を出す実装は、そのことを一緒に示すことが望ましい。</p>
+<p>どの区分でも、証跡が示せないことがある。<strong>実際に考えた時間</strong>（消費時間は自己申告である）、<strong>実際にだれが指したか</strong>（Rules の対局者の種別は、双方の申告である）、<strong>対局した日時</strong>は、証跡からは確かめられない。検証の結果を出す実装は、そのことを一緒に示すことが望ましい。</p>
 </section>
 <section id="constants">
 <h2 id="sec-14">14. 定数の一覧</h2>
@@ -1203,6 +1223,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td><code>frames.txt</code></td><td><code>valid &lt;hex&gt;</code>／<code>invalid &lt;hex&gt;</code></td><td>フレームの外枠として正しいか（<a href="#sec-6-2">6.2節</a>）</td></tr>
 <tr><td><code>displayname.txt</code></td><td><code>accept &lt;hex(UTF-8)&gt;</code>／<code>reject &lt;hex(UTF-8)&gt;</code></td><td>表示名の規則（<a href="#sec-3-6">3.6節</a>）</td></tr>
 <tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId と rulesHash（<a href="#sec-3-1">3.1節</a>・<a href="#sec-7-1">7.1節</a>）</td></tr>
+<tr><td><code>rules.txt</code></td><td><code>&lt;blackKind&gt; &lt;whiteKind&gt; &lt;hex(rulesHash)&gt; &lt;hex(CBOR(Rules))&gt;</code></td><td>対局者の種別ごとの Rules（4 通り）のバイト列とハッシュ（<a href="#sec-7-1">7.1節</a>）</td></tr>
 </tbody>
 </table></div>
 
@@ -1214,6 +1235,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <li><strong>招待文字列</strong>：ShogiBoardQ が作った招待文字列を読めて、自分が作った招待文字列を ShogiBoardQ の「招待文字列を確かめる」で読める。</li>
 <li><strong>接続と交渉</strong>：ネットワークを <code>sbq-local-1</code> にして、同じ PC の ShogiBoardQ と、招待する側・される側の両方で条件確認画面まで進める。</li>
 <li><strong>対局</strong>：先手・後手の両方で、投了・詰み・時間切れ・合意による引き分けまで指し、双方の証跡が「双方で確定」になる。自分の書いた証跡を <code>shogiboardq-cli verify-match --input-path &lt;ファイル&gt;</code> で検証し、<code>valid</code> が true、<code>category</code> が <code>mutually_signed</code> になる。</li>
+<li><strong>エンジンが指す対局</strong>（版 2 に対応するとき）：自分・相手のそれぞれの種別が <code>"engine"</code> の対局を、招待する側・される側の両方で始め、条件確認画面に相手の種別が出ることと、証跡の Rules に種別が残ることを確かめる。版 1 だけの実装は、ShogiBoardQ の「対局者」をエンジンにした相手から、REJECT（UNSUPPORTED_VERSION）で断られることを確かめる。</li>
 <li><strong>再接続</strong>：対局中にストリームを切り、つなぎ直して続けられる（自分が申込側のとき・招待側のとき、未承認の手があるとき・ないとき）。</li>
 <li><strong>断ること</strong>：不正な署名・合法でない手・時間の計算の合わない State・番号の飛んだ CONTROL などを送り、相手が勝ち負けを付けずに止めることを確かめる。自分の実装も、同じ入力を同じように断る。</li>
 </ol>
@@ -1225,14 +1247,21 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <p>ここに挙げる値は、ShogiBoardQ の実装が出した値で、この文書の記述だけから計算した値と一致することを確かめてある。<code>aa…</code> は、その1バイトを 32 個並べた bstr(32) を表す。16進は 64 桁ごとに改行してある（改行はバイト列に含まれない）。</p>
 
 <h3 id="sec-A-1">A.1 条件のハッシュ</h3>
-<p class="vec-title">CBOR(Rules)</p>
+<p class="vec-title">CBOR(Rules)（双方 human）</p>
 <pre class="vec"><code>89695342512d52554c455301783f6c6e73676b67736e6c2f31723562312f7070
 707070707070702f392f392f392f5050505050505050502f31423552312f4c4e
 53474b47534e4c2062202d20311902006d666f7572666f6c642d647261777470
 657270657475616c2d636865636b2d6c6f73736e6e6f2d6465636c6172617469
 6f6e6568756d616e6568756d616e</code></pre>
-<p class="vec-title">rulesHash</p>
+<p class="vec-title">rulesHash（双方 human）</p>
 <pre class="vec"><code>e3c568385b6f6372b7f9ae8fe7d8e62b8a3ea15309ba2b0708d1ea9b8a07f9c7</code></pre>
+<p class="vec-title">rulesHash（先手 human・後手 engine）</p>
+<pre class="vec"><code>2cfd140708a8d9f05cd3904ed6f23e20b77c4469fd3cef3d8f3f52e75dd32a7c</code></pre>
+<p class="vec-title">rulesHash（先手 engine・後手 human）</p>
+<pre class="vec"><code>86bcb45c5c66ec58ca5bcfca2ca40f5ad6378ed1838972e59f0d6caa8d85db86</code></pre>
+<p class="vec-title">rulesHash（双方 engine）</p>
+<pre class="vec"><code>6e84365278aec13a21c14d1a2de8d8460964011278bffb033bfa897e4627d36c</code></pre>
+<p>種別が <code>"engine"</code> の Rules の CBOR は、その側の <code>6568756d616e</code>（"human"）が <code>66656e67696e65</code>（"engine"）に替わるだけである。4 通りのバイト列は <code>protocol/testvectors/rules.txt</code> にある。</p>
 <p class="vec-title">networkPolicyHash</p>
 <pre class="vec"><code>9b7c8316692cc4e6593d4266afcb0d90670a0edb948920c920ef64a7fefebe73</code></pre>
 <p class="vec-title">CBOR(TimeControl)（基本 600,000 ms・秒読み 30,000 ms）</p>
@@ -1314,6 +1343,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文書の版</th><th>プロトコルの版</th><th>互換実装の修正</th><th>変更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-20</td><td>2</td><td>要らない（エンジンが指す対局に対応するときだけ要る）</td><td>プロトコルの版 2（対局者の種別）を足した（<a href="#sec-1-5">1.5節</a>・<a href="#sec-7-1">7.1節</a>・<a href="#sec-8-2">8.2節</a>・<a href="#sec-8-3">8.3節</a>・<a href="#sec-13">13章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/a8192d98a3790df05b074fd68843bb5a7e7713e1">a8192d98</a>）。ShogiBoardQ で、自分の手を登録したエンジンに指させて対局できるようにしたためである。Rules の末尾の 2 つ（先手・後手の対局者の種別）に <code>"engine"</code> を書けるようにし、HELLO の対応する版の一覧を <code>[1, 2]</code> に、エンジンが指す招待側の HELLO を版 2 の形（末尾に playerKind）にした。申込側の種別は START_AGREEMENT の Rules で伝える。双方が人間の対局は版 1 と同じバイト列のままで、版 1 だけの実装は、直さなくても ShogiBoardQ と人間どうしの対局ができる（対応する版の一覧に 1 のほかの値があっても受け付けること）。エンジンが指す対局は、版 1 だけの相手とは始めず、REJECT（UNSUPPORTED_VERSION）で断る。<code>verify-match</code> の結果に <code>black_player_kind</code>・<code>white_player_kind</code> を足し、付録 A.1 に種別ごとの rulesHash を、試験の入力に <code>rules.txt</code> を足した。</td></tr>
 <tr><td>2026-11-15.1</td><td>1</td><td>要らない</td><td>対局ストリームを開く接続の選び方を足した（<a href="#sec-6-3">6.3節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/78c04567189db3c6542211d181f842f1deb1dbd8">78c04567</a>）。ShogiBoardQ は、中継でつながった直後に対局ストリームを開いていたので、その後に DCUtR で直接の接続ができても、フレームは中継を通り続けていた。申込側が、直接の接続ができるのを 3 秒まで待ち、できたら中継経由の接続を閉じてから、直接の接続の上でストリームを開くようにした。フレームの形と手順は変えていない。DCUtR を行う互換実装も、同じようにすることが望ましい。</td></tr>
 <tr><td>2026-11-15</td><td>1</td><td>要らない</td><td>合意による引き分け・中断の申し出を、相手が断った後は、同じ手数でももう一度できるようにした（<a href="#sec-10-2">10.2節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>）。以前は、利用者の操作としては同じ手数でそれぞれ1回までで、ShogiBoardQ では、断られた後に「中断」を押し直しても、相手に何も出なかった。相手が断るか手数が進むまでの間にそれぞれ1回まで、という決まりにした。受ける側は、同じ手数で同じ提案が繰り返し届いても違反として扱わない決まりのままで、フレームの形も変えていない。</td></tr>
 <tr><td>2026-11-14</td><td>1</td><td>要らない</td><td>P2P対局を実験版から正式な機能にしたことに合わせた（ShogiBoardQ 2026.11.14 から、既定で有効にして配布物に入れる。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/396042a94cda324b8770a60bf845c0aead499d8c">396042a9</a>）。通信の決まりは変えていない。
