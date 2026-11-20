@@ -289,14 +289,26 @@ bool checkResult(const QString& method, const QJsonObject& result)
                                     {"profile", oneOf({"local", "internet"})}});
     }
     if (method == QLatin1String(kCreateInvite)) {
-        return exactFields(result, {{"invite", str(1024)}, {"expiresAt", u64()}, {"addressCount", integer(0, 8)}});
+        return exactFields(result, {{"invite", str(1024)},
+                                    {"code", str(64)},
+                                    {"expiresAt", u64()},
+                                    {"addressCount", integer(0, 8)}});
     }
     if (method == QLatin1String(kInspectInvite)) {
-        return exactFields(result, {{"peerId", peerIdText()},
-                                    {"expiresAt", u64()},
-                                    {"addressCount", integer(0, 8)},
-                                    {"usableAddressCount", integer(0, 8)},
-                                    {"privateAddresses", stringArray(8, 256)}});
+        if (!exactFields(result, {{"kind", oneOf({"invite", "code"})},
+                                  {"peerId", str(128)},
+                                  {"expiresAt", u64()},
+                                  {"addressCount", integer(0, 8)},
+                                  {"usableAddressCount", integer(0, 8)},
+                                  {"privateAddresses", stringArray(8, 256)}})) {
+            return false;
+        }
+        // 合言葉には相手の PeerId も期限も入っていない。招待文字列は PeerId を必ず持つ
+        const QJsonValue peerId = result.value(QStringLiteral("peerId"));
+        if (result.value(QStringLiteral("kind")).toString() == QLatin1String("code")) {
+            return peerId.toString().isEmpty() && parseU64(result.value(QStringLiteral("expiresAt"))) == quint64(0);
+        }
+        return peerIdText()(peerId);
     }
     if (method == QLatin1String(kConnectInvite) || method == QLatin1String(kConnectPeer)) {
         return exactFields(result, {{"connection", u64()}});
@@ -416,11 +428,13 @@ std::optional<Reply> readReply(const QString& method, const QJsonObject& result)
     }
     if (method == QLatin1String(kCreateInvite)) {
         return CreatedInvite{result.value(QStringLiteral("invite")).toString(),
+                             result.value(QStringLiteral("code")).toString(),
                              parseU64(result.value(QStringLiteral("expiresAt"))).value_or(0),
                              result.value(QStringLiteral("addressCount")).toInt()};
     }
     if (method == QLatin1String(kInspectInvite)) {
         InspectedInvite info;
+        info.isCode = result.value(QStringLiteral("kind")).toString() == QLatin1String("code");
         info.peerId = result.value(QStringLiteral("peerId")).toString();
         info.expiresAt = parseU64(result.value(QStringLiteral("expiresAt"))).value_or(0);
         info.addressCount = result.value(QStringLiteral("addressCount")).toInt();

@@ -34,7 +34,7 @@
 | 2 | IPC の違反（上限超過・形式不正・知らないメソッド）。対局・UI側が送ったものが正しくない |
 | 3 | 権限の制限を掛けられなかった（Windows では、制限なしで起動された） |
 
-標準エラーは診断の文だけに使う（秘密・招待文字列・IP アドレスを書かない）。対局・UI側は先頭から 64 KiB までを
+標準エラーは診断の文だけに使う（秘密・招待文字列・合言葉・IP アドレスを書かない）。対局・UI側は先頭から 64 KiB までを
 読み、保存しない。
 
 ## 2. メッセージの形
@@ -44,13 +44,13 @@
 対局・UI側は通信プロセスを終了させる）。
 
 ```json
-{"protocolVersion":2,"processGeneration":"3","requestId":"17","method":"sendFrame","params":{...}}
-{"protocolVersion":2,"processGeneration":"3","requestId":"17","result":{...}}
-{"protocolVersion":2,"processGeneration":"3","requestId":"17","error":{"code":"unknown_connection","message":"..."}}
-{"protocolVersion":2,"processGeneration":"3","notification":"frameReceived","params":{...}}
+{"protocolVersion":3,"processGeneration":"3","requestId":"17","method":"sendFrame","params":{...}}
+{"protocolVersion":3,"processGeneration":"3","requestId":"17","result":{...}}
+{"protocolVersion":3,"processGeneration":"3","requestId":"17","error":{"code":"unknown_connection","message":"..."}}
+{"protocolVersion":3,"processGeneration":"3","notification":"frameReceived","params":{...}}
 ```
 
-- `protocolVersion` は 2（`hello` の応答の `ipcVersion` と同じ）。違えば IPC の違反。
+- `protocolVersion` は 3（`hello` の応答の `ipcVersion` と同じ）。違えば IPC の違反。
 - `processGeneration` は対局・UI側が起動ごとに決める 10進の文字列。通信プロセスは最初の要求（`hello`）の値を覚え、
   以後の要求の値が違えば IPC の違反とし、応答と通知にはこの値を付ける。対局・UI側は、今の世代と違う値の
   メッセージを捨てる（古いプロセスの残り）。
@@ -70,7 +70,7 @@
 | `invalid_state` | 今は受け付けない（`start` の前など） |
 | `network_not_allowed` | このビルドが参加できない networkName |
 | `build_expired` | 使用期限を過ぎたビルドで、期限のあるネットワークに参加しようとした |
-| `invite_invalid`・`invite_expired`・`invite_wrong_network`・`invite_own` | 招待文字列が読めない・期限切れ・別のネットワーク・自分の招待 |
+| `invite_invalid`・`invite_expired`・`invite_wrong_network`・`invite_own` | 招待文字列・合言葉が読めない・期限切れ・別のネットワーク（合言葉は `local` 以外の profile）・自分の招待 |
 | `unknown_connection` | 知らない接続 |
 | `invalid_frame` | 送るフレームの外枠が正しくない（`README.md` 2章） |
 | `rate_limited`・`limit` | 頻度・件数の上限 |
@@ -80,11 +80,11 @@
 
 | method | params | result |
 |---|---|---|
-| `hello` | `{"uiVersion": 文字列}` | `{"peerVersion": 文字列, "ipcVersion": 2, "sandbox": Sandbox}` |
+| `hello` | `{"uiVersion": 文字列}` | `{"peerVersion": 文字列, "ipcVersion": 3, "sandbox": Sandbox}` |
 | `start` | `{"networkName", "bootstrap": [文字列], "relayOnly": 真偽}` | `{"peerId", "peerIdBytes", "networkId", "profile"}` |
-| `createInvite` | `{}` | `{"invite", "expiresAt", "addressCount"}` |
+| `createInvite` | `{}` | `{"invite", "code", "expiresAt", "addressCount"}` |
 | `cancelInvites` | `{}` | `{}` |
-| `inspectInvite` | `{"invite"}` | `{"peerId", "expiresAt", "addressCount", "usableAddressCount", "privateAddresses": [文字列]}` |
+| `inspectInvite` | `{"invite"}` | `{"kind": "invite"\|"code", "peerId", "expiresAt", "addressCount", "usableAddressCount", "privateAddresses": [文字列]}` |
 | `connectInvite` | `{"invite", "allowPrivate": 真偽}` | `{"connection"}` |
 | `setGamePeer` | `{"peerId"}`（空文字で解除） | `{}` |
 | `connectPeer` | `{"peerId"}` | `{"connection"}` |
@@ -107,10 +107,19 @@
   `relayOnly` は「直接接続を使わない」（5.1節）。結果の `peerId` は文字列表記（base58btc）、
   `peerIdBytes` はバイナリの base64、`networkId` は16進、`profile` は `local` か `internet`。
 - `createInvite` は 10 分有効の招待を作る（同時に4件まで。超えたら古いものから無効にする）。`expiresAt` は UNIX秒の
-  文字列、`addressCount` は文字列に入れた到達候補の数。招待文字列は対局・UI側でも記録しない。
-- `inspectInvite` は招待文字列を読んだ結果を返し、接続はしない。`privateAddresses` は今の profile が `internet` のときの、
-  私設アドレスの到達候補（利用者に見せて許可を求める）。
+  文字列、`addressCount` は招待文字列に入れた到達候補の数。`code` は合言葉（`README.md` 3.1節。同じ招待を指す短い形）で、
+  `local` の profile で直接つなぐ招待にだけ付く。付けられないときは空文字列。合言葉を付けるときは鍵を作ってから
+  応答するので、応答は少し遅れる（その間に `cancelInvites`・`shutdown` を受けたら、招待を作らずに `invalid_state` を
+  返す）。招待文字列も合言葉も、対局・UI側で記録しない。
+- `inspectInvite`・`connectInvite` の `invite` は、招待文字列か合言葉。接頭辞 `sbqinv1.` で始まれば招待文字列、
+  そうでなければ合言葉として読む。
+- `inspectInvite` は読んだ結果を返し、接続はしない。`kind` は `invite`（招待文字列）か `code`（合言葉）。合言葉には
+  相手の PeerId も期限も入っていないので、`kind` が `code` のとき `peerId` は空文字列、`expiresAt` は `"0"`。
+  `addressCount` は宛先の数（合言葉は、アドレス1件につき QUIC と TCP の2件。自分の待受を除く）。
+  `privateAddresses` は今の profile が `internet` のときの、私設アドレスの到達候補（利用者に見せて許可を求める）。
 - `connectInvite`・`connectPeer` は接続を始めて、すぐに番号 `connection`（10進の文字列）を返す。
+  合言葉の `connectInvite` は、合言葉の宛先へ相手の PeerId を決めずにつなぎ、最初につながった相手に、合言葉から
+  作ったトークンで対局ストリームを開く（宛先へつながるのを 30 秒まで待ち、その後に下の 30 秒を数える）。
   ストリームが開けたら `connectionOpened`、開けなければ `connectionClosed`（`reason` は `unreachable`・`timeout`、
   `relayOnly` で招待に使える中継経由の宛先が無いときは `no_relay_route`。全体で 30 秒）が届く。
   `connectPeer` は `setGamePeer` の相手にだけ使える（再接続。つなぐのに使った宛先を覚えておいて使う）。
@@ -120,8 +129,8 @@
   `origin` が `game` なら、続けてそのフレームを `frameReceived` で渡す（`invite` の最初のフレームは
   INVITE_TOKEN なので渡さない）。したがって接続を開いた側（outbound）は、`connectionOpened` を受けたら先にフレームを
   送る（申込みの HELLO、再接続の CONTROL など）。
-- 対局ストリームを受け付けるのは、有効な招待の INVITE_TOKEN を最初に送ってきた相手と、`setGamePeer` の相手だけ。
-  ほかのストリームは閉じる。
+- 対局ストリームを受け付けるのは、有効な招待の INVITE_TOKEN（招待文字列のトークンか、合言葉から作ったトークン）を
+  最初に送ってきた相手と、`setGamePeer` の相手だけ。ほかのストリームは閉じる。
 - `setGamePeer` を設定している間は、その PeerId からの対局ストリームだけを受け付け（招待のトークンは要らない。
   `origin` は `game`）、ほかのピアからの対局ストリームは閉じる。
 - `sendFrame` の `frame` はフレーム全体（長さの前置きを含めない）の base64。通信プロセスは外枠を確かめてから送る。
@@ -141,7 +150,7 @@
 | `connectionClosed` | `{"connection", "reason"}` |
 
 - 自分や相手のアドレス（IP）は、通知に入れない（対局・UI側は IP を受け取らない。例外は `inspectInvite` の
-  `privateAddresses` だけ）。
+  `privateAddresses` だけ。招待文字列と合言葉には自分のアドレスが入っているが、対局・UI側は読まずに利用者へ渡す）。
 - `state` は、接続しているピアがある（または協力ノードを指定せずに待受を始めた）とき `online`、協力ノードへ接続中のとき
   `connecting`、それ以外は `offline`。値が変わったときにだけ、1秒に1回まで出す。
 - `reachability` は到達性の確認（AutoNAT v2）の結果（`relayOnly` では確かめないので `unknown` のまま）。`route` は対局ストリームの経路。

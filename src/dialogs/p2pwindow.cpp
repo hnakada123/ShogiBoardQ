@@ -9,6 +9,7 @@
 #include <QComboBox>
 #include <QDateTime>
 #include <QDialogButtonBox>
+#include <QFontDatabase>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -229,14 +230,38 @@ QWidget* P2pWindow::createInviteTab()
 
     auto* createBox = new QGroupBox(tr("相手を招待する"), tab);
     auto* createLayout = new QVBoxLayout(createBox);
-    createLayout->addWidget(plainLabel(createBox, tr("招待文字列には、あなたへの接続先が入ります（「直接接続を使わない」設定でなければ、"
-                                                     "あなたのIPアドレスも入ります）。相手だけに届く経路で渡し、公開の場所に貼らないでください。"
-                                                     "招待文字列は10分で使えなくなり、1回だけ使えます。"
+    createLayout->addWidget(plainLabel(createBox, tr("招待を作ると、招待文字列ができます。「ローカル（同じPC・同じLAN）」では、口頭でも伝えられる短い合言葉も"
+                                                     "できます。どちらにも、あなたへの接続先が入ります（「直接接続を使わない」設定でなければ、"
+                                                     "あなたのIPアドレスも入ります）。相手だけに伝え、公開の場所に貼らないでください。"
+                                                     "招待は10分で使えなくなり、合言葉と招待文字列のどちらかで1回だけ使えます。"
                                                      "持ち時間・先後・対局者は「接続と条件」の条件を使います。")));
-    m_createInvite = new QPushButton(tr("招待文字列を作る"), createBox);
+    m_createInvite = new QPushButton(tr("招待を作る"), createBox);
     m_createInvite->setObjectName(QStringLiteral("p2pCreateInvite"));
     connect(m_createInvite, &QPushButton::clicked, this, &P2pWindow::onCreateInvite);
     createLayout->addWidget(m_createInvite);
+    // 合言葉（同じ LAN の相手に伝える短い形）。合言葉を出せる招待のときだけ見せる
+    m_codeRow = new QWidget(createBox);
+    m_codeRow->setObjectName(QStringLiteral("p2pInviteCodeRow"));
+    auto* codeLayout = new QHBoxLayout(m_codeRow);
+    codeLayout->setContentsMargins(0, 0, 0, 0);
+    auto* codeCaption = new QLabel(tr("合言葉:"), m_codeRow);
+    m_codeOut = new QLabel(m_codeRow);
+    m_codeOut->setObjectName(QStringLiteral("p2pInviteCode"));
+    m_codeOut->setTextFormat(Qt::PlainText);
+    m_codeOut->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    // 読み上げたり見ながら打ったりするので、大きく、字の幅のそろった書体で出す
+    QFont codeFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    codeFont.setPointSizeF(font().pointSizeF() * 1.8);
+    codeFont.setBold(true);
+    m_codeOut->setFont(codeFont);
+    m_copyCode = new QPushButton(tr("合言葉をコピー"), m_codeRow);
+    m_copyCode->setObjectName(QStringLiteral("p2pCopyCode"));
+    connect(m_copyCode, &QPushButton::clicked, this, &P2pWindow::onCopyCode);
+    codeLayout->addWidget(codeCaption);
+    codeLayout->addWidget(m_codeOut, 1);
+    codeLayout->addWidget(m_copyCode);
+    m_codeRow->setVisible(false);
+    createLayout->addWidget(m_codeRow);
     m_inviteOut = new QPlainTextEdit(createBox);
     m_inviteOut->setObjectName(QStringLiteral("p2pInviteOut"));
     m_inviteOut->setReadOnly(true);
@@ -244,7 +269,7 @@ QWidget* P2pWindow::createInviteTab()
     createLayout->addWidget(m_inviteOut);
     auto* outRow = new QHBoxLayout;
     m_inviteOutInfo = plainLabel(createBox);
-    m_copyInvite = new QPushButton(tr("コピー"), createBox);
+    m_copyInvite = new QPushButton(tr("招待文字列をコピー"), createBox);
     m_copyInvite->setObjectName(QStringLiteral("p2pCopyInvite"));
     connect(m_copyInvite, &QPushButton::clicked, this, &P2pWindow::onCopyInvite);
     outRow->addWidget(m_inviteOutInfo, 1);
@@ -254,13 +279,13 @@ QWidget* P2pWindow::createInviteTab()
 
     auto* joinBox = new QGroupBox(tr("招待で接続する"), tab);
     auto* joinLayout = new QVBoxLayout(joinBox);
-    joinLayout->addWidget(plainLabel(joinBox, tr("受け取った招待文字列を貼り付けてください。接続しただけでは対局は始まりません。"
+    joinLayout->addWidget(plainLabel(joinBox, tr("受け取った合言葉を入力するか、招待文字列を貼り付けてください。接続しただけでは対局は始まりません。"
                                                  "条件確認画面で相手のプレイヤーIDを確かめてから開始します。")));
     m_inviteIn = new QPlainTextEdit(joinBox);
     m_inviteIn->setObjectName(QStringLiteral("p2pInviteIn"));
     m_inviteIn->setMaximumHeight(90);
     joinLayout->addWidget(m_inviteIn);
-    m_inspectInvite = new QPushButton(tr("招待文字列を確かめる"), joinBox);
+    m_inspectInvite = new QPushButton(tr("確かめる"), joinBox);
     m_inspectInvite->setObjectName(QStringLiteral("p2pInspectInvite"));
     connect(m_inspectInvite, &QPushButton::clicked, this, &P2pWindow::onInspectInvite);
     joinLayout->addWidget(m_inspectInvite);
@@ -632,12 +657,18 @@ void P2pWindow::onCreateInvite()
 {
     if (!m_lobby || !checkDisplayName() || !terms().isValid()) return;
     saveSettings();
+    // 新しい招待ができるまで（合言葉の鍵を作る間）、前の招待を新しい招待と取り違えないように消しておく
+    m_inviteOut->clear();
+    m_codeOut->clear();
+    m_inviteOutInfo->clear();
     emit createInviteRequested();
 }
 
-void P2pWindow::onInviteCreated(const QString& invite, quint64 expiresAt, int addressCount)
+void P2pWindow::onInviteCreated(const QString& invite, const QString& code, quint64 expiresAt, int addressCount)
 {
     m_inviteOut->setPlainText(invite);
+    m_codeOut->setText(code);
+    m_codeRow->setVisible(!code.isEmpty());
     m_inviteExpiresAt = expiresAt;
     // 接続先の入っていない招待文字列では、相手はつなげない
     m_inviteOutInfo->setText(addressCount > 0 ? tr("期限: %1（到達候補 %2 件）").arg(dateText(expiresAt)).arg(addressCount)
@@ -661,15 +692,24 @@ void P2pWindow::growToFit()
 
 void P2pWindow::onCopyInvite()
 {
-    const QString invite = m_inviteOut->toPlainText();
-    if (invite.isEmpty()) return;
-    // 招待文字列には接続先（IP）と合言葉が入る。クリップボードの履歴（KDE の Klipper など）に残さないよう秘密の印を
-    // 付け、期限が過ぎたら、クリップボードがまだこの文字列のままなら消す
+    copyInviteText(m_inviteOut->toPlainText());
+}
+
+void P2pWindow::onCopyCode()
+{
+    copyInviteText(m_codeOut->text());
+}
+
+void P2pWindow::copyInviteText(const QString& text)
+{
+    if (text.isEmpty()) return;
+    // 招待文字列と合言葉には、接続先（IP）と、招待を使うための秘密が入る。クリップボードの履歴（KDE の Klipper など）に
+    // 残さないよう秘密の印を付け、期限が過ぎたら、クリップボードがまだこの文字列のままなら消す
     auto* mime = new QMimeData;
-    mime->setText(invite);
+    mime->setText(text);
     mime->setData(QStringLiteral("x-kde-passwordManagerHint"), QByteArrayLiteral("secret"));
     QApplication::clipboard()->setMimeData(mime);
-    m_copiedInvite = invite;
+    m_copiedInvite = text;
     const qint64 now = QDateTime::currentSecsSinceEpoch();
     const qint64 left = qBound(qint64(0), static_cast<qint64>(m_inviteExpiresAt) - now, qint64(15 * 60));
     QTimer::singleShot(static_cast<int>(left * 1000), this, &P2pWindow::clearCopiedInvite);
@@ -689,14 +729,21 @@ void P2pWindow::onInspectInvite()
     m_connectInvite->setEnabled(false);
     m_allowPrivate->setVisible(false);
     m_inviteInInfo->setText(tr("確かめています…"));
-    emit inspectInviteRequested(m_inviteIn->toPlainText().trimmed());
+    const QString input = m_inviteIn->toPlainText();
+    m_inviteInIsCode = !P2pWindowText::isInviteString(input);
+    emit inspectInviteRequested(P2pWindowText::inviteInput(input));
 }
 
 void P2pWindow::onInviteInspected(const P2pLobbyService::InviteInfo& info)
 {
     QStringList lines;
-    lines << tr("招待した相手のPeerId: %1…").arg(info.peerId.left(16));
-    lines << tr("期限: %1").arg(dateText(info.expiresAt));
+    if (info.isCode) {
+        // 合言葉には、相手の PeerId と期限が入っていない（期限は招待した側が確かめる）
+        lines << tr("合言葉を読みました（同じLANの相手の招待）。");
+    } else {
+        lines << tr("招待した相手のPeerId: %1…").arg(info.peerId.left(16));
+        lines << tr("期限: %1").arg(dateText(info.expiresAt));
+    }
     lines << tr("到達候補: %1 件（使える候補 %2 件）").arg(info.addressCount).arg(info.usableAddressCount);
     if (!info.privateAddresses.isEmpty()) {
         lines << tr("私設アドレス（同じLANの相手）:");
@@ -714,8 +761,10 @@ void P2pWindow::onConnectInvite()
     if (!m_lobby || !checkDisplayName()) return;
     saveSettings();
     m_connectInvite->setEnabled(false);
-    emit connectInviteRequested(m_inviteIn->toPlainText().trimmed(), m_allowPrivate->isChecked());
-    // 招待文字列はもう使わない（ログ・設定に残さない）
+    const QString input = m_inviteIn->toPlainText();
+    m_inviteInIsCode = !P2pWindowText::isInviteString(input);
+    emit connectInviteRequested(P2pWindowText::inviteInput(input), m_allowPrivate->isChecked());
+    // 招待文字列・合言葉はもう使わない（ログ・設定に残さない）
     m_inviteIn->clear();
     m_inviteInInfo->setText(tr("接続しています…"));
 }
@@ -723,11 +772,24 @@ void P2pWindow::onConnectInvite()
 void P2pWindow::onInviteRejected(PeerIpc::InviteRejection rejection)
 {
     QString text;
-    switch (rejection) {
-    case PeerIpc::InviteRejection::Expired: text = tr("招待文字列の期限が過ぎています。"); break;
-    case PeerIpc::InviteRejection::WrongNetwork: text = tr("別のネットワークの招待文字列です。"); break;
-    case PeerIpc::InviteRejection::Own: text = tr("自分が作った招待文字列です。"); break;
-    case PeerIpc::InviteRejection::Unreadable: text = tr("招待文字列を読めません。"); break;
+    if (m_inviteInIsCode) {
+        switch (rejection) {
+        case PeerIpc::InviteRejection::WrongNetwork:
+            text = tr("合言葉は、「ローカル（同じPC・同じLAN）」で接続しているときに使えます。");
+            break;
+        case PeerIpc::InviteRejection::Own: text = tr("自分が作った合言葉です。"); break;
+        case PeerIpc::InviteRejection::Expired:
+        case PeerIpc::InviteRejection::Unreadable:
+            text = tr("合言葉を読めません。入力した文字を確かめてください。");
+            break;
+        }
+    } else {
+        switch (rejection) {
+        case PeerIpc::InviteRejection::Expired: text = tr("招待文字列の期限が過ぎています。"); break;
+        case PeerIpc::InviteRejection::WrongNetwork: text = tr("別のネットワークの招待文字列です。"); break;
+        case PeerIpc::InviteRejection::Own: text = tr("自分が作った招待文字列です。"); break;
+        case PeerIpc::InviteRejection::Unreadable: text = tr("招待文字列を読めません。"); break;
+        }
     }
     m_inviteInInfo->setText(text);
 }
@@ -740,6 +802,10 @@ void P2pWindow::onConnectFailed(PeerIpc::CloseReason reason)
                   "相手と同じ協力ノードを「設定」の「接続候補」に入れる必要があります。");
     } else {
         text = reason == PeerIpc::CloseReason::Timeout ? tr("相手に接続できませんでした（時間切れ）。") : tr("相手に接続できませんでした。");
+        if (m_inviteInIsCode) {
+            // 合言葉には接続先が入っている。1文字違うと別の PC を指すことがある
+            text += QLatin1Char('\n') + tr("合言葉が正しいか、招待した側のアプリが接続したままかを確かめてください。");
+        }
         if (m_lobby && m_lobby->isLocalProfile()) {
             // 同じ LAN の別の PC: 招待した側の PC が、外から届く接続を止めていることが多い
             text += QLatin1Char('\n')

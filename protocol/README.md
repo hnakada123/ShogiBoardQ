@@ -10,7 +10,7 @@
 
 | ファイル | 内容 | 使う側 |
 |---|---|---|
-| `README.md`（本書） | 決定的CBOR・ハッシュ・フレームの外枠・招待文字列 | 両方 |
+| `README.md`（本書） | 決定的CBOR・ハッシュ・フレームの外枠・招待文字列・合言葉 | 両方 |
 | `ipc.md` | 対局・UI側と通信プロセスの間の IPC（4バイト長＋JSON） | 両方 |
 | `game-frames.md` | 対局フレームの payload（HELLO など）。通信プロセスは読まない | C++ |
 | `displayname-v1.txt` | 表示名に使える文字の表 v1 | C++ |
@@ -108,6 +108,9 @@ version・type の範囲・gameId の長さ・payload が配列）を確かめ�
 （`connectionOpened`、`origin` は `invite`）。一致しなければストリームを閉じ、対局・UI側には知らせない。
 トークンをログ・IPC へ出さない。
 
+1つの招待が受け付けるトークンは、招待文字列（3章）のトークンと、合言葉を付けた招待なら合言葉から作るトークン
+（3.1節）の2通りで、どちらか一方で1回だけ使える。
+
 ## 3. 招待文字列
 
 ```text
@@ -130,6 +133,63 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 - 到達候補のうち、今の profile で使えない宛先（`ipc.md` 5章）は捨てる。私設アドレスは、`local` 以外の
   profile では利用者が確認画面で許可したとき（`connectInvite` の `allowPrivate`）だけ使う。
 
+### 3.1 合言葉（同じ LAN の招待の短い形）
+
+`local` の profile で、直接つなぐ招待（`relayOnly` でない）には、招待文字列と一緒に合言葉を付ける。合言葉は、
+招待した側の LAN の中のアドレスと短い秘密だけを 12 文字ほどにしたもので、口頭で伝えられる。招待した側の
+PeerId・networkId・期限は入らない（期限は招待した側が確かめる）。招待文字列と同じ招待を指し、どちらか一方で
+1回だけ使える。
+
+```text
+code = 4文字ごとに "-" で区切った base32c(data) + check
+data = version(1) | hasPort(1) | addr{1..4} | [port(16)] | secret(34..38)      ; ビットの列。先頭のビットから詰める
+addr = kind(2) | host(n) | more(1)
+```
+
+| 項目 | ビット | 規則 |
+|---|---|---|
+| version | 1 | 0 |
+| hasPort | 1 | 0 なら、宛先は決まったポート（1.1節の 48210）の QUIC と TCP。1 なら、`port` の QUIC だけ |
+| kind・host | 2 + n | 0: `192.168.x.y`（n = 16、host は x.y）、1: `172.16.0.0/12`（n = 20、host は下位 20 ビット）、2: `10.x.y.z`（n = 24）、3: `127.0.0.1`（n = 0） |
+| more | 1 | 1 なら、次の addr が続く。addr は 1〜4 件で、同じアドレスを2回入れない |
+| port | 16 | hasPort が 1 のときだけ。1〜65535 |
+| secret | 34〜38 | CSPRNG。data の長さに検査の 5 ビットを足した全体が 5 の倍数になるように、34 に 0〜4 ビットを足した長さ |
+
+- base32c は Crockford の Base32（`0123456789ABCDEFGHJKMNPQRSTVWXYZ`）で、data を先頭から 5 ビットずつ1文字にする。
+- check は1文字で、それより前の文字（区切りを除いた大文字。text）から
+  `H(CBOR(["SBQ-CODE-CHECK", 1, text]))` の先頭のバイトの上位 5 ビットを同じ文字の表で表す。
+- 文字は 9〜33 文字（区切りを除く。192.168 のアドレス1件・決まったポートなら 12 文字）。
+- 読む側は、空白（ASCII の空白・タブ・改行）と `-` を読み飛ばし、大文字と小文字を区別せず、`O` を `0`、`I` と `L` を
+  `1` として読む。ほかの文字・文字数・check・version・件数・同じアドレスの重複・port が 0・secret の長さが
+  合わないものは読まない。区切りと空白を含めて 96 バイトを超える文字列は読まない。
+- 入れるアドレスは、待受のアドレスのうち私設アドレス（最大4件）で、私設アドレスが1つもないときだけ `127.0.0.1` を
+  入れる。QUIC も TCP も決まったポートで待ち受けていれば hasPort を 0 にし、そうでなければ QUIC の待受のポートを
+  書く。QUIC の待受がなければ、合言葉を付けない。
+- 読む側は、`local` 以外の profile では合言葉を使わない（`invite_wrong_network`）。合言葉の宛先から自分の待受の
+  アドレスを除き、残らなければ自分の招待として扱う（`invite_own`）。
+
+合言葉でつなぐ側は、合言葉の宛先へ、相手の PeerId を決めずにつなぐ。最初につながった相手の PeerId と、合言葉から
+作った鍵で、INVITE_TOKEN（2.1節）で送るトークンを作る。合言葉の秘密そのものは回線に流さない。
+
+```text
+salt  = H(CBOR(["SBQ-CODE-SALT", 1, networkId, port, [ip4, ...]]))[0..16]     ; port は hasPort が 0 なら 0。ip4 は bstr(4)
+key   = Argon2id(password = secret の 8 バイトのビッグエンディアン, salt,
+                 版 0x13, メモリ 65536 KiB, 回数 2, 並列 1, 出力 32 バイト)
+token = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 招待した側の PeerId, つなぐ側の PeerId]))
+```
+
+- Argon2id の条件は、libsodium の `crypto_pwhash`（`ALG_ARGON2ID13`、opslimit 2、memlimit 67108864）と同じ。
+- PeerId はバイナリ表現（38 バイト）。招待した側は、合言葉を付けた招待ごとに key を持ち、届いた INVITE_TOKEN の
+  トークンを、自分の PeerId と、ストリームを開いた相手の PeerId（接続の暗号の手続きで確かめたもの）から作った値と、
+  処理時間が中身によらない比較で照合する。トークンは双方の PeerId に結び付くので、合言葉の宛先を乗っ取った機器が
+  受け取ったトークンを、招待した側への接続に使い回せない。
+- 秘密は短いので、招待した側は、合言葉のトークンの照合に続けて失敗できる回数を 8 回までにし、4 秒ごとに1回分
+  戻す（10 分の招待に、合わせて 150 回ほど）。回数が残っていない間は、合言葉のトークンとして照合しない
+  （招待文字列のトークンは、いつでも照合する）。
+- 合言葉には招待した側の PeerId が入っていないので、つなぐ側は、つながった相手が招待した本人かどうかを接続の時点では
+  確かめられない（合言葉の宛先を乗っ取った機器は、つなぐ側の相手として条件の確認まで進める。招待した側へは
+  つなげない）。相手は、招待文字列のときと同じく、条件確認画面のプレイヤーID で確かめる。
+
 ## 4. 試験の入力（testvectors/）
 
 | ファイル | 行の形 |
@@ -139,6 +199,7 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 | `displayname.txt` | `accept <hex(UTF-8)>` または `reject <hex(UTF-8)>`（C++ だけが読む） |
 | `network.txt` | `<networkName> <hex(networkId)> <hex(rulesHash)>`（rulesHash は双方が人間の Rules のもの。C++ だけが確かめる） |
 | `rules.txt` | `<blackKind> <whiteKind> <hex(rulesHash)> <hex(Rules の決定的CBOR)>`（対局者の種別の4通り。C++ だけが読む） |
+| `code.txt` | `code <合言葉> <ポート か -> <アドレス,...> <hex(秘密)>`・`invalid <文字列>`・`key <networkName> <合言葉> <hex(パスワード)> <hex(ソルト)> <hex(鍵)>`・`token <hex(鍵)> <hex(招待した側の PeerId)> <hex(つなぐ側の PeerId)> <hex(トークン)>`（3.1節。Rust だけが読む。対局・UI側は合言葉を読まない） |
 
 `#` で始まる行と空行は読み飛ばす。C++（`tests/tst_p2p_protocol.cpp`）と Rust（`protocol/rust` の試験）が
 同じファイルを読み、同じ結果になることを確かめる（開発方針 5.1節の「実装どうしの一致」）。`frames.txt` は、

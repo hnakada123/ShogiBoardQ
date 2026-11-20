@@ -166,7 +166,7 @@ void P2pLobbyService::onPeerReplied(quint64 requestId, const QString& method, co
         emit statusChanged();
     } else if (const auto* created = std::get_if<PeerIpc::CreatedInvite>(&*reply)) {
         m_inviteActive = true;
-        emit inviteCreated(created->invite, created->expiresAt, created->addressCount);
+        emit inviteCreated(created->invite, created->code, created->expiresAt, created->addressCount);
     } else if (const auto* inspected = std::get_if<PeerIpc::InspectedInvite>(&*reply)) {
         emit inviteInspected(*inspected);
     } else if (const auto* connecting = std::get_if<PeerIpc::ConnectionStarted>(&*reply)) {

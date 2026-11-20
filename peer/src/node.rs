@@ -2,7 +2,7 @@
 //!
 //! 主ループと Swarm の作成はここに置き、役割ごとに分ける: 要求の処理（requests）、Swarm の出来事（events）、
 //! 対局ストリーム（streams）、対局ストリームを開く接続の選び方（outbound）、作った招待（invites）、中継の予約
-//! （reservations）、協力ノードが中継している回路の数（circuits）。待受は crate::listen
+//! （reservations）、協力ノードが中継している回路の数（circuits）、合言葉（codes）。待受は crate::listen
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -29,6 +29,7 @@ use crate::service;
 use crate::swarm::{self, Behaviour, SwarmOptions};
 
 mod circuits;
+mod codes;
 mod events;
 mod invites;
 mod outbound;
@@ -91,6 +92,12 @@ pub struct Node {
     /// 直接の接続（穴あけ）を試すか（「直接接続を使わない」と協力ノードは試さない）
     pub hole_punching: bool,
     pub invites: invites::Invites,
+    /// 招待を取り消すたびに増やす番号（鍵を作っている間に取り消された招待を足さない）
+    pub invite_epoch: u64,
+    /// 合言葉でつなぐ途中の接続（相手の PeerId が分かるまで）
+    pub code_connects: HashMap<u64, codes::Pending>,
+    /// 合言葉の宛先へ、PeerId を決めずに始めたダイヤル
+    pub code_dials: HashMap<ConnectionId, u64>,
     pub game_peer: Option<PeerId>,
     /// 最初のフレームを待つ届いた対局ストリームの数と、対局中の相手（受け付けのタスクと共有する）
     pub accept_gate: Arc<streams::AcceptGate>,
@@ -280,6 +287,9 @@ impl Node {
             opening: HashMap::new(),
             hole_punching: !config.relay_only && !config.service,
             invites: invites::Invites::default(),
+            invite_epoch: 0,
+            code_connects: HashMap::new(),
+            code_dials: HashMap::new(),
             game_peer: None,
             accept_gate,
             peer_conns: HashMap::new(),
@@ -370,6 +380,7 @@ impl Node {
         }
         // 直接の接続を待つ時間が過ぎた対局ストリームを開く
         self.advance_all_openings();
+        self.expire_code_connects();
         if self.last_second.elapsed() < Duration::from_secs(1) {
             return;
         }

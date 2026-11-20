@@ -48,6 +48,7 @@
 #include "p2precordstore.h"
 #include "p2ptransport.h"
 #include "p2pwindow.h"
+#include "p2pwindowtext.h"
 #include "shogiclock.h"
 #include "shogiview.h"
 
@@ -253,7 +254,7 @@ private slots:
         QCOMPARE(tabs->count(), 6);
         // 接続していなければ招待はできない
         for (QPushButton* button : window.findChildren<QPushButton*>()) {
-            if (button->text() == QStringLiteral("招待文字列を作る") || button->text() == QStringLiteral("招待文字列を確かめる")
+            if (button->text() == QStringLiteral("招待を作る") || button->text() == QStringLiteral("確かめる")
                 || button->text() == QStringLiteral("接続する")) {
                 QVERIFY2(!button->isEnabled(), qPrintable(button->text()));
             }
@@ -294,6 +295,101 @@ private slots:
         QCOMPARE(copied->data(QStringLiteral("x-kde-passwordManagerHint")), QByteArrayLiteral("secret"));
         // 期限（この試験では作っていないので過ぎている）を過ぎると、まだこの文字列のままなら消す
         QTRY_VERIFY(QApplication::clipboard()->text().isEmpty());
+
+        // 合言葉（同じ LAN の招待の短い形）は、合言葉の付いた招待のときだけ出し、同じ印を付けてコピーする
+        auto* codeRow = window.findChild<QWidget*>(QStringLiteral("p2pInviteCodeRow"));
+        auto* codeOut = window.findChild<QLabel*>(QStringLiteral("p2pInviteCode"));
+        auto* copyCode = window.findChild<QPushButton*>(QStringLiteral("p2pCopyCode"));
+        QVERIFY(codeRow && codeOut && copyCode);
+        tabs->setCurrentIndex(1);
+        QVERIFY(!codeRow->isVisible());
+        emit lobby.inviteCreated(QStringLiteral("sbqinv1.withcode"), QStringLiteral("008Q-4HMA-SW95"), 0, 2);
+        QVERIFY(codeRow->isVisible());
+        QCOMPARE(codeOut->text(), QStringLiteral("008Q-4HMA-SW95"));
+        QCOMPARE(inviteOut->toPlainText(), QStringLiteral("sbqinv1.withcode"));
+        // 合言葉は、ほかの文より大きく出す
+        QVERIFY(codeOut->font().pointSizeF() > window.font().pointSizeF());
+        copyCode->click();
+        copied = QApplication::clipboard()->mimeData();
+        QVERIFY(copied);
+        QCOMPARE(copied->text(), QStringLiteral("008Q-4HMA-SW95"));
+        QCOMPARE(copied->data(QStringLiteral("x-kde-passwordManagerHint")), QByteArrayLiteral("secret"));
+        QTRY_VERIFY(QApplication::clipboard()->text().isEmpty());
+        // 合言葉の付かない招待（インターネット・「直接接続を使わない」）では隠す
+        emit lobby.inviteCreated(QStringLiteral("sbqinv1.nocode"), QString(), 0, 1);
+        QVERIFY(!codeRow->isVisible());
+        QVERIFY(codeOut->text().isEmpty());
+
+        // 招待を作り直す間（合言葉の鍵を作る間は応答が少し遅れる）、前の招待を欄に残さない
+        emit lobby.inviteCreated(QStringLiteral("sbqinv1.previous"), QStringLiteral("008Q-4HMA-SW95"), 0, 2);
+        window.findChild<QLineEdit*>(QStringLiteral("p2pDisplayName"))->setText(QStringLiteral("試験"));
+        QSignalSpy createRequested(&window, &P2pWindow::createInviteRequested);
+        QVERIFY(QMetaObject::invokeMethod(&window, "onCreateInvite"));
+        QCOMPARE(createRequested.count(), 1);
+        QVERIFY(inviteOut->toPlainText().isEmpty());
+        QVERIFY(codeOut->text().isEmpty());
+    }
+
+    /// 「招待で接続する」の欄は、合言葉と招待文字列のどちらも受ける。合言葉は、全角・小文字・区切りを直して渡し、
+    /// 断られた理由は合言葉の文で出す
+    void inviteInputAcceptsCodes()
+    {
+        // 招待文字列は前後の空白を除くだけ
+        QVERIFY(P2pWindowText::isInviteString(QStringLiteral("  sbqinv1.AAAA.00000000\n")));
+        QCOMPARE(P2pWindowText::inviteInput(QStringLiteral("  sbqinv1.AA-AA.00000000\n")), QStringLiteral("sbqinv1.AA-AA.00000000"));
+        // 合言葉は、英数字だけを大文字で残す（全角の英数字・全角のハイフン・長音・空白・改行を直す）
+        QVERIFY(!P2pWindowText::isInviteString(QStringLiteral("008Q-4HMA-SW95")));
+        QCOMPARE(P2pWindowText::inviteInput(QStringLiteral("008q-4hma-sw95")), QStringLiteral("008Q4HMASW95"));
+        QCOMPARE(P2pWindowText::inviteInput(QStringLiteral(" 008Q 4HMA\nSW95 ")), QStringLiteral("008Q4HMASW95"));
+        QCOMPARE(P2pWindowText::inviteInput(QStringLiteral("００８Ｑ－４ｈｍａーＳＷ９５")), QStringLiteral("008Q4HMASW95"));
+        QCOMPARE(P2pWindowText::inviteInput(QStringLiteral("あいう")), QString());
+
+        AppActivityState activity;
+        GameBoard board;
+        ShogiClock clock;
+        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
+        P2pPlayerProfile profile(m_dir.filePath(QStringLiteral("code-input")));
+        QVERIFY(profile.open());
+        P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, &profile);
+        P2pWindow window(&lobby, &game);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        window.findChild<QTabWidget*>()->setCurrentIndex(1);
+        auto* input = window.findChild<QPlainTextEdit*>(QStringLiteral("p2pInviteIn"));
+        auto* result = window.findChild<QLabel*>(QStringLiteral("p2pInviteInfo"));
+        auto* connectButton = window.findChild<QPushButton*>(QStringLiteral("p2pConnectInvite"));
+        QVERIFY(input && result && connectButton);
+
+        // 確かめるときに渡すのは、直した文字列
+        QSignalSpy inspect(&window, &P2pWindow::inspectInviteRequested);
+        input->setPlainText(QStringLiteral("００８ｑ－４ｈｍａ－ｓｗ９５"));
+        QVERIFY(QMetaObject::invokeMethod(&window, "onInspectInvite"));
+        QCOMPARE(inspect.count(), 1);
+        QCOMPARE(inspect.first().at(0).toString(), QStringLiteral("008Q4HMASW95"));
+
+        // 合言葉を確かめた結果には、相手の PeerId と期限を出さない（合言葉に入っていない）
+        P2pLobbyService::InviteInfo info;
+        info.isCode = true;
+        info.addressCount = 2;
+        info.usableAddressCount = 2;
+        emit lobby.inviteInspected(info);
+        QVERIFY(result->text().contains(QStringLiteral("合言葉")));
+        QVERIFY(!result->text().contains(QStringLiteral("PeerId")));
+        QCOMPARE(result->text().count(QLatin1Char('\n')), 1);
+
+        // 断られた理由は、合言葉の文で出す
+        emit lobby.inviteRejected(PeerIpc::InviteRejection::Unreadable);
+        QCOMPARE(result->text(), QStringLiteral("合言葉を読めません。入力した文字を確かめてください。"));
+        emit lobby.inviteRejected(PeerIpc::InviteRejection::WrongNetwork);
+        QVERIFY(result->text().contains(QStringLiteral("ローカル")));
+        emit lobby.inviteRejected(PeerIpc::InviteRejection::Own);
+        QCOMPARE(result->text(), QStringLiteral("自分が作った合言葉です。"));
+        // 招待文字列を確かめた後は、招待文字列の文に戻る
+        input->setPlainText(QStringLiteral("sbqinv1.AAAA.00000000"));
+        QVERIFY(QMetaObject::invokeMethod(&window, "onInspectInvite"));
+        QCOMPARE(inspect.last().at(0).toString(), QStringLiteral("sbqinv1.AAAA.00000000"));
+        emit lobby.inviteRejected(PeerIpc::InviteRejection::Unreadable);
+        QCOMPARE(result->text(), QStringLiteral("招待文字列を読めません。"));
     }
 
     /// ウィンドウの操作は意図のシグナルで画面の部品が受け、投了と合意中断はメニューと同じ QAction を通る

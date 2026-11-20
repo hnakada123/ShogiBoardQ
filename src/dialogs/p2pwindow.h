@@ -65,7 +65,7 @@ signals:
     void recreateIdentityRequested();
     /// 招待を作る（表示名・持ち時間・先後の希望はウィンドウの欄の値）
     void createInviteRequested();
-    /// 受け取った招待文字列を確かめる・その招待で接続する（名乗る表示名はウィンドウの欄の値）
+    /// 受け取った招待文字列・合言葉を確かめる・その招待で接続する（名乗る表示名はウィンドウの欄の値）
     void inspectInviteRequested(const QString& invite);
     void connectInviteRequested(const QString& invite, bool allowPrivate);
     /// 対局中の操作（投了・合意引き分けの申し出・合意中断の申し出・対局をやめる）
@@ -83,9 +83,10 @@ public slots:
 private slots:
     void onConnectClicked();
     void onCreateInvite();
-    void onInviteCreated(const QString& invite, quint64 expiresAt, int addressCount);
+    void onInviteCreated(const QString& invite, const QString& code, quint64 expiresAt, int addressCount);
     void onCopyInvite();
-    /// 期限の過ぎた招待文字列がクリップボードに残っていれば消す
+    void onCopyCode();
+    /// 期限の過ぎた招待文字列・合言葉がクリップボードに残っていれば消す
     void clearCopiedInvite();
     void onInspectInvite();
     void onInviteInspected(const P2pLobbyService::InviteInfo& info);
@@ -109,6 +110,8 @@ private:
     /// 登録エンジンの一覧を読み直す（選んでいたエンジンが削除されていれば「人間」に戻す。別のエンジンに替えない）
     void reloadEngines();
     bool checkDisplayName();
+    /// 招待文字列・合言葉をクリップボードに入れる（履歴に残さない印を付け、期限が過ぎたら消す）
+    void copyInviteText(const QString& text);
     /// 文が増えて今の高さに収まらなくなったら、収まる高さまでウィンドウを広げる（画面の高さまで）。折り返すラベルの
     /// 高さは幅で決まり、ウィンドウの最小の高さには入らないので、Qt は自動では広げず、足りない分だけ文が欠ける
     void growToFit();
@@ -137,6 +140,9 @@ private:
 
     // 招待
     QPushButton* m_createInvite = nullptr;
+    QWidget* m_codeRow = nullptr;                ///< 合言葉の行（合言葉があるときだけ出す）
+    QLabel* m_codeOut = nullptr;
+    QPushButton* m_copyCode = nullptr;
     QPlainTextEdit* m_inviteOut = nullptr;
     QPushButton* m_copyInvite = nullptr;
     QLabel* m_inviteOutInfo = nullptr;
@@ -144,8 +150,9 @@ private:
     QPushButton* m_inspectInvite = nullptr;
     QLabel* m_inviteInInfo = nullptr;
     QPointer<QMessageBox> m_connectFailedBox;   ///< 招待の接続に失敗した知らせ（モードレス。閉じたら消える）
-    quint64 m_inviteExpiresAt = 0;               ///< 作った招待文字列の期限（UNIX 秒）
-    QString m_copiedInvite;                      ///< コピーした招待文字列（期限が過ぎたらクリップボードから消す）
+    quint64 m_inviteExpiresAt = 0;               ///< 作った招待の期限（UNIX 秒）
+    QString m_copiedInvite;                      ///< コピーした招待文字列・合言葉（期限が過ぎたらクリップボードから消す）
+    bool m_inviteInIsCode = false;               ///< 確かめた・接続に使った文字列が合言葉だった（断られた理由の文を選ぶ）
     QCheckBox* m_allowPrivate = nullptr;
     QPushButton* m_connectInvite = nullptr;
 

@@ -13,3 +13,5 @@ workspace = true
 [dependencies]
 sha2 = "0.10"
 base64 = "0.22"
+# 合言葉から鍵を作る（Argon2id。protocol/README.md 3.1節）
+argon2 = { version = "0.5", default-features = false, features = ["alloc"] }

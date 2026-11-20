@@ -7,6 +7,7 @@
 #include <QtTest>
 
 #include <QProcess>
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <QTcpServer>
 #include <QTemporaryDir>
@@ -22,6 +23,7 @@
 #include "p2plobbyservice.h"
 #include "p2pplayerprofile.h"
 #include "p2precordstore.h"
+#include "p2pwindowtext.h"
 #include "peerconfinement.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
@@ -336,7 +338,7 @@ private slots:
         QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
         host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{300'000, 30'000}, SidePreference::None);
         QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 10000);
-        const int hostAddresses = created.first().at(2).toInt();
+        const int hostAddresses = created.first().at(3).toInt();
         QVERIFY(hostAddresses >= 2);   // 直接のアドレスと、中継経由のアドレス
         QSignalSpy inspected(&guest.lobby, &P2pLobbyService::inviteInspected);
         guest.lobby.inspectInvite(created.first().at(0).toString());
@@ -378,6 +380,67 @@ private slots:
                                      && guest.lobby.status() == P2pLobbyService::Status::Off, 10000);
         service.kill();
         service.waitForFinished(3000);
+    }
+
+    /// 合言葉（同じ LAN の招待の短い形）で、招待から対局の開始まで進む。合言葉は招待と一緒にでき、相手は
+    /// 全角や小文字で入力しても、画面と同じ直し方（P2pWindowText::inviteInput）で読める
+    void codeInviteStartsAGame()
+    {
+        App host(m_dir.filePath(QStringLiteral("code-host")));
+        App guest(m_dir.filePath(QStringLiteral("code-guest")));
+        QVERIFY(createIdentity(host));
+        QVERIFY(createIdentity(guest));
+        QCOMPARE(host.lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::None);
+        QCOMPARE(guest.lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::None);
+        QTRY_COMPARE_WITH_TIMEOUT(host.lobby.status(), P2pLobbyService::Status::Online, 15000);
+        QTRY_COMPARE_WITH_TIMEOUT(guest.lobby.status(), P2pLobbyService::Status::Online, 15000);
+
+        QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
+        host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::Black);
+        QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 10000);
+        const QString code = created.first().at(1).toString();
+        QVERIFY2(!code.isEmpty(), "the local network gives a code with the invite");
+        // 英数字を4文字ずつ区切った形（招待文字列の接頭辞ではない）
+        QVERIFY(QRegularExpression(QStringLiteral("^[0-9A-Z]{1,4}(-[0-9A-Z]{1,4}){2,8}$")).match(code).hasMatch());
+        QVERIFY(!P2pWindowText::isInviteString(code));
+
+        // 自分の合言葉は使えない
+        QSignalSpy hostRejected(&host.lobby, &P2pLobbyService::inviteRejected);
+        host.lobby.inspectInvite(P2pWindowText::inviteInput(code));
+        QTRY_COMPARE_WITH_TIMEOUT(hostRejected.count(), 1, 10000);
+        QCOMPARE(hostRejected.first().at(0).value<PeerIpc::InviteRejection>(), PeerIpc::InviteRejection::Own);
+
+        // 相手は小文字・空白区切りで入力する
+        const QString typed = QStringLiteral("  ") + code.toLower().replace(QLatin1Char('-'), QLatin1Char(' '));
+        QSignalSpy inspected(&guest.lobby, &P2pLobbyService::inviteInspected);
+        guest.lobby.inspectInvite(P2pWindowText::inviteInput(typed));
+        QTRY_COMPARE_WITH_TIMEOUT(inspected.count(), 1, 10000);
+        const P2pLobbyService::InviteInfo info = inspected.first().at(0).value<P2pLobbyService::InviteInfo>();
+        QVERIFY(info.isCode);
+        QVERIFY(info.peerId.isEmpty());
+        QVERIFY(info.usableAddressCount >= 1);
+        guest.lobby.connectInvite(P2pWindowText::inviteInput(typed), false, QStringLiteral("招待された側"));
+
+        QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
+                                     && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
+        QTRY_VERIFY_WITH_TIMEOUT(host.game.negotiation()
+                                     && host.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
+        QCOMPARE(guest.game.opponentDisplayName(), QStringLiteral("招待した側"));
+        QCOMPARE(host.game.opponentDisplayName(), QStringLiteral("招待された側"));
+        QVERIFY(host.game.negotiation()->iAmBlack());
+        host.game.confirmStart();
+        guest.game.confirmStart();
+        QTRY_VERIFY_WITH_TIMEOUT(host.game.isInProgress() && guest.game.isInProgress(), 20000);
+        QVERIFY(!host.game.viaRelay());
+        QVERIFY(!guest.game.viaRelay());
+        QTRY_VERIFY_WITH_TIMEOUT(host.game.isHumanToMove(), 20000);
+        QCOMPARE(host.game.playMove(UsiMove::fromString(u"7g7f")), GameChannel::MoveResult::Sent);
+        QTRY_VERIFY_WITH_TIMEOUT(guest.game.isHumanToMove(), 20000);
+
+        host.lobby.end();
+        guest.lobby.end();
+        QTRY_VERIFY_WITH_TIMEOUT(host.lobby.status() == P2pLobbyService::Status::Off
+                                     && guest.lobby.status() == P2pLobbyService::Status::Off, 10000);
     }
 };
 

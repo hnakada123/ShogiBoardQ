@@ -57,6 +57,7 @@ impl Node {
                 // ストリームは動かせない。残すと、使われないまましばらくして閉じる。次につなぎ直すときに試し直す）
                 if !relayed && self.has_relayed_stream_to(&peer_id) {
                     self.swarm.close_connection(connection_id);
+                    self.on_code_dial_failed(connection_id);
                     return;
                 }
                 self.peer_conns
@@ -66,6 +67,8 @@ impl Node {
                 self.conn_since.insert(connection_id, Instant::now());
                 self.update_routes(&peer_id);
                 self.advance_opening(&peer_id);
+                // 合言葉の宛先へ、PeerId を決めずに始めたダイヤルなら、相手の PeerId がここで分かる
+                self.on_code_dial_established(connection_id, peer_id);
             }
             SwarmEvent::ConnectionClosed {
                 peer_id, connection_id, ..
@@ -86,12 +89,17 @@ impl Node {
                     self.fail_openings_of(&peer_id);
                 }
             }
-            SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
+            SwarmEvent::OutgoingConnectionError {
+                peer_id,
+                connection_id,
+                error,
+            } => {
                 if let DialError::Transport(errors) = &error {
                     for (address, _) in errors {
                         self.policy.record_failure(address);
                     }
                 }
+                self.on_code_dial_failed(connection_id);
                 // つながっていない相手への接続に失敗したら、対局ストリームを開くのをやめる。中継でつながった相手への
                 // 直接の接続（穴あけ）の失敗は、相手がやり直すことがあるので、待つ時間が過ぎるまで待つ
                 if let Some(peer) = peer_id {

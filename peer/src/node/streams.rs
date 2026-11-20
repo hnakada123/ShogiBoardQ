@@ -31,7 +31,7 @@ const MAX_PENDING_STREAMS_PER_PEER: usize = 1;
 
 /// 届いた対局ストリームのうち、最初のフレームを待つものの数と、対局中の相手（受け付けのタスクと主ループで共有する）。
 ///
-/// 招待の合言葉と相手の確認は最初のフレームの後なので、最初のフレームを送らない相手に待ちの枠を使い切られると、
+/// 招待のトークンと相手の確認は最初のフレームの後なので、最初のフレームを送らない相手に待ちの枠を使い切られると、
 /// 招待を持つ相手や対局相手のストリームを捨てることになる（監査 2026-11-13 P6）。待ちの枠は相手ごとに数え、対局中は
 /// 相手以外のストリームを読まずに閉じる
 #[derive(Default)]
@@ -104,6 +104,18 @@ pub enum Internal {
         header: FrameHeader,
         first: Vec<u8>,
     },
+    /// 招待に付ける合言葉の鍵を作り終えた（createInvite の応答を返す。node/requests）
+    InviteReady(super::requests::ReadyInvite),
+    /// 合言葉でつなぐ側の鍵を作り終えた（作れなければ None。node/codes）
+    CodeKey {
+        conn: u64,
+        key: Option<[u8; 32]>,
+    },
+    /// 合言葉での接続を始められなかった（node/codes）
+    CodeFailed {
+        conn: u64,
+        reason: ipc::CloseReason,
+    },
 }
 
 /// 開いた接続の状態
@@ -143,8 +155,9 @@ impl Node {
         id
     }
 
+    /// 対局ストリームの数（合言葉でつなぐ途中のものを含む）
     pub fn game_connection_count(&self) -> usize {
-        self.conns.len()
+        self.conns.len().saturating_add(self.code_connects.len())
     }
 
     /// 相手との接続から見た経路（1つでも直接の接続があれば直接）。届いた対局ストリームは、どの接続の上にあるか
@@ -404,7 +417,8 @@ impl Node {
     pub fn close_conn(&mut self, conn: u64, reason: ipc::CloseReason, notify: bool) {
         // 開くのを待っていたら、やめる（知らせる側を捨てると、開くタスクが終わる）
         self.opening.remove(&conn);
-        if self.conns.remove(&conn).is_some() && notify {
+        let known = self.drop_code_connect(conn) | self.conns.remove(&conn).is_some();
+        if known && notify {
             self.out.notify(ipc::Notification::ConnectionClosed {
                 connection: conn,
                 reason,
@@ -449,6 +463,9 @@ impl Node {
                 header,
                 first,
             } => self.on_inbound(peer, stream, header, first),
+            Internal::InviteReady(ready) => self.on_invite_ready(ready),
+            Internal::CodeKey { conn, key } => self.on_code_key(conn, key),
+            Internal::CodeFailed { conn, reason } => self.fail_code_connect(conn, reason),
         }
     }
 
@@ -466,12 +483,16 @@ impl Node {
             let Some(token) = frame::invite_token(&header) else {
                 return;
             };
-            if !self.invites.redeem(&token, unix_now()) {
+            // 招待文字列のトークンか、合言葉の鍵とこの相手の PeerId から作ったトークン
+            if !self
+                .invites
+                .redeem(&token, &self.local_peer.to_bytes(), &peer.to_bytes(), unix_now())
+            {
                 return;
             }
             (ipc::Origin::Invite, false)
         } else {
-            // 有効な招待の合言葉を持たない相手のストリームは受け付けない
+            // 有効な招待のトークンを持たない相手のストリームは受け付けない
             return;
         };
         let conn = self.alloc_conn();

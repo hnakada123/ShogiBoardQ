@@ -5,6 +5,23 @@
 
 #include <QStringList>
 
+bool P2pWindowText::isInviteString(const QString& input)
+{
+    return input.trimmed().startsWith(QLatin1String("sbqinv"));
+}
+
+QString P2pWindowText::inviteInput(const QString& input)
+{
+    if (isInviteString(input)) return input.trimmed();
+    QString code;
+    const QString folded = input.normalized(QString::NormalizationForm_KC);
+    for (const QChar c : folded) {
+        const char16_t u = c.unicode();
+        if ((u >= u'0' && u <= u'9') || (u >= u'A' && u <= u'Z') || (u >= u'a' && u <= u'z')) code.append(c.toUpper());
+    }
+    return code;
+}
+
 QString P2pWindowText::playerIdText(const QByteArray& playerKey)
 {
     const QString hex = QString::fromLatin1(playerKey.toHex());

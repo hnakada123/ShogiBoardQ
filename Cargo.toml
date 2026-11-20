@@ -26,6 +26,13 @@ arithmetic_side_effects = "deny"
 [profile.release]
 overflow-checks = true
 
+# 合言葉の鍵の導出（Argon2id、64 MiB）は、最適化なしでは数秒かかる。デバッグのビルドと試験でも最適化して使う
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
+
 # 整数のオーバーフローの検査は自前のコード（ワークスペース）にだけ掛ける。依存のクレートはリリースでの通常の
 # 振る舞い（検査なし）のままにする（依存の中の溢れで、主のタスクごと通信プロセスを終わらせない。監査 2026-11-13）
 [profile.release.package."*"]

@@ -19,6 +19,7 @@ use std::time::{Duration, Instant};
 
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
+use sbq_protocol::code::Code;
 use sbq_protocol::frame;
 use sbq_protocol::hash::hex;
 use sbq_protocol::invite::Invite;
@@ -103,7 +104,7 @@ impl Peer {
         let id = self.next_id.to_string();
         self.next_id += 1;
         let msg = json!({
-            "protocolVersion": 2,
+            "protocolVersion": 3,
             "processGeneration": self.generation,
             "requestId": id,
             "method": method,
@@ -117,7 +118,7 @@ impl Peer {
                 .rx
                 .recv_timeout(remaining)
                 .unwrap_or_else(|_| panic!("no response to {method}"));
-            assert_eq!(v["protocolVersion"], 2);
+            assert_eq!(v["protocolVersion"], 3);
             assert_eq!(v["processGeneration"], self.generation.as_str());
             if v.get("requestId").and_then(Value::as_str) == Some(id.as_str()) {
                 return v;
@@ -164,7 +165,7 @@ impl Peer {
     /// relay_only: 「直接接続を使わない」
     fn start_with(&mut self, bootstrap: Vec<String>, relay_only: bool) {
         let hello = self.ok("hello", json!({ "uiVersion": "test" }));
-        assert_eq!(hello["ipcVersion"], 2);
+        assert_eq!(hello["ipcVersion"], 3);
         assert_eq!(hello["sandbox"]["applied"], true, "{hello}");
         let wait_node = !bootstrap.is_empty();
         let start = self.ok(
@@ -344,6 +345,223 @@ fn invite_connection_and_frames() {
     assert_eq!(status.code(), Some(0));
 }
 
+/// 合言葉（同じ LAN の招待の短い形。protocol/README.md 3.1節）: 招待と一緒に作られ、相手の PeerId を知らずに
+/// つなげる。招待文字列とどちらか一方で1回だけ使え、秘密の違う合言葉は招待した側に届かない
+#[test]
+fn code_connection_and_frames() {
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    a.start(vec![]);
+    b.start(vec![]);
+
+    let invite = a.ok("createInvite", json!({}));
+    let code_text = invite["code"].as_str().unwrap().to_owned();
+    let code = Code::decode(&code_text).expect("a code comes with the invite");
+    assert!(!code.addrs.is_empty());
+    assert_eq!(code.encode().as_deref(), Some(code_text.as_str()));
+
+    let inspected = b.ok("inspectInvite", json!({ "invite": code_text }));
+    assert_eq!(inspected["kind"], "code");
+    assert_eq!(inspected["peerId"], "");
+    assert_eq!(inspected["expiresAt"], "0");
+    assert!(inspected["usableAddressCount"].as_u64().unwrap() >= 1);
+    assert_eq!(inspected["privateAddresses"], json!([]));
+    // 招待文字列は kind が invite
+    assert_eq!(
+        b.ok("inspectInvite", json!({ "invite": invite["invite"] }))["kind"],
+        "invite"
+    );
+    // 自分の合言葉は使えない。読めない文字列は invite_invalid
+    assert_eq!(
+        a.call("inspectInvite", json!({ "invite": code_text }))["error"]["code"],
+        "invite_own"
+    );
+    for bad in ["", "!!!", "K7MP", "sbqinv2.AAAA"] {
+        assert_eq!(
+            b.call("inspectInvite", json!({ "invite": bad }))["error"]["code"],
+            "invite_invalid",
+            "{bad}"
+        );
+    }
+
+    // 区切りなしの小文字で打っても読める
+    let typed = code_text.replace('-', "").to_lowercase();
+    let conn_b = b.ok("connectInvite", json!({ "invite": typed, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let opened_b = b
+        .wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B opened");
+    assert_eq!(opened_b["direction"], "outbound");
+    assert_eq!(opened_b["origin"], "invite");
+    assert_eq!(opened_b["route"], "direct");
+    assert_eq!(opened_b["peerId"], a.peer_id.as_str());
+    let opened_a = a.wait("connectionOpened", |_| true, TIMEOUT).expect("A opened");
+    assert_eq!(opened_a["direction"], "inbound");
+    assert_eq!(opened_a["origin"], "invite");
+    assert_eq!(opened_a["peerId"], b.peer_id.as_str());
+    let conn_a = opened_a["connection"].as_str().unwrap().to_owned();
+
+    let f1 = hello_frame(1);
+    b.ok("sendFrame", json!({ "connection": conn_b, "frame": f1 }));
+    let got = a
+        .wait("frameReceived", |p| p["connection"] == conn_a.as_str(), TIMEOUT)
+        .expect("A frame");
+    assert_eq!(got["frame"], f1.as_str());
+    let f2 = hello_frame(2);
+    a.ok("sendFrame", json!({ "connection": conn_a, "frame": f2 }));
+    let got = b
+        .wait("frameReceived", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B frame");
+    assert_eq!(got["frame"], f2.as_str());
+    b.ok("closeConnection", json!({ "connection": conn_b }));
+    a.wait("connectionClosed", |p| p["connection"] == conn_a.as_str(), TIMEOUT)
+        .expect("A closed");
+
+    // 合言葉で使った招待は、合言葉でも、同じ招待の招待文字列でも、もう使えない（招待した側に届かない）
+    for used in [code_text.as_str(), invite["invite"].as_str().unwrap()] {
+        let again = b.ok("connectInvite", json!({ "invite": used, "allowPrivate": false }))["connection"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        if b.wait("connectionOpened", |p| p["connection"] == again.as_str(), TIMEOUT)
+            .is_some()
+        {
+            let _ = b.call("sendFrame", json!({ "connection": again, "frame": hello_frame(3) }));
+        }
+        assert!(
+            a.wait("connectionOpened", |_| true, Duration::from_secs(3)).is_none(),
+            "a used invite was accepted"
+        );
+    }
+
+    // 秘密の違う合言葉は、招待した側に届かない
+    let fresh = a.ok("createInvite", json!({}));
+    let mut forged = Code::decode(fresh["code"].as_str().unwrap()).unwrap();
+    forged.secret ^= 1;
+    let wrong = b.ok(
+        "connectInvite",
+        json!({ "invite": forged.encode().unwrap(), "allowPrivate": false }),
+    )["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    if b.wait("connectionOpened", |p| p["connection"] == wrong.as_str(), TIMEOUT)
+        .is_some()
+    {
+        let _ = b.call("sendFrame", json!({ "connection": wrong, "frame": hello_frame(4) }));
+    }
+    assert!(
+        a.wait("connectionOpened", |_| true, Duration::from_secs(3)).is_none(),
+        "a forged code was accepted"
+    );
+    // 同じ招待の招待文字列は、まだ使える（合言葉の照合に失敗しても、招待は残る）
+    let conn_b = b.ok(
+        "connectInvite",
+        json!({ "invite": fresh["invite"], "allowPrivate": false }),
+    )["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    b.wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B opened by the invite string");
+    a.wait("connectionOpened", |_| true, TIMEOUT).expect("A opened");
+}
+
+/// だれも待ち受けていない宛先の合言葉は、つながらずに閉じる。招待を取り消すと、合言葉も使えなくなる
+#[test]
+fn code_to_nowhere_and_cancelled_code() {
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    a.start(vec![]);
+    b.start(vec![]);
+
+    // この PC のだれも待ち受けていないポート
+    let free = std::net::UdpSocket::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+    let nowhere = Code::new(vec![std::net::Ipv4Addr::LOCALHOST], Some(free), 5)
+        .unwrap()
+        .encode()
+        .unwrap();
+    let conn = b.ok("connectInvite", json!({ "invite": nowhere, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let closed = b
+        .wait("connectionClosed", |p| p["connection"] == conn.as_str(), Duration::from_secs(40))
+        .expect("closed");
+    assert!(closed["reason"] == "unreachable" || closed["reason"] == "timeout", "{closed}");
+
+    // つなぐ途中の接続は、閉じられる（閉じた接続は知らせない）
+    let free = std::net::UdpSocket::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+    let nowhere = Code::new(vec![std::net::Ipv4Addr::LOCALHOST], Some(free), 5)
+        .unwrap()
+        .encode()
+        .unwrap();
+    let conn = b.ok("connectInvite", json!({ "invite": nowhere, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    b.ok("closeConnection", json!({ "connection": conn }));
+    assert_eq!(
+        b.call("closeConnection", json!({ "connection": conn }))["error"]["code"],
+        "unknown_connection"
+    );
+
+    let code = a.ok("createInvite", json!({}))["code"].as_str().unwrap().to_owned();
+    a.ok("cancelInvites", json!({}));
+    let conn = b.ok("connectInvite", json!({ "invite": code, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    if b.wait("connectionOpened", |p| p["connection"] == conn.as_str(), TIMEOUT)
+        .is_some()
+    {
+        let _ = b.call("sendFrame", json!({ "connection": conn, "frame": hello_frame(1) }));
+    }
+    assert!(
+        a.wait("connectionOpened", |_| true, Duration::from_secs(3)).is_none(),
+        "a cancelled code was accepted"
+    );
+}
+
+/// 権限の制限の下でも、回線のつながっていないインターフェース（コンテナのいない docker0 など）を調べられ、
+/// そのアドレスを合言葉に入れない（この PC にそういうインターフェースがなければ、確かめることがない）
+#[cfg(target_os = "linux")]
+#[test]
+fn code_skips_addresses_of_idle_interfaces() {
+    use nix::net::if_::InterfaceFlags;
+    let mut idle = Vec::new();
+    let mut active = Vec::new();
+    for interface in nix::ifaddrs::getifaddrs().unwrap() {
+        let Some(ip) = interface.address.as_ref().and_then(|a| a.as_sockaddr_in()).map(|a| a.ip()) else {
+            continue;
+        };
+        if !ip.is_private() {
+            continue;
+        }
+        if interface
+            .flags
+            .contains(InterfaceFlags::IFF_UP | InterfaceFlags::IFF_RUNNING)
+        {
+            active.push(ip);
+        } else {
+            idle.push(ip);
+        }
+    }
+    if idle.is_empty() || active.is_empty() {
+        return;
+    }
+    let mut a = Peer::spawn();
+    a.start(vec![]);
+    let invite = a.ok("createInvite", json!({}));
+    let code = Code::decode(invite["code"].as_str().unwrap()).unwrap();
+    for ip in &code.addrs {
+        assert!(!idle.contains(ip), "{ip} is on an idle interface");
+        assert!(active.contains(ip), "{ip}");
+    }
+}
+
 #[test]
 fn game_peer_reconnect() {
     let mut a = Peer::spawn();
@@ -389,14 +607,14 @@ fn ipc_violations_end_the_process() {
     let mut p = Peer::spawn();
     p.ok("hello", json!({ "uiVersion": "test" }));
     p.send_raw(
-        &json!({ "protocolVersion": 2, "processGeneration": "7", "requestId": "2", "method": "evil", "params": {} }),
+        &json!({ "protocolVersion": 3, "processGeneration": "7", "requestId": "2", "method": "evil", "params": {} }),
     );
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 世代の違う要求
     let mut p = Peer::spawn();
     p.ok("hello", json!({ "uiVersion": "test" }));
-    p.send_raw(&json!({ "protocolVersion": 2, "processGeneration": "8", "requestId": "2", "method": "createInvite", "params": {} }));
+    p.send_raw(&json!({ "protocolVersion": 3, "processGeneration": "8", "requestId": "2", "method": "createInvite", "params": {} }));
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 上限を超える長さ
@@ -408,7 +626,7 @@ fn ipc_violations_end_the_process() {
 
     // 最初の要求が hello でない
     let mut p = Peer::spawn();
-    p.send_raw(&json!({ "protocolVersion": 2, "processGeneration": "7", "requestId": "1", "method": "createInvite", "params": {} }));
+    p.send_raw(&json!({ "protocolVersion": 3, "processGeneration": "7", "requestId": "1", "method": "createInvite", "params": {} }));
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 知らない引数はエラーの応答（終了しない）、start の前の要求は invalid_state

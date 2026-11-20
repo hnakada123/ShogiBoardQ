@@ -105,10 +105,11 @@ public:
 signals:
     void statusChanged();
     void networkStatusChanged();
-    /// 作った招待文字列（記録しない。利用者に渡してもらう）
-    void inviteCreated(const QString& invite, quint64 expiresAt, int addressCount);
+    /// 作った招待文字列と合言葉（記録しない。利用者に渡してもらう）。合言葉は、同じ LAN の相手と直接つなぐ
+    /// ときだけ付く（付かなければ空）
+    void inviteCreated(const QString& invite, const QString& code, quint64 expiresAt, int addressCount);
     void inviteInspected(const P2pLobbyService::InviteInfo& info);
-    /// 招待文字列の確認・招待での接続を、通信プロセスが断った
+    /// 招待文字列・合言葉の確認と、招待での接続を、通信プロセスが断った
     void inviteRejected(PeerIpc::InviteRejection rejection);
     /// 招待の接続が開けなかった
     void connectFailed(PeerIpc::CloseReason reason);

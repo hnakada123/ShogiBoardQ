@@ -6,11 +6,13 @@ use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
 use libp2p::{Multiaddr, PeerId};
 use rand::RngCore;
+use sbq_protocol::code::Code;
 use sbq_protocol::frame;
 use sbq_protocol::invite::{self, Invite, InviteError};
 use sbq_protocol::network::Profile;
 use serde_json::{json, Value};
 
+use super::streams::Internal;
 use super::{unix_now, ConnState, Node, MAX_GAME_CONNECTIONS};
 use crate::addr::{self, AddrPolicy};
 use crate::ipc::{self, Method, Request};
@@ -31,6 +33,31 @@ fn invite_error(e: InviteError) -> (&'static str, String) {
     (code, e.to_string())
 }
 
+/// 招待の要求（inspectInvite・connectInvite）の文字列を読んだもの
+enum Target {
+    /// 招待文字列
+    Invite {
+        inv: Invite,
+        peer: PeerId,
+        addrs: Vec<Multiaddr>,
+    },
+    /// 合言葉（addrs は、合言葉の宛先から自分の待受を除いたもの）
+    Code { code: Code, addrs: Vec<Multiaddr> },
+}
+
+/// 合言葉の鍵を作り終えた招待（createInvite の応答を、鍵を作ってから返す）
+pub struct ReadyInvite {
+    request_id: String,
+    /// 鍵を作り始めたときの番号（その後に招待が取り消されていれば、足さない）
+    epoch: u64,
+    invite: String,
+    token: [u8; 32],
+    expires_at: u64,
+    address_count: usize,
+    /// 合言葉と鍵（作れなければ None。招待文字列だけの招待にする）
+    code: Option<(String, [u8; 32])>,
+}
+
 /// 要求の引数の PeerId を表記から読む（Ed25519 の identity multihash に限る）
 fn parse_peer_id(text: &str) -> Option<PeerId> {
     let peer: PeerId = text.parse().ok()?;
@@ -45,9 +72,16 @@ impl Node {
     pub fn on_request(&mut self, request: Request) {
         let result = match request.method {
             Method::Hello | Method::Start => Err(("invalid_state", "already started".to_owned())),
-            Method::CreateInvite => self.empty(&request).and_then(|()| self.create_invite()),
+            Method::CreateInvite => match self.empty(&request) {
+                // 応答は、合言葉の鍵を作ってから返す（on_invite_ready）
+                Ok(()) => match self.create_invite(&request.request_id) {
+                    Ok(()) => return,
+                    Err(e) => Err(e),
+                },
+                Err(e) => Err(e),
+            },
             Method::CancelInvites => self.empty(&request).map(|()| {
-                self.invites.clear();
+                self.cancel_invites();
                 json!({})
             }),
             Method::InspectInvite => self.inspect_invite(&request),
@@ -57,7 +91,7 @@ impl Node {
             Method::SendFrame => self.send_frame(&request),
             Method::CloseConnection => self.close_connection(&request),
             Method::Shutdown => self.empty(&request).map(|()| {
-                self.invites.clear();
+                self.cancel_invites();
                 self.shutdown_at = Instant::now()
                     .checked_add(Duration::from_millis(300))
                     .or_else(|| Some(Instant::now()));
@@ -87,7 +121,14 @@ impl Node {
         self.policy.invite_addrs(candidates)
     }
 
-    fn create_invite(&mut self) -> ReqResult {
+    /// すべての招待を無効にする（鍵を作っている途中の招待も足さない）
+    fn cancel_invites(&mut self) {
+        self.invites.clear();
+        self.invite_epoch = self.invite_epoch.wrapping_add(1);
+    }
+
+    /// 招待を作る。同じ LAN の相手と直接つなぐときは合言葉も付けるので、応答は鍵を作ってから返す
+    fn create_invite(&mut self, request_id: &str) -> Result<(), (&'static str, String)> {
         let mut token = [0u8; 32];
         rand::rngs::OsRng.fill_bytes(&mut token);
         let expires_at = unix_now().saturating_add(invite::MAX_LIFETIME_SECS);
@@ -103,12 +144,54 @@ impl Node {
         let text = inv
             .encode()
             .ok_or(("internal", "could not encode the invite".to_owned()))?;
-        self.invites.add(token, expires_at);
-        Ok(json!({ "invite": text, "expiresAt": expires_at.to_string(), "addressCount": address_count }))
+        let mut ready = ReadyInvite {
+            request_id: request_id.to_owned(),
+            epoch: self.invite_epoch,
+            invite: text,
+            token,
+            expires_at,
+            address_count,
+            code: None,
+        };
+        let Some(code) = self.code_for_invite() else {
+            self.on_invite_ready(ready);
+            return Ok(());
+        };
+        // 鍵の導出は時間とメモリを使うので、主ループの外で行う
+        let internal = self.internal.clone();
+        let network_id = self.network_id;
+        tokio::task::spawn_blocking(move || {
+            ready.code = code.encode().zip(code.derive_key(&network_id));
+            let _ = internal.send(Internal::InviteReady(ready));
+        });
+        Ok(())
+    }
+
+    /// 作った招待を覚えて、createInvite の応答を返す
+    pub(super) fn on_invite_ready(&mut self, ready: ReadyInvite) {
+        if ready.epoch != self.invite_epoch {
+            self.out
+                .error(&ready.request_id, "invalid_state", "invites were cancelled");
+            return;
+        }
+        let (code, key) = match ready.code {
+            Some((code, key)) => (code, Some(key)),
+            None => (String::new(), None),
+        };
+        self.invites.add(ready.token, key, ready.expires_at);
+        self.out.result(
+            &ready.request_id,
+            json!({
+                "invite": ready.invite,
+                "code": code,
+                "expiresAt": ready.expires_at.to_string(),
+                "addressCount": ready.address_count,
+            }),
+        );
     }
 
     /// 招待文字列を読み、今のネットワークで使えるか確かめる
-    fn read_invite(&self, text: &str) -> Result<(Invite, PeerId, Vec<Multiaddr>), (&'static str, String)> {
+    fn read_invite(&self, text: &str) -> Result<Target, (&'static str, String)> {
         let inv = Invite::decode(text).map_err(invite_error)?;
         inv.check(unix_now(), &self.network_id, &self.local_peer.to_bytes())
             .map_err(invite_error)?;
@@ -118,12 +201,38 @@ impl Node {
             let a = Multiaddr::try_from(bytes.clone()).map_err(|_| invite_error(InviteError::Invalid))?;
             addrs.push(addr::without_peer_id(&a));
         }
-        Ok((inv, peer, addrs))
+        Ok(Target::Invite { inv, peer, addrs })
+    }
+
+    /// 合言葉を読み、今のネットワークで使えるか確かめる（合言葉は同じ LAN の相手の宛先なので、ローカルだけ）
+    fn read_code(&self, text: &str) -> Result<Target, (&'static str, String)> {
+        let code = Code::decode(text).ok_or_else(|| invite_error(InviteError::Invalid))?;
+        if self.spec.profile != Profile::Local {
+            return Err(invite_error(InviteError::WrongNetwork));
+        }
+        let addrs = self.code_addrs(&code);
+        if addrs.is_empty() {
+            return Err(invite_error(InviteError::Own));
+        }
+        Ok(Target::Code { code, addrs })
+    }
+
+    /// 招待の要求の文字列（招待文字列か合言葉）を読む
+    fn read_target(&self, text: &str) -> Result<Target, (&'static str, String)> {
+        if text.trim_start().starts_with(invite::PREFIX) {
+            self.read_invite(text)
+        } else {
+            self.read_code(text)
+        }
     }
 
     fn inspect_invite(&mut self, request: &Request) -> ReqResult {
         let p: ipc::InviteParams = ipc::params(request).map_err(invalid)?;
-        let (inv, peer, addrs) = self.read_invite(&p.invite)?;
+        let (kind, peer_id, expires_at, addrs) = match self.read_target(&p.invite)? {
+            Target::Invite { inv, peer, addrs } => ("invite", peer.to_base58(), inv.expires_at, addrs),
+            // 合言葉には、相手の PeerId も期限も入っていない
+            Target::Code { addrs, .. } => ("code", String::new(), 0, addrs),
+        };
         let usable = addrs.iter().filter(|a| self.policy.usable(a)).count();
         let private: Vec<String> = if self.spec.profile == Profile::Internet {
             addrs
@@ -135,8 +244,9 @@ impl Node {
             Vec::new()
         };
         Ok(json!({
-            "peerId": peer.to_base58(),
-            "expiresAt": inv.expires_at.to_string(),
+            "kind": kind,
+            "peerId": peer_id,
+            "expiresAt": expires_at.to_string(),
             "addressCount": addrs.len(),
             "usableAddressCount": usable,
             "privateAddresses": private,
@@ -152,7 +262,16 @@ impl Node {
 
     fn connect_invite(&mut self, request: &Request) -> ReqResult {
         let p: ipc::ConnectInviteParams = ipc::params(request).map_err(invalid)?;
-        let (inv, peer, addrs) = self.read_invite(&p.invite)?;
+        let (inv, peer, addrs) = match self.read_target(&p.invite)? {
+            Target::Invite { inv, peer, addrs } => (inv, peer, addrs),
+            Target::Code { code, addrs } => {
+                self.check_capacity()?;
+                let usable = self.policy.filter_addrs(addrs);
+                let conn = self.alloc_conn();
+                self.start_code_connect(conn, code, usable);
+                return Ok(json!({ "connection": conn.to_string() }));
+            }
+        };
         self.check_capacity()?;
         if p.allow_private && self.spec.profile == Profile::Internet {
             for a in addrs.iter().filter(|a| AddrPolicy::is_private(a)) {
@@ -246,7 +365,7 @@ impl Node {
     fn close_connection(&mut self, request: &Request) -> ReqResult {
         let p: ipc::ConnectionParams = ipc::params(request).map_err(invalid)?;
         let conn = Self::parse_conn(&p.connection)?;
-        if !self.conns.contains_key(&conn) {
+        if !self.conns.contains_key(&conn) && !self.code_connects.contains_key(&conn) {
             return Err(("unknown_connection", "unknown connection".to_owned()));
         }
         self.close_conn(conn, ipc::CloseReason::Closed, false);

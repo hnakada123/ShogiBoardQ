@@ -46,6 +46,11 @@ public:
     static QString categoryText(P2p::EvidenceReport::Category category);
     /// P2P対局を使い始められない理由（None なら空）
     static QString startFailureText(P2pLobbyService::StartFailure failure);
+    /// 「招待で接続する」の欄の文字列が招待文字列か（そうでなければ合言葉として扱う）
+    static bool isInviteString(const QString& input);
+    /// 「招待で接続する」の欄の文字列を、通信プロセスへ渡す形にする。招待文字列は前後の空白を除くだけ。合言葉は
+    /// 全角の英数字を半角にし、英数字だけを大文字で残す（区切り・空白・全角のハイフンは、どれも読み飛ばす）
+    static QString inviteInput(const QString& input);
     /// 通信プロセスが使えなくなった理由（None なら空。権限の制限の失敗だけ、診断の detail を添える）
     static QString peerFailureText(PeerProcess::Failure failure, const QString& detail);
 };

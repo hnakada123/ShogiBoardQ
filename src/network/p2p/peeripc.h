@@ -17,7 +17,7 @@ namespace PeerIpc {
 
 /// IPC 1件の上限（128 KiB）
 inline constexpr qsizetype kMaxMessageBytes = 128 * 1024;
-inline constexpr int kProtocolVersion = 2;
+inline constexpr int kProtocolVersion = 3;
 
 /// 長さの前置きを付けたメッセージ
 QByteArray frame(const QJsonObject& message);
@@ -82,12 +82,14 @@ struct StartResult {
 
 struct CreatedInvite {
     QString invite;
+    QString code;            ///< 合言葉（同じ LAN の相手に伝える短い形。出せないときは空）
     quint64 expiresAt = 0;
     int addressCount = 0;
 };
 
-/// 招待文字列を読んだ結果（通信プロセスの解釈。対局・UI側は招待文字列を読まない）
+/// 招待文字列・合言葉を読んだ結果（通信プロセスの解釈。対局・UI側は招待文字列も合言葉も読まない）
 struct InspectedInvite {
+    bool isCode = false;     ///< 合言葉（相手の PeerId と期限は入っていないので、peerId は空、expiresAt は 0）
     QString peerId;
     quint64 expiresAt = 0;
     int addressCount = 0;
