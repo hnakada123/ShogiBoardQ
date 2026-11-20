@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="Language"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><span aria-current="page">English</span><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P Game Specification for Compatible Implementations</h1>
-<p>ShogiBoardQ / Protocol version 2 / Document version 2026-11-20 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
+<p>ShogiBoardQ / Protocol version 2 / Document version 2026-11-20.1 (<a href="#sec-B">change history</a>) / English translation of the Japanese original</p>
 <p class="lead">Defines the transport layer, invitation strings, frames, start negotiation, in-game steps, reconnection, and the format and verification of game records (evidence).</p>
 </header>
 <nav class="toc" aria-label="Contents">
@@ -136,6 +136,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li><a href="#sec-5-1">5.1 Format</a></li>
 <li><a href="#sec-5-2">5.2 The Creating Side</a></li>
 <li><a href="#sec-5-3">5.3 The Reading Side</a></li>
+<li><a href="#sec-5-4">5.4 Passcodes (the Short Form of an Invitation on the Same LAN)</a></li>
 </ul>
 </li>
 <li><a href="#sec-6">6. Game Stream and Frames</a>
@@ -492,7 +493,7 @@ group g (0 to 5) = read the 5 bytes digest[5g .. 5g+4] as a big-endian integer, 
 </section>
 <section id="invite">
 <h2 id="sec-5">5. Invitation Strings</h2>
-<p>The opponent of a game is decided by an invitation string. The inviter creates it, and the user passes it to the opponent by another channel. The invitation string contains the addresses for connecting to the inviter and a token that can be used only once.</p>
+<p>The opponent of a game is decided by an invitation string. The inviter creates it, and the user passes it to the opponent by another channel. The invitation string contains the addresses for connecting to the inviter and a token that can be used only once. An invitation on the same LAN can also come with a short passcode that refers to the same invitation (<a href="#sec-5-4">section 5.4</a>).</p>
 
 <h3 id="sec-5-1">5.1 Format</h3>
 <pre><code>invite = "sbqinv1." + base64url(body) + "." + hex(H(body)[0..4])
@@ -533,6 +534,42 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 </ol>
 <p>The candidate addresses <strong>must all be readable as binary multiaddrs</strong>. If even one cannot be read (because it contains an unknown protocol code, for example), the whole invitation string is not used. The creating side writes them using only widely used protocols (<code>ip4</code>, <code>ip6</code>, <code>tcp</code>, <code>udp</code>, <code>quic-v1</code>, <code>p2p</code>, <code>p2p-circuit</code>).</p>
 <p>Of the candidates read, only the addresses that may be connected to on the current network (<a href="#sec-4-5">section 4.5</a>) are used, and the rest are discarded. If no usable address remains, no connection is made.</p>
+
+<h3 id="sec-5-4">5.4 Passcodes (the Short Form of an Invitation on the Same LAN)</h3>
+<p>An invitation string is long and cannot be told by voice. On <code>sbq-local-1</code>, for an invitation that connects directly (not under the setting of <a href="#sec-4-6">section 4.6</a>), ShogiBoardQ gives a <strong>passcode</strong> together with the invitation string. A passcode holds only the inviter's addresses inside the LAN and a short secret, in about 12 characters (in the form <code>008Q-4HMA-SW95</code>), and refers to the same invitation as the invitation string. One invitation can be used only once, with either the token of the invitation string or the token made from the passcode (the formula below). Expiry, the number valid at the same time, and cancellation are the same as for the invitation string.</p>
+<p>Supporting passcodes is optional. An implementation that does not support them can use invitation strings alone (ShogiBoardQ accepts the token of the invitation string even for an invitation that has a passcode, and still connects to invitations that have only an invitation string).</p>
+<pre><code>code = base32c(data) + check        ; when shown, separated with "-" every 4 characters
+data = version(1) | hasPort(1) | addr{1..4} | [port(16)] | secret(34..38)      ; a sequence of bits, packed from the first bit
+addr = kind(2) | host(n) | more(1)</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Field</th><th>Bits</th><th>Rules</th></tr></thead>
+<tbody>
+<tr><td>version</td><td>1</td><td>0</td></tr>
+<tr><td>hasPort</td><td>1</td><td>If 0, the addresses are QUIC and TCP on the fixed port (48210; <a href="#sec-4-2">section 4.2</a>). If 1, only QUIC on <code>port</code></td></tr>
+<tr><td>kind, host</td><td>2 + n</td><td>kind 0: <code>192.168.x.y</code> (n = 16; host is x.y), 1: <code>172.16.0.0/12</code> (n = 20; host is the low 20 bits of the address), 2: <code>10.x.y.z</code> (n = 24; host is x.y.z), 3: <code>127.0.0.1</code> (n = 0)</td></tr>
+<tr><td>more</td><td>1</td><td>If 1, another addr follows. There are 1 to 4 addr entries, and the same address must not appear twice</td></tr>
+<tr><td>port</td><td>16</td><td>Only when hasPort is 1. 1 to 65535</td></tr>
+<tr><td>secret</td><td>34 to 38</td><td>Created with a cryptographic random number generator. Its length is 34 plus 0 to 4 bits, chosen so that the length of data plus the 5 bits of check is a multiple of 5</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>base32c is Crockford's Base32 (<code>0123456789ABCDEFGHJKMNPQRSTVWXYZ</code>); data becomes one character per 5 bits, from the first bit.</li>
+<li>check is one character: the top 5 bits of the first byte of <code>H(CBOR(["SBQ-CODE-CHECK", 1, text]))</code>, where text is the characters before it (uppercase, without separators), written with the same alphabet. It is for catching typos and is not a secret.</li>
+<li>The whole is 9 to 33 characters (without separators; 12 characters for one <code>192.168.x.y</code> address on the fixed port).</li>
+</ul>
+<p>The <strong>creating side</strong> includes the private addresses among its listen addresses (up to 4), and includes <code>127.0.0.1</code> only when it has no private address (an opponent on the same PC can also connect through a private address). If it listens on the fixed port for both QUIC and TCP, hasPort is 0; otherwise it writes the port of its QUIC listener. As with invitation strings, users are advised to tell a passcode only to the opponent (because it contains the addresses to connect to).</p>
+<p>The <strong>reading side</strong> skips whitespace (ASCII space, tab, CR, LF) and <code>-</code>, ignores case, and reads <code>O</code> as <code>0</code> and <code>I</code> and <code>L</code> as <code>1</code>. A string with any other character, one whose length, check, version, number of addr entries, port, or length of secret is not as above, or one with the same address twice is not used. Passcodes are used only on <code>sbq-local-1</code>. Addresses of the passcode that equal your own listen addresses are not used (if all of them are your own listen addresses, it is treated as your own invitation).</p>
+<p>A passcode does not contain the inviter's PeerId. The joiner connects to the addresses of the passcode without fixing a PeerId, and makes the token sent in INVITE_TOKEN (<a href="#sec-6-3">section 6.3</a>) from the PeerId of the peer it connected to and a key made from the passcode. The secret itself must not be sent.</p>
+<pre><code>salt  = H(CBOR(["SBQ-CODE-SALT", 1, networkId, port, [ip4, ...]]))[0..16]     ; port is 0 when hasPort is 0. ip4 is bstr(4), in the order of the passcode
+key   = Argon2id(password = secret as 8 bytes, big-endian, salt,
+                 version 0x13, memory 65536 KiB, 2 passes, parallelism 1, output 32 bytes)
+token = H(CBOR(["SBQ-CODE-TOKEN", 1, key, PeerId of the inviter, PeerId of the joiner]))</code></pre>
+<ul>
+<li>The Argon2id parameters are the same as libsodium's <code>crypto_pwhash</code> (<code>crypto_pwhash_ALG_ARGON2ID13</code>, opslimit 2, memlimit 67108864). PeerIds are in the binary representation (<a href="#sec-3-2">section 3.2</a>).</li>
+<li>The inviter keeps key for each invitation that has a passcode, and compares the token of an incoming INVITE_TOKEN with the value made from its own PeerId and the PeerId of the peer that opened the stream (the one verified by the handshake of the connection). Because the token is bound to both PeerIds, another device that claims an address of the passcode cannot reuse a token it received to connect to the inviter.</li>
+<li>Because the secret is short, the inviter must limit how many times in a row the comparison of passcode tokens may fail (ShogiBoardQ allows 8 failures and gives one back every 4 seconds; while none is left, it does not compare tokens as passcode tokens). The comparison of invitation-string tokens is not limited.</li>
+<li>The joiner cannot check, at the time of connection, that the peer it connected to is the one who invited it (unlike with an invitation string, it does not know the PeerId beforehand). As with invitation strings, the opponent is checked by the player ID (<a href="#sec-3-5">section 3.5</a>).</li>
+</ul>
 </section>
 <section id="stream">
 <h2 id="sec-6">6. Game Stream and Frames</h2>
@@ -579,9 +616,11 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 <li>As soon as it is open, <strong>immediately</strong> send INVITE_TOKEN as the first frame (requestId 0).</li>
 <li>Then send HELLO (<a href="#sec-8-2">section 8.2</a>).</li>
 </ol>
+<p>A joiner that connects with a passcode (<a href="#sec-5-4">section 5.4</a>) replaces step 1: it connects to the addresses of the passcode without fixing a PeerId, makes the token from the PeerId of the first peer it connected to, and opens the stream to that peer (ShogiBoardQ tries all the addresses of the passcode at the same time, and waits up to 30 seconds for one of them to connect). Steps 2 and 3 are the same.</p>
 <p>The <strong>inviter</strong> waits only 5 seconds for the first frame of an incoming stream and decides as follows.</p>
 <ul>
 <li>If the first frame is INVITE_TOKEN and its token matches the token of an unused invitation within its expiry, the inviter marks that invitation as used and accepts the stream. The comparison is made against all invitations, with a comparison whose processing time does not depend on the contents.</li>
+<li>For an invitation that has a passcode, the stream is accepted in the same way when the token matches the value made from the key of that invitation, the inviter's own PeerId, and the PeerId of the peer that opened the stream (<a href="#sec-5-4">section 5.4</a>).</li>
 <li>Otherwise (it does not arrive in time, it is not INVITE_TOKEN, or the token does not match), the inviter closes the stream without returning anything.</li>
 </ul>
 <p>INVITE_TOKEN must have requestId 0 and gameId zero32. INVITE_TOKEN must not be sent anywhere but as the first frame of a stream (if one is received elsewhere, the stream is closed as an envelope violation). Streams accepted during a game are described in <a href="#sec-11-1">section 11.1</a>.</p>
@@ -1190,6 +1229,9 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>Invitation expiry</td><td>600 seconds (the reading side allows for 60 seconds of clock skew)</td><td><a href="#sec-5-3">5.3</a></td></tr>
 <tr><td>Candidate addresses in an invitation</td><td>Up to 8, each up to 100 bytes</td><td><a href="#sec-5-1">5.1</a></td></tr>
 <tr><td>Invitations valid at the same time</td><td>Up to 4</td><td><a href="#sec-5-2">5.2</a></td></tr>
+<tr><td>Length of a passcode</td><td>9 to 33 characters (without separators). 1 to 4 addresses; the secret is 34 to 38 bits</td><td><a href="#sec-5-4">5.4</a></td></tr>
+<tr><td>Key derivation for passcodes</td><td>Argon2id (version 0x13, memory 65536 KiB, 2 passes, parallelism 1, output 32 bytes)</td><td><a href="#sec-5-4">5.4</a></td></tr>
+<tr><td>Failed comparisons of passcode tokens (ShogiBoardQ's values)</td><td>Up to 8 in a row; one is given back every 4 seconds</td><td><a href="#sec-5-4">5.4</a></td></tr>
 <tr><td>Time to wait for the first frame of a stream</td><td>5 seconds</td><td><a href="#sec-6-3">6.3</a></td></tr>
 <tr><td>Frame rate</td><td>5 per second (burst 10) until the start signatures are exchanged; afterwards, 20 per second (burst 40) on the stream where they were exchanged. Streams opened for reconnection stay at 5 per second (burst 10)</td><td><a href="#sec-6-4">6.4</a></td></tr>
 <tr><td>Display name</td><td>1 to 32 characters, at most 96 bytes</td><td><a href="#sec-3-6">3.6</a></td></tr>
@@ -1224,6 +1266,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td><code>displayname.txt</code></td><td><code>accept &lt;hex(UTF-8)&gt;</code> / <code>reject &lt;hex(UTF-8)&gt;</code></td><td>Display name rules (<a href="#sec-3-6">section 3.6</a>)</td></tr>
 <tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId and rulesHash (<a href="#sec-3-1">section 3.1</a>, <a href="#sec-7-1">section 7.1</a>)</td></tr>
 <tr><td><code>rules.txt</code></td><td><code>&lt;blackKind&gt; &lt;whiteKind&gt; &lt;hex(rulesHash)&gt; &lt;hex(CBOR(Rules))&gt;</code></td><td>Bytes and hash of Rules for each combination of player kinds (four values; <a href="#sec-7-1">section 7.1</a>)</td></tr>
+<tr><td><code>code.txt</code></td><td><code>code &lt;passcode&gt; &lt;port or -&gt; &lt;address,...&gt; &lt;hex(secret)&gt;</code> / <code>invalid &lt;string&gt;</code> / <code>key &lt;networkName&gt; &lt;passcode&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(key)&gt;</code> / <code>token &lt;hex(key)&gt; &lt;hex(PeerId of the inviter)&gt; &lt;hex(PeerId of the joiner)&gt; &lt;hex(token)&gt;</code></td><td>The form of passcodes, strings that cannot be read, and the key and token (<a href="#sec-5-4">section 5.4</a>)</td></tr>
 </tbody>
 </table></div>
 
@@ -1232,7 +1275,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <ol>
 <li><strong>Deterministic CBOR and hashes</strong>: the inputs of section 15.1 and the values in Appendix A match.</li>
 <li><strong>Evidence verification</strong>: read a <code>.sbqmatch</code> saved by ShogiBoardQ, and all the verification of <a href="#sec-13-2">section 13.2</a> passes (this confirms the signature verification and that the moves, positions, and time calculations agree).</li>
-<li><strong>Invitation strings</strong>: you can read invitation strings created by ShogiBoardQ, and ShogiBoardQ's Check Invitation can read invitation strings you created.</li>
+<li><strong>Invitation strings</strong>: you can read invitation strings created by ShogiBoardQ, and Check under "Connect by invitation" in ShogiBoardQ can read invitation strings you created. If you support passcodes, you can connect with a passcode created by ShogiBoardQ, and ShogiBoardQ can connect with a passcode you created.</li>
 <li><strong>Connection and negotiation</strong>: with the network set to <code>sbq-local-1</code>, get as far as the confirmation screen with ShogiBoardQ on the same PC, both as the inviting side and as the invited side.</li>
 <li><strong>Game</strong>: as both Black and White, play games to resignation, checkmate, time loss, and draw by agreement, and the evidence of both sides becomes "Confirmed by both". Verify the evidence you wrote with <code>shogiboardq-cli verify-match --input-path &lt;file&gt;</code>; <code>valid</code> is true and <code>category</code> is <code>mutually_signed</code>.</li>
 <li><strong>Games played by an engine</strong> (if version 2 is supported): start games in which your own kind and the opponent's kind are each <code>"engine"</code>, both as the inviting side and as the invited side, and check that the opponent's kind appears on the confirmation screen and that the kinds remain in the Rules of the evidence. A version-1-only implementation checks that it is refused with REJECT (UNSUPPORTED_VERSION) by an opponent whose "Player" in ShogiBoardQ is set to an engine.</li>
@@ -1343,6 +1386,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>Document version</th><th>Protocol version</th><th>Fix needed in compatible implementations</th><th>Changes</th></tr></thead>
 <tbody>
+<tr><td>2026-11-20.1</td><td>2</td><td>Not needed (needed only to support passcodes)</td><td>Added passcodes, the short form of an invitation on the same LAN (<a href="#sec-5-4">section 5.4</a>, <a href="#sec-6-3">section 6.3</a>, <a href="#sec-14">chapter 14</a>, <a href="#sec-15">chapter 15</a>; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/bb24553c79f25b41160738cc6c70da14d7ec04c5">bb24553c</a>). This is because ShogiBoardQ can now invite an opponent on the same LAN just by telling them a passcode of about 12 characters by voice. A passcode holds the inviter's addresses inside the LAN and a short secret; it refers to the same invitation as the invitation string, and the invitation can be used only once with either of them. The joiner connects to the addresses of the passcode without fixing a PeerId, and sends in INVITE_TOKEN a token made from a key derived from the passcode (Argon2id) and both PeerIds. The form of the invitation string, the form of INVITE_TOKEN, and the procedure for connecting with an invitation string are unchanged. An implementation that does not support passcodes can keep playing with invitation strings as before, without any fix (ShogiBoardQ accepts the token of the invitation string even for an invitation that has a passcode). Added <code>code.txt</code> to the test inputs.</td></tr>
 <tr><td>2026-11-20</td><td>2</td><td>Not needed (needed only to support games played by an engine)</td><td>Added protocol version 2 (player kinds; <a href="#sec-1-5">section 1.5</a>, <a href="#sec-7-1">section 7.1</a>, <a href="#sec-8-2">section 8.2</a>, <a href="#sec-8-3">section 8.3</a>, <a href="#sec-13">chapter 13</a>; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/a8192d98a3790df05b074fd68843bb5a7e7713e1">a8192d98</a>), because ShogiBoardQ can now have a registered engine play one's moves. The last two values of Rules (the player kinds of Black and White) may now be <code>"engine"</code>, the list of supported versions in HELLO became <code>[1, 2]</code>, and the HELLO of an inviter whose moves are played by an engine takes the version-2 form (playerKind appended). The joiner's kind is conveyed in the Rules of START_AGREEMENT. Games in which both sides are human keep the same bytes as version 1, and a version-1-only implementation can play human-versus-human games against ShogiBoardQ without any change (it must accept a list of supported versions that contains values other than 1). Games played by an engine are not started against a version-1-only opponent; they are refused with REJECT (UNSUPPORTED_VERSION). Added <code>black_player_kind</code> and <code>white_player_kind</code> to the result of <code>verify-match</code>, the rulesHash of each kind combination to Appendix A.1, and <code>rules.txt</code> to the test inputs.</td></tr>
 <tr><td>2026-11-15.1</td><td>1</td><td>Not needed</td><td>Added how to choose the connection on which the game stream is opened (<a href="#sec-6-3">section 6.3</a>; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/78c04567189db3c6542211d181f842f1deb1dbd8">78c04567</a>). ShogiBoardQ used to open the game stream right after connecting through the relay, so frames kept going through the relay even after DCUtR established a direct connection. The joiner now waits up to 3 seconds for a direct connection and, if one is established, closes the relayed connection and opens the stream on the direct connection. The frame format and the procedures are unchanged. Compatible implementations that perform DCUtR should do the same.</td></tr>
 <tr><td>2026-11-15</td><td>1</td><td>Not needed</td><td>An offer of a draw or abort by agreement can now be made again, even at the same ply, after the opponent has declined it (<a href="#sec-10-2">section 10.2</a>; <a href="https://github.com/hnakada123/ShogiBoardQ/commit/fa7c896ec2120d9c971a322f78d48992399933c9">fa7c896e</a>). Previously, as user operations, such offers were limited to once each per ply, and in ShogiBoardQ, pressing "Abort" again after being declined showed nothing to the opponent. The rule is now once each until the opponent declines or the ply advances. The rule that the receiving side must not treat the same proposal arriving repeatedly at the same ply as a violation is unchanged, and the frame formats did not change.</td></tr>
