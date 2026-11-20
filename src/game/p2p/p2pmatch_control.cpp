@@ -173,16 +173,26 @@ bool Match::resign()
     return proposeResult(GameRules::winnerOutcome(m_setup.iAmBlack ? Turn::White : Turn::Black), Cause::Resign);
 }
 
-bool Match::offer(Cause cause)
+Match::OfferResult Match::offer(Cause cause)
 {
-    if (cause != Cause::AgreedDraw && cause != Cause::AgreedAbort) return false;
+    if (cause != Cause::AgreedDraw && cause != Cause::AgreedAbort) return OfferResult::Unavailable;
     // 相手が答えるまでの間に申し出られるのは、引き分け・中断それぞれ1回まで（答えを待たずに送り直して、相手に何度も
     // 尋ねない）。相手が断れば、同じ手数でももう一度申し出られる（手数が進んだときも。commit）
     bool& awaitingAnswer = cause == Cause::AgreedDraw ? m_drawOfferAwaitingAnswer : m_abortOfferAwaitingAnswer;
-    if (awaitingAnswer) return false;
-    if (!proposeResult(cause == Cause::AgreedDraw ? Outcome::Draw : Outcome::Aborted, cause)) return false;
+    if (awaitingAnswer) return OfferResult::AwaitingAnswer;
+    if (!proposeResult(cause == Cause::AgreedDraw ? Outcome::Draw : Outcome::Aborted, cause)) return OfferResult::Unavailable;
     awaitingAnswer = true;
-    return true;
+    return OfferResult::Sent;
+}
+
+std::optional<Cause> Match::offerAwaitingAnswer() const
+{
+    // 自分の提案は1つだけ持つ（申し出の後で時間切れなどを提案したら、申し出はもう待っていない）。再接続の間は、
+    // つなぎ直した後に送り直すので、待っているものとして扱う
+    if ((m_phase != Phase::Playing && m_phase != Phase::Reconnecting) || m_agreedResult || !m_myProposal) return std::nullopt;
+    const Cause cause = m_myProposal->cause;
+    if (cause != Cause::AgreedDraw && cause != Cause::AgreedAbort) return std::nullopt;
+    return cause;
 }
 
 void Match::answerOffer(bool accept)

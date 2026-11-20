@@ -983,6 +983,106 @@ private slots:
         QCOMPARE(black.game.match()->agreedResult()->cause, Cause::AgreedAbort);
     }
 
+    /// 申し出た側にも、申し出たことと、相手の返事を待っていることを知らせる（相手には尋ねる箱が出るが、申し出た側には
+    /// 何も出ず、「中断」を押せたのかが分からなかった）。知らせは待たずに出し、相手が答えた・手数が進んだ・対局が
+    /// 終わったら閉じる。P2P対局のウィンドウの「対局中」の状態にも出す。送れなかったときは、そのことを知らせる
+    void offererIsToldThatTheOfferIsWaiting()
+    {
+        Seat applicant(QByteArray(38, 'j'));
+        Seat host(QByteArray(38, 'q'));
+        P2pRecordStore applicantStore(m_dir.filePath(QStringLiteral("waiting-a")));
+        P2pRecordStore hostStore(m_dir.filePath(QStringLiteral("waiting-h")));
+        P2pKnownPeers applicantKnown(m_dir.filePath(QStringLiteral("waiting-a.cbor")));
+        P2pKnownPeers hostKnown(m_dir.filePath(QStringLiteral("waiting-h.cbor")));
+        QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, &hostStore, &hostKnown));
+        Seat& black = applicant.game.match()->iAmBlack() ? applicant : host;
+        Seat& white = applicant.game.match()->iAmBlack() ? host : applicant;
+        // 申し出る先手の P2P対局のウィンドウ（「対局中」の状態の文を見る）
+        P2pPlayerProfile profile(m_dir.filePath(QStringLiteral("waiting")));
+        QVERIFY(profile.open());
+        P2pLobbyService lobby(P2pLobbyService::Deps{&black.activity, &black.game}, &profile);
+        P2pWindow p2p(&lobby, &black.game);
+        auto* status = p2p.findChild<QLabel*>(QStringLiteral("p2pGameStatus"));
+        QVERIFY(status);
+
+        const auto boxOf = [](Seat& seat, const QString& word) -> QMessageBox* {
+            const QList<QMessageBox*> boxes = seat.window.findChildren<QMessageBox*>();
+            for (QMessageBox* box : boxes) {
+                if (box->isVisible() && box->text().contains(word)) return box;
+            }
+            return nullptr;
+        };
+        // 返事を待っている知らせの数
+        const auto waitingBoxes = [](Seat& seat) {
+            int count = 0;
+            const QList<QMessageBox*> boxes = seat.window.findChildren<QMessageBox*>(QStringLiteral("p2pOfferWaitingBox"));
+            for (QMessageBox* box : boxes) {
+                if (box->isVisible()) ++count;
+            }
+            return count;
+        };
+
+        // 中断を申し出る: 申し出た側に、待たない知らせが出る。P2P対局のウィンドウの状態にも出る
+        QTRY_VERIFY(black.game.isHumanToMove());
+        QCOMPARE(waitingBoxes(black), 0);
+        black.game.offerAbort();
+        QCOMPARE(waitingBoxes(black), 1);
+        QMessageBox* waiting = boxOf(black, QStringLiteral("相手に対局の中断を申し出ました"));
+        QVERIFY(waiting);
+        QVERIFY(!waiting->isModal());
+        QVERIFY(waiting->text().contains(QStringLiteral("相手の返事を待っています")));
+        QVERIFY2(status->text().contains(QStringLiteral("中断を申し出ています")), qPrintable(status->text()));
+        // 相手には尋ねる箱が出る。相手の側には、待っている知らせは出ない
+        QTRY_VERIFY(boxOf(white, QStringLiteral("相手が対局の中断を申し出ました")));
+        QCOMPARE(waitingBoxes(white), 0);
+
+        // 答えを待つ間に押し直しても、知らせは1つのまま（相手にも尋ね直さない）
+        black.game.offerAbort();
+        QCOMPARE(waitingBoxes(black), 1);
+
+        // 相手が断ると、待っている知らせを閉じて、断られたことを知らせる
+        boxOf(white, QStringLiteral("相手が対局の中断を申し出ました"))->button(QMessageBox::Cancel)->click();
+        QTRY_VERIFY(boxOf(black, QStringLiteral("相手が申し出を断りました")));
+        QCOMPARE(waitingBoxes(black), 0);
+        QVERIFY2(!status->text().contains(QStringLiteral("申し出ています")), qPrintable(status->text()));
+
+        // 引き分けを申し出る: 断られた知らせを閉じて、待っている知らせを出す
+        black.game.offerDraw();
+        QCOMPARE(waitingBoxes(black), 1);
+        QVERIFY(boxOf(black, QStringLiteral("相手に引き分けを申し出ました")));
+        QVERIFY(!boxOf(black, QStringLiteral("相手が申し出を断りました")));
+        QVERIFY2(status->text().contains(QStringLiteral("引き分けを申し出ています")), qPrintable(status->text()));
+        QTRY_VERIFY(boxOf(white, QStringLiteral("相手が引き分けを申し出ました")));
+
+        // 指した手の確認を待つ間は、申し出を送れない。送れなかったことを知らせる（待っている知らせは、引き分けのまま）
+        QCOMPARE(black.game.playMove(UsiMove::fromString(u"7g7f")), GameChannel::MoveResult::Sent);
+        black.game.offerAbort();
+        QVERIFY(boxOf(black, QStringLiteral("今は申し出を送れません")));
+        QVERIFY(boxOf(black, QStringLiteral("相手に引き分けを申し出ました")));
+        // 返事の前に手数が進むと、申し出は無効になり、待っている知らせは閉じる
+        QTRY_VERIFY(black.game.match()->lastState().ply == 1 && !black.game.match()->hasPendingMove());
+        QTRY_COMPARE(waitingBoxes(black), 0);
+        QTRY_VERIFY(!status->text().contains(QStringLiteral("申し出ています")));
+
+        // 手番でない側も申し出られる（送れなかった知らせは、送れたら閉じる）
+        black.game.offerAbort();
+        QCOMPARE(waitingBoxes(black), 1);
+        QVERIFY(!boxOf(black, QStringLiteral("今は申し出を送れません")));
+        QTRY_VERIFY(boxOf(white, QStringLiteral("相手が対局の中断を申し出ました")));
+        // 尋ねられた側が、箱で答えずに自分も中断を申し出ると、同じ申し出なので合意の中断になる。結果が決まったので、
+        // どちらの側にも、待っている知らせ・送れなかった知らせは残らず、終局の知らせが出る
+        white.game.offerAbort();
+        QTRY_VERIFY(black.game.match()->agreedResult() && white.game.match()->agreedResult());
+        QCOMPARE(black.game.match()->agreedResult()->cause, Cause::AgreedAbort);
+        QTRY_VERIFY(boxOf(black, QStringLiteral("合意による中断")) && boxOf(white, QStringLiteral("合意による中断")));
+        for (Seat* seat : {&black, &white}) {
+            QCOMPARE(waitingBoxes(*seat), 0);
+            QVERIFY(!boxOf(*seat, QStringLiteral("今は申し出を送れません")));
+            QVERIFY(!boxOf(*seat, QStringLiteral("相手が対局の中断を申し出ました")));
+        }
+        QTRY_VERIFY(!status->text().contains(QStringLiteral("申し出ています")));
+    }
+
     /// 記録と相手の表は、通信プロセスの知らせ（数秒ごと）では作り直さず、対局の後・タブを開いたときに作り直す。
     /// 列は中身が切れない幅にし、行番号は出さない
     void recordTablesAreRebuiltOnlyWhenNeeded()

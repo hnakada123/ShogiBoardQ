@@ -601,6 +601,11 @@ void P2pWindow::updateGameStatus()
     case P2p::Match::Phase::Finishing: lines << tr("結果を確定しています…"); break;
     case P2p::Match::Phase::Finished: lines << P2pWindowText::settlementText(match->settlement(), match->endingError()); break;
     }
+    // 自分の申し出に相手がまだ答えていない間は、知らせを閉じた後もここで分かる
+    if (const std::optional<P2p::Cause> offer = match->offerAwaitingAnswer()) {
+        lines << (*offer == P2p::Cause::AgreedDraw ? tr("引き分けを申し出ています（相手の返事を待っています）")
+                                                   : tr("中断を申し出ています（相手の返事を待っています）"));
+    }
     const qint64 disconnectLeft = static_cast<qint64>(P2p::NetworkPolicy::v1().disconnectTotalMs) - match->reconnectTotalMs();
     lines << tr("切断時間の残り: %1 秒").arg(qMax<qint64>(0, disconnectLeft) / 1000);
     if (match->agreedResult()) {

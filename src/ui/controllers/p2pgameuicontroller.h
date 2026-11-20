@@ -81,8 +81,13 @@ private slots:
     void onOfferAnswered(int result);
     /// 申し出の箱の「承諾」を押せるようにする（出してから少し待つ）
     void enableOfferAccept();
-    /// 申し出が無効になった（手数が進んだ・結果が決まった・対局が終わった）なら、尋ねる箱を閉じる
+    /// 申し出が無効になった（手数が進んだ・結果が決まった・対局が終わった）なら、相手の申し出を尋ねる箱と、
+    /// 自分の申し出の答えを待つ知らせを閉じる
     void closeStaleOffer();
+    /// 自分の申し出を相手へ送り、答えを待っている（申し出た側にも知らせる）
+    void onOfferPending(P2p::Cause cause);
+    /// 自分の申し出を送れなかった
+    void onOfferNotSent();
     void onProposalDeclined();
     void onGameFinished(P2p::Settlement ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
     /// 自分のエンジンについての知らせ（起動の失敗・異常終了・指せない手・入玉宣言）
@@ -109,7 +114,8 @@ private:
     QPointer<P2pConfirmDialog> m_confirm;
     QPointer<QMessageBox> m_offerBox;   ///< 相手の申し出を尋ねる箱（モードレス。閉じたら消える）
     QPointer<QMessageBox> m_failureBox; ///< 通信プロセスの失敗の知らせ（モードレス。閉じたら消える）
-    QPointer<QMessageBox> m_declinedBox; ///< 申し出を断られた知らせ（モードレス。次に断られたら入れ替える）
+    QPointer<QMessageBox> m_waitingBox;  ///< 自分の申し出の答えを待つ知らせ（モードレス。待つものがなくなったら閉じる）
+    QPointer<QMessageBox> m_offerNoticeBox; ///< 自分の申し出を断られた・送れなかった知らせ（モードレス。次の知らせで入れ替える）
     QPointer<QMessageBox> m_engineBox;   ///< エンジンについての知らせ（モードレス。続けて届いたら入れ替える）
     bool m_automationDisabled = false;
     bool m_startAfterUnlock = false;   ///< 鍵を読み込んだら参加する

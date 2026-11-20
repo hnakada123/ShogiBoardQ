@@ -167,6 +167,12 @@ signals:
     void statusChanged();
     /// 相手が合意引き分け・合意中断を申し出た
     void offerReceived(P2p::Cause cause);
+    /// 自分の申し出（合意引き分け・合意中断）を相手へ送り、答えを待っている（待っている間に押し直したときも出す。
+    /// cause は相手が尋ねられている申し出）
+    void offerPending(P2p::Cause cause);
+    /// 自分の申し出を送れなかった（開始の手続き中・再接続中・指した手の確認待ち）
+    void offerNotSent();
+    /// 自分の提案（申し出・時間切れの主張）を相手が断った
     void proposalDeclined();
     /// 結果が一致した（棋譜を確定し、P2P対局中を手放した後）
     void resultAgreed(const P2p::FinalResult& result);
@@ -183,6 +189,8 @@ private slots:
 
 private:
     qint64 now() const { return m_elapsed.elapsed(); }
+    /// 合意引き分け・合意中断を申し出て、申し出た側に結果（答えを待っている・送れなかった）を知らせる
+    void offer(P2p::Cause cause);
     void flushNegotiation();
     void flushMatch();
     void sendFrames(const std::vector<P2p::Frame>& frames);

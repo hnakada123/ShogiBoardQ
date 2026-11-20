@@ -48,6 +48,8 @@ P2pGameUiController::P2pGameUiController(const Deps& deps, QObject* parent)
         connect(m_deps.game, &P2pGameCoordinator::negotiationEnded, this, &P2pGameUiController::onNegotiationEnded);
         connect(m_deps.game, &P2pGameCoordinator::gameStarted, this, &P2pGameUiController::onGameStarted);
         connect(m_deps.game, &P2pGameCoordinator::offerReceived, this, &P2pGameUiController::onOfferReceived);
+        connect(m_deps.game, &P2pGameCoordinator::offerPending, this, &P2pGameUiController::onOfferPending);
+        connect(m_deps.game, &P2pGameCoordinator::offerNotSent, this, &P2pGameUiController::onOfferNotSent);
         connect(m_deps.game, &P2pGameCoordinator::statusChanged, this, &P2pGameUiController::closeStaleOffer);
         connect(m_deps.game, &P2pGameCoordinator::resultAgreed, this, &P2pGameUiController::closeStaleOffer);
         connect(m_deps.game, &P2pGameCoordinator::proposalDeclined, this, &P2pGameUiController::onProposalDeclined);
@@ -356,9 +358,10 @@ void P2pGameUiController::onOfferAnswered(int result)
 
 void P2pGameUiController::closeStaleOffer()
 {
-    if (!m_offerBox) return;
     const P2p::Match* match = m_deps.game ? m_deps.game->match() : nullptr;
-    if (!match || !match->hasPendingOffer()) closeOfferBox();
+    if (m_offerBox && (!match || !match->hasPendingOffer())) closeOfferBox();
+    // 自分の申し出の答えを待つ知らせも、待つものがなくなったら閉じる
+    if (m_waitingBox && (!match || !match->offerAwaitingAnswer())) m_waitingBox->close();
 }
 
 void P2pGameUiController::closeOfferBox()
@@ -370,10 +373,34 @@ void P2pGameUiController::closeOfferBox()
     m_offerBox.clear();
 }
 
+void P2pGameUiController::onOfferPending(P2p::Cause cause)
+{
+    // 申し出た側にも、申し出たことと、相手の答えを待っていることを知らせる（待たずに出す。答えを待つ間も盤で指せる）。
+    // 相手が答えた・手数が進んだ・対局が終わったら閉じる（closeStaleOffer）。押し直したときは入れ替える
+    if (m_offerNoticeBox) m_offerNoticeBox->close();
+    const QString text = cause == P2p::Cause::AgreedDraw
+        ? tr("相手に引き分けを申し出ました。相手の返事を待っています。")
+        : tr("相手に対局の中断を申し出ました。相手の返事を待っています。");
+    NotificationPresenter::replaceInformation(
+        m_waitingBox, noticeParent(), tr("P2P対局"),
+        text + QLatin1Char('\n') + tr("返事の前に手が進むと、申し出は取り消しになります。"), NotificationPresenter::Wait::No);
+    if (m_waitingBox) m_waitingBox->setObjectName(QStringLiteral("p2pOfferWaitingBox"));
+}
+
+void P2pGameUiController::onOfferNotSent()
+{
+    NotificationPresenter::replaceInformation(
+        m_offerNoticeBox, noticeParent(), tr("P2P対局"),
+        tr("今は申し出を送れません（開始の手続き中・再接続中・指した手の確認待ち）。少し待ってから、もう一度操作してください。"),
+        NotificationPresenter::Wait::No);
+}
+
 void P2pGameUiController::onProposalDeclined()
 {
-    // 断られた後は同じ手数でももう一度申し出られるので、前の知らせが残っていれば閉じてから出す（同じ知らせを重ねない）
-    NotificationPresenter::replaceInformation(m_declinedBox, noticeParent(), tr("P2P対局"),
+    // 答えを待つ知らせを閉じて、断られたことを知らせる。断られた後は同じ手数でももう一度申し出られるので、前の知らせが
+    // 残っていれば閉じてから出す（同じ知らせを重ねない）
+    if (m_waitingBox) m_waitingBox->close();
+    NotificationPresenter::replaceInformation(m_offerNoticeBox, noticeParent(), tr("P2P対局"),
                                               tr("相手が申し出を断りました。対局を続けます。"),
                                               NotificationPresenter::Wait::No);
 }

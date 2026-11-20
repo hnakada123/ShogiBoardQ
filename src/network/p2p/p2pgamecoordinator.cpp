@@ -356,6 +356,8 @@ void P2pGameCoordinator::handleMatchEvent(const P2p::MatchEvent& event)
         if (event.result) emit offerReceived(event.result->cause);
         return;
     case P2p::MatchEvent::Type::ProposalDeclined:
+        // 答えを待っている申し出がなくなった（P2P対局のウィンドウの状態の行と、待っている知らせを先に消す）
+        emit statusChanged();
         emit proposalDeclined();
         return;
     case P2p::MatchEvent::Type::ResultAgreed:
@@ -551,14 +553,30 @@ void P2pGameCoordinator::resign()
 
 void P2pGameCoordinator::offerDraw()
 {
-    if (!m_match || !m_match->offer(Cause::AgreedDraw)) return;
-    flushMatch();
+    offer(Cause::AgreedDraw);
 }
 
 void P2pGameCoordinator::offerAbort()
 {
-    if (!m_match || !m_match->offer(Cause::AgreedAbort)) return;
-    flushMatch();
+    offer(Cause::AgreedAbort);
+}
+
+void P2pGameCoordinator::offer(P2p::Cause cause)
+{
+    if (!m_match) return;
+    const P2p::Match::OfferResult result = m_match->offer(cause);
+    if (result == P2p::Match::OfferResult::Sent) flushMatch();
+    // 申し出た側にも、申し出たことを知らせる（相手には尋ねる箱が出るが、申し出た側には何も出ず、押せたのかが分からな
+    // かった）。答えを待っている間に押し直したときは送り直さないが、相手が尋ねられている申し出を知らせ直す
+    const std::optional<Cause> waiting = m_match->offerAwaitingAnswer();
+    if (result != P2p::Match::OfferResult::Unavailable && waiting) {
+        emit statusChanged();
+        emit offerPending(*waiting);
+        return;
+    }
+    // 送れなかったことも知らせる。相手の同じ申し出と行き違って結果が一致したときは、対局はもう進行中でない
+    // （終局の知らせが出る）
+    if (isInProgress()) emit offerNotSent();
 }
 
 void P2pGameCoordinator::answerOffer(bool accept)
@@ -772,7 +790,9 @@ void P2pGameCoordinator::onEngineDeclaredWin()
 {
     if (!m_player.isEngine() || !isMyMoveExpected()) return;
     // P2P対局は入玉宣言を扱わない（実装仕様 1.1節。双方の合意による引き分けはできる）
-    offerDraw();
+    // 申し出たことは下の知らせに書くので、申し出の知らせ（offerPending）は重ねて出さない
+    if (m_match->offer(Cause::AgreedDraw) == P2p::Match::OfferResult::Sent) flushMatch();
+    emit statusChanged();
     emit engineNotice(tr("エンジンが入玉宣言勝ちを選びましたが、P2P対局は入玉宣言を扱いません。相手に引き分けを申し出ました。"
                          "相手が断ったときは、投了するか、対局をやめてください。"));
 }

@@ -691,20 +691,39 @@ private slots:
         Pair pair;
         pair.negotiateAndStart();
         pair.play(pair.black(), "7g7f");
-        QVERIFY(pair.black().match->offer(Cause::AgreedDraw));
-        QVERIFY(!pair.black().match->offer(Cause::AgreedDraw));   // 答えを待っている間は送り直さない
+        QVERIFY(!pair.black().match->offerAwaitingAnswer());
+        QCOMPARE(pair.black().match->offer(Cause::AgreedDraw), Match::OfferResult::Sent);
+        // 申し出た側は、相手の答えを待っている申し出が分かる（尋ねられた側のものではない）
+        QCOMPARE(pair.black().match->offerAwaitingAnswer(), std::optional<Cause>(Cause::AgreedDraw));
+        // 答えを待っている間は送り直さない
+        QCOMPARE(pair.black().match->offer(Cause::AgreedDraw), Match::OfferResult::AwaitingAnswer);
+        QCOMPARE(pair.black().match->offerAwaitingAnswer(), std::optional<Cause>(Cause::AgreedDraw));
         pair.pump();
         QVERIFY(pair.white().match->hasPendingOffer());
+        QVERIFY(!pair.white().match->offerAwaitingAnswer());
         pair.white().match->answerOffer(false);
         pair.pump();
         QVERIFY(pair.hasEvent(pair.black(), MatchEvent::Type::ProposalDeclined));
         QCOMPARE(pair.black().match->phase(), Match::Phase::Playing);
-        // 手を進めてから、後手が中断を申し出て先手が受ける
-        pair.play(pair.white(), "3c3d");
-        QVERIFY(pair.white().match->offer(Cause::AgreedAbort));
+        QVERIFY(!pair.black().match->offerAwaitingAnswer());   // 断られたら、もう待っていない
+        // 答えを待つ間に手が進んだら、申し出は無効になる。指した手の確認を待つ間は、別の申し出を送れない
+        QCOMPARE(pair.white().match->offer(Cause::AgreedDraw), Match::OfferResult::Sent);
+        QVERIFY(pair.white().match->offerAwaitingAnswer());
+        pair.clock.ms += 1000;
+        QCOMPARE(pair.white().match->playMove(UsiMove::fromString(u"3c3d")), Match::MoveError::None);
+        QCOMPARE(pair.white().match->offer(Cause::AgreedAbort), Match::OfferResult::Unavailable);
+        pair.pump();
+        QCOMPARE(pair.white().match->lastState().ply, quint32(2));
+        QVERIFY(!pair.white().match->offerAwaitingAnswer());
+        // 後手が中断を申し出て先手が受ける
+        pair.play(pair.black(), "2g2f");
+        QCOMPARE(pair.white().match->offer(Cause::AgreedAbort), Match::OfferResult::Sent);
+        QCOMPARE(pair.white().match->offerAwaitingAnswer(), std::optional<Cause>(Cause::AgreedAbort));
         pair.pump();
         pair.black().match->answerOffer(true);
         pair.pump();
+        // 結果が決まった後は、待っている申し出はない
+        QVERIFY(!pair.white().match->offerAwaitingAnswer());
         QCOMPARE(pair.black().match->agreedResult()->outcome, Outcome::Aborted);
         QCOMPARE(pair.white().match->settlement(), Settlement::MutuallySigned);
     }
@@ -726,11 +745,11 @@ private slots:
                                  [](const MatchEvent& e) { return e.type == MatchEvent::Type::ProposalDeclined; });
         };
 
-        QVERIFY(offerer.match->offer(Cause::AgreedAbort));
+        QCOMPARE(offerer.match->offer(Cause::AgreedAbort), Match::OfferResult::Sent);
         pair.pump();
         QCOMPARE(offersReceived(), 1);
         // 答えを待っている間にもう一度押しても、相手に2回は尋ねない
-        QVERIFY(!offerer.match->offer(Cause::AgreedAbort));
+        QCOMPARE(offerer.match->offer(Cause::AgreedAbort), Match::OfferResult::AwaitingAnswer);
         pair.pump();
         QCOMPARE(offersReceived(), 1);
         asked.match->answerOffer(false);
@@ -739,7 +758,7 @@ private slots:
         QCOMPARE(offerer.match->phase(), Match::Phase::Playing);
 
         // 断られた後、同じ手数でもう一度申し出る: 相手にもう一度尋ねる
-        QVERIFY(offerer.match->offer(Cause::AgreedAbort));
+        QCOMPARE(offerer.match->offer(Cause::AgreedAbort), Match::OfferResult::Sent);
         pair.pump();
         QCOMPARE(offersReceived(), 2);
         QVERIFY(asked.match->hasPendingOffer());
@@ -748,20 +767,22 @@ private slots:
         QCOMPARE(declines(), 2);
         // 引き分けの申し出も同じ。答えを待つ間に中断へ替えることはできるが、相手が答えるまでは、引き分けと中断を
         // 交互に送り直せない（相手に尋ねるのは、相手が答えるまでの間にそれぞれ1回まで）
-        QVERIFY(offerer.match->offer(Cause::AgreedDraw));
+        QCOMPARE(offerer.match->offer(Cause::AgreedDraw), Match::OfferResult::Sent);
         pair.pump();
         QCOMPARE(offersReceived(), 3);
-        QVERIFY(offerer.match->offer(Cause::AgreedAbort));
+        QCOMPARE(offerer.match->offer(Cause::AgreedAbort), Match::OfferResult::Sent);
         pair.pump();
         QCOMPARE(offersReceived(), 4);
-        QVERIFY(!offerer.match->offer(Cause::AgreedDraw));
-        QVERIFY(!offerer.match->offer(Cause::AgreedAbort));
+        QCOMPARE(offerer.match->offer(Cause::AgreedDraw), Match::OfferResult::AwaitingAnswer);
+        QCOMPARE(offerer.match->offer(Cause::AgreedAbort), Match::OfferResult::AwaitingAnswer);
+        // 待っているのは、相手が尋ねられている最後の申し出（中断）
+        QCOMPARE(offerer.match->offerAwaitingAnswer(), std::optional<Cause>(Cause::AgreedAbort));
         pair.pump();
         QCOMPARE(offersReceived(), 4);
         asked.match->answerOffer(false);
         pair.pump();
         QCOMPARE(declines(), 3);
-        QVERIFY(offerer.match->offer(Cause::AgreedDraw));
+        QCOMPARE(offerer.match->offer(Cause::AgreedDraw), Match::OfferResult::Sent);
         pair.pump();
         QCOMPARE(offersReceived(), 5);
         asked.match->answerOffer(false);
@@ -769,7 +790,7 @@ private slots:
         QCOMPARE(declines(), 4);
 
         // 3回目の中断の申し出を相手が承諾すれば、合意の中断で終わる
-        QVERIFY(offerer.match->offer(Cause::AgreedAbort));
+        QCOMPARE(offerer.match->offer(Cause::AgreedAbort), Match::OfferResult::Sent);
         pair.pump();
         asked.match->answerOffer(true);
         pair.pump();
@@ -996,7 +1017,7 @@ private slots:
         (void)match.takeOutgoing();
         (void)match.takeEvents();
         // 千日手なので、自分の合意の申し出もできない
-        QVERIFY(!match.offer(Cause::AgreedAbort));
+        QCOMPARE(match.offer(Cause::AgreedAbort), Match::OfferResult::Unavailable);
 
         // 相手（先手）が自分の投了を申し出る
         lone.control(ControlKind::ResultPropose, lone.resultFor(Outcome::WhiteWins, Cause::Resign).toCbor());
@@ -1084,7 +1105,7 @@ private slots:
         Side& white = pair.white();
         pair.play(black, "7g7f");
         // 後手が引き分けを申し出て、答えを待たずに指す
-        QVERIFY(white.match->offer(Cause::AgreedDraw));
+        QCOMPARE(white.match->offer(Cause::AgreedDraw), Match::OfferResult::Sent);
         const std::vector<Frame> offer = white.match->takeOutgoing();
         pair.clock.ms += 1000;
         QCOMPARE(white.match->playMove(UsiMove::fromString(u"3c3d")), Match::MoveError::None);
@@ -1122,7 +1143,7 @@ private slots:
         Side& black = pair.black();
         Side& white = pair.white();
         pair.play(black, "7g7f");
-        QVERIFY(white.match->offer(Cause::AgreedDraw));
+        QCOMPARE(white.match->offer(Cause::AgreedDraw), Match::OfferResult::Sent);
         pair.pump();
         QVERIFY(black.match->hasPendingOffer());
         pair.connected = false;

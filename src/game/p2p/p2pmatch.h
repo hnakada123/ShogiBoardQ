@@ -70,6 +70,12 @@ public:
 
     enum class Phase { Opening, Playing, Reconnecting, Finishing, Finished };
     enum class MoveError { None, NotMyTurn, Pending, Illegal, TimeUp, Finished };
+    /// 合意引き分け・合意中断の申し出の結果
+    enum class OfferResult {
+        Sent,            ///< 相手へ送った
+        AwaitingAnswer,  ///< 相手がまだ答えていないので、送り直さなかった
+        Unavailable,     ///< 今は送れない（開始の手続き中・再接続中・自分の手の確認待ち・結果が決まった後）
+    };
 
     Match(MatchSetup setup, SigningKey sessionKey, const SigningKey* playerKey, MonotonicClock clock, Persist persist);
 
@@ -83,9 +89,9 @@ public:
     MoveError playMove(const UsiMove& move);
     /// 投了（自分の手番に限る）
     bool resign();
-    /// 合意引き分け・合意中断を申し出る（申し出たら true）。相手が答えるまでの間はそれぞれ1回までで、答えを待って
-    /// いる申し出は送り直さずに false。相手が断った後は、同じ手数でももう一度申し出られる
-    bool offer(Cause cause);
+    /// 合意引き分け・合意中断を申し出る。相手が答えるまでの間はそれぞれ1回までで、答えを待っている申し出は
+    /// 送り直さない（AwaitingAnswer）。相手が断った後は、同じ手数でももう一度申し出られる
+    OfferResult offer(Cause cause);
     /// 相手の申し出に答える
     void answerOffer(bool accept);
     /// 対局をやめる（ABORT を送り、結果未確定で終える）
@@ -128,6 +134,9 @@ public:
     qint64 reconnectRemainingMs() const;
     /// 相手の申し出に答える前か
     bool hasPendingOffer() const { return m_pendingOffer.has_value(); }
+    /// 相手の答えを待っている自分の申し出（合意引き分けか合意中断。続けて申し出たときは、相手が尋ねられている最後の
+    /// もの。相手が答えた・手数が進んだ・結果が決まった・対局が終わった後は nullopt）
+    std::optional<Cause> offerAwaitingAnswer() const;
     /// 相手が同じ手数の異なる状態に署名した証明をジャーナルに書いたか（ジャーナルを残す）
     bool hasConflictProof() const { return m_conflictProof; }
     /// 証跡（いつでも作れる。結果がまだなければ空の結果）
