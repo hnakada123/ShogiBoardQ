@@ -29,17 +29,29 @@ QLabel* wrappedLabel(const QString& text, QWidget* parent)
 
 } // namespace
 
+QList<P2pIdentityDialog::KnownLimit> P2pIdentityDialog::knownLimits()
+{
+    return {
+        {tr("表示名"), tr("表示名は自己申告です。相手を確かめる根拠はプレイヤーIDと確認コードです。")},
+        {tr("結果の確定"),
+         tr("負けた側のアプリが結果を確定しなければ（途中でアプリを終了するなど）、双方で確定した記録は残りません。")},
+        {tr("消費時間"), tr("消費時間は自己申告で、少しの水増しと、切断を使った時間稼ぎは見分けられません。")},
+        {tr("だれが指すか"),
+         tr("だれが指すか（人間かエンジンか）は自己申告です。「人間」と申告してエンジンの手を指した対局や、"
+            "示し合わせた対局は見分けられません。")},
+        {tr("プレイヤーIDとIPアドレス"),
+         tr("対局相手には、あなたのプレイヤーIDが伝わります。直接つなぐと、相手は通信を調べてあなたのIPアドレスを"
+            "知ることができます（「接続」タブの「協力ノードの中継だけを使う」で避けられます）。")},
+        {tr("プレイヤー鍵"), tr("同じ利用者の権限で動く悪意のあるプログラムからは、プレイヤー鍵を守れません。")},
+    };
+}
+
 QString P2pIdentityDialog::knownLimitsText()
 {
-    return tr("P2P対局では、次のことは防げません。\n"
-              "・表示名は自己申告です。相手を確かめる根拠はプレイヤーIDと確認コードです。\n"
-              "・負けた側のアプリが結果を確定しなければ（途中でアプリを終了するなど）、双方で確定した記録は残りません。\n"
-              "・消費時間は自己申告で、少しの水増しと、切断を使った時間稼ぎは見分けられません。\n"
-              "・だれが指すか（人間かエンジンか）は自己申告です。「人間」と申告してエンジンの手を指した対局や、"
-              "示し合わせた対局は見分けられません。\n"
-              "・対局相手には、あなたのプレイヤーIDが伝わります。直接つなぐと、相手は通信を調べてあなたのIPアドレスを"
-              "知ることができます（「直接接続を使わない」設定で避けられます）。\n"
-              "・同じ利用者の権限で動く悪意のあるプログラムからは、プレイヤー鍵を守れません。");
+    QStringList lines{tr("P2P対局では、次のことは防げません。")};
+    const QList<KnownLimit> limits = knownLimits();
+    for (const KnownLimit& limit : limits) lines << tr("・%1").arg(limit.text);
+    return lines.join(QLatin1Char('\n'));
 }
 
 P2pIdentityDialog::P2pIdentityDialog(Mode mode, P2pIdentityStore* store, QWidget* parent)

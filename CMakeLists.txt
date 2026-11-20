@@ -1200,14 +1200,24 @@ if(ENABLE_P2P_PLAY)
         src/network/p2p/peeripc.h
         src/network/p2p/peerprocess.cpp
         src/network/p2p/peerprocess.h
+        src/dialogs/p2pchoicecard.cpp
+        src/dialogs/p2pchoicecard.h
         src/dialogs/p2pconfirmdialog.cpp
         src/dialogs/p2pconfirmdialog.h
+        src/dialogs/p2pconnectionpanel.cpp
+        src/dialogs/p2pconnectionpanel.h
+        src/dialogs/p2pgamepanel.cpp
+        src/dialogs/p2pgamepanel.h
         src/dialogs/p2phistorypanel.cpp
         src/dialogs/p2phistorypanel.h
         src/dialogs/p2pidentitydialog.cpp
         src/dialogs/p2pidentitydialog.h
         src/dialogs/p2ppeerspanel.cpp
         src/dialogs/p2ppeerspanel.h
+        src/dialogs/p2psettingspanel.cpp
+        src/dialogs/p2psettingspanel.h
+        src/dialogs/p2pstatusstrip.cpp
+        src/dialogs/p2pstatusstrip.h
         src/dialogs/p2pwindow.cpp
         src/dialogs/p2pwindow.h
         src/dialogs/p2pwindowtext.cpp

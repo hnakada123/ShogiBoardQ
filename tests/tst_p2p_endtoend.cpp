@@ -514,7 +514,7 @@ private slots:
         // 合言葉の待ち合わせに対応した協力ノードにつながったことが分かる
         QTRY_VERIFY_WITH_TIMEOUT(host.lobby.meetNodes() >= 1 && guest.lobby.meetNodes() >= 1, 20000);
 
-        // 互いを既知の相手にして、友だちにする（ふだんは、一度対局した相手が「相手の管理」に並ぶ）
+        // 互いを既知の相手にして、友だちにする（ふだんは、一度対局した相手が「相手」タブに並ぶ）
         const QByteArray hostKey = host.profile.identity()->publicKey();
         const QByteArray guestKey = guest.profile.identity()->publicKey();
         QVERIFY(host.profile.knownPeers()->recordGameStarted(guestKey, QStringLiteral("申し込む側")));

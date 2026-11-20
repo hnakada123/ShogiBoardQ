@@ -118,7 +118,7 @@ bool P2pGameUiController::ensureLobby()
     m_lobby = new P2pLobbyService(deps, m_profile, this);
     connect(m_lobby, &P2pLobbyService::peerFailed, this, &P2pGameUiController::onPeerFailed);
     // 友だちの在席（預ける・調べる・友だちの申し込みを受ける）。申し込みを受けるときの条件は、ウィンドウの
-    // 「接続と条件」の今の値（招待を作るときと同じ）
+    // 「招待」タブの条件の今の値（招待を作るときと同じ）
     m_presence = new P2pFriendPresence(m_lobby, m_deps.game, this);
     m_presence->setHostSetupProvider([this]() -> std::optional<P2pFriendPresence::HostSetup> {
         if (!m_window || !P2p::DisplayName::isValid(m_window->displayName()) || !m_window->terms().isValid()) {

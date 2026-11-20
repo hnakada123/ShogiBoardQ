@@ -29,7 +29,14 @@ public:
 
     P2pIdentityDialog(Mode mode, P2pIdentityStore* store, QWidget* parent = nullptr);
 
-    /// 既知の限界の説明（実装仕様 1.2節。条件確認画面と P2P対局のウィンドウでも使う）
+    /// 既知の限界の1項目（見出しと説明）
+    struct KnownLimit {
+        QString title;
+        QString text;
+    };
+    /// 既知の限界の説明（実装仕様 1.2節。P2P対局のウィンドウの「設定」は、見出しを付けて並べる）
+    static QList<KnownLimit> knownLimits();
+    /// 既知の限界の説明を、1つの文章にしたもの（プレイヤー鍵を作るときに出す）
     static QString knownLimitsText();
 
 public slots:

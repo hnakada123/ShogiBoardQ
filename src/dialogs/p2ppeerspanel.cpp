@@ -1,9 +1,10 @@
 /// @file p2ppeerspanel.cpp
-/// @brief 既知の相手の管理の実装
+/// @brief 「相手」タブ（既知の相手の管理）の実装
 
 #include "p2ppeerspanel.h"
 
 #include <QCheckBox>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QInputDialog>
@@ -12,6 +13,7 @@
 #include <QTableWidget>
 #include <QVBoxLayout>
 
+#include "buttonstyles.h"
 #include "dialogutils.h"
 #include "p2pfriend.h"
 #include "p2pfriendpresence.h"
@@ -23,7 +25,9 @@
 
 namespace {
 
-enum Column { PlayerId, LocalName, DisplayName, Friend, Verified, Blocked, Games, Unconfirmed, ColumnCount };
+/// 名前の列を先に置く（人が読むのは名前で、プレイヤーIDは確かめるときに見る）。先頭の列の項目が、相手のプレイヤーIDを持つ
+enum Column { LocalName, DisplayName, PlayerId, Friend, Verified, Blocked, Games, Unconfirmed, ColumnCount };
+constexpr int kKeyColumn = LocalName;
 
 } // namespace
 
@@ -41,14 +45,15 @@ P2pPeersPanel::P2pPeersPanel(P2pKnownPeers* knownPeers, P2pIdentityStore* identi
     layout->addWidget(note);
     m_table = new QTableWidget(0, ColumnCount, this);
     m_table->setObjectName(QStringLiteral("p2pPeerTable"));
-    m_table->setHorizontalHeaderLabels({tr("プレイヤーID"), tr("手元の名前"), tr("最後の表示名"), tr("友だち"), tr("確認済み"),
+    m_table->setHorizontalHeaderLabels({tr("手元の名前"), tr("最後の表示名"), tr("プレイヤーID"), tr("友だち"), tr("確認済み"),
                                         tr("ブロック"), tr("対局数"), tr("未確定")});
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    // 列は中身と見出しが切れない幅に合わせ、最後の列は残りの幅まで伸ばす（resizeColumnsToContents は最後の列の伸びを外す）
+    // 列は中身と見出しが切れない幅に合わせ、残りの幅は表示名の列に渡す（数の列を伸ばすと、数が右端に離れる）
     m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    m_table->horizontalHeader()->setStretchLastSection(true);
+    m_table->horizontalHeader()->setSectionResizeMode(DisplayName, QHeaderView::Stretch);
+    m_table->horizontalHeader()->setStretchLastSection(false);
     m_table->verticalHeader()->setVisible(false);
     connect(m_table, &QTableWidget::itemSelectionChanged, this, &P2pPeersPanel::onSelectionChanged);
     layout->addWidget(m_table, 1);
@@ -65,6 +70,7 @@ P2pPeersPanel::P2pPeersPanel(P2pKnownPeers* knownPeers, P2pIdentityStore* identi
     m_friend->setObjectName(QStringLiteral("p2pPeerFriend"));
     m_apply = new QPushButton(tr("対局を申し込む"), this);
     m_apply->setObjectName(QStringLiteral("p2pPeerApply"));
+    m_apply->setStyleSheet(ButtonStyles::primaryAction());
     m_remove = new QPushButton(tr("記録を削除"), this);
     m_remove->setObjectName(QStringLiteral("p2pPeerRemove"));
     connect(m_rename, &QPushButton::clicked, this, &P2pPeersPanel::onRename);
@@ -78,22 +84,25 @@ P2pPeersPanel::P2pPeersPanel(P2pKnownPeers* knownPeers, P2pIdentityStore* identi
     buttons->addStretch();
     buttons->addWidget(m_remove);
     layout->addLayout(buttons);
-    // 友だち（在席を知らせ合い、一覧から対局を申し込む相手）
+    // 友だち（在席を知らせ合い、一覧から対局を申し込む相手）の操作と設定は、1つの枠にまとめる
+    auto* friendBox = new QGroupBox(tr("友だち"), this);
+    auto* friendLayout = new QVBoxLayout(friendBox);
     auto* friendButtons = new QHBoxLayout;
     friendButtons->addWidget(m_friend);
     friendButtons->addWidget(m_apply);
     friendButtons->addStretch();
     // 在席を知らせるかは、利用者が決める（既定は無効。保存は受け手が行う）
-    m_share = new QCheckBox(tr("友だちに在席を知らせる"), this);
+    m_share = new QCheckBox(tr("友だちに在席を知らせる"), friendBox);
     m_share->setObjectName(QStringLiteral("p2pSharePresence"));
     connect(m_share, &QCheckBox::toggled, this, &P2pPeersPanel::sharingToggled);
     friendButtons->addWidget(m_share);
-    layout->addLayout(friendButtons);
-    m_friendNote = new QLabel(this);
+    friendLayout->addLayout(friendButtons);
+    m_friendNote = new QLabel(friendBox);
     m_friendNote->setObjectName(QStringLiteral("p2pFriendNote"));
     m_friendNote->setTextFormat(Qt::PlainText);
     m_friendNote->setWordWrap(true);
-    layout->addWidget(m_friendNote);
+    friendLayout->addWidget(m_friendNote);
+    layout->addWidget(friendBox);
     onSelectionChanged();
 }
 
@@ -141,10 +150,11 @@ void P2pPeersPanel::reload()
         const int row = m_table->rowCount();
         m_table->insertRow(row);
         auto* id = new QTableWidgetItem(P2pWindowText::shortPlayerId(peer.playerKey));
-        id->setData(Qt::UserRole, peer.playerKey);
         id->setToolTip(plainToolTip(P2pWindowText::playerIdText(peer.playerKey)));
         m_table->setItem(row, PlayerId, id);
-        m_table->setItem(row, LocalName, new QTableWidgetItem(peer.localName));
+        auto* local = new QTableWidgetItem(peer.localName);
+        local->setData(Qt::UserRole, peer.playerKey);
+        m_table->setItem(row, LocalName, local);
         auto* display = new QTableWidgetItem(peer.lastDisplayName);
         display->setToolTip(plainToolTip(peer.lastDisplayName));
         m_table->setItem(row, DisplayName, display);
@@ -162,7 +172,8 @@ void P2pPeersPanel::reload()
 QByteArray P2pPeersPanel::selectedKey() const
 {
     const int row = m_table->currentRow();
-    return row < 0 || !m_table->item(row, PlayerId) ? QByteArray() : m_table->item(row, PlayerId)->data(Qt::UserRole).toByteArray();
+    return row < 0 || !m_table->item(row, kKeyColumn) ? QByteArray()
+                                                       : m_table->item(row, kKeyColumn)->data(Qt::UserRole).toByteArray();
 }
 
 void P2pPeersPanel::onSelectionChanged()
@@ -184,7 +195,7 @@ void P2pPeersPanel::onSelectionChanged()
     m_friendNote->setText(available
         ? sharing
         : tr("友だちの在席を調べたり、友だちに対局を申し込んだりするには、合言葉に対応した協力ノードを"
-             "「設定」の「接続候補」に入れて接続します。")
+             "「接続」タブで登録して接続します。")
               + QLatin1Char('\n') + sharing);
 }
 

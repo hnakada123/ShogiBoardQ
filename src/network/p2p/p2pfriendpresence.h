@@ -36,7 +36,7 @@ class P2pFriendPresence : public QObject
 {
     Q_OBJECT
 public:
-    /// 申し込みを受けるときの自分の条件（「接続と条件」の欄の値）
+    /// 申し込みを受けるときの自分の条件（「招待」タブの条件の欄の値）
     struct HostSetup {
         QString displayName;
         P2p::TimeControlTerms terms;
@@ -81,7 +81,7 @@ public:
 
     /// 友だちの記録が変わった（追加・外した・ブロック・削除）。外した友だちへの知らせを無効にして、預け直す
     void reloadFriends();
-    /// 友だちに対局を申し込む（myDisplayName・player は「接続と条件」の値）
+    /// 友だちに対局を申し込む（myDisplayName・player は「招待」タブの欄の値）
     ApplyResult apply(const QByteArray& playerKey, const QString& myDisplayName,
                       const P2pGameCoordinator::PlayerSetup& player);
 

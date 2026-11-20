@@ -72,7 +72,7 @@ private slots:
     void onCreateInviteRequested();
     void onInspectInviteRequested(const QString& invite);
     void onConnectInviteRequested(const QString& invite, bool allowPrivate);
-    /// 「相手の管理」で選んだ友だちに対局を申し込む
+    /// 「相手」タブで選んだ友だちに対局を申し込む
     void onApplyToFriendRequested(const QByteArray& playerKey);
     void onFriendApplyRejected(PeerIpc::InviteRejection rejection);
     void onOfferDrawRequested();

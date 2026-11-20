@@ -102,6 +102,18 @@ QString P2pWindowText::outcomeText(P2p::Outcome outcome, P2p::Cause cause)
     return tr("%1（%2）").arg(result, causeText(cause));
 }
 
+QString P2pWindowText::myOutcomeText(P2p::Outcome outcome, P2p::Cause cause, bool iAmBlack)
+{
+    QString result;
+    switch (outcome) {
+    case P2p::Outcome::BlackWins: result = iAmBlack ? tr("勝ち") : tr("負け"); break;
+    case P2p::Outcome::WhiteWins: result = iAmBlack ? tr("負け") : tr("勝ち"); break;
+    case P2p::Outcome::Draw: result = tr("引き分け"); break;
+    case P2p::Outcome::Aborted: result = tr("中断"); break;
+    }
+    return tr("%1（%2）").arg(result, causeText(cause));
+}
+
 QString P2pWindowText::errorText(P2p::ErrorCode code)
 {
     switch (code) {

@@ -27,7 +27,7 @@
 
 namespace {
 
-enum Column { Date, Opponent, Side, Ending, Category, Result, ColumnCount };
+enum Column { Date, Opponent, Side, Result, Category, ColumnCount };
 
 std::optional<P2p::EvidenceReport> verifyFile(const QString& path)
 {
@@ -51,7 +51,8 @@ P2pHistoryPanel::P2pHistoryPanel(P2pRecordStore* store, P2pKnownPeers* knownPeer
     layout->addWidget(note);
     m_table = new QTableWidget(0, ColumnCount, this);
     m_table->setObjectName(QStringLiteral("p2pRecordTable"));
-    m_table->setHorizontalHeaderLabels({tr("終わった日時"), tr("相手（表示名）"), tr("あなた"), tr("終わり方"), tr("記録の区分"), tr("結果")});
+    // 結果は自分から見た勝ち負けで出し、結果の決まらなかった対局は終わり方を出す（終わり方は、どの行でもツールチップで読める）
+    m_table->setHorizontalHeaderLabels({tr("終わった日時"), tr("相手（表示名）"), tr("あなた"), tr("あなたの結果"), tr("記録の区分")});
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -103,7 +104,7 @@ void P2pHistoryPanel::reload()
             known = m_knownPeers->find(key);
             if (known && !known->localName.isEmpty()) opponent = tr("%1（手元の名前: %2）").arg(opponent, known->localName);
         }
-        // 対局したことのない相手（「相手の管理」で記録を削除した相手・証跡を読めない対局）の表示名を出さない設定では、
+        // 対局したことのない相手（「相手」タブで記録を削除した相手・証跡を読めない対局）の表示名を出さない設定では、
         // ツールチップにも出さない（条件確認画面と同じ規則）
         const bool hideName = m_hideUnknownNames && !known;
         // エンジンが指した側には印を付ける（双方が開始合意で確定した申告。証跡を読めた記録だけ）
@@ -115,17 +116,22 @@ void P2pHistoryPanel::reload()
         if (!hideName) opponentItem->setToolTip(plainToolTip(opponent));
         m_table->setItem(row, Opponent, opponentItem);
         m_table->setItem(row, Side, new QTableWidgetItem(withKind(iAmBlack ? tr("先手") : tr("後手"), iAmBlack)));
-        m_table->setItem(row, Ending, new QTableWidgetItem(P2pWindowText::settlementLabel(entry.info.settlement)));
+        const QString ending = P2pWindowText::settlementLabel(entry.info.settlement);
+        QString result = ending;
         if (report) {
             const QString category = report->isValid() ? P2pWindowText::categoryText(report->category) : tr("検証に失敗");
             m_table->setItem(row, Category, new QTableWidgetItem(category));
-            QString result;
-            if (report->result) result = P2pWindowText::outcomeText(report->result->outcome, report->result->cause);
-            else if (report->terminal) result = P2pWindowText::outcomeText(report->terminal->outcome, report->terminal->cause);
-            m_table->setItem(row, Result, new QTableWidgetItem(result));
+            if (report->result) {
+                result = P2pWindowText::myOutcomeText(report->result->outcome, report->result->cause, iAmBlack);
+            } else if (report->terminal) {
+                result = P2pWindowText::myOutcomeText(report->terminal->outcome, report->terminal->cause, iAmBlack);
+            }
         } else {
             m_table->setItem(row, Category, new QTableWidgetItem(tr("読めません")));
         }
+        auto* resultItem = new QTableWidgetItem(result);
+        resultItem->setToolTip(plainToolTip(tr("終わり方: %1").arg(ending)));
+        m_table->setItem(row, Result, resultItem);
         if (!selected.isEmpty() && entry.gameId == selected) m_table->selectRow(row);
     }
     m_verified = std::move(seen);

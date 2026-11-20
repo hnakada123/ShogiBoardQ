@@ -14,12 +14,14 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QAction>
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPaintEvent>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTableWidget>
@@ -36,6 +38,7 @@
 #include "networksettings.h"
 #include "notificationpresenter.h"
 #include "p2pconfirmdialog.h"
+#include "p2pconnectionpanel.h"
 #include "p2pfriendpresence.h"
 #include "p2pgamecoordinator.h"
 #include "p2pgameuicontroller.h"
@@ -261,13 +264,32 @@ private slots:
                 QVERIFY2(!button->isEnabled(), qPrintable(button->text()));
             }
         }
-        // 参加できるネットワークはビルドの一覧だけ
-        auto* network = window.findChild<QComboBox*>(QStringLiteral("p2pNetwork"));
-        QVERIFY(network);
-        QCOMPARE(network->count(), 2);
-        // チェックの文字は折り返せないので、短くする（長い説明は折り返すラベルに分ける。長いと、訳した画面で
-        // ウィンドウの最小の幅が広がる）
-        for (QCheckBox* box : window.findChildren<QCheckBox*>()) {
+        // 参加できるネットワークは「同じPC・同じLAN」と「インターネット」の2つ。既定は「同じPC・同じLAN」で直接つなぐ
+        auto* lan = window.findChild<QRadioButton*>(QStringLiteral("p2pPlaceLan"));
+        auto* internet = window.findChild<QRadioButton*>(QStringLiteral("p2pPlaceInternet"));
+        QVERIFY(lan && internet);
+        QVERIFY(lan->isChecked());
+        QVERIFY(window.findChild<QRadioButton*>(QStringLiteral("p2pRouteDirect"))->isChecked());
+        QCOMPARE(window.networkName(), QStringLiteral("sbq-local-1"));
+        // 接続の状態と「接続」のボタンは、タブの上にあって、どのタブでも見える
+        auto* connectButton = window.findChild<QPushButton*>(QStringLiteral("p2pConnect"));
+        auto* statusTitle = window.findChild<QLabel*>(QStringLiteral("p2pStatus"));
+        auto* routeInfo = window.findChild<QLabel*>(QStringLiteral("p2pRouteInfo"));
+        QVERIFY(connectButton && statusTitle && routeInfo);
+        QCOMPARE(connectButton->text(), QStringLiteral("接続"));
+        QCOMPARE(statusTitle->text(), QStringLiteral("未接続"));
+        QVERIFY2(routeInfo->text().contains(QStringLiteral("同じPC・同じLAN")), qPrintable(routeInfo->text()));
+        for (int i = 0; i < tabs->count(); ++i) {
+            tabs->setCurrentIndex(i);
+            QVERIFY2(connectButton->isVisible() && statusTitle->isVisible(), qPrintable(tabs->tabText(i)));
+        }
+        tabs->setCurrentIndex(0);
+        // 対局していない間の「対局中」は、そのことと、対局の始め方を出す
+        QCOMPARE(window.findChild<QLabel*>(QStringLiteral("p2pGameHeadline"))->text(), QStringLiteral("対局していません。"));
+        // チェックとラジオボタンの文字は折り返せないので、短くする（長い説明は折り返すラベルに分ける。長いと、訳した
+        // 画面でウィンドウの最小の幅が広がる）
+        for (QAbstractButton* box : window.findChildren<QAbstractButton*>()) {
+            if (!qobject_cast<QCheckBox*>(box) && !qobject_cast<QRadioButton*>(box)) continue;
             QVERIFY2(box->text().size() <= 30, qPrintable(box->text()));
         }
         // 公開募集は持たない（対局の相手は招待で決める）。自分のアドレスも画面に出さない
@@ -317,13 +339,20 @@ private slots:
         QCOMPARE(copied->text(), QStringLiteral("008Q-4HMA-SW95"));
         QCOMPARE(copied->data(QStringLiteral("x-kde-passwordManagerHint")), QByteArrayLiteral("secret"));
         QTRY_VERIFY(QApplication::clipboard()->text().isEmpty());
-        // 合言葉の付かない招待（インターネット・「直接接続を使わない」）では隠す
+        // 合言葉の付かない招待（協力ノードが合言葉に対応していない、など）では隠し、招待文字列を渡すことを知らせる
+        auto* noCode = window.findChild<QLabel*>(QStringLiteral("p2pInviteNoCode"));
+        QVERIFY(noCode);
+        QVERIFY(!noCode->isVisible());
         emit lobby.inviteCreated(QStringLiteral("sbqinv1.nocode"), QString(), 0, 1);
         QVERIFY(!codeRow->isVisible());
         QVERIFY(codeOut->text().isEmpty());
+        QVERIFY(noCode->isVisible());
+        QVERIFY2(noCode->text().contains(QStringLiteral("合言葉が付きません")), qPrintable(noCode->text()));
+        QVERIFY2(noCode->height() >= noCode->heightForWidth(noCode->width()), "案内が欠けている");
 
         // 招待を作り直す間（合言葉の鍵を作る間は応答が少し遅れる）、前の招待を欄に残さない
         emit lobby.inviteCreated(QStringLiteral("sbqinv1.previous"), QStringLiteral("008Q-4HMA-SW95"), 0, 2);
+        QVERIFY(!noCode->isVisible());
         window.findChild<QLineEdit*>(QStringLiteral("p2pDisplayName"))->setText(QStringLiteral("試験"));
         QSignalSpy createRequested(&window, &P2pWindow::createInviteRequested);
         QVERIFY(QMetaObject::invokeMethod(&window, "onCreateInvite"));
@@ -332,7 +361,7 @@ private slots:
         QVERIFY(codeOut->text().isEmpty());
     }
 
-    /// 「招待で接続する」の欄は、合言葉と招待文字列のどちらも受ける。合言葉は、全角・小文字・区切りを直して渡し、
+    /// 「招待を受ける」の欄は、合言葉と招待文字列のどちらも受ける。合言葉は、全角・小文字・区切りを直して渡し、
     /// 断られた理由は合言葉の文で出す
     void inviteInputAcceptsCodes()
     {
@@ -383,7 +412,7 @@ private slots:
         emit lobby.inviteRejected(PeerIpc::InviteRejection::Unreadable);
         QCOMPARE(result->text(), QStringLiteral("合言葉を読めません。入力した文字を確かめてください。"));
         emit lobby.inviteRejected(PeerIpc::InviteRejection::WrongNetwork);
-        QVERIFY(result->text().contains(QStringLiteral("ローカル")));
+        QVERIFY(result->text().contains(QStringLiteral("同じPC・同じLAN")));
         emit lobby.inviteRejected(PeerIpc::InviteRejection::Own);
         QCOMPARE(result->text(), QStringLiteral("自分が作った合言葉です。"));
         // 協力ノードを使う合言葉: 招待が見つからない・問い合わせる協力ノードが無い
@@ -391,7 +420,7 @@ private slots:
         QVERIFY(result->text().contains(QStringLiteral("この合言葉の招待が見つかりません")));
         emit lobby.inviteRejected(PeerIpc::InviteRejection::NoNode);
         QVERIFY(result->text().contains(QStringLiteral("協力ノード")));
-        QVERIFY(result->text().contains(QStringLiteral("接続候補")));
+        QVERIFY(result->text().contains(QStringLiteral("「接続」タブ")));
         // 協力ノードから引き取った招待は、招待文字列と同じく相手の PeerId と期限が分かる
         P2pLobbyService::InviteInfo fetched;
         fetched.kind = PeerIpc::InviteKind::NodeCode;
@@ -436,7 +465,7 @@ private slots:
         QVERIFY(result->text().isEmpty());
     }
 
-    /// 友だち: 「相手の管理」で友だちにする・外す。ブロックした相手は友だちにできず、ブロックすると友だちから
+    /// 友だち: 「相手」タブで友だちにする・外す。ブロックした相手は友だちにできず、ブロックすると友だちから
     /// 外れる。友だちは別のファイルに保存する。「友だちに在席を知らせる」の既定は無効で、プレイヤーごとに覚える
     void friendsInPeersPanelAndSettings()
     {
@@ -816,6 +845,202 @@ private slots:
         emit lobby.inviteInspected(info);
         QCoreApplication::processEvents();
         QVERIFY2(clippedLabel().isEmpty(), qPrintable(clippedLabel()));
+    }
+
+    /// 「接続」タブ: 相手のいる場所とつなぎ方は、どちらの選択肢にも説明を付けて並べ、選んだ組み合わせでどうなるかを
+    /// 下に出す（チェックだけだと、付けない場合に何が起きるかが分からなかった）。つながらない組み合わせ（「インター
+    /// ネット」や中継だけで、協力ノードなし）では、結果の代わりに理由と直し方を出す。協力ノードの欄は、要る組み合わせの
+    /// ときと、登録があるときだけ出す
+    void connectionPanelExplainsTheChoices()
+    {
+        P2pConnectionPanel panel;
+        panel.resize(760, 560);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        auto* lan = panel.findChild<QRadioButton*>(QStringLiteral("p2pPlaceLan"));
+        auto* internet = panel.findChild<QRadioButton*>(QStringLiteral("p2pPlaceInternet"));
+        auto* direct = panel.findChild<QRadioButton*>(QStringLiteral("p2pRouteDirect"));
+        auto* relay = panel.findChild<QRadioButton*>(QStringLiteral("p2pRouteRelay"));
+        auto* nodes = panel.findChild<QListWidget*>(QStringLiteral("p2pBootstrap"));
+        auto* add = panel.findChild<QPushButton*>(QStringLiteral("p2pNodeAdd"));
+        auto* paste = panel.findChild<QPushButton*>(QStringLiteral("p2pNodePaste"));
+        auto* remove = panel.findChild<QPushButton*>(QStringLiteral("p2pNodeRemove"));
+        auto* showNodes = panel.findChild<QPushButton*>(QStringLiteral("p2pNodeShow"));
+        auto* summary = panel.findChild<QFrame*>(QStringLiteral("p2pConnectionSummary"));
+        auto* warning = panel.findChild<QFrame*>(QStringLiteral("p2pConnectionWarning"));
+        auto* warningTitle = panel.findChild<QLabel*>(QStringLiteral("p2pConnectionWarningTitle"));
+        auto* nodeStatus = panel.findChild<QLabel*>(QStringLiteral("p2pNodeStatus"));
+        QVERIFY(lan && internet && direct && relay && nodes && add && paste && remove && showNodes);
+        QVERIFY(summary && warning && warningTitle && nodeStatus);
+        QSignalSpy changed(&panel, &P2pConnectionPanel::settingsChanged);
+        // 枠の中の文（選択肢の説明・下の結果）
+        const auto textIn = [](const QWidget* box) {
+            QStringList texts;
+            const QList<QLabel*> labels = box->findChildren<QLabel*>();
+            for (const QLabel* label : labels) {
+                if (!label->isHidden()) texts << label->text();
+            }
+            return texts.join(QLatin1Char('\n'));
+        };
+
+        // 既定: 同じPC・同じLAN で直接つなぐ。協力ノードは要らないので、欄は出さず、結果を出す
+        QVERIFY(lan->isChecked() && direct->isChecked());
+        QCOMPARE(panel.networkName(), QStringLiteral("sbq-local-1"));
+        QVERIFY(!panel.relayOnly());
+        QVERIFY(panel.bootstrap().isEmpty());
+        QVERIFY(!nodes->isVisible() && showNodes->isVisible());
+        QVERIFY(summary->isVisible() && !warning->isVisible());
+        QVERIFY2(textIn(summary).contains(QStringLiteral("同じPC・同じLANの相手")), qPrintable(textIn(summary)));
+        // どちらのつなぎ方にも、経路・相手に伝わるもの・要るものの説明がある（選ばなかった側の動作も読める）
+        for (const QRadioButton* choice : {direct, relay}) {
+            const QString text = textIn(choice->parentWidget());
+            QVERIFY2(text.contains(QStringLiteral("経路")) && text.contains(QStringLiteral("相手に伝わる"))
+                         && text.contains(QStringLiteral("要るもの")),
+                     qPrintable(text));
+        }
+        QVERIFY(textIn(direct->parentWidget()).contains(QStringLiteral("LANの中のアドレス")));
+        QVERIFY(textIn(relay->parentWidget()).contains(QStringLiteral("IPアドレスは伝わりません")));
+
+        // 「インターネット」: 協力ノードが要る。無い間は、相手が接続できないことと直し方を出す
+        internet->click();
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(panel.networkName(), QStringLiteral("sbq-limited-1"));
+        QVERIFY(nodes->isVisible() && !showNodes->isVisible());
+        QVERIFY(warning->isVisible() && !summary->isVisible());
+        QVERIFY2(warningTitle->text().contains(QStringLiteral("相手は接続できません")), qPrintable(warningTitle->text()));
+        QVERIFY(textIn(direct->parentWidget()).contains(QStringLiteral("あなたのIPアドレス")));
+
+        // 貼り付け: 協力ノードのアドレスの形の行だけを足す（説明の文・空の行・同じアドレスは足さない）
+        const QString node = QStringLiteral("/ip4/203.0.113.24/tcp/4001/p2p/12D3KooWGHvttNCQYLHMsWkhQKAmvT6G87dfvtxDqurpa64rALxr");
+        const QString other = QStringLiteral("/ip4/203.0.113.25/tcp/4001/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN");
+        QApplication::clipboard()->setText(node + QStringLiteral("\n協力ノードです\n  \n") + node);
+        paste->click();
+        QCOMPARE(panel.bootstrap(), QStringList{node});
+        QCOMPARE(changed.count(), 2);
+        QVERIFY(summary->isVisible() && !warning->isVisible());
+        QVERIFY2(textIn(summary).contains(QStringLiteral("インターネット上の相手")), qPrintable(textIn(summary)));
+        QApplication::clipboard()->setText(node + QLatin1Char('\n') + other);
+        paste->click();
+        QCOMPARE(panel.bootstrap(), (QStringList{node, other}));
+        QApplication::clipboard()->clear();
+
+        // 中継だけを使う: IPアドレスが見えるのは協力ノードの運営者だけ
+        relay->click();
+        QVERIFY(panel.relayOnly());
+        QVERIFY2(textIn(summary).contains(QStringLiteral("協力ノードの運営者だけ")), qPrintable(textIn(summary)));
+        // 選んだ行を削除する。協力ノードが無くなると、中継を使えないことを出す
+        QVERIFY(!remove->isEnabled());
+        nodes->setCurrentRow(0);
+        QVERIFY(remove->isEnabled());
+        remove->click();
+        nodes->setCurrentRow(0);
+        remove->click();
+        QVERIFY(panel.bootstrap().isEmpty());
+        QVERIFY(warning->isVisible() && !summary->isVisible());
+        QVERIFY2(warningTitle->text().contains(QStringLiteral("中継を使えません")), qPrintable(warningTitle->text()));
+        // 同じPC・同じLAN でも、中継だけなら協力ノードが要る（欄は出したまま）
+        lan->click();
+        QVERIFY(nodes->isVisible() && warning->isVisible());
+        // 直接つなぐに戻すと、協力ノードは要らないので、欄を隠す。使いたいときは「登録する…」で開ける
+        direct->click();
+        QVERIFY(!nodes->isVisible() && showNodes->isVisible() && summary->isVisible());
+        showNodes->click();
+        QVERIFY(nodes->isVisible());
+
+        // 今の設定の1行（状態の帯に出す）と、招待に入るもの（「招待」タブに出す）
+        const QString setting = panel.settingSummary();
+        QVERIFY2(setting.contains(QStringLiteral("同じPC・同じLAN")) && setting.contains(QStringLiteral("直接つなぐ"))
+                     && setting.contains(QStringLiteral("協力ノードなし")),
+                 qPrintable(setting));
+        QVERIFY(panel.inviteContentsText().contains(QStringLiteral("LANの中のアドレス")));
+
+        // 接続している間は変えられない（枠を押しても変わらない）。変えられないことを知らせる
+        const qsizetype before = changed.count();
+        panel.setLocked(true);
+        QVERIFY(!internet->isEnabled() && !add->isEnabled() && !paste->isEnabled());
+        QVERIFY(panel.findChild<QLabel*>(QStringLiteral("p2pConnectionLock"))->isVisible());
+        QTest::mouseClick(internet->parentWidget(), Qt::LeftButton);
+        QVERIFY(lan->isChecked());
+        QCOMPARE(changed.count(), before);
+        // 接続していなければ、枠のどこを押しても選べる
+        panel.setLocked(false);
+        QVERIFY(!panel.findChild<QLabel*>(QStringLiteral("p2pConnectionLock"))->isVisible());
+        QTest::mouseClick(internet->parentWidget(), Qt::LeftButton);
+        QVERIFY(internet->isChecked());
+        QCOMPARE(changed.count(), before + 1);
+
+        // 接続している間は、協力ノードで中継と合言葉を使えるかを出す。値を外から入れても、変更の知らせは出さない
+        panel.setBootstrap({node});
+        panel.setRelayOnly(true);
+        panel.setNetworkName(QStringLiteral("sbq-local-1"));
+        QCOMPARE(changed.count(), before + 1);
+        QVERIFY(lan->isChecked() && relay->isChecked());
+        panel.setNodeStatus(P2pConnectionPanel::NodeStatus{1, 0});
+        QVERIFY2(nodeStatus->text().contains(QStringLiteral("中継: 使えます"))
+                     && nodeStatus->text().contains(QStringLiteral("対応した協力ノードがありません")),
+                 qPrintable(nodeStatus->text()));
+        panel.setNodeStatus(std::nullopt);
+        QVERIFY(nodeStatus->text().isEmpty());
+        saveShot(&panel, QStringLiteral("p2p-connection-panel"));
+    }
+
+    /// 「接続」タブの選択は、変えたときに保存し、開き直すと戻る。接続していない間は、状態の帯に今の設定を出す。
+    /// 「招待」タブの注意は、今の設定で作る招待に何が入るかを出す
+    void connectionChoicesAreSavedAndRestored()
+    {
+        const QString savedNetwork = NetworkSettings::p2pNetworkName();
+        const bool savedRelayOnly = NetworkSettings::p2pRelayOnly();
+        const QStringList savedNodes = NetworkSettings::p2pBootstrap();
+        NetworkSettings::p2pNetworkName.set(QStringLiteral("sbq-local-1"));
+        NetworkSettings::p2pRelayOnly.set(false);
+        NetworkSettings::p2pBootstrap.set({});
+        AppActivityState activity;
+        GameBoard board;
+        ShogiClock clock;
+        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
+        P2pPlayerProfile profile(m_dir.filePath(QStringLiteral("choices")));
+        QVERIFY(profile.open());
+        P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, &profile);
+        const QString node = QStringLiteral("/ip4/203.0.113.24/tcp/4001/p2p/12D3KooWGHvttNCQYLHMsWkhQKAmvT6G87dfvtxDqurpa64rALxr");
+        {
+            P2pWindow window(&lobby, &game);
+            auto* routeInfo = window.findChild<QLabel*>(QStringLiteral("p2pRouteInfo"));
+            auto* notes = window.findChild<QLabel*>(QStringLiteral("p2pInviteNotes"));
+            QVERIFY(routeInfo && notes);
+            QVERIFY2(notes->text().contains(QStringLiteral("LANの中のアドレス")), qPrintable(notes->text()));
+            window.findChild<QRadioButton*>(QStringLiteral("p2pPlaceInternet"))->click();
+            QCOMPARE(NetworkSettings::p2pNetworkName(), QStringLiteral("sbq-limited-1"));
+            QVERIFY2(routeInfo->text().contains(QStringLiteral("インターネット"))
+                         && routeInfo->text().contains(QStringLiteral("協力ノードなし")),
+                     qPrintable(routeInfo->text()));
+            QVERIFY2(notes->text().contains(QStringLiteral("あなたのIPアドレスが入ります")), qPrintable(notes->text()));
+            QApplication::clipboard()->setText(node);
+            window.findChild<QPushButton*>(QStringLiteral("p2pNodePaste"))->click();
+            QApplication::clipboard()->clear();
+            QCOMPARE(NetworkSettings::p2pBootstrap(), QStringList{node});
+            window.findChild<QRadioButton*>(QStringLiteral("p2pRouteRelay"))->click();
+            QVERIFY(NetworkSettings::p2pRelayOnly());
+            QCOMPARE(window.networkName(), QStringLiteral("sbq-limited-1"));
+            QCOMPARE(window.bootstrap(), QStringList{node});
+            QVERIFY(window.relayOnly());
+            QVERIFY2(routeInfo->text().contains(QStringLiteral("協力ノードの中継だけを使う")), qPrintable(routeInfo->text()));
+            QVERIFY2(notes->text().contains(QStringLiteral("あなたのIPアドレスは入りません")), qPrintable(notes->text()));
+        }
+        {
+            P2pWindow reopened(&lobby, &game);
+            QVERIFY(reopened.findChild<QRadioButton*>(QStringLiteral("p2pPlaceInternet"))->isChecked());
+            QVERIFY(reopened.findChild<QRadioButton*>(QStringLiteral("p2pRouteRelay"))->isChecked());
+            QCOMPARE(reopened.findChild<QListWidget*>(QStringLiteral("p2pBootstrap"))->count(), 1);
+            QCOMPARE(reopened.bootstrap(), QStringList{node});
+            // 「設定」タブには、以前そこにあった欄の行き先を出し、「接続」タブへ移れる
+            auto* tabs = reopened.findChild<QTabWidget*>(QStringLiteral("p2pTabs"));
+            tabs->setCurrentIndex(tabs->count() - 1);
+            reopened.findChild<QPushButton*>(QStringLiteral("p2pOpenConnectionTab"))->click();
+            QCOMPARE(tabs->currentIndex(), 0);
+        }
+        NetworkSettings::p2pNetworkName.set(savedNetwork);
+        NetworkSettings::p2pRelayOnly.set(savedRelayOnly);
+        NetworkSettings::p2pBootstrap.set(savedNodes);
     }
 
     void identityDialogOffersStorageChoices()
@@ -1341,22 +1566,29 @@ private slots:
         window.resize(820, 640);
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
-        const QList<QTableWidget*> tables = window.findChildren<QTableWidget*>();
-        QTableWidget* history = nullptr;
-        QTableWidget* peers = nullptr;
-        for (QTableWidget* table : tables) {
-            (table->columnCount() == 6 ? history : peers) = table;
-        }
+        auto* history = window.findChild<QTableWidget*>(QStringLiteral("p2pRecordTable"));
+        auto* peers = window.findChild<QTableWidget*>(QStringLiteral("p2pPeerTable"));
         QVERIFY(history && peers);
         QCOMPARE(history->rowCount(), 0);
 
         // 1局指して投了で終える。対局が終わったら記録の表に1行、相手の表に1人が入る
         QVERIFY(startGame(applicant, host, &applicantStore, &applicantKnown, profile.records(), profile.knownPeers()));
         Seat& black = applicant.game.match()->iAmBlack() ? applicant : host;  // 投了できるのは手番の側
+        const bool hostIsBlack = &black == &host;
         QTRY_VERIFY(black.game.canResign());
         black.game.resign();
         QTRY_COMPARE(history->rowCount(), 1);
         QTRY_COMPARE(peers->rowCount(), 1);
+        // 結果は、自分から見た勝ち負けで出す（先後と「先手の勝ち」を見比べなくてよい）。終わり方はツールチップで読める
+        constexpr int kResultColumn = 3;
+        QCOMPARE(history->horizontalHeaderItem(kResultColumn)->text(), QStringLiteral("あなたの結果"));
+        QTRY_COMPARE(history->item(0, kResultColumn)->text(),
+                     hostIsBlack ? QStringLiteral("負け（投了）") : QStringLiteral("勝ち（投了）"));
+        QVERIFY2(history->item(0, kResultColumn)->toolTip().contains(QStringLiteral("双方で確定")),
+                 qPrintable(history->item(0, kResultColumn)->toolTip()));
+        // 相手の表は、名前の列が先（プレイヤーIDは確かめるときに見る）
+        QCOMPARE(peers->horizontalHeaderItem(0)->text(), QStringLiteral("手元の名前"));
+        QCOMPARE(peers->horizontalHeaderItem(2)->text(), QStringLiteral("プレイヤーID"));
 
         for (QTableWidget* table : {history, peers}) {
             QVERIFY(table->verticalHeader()->isHidden());
@@ -1408,7 +1640,7 @@ private slots:
         QCOMPARE(history->item(0, kCategoryColumn)->text(), QStringLiteral("検証に失敗"));
     }
 
-    /// 「対局したことのない相手の表示名を出さない」は、対局記録でも対局したことのない相手（「相手の管理」で
+    /// 「対局したことのない相手の表示名を出さない」は、対局記録でも対局したことのない相手（「相手」タブで
     /// 記録を削除した相手）の名前だけを隠す。隠した名前はツールチップにも出さない
     void recordsHideOnlyUnknownNames()
     {
@@ -1438,7 +1670,7 @@ private slots:
         panel.setHideUnknownNames(true);
         QCOMPARE(opponentCell()->text(), QStringLiteral("申し込む人"));
 
-        // 「相手の管理」で記録を削除すると、対局したことのない相手として名前を隠す（ツールチップにも出さない）
+        // 「相手」タブで記録を削除すると、対局したことのない相手として名前を隠す（ツールチップにも出さない）
         hostKnown.remove(applicant.key.publicKey());
         panel.reload();
         QCOMPARE(opponentCell()->text(), QStringLiteral("名前は非表示"));
