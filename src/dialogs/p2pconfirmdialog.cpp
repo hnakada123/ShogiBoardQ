@@ -127,6 +127,11 @@ void P2pConfirmDialog::refresh()
     m_playerId->setText(P2pWindowText::playerIdText(opponent.playerKey));
 
     QStringList identity;
+    // 友だち一覧からの申し込み（招待と違い、受ける側は前もって招待を作っていない）
+    if (m_game->isFriendNegotiation()) {
+        identity << (m_game->isHost() ? tr("友だちからの対局の申し込みです。受けるときは「開始」を押します。")
+                                      : tr("友だちへの対局の申し込みです。"));
+    }
     if (!verified) {
         identity << tr("相手がこのIDの持ち主かは、まだ確かめていません。このIDは相手の申告です。");
     } else {

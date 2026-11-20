@@ -151,6 +151,14 @@ inline const BoundedSetting<int> p2pSidePreference{"P2p/sidePreference", 0, 0, 2
 inline const ListSetting<QString> p2pBootstrap{QStringLiteral("P2p/bootstrap"), "address"};
 /// 直接接続を使わない（協力ノードの中継だけを通り、相手に自分の IP を見せない。既定は無効）
 inline const Setting<bool> p2pRelayOnly{"P2p/relayOnly", false};
+/// 友だちに在席を知らせる（接続している間、友だちにした相手にだけ、接続していることと接続先を、協力ノードを
+/// 通して知らせる。既定は無効で、利用者が有効にする）。この PC の何人目のプレイヤーかごとに覚える
+inline Setting<bool> p2pSharePresence(int player)
+{
+    QByteArray key("P2p/sharePresence");
+    if (player > 1) key += QByteArray::number(player);
+    return {std::move(key), false};
+}
 /// 対局したことのない相手の表示名を出さない（既定は無効）
 inline const Setting<bool> p2pHideUnknownNames{"P2p/hideUnknownNames", false};
 /// 証跡の書き出し先（最後に使ったフォルダ）

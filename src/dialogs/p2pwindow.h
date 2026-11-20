@@ -13,6 +13,7 @@ class EngineSelector;
 struct EngineEntry;
 class P2pGameCoordinator;
 class P2pHistoryPanel;
+class P2pFriendPresence;
 class P2pPeersPanel;
 class QCheckBox;
 class QComboBox;
@@ -53,6 +54,12 @@ public:
 
     /// 対局中のタブを出す
     void showGameTab();
+    /// 友だちの在席（非所有）。「友だちに在席を知らせる」の設定を渡し、「相手の管理」に在席を出す
+    void setFriendPresence(P2pFriendPresence* presence);
+    /// 表示名が使えるか確かめる（使えなければ知らせて false）
+    bool confirmDisplayName() { return checkDisplayName(); }
+    /// 友だちへの申し込みの接続を始めた（つながらない・断られたときの文を選ぶ）
+    void noteFriendApplyStarted() { m_friendApplying = true; }
 
     /// 本体と前後を入れ替えられる、独立したウィンドウとして出す（対局中も開いたまま、本体の盤と行き来して使う）
     void setVisible(bool visible) override;
@@ -69,6 +76,8 @@ signals:
     void inspectInviteRequested(const QString& invite);
     void connectInviteRequested(const QString& invite, bool allowPrivate);
     /// 対局中の操作（投了・合意引き分けの申し出・合意中断の申し出・対局をやめる）
+    /// 友だち（プレイヤーID）に対局を申し込む
+    void applyToFriendRequested(const QByteArray& playerKey);
     void resignRequested();
     void offerDrawRequested();
     void offerAbortRequested();
@@ -93,6 +102,8 @@ private slots:
     void onConnectInvite();
     void onInviteRejected(PeerIpc::InviteRejection rejection);
     void onConnectFailed(PeerIpc::CloseReason reason);
+    /// 「相手の管理」の「友だちに在席を知らせる」を切り替えた（プレイヤーごとに保存し、在席の部品に伝える）
+    void onSharingToggled(bool sharing);
     /// 招待で接続したが、相手が招待を受け付けなかった（合言葉・招待文字列が違う・期限切れ・使用済み）
     void onInviteRefused();
     /// 招待での接続の途中の文（「接続しています…」）を消す（交渉が終わった・対局が始まった）
@@ -176,6 +187,8 @@ private:
     // 設定
     QPlainTextEdit* m_bootstrap = nullptr;
     QCheckBox* m_relayOnly = nullptr;
+    QPointer<P2pFriendPresence> m_presence;      ///< 非所有
+    bool m_friendApplying = false;               ///< 最後に始めた接続が、友だちへの申し込みだった
     QCheckBox* m_hideUnknown = nullptr;
     QLabel* m_identityInfo = nullptr;
     QLabel* m_buildInfo = nullptr;

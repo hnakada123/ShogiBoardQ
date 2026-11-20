@@ -17,11 +17,13 @@ struct P2pKnownPeer {
     bool blocked = false;
     quint32 games = 0;             ///< 開始した対局の数
     quint32 unconfirmed = 0;       ///< 結果が確定しなかった数
+    bool isFriend = false;         ///< 友だち（在席を知らせ合い、申し込みを受ける相手。ブロックした相手は友だちにしない）
 };
 
 /**
- * @brief 既知の相手の記録（`p2p/peers.cbor`）
+ * @brief 既知の相手の記録（`p2p/peers.cbor`）と、友だちにした相手（`p2p/peers-friends.cbor`）
  *
+ * 友だちは別のファイルに持つ（友だち一覧のない版のアプリが、相手の記録をそのまま読み書きできるように）。
  * 確認済みかどうかは手元の記録だけで決め、相手の申告を使わない。相手のプレイヤーID は署名で確かめてから
  * 記録する（申告だけの ID を記録しない）。書き換えは意図ごとの関数だけで行い、どれもその場でファイルに保存する
  * （戻り値は保存できたか）。
@@ -51,7 +53,13 @@ public:
     bool setLocalName(const QByteArray& playerKey, const QString& name);
     /// 確認コードを別の経路で見比べたか
     bool setVerified(const QByteArray& playerKey, bool verified);
+    /// ブロックする・解除する（ブロックした相手は、友だちから外す）
     bool setBlocked(const QByteArray& playerKey, bool blocked);
+    /// 友だちにする・外す。記録のない相手・ブロックした相手・上限（P2p::Friend::kMaxFriends）を超える分は、
+    /// 友だちにできない（false）
+    bool setFriend(const QByteArray& playerKey, bool isFriend);
+    /// 友だちにした相手
+    QList<P2pKnownPeer> friends() const;
     /// 記録を消す
     bool remove(const QByteArray& playerKey);
 
@@ -61,6 +69,9 @@ public:
 private:
     /// プレイヤーID の記録（無ければ作る）
     P2pKnownPeer& entry(const QByteArray& playerKey);
+    bool loadFriends();
+    bool saveFriends() const;
+    QString friendsPath() const;
 
     QString m_path;
     QList<P2pKnownPeer> m_peers;

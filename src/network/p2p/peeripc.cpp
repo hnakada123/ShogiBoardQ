@@ -144,6 +144,13 @@ constexpr char kSetGamePeer[] = "setGamePeer";
 constexpr char kConnectPeer[] = "connectPeer";
 constexpr char kSendFrame[] = "sendFrame";
 constexpr char kCloseConnection[] = "closeConnection";
+constexpr char kCreatePresence[] = "createPresence";
+constexpr char kCancelPresence[] = "cancelPresence";
+constexpr char kConnectPresence[] = "connectPresence";
+constexpr char kMeetPut[] = "meetPut";
+constexpr char kMeetGet[] = "meetGet";
+/// 在席の知らせ・預けるもの（1024 バイトまで）の base64 の長さ
+constexpr int kMaxBlobBase64 = ((1024 + 2) / 3) * 4;
 
 // 通知の名前（protocol/ipc.md 4章）
 constexpr char kNetworkStatus[] = "networkStatus";
@@ -311,12 +318,26 @@ bool checkResult(const QString& method, const QJsonObject& result)
         }
         return peerIdText()(peerId);
     }
-    if (method == QLatin1String(kConnectInvite) || method == QLatin1String(kConnectPeer)) {
+    if (method == QLatin1String(kConnectInvite) || method == QLatin1String(kConnectPeer)
+        || method == QLatin1String(kConnectPresence)) {
         return exactFields(result, {{"connection", u64()}});
+    }
+    if (method == QLatin1String(kCreatePresence)) {
+        return exactFields(result, {{"presence", base64(kMaxBlobBase64)},
+                                    {"id", u64()},
+                                    {"expiresAt", u64()},
+                                    {"addressCount", integer(0, 8)}})
+               && !result.value(QStringLiteral("presence")).toString().isEmpty();
+    }
+    if (method == QLatin1String(kMeetPut)) {
+        return exactFields(result, {{"stored", integer(0, 16)}});
+    }
+    if (method == QLatin1String(kMeetGet)) {
+        return exactFields(result, {{"blobs", stringArray(16, kMaxBlobBase64)}});
     }
     if (method == QLatin1String(kCancelInvites) || method == QLatin1String(kSetGamePeer)
         || method == QLatin1String(kSendFrame) || method == QLatin1String(kCloseConnection)
-        || method == QLatin1String("shutdown")) {
+        || method == QLatin1String(kCancelPresence) || method == QLatin1String("shutdown")) {
         return result.isEmpty();
     }
     return false;
@@ -328,7 +349,8 @@ bool checkNotification(const QString& name, const QJsonObject& params)
         return exactFields(params, {{"state", oneOf({"connecting", "online", "offline"})},
                                     {"connectedPeers", integer(0, 100000)},
                                     {"reachability", oneOf({"unknown", "public", "private"})},
-                                    {"relayReservations", integer(0, 1000)}});
+                                    {"relayReservations", integer(0, 1000)},
+                                    {"meetNodes", integer(0, 16)}});
     }
     if (name == QLatin1String(kConnectionOpened)) {
         return exactFields(params, {{"connection", u64()},
@@ -336,7 +358,8 @@ bool checkNotification(const QString& name, const QJsonObject& params)
                                     {"peerIdBytes", base64(128)},
                                     {"route", route()},
                                     {"direction", oneOf({"inbound", "outbound"})},
-                                    {"origin", oneOf({"invite", "game"})}});
+                                    {"origin", oneOf({"invite", "friend", "game"})},
+                                    {"presence", u64()}});
     }
     if (name == QLatin1String(kConnectionRoute)) {
         return exactFields(params, {{"connection", u64()}, {"route", route()}});
@@ -386,6 +409,40 @@ Request connectInvite(const QString& invite, bool allowPrivate)
     params[QStringLiteral("invite")] = invite;
     params[QStringLiteral("allowPrivate")] = allowPrivate;
     return request(kConnectInvite, params);
+}
+
+Request createPresence()
+{
+    return request(kCreatePresence);
+}
+
+Request cancelPresence()
+{
+    return request(kCancelPresence);
+}
+
+Request connectPresence(const QByteArray& presence, bool allowPrivate)
+{
+    QJsonObject params;
+    params[QStringLiteral("presence")] = QString::fromLatin1(presence.toBase64());
+    params[QStringLiteral("allowPrivate")] = allowPrivate;
+    return request(kConnectPresence, params);
+}
+
+Request meetPut(const QByteArray& slot, const QByteArray& blob, int ttlSeconds)
+{
+    QJsonObject params;
+    params[QStringLiteral("slot")] = QString::fromLatin1(slot.toHex());
+    params[QStringLiteral("blob")] = QString::fromLatin1(blob.toBase64());
+    params[QStringLiteral("ttlSeconds")] = ttlSeconds;
+    return request(kMeetPut, params);
+}
+
+Request meetGet(const QByteArray& slot)
+{
+    QJsonObject params;
+    params[QStringLiteral("slot")] = QString::fromLatin1(slot.toHex());
+    return request(kMeetGet, params);
 }
 
 Request setGamePeer(const QString& peerId)
@@ -446,11 +503,28 @@ std::optional<Reply> readReply(const QString& method, const QJsonObject& result)
         for (const QJsonValue& address : addresses) info.privateAddresses << address.toString();
         return info;
     }
-    if (method == QLatin1String(kConnectInvite) || method == QLatin1String(kConnectPeer)) {
+    if (method == QLatin1String(kConnectInvite) || method == QLatin1String(kConnectPeer)
+        || method == QLatin1String(kConnectPresence)) {
         return ConnectionStarted{connectionOf(result)};
     }
+    if (method == QLatin1String(kCreatePresence)) {
+        return CreatedPresence{base64Of(result.value(QStringLiteral("presence"))),
+                               parseU64(result.value(QStringLiteral("id"))).value_or(0),
+                               parseU64(result.value(QStringLiteral("expiresAt"))).value_or(0),
+                               result.value(QStringLiteral("addressCount")).toInt()};
+    }
+    if (method == QLatin1String(kMeetPut)) {
+        return MeetStored{result.value(QStringLiteral("stored")).toInt()};
+    }
+    if (method == QLatin1String(kMeetGet)) {
+        MeetFetched fetched;
+        const QJsonArray blobs = result.value(QStringLiteral("blobs")).toArray();
+        for (const QJsonValue& blob : blobs) fetched.blobs << base64Of(blob);
+        return fetched;
+    }
     if (method == QLatin1String(kCancelInvites) || method == QLatin1String(kSetGamePeer)
-        || method == QLatin1String(kSendFrame) || method == QLatin1String(kCloseConnection)) {
+        || method == QLatin1String(kSendFrame) || method == QLatin1String(kCloseConnection)
+        || method == QLatin1String(kCancelPresence)) {
         return Done{};
     }
     return std::nullopt;
@@ -458,7 +532,10 @@ std::optional<Reply> readReply(const QString& method, const QJsonObject& result)
 
 std::optional<InviteRejection> inviteRejection(const QString& method, const QString& code)
 {
-    if (method != QLatin1String(kInspectInvite) && method != QLatin1String(kConnectInvite)) return std::nullopt;
+    if (method != QLatin1String(kInspectInvite) && method != QLatin1String(kConnectInvite)
+        && method != QLatin1String(kConnectPresence)) {
+        return std::nullopt;
+    }
     if (code == QLatin1String("invite_expired")) return InviteRejection::Expired;
     if (code == QLatin1String("invite_wrong_network")) return InviteRejection::WrongNetwork;
     if (code == QLatin1String("invite_own")) return InviteRejection::Own;
@@ -472,7 +549,8 @@ std::optional<Notification> readNotification(const QString& name, const QJsonObj
     if (name == QLatin1String(kNetworkStatus)) {
         return NetworkStatus{params.value(QStringLiteral("connectedPeers")).toInt(),
                              params.value(QStringLiteral("reachability")).toString(),
-                             params.value(QStringLiteral("relayReservations")).toInt()};
+                             params.value(QStringLiteral("relayReservations")).toInt(),
+                             params.value(QStringLiteral("meetNodes")).toInt()};
     }
     if (name == QLatin1String(kConnectionOpened)) {
         ConnectionOpened opened;
@@ -482,6 +560,10 @@ std::optional<Notification> readNotification(const QString& name, const QJsonObj
         opened.viaRelay = isRelay(params.value(QStringLiteral("route")));
         opened.outbound = params.value(QStringLiteral("direction")).toString() == QLatin1String("outbound");
         opened.gameReconnect = params.value(QStringLiteral("origin")).toString() == QLatin1String("game");
+        // 番号を使うのは、友だちの申し込み（在席の知らせのトークンで開いた接続）だけ
+        if (params.value(QStringLiteral("origin")).toString() == QLatin1String("friend")) {
+            opened.presence = parseU64(params.value(QStringLiteral("presence"))).value_or(0);
+        }
         return opened;
     }
     if (name == QLatin1String(kConnectionRoute)) {

@@ -411,6 +411,44 @@ private slots:
         QCOMPARE(*pair.applicant.negotiation->failure(), ErrorCode::Busy);
     }
 
+    /// 友だちとの交渉は、相手がその友だちのプレイヤーID を名乗らなければ進めない（受ける側・申し込む側とも）
+    void friendNegotiationRequiresTheFriendsPlayerId()
+    {
+        const SigningKey stranger = SigningKey::generate();
+        {
+            // 受ける側: 申し込んできた相手が、知らせを預けた友だちの ID を名乗っている
+            Pair pair;
+            NegotiationConfig c = pair.config(kRoleHost, SidePreference::None);
+            c.expectedPlayerKey = pair.applicant.playerKey.publicKey();
+            pair.host.negotiation = std::make_unique<Negotiation>(c, &pair.host.playerKey);
+            pair.applicant.negotiation->begin();
+            pair.pump();
+            QVERIFY(!pair.host.negotiation->failure());
+            QCOMPARE(pair.host.negotiation->stage(), Negotiation::Stage::Confirming);
+        }
+        {
+            // 受ける側: 別の ID を名乗る相手は断る
+            Pair pair;
+            NegotiationConfig c = pair.config(kRoleHost, SidePreference::None);
+            c.expectedPlayerKey = stranger.publicKey();
+            pair.host.negotiation = std::make_unique<Negotiation>(c, &pair.host.playerKey);
+            pair.applicant.negotiation->begin();
+            pair.pump();
+            QCOMPARE(*pair.host.negotiation->failure(), ErrorCode::ConditionMismatch);
+            QVERIFY(pair.applicant.negotiation->failure());
+        }
+        {
+            // 申し込む側: 応えた相手が、申し込んだ友だちの ID を名乗っていなければ打ち切る
+            Pair pair;
+            NegotiationConfig c = pair.config(kRoleApplicant, SidePreference::None);
+            c.expectedPlayerKey = stranger.publicKey();
+            pair.applicant.negotiation = std::make_unique<Negotiation>(c, &pair.applicant.playerKey);
+            pair.applicant.negotiation->begin();
+            pair.pump();
+            QCOMPARE(*pair.applicant.negotiation->failure(), ErrorCode::ConditionMismatch);
+        }
+    }
+
     void expiredAgreementIsNotSigned()
     {
         Pair pair;

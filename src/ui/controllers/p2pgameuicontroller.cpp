@@ -17,6 +17,8 @@
 #include "networksettings.h"
 #include "notificationpresenter.h"
 #include "p2pconfirmdialog.h"
+#include "p2pdisplayname.h"
+#include "p2pfriendpresence.h"
 #include "p2pgamecoordinator.h"
 #include "p2pidentitydialog.h"
 #include "p2pidentitystore.h"
@@ -115,6 +117,17 @@ bool P2pGameUiController::ensureLobby()
     }
     m_lobby = new P2pLobbyService(deps, m_profile, this);
     connect(m_lobby, &P2pLobbyService::peerFailed, this, &P2pGameUiController::onPeerFailed);
+    // 友だちの在席（預ける・調べる・友だちの申し込みを受ける）。申し込みを受けるときの条件は、ウィンドウの
+    // 「接続と条件」の今の値（招待を作るときと同じ）
+    m_presence = new P2pFriendPresence(m_lobby, m_deps.game, this);
+    m_presence->setHostSetupProvider([this]() -> std::optional<P2pFriendPresence::HostSetup> {
+        if (!m_window || !P2p::DisplayName::isValid(m_window->displayName()) || !m_window->terms().isValid()) {
+            return std::nullopt;
+        }
+        return P2pFriendPresence::HostSetup{m_window->displayName(), m_window->terms(), m_window->sidePreference(),
+                                            m_window->playerSetup()};
+    });
+    connect(m_lobby, &P2pLobbyService::friendApplyRejected, this, &P2pGameUiController::onFriendApplyRejected);
     connect(m_profile->identity(), &P2pIdentityStore::finished, this, &P2pGameUiController::onIdentityFinished);
     // p2p/ 全体の大きさが上限を超えていたら、古い記録を消すかを尋ねる（黙って消さない）
     if (m_profile->records()->totalBytes() > P2pRecordStore::kMaxTotalBytes) {
@@ -142,6 +155,8 @@ void P2pGameUiController::openWindow()
         connect(m_window, &P2pWindow::createInviteRequested, this, &P2pGameUiController::onCreateInviteRequested);
         connect(m_window, &P2pWindow::inspectInviteRequested, this, &P2pGameUiController::onInspectInviteRequested);
         connect(m_window, &P2pWindow::connectInviteRequested, this, &P2pGameUiController::onConnectInviteRequested);
+        connect(m_window, &P2pWindow::applyToFriendRequested, this, &P2pGameUiController::onApplyToFriendRequested);
+        m_window->setFriendPresence(m_presence);
         // 投了と合意中断は、メニュー・ツールバーと同じ操作にする
         if (m_deps.resignAction) connect(m_window, &P2pWindow::resignRequested, m_deps.resignAction, &QAction::trigger);
         if (m_deps.breakOffAction) {
@@ -262,6 +277,37 @@ void P2pGameUiController::onConnectInviteRequested(const QString& invite, bool a
 {
     if (!m_lobby || !m_window) return;
     m_lobby->connectInvite(invite, allowPrivate, m_window->displayName(), m_window->playerSetup());
+}
+
+void P2pGameUiController::onApplyToFriendRequested(const QByteArray& playerKey)
+{
+    if (!m_presence || !m_window || !m_window->confirmDisplayName()) return;
+    QString text;
+    switch (m_presence->apply(playerKey, m_window->displayName(), m_window->playerSetup())) {
+    case P2pFriendPresence::ApplyResult::Started:
+        // つながると、双方に条件確認画面が開く。つながらない・断られたときの文は、ウィンドウが出す
+        m_window->noteFriendApplyStarted();
+        return;
+    case P2pFriendPresence::ApplyResult::NotOnline:
+        text = tr("この友だちは、今は在席を知らせていません。");
+        break;
+    case P2pFriendPresence::ApplyResult::Busy:
+        text = tr("交渉中・対局中は、対局を申し込めません。");
+        break;
+    case P2pFriendPresence::ApplyResult::Unavailable:
+        text = tr("接続していないか、合言葉に対応した協力ノードにつながっていません。");
+        break;
+    }
+    NotificationPresenter::information(noticeParent(), tr("対局の申し込み"), text, NotificationPresenter::Wait::No);
+}
+
+void P2pGameUiController::onFriendApplyRejected(PeerIpc::InviteRejection)
+{
+    // 在席の知らせは通信プロセスが作って読む。読めない・期限が過ぎたものは、調べ直すまで使えない
+    NotificationPresenter::information(noticeParent(), tr("対局の申し込み"),
+                                       tr("相手の在席の知らせを使えませんでした（期限が過ぎています）。"
+                                          "少し待ってから、もう一度お試しください。"),
+                                       NotificationPresenter::Wait::No);
 }
 
 void P2pGameUiController::onOfferDrawRequested()

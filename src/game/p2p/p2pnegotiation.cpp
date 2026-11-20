@@ -141,6 +141,10 @@ void Negotiation::handleHelloAsHost(const HelloPayload& hello)
     }
     // ブロックした相手には、ブロックしたことを知らせずに BUSY（名乗った ID で判定してよい。実装仕様 3.3節）
     if (m_config.isBlocked && m_config.isBlocked(hello.playerKey)) return fail(ErrorCode::Busy, true);
+    // 友だちの申し込みは、在席の知らせを預けたその友だちの ID を名乗らなければ受けない
+    if (!m_config.expectedPlayerKey.isEmpty() && hello.playerKey != m_config.expectedPlayerKey) {
+        return fail(ErrorCode::ConditionMismatch, true);
+    }
     if (hello.offerId != zeroHash()) return fail(ErrorCode::Expired, true);
     if (!sidesCompatible(hello.sidePreference, m_config.mySide)) return fail(ErrorCode::ConditionMismatch, true);
     if (!Crypto::isValidPublicKey(hello.playerKey) || !Crypto::isValidPublicKey(hello.sessionKey)
@@ -179,6 +183,10 @@ void Negotiation::handleHelloAsApplicant(const HelloPayload& hello)
     if (!Crypto::isValidPublicKey(hello.playerKey) || !Crypto::isValidPublicKey(hello.sessionKey)
         || hello.playerKey == m_playerKey->publicKey() || hello.sessionKey == m_sessionKey.publicKey()
         || hello.connectionRandom == m_myRandom || hello.coin == m_myNonce) {
+        return fail(ErrorCode::ConditionMismatch, true);
+    }
+    // 友だちへの申し込みは、相手がその友だちの ID を名乗らなければ進めない
+    if (!m_config.expectedPlayerKey.isEmpty() && hello.playerKey != m_config.expectedPlayerKey) {
         return fail(ErrorCode::ConditionMismatch, true);
     }
     // エンジンが指す対局は、対局者の種別を扱える相手（版 2）とだけ始める

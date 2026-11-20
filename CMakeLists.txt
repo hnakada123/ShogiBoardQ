@@ -1153,6 +1153,8 @@ if(ENABLE_P2P_PLAY)
         src/game/p2p/p2pevidenceverifier.h
         src/game/p2p/p2pframes.cpp
         src/game/p2p/p2pframes.h
+        src/game/p2p/p2pfriend.cpp
+        src/game/p2p/p2pfriend.h
         src/game/p2p/p2pgamerules.cpp
         src/game/p2p/p2pgamerules.h
         src/game/p2p/p2pmatch.cpp
@@ -1178,6 +1180,8 @@ if(ENABLE_P2P_PLAY)
         src/network/p2p/p2pgamecoordinator.h
         src/network/p2p/p2pidentitystore.cpp
         src/network/p2p/p2pidentitystore.h
+        src/network/p2p/p2pfriendpresence.cpp
+        src/network/p2p/p2pfriendpresence.h
         src/network/p2p/p2pknownpeers.cpp
         src/network/p2p/p2pknownpeers.h
         src/network/p2p/p2plobbyservice.cpp

@@ -35,6 +35,7 @@
 #include "networksettings.h"
 #include "p2pbuildexpiry.h"
 #include "p2pdisplayname.h"
+#include "p2pfriendpresence.h"
 #include "p2pgamecoordinator.h"
 #include "p2phistorypanel.h"
 #include "p2pidentitydialog.h"
@@ -94,6 +95,8 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     m_history = new P2pHistoryPanel(profile ? profile->records() : nullptr, profile ? profile->knownPeers() : nullptr, this);
     m_tabs->addTab(m_history, tr("対局記録"));
     m_peers = new P2pPeersPanel(profile ? profile->knownPeers() : nullptr, profile ? profile->identity() : nullptr, this);
+    connect(m_peers, &P2pPeersPanel::applyRequested, this, &P2pWindow::applyToFriendRequested);
+    connect(m_peers, &P2pPeersPanel::sharingToggled, this, &P2pWindow::onSharingToggled);
     m_tabs->addTab(m_peers, tr("相手の管理"));
     m_tabs->addTab(createSettingsTab(), tr("設定"));
     layout->addWidget(m_tabs);
@@ -403,6 +406,21 @@ void P2pWindow::loadSettings()
     m_bootstrap->setPlainText(NetworkSettings::p2pBootstrap().join(QLatin1Char('\n')));
     m_relayOnly->setChecked(NetworkSettings::p2pRelayOnly());
     m_hideUnknown->setChecked(NetworkSettings::p2pHideUnknownNames());
+    // 「友だちに在席を知らせる」は「相手の管理」にある（設定のタブは高さを縮められないので、項目を足さない）
+    if (m_peers) m_peers->setSharing(NetworkSettings::p2pSharePresence(m_player)());
+}
+
+void P2pWindow::setFriendPresence(P2pFriendPresence* presence)
+{
+    m_presence = presence;
+    if (m_peers) m_peers->setPresence(presence);
+    if (m_presence) m_presence->setSharing(NetworkSettings::p2pSharePresence(m_player)());
+}
+
+void P2pWindow::onSharingToggled(bool sharing)
+{
+    NetworkSettings::p2pSharePresence(m_player).set(sharing);
+    if (m_presence) m_presence->setSharing(sharing);
 }
 
 void P2pWindow::saveSettings()
@@ -770,6 +788,7 @@ void P2pWindow::onConnectInvite()
     m_connectInvite->setEnabled(false);
     const QString input = m_inviteIn->toPlainText();
     m_inviteInIsCode = !P2pWindowText::isInviteString(input);
+    m_friendApplying = false;
     emit connectInviteRequested(P2pWindowText::inviteInput(input), m_allowPrivate->isChecked());
     // 招待文字列・合言葉はもう使わない（ログ・設定に残さない）
     m_inviteIn->clear();
@@ -826,6 +845,17 @@ void P2pWindow::clearConnectProgress()
 void P2pWindow::onInviteRefused()
 {
     clearConnectProgress();
+    if (m_friendApplying) {
+        // 友だちは、対局中・交渉中の間と、在席の知らせを取り消した後は、申し込みを何も返さずに閉じる
+        m_friendApplying = false;
+        if (m_connectFailedBox) m_connectFailedBox->close();
+        m_connectFailedBox = DialogUtils::createNoticeBox(
+            this, QMessageBox::Information, tr("対局の申し込み"),
+            tr("相手は、今は申し込みを受けられません。対局中か、在席の知らせが古くなっています。"
+               "少し待ってから、もう一度お試しください。"));
+        m_connectFailedBox->show();
+        return;
+    }
     // 招待した側は、招待のトークンが合わない接続を何も返さずに閉じる。合言葉は、形が正しければ中身の違いを
     // こちらでは見分けられない（期限も入っていない）ので、考えられる理由を並べる
     const QString text = m_inviteInIsCode
@@ -841,7 +871,13 @@ void P2pWindow::onConnectFailed(PeerIpc::CloseReason reason)
 {
     m_connectingByInvite = false;
     QString text;
-    if (reason == PeerIpc::CloseReason::NoRelayRoute) {
+    if (m_friendApplying) {
+        m_friendApplying = false;
+        text = reason == PeerIpc::CloseReason::NoRelayRoute
+            ? tr("相手の在席の知らせに、あなたの協力ノードの中継を通る接続先がありません。「直接接続を使わない」設定では、"
+                 "相手と同じ協力ノードを「設定」の「接続候補」に入れる必要があります。")
+            : tr("相手に接続できませんでした。相手が接続を終えたか、回線の状態が変わっています。");
+    } else if (reason == PeerIpc::CloseReason::NoRelayRoute) {
         text = tr("この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。「直接接続を使わない」設定では、"
                   "相手と同じ協力ノードを「設定」の「接続候補」に入れる必要があります。");
     } else {

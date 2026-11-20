@@ -44,13 +44,13 @@
 対局・UI側は通信プロセスを終了させる）。
 
 ```json
-{"protocolVersion":4,"processGeneration":"3","requestId":"17","method":"sendFrame","params":{...}}
-{"protocolVersion":4,"processGeneration":"3","requestId":"17","result":{...}}
-{"protocolVersion":4,"processGeneration":"3","requestId":"17","error":{"code":"unknown_connection","message":"..."}}
-{"protocolVersion":4,"processGeneration":"3","notification":"frameReceived","params":{...}}
+{"protocolVersion":5,"processGeneration":"3","requestId":"17","method":"sendFrame","params":{...}}
+{"protocolVersion":5,"processGeneration":"3","requestId":"17","result":{...}}
+{"protocolVersion":5,"processGeneration":"3","requestId":"17","error":{"code":"unknown_connection","message":"..."}}
+{"protocolVersion":5,"processGeneration":"3","notification":"frameReceived","params":{...}}
 ```
 
-- `protocolVersion` は 4（`hello` の応答の `ipcVersion` と同じ）。違えば IPC の違反。
+- `protocolVersion` は 5（`hello` の応答の `ipcVersion` と同じ）。違えば IPC の違反。
 - `processGeneration` は対局・UI側が起動ごとに決める 10進の文字列。通信プロセスは最初の要求（`hello`）の値を覚え、
   以後の要求の値が違えば IPC の違反とし、応答と通知にはこの値を付ける。対局・UI側は、今の世代と違う値の
   メッセージを捨てる（古いプロセスの残り）。
@@ -81,7 +81,7 @@
 
 | method | params | result |
 |---|---|---|
-| `hello` | `{"uiVersion": 文字列}` | `{"peerVersion": 文字列, "ipcVersion": 4, "sandbox": Sandbox}` |
+| `hello` | `{"uiVersion": 文字列}` | `{"peerVersion": 文字列, "ipcVersion": 5, "sandbox": Sandbox}` |
 | `start` | `{"networkName", "bootstrap": [文字列], "relayOnly": 真偽}` | `{"peerId", "peerIdBytes", "networkId", "profile"}` |
 | `createInvite` | `{}` | `{"invite", "code", "expiresAt", "addressCount"}` |
 | `cancelInvites` | `{}` | `{}` |
@@ -91,6 +91,11 @@
 | `connectPeer` | `{"peerId"}` | `{"connection"}` |
 | `sendFrame` | `{"connection", "frame"}` | `{}` |
 | `closeConnection` | `{"connection"}` | `{}` |
+| `createPresence` | `{}` | `{"presence", "id", "expiresAt", "addressCount"}` |
+| `cancelPresence` | `{}` | `{}` |
+| `connectPresence` | `{"presence", "allowPrivate": 真偽}` | `{"connection"}` |
+| `meetPut` | `{"slot", "blob", "ttlSeconds": 整数}` | `{"stored": 整数}` |
+| `meetGet` | `{"slot"}` | `{"blobs": [文字列]}` |
 | `shutdown` | `{}` | `{}` |
 
 - `hello` は最初に1回だけ。`Sandbox` は `{"applied": 真偽, "os": "linux" か "windows" か "macos", "mechanisms": [文字列], "landlockAbi": 整数}`
@@ -141,21 +146,38 @@
   送る（申込みの HELLO、再接続の CONTROL など）。
 - 対局ストリームを受け付けるのは、有効な招待の INVITE_TOKEN（招待文字列のトークンか、同じ LAN の合言葉から作った
   トークン）を
-  最初に送ってきた相手と、`setGamePeer` の相手だけ。ほかのストリームは閉じる。
+  最初に送ってきた相手、在席の知らせのトークンを最初に送ってきた相手（友だちの申し込み）と、`setGamePeer` の相手だけ。
+  ほかのストリームは閉じる。
 - `setGamePeer` を設定している間は、その PeerId からの対局ストリームだけを受け付け（招待のトークンは要らない。
   `origin` は `game`）、ほかのピアからの対局ストリームは閉じる。
 - `sendFrame` の `frame` はフレーム全体（長さの前置きを含めない）の base64。通信プロセスは外枠を確かめてから送る。
   接続ごとの送信の列は 64 件までで、あふれたら `rate_limited` を返す。
   INVITE_TOKEN（type 11）は送れない。
 - `closeConnection` で閉じた接続には `connectionClosed` を出さない（相手には閉じたことが届く）。
-- `shutdown` は応答を返した後、招待を無効にして終わる。
+- `createPresence`・`cancelPresence`・`connectPresence`・`meetPut`・`meetGet` は、友だち一覧（`README.md` 3.3節）に使う。
+  秘密と暗号化は対局・UI側が扱い、通信プロセスは、知らせの中身（接続先とトークン）を作ることと、暗号化されたものを
+  協力ノードとやり取りすることだけを受け持つ。
+  - `createPresence` は在席の知らせを作る。`presence` は、自分の到達候補と申し込み用のトークンを入れた、招待の本体と
+    同じ形のバイト列（base64）で、対局・UI側は読まずに暗号化する。`id` は知らせの番号（10進の文字列。1 から）、
+    `expiresAt` は期限（作ってから 300 秒）、`addressCount` は入っている到達候補の数（0 なら、相手はつなげない）。
+    トークンは、期限まで何度でも使える。同時に 256 件まで持ち、超えたら古いものから無効にする。
+  - `cancelPresence` は、作った知らせをすべて無効にする（在席を知らせる設定を切ったとき・友だちを外したとき）。
+  - `connectPresence` は、友だちの知らせ（協力ノードから引き取って復号した `presence`）の相手へ、`connectInvite` と
+    同じ手順で接続を始める。読めない・期限切れ・別のネットワーク・自分の知らせは、招待と同じエラーで断る。
+  - `meetPut` は、番号 `slot`（16進 64 文字）と預けるもの `blob`（base64。40〜1024 バイト）を、待ち合わせに対応した
+    協力ノードのすべてに、`ttlSeconds`（1〜600）の間、何度でも引き取れる形で預ける。`stored` は預かった協力ノードの数
+    （0 なら、どこにも預けられなかった）。
+  - `meetGet` は、`slot` に預けられているものを、対応した協力ノードのすべてに尋ねる。`blobs` は協力ノードが返したもの
+    （base64。16 件まで）で、通信プロセスは中身を読まない（鍵を知らない協力ノードが作ったものは、対局・UI側の復号で
+    捨てられる）。
+- `shutdown` は応答を返した後、招待と在席の知らせを無効にして終わる。
 
 ## 4. 通知（通信プロセス → 対局・UI側）
 
 | notification | params |
 |---|---|
-| `networkStatus` | `{"state": "connecting"\|"online"\|"offline", "connectedPeers": 整数, "reachability": "unknown"\|"public"\|"private", "relayReservations": 整数}` |
-| `connectionOpened` | `{"connection", "peerId", "peerIdBytes", "route": "direct"\|"relay", "direction": "inbound"\|"outbound", "origin": "invite"\|"game"}` |
+| `networkStatus` | `{"state": "connecting"\|"online"\|"offline", "connectedPeers": 整数, "reachability": "unknown"\|"public"\|"private", "relayReservations": 整数, "meetNodes": 整数}` |
+| `connectionOpened` | `{"connection", "peerId", "peerIdBytes", "route": "direct"\|"relay", "direction": "inbound"\|"outbound", "origin": "invite"\|"friend"\|"game", "presence"}` |
 | `connectionRoute` | `{"connection", "route"}`（受け付けた側で、相手との接続が増減して経路が変わったとき） |
 | `frameReceived` | `{"connection", "frame"}` |
 | `connectionClosed` | `{"connection", "reason"}` |
@@ -168,6 +190,12 @@
   接続を開いた側（outbound）は、ストリームを開いた接続の経路を知らせる（開いた後は変わらないので、`connectionRoute` は
   出さない）。受け付けた側（inbound）は、ストリームがどの接続の上にあるかを知れないので、その相手との接続がすべて
   中継経由なら `relay`、1つでも直接の接続があれば `direct` とし、接続が増減して変わったら `connectionRoute` で知らせる。
+- `meetNodes` は、つながっている協力ノードのうち、待ち合わせに対応したものの数（0 なら、協力ノードを使う合言葉と
+  友だち一覧は使えない）。
+- `connectionOpened` の `origin` は、招待のトークンで開いた接続は `invite`、在席の知らせのトークンで開いた接続
+  （友だちの申し込み。受け付けた側だけ）は `friend`、対局の相手のつなぎ直しは `game`。`presence` は、`origin` が
+  `friend` のとき、使われた知らせの番号（`createPresence` の `id`）で、ほかは `"0"`。対局・UI側は、その番号の知らせを
+  預けた友だちのプレイヤーID を、相手が名乗らなければ断る。
 - `frameReceived` は外枠を確かめたフレームだけを運ぶ。INVITE_TOKEN は運ばない。
 - `connectionClosed` の `reason` は `closed`・`reset`・`timeout`・`unreachable`・`no_relay_route`・`invalid_frame`・`rate_limited`・`limit`。
   `shutdown` の後は、開いている接続を知らせずに終わる（接続は通信プロセスとともに閉じる）。

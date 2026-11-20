@@ -19,6 +19,7 @@ class AppActivityState;
 class KifuFileController;
 class MainWindowAppearanceController;
 class P2pConfirmDialog;
+class P2pFriendPresence;
 class P2pGameCoordinator;
 class P2pLobbyService;
 class P2pPlayerProfile;
@@ -71,6 +72,9 @@ private slots:
     void onCreateInviteRequested();
     void onInspectInviteRequested(const QString& invite);
     void onConnectInviteRequested(const QString& invite, bool allowPrivate);
+    /// 「相手の管理」で選んだ友だちに対局を申し込む
+    void onApplyToFriendRequested(const QByteArray& playerKey);
+    void onFriendApplyRejected(PeerIpc::InviteRejection rejection);
     void onOfferDrawRequested();
     void onLeaveGameRequested();
     void onNegotiationChanged();
@@ -110,6 +114,7 @@ private:
     Deps m_deps;
     P2pPlayerProfile* m_profile = nullptr;      ///< 子オブジェクト（開いたときに、空いている番号のプレイヤーで作る）
     P2pLobbyService* m_lobby = nullptr;          ///< 子オブジェクト（開いたときに作る）
+    P2pFriendPresence* m_presence = nullptr;     ///< 子オブジェクト（友だちの在席。ロビーと一緒に作る）
     QPointer<P2pWindow> m_window;
     QPointer<P2pConfirmDialog> m_confirm;
     QPointer<QMessageBox> m_offerBox;   ///< 相手の申し出を尋ねる箱（モードレス。閉じたら消える）

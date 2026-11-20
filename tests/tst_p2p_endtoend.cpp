@@ -18,8 +18,10 @@
 #include "gameboard.h"
 #include "matchrecordsink.h"
 #include "p2pevidenceverifier.h"
+#include "p2pfriendpresence.h"
 #include "p2pgamecoordinator.h"
 #include "p2pidentitystore.h"
+#include "p2pknownpeers.h"
 #include "p2plobbyservice.h"
 #include "p2pplayerprofile.h"
 #include "p2precordstore.h"
@@ -471,6 +473,135 @@ private slots:
         guest.lobby.end();
         QTRY_VERIFY_WITH_TIMEOUT(host.lobby.status() == P2pLobbyService::Status::Off
                                      && guest.lobby.status() == P2pLobbyService::Status::Off, 10000);
+        service.kill();
+        service.waitForFinished(3000);
+    }
+
+    /// 友だち一覧: 互いを友だちにした2人のうち、在席を知らせている側が、もう片方に「オンライン」と見える。
+    /// 一覧から申し込むと、双方が友だちの交渉として条件確認まで進み、対局を始められる。友だちから外した相手の
+    /// 申し込みは受けない。在席の知らせは、協力ノード（--meet）に暗号化して預ける
+    void friendsSeeEachOtherAndStartAGame()
+    {
+#if !defined(Q_OS_LINUX) && !defined(Q_OS_MACOS)
+        QSKIP("the cooperating node (--service) runs only on Linux and macOS");
+#endif
+        QTcpServer probe;
+        QVERIFY(probe.listen(QHostAddress::LocalHost));
+        const quint16 port = probe.serverPort();
+        probe.close();
+        const QString listen = QStringLiteral("/ip4/127.0.0.1/tcp/%1").arg(port);
+        QProcess service;
+        service.setProcessEnvironment(QProcessEnvironment());
+        service.start(QStringLiteral(PEER_EXECUTABLE),
+                      {QStringLiteral("--service"), QStringLiteral("--network"), QStringLiteral("sbq-local-1"),
+                       QStringLiteral("--identity"), m_dir.filePath(QStringLiteral("friend-service.key")),
+                       QStringLiteral("--listen"), listen, QStringLiteral("--relay"), QStringLiteral("--meet")});
+        service.setReadChannel(QProcess::StandardError);
+        QVERIFY(service.waitForStarted(5000));
+        QTRY_VERIFY_WITH_TIMEOUT((service.waitForReadyRead(100), service.canReadLine()), 10000);
+        const QString line = QString::fromUtf8(service.readLine()).trimmed();
+        QVERIFY2(line.contains(QStringLiteral("service started")), qPrintable(line));
+        const QString bootstrap = listen + QStringLiteral("/p2p/") + line.section(QLatin1Char(' '), -1);
+
+        App host(m_dir.filePath(QStringLiteral("friend-host")));
+        App guest(m_dir.filePath(QStringLiteral("friend-guest")));
+        QVERIFY(createIdentity(host));
+        QVERIFY(createIdentity(guest));
+        QCOMPARE(host.lobby.begin(QStringLiteral("sbq-local-1"), {bootstrap}, false), P2pLobbyService::StartFailure::None);
+        QCOMPARE(guest.lobby.begin(QStringLiteral("sbq-local-1"), {bootstrap}, false), P2pLobbyService::StartFailure::None);
+        QTRY_COMPARE_WITH_TIMEOUT(host.lobby.status(), P2pLobbyService::Status::Online, 15000);
+        QTRY_COMPARE_WITH_TIMEOUT(guest.lobby.status(), P2pLobbyService::Status::Online, 15000);
+        // 合言葉の待ち合わせに対応した協力ノードにつながったことが分かる
+        QTRY_VERIFY_WITH_TIMEOUT(host.lobby.meetNodes() >= 1 && guest.lobby.meetNodes() >= 1, 20000);
+
+        // 互いを既知の相手にして、友だちにする（ふだんは、一度対局した相手が「相手の管理」に並ぶ）
+        const QByteArray hostKey = host.profile.identity()->publicKey();
+        const QByteArray guestKey = guest.profile.identity()->publicKey();
+        QVERIFY(host.profile.knownPeers()->recordGameStarted(guestKey, QStringLiteral("申し込む側")));
+        QVERIFY(guest.profile.knownPeers()->recordGameStarted(hostKey, QStringLiteral("受ける側")));
+        QVERIFY(host.profile.knownPeers()->setFriend(guestKey, true));
+        QVERIFY(guest.profile.knownPeers()->setFriend(hostKey, true));
+
+        P2pFriendPresence hostPresence(&host.lobby, &host.game);
+        P2pFriendPresence guestPresence(&guest.lobby, &guest.game);
+        hostPresence.setHostSetupProvider([]() -> std::optional<P2pFriendPresence::HostSetup> {
+            return P2pFriendPresence::HostSetup{QStringLiteral("受ける側"), TimeControlTerms{60'000, 10'000},
+                                                SidePreference::Black, {}};
+        });
+        QVERIFY(hostPresence.isAvailable() && guestPresence.isAvailable());
+        const auto waitOnline = [](P2pFriendPresence& watcher, const QByteArray& playerKey) {
+            // 知らせを預け終えるまで、調べ直しながら待つ（ほかの試験と並べて動かすと、協力ノードとのやり取りが遅れる）
+            for (int i = 0; i < 50 && !watcher.isOnline(playerKey); ++i) {
+                watcher.refreshNow();
+                QTest::qWait(800);
+            }
+            return watcher.isOnline(playerKey);
+        };
+
+        // 在席を知らせていない友だちは、オンラインに見えない。申し込めない
+        guestPresence.setWatching(true);
+        QTest::qWait(1500);
+        QVERIFY(!guestPresence.isOnline(hostKey));
+        QCOMPARE(guestPresence.apply(hostKey, QStringLiteral("申し込む側"), {}), P2pFriendPresence::ApplyResult::NotOnline);
+
+        // 知らせると、友だちにだけオンラインに見える（知らせていない側は、相手から見えない）
+        QSignalSpy changed(&guestPresence, &P2pFriendPresence::presenceChanged);
+        hostPresence.setSharing(true);
+        QVERIFY(waitOnline(guestPresence, hostKey));
+        QVERIFY(changed.count() >= 1);
+        hostPresence.setWatching(true);
+        QTest::qWait(1500);
+        QVERIFY(!hostPresence.isOnline(guestKey));
+
+        // 友だちから外した相手の申し込みは受けない（預けてあった知らせのトークンを無効にする）
+        QVERIFY(host.profile.knownPeers()->setFriend(guestKey, false));
+        hostPresence.reloadFriends();
+        QTest::qWait(500);
+        QSignalSpy refused(&guest.game, &P2pGameCoordinator::inviteRefused);
+        QCOMPARE(guestPresence.apply(hostKey, QStringLiteral("申し込む側"), {}), P2pFriendPresence::ApplyResult::Started);
+        QTRY_COMPARE_WITH_TIMEOUT(refused.count(), 1, 20000);
+        QVERIFY(!host.game.negotiation() || host.game.negotiation()->stage() == Negotiation::Stage::Failed
+                || !host.game.isBusy());
+
+        // 友だちに戻すと、また申し込める。双方が友だちの交渉として、条件確認まで進む
+        QVERIFY(host.profile.knownPeers()->setFriend(guestKey, true));
+        hostPresence.reloadFriends();
+        QTest::qWait(1500);
+        guestPresence.refreshNow();
+        QTest::qWait(1500);
+        QVERIFY(waitOnline(guestPresence, hostKey));
+        QTRY_VERIFY_WITH_TIMEOUT(!guest.game.isBusy(), 10000);
+        QTRY_COMPARE_WITH_TIMEOUT(guestPresence.apply(hostKey, QStringLiteral("申し込む側"), {}),
+                                  P2pFriendPresence::ApplyResult::Started, 10000);
+        QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
+                                     && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
+        QTRY_VERIFY_WITH_TIMEOUT(host.game.negotiation()
+                                     && host.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
+        QVERIFY(host.game.isFriendNegotiation() && host.game.isHost());
+        QVERIFY(guest.game.isFriendNegotiation() && !guest.game.isHost());
+        QCOMPARE(guest.game.opponentDisplayName(), QStringLiteral("受ける側"));
+        QCOMPARE(host.game.opponentDisplayName(), QStringLiteral("申し込む側"));
+        QCOMPARE(guest.game.opponentPlayerKey(), hostKey);
+        QCOMPARE(host.game.opponentPlayerKey(), guestKey);
+        // 条件は受ける側のもの（先後の希望も）
+        QVERIFY(host.game.negotiation()->iAmBlack());
+        host.game.confirmStart();
+        guest.game.confirmStart();
+        QTRY_VERIFY_WITH_TIMEOUT(host.game.isInProgress() && guest.game.isInProgress(), 20000);
+        QVERIFY(!host.game.isFriendNegotiation());
+        QTRY_VERIFY_WITH_TIMEOUT(host.game.isHumanToMove(), 20000);
+        QCOMPARE(host.game.playMove(UsiMove::fromString(u"7g7f")), GameChannel::MoveResult::Sent);
+        QTRY_VERIFY_WITH_TIMEOUT(guest.game.isHumanToMove(), 20000);
+        // 対局中は、申し込めない
+        QCOMPARE(guestPresence.apply(hostKey, QStringLiteral("申し込む側"), {}), P2pFriendPresence::ApplyResult::Busy);
+
+        host.lobby.end();
+        guest.lobby.end();
+        QTRY_VERIFY_WITH_TIMEOUT(host.lobby.status() == P2pLobbyService::Status::Off
+                                     && guest.lobby.status() == P2pLobbyService::Status::Off, 10000);
+        // 接続を終えると、在席は分からなくなる
+        QVERIFY(!guestPresence.isOnline(hostKey));
+        QVERIFY(!guestPresence.isAvailable());
         service.kill();
         service.waitForFinished(3000);
     }

@@ -17,7 +17,7 @@ use tokio::sync::mpsc;
 /// 1メッセージの上限（バイト）
 pub const MAX_MESSAGE_BYTES: usize = 128 * 1024;
 /// IPC の版
-pub const IPC_VERSION: u64 = 4;
+pub const IPC_VERSION: u64 = 5;
 /// start の bootstrap（利用者が指定した協力ノード）の上限（ipc.md 3章）
 pub const MAX_BOOTSTRAP: usize = 16;
 
@@ -107,6 +107,11 @@ pub enum Method {
     ConnectPeer,
     SendFrame,
     CloseConnection,
+    CreatePresence,
+    CancelPresence,
+    ConnectPresence,
+    MeetPut,
+    MeetGet,
     Shutdown,
 }
 
@@ -123,6 +128,11 @@ impl Method {
             "connectPeer" => Method::ConnectPeer,
             "sendFrame" => Method::SendFrame,
             "closeConnection" => Method::CloseConnection,
+            "createPresence" => Method::CreatePresence,
+            "cancelPresence" => Method::CancelPresence,
+            "connectPresence" => Method::ConnectPresence,
+            "meetPut" => Method::MeetPut,
+            "meetGet" => Method::MeetGet,
             "shutdown" => Method::Shutdown,
             _ => return None,
         })
@@ -214,6 +224,30 @@ pub struct ConnectionParams {
     pub connection: String,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ConnectPresenceParams {
+    /// createPresence が返した在席の知らせ（base64。相手が協力ノードから引き取って復号したもの）
+    pub presence: String,
+    pub allow_private: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct MeetPutParams {
+    /// 番号（16進 64 文字）
+    pub slot: String,
+    /// 預けるもの（base64）
+    pub blob: String,
+    pub ttl_seconds: u64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct MeetGetParams {
+    pub slot: String,
+}
+
 // ---------------------------------------------------------------- 通知（ipc.md 4章）
 
 /// 語の値（ipc.md の語はこの enum の as_str だけが決める）
@@ -246,8 +280,8 @@ words! {
 }
 
 words! {
-    /// 接続の由来（招待か、対局の相手のつなぎ直しか）
-    Origin { Invite => "invite", Game => "game" }
+    /// 接続の由来（招待か、友だちの申し込み（在席の知らせのトークン）か、対局の相手のつなぎ直しか）
+    Origin { Invite => "invite", Friend => "friend", Game => "game" }
 }
 
 words! {
@@ -281,6 +315,8 @@ pub struct NetworkStatus {
     pub connected_peers: usize,
     pub reachability: Reachability,
     pub relay_reservations: usize,
+    /// つながっている、待ち合わせに対応した協力ノードの数（0 なら、協力ノードを使う合言葉と友だち一覧は使えない）
+    pub meet_nodes: usize,
 }
 
 /// 通知（名前とフィールドの名前はここだけ）
@@ -293,6 +329,8 @@ pub enum Notification<'a> {
         route: Route,
         direction: Direction,
         origin: Origin,
+        /// 友だちの申し込みで使われた在席の知らせの番号（createPresence の id。ほかは 0）
+        presence: u64,
     },
     ConnectionRoute {
         connection: u64,
@@ -326,6 +364,7 @@ impl Notification<'_> {
                 "connectedPeers": s.connected_peers,
                 "reachability": s.reachability.as_str(),
                 "relayReservations": s.relay_reservations,
+                "meetNodes": s.meet_nodes,
             }),
             Notification::ConnectionOpened {
                 connection,
@@ -334,6 +373,7 @@ impl Notification<'_> {
                 route,
                 direction,
                 origin,
+                presence,
             } => json!({
                 "connection": connection.to_string(),
                 "peerId": peer_id,
@@ -341,6 +381,7 @@ impl Notification<'_> {
                 "route": route.as_str(),
                 "direction": direction.as_str(),
                 "origin": origin.as_str(),
+                "presence": presence.to_string(),
             }),
             Notification::ConnectionRoute { connection, route } => {
                 json!({ "connection": connection.to_string(), "route": route.as_str() })
@@ -501,24 +542,27 @@ mod tests {
             peer_id: "12D3KooWabc",
             peer_id_bytes: &[0, 1, 2],
             route: Route::Relay,
-            direction: Direction::Outbound,
-            origin: Origin::Game,
+            direction: Direction::Inbound,
+            origin: Origin::Friend,
+            presence: 7,
         };
         assert_eq!(
             opened.params(),
             json!({ "connection": "5", "peerId": "12D3KooWabc", "peerIdBytes": "AAEC", "route": "relay",
-                    "direction": "outbound", "origin": "game" })
+                    "direction": "inbound", "origin": "friend", "presence": "7" })
         );
         let status = Notification::NetworkStatus(NetworkStatus {
             state: NetworkState::Online,
             connected_peers: 2,
             reachability: Reachability::Private,
             relay_reservations: 1,
+            meet_nodes: 1,
         });
         assert_eq!(status.name(), "networkStatus");
         assert_eq!(
             status.params(),
-            json!({ "state": "online", "connectedPeers": 2, "reachability": "private", "relayReservations": 1 })
+            json!({ "state": "online", "connectedPeers": 2, "reachability": "private", "relayReservations": 1,
+                    "meetNodes": 1 })
         );
         let reasons: Vec<&str> = [
             CloseReason::Closed,
@@ -551,7 +595,7 @@ mod tests {
     #[test]
     fn parses_valid_request() {
         let r = parse_request(
-            &req(r#"{"protocolVersion":4,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x"}}"#),
+            &req(r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x"}}"#),
             None,
         )
         .unwrap();
@@ -563,20 +607,20 @@ mod tests {
     #[test]
     fn rejects_envelope_violations() {
         for bad in [
-            r#"{"protocolVersion":3,"processGeneration":"3","requestId":"1","method":"hello","params":{}}"#,
-            r#"{"protocolVersion":4,"processGeneration":"3","requestId":"1","method":"evil","params":{}}"#,
-            r#"{"protocolVersion":4,"processGeneration":"3","requestId":"1","method":"hello","params":{},"extra":1}"#,
-            r#"{"protocolVersion":4,"processGeneration":"03","requestId":"1","method":"hello","params":{}}"#,
-            r#"{"protocolVersion":4,"processGeneration":"3","requestId":"x","method":"hello","params":{}}"#,
-            r#"{"protocolVersion":4,"processGeneration":"3","requestId":"1","method":"hello","params":[]}"#,
-            r#"{"protocolVersion":4,"processGeneration":3,"requestId":"1","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":4,"processGeneration":"3","requestId":"1","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"evil","params":{}}"#,
+            r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"hello","params":{},"extra":1}"#,
+            r#"{"protocolVersion":5,"processGeneration":"03","requestId":"1","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":5,"processGeneration":"3","requestId":"x","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"hello","params":[]}"#,
+            r#"{"protocolVersion":5,"processGeneration":3,"requestId":"1","method":"hello","params":{}}"#,
             r#"[]"#,
             r#"not json"#,
         ] {
             assert!(parse_request(&req(bad), None).is_err(), "{bad}");
         }
         assert!(parse_request(
-            &req(r#"{"protocolVersion":4,"processGeneration":"4","requestId":"1","method":"hello","params":{}}"#),
+            &req(r#"{"protocolVersion":5,"processGeneration":"4","requestId":"1","method":"hello","params":{}}"#),
             Some("3")
         )
         .is_err());
@@ -585,13 +629,13 @@ mod tests {
     #[test]
     fn rejects_unknown_params() {
         let r = parse_request(
-            &req(r#"{"protocolVersion":4,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x","x":1}}"#),
+            &req(r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x","x":1}}"#),
             None,
         )
         .unwrap();
         assert!(params::<HelloParams>(&r).is_err());
         let r = parse_request(
-            &req(r#"{"protocolVersion":4,"processGeneration":"3","requestId":"1","method":"cancelInvites","params":{"a":1}}"#),
+            &req(r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"cancelInvites","params":{"a":1}}"#),
             None,
         )
         .unwrap();

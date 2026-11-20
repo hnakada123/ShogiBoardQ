@@ -73,6 +73,8 @@ public:
         P2p::TimeControlTerms hostTerms;   ///< 招待した側の持ち時間
         bool viaRelay = false;
         PlayerSetup player;                ///< 自分の対局者（人間かエンジンか）
+        /// 友だちとの交渉（友だちの在席の知らせで始めた申し込み）で、相手が名乗るべきプレイヤーID。招待では空
+        QByteArray friendPlayerKey;
     };
 
     enum class Phase { Idle, Negotiating, Playing, Finished };
@@ -136,6 +138,10 @@ public:
     QString opponentDisplayName() const { return m_opponentDisplayName; }
     QByteArray opponentPlayerKey() const;
     bool viaRelay() const { return m_viaRelay; }
+    /// 今の交渉が、友だちの申し込み（友だち一覧から始めた・友だちから届いた）か
+    bool isFriendNegotiation() const { return m_phase == Phase::Negotiating && m_friendNegotiation; }
+    /// 今の交渉・対局で、自分が招待した側（友だちの申し込みを受けた側）か
+    bool isHost() const { return m_role == P2p::kRoleHost; }
     /// 最後に保存した証跡の場所
     QString lastEvidencePath() const { return m_lastEvidencePath; }
     /// 条件の確認と開始署名の期限までの残り（ミリ秒。交渉中でなければ 0）
@@ -241,6 +247,7 @@ private:
     QString m_myDisplayName;
     quint8 m_role = P2p::kRoleApplicant;
     bool m_viaRelay = false;
+    bool m_friendNegotiation = false;   ///< 今の交渉が友だちの申し込みか
     qint64 m_confirmationDeadline = 0;  ///< 条件の確認と開始署名の期限（交渉を始めてから60秒）
     qint64 m_lastTickMono = -1;         ///< 前の確認の単調増加時計（スリープの検出）
     qint64 m_lastTickWallMs = 0;        ///< 前の確認の OS の時刻

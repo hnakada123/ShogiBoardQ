@@ -104,7 +104,7 @@ impl Peer {
         let id = self.next_id.to_string();
         self.next_id += 1;
         let msg = json!({
-            "protocolVersion": 4,
+            "protocolVersion": 5,
             "processGeneration": self.generation,
             "requestId": id,
             "method": method,
@@ -118,7 +118,7 @@ impl Peer {
                 .rx
                 .recv_timeout(remaining)
                 .unwrap_or_else(|_| panic!("no response to {method}"));
-            assert_eq!(v["protocolVersion"], 4);
+            assert_eq!(v["protocolVersion"], 5);
             assert_eq!(v["processGeneration"], self.generation.as_str());
             if v.get("requestId").and_then(Value::as_str) == Some(id.as_str()) {
                 return v;
@@ -165,7 +165,7 @@ impl Peer {
     /// relay_only: 「直接接続を使わない」
     fn start_with(&mut self, bootstrap: Vec<String>, relay_only: bool) {
         let hello = self.ok("hello", json!({ "uiVersion": "test" }));
-        assert_eq!(hello["ipcVersion"], 4);
+        assert_eq!(hello["ipcVersion"], 5);
         assert_eq!(hello["sandbox"]["applied"], true, "{hello}");
         let wait_node = !bootstrap.is_empty();
         let start = self.ok(
@@ -607,14 +607,14 @@ fn ipc_violations_end_the_process() {
     let mut p = Peer::spawn();
     p.ok("hello", json!({ "uiVersion": "test" }));
     p.send_raw(
-        &json!({ "protocolVersion": 4, "processGeneration": "7", "requestId": "2", "method": "evil", "params": {} }),
+        &json!({ "protocolVersion": 5, "processGeneration": "7", "requestId": "2", "method": "evil", "params": {} }),
     );
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 世代の違う要求
     let mut p = Peer::spawn();
     p.ok("hello", json!({ "uiVersion": "test" }));
-    p.send_raw(&json!({ "protocolVersion": 4, "processGeneration": "8", "requestId": "2", "method": "createInvite", "params": {} }));
+    p.send_raw(&json!({ "protocolVersion": 5, "processGeneration": "8", "requestId": "2", "method": "createInvite", "params": {} }));
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 上限を超える長さ
@@ -626,7 +626,7 @@ fn ipc_violations_end_the_process() {
 
     // 最初の要求が hello でない
     let mut p = Peer::spawn();
-    p.send_raw(&json!({ "protocolVersion": 4, "processGeneration": "7", "requestId": "1", "method": "createInvite", "params": {} }));
+    p.send_raw(&json!({ "protocolVersion": 5, "processGeneration": "7", "requestId": "1", "method": "createInvite", "params": {} }));
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 知らない引数はエラーの応答（終了しない）、start の前の要求は invalid_state
@@ -1309,4 +1309,97 @@ fn node_without_meet_gives_no_meet_code() {
     let other = sbq_protocol::meet::MeetCode::new(12345).encode().unwrap();
     let no_node = a.call("inspectInvite", json!({ "invite": other }));
     assert_eq!(no_node["error"]["code"], "invite_no_node", "{no_node}");
+}
+
+/// 友だち一覧のための要求: meetPut・meetGet は、対局・UI側が作った番号と預けるものを、中身を読まずに協力ノードと
+/// やり取りする。createPresence の在席の知らせ（対局・UI側が暗号化して預け、友だちが引き取って復号する）で、
+/// 友だちは申し込みの接続を開ける。トークンは期限まで何度でも使え、取り消すと使えない
+#[test]
+fn presence_connection_and_meet_requests() {
+    let service = spawn_service_with(&["--relay", "--meet"]);
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    a.start_with(vec![service.addr.clone()], true);
+    b.start_with(vec![service.addr.clone()], true);
+    a.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("A reserved the relay");
+    b.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("B reserved the relay");
+    // 待ち合わせに対応した協力ノードの数が分かる
+    a.wait_status(|p| p["meetNodes"].as_u64().unwrap_or(0) == 1)
+        .expect("A sees the meet node");
+
+    // 預けたものは、期限まで何度でも引き取れる（1回限りにしない）
+    let slot = "ab".repeat(32);
+    let blob = B64.encode(vec![7u8; 64]);
+    let put = a.ok("meetPut", json!({ "slot": slot, "blob": blob, "ttlSeconds": 180 }));
+    assert_eq!(put["stored"], 1);
+    for _ in 0..2 {
+        let got = b.ok("meetGet", json!({ "slot": slot }));
+        assert_eq!(got["blobs"], json!([blob]));
+    }
+    let none = b.ok("meetGet", json!({ "slot": "cd".repeat(32) }));
+    assert_eq!(none["blobs"], json!([]));
+    // 範囲の外の値は断る
+    let short = B64.encode(vec![0u8; 39]);
+    for params in [
+        json!({ "slot": slot, "blob": short, "ttlSeconds": 180 }),
+        json!({ "slot": slot, "blob": blob, "ttlSeconds": 601 }),
+        json!({ "slot": slot, "blob": blob, "ttlSeconds": 0 }),
+        json!({ "slot": "zz", "blob": blob, "ttlSeconds": 180 }),
+    ] {
+        let bad = a.call("meetPut", params.clone());
+        assert_eq!(bad["error"]["code"], "invalid_request", "{params}");
+    }
+    let bad = a.call("meetGet", json!({ "slot": "ab".repeat(31) }));
+    assert_eq!(bad["error"]["code"], "invalid_request");
+
+    // 在席の知らせ
+    let presence = a.ok("createPresence", json!({}));
+    let id = presence["id"].as_str().unwrap().to_owned();
+    assert_ne!(id, "0");
+    assert!(presence["addressCount"].as_u64().unwrap() >= 1);
+    let body = presence["presence"].as_str().unwrap().to_owned();
+    // 自分の知らせにはつながない。読めない知らせは断る
+    let own = a.call("connectPresence", json!({ "presence": body, "allowPrivate": false }));
+    assert_eq!(own["error"]["code"], "invite_own", "{own}");
+    let unreadable = b.call("connectPresence", json!({ "presence": "AAAA", "allowPrivate": false }));
+    assert_eq!(unreadable["error"]["code"], "invite_invalid", "{unreadable}");
+
+    // 友だちは、知らせのトークンで何度でも接続を開ける。受けた側には、どの知らせかが番号で分かる
+    for _ in 0..2 {
+        let conn_b = b.ok("connectPresence", json!({ "presence": body, "allowPrivate": false }))["connection"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let opened_b = b
+            .wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+            .expect("B opened");
+        assert_eq!(opened_b["peerId"], a.peer_id.as_str());
+        assert_eq!(opened_b["presence"], "0");
+        let opened_a = a.wait("connectionOpened", |_| true, TIMEOUT).expect("A opened");
+        assert_eq!(opened_a["origin"], "friend");
+        assert_eq!(opened_a["presence"], id.as_str());
+        assert_eq!(opened_a["peerId"], b.peer_id.as_str());
+        let conn_a = opened_a["connection"].as_str().unwrap().to_owned();
+        let f1 = hello_frame(1);
+        b.ok("sendFrame", json!({ "connection": conn_b, "frame": f1 }));
+        let got = a
+            .wait("frameReceived", |p| p["connection"] == conn_a.as_str(), TIMEOUT)
+            .expect("A frame");
+        assert_eq!(got["frame"], f1.as_str());
+        b.ok("closeConnection", json!({ "connection": conn_b }));
+        a.wait("connectionClosed", |p| p["connection"] == conn_a.as_str(), TIMEOUT)
+            .expect("A closed");
+    }
+
+    // 取り消した知らせのトークンは受け付けない（何も返さずに閉じる）
+    a.ok("cancelPresence", json!({}));
+    let conn_b = b.ok("connectPresence", json!({ "presence": body, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    b.wait("connectionClosed", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B closed");
+    assert!(a.wait("connectionOpened", |_| true, Duration::from_secs(1)).is_none());
 }

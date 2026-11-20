@@ -112,6 +112,10 @@ version・type の範囲・gameId の長さ・payload が配列）を確かめ�
 トークン（3.1節）の2通りで、どちらか一方で1回だけ使える。協力ノードを使う合言葉（3.2節）でつなぐ側は、
 協力ノードから引き取った招待の本体に入っている、招待文字列と同じトークンを送る。
 
+友だちの申し込み（3.3節）でも、INVITE_TOKEN で在席の知らせのトークンを送る。在席の知らせのトークンは、招待の
+トークンと違い、期限（作ってから 300 秒）まで何度でも使える。受けた通信プロセスは、どの知らせのトークンかを
+番号で対局・UI側へ知らせる（`connectionOpened` の `origin` は `friend`）。
+
 ### 2.2 待ち合わせ（協力ノード）
 
 協力ノード（`ipc.md` 7章）は、`--meet` を付けて起動すると、プロトコル `/shogiboardq/meet/1.0.0` のストリームを
@@ -282,6 +286,52 @@ blob   = nonce(24) || XChaCha20-Poly1305(key, nonce, 平文, 一緒に認証す�
 - 合言葉を期限内に知った第三者は、招待された人より先に引き取ってつなげる（招待文字列を知られたときと同じ）。
   相手は、条件確認画面のプレイヤーID で確かめる。
 
+### 3.3 友だち一覧の在席の知らせ
+
+互いを友だちにした2人は、招待を渡さずに、相手が接続しているかを知り、対局を申し込める。友だちどうしは互いの
+プレイヤーID（Ed25519 の公開鍵）を知っているので、追加の受け渡しなしに、2人だけが計算できる秘密を作り、協力ノードの
+待ち合わせ（2.2節）で在席の知らせを渡す。秘密と暗号化は、プレイヤー鍵を持つ対局・UI側が扱う（通信プロセスは
+プレイヤー鍵を持たない）。知らせの中身（接続先とトークン）は通信プロセスが作って読み、対局・UI側は暗号化して運ぶだけ
+である。
+
+```text
+shared     = X25519(自分のプレイヤー鍵を変換した秘密鍵, 相手のプレイヤーID を変換した公開鍵)
+pairSecret = H(CBOR(["SBQ-FRIEND-PAIR", 1, shared, 小さい方のプレイヤーID, 大きい方のプレイヤーID]))
+epoch      = floor(UNIX秒 / 600)
+slot       = H(CBOR(["SBQ-FRIEND-SLOT", 1, networkId, pairSecret, 預ける側のプレイヤーID, epoch]))
+key        = H(CBOR(["SBQ-FRIEND-KEY", 1, networkId, pairSecret, 預ける側のプレイヤーID, epoch]))
+blob       = nonce(24) || XChaCha20-Poly1305(key, nonce, 平文,
+                 一緒に認証する値 = CBOR(["SBQ-FRIEND-BLOB", 1, networkId, 預ける側のプレイヤーID, epoch]))
+平文       = CBOR(["SBQ-PRESENCE", 1, expiresAt, body])
+body       = ["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt] の決定的CBOR     ; 3章の body と同じ形
+```
+
+- プレイヤー鍵と相手のプレイヤーID は、libsodium の `crypto_sign_ed25519_sk_to_curve25519`・
+  `crypto_sign_ed25519_pk_to_curve25519` で鍵交換用（Curve25519）に変換し、`crypto_scalarmult` で shared を作る。
+  変換できない点（位数の小さい点・主部分群にない点）の ID と、自分自身とは、秘密を作らない。署名と同じ鍵を鍵交換にも
+  使うので、shared はそのまま鍵にせず、2人のプレイヤーID（バイト列として比べて小さい方を先）と一緒にハッシュに通す。
+  2人のどちらから計算しても、同じ pairSecret になる。
+- epoch は 10 分ごとに変わる。slot と key は、期間・預ける側・ネットワークごとに別の値になる（協力ノードには、
+  前の期間の番号と今の期間の番号が同じ2人のものだとは分からない）。
+- 預ける側（在席を知らせる設定にして接続していて、交渉中・対局中でない間）は、友だちごとに、通信プロセスに在席の知らせ
+  （body。自分の到達候補と、申し込み用のトークン。期限は作ってから 300 秒）を作らせ、その友だちとの key で暗号化して、
+  slot に 180 秒預ける（2.2節の op = 1、oneTime = 0）。75 秒ごとに作り直して預け直す。トークンは友だちごとに別で、
+  通信プロセスは知らせごとの番号を覚える。
+- 調べる側（友だちの一覧を表示している間）は、60 秒ごとに、友だちが預ける slot（預ける側は友だち）から引き取り、
+  復号できて expiresAt が過ぎていなければ、その友だちを「オンライン」とする。今の期間に無ければ、期間が変わって
+  180 秒たつまでは前の期間、期間が変わる 60 秒前からは次の期間も見る（預け直しの間隔と、時計のずれに備える）。
+  協力ノードへの要求は、続けて送らずに間を空ける（協力ノードは、接続元ごとの頻度を絞る）。
+- 申し込む側は、復号した body を通信プロセスに渡し、招待と同じ手順（2.1節の INVITE_TOKEN）で対局ストリームを開く。
+  受ける側の通信プロセスは、在席の知らせのトークンと一致するストリームを受け付け、どの知らせかを番号で知らせる。
+  受ける側の対局・UI側は、その知らせを預けた友だちのプレイヤーID を、相手が HELLO で名乗らなければ断る
+  （申し込む側も、応えた相手が、申し込んだ友だちのプレイヤーID を名乗らなければ打ち切る）。名乗った ID は、
+  招待のときと同じく、開始署名で確かめる。
+- 片方だけが友だちにしても、何も起きない（相手は預けず、引き取りもしない）。友だちは 64 人まで。友だちから外した・
+  ブロックした相手には預けず、預けてあった知らせのトークンも無効にする。
+- 協力ノードの運営者には、同じ番号を預けた接続元と引き取った接続元（どの IP どうしが友だちか）と、預けている番号の
+  数（友だちの数の目安）が見える。プレイヤーID・名前・接続先は見えない。友だちでない人には、何も見えない
+  （番号を計算できない）。
+
 ## 4. 試験の入力（testvectors/）
 
 | ファイル | 行の形 |
@@ -293,6 +343,7 @@ blob   = nonce(24) || XChaCha20-Poly1305(key, nonce, 平文, 一緒に認証す�
 | `rules.txt` | `<blackKind> <whiteKind> <hex(rulesHash)> <hex(Rules の決定的CBOR)>`（対局者の種別の4通り。C++ だけが読む） |
 | `code.txt` | `code <合言葉> <ポート か -> <アドレス,...> <hex(秘密)>`・`invalid <文字列>`・`key <networkName> <合言葉> <hex(パスワード)> <hex(ソルト)> <hex(鍵)>`・`token <hex(鍵)> <hex(招待した側の PeerId)> <hex(つなぐ側の PeerId)> <hex(トークン)>`（3.1節。Rust だけが読む。対局・UI側は合言葉を読まない） |
 | `meet.txt` | `code <合言葉> <hex(秘密)>`・`invalid <文字列>`・`keys <networkName> <合言葉> <hex(パスワード)> <hex(ソルト)> <hex(master)> <hex(slot)> <hex(key)>`・`blob <networkName> <hex(key)> <hex(nonce)> <hex(平文) か -> <hex(blob)>`・`badblob <networkName> <hex(key)> <hex(blob)>`・`request`/`badrequest`/`response`/`badresponse <hex>`（3.2節・2.2節。Rust だけが読む） |
+| `friend.txt` | `pair <hex(プレイヤー鍵の種)> <hex(自分の ID)> <hex(相手の ID)> <hex(shared)> <hex(pairSecret)>`・`badkey <hex(相手の ID)>`・`slot <networkName> <hex(pairSecret)> <hex(預ける側の ID)> <epoch> <hex(slot)> <hex(key)>`・`blob <networkName> <hex(pairSecret)> <hex(預ける側の ID)> <epoch> <hex(nonce)> <expiresAt> <hex(body)> <hex(blob)>`・`badblob <networkName> <hex(pairSecret)> <hex(預ける側の ID)> <epoch> <hex(blob)>`（3.3節。C++ だけが読む。通信プロセスはプレイヤー鍵を持たない） |
 
 `#` で始まる行と空行は読み飛ばす。C++（`tests/tst_p2p_protocol.cpp`）と Rust（`protocol/rust` の試験）が
 同じファイルを読み、同じ結果になることを確かめる（開発方針 5.1節の「実装どうしの一致」）。`frames.txt` は、

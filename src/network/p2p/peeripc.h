@@ -17,7 +17,7 @@ namespace PeerIpc {
 
 /// IPC 1件の上限（128 KiB）
 inline constexpr qsizetype kMaxMessageBytes = 128 * 1024;
-inline constexpr int kProtocolVersion = 4;
+inline constexpr int kProtocolVersion = 5;
 
 /// 長さの前置きを付けたメッセージ
 QByteArray frame(const QJsonObject& message);
@@ -71,6 +71,17 @@ Request setGamePeer(const QString& peerId);
 Request connectPeer(const QString& peerId);
 Request sendFrame(quint64 connection, const QByteArray& frame);
 Request closeConnection(quint64 connection);
+// 友だち一覧（在席の知らせ。protocol/ipc.md 3章）
+/// 在席の知らせを作る（自分の接続先と、友だちの申し込み用のトークン。中身は読まない）
+Request createPresence();
+/// 作った在席の知らせをすべて無効にする
+Request cancelPresence();
+/// 友だちの在席の知らせ（協力ノードから引き取って復号したもの）の相手へ、申し込みの接続を始める
+Request connectPresence(const QByteArray& presence, bool allowPrivate);
+/// 番号と預けるもの（暗号化済み）を、合言葉に対応した協力ノードに預ける
+Request meetPut(const QByteArray& slot, const QByteArray& blob, int ttlSeconds);
+/// 番号で預けられているものを、合言葉に対応した協力ノードから引き取る
+Request meetGet(const QByteArray& slot);
 } // namespace Requests
 
 // ---------------------------------------------------------------- 応答（checkResult を通った result を読む）
@@ -109,10 +120,29 @@ struct ConnectionStarted {
     quint64 connection = 0;
 };
 
-/// 中身のない応答（cancelInvites・setGamePeer・sendFrame・closeConnection）
+/// 中身のない応答（cancelInvites・setGamePeer・sendFrame・closeConnection・cancelPresence）
 struct Done {};
 
-using Reply = std::variant<StartResult, CreatedInvite, InspectedInvite, ConnectionStarted, Done>;
+/// 作った在席の知らせ（createPresence）。body は通信プロセスが作ったバイト列で、対局・UI側は読まずに暗号化する
+struct CreatedPresence {
+    QByteArray body;
+    quint64 id = 0;            ///< 知らせの番号（友だちの申し込みが届いたときに、どの知らせかを知らせる）
+    quint64 expiresAt = 0;
+    int addressCount = 0;      ///< 入っている接続先の数（0 なら、相手はつなげない）
+};
+
+/// 協力ノードに預けた（meetPut）。stored は預かった協力ノードの数
+struct MeetStored {
+    int stored = 0;
+};
+
+/// 協力ノードから引き取った（meetGet）。協力ノードが返したもの（暗号化されたまま）
+struct MeetFetched {
+    QList<QByteArray> blobs;
+};
+
+using Reply = std::variant<StartResult, CreatedInvite, InspectedInvite, ConnectionStarted, Done, CreatedPresence,
+                           MeetStored, MeetFetched>;
 /// 要求 method への応答を読む（知らないメソッドは nullopt）
 std::optional<Reply> readReply(const QString& method, const QJsonObject& result);
 
@@ -129,6 +159,7 @@ struct NetworkStatus {
     int connectedPeers = 0;
     QString reachability;    ///< unknown・public・private
     int relayReservations = 0;
+    int meetNodes = 0;       ///< つながっている、合言葉の待ち合わせに対応した協力ノードの数
 };
 
 struct ConnectionOpened {
@@ -138,6 +169,7 @@ struct ConnectionOpened {
     bool viaRelay = false;
     bool outbound = false;       ///< 自分から開いた
     bool gameReconnect = false;  ///< 対局の相手がつなぎ直した（origin が game。招待の接続でない）
+    quint64 presence = 0;        ///< 友だちの申し込み（origin が friend）で使われた在席の知らせの番号。ほかは 0
 };
 
 struct ConnectionRoute {

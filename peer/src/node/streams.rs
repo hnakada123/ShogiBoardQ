@@ -118,6 +118,16 @@ pub enum Internal {
     },
     /// 協力ノードを使う合言葉の招待を引き取り終えた（node/meets）
     MeetFetched(super::meets::FetchResult),
+    /// meetPut を協力ノードに送り終えた（stored は、預かった協力ノードの数）
+    MeetPutDone {
+        request_id: String,
+        stored: usize,
+    },
+    /// meetGet で協力ノードに尋ね終えた（blobs は、協力ノードが返したもの）
+    MeetGot {
+        request_id: String,
+        blobs: Vec<Vec<u8>>,
+    },
 }
 
 /// 開いた接続の状態
@@ -139,6 +149,8 @@ pub struct Conn {
     pub state: ConnState,
     /// 対局ストリームを開いた接続の経路（つなぐ側だけが決められる。届いた側は None で、相手との接続から決める）
     pub known_route: Option<ipc::Route>,
+    /// 友だちの申し込みで使われた在席の知らせの番号（ほかは 0）
+    pub presence: u64,
 }
 
 impl Drop for Conn {
@@ -207,6 +219,7 @@ impl Node {
                 direction: ipc::Direction::Outbound,
                 state: ConnState::Connecting,
                 known_route: None,
+                presence: 0,
             },
         );
         // どの接続の上で開くかは主ループが決める（outbound）。決まるまで、開くタスクは待つ
@@ -388,6 +401,7 @@ impl Node {
         let Some(entry) = self.conns.get(&conn) else { return };
         let peer = entry.peer;
         let known_route = entry.known_route;
+        let presence = entry.presence;
         let (reader, writer) = stream.split();
         let shared = Arc::new(ConnShared::default());
         let (frame_tx, frame_rx) = mpsc::channel(64);
@@ -414,6 +428,7 @@ impl Node {
                 route,
                 direction: entry.direction,
                 origin: entry.origin,
+                presence,
             });
         }
     }
@@ -473,6 +488,10 @@ impl Node {
             Internal::CodeKey { conn, key } => self.on_code_key(conn, key),
             Internal::CodeFailed { conn, reason } => self.fail_code_connect(conn, reason),
             Internal::MeetFetched(result) => self.on_meet_fetched(result),
+            Internal::MeetPutDone { request_id, stored } => {
+                self.out.result(&request_id, serde_json::json!({ "stored": stored }));
+            }
+            Internal::MeetGot { request_id, blobs } => self.on_meet_got(&request_id, &blobs),
         }
     }
 
@@ -481,6 +500,7 @@ impl Node {
         if self.game_connection_count() >= MAX_GAME_CONNECTIONS {
             return;
         }
+        let mut presence = 0;
         let (origin, forward_first) = if let Some(game_peer) = self.game_peer {
             if peer != game_peer || header.frame_type == frame::TYPE_INVITE_TOKEN {
                 return;
@@ -490,16 +510,22 @@ impl Node {
             let Some(token) = frame::invite_token(&header) else {
                 return;
             };
-            // 招待文字列のトークンか、合言葉の鍵とこの相手の PeerId から作ったトークン
-            if !self
+            let now = unix_now();
+            if let Some(id) = self.presences.find(&token, now) {
+                // 在席の知らせのトークン（友だちの申し込み）。使い終えない
+                presence = id;
+                (ipc::Origin::Friend, false)
+            } else if self
                 .invites
-                .redeem(&token, &self.local_peer.to_bytes(), &peer.to_bytes(), unix_now())
+                .redeem(&token, &self.local_peer.to_bytes(), &peer.to_bytes(), now)
             {
+                // 招待文字列のトークンか、合言葉の鍵とこの相手の PeerId から作ったトークン。
+                // 使われた招待を協力ノードに預けていたら、消す
+                self.release_meets();
+                (ipc::Origin::Invite, false)
+            } else {
                 return;
             }
-            // 使われた招待を協力ノードに預けていたら、消す
-            self.release_meets();
-            (ipc::Origin::Invite, false)
         } else {
             // 有効な招待のトークンを持たない相手のストリームは受け付けない
             return;
@@ -513,6 +539,7 @@ impl Node {
                 direction: ipc::Direction::Inbound,
                 state: ConnState::Connecting,
                 known_route: None,
+                presence,
             },
         );
         self.open_conn(conn, stream);

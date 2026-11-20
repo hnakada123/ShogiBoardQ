@@ -227,6 +227,51 @@ impl Node {
         Ok(())
     }
 
+    /// 対局・UI側の meetPut: 対応した協力ノードのすべてに預け、預かった協力ノードの数を応答で返す
+    pub(super) fn start_meet_put(&mut self, request_id: String, put: Request) {
+        let nodes = self.meets.nodes.clone();
+        let mut control = self.control.clone();
+        let internal = self.internal.clone();
+        tokio::spawn(async move {
+            let mut stored: usize = 0;
+            meet::ask_nodes(&mut control, &nodes, &put, |response| {
+                if response.status == Status::Ok {
+                    stored = stored.saturating_add(1);
+                }
+                false
+            })
+            .await;
+            let _ = internal.send(Internal::MeetPutDone { request_id, stored });
+        });
+    }
+
+    /// 対局・UI側の meetGet: 対応した協力ノードのすべてに尋ね、返ってきたものを応答で返す（復号は対局・UI側が行い、
+    /// 鍵を知らない協力ノードが作ったものは、そこで捨てられる）
+    pub(super) fn start_meet_get(&mut self, request_id: String, slot: [u8; 32]) {
+        let nodes = self.meets.nodes.clone();
+        let mut control = self.control.clone();
+        let internal = self.internal.clone();
+        tokio::spawn(async move {
+            let mut blobs: Vec<Vec<u8>> = Vec::new();
+            meet::ask_nodes(&mut control, &nodes, &Request::Get { slot }, |response| {
+                if response.status == Status::Ok && !response.blob.is_empty() {
+                    blobs.push(response.blob);
+                }
+                false
+            })
+            .await;
+            let _ = internal.send(Internal::MeetGot { request_id, blobs });
+        });
+    }
+
+    /// meetGet の応答を返す
+    pub(super) fn on_meet_got(&mut self, request_id: &str, blobs: &[Vec<u8>]) {
+        use base64::engine::general_purpose::STANDARD as B64;
+        use base64::Engine;
+        let encoded: Vec<String> = blobs.iter().map(|b| B64.encode(b)).collect();
+        self.out.result(request_id, serde_json::json!({ "blobs": encoded }));
+    }
+
     /// 引き取りの結果が届いた。待っていた要求のすべてに結果を返す
     pub(super) fn on_meet_fetched(&mut self, result: FetchResult) {
         let waiting = self.meets.inflight.remove(&result.secret).unwrap_or_default();

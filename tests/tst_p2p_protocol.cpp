@@ -13,6 +13,7 @@
 #include "p2pdisplayname.h"
 #include "p2pevidenceverifier.h"
 #include "p2pframes.h"
+#include "p2pfriend.h"
 #include "matchverificationservice.h"
 #include "p2pbuildexpiry.h"
 #include "peeripc.h"
@@ -209,13 +210,57 @@ private slots:
 
         // 通知
         const QJsonObject opened = object(R"({"connection":"5","peerId":"12D3KooWabc","peerIdBytes":"AAEC",)"
-                                          R"("route":"relay","direction":"outbound","origin":"game"})");
+                                          R"("route":"relay","direction":"outbound","origin":"game","presence":"0"})");
         QVERIFY(PeerIpc::checkNotification(QStringLiteral("connectionOpened"), opened));
         const std::optional<PeerIpc::Notification> openedRead = PeerIpc::readNotification(QStringLiteral("connectionOpened"), opened);
         QVERIFY(openedRead && std::holds_alternative<PeerIpc::ConnectionOpened>(*openedRead));
         const auto& o = std::get<PeerIpc::ConnectionOpened>(*openedRead);
         QVERIFY(o.viaRelay && o.outbound && o.gameReconnect);
         QCOMPARE(o.connection, quint64(5));
+        QCOMPARE(o.presence, quint64(0));
+        // 友だちの申し込み（在席の知らせのトークンで開いた接続）は、どの知らせかが番号で分かる
+        QJsonObject fromFriend = opened;
+        fromFriend.insert(QStringLiteral("direction"), QStringLiteral("inbound"));
+        fromFriend.insert(QStringLiteral("origin"), QStringLiteral("friend"));
+        fromFriend.insert(QStringLiteral("presence"), QStringLiteral("12"));
+        QVERIFY(PeerIpc::checkNotification(QStringLiteral("connectionOpened"), fromFriend));
+        const std::optional<PeerIpc::Notification> friendRead =
+            PeerIpc::readNotification(QStringLiteral("connectionOpened"), fromFriend);
+        QVERIFY(friendRead && std::holds_alternative<PeerIpc::ConnectionOpened>(*friendRead));
+        QCOMPARE(std::get<PeerIpc::ConnectionOpened>(*friendRead).presence, quint64(12));
+        QVERIFY(!std::get<PeerIpc::ConnectionOpened>(*friendRead).gameReconnect);
+        fromFriend.remove(QStringLiteral("presence"));
+        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("connectionOpened"), fromFriend));
+
+        // 友だち一覧の要求と応答
+        const PeerIpc::Request put = PeerIpc::Requests::meetPut(QByteArray(32, '\xab'), QByteArray("blob"), 180);
+        QCOMPARE(put.method, QStringLiteral("meetPut"));
+        QCOMPARE(put.params.value(QStringLiteral("slot")).toString(), QString(64, QLatin1Char('a')).replace(QStringLiteral("aa"), QStringLiteral("ab")));
+        QCOMPARE(put.params.value(QStringLiteral("blob")).toString(), QStringLiteral("YmxvYg=="));
+        QCOMPARE(put.params.value(QStringLiteral("ttlSeconds")).toInt(), 180);
+        QCOMPARE(PeerIpc::Requests::connectPresence(QByteArray("ab"), false).params.value(QStringLiteral("presence")).toString(),
+                 QStringLiteral("YWI="));
+        const QJsonObject created = object(R"({"presence":"YWI=","id":"3","expiresAt":"100","addressCount":2})");
+        QVERIFY(PeerIpc::checkResult(QStringLiteral("createPresence"), created));
+        const std::optional<PeerIpc::Reply> createdRead = PeerIpc::readReply(QStringLiteral("createPresence"), created);
+        QVERIFY(createdRead && std::holds_alternative<PeerIpc::CreatedPresence>(*createdRead));
+        QCOMPARE(std::get<PeerIpc::CreatedPresence>(*createdRead).body, QByteArray("ab"));
+        QCOMPARE(std::get<PeerIpc::CreatedPresence>(*createdRead).id, quint64(3));
+        QCOMPARE(std::get<PeerIpc::CreatedPresence>(*createdRead).addressCount, 2);
+        QVERIFY(!PeerIpc::checkResult(QStringLiteral("createPresence"),
+                                      object(R"({"presence":"","id":"3","expiresAt":"100","addressCount":2})")));
+        QVERIFY(PeerIpc::checkResult(QStringLiteral("meetPut"), object(R"({"stored":1})")));
+        QVERIFY(!PeerIpc::checkResult(QStringLiteral("meetPut"), object(R"({"stored":17})")));
+        const QJsonObject fetched = object(R"({"blobs":["YWI=","Y2Q="]})");
+        QVERIFY(PeerIpc::checkResult(QStringLiteral("meetGet"), fetched));
+        const std::optional<PeerIpc::Reply> fetchedRead = PeerIpc::readReply(QStringLiteral("meetGet"), fetched);
+        QVERIFY(fetchedRead && std::holds_alternative<PeerIpc::MeetFetched>(*fetchedRead));
+        QCOMPARE(std::get<PeerIpc::MeetFetched>(*fetchedRead).blobs, (QList<QByteArray>{QByteArray("ab"), QByteArray("cd")}));
+        QVERIFY(PeerIpc::checkResult(QStringLiteral("meetGet"), object(R"({"blobs":[]})")));
+        QVERIFY(PeerIpc::checkResult(QStringLiteral("cancelPresence"), QJsonObject()));
+        QVERIFY(PeerIpc::checkResult(QStringLiteral("connectPresence"), object(R"({"connection":"9"})")));
+        QCOMPARE(PeerIpc::inviteRejection(QStringLiteral("connectPresence"), QStringLiteral("invite_expired")),
+                 std::optional<PeerIpc::InviteRejection>(PeerIpc::InviteRejection::Expired));
         const QJsonObject closed = object(R"({"connection":"7","reason":"no_relay_route"})");
         QVERIFY(PeerIpc::checkNotification(QStringLiteral("connectionClosed"), closed));
         const std::optional<PeerIpc::Notification> closedRead = PeerIpc::readNotification(QStringLiteral("connectionClosed"), closed);
@@ -228,11 +273,14 @@ private slots:
         QVERIFY(!PeerIpc::readNotification(QStringLiteral("unknownNotification"), QJsonObject()));
         // 範囲外の大きな数は、int にする前に断る（監査 2026-11-13。UBSan の float-cast-overflow）
         const QJsonObject huge = object(R"({"state":"online","connectedPeers":1e300,"reachability":"unknown",)"
-                                        R"("relayReservations":0})");
+                                        R"("relayReservations":0,"meetNodes":0})");
         QVERIFY(!PeerIpc::checkNotification(QStringLiteral("networkStatus"), huge));
         const QJsonObject status = object(R"({"state":"online","connectedPeers":3,"reachability":"unknown",)"
-                                          R"("relayReservations":0})");
+                                          R"("relayReservations":0,"meetNodes":1})");
         QVERIFY(PeerIpc::checkNotification(QStringLiteral("networkStatus"), status));
+        const std::optional<PeerIpc::Notification> statusRead = PeerIpc::readNotification(QStringLiteral("networkStatus"), status);
+        QVERIFY(statusRead && std::holds_alternative<PeerIpc::NetworkStatus>(*statusRead));
+        QCOMPARE(std::get<PeerIpc::NetworkStatus>(*statusRead).meetNodes, 1);
     }
 
     /// ビルドの使用期限は、期限の時刻を過ぎてから（監査 2026-11-12 R5。通信プロセスと同じ起点と日数）
@@ -275,16 +323,16 @@ private slots:
     {
         const auto json = [](const char* text) { return QByteArray(text); };
         // 外枠
-        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":4,"processGeneration":"3","requestId":"17","result":{}})")));
-        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":4,"processGeneration":"3","notification":"x","params":{}})")));
-        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":4,"processGeneration":"3","requestId":"17",)"
+        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","requestId":"17","result":{}})")));
+        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","notification":"x","params":{}})")));
+        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","requestId":"17",)"
                                     R"("error":{"code":"unknown_connection","message":"m"}})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":3,"processGeneration":"3","requestId":"17","result":{}})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":4,"processGeneration":"03","requestId":"17","result":{}})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":4,"processGeneration":3,"requestId":"17","result":{}})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":4,"processGeneration":"3","requestId":"+1","result":{}})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":4,"processGeneration":"3","requestId":"17","result":{},"x":1})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":4,"processGeneration":"3","requestId":"17",)"
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":4,"processGeneration":"3","requestId":"17","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"03","requestId":"17","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":3,"requestId":"17","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","requestId":"+1","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","requestId":"17","result":{},"x":1})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","requestId":"17",)"
                                      R"("error":{"code":"c","message":"m","extra":"e"}})")));
         QVERIFY(!PeerIpc::parse(json(R"([1,2])")));
         QCOMPARE(PeerIpc::parseU64(QJsonValue(QStringLiteral("18446744073709551615"))), std::optional<quint64>(~0ULL));
@@ -372,7 +420,7 @@ private slots:
                                             object(R"({"connection":"5","reason":"shutdown"})")));
         QVERIFY(!PeerIpc::checkNotification(QStringLiteral("connectionOpened"),
                                             object(R"({"connection":"5","peerId":"12D3KooWabc","peerIdBytes":"AAEC",)"
-                                                   R"("route":"direct","direction":"inbound","origin":"public"})")));
+                                                   R"("route":"direct","direction":"inbound","origin":"public","presence":"0"})")));
         QVERIFY(!PeerIpc::checkNotification(QStringLiteral("frameReceived"),
                                             object(R"({"connection":"5","frame":"not base64!"})")));
         QVERIFY(!PeerIpc::checkNotification(QStringLiteral("unknownNotification"), QJsonObject()));
@@ -390,6 +438,82 @@ private slots:
             QCOMPARE(Rules::v1Hash().toHex(), parts.at(2));
             QVERIFY(findNetwork(QString::fromLatin1(parts.at(0))));
         }
+    }
+
+    /// 友だち一覧の在席の知らせ: 2人だけの秘密・協力ノードに預ける番号と鍵・暗号化が、独立に作った試験入力
+    /// （libsodium と SHA-256 で計算したもの）と同じ値になる
+    void friendPresenceVectors()
+    {
+        int counts[5] = {0, 0, 0, 0, 0};
+        const QList<QByteArray> lines = P2pTest::readVectorLines(QStringLiteral("friend.txt"));
+        for (const QByteArray& line : lines) {
+            const QList<QByteArray> parts = line.split(' ');
+            const QByteArray kind = parts.at(0);
+            const auto hex = [&parts](int index) { return QByteArray::fromHex(parts.at(index)); };
+            if (kind == "pair") {
+                QCOMPARE(parts.size(), 6);
+                SecureBytes seed(32);
+                std::memcpy(seed.data(), hex(1).constData(), 32);
+                const SigningKey mine = SigningKey::fromSeed(seed);
+                QCOMPARE(mine.publicKey().toHex(), parts.at(2));
+                const SecureBytes shared = mine.sharedSecret(hex(3));
+                QVERIFY(shared.isValid());
+                QCOMPARE(QByteArray(reinterpret_cast<const char*>(shared.data()), 32).toHex(), parts.at(4));
+                QCOMPARE(Friend::pairSecret(mine, hex(3)).toHex(), parts.at(5));
+                // 2人の ID の順序によらない
+                QCOMPARE(Friend::pairSecretFromShared(hex(4), hex(3), hex(2)).toHex(), parts.at(5));
+                ++counts[0];
+            } else if (kind == "badkey") {
+                const SigningKey mine = SigningKey::generate();
+                QVERIFY2(!mine.sharedSecret(hex(1)).isValid(), parts.at(1).constData());
+                QVERIFY(Friend::pairSecret(mine, hex(1)).isEmpty());
+                ++counts[1];
+            } else if (kind == "slot") {
+                QCOMPARE(parts.size(), 7);
+                const QByteArray network = networkId(parts.at(1));
+                const quint64 epoch = parts.at(4).toULongLong();
+                QCOMPARE(Friend::slot(network, hex(2), hex(3), epoch).toHex(), parts.at(5));
+                QCOMPARE(Friend::key(network, hex(2), hex(3), epoch).toHex(), parts.at(6));
+                ++counts[2];
+            } else if (kind == "blob") {
+                QCOMPARE(parts.size(), 9);
+                const QByteArray network = networkId(parts.at(1));
+                const quint64 epoch = parts.at(4).toULongLong();
+                const Friend::Presence presence{parts.at(6).toULongLong(), hex(7)};
+                QCOMPARE(Friend::seal(network, hex(2), hex(3), epoch, presence, hex(5)).toHex(), parts.at(8));
+                const std::optional<Friend::Presence> opened = Friend::open(network, hex(2), hex(3), epoch, hex(8));
+                QVERIFY(opened);
+                QCOMPARE(opened->expiresAt, presence.expiresAt);
+                QCOMPARE(opened->body, presence.body);
+                ++counts[3];
+            } else if (kind == "badblob") {
+                QCOMPARE(parts.size(), 6);
+                QVERIFY2(!Friend::open(networkId(parts.at(1)), hex(2), hex(3), parts.at(4).toULongLong(), hex(5)),
+                         line.left(80).constData());
+                ++counts[4];
+            } else {
+                QFAIL(kind.constData());
+            }
+        }
+        for (int count : counts) QVERIFY(count >= 2);
+
+        // 自分自身とは秘密を作らない。nonce は預けるたびに変わり、上限を超える知らせは預けない
+        const SigningKey mine = SigningKey::generate();
+        const SigningKey theirs = SigningKey::generate();
+        QVERIFY(Friend::pairSecret(mine, mine.publicKey()).isEmpty());
+        const QByteArray secret = Friend::pairSecret(mine, theirs.publicKey());
+        QCOMPARE(secret.size(), 32);
+        QCOMPARE(Friend::pairSecret(theirs, mine.publicKey()), secret);
+        const QByteArray network = networkId("sbq-limited-1");
+        const Friend::Presence presence{1794000000, QByteArray(200, 'x')};
+        const QByteArray first = Friend::seal(network, secret, mine.publicKey(), 7, presence);
+        const QByteArray second = Friend::seal(network, secret, mine.publicKey(), 7, presence);
+        QVERIFY(!first.isEmpty() && first != second);
+        QVERIFY(Friend::open(network, secret, mine.publicKey(), 7, first));
+        QVERIFY(Friend::seal(network, secret, mine.publicKey(), 7, Friend::Presence{1, QByteArray(1024, 'x')}).isEmpty());
+        QVERIFY(Friend::seal(network, secret, mine.publicKey(), 7, Friend::Presence{1, QByteArray()}).isEmpty());
+        QCOMPARE(Friend::epochOf(1'794'000'599), quint64(2'990'000));
+        QCOMPARE(Friend::epochOf(1'794'000'600), quint64(2'990'001));
     }
 
     /// 対局者の種別（人間・エンジン）を入れた Rules の4つの値。独立に作った試験入力と同じバイト列・ハッシュになる

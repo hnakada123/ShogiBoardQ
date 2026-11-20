@@ -90,6 +90,25 @@ QByteArray SigningKey::sign(QByteArrayView message) const
     return signature;
 }
 
+SecureBytes SigningKey::sharedSecret(const QByteArray& peerPublicKey) const
+{
+    if (!isValid() || !Crypto::isValidPublicKey(peerPublicKey) || peerPublicKey == m_publicKey) return {};
+    SecureBytes mySecret(crypto_scalarmult_curve25519_SCALARBYTES);
+    SecureBytes shared(crypto_scalarmult_curve25519_BYTES);
+    unsigned char theirPublic[crypto_scalarmult_curve25519_BYTES];
+    if (!mySecret.isValid() || !shared.isValid()) return {};
+    if (crypto_sign_ed25519_sk_to_curve25519(mySecret.data(), m_secret.data()) != 0) return {};
+    // 位数の小さい点・主部分群にない点は、変換で断られる
+    if (crypto_sign_ed25519_pk_to_curve25519(theirPublic,
+                                             reinterpret_cast<const unsigned char*>(peerPublicKey.constData()))
+        != 0) {
+        return {};
+    }
+    // 出力がすべて 0 になる相手の値は、crypto_scalarmult が断る
+    if (crypto_scalarmult_curve25519(shared.data(), mySecret.data(), theirPublic) != 0) return {};
+    return shared;
+}
+
 // ---------------------------------------------------------------- Crypto
 
 namespace Crypto {

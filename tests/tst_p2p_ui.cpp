@@ -36,6 +36,7 @@
 #include "networksettings.h"
 #include "notificationpresenter.h"
 #include "p2pconfirmdialog.h"
+#include "p2pfriendpresence.h"
 #include "p2pgamecoordinator.h"
 #include "p2pgameuicontroller.h"
 #include "p2phistorypanel.h"
@@ -43,6 +44,7 @@
 #include "p2pidentitystore.h"
 #include "p2pknownpeers.h"
 #include "p2plobbyservice.h"
+#include "p2ppeerspanel.h"
 #include "p2pplayerprofile.h"
 #include "p2pplayerslot.h"
 #include "p2precordstore.h"
@@ -432,6 +434,109 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(&window, "onConnectInvite"));
         emit game.negotiationEnded(true, std::nullopt, false);
         QVERIFY(result->text().isEmpty());
+    }
+
+    /// 友だち: 「相手の管理」で友だちにする・外す。ブロックした相手は友だちにできず、ブロックすると友だちから
+    /// 外れる。友だちは別のファイルに保存する。「友だちに在席を知らせる」の既定は無効で、プレイヤーごとに覚える
+    void friendsInPeersPanelAndSettings()
+    {
+        const QString path = m_dir.filePath(QStringLiteral("friend-panel.cbor"));
+        const SigningKey a = SigningKey::generate();
+        const SigningKey b = SigningKey::generate();
+        {
+            P2pKnownPeers known(path);
+            QVERIFY(known.recordGameStarted(a.publicKey(), QStringLiteral("A")));
+            QVERIFY(known.recordGameStarted(b.publicKey(), QStringLiteral("B")));
+            QVERIFY(known.friends().isEmpty());
+            QVERIFY(known.setFriend(a.publicKey(), true));
+            QCOMPARE(known.friends().size(), 1);
+            // ブロックした相手・記録のない相手は、友だちにできない
+            QVERIFY(known.setBlocked(b.publicKey(), true));
+            QVERIFY(!known.setFriend(b.publicKey(), true));
+            QVERIFY(!known.setFriend(QByteArray(32, 'x'), true));
+        }
+        {
+            // 読み直しても友だちのまま。相手の記録のファイルの形は変えない（友だちは別のファイル）
+            P2pKnownPeers known(path);
+            QVERIFY(known.load());
+            QVERIFY(known.find(a.publicKey())->isFriend);
+            QVERIFY(!known.find(b.publicKey())->isFriend);
+            QVERIFY(QFile::exists(m_dir.filePath(QStringLiteral("friend-panel-friends.cbor"))));
+            // ブロックすると、友だちから外れる
+            QVERIFY(known.setBlocked(a.publicKey(), true));
+            QVERIFY(!known.find(a.publicKey())->isFriend);
+        }
+        P2pKnownPeers known(path);
+        QVERIFY(known.load());
+        QVERIFY(known.friends().isEmpty());
+        QVERIFY(known.setBlocked(a.publicKey(), false));
+        QVERIFY(known.setFriend(a.publicKey(), true));
+
+        P2pPeersPanel panel(&known, nullptr);
+        panel.reload();
+        auto* table = panel.findChild<QTableWidget*>(QStringLiteral("p2pPeerTable"));
+        auto* friendButton = panel.findChild<QPushButton*>(QStringLiteral("p2pPeerFriend"));
+        auto* apply = panel.findChild<QPushButton*>(QStringLiteral("p2pPeerApply"));
+        auto* note = panel.findChild<QLabel*>(QStringLiteral("p2pFriendNote"));
+        QVERIFY(table && friendButton && apply && note);
+        constexpr int kFriendColumn = 3;
+        QCOMPARE(table->horizontalHeaderItem(kFriendColumn)->text(), QStringLiteral("友だち"));
+        const auto rowOf = [table](const QByteArray& key) {
+            for (int row = 0; row < table->rowCount(); ++row) {
+                if (table->item(row, 0)->data(Qt::UserRole).toByteArray() == key) return row;
+            }
+            return -1;
+        };
+        QCOMPARE(table->item(rowOf(a.publicKey()), kFriendColumn)->text(), QStringLiteral("友だち"));
+        QVERIFY(table->item(rowOf(b.publicKey()), kFriendColumn)->text().isEmpty());
+        // 選んでいなければ押せない。友だちは「友だちから外す」、ブロックした相手は友だちにできない
+        QVERIFY(!friendButton->isEnabled() && !apply->isEnabled());
+        table->selectRow(rowOf(a.publicKey()));
+        QCOMPARE(friendButton->text(), QStringLiteral("友だちから外す"));
+        QVERIFY(friendButton->isEnabled());
+        // 在席が分からない間（協力ノードにつながっていない）は、申し込めない。使い方を案内する
+        QVERIFY(!apply->isEnabled());
+        QVERIFY(note->text().contains(QStringLiteral("協力ノード")));
+        table->selectRow(rowOf(b.publicKey()));
+        QCOMPARE(friendButton->text(), QStringLiteral("友だちに追加"));
+        QVERIFY(!friendButton->isEnabled());
+        // 押すと切り替わり、保存される
+        table->selectRow(rowOf(a.publicKey()));
+        friendButton->click();
+        QVERIFY(known.friends().isEmpty());
+        table->selectRow(rowOf(a.publicKey()));
+        QCOMPARE(friendButton->text(), QStringLiteral("友だちに追加"));
+        friendButton->click();
+        QCOMPARE(known.friends().size(), 1);
+        QCOMPARE(table->item(rowOf(a.publicKey()), kFriendColumn)->text(), QStringLiteral("友だち"));
+
+        // 設定: 「友だちに在席を知らせる」は既定で無効。変えると保存する
+        AppActivityState activity;
+        GameBoard board;
+        ShogiClock clock;
+        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
+        P2pPlayerProfile profile(m_dir.filePath(QStringLiteral("friend-settings")));
+        QVERIFY(profile.open());
+        P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, &profile);
+        NetworkSettings::p2pSharePresence(1).remove();
+        QVERIFY(!NetworkSettings::p2pSharePresence(1)());
+        P2pFriendPresence presence(&lobby, &game);
+        {
+            P2pWindow window(&lobby, &game);
+            window.setFriendPresence(&presence);
+            auto* share = window.findChild<QCheckBox*>(QStringLiteral("p2pSharePresence"));
+            QVERIFY(share);
+            QVERIFY(!share->isChecked());
+            QVERIFY(!presence.isSharing());
+            share->setChecked(true);
+            QVERIFY(NetworkSettings::p2pSharePresence(1)());
+            QVERIFY(presence.isSharing());
+            // 接続していない間は、在席を使えない
+            QVERIFY(!presence.isAvailable());
+        }
+        P2pWindow reopened(&lobby, &game);
+        QVERIFY(reopened.findChild<QCheckBox*>(QStringLiteral("p2pSharePresence"))->isChecked());
+        NetworkSettings::p2pSharePresence(1).remove();
     }
 
     /// ウィンドウの操作は意図のシグナルで画面の部品が受け、投了と合意中断はメニューと同じ QAction を通る

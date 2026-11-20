@@ -3,6 +3,7 @@
 
 #include "p2ppeerspanel.h"
 
+#include <QCheckBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QInputDialog>
@@ -12,6 +13,8 @@
 #include <QVBoxLayout>
 
 #include "dialogutils.h"
+#include "p2pfriend.h"
+#include "p2pfriendpresence.h"
 #include "p2pidentitystore.h"
 #include "p2pknownpeers.h"
 #include "p2pprotocol.h"
@@ -20,7 +23,7 @@
 
 namespace {
 
-enum Column { PlayerId, LocalName, DisplayName, Verified, Blocked, Games, Unconfirmed, ColumnCount };
+enum Column { PlayerId, LocalName, DisplayName, Friend, Verified, Blocked, Games, Unconfirmed, ColumnCount };
 
 } // namespace
 
@@ -38,8 +41,8 @@ P2pPeersPanel::P2pPeersPanel(P2pKnownPeers* knownPeers, P2pIdentityStore* identi
     layout->addWidget(note);
     m_table = new QTableWidget(0, ColumnCount, this);
     m_table->setObjectName(QStringLiteral("p2pPeerTable"));
-    m_table->setHorizontalHeaderLabels({tr("プレイヤーID"), tr("手元の名前"), tr("最後の表示名"), tr("確認済み"), tr("ブロック"),
-                                        tr("対局数"), tr("未確定")});
+    m_table->setHorizontalHeaderLabels({tr("プレイヤーID"), tr("手元の名前"), tr("最後の表示名"), tr("友だち"), tr("確認済み"),
+                                        tr("ブロック"), tr("対局数"), tr("未確定")});
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -58,18 +61,74 @@ P2pPeersPanel::P2pPeersPanel(P2pKnownPeers* knownPeers, P2pIdentityStore* identi
     m_verified->setObjectName(QStringLiteral("p2pPeerVerified"));
     m_blocked = new QPushButton(this);
     m_blocked->setObjectName(QStringLiteral("p2pPeerBlocked"));
+    m_friend = new QPushButton(this);
+    m_friend->setObjectName(QStringLiteral("p2pPeerFriend"));
+    m_apply = new QPushButton(tr("対局を申し込む"), this);
+    m_apply->setObjectName(QStringLiteral("p2pPeerApply"));
     m_remove = new QPushButton(tr("記録を削除"), this);
     m_remove->setObjectName(QStringLiteral("p2pPeerRemove"));
     connect(m_rename, &QPushButton::clicked, this, &P2pPeersPanel::onRename);
     connect(m_code, &QPushButton::clicked, this, &P2pPeersPanel::onShowCode);
     connect(m_verified, &QPushButton::clicked, this, &P2pPeersPanel::onToggleVerified);
     connect(m_blocked, &QPushButton::clicked, this, &P2pPeersPanel::onToggleBlocked);
+    connect(m_friend, &QPushButton::clicked, this, &P2pPeersPanel::onToggleFriend);
+    connect(m_apply, &QPushButton::clicked, this, &P2pPeersPanel::onApply);
     connect(m_remove, &QPushButton::clicked, this, &P2pPeersPanel::onRemove);
     for (QPushButton* b : {m_rename, m_code, m_verified, m_blocked}) buttons->addWidget(b);
     buttons->addStretch();
     buttons->addWidget(m_remove);
     layout->addLayout(buttons);
+    // 友だち（在席を知らせ合い、一覧から対局を申し込む相手）
+    auto* friendButtons = new QHBoxLayout;
+    friendButtons->addWidget(m_friend);
+    friendButtons->addWidget(m_apply);
+    friendButtons->addStretch();
+    // 在席を知らせるかは、利用者が決める（既定は無効。保存は受け手が行う）
+    m_share = new QCheckBox(tr("友だちに在席を知らせる"), this);
+    m_share->setObjectName(QStringLiteral("p2pSharePresence"));
+    connect(m_share, &QCheckBox::toggled, this, &P2pPeersPanel::sharingToggled);
+    friendButtons->addWidget(m_share);
+    layout->addLayout(friendButtons);
+    m_friendNote = new QLabel(this);
+    m_friendNote->setObjectName(QStringLiteral("p2pFriendNote"));
+    m_friendNote->setTextFormat(Qt::PlainText);
+    m_friendNote->setWordWrap(true);
+    layout->addWidget(m_friendNote);
     onSelectionChanged();
+}
+
+void P2pPeersPanel::setPresence(P2pFriendPresence* presence)
+{
+    if (m_presence == presence) return;
+    if (m_presence) m_presence->disconnect(this);
+    m_presence = presence;
+    if (m_presence) {
+        connect(m_presence, &P2pFriendPresence::presenceChanged, this, &P2pPeersPanel::reload);
+        m_presence->setWatching(isVisible());
+    }
+    reload();
+}
+
+void P2pPeersPanel::setSharing(bool sharing)
+{
+    const QSignalBlocker block(m_share);
+    m_share->setChecked(sharing);
+}
+
+void P2pPeersPanel::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+    if (m_presence) {
+        m_presence->setWatching(true);
+        m_presence->refreshNow();
+    }
+}
+
+void P2pPeersPanel::hideEvent(QHideEvent* event)
+{
+    QWidget::hideEvent(event);
+    // 在席を調べるのは、一覧を表示している間だけ（協力ノードへの問い合わせを続けない）
+    if (m_presence) m_presence->setWatching(false);
 }
 
 void P2pPeersPanel::reload()
@@ -89,6 +148,8 @@ void P2pPeersPanel::reload()
         auto* display = new QTableWidgetItem(peer.lastDisplayName);
         display->setToolTip(plainToolTip(peer.lastDisplayName));
         m_table->setItem(row, DisplayName, display);
+        const bool online = peer.isFriend && m_presence && m_presence->isOnline(peer.playerKey);
+        m_table->setItem(row, Friend, new QTableWidgetItem(online ? tr("オンライン") : peer.isFriend ? tr("友だち") : QString()));
         m_table->setItem(row, Verified, new QTableWidgetItem(peer.verified ? tr("確認済み") : QString()));
         m_table->setItem(row, Blocked, new QTableWidgetItem(peer.blocked ? tr("ブロック中") : QString()));
         m_table->setItem(row, Games, new QTableWidgetItem(QString::number(peer.games)));
@@ -111,6 +172,40 @@ void P2pPeersPanel::onSelectionChanged()
     for (QPushButton* b : {m_rename, m_code, m_verified, m_blocked, m_remove}) b->setEnabled(peer != nullptr);
     m_verified->setText(peer && peer->verified ? tr("確認済みを外す") : tr("確認済みにする"));
     m_blocked->setText(peer && peer->blocked ? tr("ブロックを解除") : tr("ブロック"));
+    // ブロックした相手は友だちにできない。申し込めるのは、在席を知らせている友だちだけ
+    m_friend->setText(peer && peer->isFriend ? tr("友だちから外す") : tr("友だちに追加"));
+    m_friend->setEnabled(peer != nullptr && (peer->isFriend || !peer->blocked));
+    m_apply->setEnabled(peer != nullptr && peer->isFriend && m_presence && m_presence->isOnline(key));
+    const bool available = m_presence && m_presence->isAvailable();
+    // 在席を知らせると何が起きるか・だれに何が分かるかは、チェックのそばにいつも出す
+    const QString sharing = tr("「友だちに在席を知らせる」を有効にすると、接続している間、互いに友だちに追加した相手にだけ、"
+                               "接続していること（オンライン）が伝わり、対局の申し込みを受けます。合言葉に対応した協力ノードを使い、"
+                               "その運営者には、だれとだれが友だちか（IPアドレスの組）が分かります。");
+    m_friendNote->setText(available
+        ? sharing
+        : tr("友だちの在席を調べたり、友だちに対局を申し込んだりするには、合言葉に対応した協力ノードを"
+             "「設定」の「接続候補」に入れて接続します。")
+              + QLatin1Char('\n') + sharing);
+}
+
+void P2pPeersPanel::onToggleFriend()
+{
+    const QByteArray key = selectedKey();
+    if (key.isEmpty() || !m_knownPeers) return;
+    const P2pKnownPeer* peer = m_knownPeers->find(key);
+    const bool add = !(peer && peer->isFriend);
+    if (!m_knownPeers->setFriend(key, add)) {
+        DialogUtils::information(this, tr("友だち"), tr("友だちにできるのは %1 人までです。").arg(P2p::Friend::kMaxFriends));
+        return;
+    }
+    if (m_presence) m_presence->reloadFriends();
+    reload();
+}
+
+void P2pPeersPanel::onApply()
+{
+    const QByteArray key = selectedKey();
+    if (!key.isEmpty()) emit applyRequested(key);
 }
 
 void P2pPeersPanel::onRename()
@@ -152,6 +247,8 @@ void P2pPeersPanel::onToggleBlocked()
     if (key.isEmpty() || !m_knownPeers) return;
     const P2pKnownPeer* peer = m_knownPeers->find(key);
     m_knownPeers->setBlocked(key, !(peer && peer->blocked));
+    // ブロックした相手は友だちから外れる
+    if (m_presence) m_presence->reloadFriends();
     reload();
 }
 
@@ -164,5 +261,6 @@ void P2pPeersPanel::onRemove()
         return;
     }
     m_knownPeers->remove(key);
+    if (m_presence) m_presence->reloadFriends();
     reload();
 }

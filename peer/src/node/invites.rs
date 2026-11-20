@@ -145,7 +145,7 @@ impl Invites {
 }
 
 /// 長さが一致した値どうしで、処理時間が中身によらない比較
-fn constant_time_eq(a: &[u8; 32], b: &[u8; 32]) -> bool {
+pub(super) fn constant_time_eq(a: &[u8; 32], b: &[u8; 32]) -> bool {
     let mut diff = 0u8;
     for (x, y) in a.iter().zip(b.iter()) {
         diff |= x ^ y;

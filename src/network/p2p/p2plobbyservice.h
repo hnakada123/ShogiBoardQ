@@ -13,6 +13,7 @@
 #include <QStringList>
 #include <QTimer>
 
+#include <functional>
 #include <memory>
 #include <optional>
 
@@ -84,6 +85,8 @@ public:
     QString reachability() const { return m_reachability; }
     /// 協力ノードに取れた中継の予約の数（0 なら、中継経由では相手から届かない）
     int relayReservations() const { return m_relayReservations; }
+    /// つながっている、合言葉の待ち合わせに対応した協力ノードの数（0 なら、協力ノードを使う合言葉と友だち一覧は使えない）
+    int meetNodes() const { return m_meetNodes; }
     bool relayOnly() const { return m_relayOnly; }
     QJsonObject sandbox() const { return m_peer ? m_peer->sandbox() : QJsonObject(); }
 
@@ -93,6 +96,22 @@ public:
     void inspectInvite(const QString& invite);
     void connectInvite(const QString& invite, bool allowPrivate, const QString& myDisplayName,
                        const P2pGameCoordinator::PlayerSetup& player = {});
+
+    // --- 友だち一覧（在席の知らせ。中身の暗号化と復号は P2pFriendPresence が行い、ここは通信プロセスへ運ぶだけ） ---
+    /// 在席の知らせを作らせる（応答は presenceCreated）。送れなければ 0
+    quint64 createPresence();
+    /// 作らせた在席の知らせをすべて無効にする
+    void cancelPresence();
+    /// 番号と暗号化したものを、協力ノードに預ける（応答は meetStored）・引き取る（応答は meetFetched）。送れなければ 0
+    quint64 meetPut(const QByteArray& slot, const QByteArray& blob, int ttlSeconds);
+    quint64 meetGet(const QByteArray& slot);
+    /// 友だちの在席の知らせ（復号したもの）の相手に、対局を申し込む。request は自分の表示名・対局者と、
+    /// 相手が名乗るべきプレイヤーID（friendPlayerKey）。始められなければ false
+    bool connectPresence(const QByteArray& presence, const P2pGameCoordinator::NegotiationRequest& request);
+    /// 友だちの申し込み（在席の知らせのトークンで開いた接続）を受けるかを決める部品。知らせの番号から、交渉の条件
+    /// （相手が名乗るべきプレイヤーID・自分の表示名・持ち時間・先後・対局者）を返す。受けなければ nullopt
+    using FriendHandler = std::function<std::optional<P2pGameCoordinator::NegotiationRequest>(quint64 presenceId)>;
+    void setFriendHandler(FriendHandler handler) { m_friendHandler = std::move(handler); }
 
     // --- P2pTransport ---
     QByteArray localPeerId() const override { return m_peerIdBytes; }
@@ -115,6 +134,14 @@ signals:
     void connectFailed(PeerIpc::CloseReason reason);
     /// 通信プロセスが使えなくなった
     void peerFailed(PeerProcess::Failure failure, const QString& detail);
+    /// 友だち一覧の要求の応答（requestId は createPresence・meetPut・meetGet が返した番号）
+    void presenceCreated(quint64 requestId, const PeerIpc::CreatedPresence& presence);
+    void meetStored(quint64 requestId, int stored);
+    void meetFetched(quint64 requestId, const QList<QByteArray>& blobs);
+    /// 友だち一覧の要求（createPresence・meetPut・meetGet）を、通信プロセスが断った
+    void presenceRequestFailed(quint64 requestId);
+    /// 友だちへの申し込みの接続を、通信プロセスが断った（知らせが読めない・期限切れなど）
+    void friendApplyRejected(PeerIpc::InviteRejection rejection);
 
 private slots:
     void onPeerReady();
@@ -151,6 +178,8 @@ private:
     int m_connectedPeers = 0;
     QString m_reachability;
     int m_relayReservations = 0;
+    int m_meetNodes = 0;
+    FriendHandler m_friendHandler;
 
     // 招待（招待した側の条件。文字列は持たない）
     QString m_inviteDisplayName;

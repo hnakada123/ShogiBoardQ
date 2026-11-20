@@ -9,6 +9,7 @@
 
 #include "p2pcbor.h"
 #include "p2pdisplayname.h"
+#include "p2pfriend.h"
 #include "p2pownerfile.h"
 #include "p2pprotocol.h"
 
@@ -48,7 +49,66 @@ bool P2pKnownPeers::load()
         peer.unconfirmed = static_cast<quint32>(p.uint(6, 0xFFFFFFFFu));
         if (p.ok()) m_peers.append(peer);
     }
+    return loadFriends();
+}
+
+QString P2pKnownPeers::friendsPath() const
+{
+    // 相手の記録のファイルと同じ場所に、名前を足して置く（peers.cbor なら peers-friends.cbor）
+    const QFileInfo peers(m_path);
+    return peers.dir().filePath(peers.completeBaseName() + QStringLiteral("-friends.cbor"));
+}
+
+bool P2pKnownPeers::loadFriends()
+{
+    QFile file(friendsPath());
+    if (!file.exists()) return true;
+    if (!file.open(QIODevice::ReadOnly)) return false;
+    const std::optional<CborValue> value = P2p::Cbor::decode(file.read(kMaxFileBytes));
+    if (!value) return false;
+    P2p::CborReader r(*value, "SBQ-FRIENDS", 3);
+    const std::vector<CborValue>& items = r.array(2, P2p::Friend::kMaxFriends);
+    if (!r.ok()) return false;
+    for (const CborValue& item : items) {
+        if (!item.isBytes() || item.data().size() != P2p::kPublicKeySize) continue;
+        // 記録のある相手だけ（記録を消した相手・ブロックした相手は、友だちにしない）
+        for (P2pKnownPeer& peer : m_peers) {
+            if (peer.playerKey == item.data() && !peer.blocked) peer.isFriend = true;
+        }
+    }
     return true;
+}
+
+bool P2pKnownPeers::saveFriends() const
+{
+    std::vector<CborValue> items;
+    for (const P2pKnownPeer& peer : m_peers) {
+        if (peer.isFriend) items.push_back(CborValue::bytes(peer.playerKey));
+    }
+    const QByteArray bytes = P2p::Cbor::encode(
+        CborValue::array({CborValue::text("SBQ-FRIENDS"), CborValue::uint(1), CborValue::array(std::move(items))}));
+    return P2pOwnerFile::writeAtomically(friendsPath(), bytes);
+}
+
+bool P2pKnownPeers::setFriend(const QByteArray& playerKey, bool isFriend)
+{
+    for (P2pKnownPeer& peer : m_peers) {
+        if (peer.playerKey != playerKey) continue;
+        if (peer.isFriend == isFriend) return true;
+        if (isFriend && (peer.blocked || friends().size() >= P2p::Friend::kMaxFriends)) return false;
+        peer.isFriend = isFriend;
+        return saveFriends();
+    }
+    return false;
+}
+
+QList<P2pKnownPeer> P2pKnownPeers::friends() const
+{
+    QList<P2pKnownPeer> result;
+    for (const P2pKnownPeer& peer : m_peers) {
+        if (peer.isFriend) result.append(peer);
+    }
+    return result;
 }
 
 bool P2pKnownPeers::save() const
@@ -113,14 +173,22 @@ bool P2pKnownPeers::setVerified(const QByteArray& playerKey, bool verified)
 
 bool P2pKnownPeers::setBlocked(const QByteArray& playerKey, bool blocked)
 {
-    entry(playerKey).blocked = blocked;
-    return save();
+    P2pKnownPeer& peer = entry(playerKey);
+    peer.blocked = blocked;
+    // ブロックした相手には、在席を知らせず、申し込みも受けない
+    const bool wasFriend = blocked && peer.isFriend;
+    if (wasFriend) peer.isFriend = false;
+    const bool saved = save();
+    return wasFriend ? saveFriends() && saved : saved;
 }
 
 bool P2pKnownPeers::remove(const QByteArray& playerKey)
 {
-    m_peers.removeIf([&playerKey](const P2pKnownPeer& peer) { return peer.playerKey == playerKey; });
-    return save();
+    const P2pKnownPeer* peer = find(playerKey);
+    const bool wasFriend = peer && peer->isFriend;
+    m_peers.removeIf([&playerKey](const P2pKnownPeer& known) { return known.playerKey == playerKey; });
+    const bool saved = save();
+    return wasFriend ? saveFriends() && saved : saved;
 }
 
 QList<P2pKnownPeer> P2pKnownPeers::sameNameDifferentId(const QString& displayName, const QByteArray& playerKey) const

@@ -9,11 +9,12 @@ use rand::RngCore;
 use sbq_protocol::code::Code;
 use sbq_protocol::frame;
 use sbq_protocol::invite::{self, Invite, InviteError};
-use sbq_protocol::meet::MeetCode;
+use sbq_protocol::meet::{MeetCode, Request as MeetRequest};
 use sbq_protocol::network::Profile;
 use serde_json::{json, Value};
 
 use super::meets::Purpose;
+use super::presences::PRESENCE_LIFETIME_SECS;
 use super::streams::Internal;
 use super::{unix_now, ConnState, Node, MAX_GAME_CONNECTIONS};
 use crate::addr::{self, AddrPolicy};
@@ -103,7 +104,23 @@ impl Node {
             Method::ConnectPeer => self.connect_peer(&request),
             Method::SendFrame => self.send_frame(&request),
             Method::CloseConnection => self.close_connection(&request),
+            Method::CreatePresence => self.empty(&request).and_then(|()| self.create_presence()),
+            Method::CancelPresence => self.empty(&request).map(|()| {
+                self.presences.clear();
+                json!({})
+            }),
+            Method::ConnectPresence => self.connect_presence(&request),
+            // 応答は、協力ノードとのやり取りを終えてから返す（Internal::MeetPutDone・MeetGot）
+            Method::MeetPut => match self.meet_put(&request) {
+                Ok(()) => return,
+                Err(e) => Err(e),
+            },
+            Method::MeetGet => match self.meet_get(&request) {
+                Ok(()) => return,
+                Err(e) => Err(e),
+            },
             Method::Shutdown => self.empty(&request).map(|()| {
+                self.presences.clear();
                 self.cancel_invites();
                 self.shutdown_at = Instant::now()
                     .checked_add(Duration::from_millis(300))
@@ -390,12 +407,92 @@ impl Node {
                     direction: ipc::Direction::Outbound,
                     state: ConnState::Connecting,
                     known_route: None,
+                    presence: 0,
                 },
             );
             let _ = self.internal.send(super::Internal::OutboundFailed { conn, reason });
         } else {
             self.start_outbound(conn, peer, usable, Some(token), ipc::Origin::Invite);
         }
+    }
+
+    /// 在席の知らせを作る（自分の到達候補と、期限まで何度でも使えるトークン。招待の本体と同じ形）。対局・UI側が、
+    /// 友だちごとの鍵で暗号化して協力ノードに預ける（中身は読まない）
+    fn create_presence(&mut self) -> ReqResult {
+        let mut token = [0u8; 32];
+        rand::rngs::OsRng.fill_bytes(&mut token);
+        let expires_at = unix_now().saturating_add(PRESENCE_LIFETIME_SECS);
+        let addrs = self.invite_addrs();
+        let address_count = addrs.len();
+        let inv = Invite {
+            network_id: self.network_id,
+            peer_id: self.local_peer.to_bytes(),
+            addrs,
+            token,
+            expires_at,
+        };
+        let body = inv
+            .to_body()
+            .ok_or(("internal", "could not encode the presence".to_owned()))?;
+        let id = self.presences.add(token, expires_at);
+        Ok(json!({
+            "presence": B64.encode(body),
+            "id": id.to_string(),
+            "expiresAt": expires_at.to_string(),
+            "addressCount": address_count,
+        }))
+    }
+
+    /// 友だちの在席の知らせ（対局・UI側が協力ノードから引き取って復号したもの）の相手へ、申し込みの接続を始める
+    fn connect_presence(&mut self, request: &Request) -> ReqResult {
+        let p: ipc::ConnectPresenceParams = ipc::params(request).map_err(invalid)?;
+        if p.presence.len() > invite::MAX_STRING_BYTES.saturating_mul(2) {
+            return Err(invalid("presence is too long"));
+        }
+        let body = B64
+            .decode(p.presence.as_bytes())
+            .map_err(|_| invalid("presence is not base64"))?;
+        let (inv, peer, addrs) = self.read_invite_body(&body)?;
+        self.check_capacity()?;
+        let conn = self.alloc_conn();
+        self.connect_to_invite(conn, inv.token, peer, addrs, p.allow_private);
+        Ok(json!({ "connection": conn.to_string() }))
+    }
+
+    /// 要求の引数の番号（16進 64 文字）を読む
+    fn parse_slot(text: &str) -> Result<[u8; 32], (&'static str, String)> {
+        sbq_protocol::hash::from_hex(text)
+            .and_then(|bytes| <[u8; 32]>::try_from(bytes).ok())
+            .ok_or_else(|| invalid("invalid slot"))
+    }
+
+    /// 対局・UI側が作った番号と預けるもの（中身は読まない）を、待ち合わせに対応した協力ノードに預ける
+    fn meet_put(&mut self, request: &Request) -> Result<(), (&'static str, String)> {
+        let p: ipc::MeetPutParams = ipc::params(request).map_err(invalid)?;
+        let slot = Self::parse_slot(&p.slot)?;
+        let blob = B64
+            .decode(p.blob.as_bytes())
+            .map_err(|_| invalid("blob is not base64"))?;
+        let put = MeetRequest::Put {
+            slot,
+            blob,
+            ttl_secs: p.ttl_seconds,
+            one_time: false,
+        };
+        // 大きさと秒数の範囲は、協力ノードが読むときと同じ規則で確かめる
+        if MeetRequest::decode(&put.encode()).is_none() {
+            return Err(invalid("blob or ttlSeconds out of range"));
+        }
+        self.start_meet_put(request.request_id.clone(), put);
+        Ok(())
+    }
+
+    /// 番号で預けられているものを、待ち合わせに対応した協力ノードから引き取る（中身は読まずに返す）
+    fn meet_get(&mut self, request: &Request) -> Result<(), (&'static str, String)> {
+        let p: ipc::MeetGetParams = ipc::params(request).map_err(invalid)?;
+        let slot = Self::parse_slot(&p.slot)?;
+        self.start_meet_get(request.request_id.clone(), slot);
+        Ok(())
     }
 
     fn set_game_peer(&mut self, request: &Request) -> ReqResult {

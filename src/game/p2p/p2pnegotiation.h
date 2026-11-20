@@ -32,6 +32,9 @@ struct NegotiationConfig {
     std::function<quint64()> nowSeconds;
     /// 招待した側: 申込みで名乗ったプレイヤーID がブロックした相手か
     std::function<bool(const QByteArray& playerKey)> isBlocked;
+    /// 友だちとの交渉で、相手が名乗るべきプレイヤーID（空なら確かめない）。友だちの在席の知らせで始めた交渉は、
+    /// 相手がその友だちの ID を名乗らなければ打ち切る（名乗った ID は、開始署名で確かめる）
+    QByteArray expectedPlayerKey;
 };
 
 /// 交渉で分かった相手（HELLO の申告。開始署名を確かめるまで身元として扱わない）

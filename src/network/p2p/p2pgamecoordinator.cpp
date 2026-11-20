@@ -92,6 +92,7 @@ bool P2pGameCoordinator::startNegotiation(const NegotiationRequest& request)
     config.mySide = request.mySide;
     config.myKind = request.player.kind;
     config.hostTerms = request.hostTerms;
+    config.expectedPlayerKey = request.friendPlayerKey;
     config.nowSeconds = []() { return static_cast<quint64>(QDateTime::currentSecsSinceEpoch()); };
     P2pKnownPeers* known = m_knownPeers;
     // ブロックは申込みで名乗ったプレイヤーID で判定してよい（名乗った側が断られるだけ。実装仕様 3.3節）
@@ -104,6 +105,7 @@ bool P2pGameCoordinator::startNegotiation(const NegotiationRequest& request)
     m_opponentPeerId = request.opponentPeerId;
     m_role = request.role;
     m_viaRelay = request.viaRelay;
+    m_friendNegotiation = !request.friendPlayerKey.isEmpty();
     m_opponentDisplayName.clear();
     m_myDisplayName = request.myDisplayName;
     m_player = request.player;

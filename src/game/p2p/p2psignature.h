@@ -64,6 +64,14 @@ public:
     QByteArray sign(QByteArrayView message) const;
     /// 値の決定的CBORへの署名
     QByteArray sign(const CborValue& value) const { return sign(Cbor::encode(value)); }
+    /**
+     * @brief 相手の公開鍵との鍵交換（X25519）の出力（32バイト。保護付きメモリ）
+     *
+     * 自分の鍵と相手の公開鍵を鍵交換用（Curve25519）に変換して使う（libsodium の変換関数）。署名と同じ鍵を
+     * 鍵交換にも使うので、出力はそのまま鍵にせず、用途のラベルを付けたハッシュに通して使う（P2p::Friend）。
+     * 相手の公開鍵が鍵交換に使えない点（位数の小さい点など）・自分の鍵が無効なら、無効な値を返す。
+     */
+    SecureBytes sharedSecret(const QByteArray& peerPublicKey) const;
 
 private:
     SecureBytes m_secret;        ///< crypto_sign の秘密鍵（64バイト）

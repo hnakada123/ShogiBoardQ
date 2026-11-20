@@ -37,6 +37,7 @@ mod events;
 mod invites;
 mod meets;
 mod outbound;
+mod presences;
 mod requests;
 mod reservations;
 mod streams;
@@ -98,6 +99,8 @@ pub struct Node {
     /// 直接の接続（穴あけ）を試すか（「直接接続を使わない」と協力ノードは試さない）
     pub hole_punching: bool,
     pub invites: invites::Invites,
+    /// 在席の知らせ（友だちの申し込みを受けるトークン）
+    pub presences: presences::Presences,
     /// 招待を取り消すたびに増やす番号（鍵を作っている間に取り消された招待を足さない）
     pub invite_epoch: u64,
     /// 合言葉でつなぐ途中の接続（相手の PeerId が分かるまで）
@@ -308,6 +311,7 @@ impl Node {
             opening: HashMap::new(),
             hole_punching: !config.relay_only && !config.service,
             invites: invites::Invites::default(),
+            presences: presences::Presences::default(),
             invite_epoch: 0,
             code_connects: HashMap::new(),
             code_dials: HashMap::new(),
@@ -409,6 +413,7 @@ impl Node {
         }
         self.last_second = Instant::now();
         self.invites.expire(unix_now());
+        self.presences.expire(unix_now());
         self.release_meets();
         // 断られた・失われた中継の予約を頼み直す（協力ノードとつながっている間）
         for peer in self.reservations.due(Instant::now()) {
@@ -446,6 +451,7 @@ impl Node {
             connected_peers: connected,
             reachability: self.reachability,
             relay_reservations: self.reservations.accepted_count(),
+            meet_nodes: self.meets.nodes.len(),
         };
         if self.last_status != Some(status) {
             self.out.notify(ipc::Notification::NetworkStatus(status));
