@@ -724,6 +724,29 @@ private slots:
         verifyDisabled(p, S::DuringP2pGame, E::FileOpen, "FileOpen");
     }
 
+    /// 自分の手をエンジンに指させている P2P対局では「すぐ指させる」を使える（人間が指す対局では、指させるものがない）。
+    /// 検討・詰み探索・棋譜解析は、どちらの対局でも使えない
+    void p2pEngineGameAllowsMoveNow()
+    {
+        bool usesEngine = true;
+        UiStatePolicyManager::Deps deps;
+        deps.localGameHasHuman = [] { return true; };
+        deps.p2pGameUsesEngine = [&usesEngine] { return usesEngine; };
+        Policy p(deps);
+        verifyEnabled(p, S::DuringP2pGame, E::GameMakeImmediate, "GameMakeImmediate");
+        verifyEnabled(p, S::DuringP2pGame, E::GameResign, "GameResign");
+        verifyDisabled(p, S::DuringP2pGame, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyDisabled(p, S::DuringP2pGame, E::GameTsumeSearch, "GameTsumeSearch");
+        verifyDisabled(p, S::DuringP2pGame, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
+        // 招待・交渉の間は、エンジンを選んでいても押せない
+        verifyDisabled(p, S::DuringP2pConnection, E::GameMakeImmediate, "GameMakeImmediate");
+        // ほかの対局の「すぐ指させる」は、P2P対局の対局者に左右されない
+        usesEngine = false;
+        verifyDisabled(p, S::DuringP2pGame, E::GameMakeImmediate, "GameMakeImmediate");
+        verifyEnabled(p, S::DuringGame, E::GameMakeImmediate, "GameMakeImmediate");
+        verifyEnabled(p, S::DuringCsaGame, E::GameMakeImmediate, "GameMakeImmediate");
+    }
+
     /// 募集・交渉の間は前の棋譜を見る・保存するだけ。対局の開始・検討は始められない
     void p2pConnectionIsBrowsingOnly()
     {

@@ -28,6 +28,8 @@
 #include <QWindow>
 
 #include "appactivitystate.h"
+#include "engineprofilestore.h"
+#include "engineslots.h"
 #include "gameboard.h"
 #include "mainwindowappearancecontroller.h"
 #include "networksettings.h"
@@ -653,6 +655,160 @@ private slots:
         saveShot(&dialog, QStringLiteral("p2p-confirm"));
         // 閉じると交渉を取りやめる
         dialog.reject();
+        QTRY_VERIFY(applicant.phase() == P2pGameCoordinator::Phase::Idle);
+    }
+
+    /// 「対局者」の欄: 既定は人間。登録エンジンを選ぶと、その名前と場所が対局者になる。選択はプレイヤーごとに保存し、
+    /// 保存したエンジンが削除されていれば人間に戻す（相手に伝える対局者を、黙って別のエンジンに替えない）
+    void windowChoosesHumanOrRegisteredEngine()
+    {
+        const QList<EngineEntry> engines{{QStringLiteral("Engine A"), QStringLiteral("/engines/a"), QStringLiteral("A")},
+                                         {QStringLiteral("Engine B"), QStringLiteral("/engines/b"), QStringLiteral("B")}};
+        EngineProfileStore::saveEngines(engines);
+        NetworkSettings::p2pPlayAsEngine(1).set(false);
+        AppActivityState activity;
+        GameBoard board;
+        ShogiClock clock;
+        P2pGameCoordinator game(P2pGameCoordinator::Deps{&board, &clock, &activity});
+        P2pPlayerProfile profile(m_dir.filePath(QStringLiteral("engine-choice")));
+        QVERIFY(profile.open());
+        P2pLobbyService lobby(P2pLobbyService::Deps{&activity, &game}, &profile);
+        {
+            P2pWindow window(&lobby, &game);
+            auto* kind = window.findChild<QComboBox*>(QStringLiteral("p2pPlayerKind"));
+            auto* settings = window.findChild<QPushButton*>(QStringLiteral("p2pEngineSettings"));
+            QVERIFY(kind && settings);
+            // 先頭が「人間」、その後に登録エンジン。既定は人間
+            QCOMPARE(kind->count(), 3);
+            QCOMPARE(kind->itemText(0), QStringLiteral("人間"));
+            QCOMPARE(kind->currentIndex(), 0);
+            QVERIFY(!window.playerSetup().isEngine());
+            QVERIFY(!settings->isEnabled());
+            kind->setCurrentIndex(2);
+            const P2pGameCoordinator::PlayerSetup player = window.playerSetup();
+            QVERIFY(player.isEngine());
+            QCOMPARE(player.engineName, QStringLiteral("Engine B"));
+            QCOMPARE(player.enginePath, QStringLiteral("/engines/b"));
+            QVERIFY(settings->isEnabled());
+            QVERIFY(QMetaObject::invokeMethod(&window, "saveSettings"));
+            saveShot(&window, QStringLiteral("p2p-window-engine"));
+        }
+        {
+            // 開き直すと、選んだエンジンに戻る
+            P2pWindow window(&lobby, &game);
+            QCOMPARE(window.playerSetup().engineName, QStringLiteral("Engine B"));
+            // 人間に戻して保存しても、前に選んだエンジンの名前は残す（次にエンジンを選ぶときのため）
+            window.findChild<QComboBox*>(QStringLiteral("p2pPlayerKind"))->setCurrentIndex(0);
+            QVERIFY(QMetaObject::invokeMethod(&window, "saveSettings"));
+            QVERIFY(!NetworkSettings::p2pPlayAsEngine(1)());
+        }
+        {
+            P2pWindow window(&lobby, &game);
+            QVERIFY(!window.playerSetup().isEngine());
+        }
+        // 選んだエンジンが登録から消えたら、別のエンジンではなく人間にする
+        NetworkSettings::p2pPlayAsEngine(1).set(true);
+        EngineProfileStore::saveEngines({engines.first()});
+        {
+            P2pWindow window(&lobby, &game);
+            QVERIFY(!window.playerSetup().isEngine());
+            // 開いている間に登録が変わっても同じ（閉じて開き直すと一覧を読み直す）
+            window.findChild<QComboBox*>(QStringLiteral("p2pPlayerKind"))->setCurrentIndex(1);
+            QCOMPARE(window.playerSetup().engineName, QStringLiteral("Engine A"));
+            window.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&window));
+            QCOMPARE(window.playerSetup().engineName, QStringLiteral("Engine A"));
+            window.hide();
+            EngineProfileStore::saveEngines({engines.last()});
+            window.show();
+            QVERIFY(!window.playerSetup().isEngine());
+            QCOMPARE(window.findChild<QComboBox*>(QStringLiteral("p2pPlayerKind"))->count(), 2);
+        }
+        EngineProfileStore::saveEngines({});
+        NetworkSettings::p2pPlayAsEngine(1).set(false);
+    }
+
+    /// 条件確認画面は、だれが指すか（自分と相手。人間かエンジンか）を出す。エンジンで指す側は、エンジンの初期化が
+    /// 済むまで開始を押せない
+    void confirmDialogShowsWhoPlays()
+    {
+        AppActivityState activityA;
+        AppActivityState activityB;
+        EngineSlots engines;
+        P2pGameCoordinator applicant(P2pGameCoordinator::Deps{nullptr, nullptr, &activityA});
+        P2pGameCoordinator host(P2pGameCoordinator::Deps{nullptr, nullptr, &activityB, &engines});
+        LoopTransport toHost;
+        LoopTransport toApplicant;
+        toHost.peerId = QByteArray(38, 'a');
+        toHost.other = &host;
+        toApplicant.peerId = QByteArray(38, 'h');
+        toApplicant.other = &applicant;
+        const SigningKey applicantKey = SigningKey::generate();
+        const SigningKey hostKey = SigningKey::generate();
+        P2pKnownPeers known(m_dir.filePath(QStringLiteral("peers-kinds.cbor")));
+        applicant.setEnvironment(&toHost, nullptr, &known, &applicantKey);
+        host.setEnvironment(&toApplicant, nullptr, &known, &hostKey);
+
+        P2pGameCoordinator::NegotiationRequest h;
+        h.connection = 1;
+        h.opponentPeerId = QStringLiteral("a");
+        h.opponentPeerIdBytes = toHost.peerId;
+        h.role = kRoleHost;
+        h.myDisplayName = QStringLiteral("募集する人");
+        h.hostTerms = TimeControlTerms{600'000, 30'000};
+        P2pGameCoordinator::NegotiationRequest a = h;
+        a.opponentPeerId = QStringLiteral("h");
+        a.opponentPeerIdBytes = toApplicant.peerId;
+        a.role = kRoleApplicant;
+        a.myDisplayName = QStringLiteral("申し込む人");
+        // 招待した側がエンジン（初期化に時間のかかるモックのエンジン）
+        h.player.kind = PlayerKind::Engine;
+        h.player.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        h.player.engineName = QStringLiteral("確認画面のエンジン");
+        qputenv("SBQ_MATCH_INIT_DELAY_MS", "500");
+        QVERIFY(host.startNegotiation(h));
+        QVERIFY(applicant.startNegotiation(a));
+        QTRY_VERIFY(applicant.negotiation()->stage() == Negotiation::Stage::Confirming);
+        QTRY_VERIFY(host.negotiation()->stage() == Negotiation::Stage::Confirming);
+        qunsetenv("SBQ_MATCH_INIT_DELAY_MS");
+
+        const auto textOf = [](const QDialog& dialog, const QString& name) {
+            const QLabel* label = dialog.findChild<QLabel*>(name);
+            return label ? label->text() : QString();
+        };
+        // 人間の側: 相手がエンジンで指すことを、開始を押す前に知る
+        P2pConfirmDialog applicantDialog(&applicant, &known, false);
+        const QString applicantPlayers = textOf(applicantDialog, QStringLiteral("p2pConfirmPlayers"));
+        QVERIFY2(applicantPlayers.contains(QStringLiteral("あなた（人間）が盤で指します")), qPrintable(applicantPlayers));
+        QVERIFY2(applicantPlayers.contains(QStringLiteral("相手の手は、エンジンが指します")), qPrintable(applicantPlayers));
+        const QString conditions = textOf(applicantDialog, QStringLiteral("p2pConfirmConditions"));
+        QVERIFY2(conditions.contains(QStringLiteral("エンジンが指す対局です")), qPrintable(conditions));
+        QVERIFY2(!conditions.contains(QStringLiteral("人間どうしの対局")), qPrintable(conditions));
+        auto* applicantStart = applicantDialog.findChild<QPushButton*>(QStringLiteral("p2pConfirmStart"));
+        QVERIFY(applicantStart && applicantStart->isEnabled());
+        applicantDialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&applicantDialog));
+        saveShot(&applicantDialog, QStringLiteral("p2p-confirm-engine-opponent"));
+
+        // エンジンの側: エンジンの名前を出し、初期化が済むまで開始を押せない
+        P2pConfirmDialog hostDialog(&host, &known, false);
+        const QString hostPlayers = textOf(hostDialog, QStringLiteral("p2pConfirmPlayers"));
+        QVERIFY2(hostPlayers.contains(QStringLiteral("エンジン「確認画面のエンジン」が指します")), qPrintable(hostPlayers));
+        QVERIFY2(hostPlayers.contains(QStringLiteral("相手の手は、人間が指します")), qPrintable(hostPlayers));
+        auto* hostStart = hostDialog.findChild<QPushButton*>(QStringLiteral("p2pConfirmStart"));
+        QVERIFY(hostStart);
+        QVERIFY(host.isEngineStarting());
+        QVERIFY(!hostStart->isEnabled());
+        QCOMPARE(hostStart->text(), QStringLiteral("エンジンを起動しています…"));
+        QTRY_VERIFY(hostStart->isEnabled());
+        QCOMPARE(hostStart->text(), QStringLiteral("開始"));
+        hostDialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&hostDialog));
+        saveShot(&hostDialog, QStringLiteral("p2p-confirm-engine-self"));
+        // 取りやめると、起動したエンジンを手放す
+        hostDialog.reject();
+        QTRY_VERIFY(host.phase() == P2pGameCoordinator::Phase::Idle);
+        QVERIFY(!engines.engineInSlot(1));
         QTRY_VERIFY(applicant.phase() == P2pGameCoordinator::Phase::Idle);
     }
 

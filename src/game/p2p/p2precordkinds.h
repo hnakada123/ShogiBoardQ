@@ -32,7 +32,8 @@ struct JournalReplay {
  * 件のラベルと形はこのファイルだけが知る。
  */
 namespace RecordKinds {
-CborValue start(const StartAgreement& agreement, const TimeControlTerms& terms, quint8 mySide,
+/// 開始の件。対局者の種別（rules）は、エンジンが指す対局のときだけ末尾に足す（双方人間の対局の件は、前の版と同じ形）
+CborValue start(const StartAgreement& agreement, const RulesTerms& rules, const TimeControlTerms& terms, quint8 mySide,
                 const QString& opponentDisplayName);
 CborValue startSignature(quint8 side, const QByteArray& signature);
 CborValue state(const SignedState& state);

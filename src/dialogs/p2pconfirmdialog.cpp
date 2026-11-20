@@ -73,7 +73,15 @@ P2pConfirmDialog::P2pConfirmDialog(P2pGameCoordinator* game, P2pKnownPeers* know
 
     auto* conditionBox = new QGroupBox(tr("対局の条件と記録"), content);
     auto* conditionLayout = new QVBoxLayout(conditionBox);
+    // だれが指すかは、ほかの条件に埋もれないよう先頭に太字で出す
+    m_players = plainLabel(conditionBox);
+    m_players->setObjectName(QStringLiteral("p2pConfirmPlayers"));
+    QFont playersFont = m_players->font();
+    playersFont.setBold(true);
+    m_players->setFont(playersFont);
+    conditionLayout->addWidget(m_players);
     m_conditions = plainLabel(conditionBox);
+    m_conditions->setObjectName(QStringLiteral("p2pConfirmConditions"));
     conditionLayout->addWidget(m_conditions);
     contentLayout->addWidget(conditionBox);
     contentLayout->addStretch();
@@ -147,6 +155,17 @@ void P2pConfirmDialog::refresh()
     m_warning->setText(warnings.join(QLatin1Char('\n')));
     m_warning->setVisible(!warnings.isEmpty());
 
+    // だれが指すか。相手の種別は相手の申告で、双方が確定する条件（開始合意）に入る
+    QStringList players;
+    const P2pGameCoordinator::PlayerSetup& me = m_game->player();
+    players << (me.isEngine() ? tr("あなたの手は、エンジン「%1」が指します。").arg(me.engineName)
+                              : tr("あなたの手は、あなた（人間）が盤で指します。"));
+    if (const std::optional<P2p::PlayerKind> opponentKind = n->opponentKind()) {
+        players << (*opponentKind == P2p::PlayerKind::Engine ? tr("相手の手は、エンジンが指します（相手の申告）。")
+                                                             : tr("相手の手は、人間が指します（相手の申告）。"));
+    }
+    m_players->setText(players.join(QLatin1Char('\n')));
+
     QStringList conditions;
     if (n->agreement()) {
         conditions << (n->iAmBlack() ? tr("あなたは先手です。") : tr("あなたは後手です。"))
@@ -155,13 +174,15 @@ void P2pConfirmDialog::refresh()
         conditions << tr("先後を決めています…");
     }
     conditions << tr("持ち時間: %1").arg(P2pWindowText::timeControlText(n->terms()));
-    conditions << P2pWindowText::rulesText();
+    conditions << P2pWindowText::rulesText(n->rules());
     conditions << P2pWindowText::recordContentsText();
     m_conditions->setText(conditions.join(QLatin1Char('\n')));
 
-    const bool canStart = n->stage() == P2p::Negotiation::Stage::Confirming && !n->confirmed();
+    // エンジンで指すときは、エンジンの初期化が済むまで開始を押せない（対局が始まるとすぐ時計が動く）
+    const bool engineStarting = m_game->isEngineStarting();
+    const bool canStart = n->stage() == P2p::Negotiation::Stage::Confirming && !n->confirmed() && !engineStarting;
     m_start->setEnabled(canStart);
-    m_start->setText(n->confirmed() ? tr("相手を待っています…") : tr("開始"));
+    m_start->setText(n->confirmed() ? tr("相手を待っています…") : engineStarting ? tr("エンジンを起動しています…") : tr("開始"));
 }
 
 void P2pConfirmDialog::onTick()

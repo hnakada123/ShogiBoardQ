@@ -7,6 +7,8 @@
 #include <QTemporaryDir>
 
 #include "appactivitystate.h"
+#include "engineprocessmanager.h"
+#include "engineslots.h"
 #include "gameboard.h"
 #include "matchrecordsink.h"
 #include "p2pevidenceverifier.h"
@@ -18,6 +20,7 @@
 #include "p2ptransport.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
+#include "usi.h"
 
 using namespace P2p;
 
@@ -71,7 +74,7 @@ public:
     explicit Side(const QByteArray& peerId, const QString& root)
         : store(root)
         , knownPeers(root + QStringLiteral("/peers.cbor"))
-        , coordinator(P2pGameCoordinator::Deps{&board, &clock, &activity})
+        , coordinator(P2pGameCoordinator::Deps{&board, &clock, &activity, &engines})
     {
         transport.peerId = peerId;
         transport.self = this;
@@ -82,6 +85,7 @@ public:
     GameBoard board;
     ShogiClock clock;
     AppActivityState activity;
+    EngineSlots engines;
     FakeSink sink;
     FakeTransport transport;
     SigningKey playerKey = SigningKey::generate();
@@ -110,6 +114,16 @@ P2pGameCoordinator::NegotiationRequest request(quint8 role, const QByteArray& op
     r.myDisplayName = name;
     r.hostTerms = TimeControlTerms{60'000, 10'000};
     return r;
+}
+
+/// 対局用のモックのエンジン（最初の探索に 8c8d、次からは 3c3d を返す）で指す対局者
+P2pGameCoordinator::PlayerSetup mockEngine()
+{
+    P2pGameCoordinator::PlayerSetup player;
+    player.kind = PlayerKind::Engine;
+    player.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+    player.engineName = QStringLiteral("P2P test engine");
+    return player;
 }
 
 } // namespace
@@ -254,6 +268,188 @@ private slots:
         QVERIFY(!applicant.coordinator.isBusy());
     }
 
+    /// 自分の手をエンジンに指させる対局: 交渉で相手に伝わり、エンジンの初期化が済むまで開始署名を送らず、
+    /// エンジンの手は相手の承認を受けてから盤に指し、終局でエンジンに知らせて枠を空ける。証跡に種別が残る
+    void engineGameFromStartToEvidence()
+    {
+        const QByteArray applicantId(38, 'c');
+        const QByteArray hostId(38, 'j');
+        Side applicant(applicantId, m_dir.filePath(QStringLiteral("a3")));
+        Side host(hostId, m_dir.filePath(QStringLiteral("h3")));
+        applicant.transport.other = &host;
+        host.transport.other = &applicant;
+        QSignalSpy engineStarting(&host.coordinator, &P2pGameCoordinator::engineStarting);
+        QSignalSpy engineStarted(&host.coordinator, &P2pGameCoordinator::matchEngineStarted);
+        QSignalSpy engineMoves(&host.coordinator, &P2pGameCoordinator::engineMovePlayed);
+        QSignalSpy notices(&host.coordinator, &P2pGameCoordinator::engineNotice);
+        QSignalSpy hostFinished(&host.coordinator, &P2pGameCoordinator::gameFinished);
+        QSignalSpy hostSounds(&host.board, &GameBoard::piecePlaced);
+
+        // 招待した側がエンジン（後手を希望。モックのエンジンの最初の手 8c8d は後手の手）
+        P2pGameCoordinator::NegotiationRequest hostRequest = request(kRoleHost, applicantId, QStringLiteral("募集"));
+        hostRequest.mySide = SidePreference::White;
+        hostRequest.player = mockEngine();
+        qputenv("SBQ_MATCH_INIT_DELAY_MS", "300");
+        QVERIFY(host.coordinator.startNegotiation(hostRequest));
+        QVERIFY(applicant.coordinator.startNegotiation(request(kRoleApplicant, hostId, QStringLiteral("申込"))));
+        settle();
+        qunsetenv("SBQ_MATCH_INIT_DELAY_MS");
+        QCOMPARE(engineStarting.count(), 1);
+        QCOMPARE(host.coordinator.negotiation()->stage(), Negotiation::Stage::Confirming);
+        QCOMPARE(applicant.coordinator.negotiation()->stage(), Negotiation::Stage::Confirming);
+        // 相手には、エンジンが指すことが条件確認の時点で伝わっている
+        QCOMPARE(applicant.coordinator.opponentKind(), std::optional<PlayerKind>(PlayerKind::Engine));
+        QCOMPARE(host.coordinator.opponentKind(), std::optional<PlayerKind>(PlayerKind::Human));
+        QVERIFY(host.coordinator.playsWithEngine());
+        QVERIFY(!applicant.coordinator.playsWithEngine());
+
+        // エンジンの初期化（usi〜readyok）が済むまで、開始を押しても開始署名を送らない
+        QVERIFY(host.coordinator.isEngineStarting());
+        host.coordinator.confirmStart();
+        QVERIFY(!host.coordinator.negotiation()->confirmed());
+        QSignalSpy hostChanged(&host.coordinator, &P2pGameCoordinator::negotiationChanged);
+        QTRY_VERIFY(!host.coordinator.isEngineStarting());
+        QVERIFY(hostChanged.count() >= 1);
+        QVERIFY(host.engines.engineInSlot(1));
+        host.coordinator.confirmStart();
+        applicant.coordinator.confirmStart();
+        settle();
+        QVERIFY(host.activity.is(AppActivityState::Activity::DuringP2pGame));
+        QCOMPARE(engineStarted.count(), 1);
+        QCOMPARE(engineStarted.first().at(0).value<Turn>(), Turn::White);
+        QCOMPARE(engineStarted.first().at(1).toString(), QStringLiteral("P2P test engine"));
+        QVERIFY(!host.coordinator.match()->iAmBlack());
+        const RulesTerms expected{PlayerKind::Human, PlayerKind::Engine};
+        QCOMPARE(host.coordinator.match()->rules(), expected);
+        QCOMPARE(applicant.coordinator.match()->rules(), expected);
+        // 棋譜の対局者は、エンジンで指していても表示名
+        QCOMPARE(host.sink.started.players.humanName(Turn::White), QStringLiteral("募集"));
+
+        // エンジンで指す側は、盤の手を受け付けない
+        QVERIFY(!host.coordinator.isHumanToMove());
+        QCOMPARE(host.coordinator.playMove(UsiMove::fromString(u"3c3d")), GameChannel::MoveResult::Rejected);
+
+        // 先手の人間が指すと、後手のエンジンが応じる。エンジンの手も、相手の承認を受けてから盤に指す
+        QCOMPARE(applicant.coordinator.playMove(UsiMove::fromString(u"7g7f")), GameChannel::MoveResult::Sent);
+        QTRY_COMPARE(applicant.sink.entries.size(), 2);
+        QTRY_COMPARE(host.sink.entries.size(), 2);
+        QCOMPARE(host.sink.entries.at(1).move.move.toString(), QStringLiteral("8c8d"));
+        QCOMPARE(host.board.board()->position().toSfen(), applicant.board.board()->position().toSfen());
+        QCOMPARE(engineMoves.count(), 1);
+        QCOMPARE(engineMoves.first().at(0).value<Turn>(), Turn::White);
+        QCOMPARE(engineMoves.first().at(1).toInt(), 2);
+        // 駒音は、相手の手もエンジンの手も、盤に指したときに1回ずつ
+        QCOMPARE(hostSounds.count(), 2);
+        // 自分の手番でも、エンジンで指す側は盤の手を受け付けない。投了は人ができる
+        QVERIFY(!host.coordinator.isHumanToMove());
+
+        // エンジンの持ち時間は、双方が署名した残り時間（秒読みは決まりのとおり）
+        const MatchSearchTiming timing = host.coordinator.snapshot(Turn::White, false);
+        const GameState& last = host.coordinator.match()->lastState();
+        QCOMPARE(timing.input.wtimeMs, static_cast<qint64>(last.whiteMainMs));
+        QCOMPARE(timing.input.btimeMs, static_cast<qint64>(last.blackMainMs));
+        QCOMPARE(timing.input.timeControl.white.byoyomiMs, qint64(10'000));
+        QCOMPARE(timing.input.sideToMove, Turn::White);
+
+        QCOMPARE(applicant.coordinator.playMove(UsiMove::fromString(u"2g2f")), GameChannel::MoveResult::Sent);
+        QTRY_COMPARE(host.sink.entries.size(), 4);
+        QCOMPARE(host.sink.entries.at(3).move.move.toString(), QStringLiteral("3c3d"));
+        QCOMPARE(engineMoves.count(), 2);
+
+        // 先手の投了: エンジンに勝ちを知らせて、枠を空ける
+        Usi* engine = host.engines.engineInSlot(1);
+        QVERIFY(engine);
+        QSignalSpy sent(engine->process(), &EngineProcessManager::commandSent);
+        QVERIFY(applicant.coordinator.canResign());
+        applicant.coordinator.resign();
+        QTRY_COMPARE(hostFinished.count(), 1);
+        QStringList commands;
+        for (const QList<QVariant>& args : std::as_const(sent)) commands << args.at(0).toString();
+        QVERIFY2(commands.contains(QStringLiteral("gameover win")), qPrintable(commands.join(QLatin1Char(','))));
+        QVERIFY(!host.engines.engineInSlot(1));
+        QCOMPARE(notices.count(), 0);
+        for (Side* s : {&applicant, &host}) {
+            QCOMPARE(s->coordinator.match()->settlement(), Settlement::MutuallySigned);
+            QFile file(s->coordinator.lastEvidencePath());
+            QVERIFY(file.open(QIODevice::ReadOnly));
+            const EvidenceReport report = EvidenceVerifier::verify(file.readAll());
+            QVERIFY2(report.isValid(), qPrintable(report.error));
+            QCOMPARE(report.rules, expected);
+        }
+    }
+
+    /// エンジンが指せない手を返したら、相手に送らずに投了する（反則は負け。相手は不正な手として対局を止めずに済む）
+    void engineIllegalMoveResigns()
+    {
+        const QByteArray applicantId(38, 'd');
+        const QByteArray hostId(38, 'k');
+        Side applicant(applicantId, m_dir.filePath(QStringLiteral("a4")));
+        Side host(hostId, m_dir.filePath(QStringLiteral("h4")));
+        applicant.transport.other = &host;
+        host.transport.other = &applicant;
+        QSignalSpy notices(&applicant.coordinator, &P2pGameCoordinator::engineNotice);
+        QSignalSpy hostFinished(&host.coordinator, &P2pGameCoordinator::gameFinished);
+
+        // 申込側がエンジンで先手（招待した側が後手を希望）。モックのエンジンの最初の手 8c8d は先手には指せない
+        P2pGameCoordinator::NegotiationRequest hostRequest = request(kRoleHost, applicantId, QStringLiteral("募集"));
+        hostRequest.mySide = SidePreference::White;
+        P2pGameCoordinator::NegotiationRequest applicantRequest = request(kRoleApplicant, hostId, QStringLiteral("申込"));
+        applicantRequest.player = mockEngine();
+        QVERIFY(host.coordinator.startNegotiation(hostRequest));
+        QVERIFY(applicant.coordinator.startNegotiation(applicantRequest));
+        QTRY_VERIFY(applicant.coordinator.negotiation()
+                    && applicant.coordinator.negotiation()->stage() == Negotiation::Stage::Confirming
+                    && !applicant.coordinator.isEngineStarting());
+        settle();
+        // 招待した側は、申込側の種別を START_AGREEMENT の Rules で知る
+        QCOMPARE(host.coordinator.opponentKind(), std::optional<PlayerKind>(PlayerKind::Engine));
+        host.coordinator.confirmStart();
+        applicant.coordinator.confirmStart();
+        QTRY_COMPARE(hostFinished.count(), 1);
+        QCOMPARE(notices.count(), 1);
+        for (Side* s : {&applicant, &host}) {
+            QCOMPARE(s->coordinator.match()->settlement(), Settlement::MutuallySigned);
+            QVERIFY(s->coordinator.match()->agreedResult());
+            QCOMPARE(s->coordinator.match()->agreedResult()->outcome, Outcome::WhiteWins);
+            QCOMPARE(s->coordinator.match()->agreedResult()->cause, Cause::Resign);
+            QCOMPARE(s->sink.entries.size(), 1);
+            QVERIFY(s->activity.is(AppActivityState::Activity::Idle));
+        }
+        QVERIFY(!applicant.engines.engineInSlot(1));
+    }
+
+    /// エンジンを起動できなければ、対局を始めずに交渉を取りやめる（相手には取りやめが伝わる）
+    void engineStartFailureCancelsNegotiation()
+    {
+        const QByteArray applicantId(38, 'e');
+        const QByteArray hostId(38, 'l');
+        Side applicant(applicantId, m_dir.filePath(QStringLiteral("a5")));
+        Side host(hostId, m_dir.filePath(QStringLiteral("h5")));
+        applicant.transport.other = &host;
+        host.transport.other = &applicant;
+        QSignalSpy notices(&host.coordinator, &P2pGameCoordinator::engineNotice);
+        QSignalSpy hostEnded(&host.coordinator, &P2pGameCoordinator::negotiationEnded);
+        QSignalSpy applicantEnded(&applicant.coordinator, &P2pGameCoordinator::negotiationEnded);
+
+        P2pGameCoordinator::NegotiationRequest hostRequest = request(kRoleHost, applicantId, QStringLiteral("募集"));
+        hostRequest.player = mockEngine();
+        hostRequest.player.enginePath = m_dir.filePath(QStringLiteral("no-such-engine"));
+        QVERIFY(host.coordinator.startNegotiation(hostRequest));
+        QVERIFY(applicant.coordinator.startNegotiation(request(kRoleApplicant, hostId, QStringLiteral("申込"))));
+        QTRY_COMPARE(notices.count(), 1);
+        QTRY_COMPARE(applicantEnded.count(), 1);
+        QCOMPARE(hostEnded.count(), 1);
+        QCOMPARE(hostEnded.first().at(0).toBool(), false);
+        QCOMPARE(applicantEnded.first().at(0).toBool(), false);
+        QVERIFY(!host.coordinator.isBusy());
+        QVERIFY(!applicant.coordinator.isBusy());
+        QVERIFY(host.activity.is(AppActivityState::Activity::Idle));
+
+        // エンジンの場所の無い対局者・エンジンの枠の無い司令塔では、交渉を始めない
+        hostRequest.player.enginePath.clear();
+        QVERIFY(!host.coordinator.startNegotiation(hostRequest));
+    }
+
     void cancelBeforeStartReturnsToIdle()
     {
         const QByteArray applicantId(38, 'b');
@@ -308,7 +504,7 @@ private slots:
         a.startBefore = 1;
         std::unique_ptr<P2pJournal> journal = store.createJournal(a.gameId());
         QVERIFY(journal);
-        QVERIFY(journal->append(RecordKinds::start(a, TimeControlTerms{}, kSideBlack, QStringLiteral("相手"))));
+        QVERIFY(journal->append(RecordKinds::start(a, RulesTerms{}, TimeControlTerms{}, kSideBlack, QStringLiteral("相手"))));
         journal->close();
         // 途中で切れた末尾は読まない
         QFile file(journal->path());

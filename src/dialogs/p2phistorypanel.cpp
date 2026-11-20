@@ -45,7 +45,7 @@ P2pHistoryPanel::P2pHistoryPanel(P2pRecordStore* store, P2pKnownPeers* knownPeer
 {
     auto* layout = new QVBoxLayout(this);
     auto* note = new QLabel(tr("「記録の区分」は証跡を検証した結果です。双方で確定した記録だけが、双方が同じ結果に同意したことを示します。"
-                               "記録は思考時間の正しさ・人間が指したこと・対局の日時を証明しません。"),
+                               "記録は思考時間の正しさ・実際にだれが指したか（人間かエンジンかは双方の申告です）・対局の日時を証明しません。"),
                             this);
     note->setWordWrap(true);
     layout->addWidget(note);
@@ -106,10 +106,15 @@ void P2pHistoryPanel::reload()
         // 対局したことのない相手（「相手の管理」で記録を削除した相手・証跡を読めない対局）の表示名を出さない設定では、
         // ツールチップにも出さない（条件確認画面と同じ規則）
         const bool hideName = m_hideUnknownNames && !known;
-        auto* opponentItem = new QTableWidgetItem(hideName ? tr("名前は非表示") : opponent);
+        // エンジンが指した側には印を付ける（双方が開始合意で確定した申告。証跡を読めた記録だけ）
+        const bool iAmBlack = entry.info.mySide == P2p::kSideBlack;
+        const auto withKind = [&report](const QString& text, bool black) {
+            return report && report->rules.kind(black) == P2p::PlayerKind::Engine ? tr("%1（エンジン）").arg(text) : text;
+        };
+        auto* opponentItem = new QTableWidgetItem(withKind(hideName ? tr("名前は非表示") : opponent, !iAmBlack));
         if (!hideName) opponentItem->setToolTip(plainToolTip(opponent));
         m_table->setItem(row, Opponent, opponentItem);
-        m_table->setItem(row, Side, new QTableWidgetItem(entry.info.mySide == P2p::kSideBlack ? tr("先手") : tr("後手")));
+        m_table->setItem(row, Side, new QTableWidgetItem(withKind(iAmBlack ? tr("先手") : tr("後手"), iAmBlack)));
         m_table->setItem(row, Ending, new QTableWidgetItem(P2pWindowText::settlementLabel(entry.info.settlement)));
         if (report) {
             const QString category = report->isValid() ? P2pWindowText::categoryText(report->category) : tr("検証に失敗");
@@ -171,6 +176,7 @@ void P2pHistoryPanel::onVerify()
     lines << tr("対局ID: %1").arg(QString::fromLatin1(report->gameId.toHex()));
     lines << tr("先手のプレイヤーID: %1").arg(P2pWindowText::playerIdText(report->blackPlayerKey));
     lines << tr("後手のプレイヤーID: %1").arg(P2pWindowText::playerIdText(report->whitePlayerKey));
+    lines << tr("対局者（双方の申告）: %1").arg(P2pWindowText::playerKindsText(report->rules));
     lines << tr("プレイヤー鍵による確定が正しい: %1").arg(yesNo(report->signaturesValid && report->blackStartSigned && report->whiteStartSigned));
     lines << tr("棋譜がルールに適合: %1").arg(yesNo(report->recordLegal));
     lines << tr("自己申告時間の計算が一致: %1").arg(yesNo(report->clockArithmeticValid));
@@ -180,7 +186,7 @@ void P2pHistoryPanel::onVerify()
     if (report->result) lines << tr("結果の識別子: %1").arg(QString::fromLatin1(report->resultDigest.toHex()));
     if (report->resultConflictsWithRecord) lines << tr("確定した結果が、棋譜から決まる結果と食い違っています。");
     if (!report->error.isEmpty()) lines << tr("問題: %1").arg(report->error);
-    lines << tr("実際の思考時間・人間が指したこと・対局の日時は、この記録からは確かめられません。");
+    lines << tr("実際の思考時間・実際にだれが指したか・対局の日時は、この記録からは確かめられません。");
     DialogUtils::information(this, tr("検証"), lines.join(QLatin1Char('\n')));
 }
 

@@ -85,6 +85,8 @@ private slots:
     void closeStaleOffer();
     void onProposalDeclined();
     void onGameFinished(P2p::Settlement ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
+    /// 自分のエンジンについての知らせ（起動の失敗・異常終了・指せない手・入玉宣言）
+    void onEngineNotice(const QString& message);
     void onPeerFailed(PeerProcess::Failure failure, const QString& detail);
     /// パスフレーズの要らない読み込み（保管庫・暗号化しないファイル）が終わった
     void onIdentityFinished(P2pIdentityStore::Failure failure);
@@ -108,6 +110,7 @@ private:
     QPointer<QMessageBox> m_offerBox;   ///< 相手の申し出を尋ねる箱（モードレス。閉じたら消える）
     QPointer<QMessageBox> m_failureBox; ///< 通信プロセスの失敗の知らせ（モードレス。閉じたら消える）
     QPointer<QMessageBox> m_declinedBox; ///< 申し出を断られた知らせ（モードレス。次に断られたら入れ替える）
+    QPointer<QMessageBox> m_engineBox;   ///< エンジンについての知らせ（モードレス。続けて届いたら入れ替える）
     bool m_automationDisabled = false;
     bool m_startAfterUnlock = false;   ///< 鍵を読み込んだら参加する
 };

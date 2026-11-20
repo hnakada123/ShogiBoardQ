@@ -241,6 +241,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     p2pGameDeps.gameBoard = m_c.gameBoard;
     p2pGameDeps.clock = m_c.clock;
     p2pGameDeps.activity = &m_activity;
+    p2pGameDeps.engines = m_c.engines;
     m_c.p2pGame = new P2pGameCoordinator(p2pGameDeps, &m_window);
     m_c.gameChannels->setP2pChannel(std::make_unique<P2pGameChannel>(m_c.p2pGame));
 #endif
@@ -418,6 +419,9 @@ void MainWindowComposer::createSessions()
     ud.joseki = m_c.joseki->josekiWindow();
     ud.localGameHasHuman = std::bind(&MatchCoordinator::hasHumanPlayer, m_c.match);
     ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.match);
+#ifdef SBQ_ENABLE_P2P
+    ud.p2pGameUsesEngine = std::bind(&P2pGameCoordinator::playsWithEngine, m_c.p2pGame);
+#endif
     ud.activity = &m_activity;
     m_c.uiStatePolicy = new UiStatePolicyManager(ud, &m_window);
     m_c.notifications = new NotificationPresenter({&m_window}, &m_window);

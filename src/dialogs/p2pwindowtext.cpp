@@ -30,17 +30,32 @@ QString P2pWindowText::timeControlText(const P2p::TimeControlTerms& terms)
     return tr("%1＋秒読み%2秒").arg(main).arg(byoyomiSeconds);
 }
 
-QString P2pWindowText::rulesText()
+QString P2pWindowText::playerKindText(P2p::PlayerKind kind)
 {
-    return tr("ルール: 平手。人間どうしの対局で、検討・定跡の表示は使えません。入玉宣言はありません（双方の合意で引き分けにできます）。"
-              "千日手は引き分け、連続王手の千日手は王手をかけた側の負け、512手で引き分けです。待ったはありません。");
+    return kind == P2p::PlayerKind::Engine ? tr("エンジン") : tr("人間");
+}
+
+QString P2pWindowText::playerKindsText(const P2p::RulesTerms& rules)
+{
+    return tr("先手: %1、後手: %2").arg(playerKindText(rules.black), playerKindText(rules.white));
+}
+
+QString P2pWindowText::rulesText(const P2p::RulesTerms& rules)
+{
+    // だれが指すか（人間・エンジン）は、双方が確定する条件に入る。アプリは、対局中に検討・定跡の表示を出さない
+    const QString players = rules.isHumanOnly()
+        ? tr("人間どうしの対局で、検討・定跡の表示は使えません。")
+        : tr("エンジンが指す対局です（%1）。検討・定跡の表示は使えません。").arg(playerKindsText(rules));
+    return tr("ルール: 平手。%1入玉宣言はありません（双方の合意で引き分けにできます）。"
+              "千日手は引き分け、連続王手の千日手は王手をかけた側の負け、512手で引き分けです。待ったはありません。")
+        .arg(players);
 }
 
 QString P2pWindowText::recordContentsText()
 {
-    return tr("対局記録（証跡）には、双方のプレイヤーID・条件・対局を始めたおおよその日時・全手順と自己申告の消費時間・双方が"
-              "プレイヤー鍵で確定した結果が残り、双方の手元に保存されます。表示名・IPアドレス・手元で付けた名前は残りません。"
-              "アプリから公開・送信はしません。");
+    return tr("対局記録（証跡）には、双方のプレイヤーID・条件（人間が指すかエンジンが指すかを含みます）・対局を始めた"
+              "おおよその日時・全手順と自己申告の消費時間・双方がプレイヤー鍵で確定した結果が残り、双方の手元に保存されます。"
+              "表示名・エンジンの名前・IPアドレス・手元で付けた名前は残りません。アプリから公開・送信はしません。");
 }
 
 QString P2pWindowText::causeText(P2p::Cause cause)

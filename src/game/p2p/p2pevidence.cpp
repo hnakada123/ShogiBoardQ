@@ -31,7 +31,7 @@ CborValue Evidence::toCbor() const
         agreement.toCbor(),
         CborValue::bytes(blackStartSignature),
         CborValue::bytes(whiteStartSignature),
-        Rules::v1(),
+        rules.toCbor(),
         timeControl.toCbor(),
         NetworkPolicy::v1().toCbor(),
         CborValue::array(std::move(stateItems)),
@@ -60,7 +60,9 @@ std::optional<Evidence> Evidence::decode(QByteArrayView bytes, QString* error)
     e.agreement = *agreement;
     e.blackStartSignature = signatureField(r, 3);
     e.whiteStartSignature = signatureField(r, 4);
-    if (!Rules::isV1(r.item(5))) return fail(QStringLiteral("unsupported rules"));
+    const std::optional<RulesTerms> rules = RulesTerms::fromCbor(r.item(5));
+    if (!rules) return fail(QStringLiteral("unsupported rules"));
+    e.rules = *rules;
     const std::optional<TimeControlTerms> terms = TimeControlTerms::fromCbor(r.item(6));
     if (!terms) return fail(QStringLiteral("invalid time control"));
     e.timeControl = *terms;

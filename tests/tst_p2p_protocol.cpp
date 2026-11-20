@@ -332,6 +332,42 @@ private slots:
         }
     }
 
+    /// 対局者の種別（人間・エンジン）を入れた Rules の4つの値。独立に作った試験入力と同じバイト列・ハッシュになる
+    void rulesSharedVectors()
+    {
+        const QList<QByteArray> lines = P2pTest::readVectorLines(QStringLiteral("rules.txt"));
+        QCOMPARE(lines.size(), 4);
+        for (const QByteArray& line : lines) {
+            const QList<QByteArray> parts = line.split(' ');
+            QCOMPARE(parts.size(), 4);
+            const std::optional<PlayerKind> black = playerKindFromLabel(parts.at(0));
+            const std::optional<PlayerKind> white = playerKindFromLabel(parts.at(1));
+            QVERIFY(black && white);
+            const RulesTerms rules{*black, *white};
+            QCOMPARE(Cbor::encode(rules.toCbor()).toHex(), parts.at(3));
+            QCOMPARE(rules.hash().toHex(), parts.at(2));
+            // 読み戻すと同じ値。双方人間の値だけが版 1 の Rules
+            const std::optional<CborValue> value = Cbor::decode(QByteArray::fromHex(parts.at(3)));
+            QVERIFY(value);
+            QCOMPARE(RulesTerms::fromCbor(*value), std::optional<RulesTerms>(rules));
+            QCOMPARE(Rules::isV1(*value), rules.isHumanOnly());
+            QCOMPARE(rules.hash() == Rules::v1Hash(), rules.isHumanOnly());
+        }
+        // 自分の側と種別から作る（先手・後手の順に入る）
+        QCOMPARE(RulesTerms::forSides(true, PlayerKind::Engine, PlayerKind::Human),
+                 (RulesTerms{PlayerKind::Engine, PlayerKind::Human}));
+        QCOMPARE(RulesTerms::forSides(false, PlayerKind::Engine, PlayerKind::Human),
+                 (RulesTerms{PlayerKind::Human, PlayerKind::Engine}));
+        // 知らない種別・ほかの要素の違う値は読まない
+        QVERIFY(!playerKindFromLabel("robot"));
+        std::vector<CborValue> items = RulesTerms{}.toCbor().items();
+        items[8] = CborValue::text("robot");
+        QVERIFY(!RulesTerms::fromCbor(CborValue::array(items)));
+        items = RulesTerms{PlayerKind::Engine, PlayerKind::Human}.toCbor().items();
+        items[3] = CborValue::uint(256);
+        QVERIFY(!RulesTerms::fromCbor(CborValue::array(items)));
+    }
+
     // ------------------------------------------------------------ 表示名
 
     void displayNameSharedVectors()
@@ -706,7 +742,146 @@ private slots:
         QVERIFY(std::holds_alternative<Failure>(MatchVerificationService::verifyFile(dir.filePath(QStringLiteral("none")))));
     }
 
+    /// エンジンが指した対局の証跡は、対局者の種別を条件として持ち、開始合意の rulesHash と照らす
+    void evidenceKeepsPlayerKinds()
+    {
+        const P2pTest::Player black;
+        const P2pTest::Player white;
+        const TimeControlTerms terms{};
+        Evidence e;
+        e.rules = RulesTerms{PlayerKind::Human, PlayerKind::Engine};
+        e.agreement = P2pTest::makeAgreement(black, white, terms);
+        e.agreement.rulesHash = e.rules.hash();
+        e.timeControl = terms;
+        e.blackStartSignature = black.playerKey.sign(e.agreement.toCbor());
+        e.whiteStartSignature = white.playerKey.sign(e.agreement.toCbor());
+        e.states = P2pTest::playMoves(e.gameId(), terms, {QStringLiteral("7g7f"), QStringLiteral("3c3d")}, black, white);
+        e.result = P2pTest::resultFor(e, Outcome::WhiteWins, Cause::Resign);
+        e.blackResultSignature = black.playerKey.sign(e.result->toCbor());
+        e.whiteResultSignature = white.playerKey.sign(e.result->toCbor());
+
+        const QByteArray bytes = e.encode();
+        const std::optional<Evidence> decoded = Evidence::decode(bytes);
+        QVERIFY(decoded);
+        QCOMPARE(decoded->rules, e.rules);
+        QCOMPARE(decoded->encode(), bytes);
+        EvidenceReport report = EvidenceVerifier::verify(bytes);
+        QVERIFY2(report.isValid(), qPrintable(report.error));
+        QCOMPARE(report.category, EvidenceReport::Category::MutuallySigned);
+        QCOMPARE(report.rules, e.rules);
+
+        // 証跡の種別だけを書き換えると、署名された開始合意の rulesHash と合わない
+        Evidence tampered = e;
+        tampered.rules = RulesTerms{};
+        report = EvidenceVerifier::verify(tampered.encode());
+        QVERIFY(!report.conditionsMatch);
+        QVERIFY(!report.isValid());
+
+        // verify-match の結果にも種別を出す
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(QStringLiteral("engine.sbqmatch"));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(bytes);
+        file.close();
+        const auto outcome = MatchVerificationService::verifyFile(path);
+        QVERIFY(std::holds_alternative<QJsonObject>(outcome));
+        const QJsonObject obj = std::get<QJsonObject>(outcome);
+        QCOMPARE(obj.value(QStringLiteral("valid")).toBool(), true);
+        QCOMPARE(obj.value(QStringLiteral("black_player_kind")).toString(), QStringLiteral("human"));
+        QCOMPARE(obj.value(QStringLiteral("white_player_kind")).toString(), QStringLiteral("engine"));
+    }
+
     // ------------------------------------------------------------ フレーム
+
+    /// HELLO の対応する版の一覧と、募集側の対局者の種別（版 2）
+    void helloVersionsAndPlayerKind()
+    {
+        HelloPayload hello;
+        hello.role = kRoleHost;
+        hello.networkId = networkId("sbq-local-1");
+        hello.peerId = QByteArray(38, '\x01');
+        hello.connectionRandom = Crypto::randomBytes(32);
+        hello.playerKey = Crypto::randomBytes(32);
+        hello.sessionKey = Crypto::randomBytes(32);
+        hello.displayName = QStringLiteral("将棋太郎");
+        hello.offerId = zeroHash();
+        hello.coin = Crypto::randomBytes(32);
+        hello.timeControl = TimeControlTerms{};
+
+        // 人間の HELLO は版 1 と同じ形（14 要素・値の版 1）で、対応する版の一覧だけが [1, 2]。
+        // 版 1 だけの実装（一覧に 1 があれば受け付ける）も読める
+        const CborValue human = hello.toCbor();
+        QCOMPARE(human.items().size(), std::size_t(14));
+        QCOMPARE(human.items()[1], CborValue::uint(1));
+        QCOMPARE(human.items()[4], CborValue::array({CborValue::uint(1), CborValue::uint(2)}));
+        std::optional<HelloPayload> parsed = HelloPayload::fromCbor(human);
+        QVERIFY(parsed);
+        QVERIFY(parsed->supportsPlayerKinds);
+        QCOMPARE(parsed->playerKind, PlayerKind::Human);
+
+        // 版 1 だけの実装の HELLO（一覧が [1]）は、今までと同じバイト列で、対局者の種別を扱えない相手として読む
+        HelloPayload old = hello;
+        old.supportsPlayerKinds = false;
+        QCOMPARE(old.toCbor().items()[4], CborValue::array({CborValue::uint(1)}));
+        parsed = HelloPayload::fromCbor(old.toCbor());
+        QVERIFY(parsed);
+        QVERIFY(!parsed->supportsPlayerKinds);
+        QCOMPARE(parsed->playerKind, PlayerKind::Human);
+
+        // エンジンで指す募集側の HELLO は、末尾に種別を足した版 2 の形。条件の Rules は種別を入れない値のまま
+        HelloPayload engine = hello;
+        engine.playerKind = PlayerKind::Engine;
+        const CborValue withKind = engine.toCbor();
+        QCOMPARE(withKind.items().size(), std::size_t(15));
+        QCOMPARE(withKind.items()[1], CborValue::uint(2));
+        QCOMPARE(withKind.items()[14], CborValue::text("engine"));
+        QVERIFY(Rules::isV1(withKind.items()[13].items()[0]));
+        parsed = HelloPayload::fromCbor(withKind);
+        QVERIFY(parsed);
+        QCOMPARE(parsed->playerKind, PlayerKind::Engine);
+        QVERIFY(parsed->supportsPlayerKinds);
+        QVERIFY(parsed->timeControl);
+
+        // 版 2 の形で断るもの: 知らない種別・一覧に版 2 がない・申込側（申込側の種別は START_AGREEMENT で伝える）
+        std::vector<CborValue> items = withKind.items();
+        items[14] = CborValue::text("robot");
+        QVERIFY(!HelloPayload::fromCbor(CborValue::array(items)));
+        items = withKind.items();
+        items[4] = CborValue::array({CborValue::uint(1)});
+        QVERIFY(!HelloPayload::fromCbor(CborValue::array(items)));
+        HelloPayload applicant = engine;
+        applicant.role = kRoleApplicant;
+        applicant.timeControl.reset();
+        QVERIFY(!HelloPayload::fromCbor(applicant.toCbor()));
+        // 値の版と要素の数が合わない形
+        items = withKind.items();
+        items[1] = CborValue::uint(1);
+        QVERIFY(!HelloPayload::fromCbor(CborValue::array(items)));
+        items = human.items();
+        items[1] = CborValue::uint(2);
+        QVERIFY(!HelloPayload::fromCbor(CborValue::array(items)));
+
+        // START_AGREEMENT は Rules を運び、開始合意の rulesHash と一致しなければ読まない
+        const P2pTest::Player black;
+        const P2pTest::Player white;
+        StartAgreementPayload payload;
+        payload.rules = RulesTerms{PlayerKind::Engine, PlayerKind::Human};
+        payload.timeControl = TimeControlTerms{};
+        payload.agreement = P2pTest::makeAgreement(black, white, payload.timeControl);
+        QVERIFY(!StartAgreementPayload::fromCbor(payload.toCbor()));   // rulesHash は双方人間の値のまま
+        payload.agreement.rulesHash = payload.rules.hash();
+        const std::optional<StartAgreementPayload> read = StartAgreementPayload::fromCbor(payload.toCbor());
+        QVERIFY(read);
+        QCOMPARE(read->rules, payload.rules);
+        // 双方人間の START_AGREEMENT は、版 1 と同じバイト列
+        StartAgreementPayload humanPayload;
+        humanPayload.timeControl = TimeControlTerms{};
+        humanPayload.agreement = P2pTest::makeAgreement(black, white, humanPayload.timeControl);
+        QCOMPARE(humanPayload.toCbor().items()[1], Rules::v1());
+        QVERIFY(StartAgreementPayload::fromCbor(humanPayload.toCbor()));
+    }
 
     void framePayloadsRoundTrip()
     {

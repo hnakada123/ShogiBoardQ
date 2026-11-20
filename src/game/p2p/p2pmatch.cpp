@@ -108,6 +108,7 @@ Evidence Match::evidence() const
     e.agreement = m_setup.agreement;
     e.blackStartSignature = m_setup.blackStartSignature;
     e.whiteStartSignature = m_setup.whiteStartSignature;
+    e.rules = m_setup.rules;
     e.timeControl = m_setup.terms;
     e.states = m_confirmed;
     // 相手の承認のない自分の最後の状態も残す（片方の署名だけの状態として）
@@ -127,7 +128,8 @@ void Match::begin()
     m_startedAt = now();
     m_openingDeadline = m_startedAt + kOpeningTimeoutMs;
     // 開始合意と両方の開始署名をジャーナルに書いてから始める（書けなければ何も送らずに中断する）
-    if (!persist(RecordKinds::start(m_setup.agreement, m_setup.terms, mySide(), m_setup.opponentDisplayName))
+    if (!persist(RecordKinds::start(m_setup.agreement, m_setup.rules, m_setup.terms, mySide(),
+                                    m_setup.opponentDisplayName))
         || !persist(RecordKinds::startSignature(kSideBlack, m_setup.blackStartSignature))
         || !persist(RecordKinds::startSignature(kSideWhite, m_setup.whiteStartSignature))) {
         abort(ErrorCode::StorageError);

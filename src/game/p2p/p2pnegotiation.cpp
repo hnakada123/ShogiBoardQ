@@ -71,10 +71,12 @@ HelloPayload Negotiation::myHello() const
     // offerId は予約の項目（公開募集をやめたので、常にゼロ32バイト）
     hello.offerId = zeroHash();
     if (m_config.role == kRoleApplicant) {
+        // 申込側は、相手の版を知る前に送るので、常に版 1 の形（種別は START_AGREEMENT の Rules で伝える）
         hello.coin = coinCommit(m_myNonce);
     } else {
         hello.coin = m_myNonce;
         hello.timeControl = m_terms;
+        hello.playerKind = m_config.myKind;
     }
     return hello;
 }
@@ -146,7 +148,12 @@ void Negotiation::handleHelloAsHost(const HelloPayload& hello)
         || hello.connectionRandom == m_myRandom) {
         return fail(ErrorCode::ConditionMismatch, true);
     }
-    m_opponent = OpponentHello{hello.displayName, hello.playerKey, hello.sessionKey, hello.peerId, hello.sidePreference};
+    // エンジンが指す対局は、対局者の種別を扱える相手（版 2）とだけ始める。自分の公開鍵を知らせる前に断る
+    if (m_config.myKind != PlayerKind::Human && !hello.supportsPlayerKinds) {
+        return fail(ErrorCode::UnsupportedVersion, true);
+    }
+    m_opponent = OpponentHello{hello.displayName, hello.playerKey, hello.sessionKey, hello.peerId, hello.sidePreference,
+                               hello.supportsPlayerKinds};
     m_opponentRandom = hello.connectionRandom;
     m_commitA = hello.coin;
     send(FrameType::Hello, myHello().toCbor(), zeroHash());
@@ -174,8 +181,14 @@ void Negotiation::handleHelloAsApplicant(const HelloPayload& hello)
         || hello.connectionRandom == m_myRandom || hello.coin == m_myNonce) {
         return fail(ErrorCode::ConditionMismatch, true);
     }
-    m_opponent = OpponentHello{hello.displayName, hello.playerKey, hello.sessionKey, hello.peerId, hello.sidePreference};
+    // エンジンが指す対局は、対局者の種別を扱える相手（版 2）とだけ始める
+    if (m_config.myKind != PlayerKind::Human && !hello.supportsPlayerKinds) {
+        return fail(ErrorCode::UnsupportedVersion, true);
+    }
+    m_opponent = OpponentHello{hello.displayName, hello.playerKey, hello.sessionKey, hello.peerId, hello.sidePreference,
+                               hello.supportsPlayerKinds};
     m_opponentRandom = hello.connectionRandom;
+    m_opponentKind = hello.playerKind;
     m_terms = *hello.timeControl;
 
     const std::optional<bool> applicantBlack = decideApplicantBlack(m_myNonce, hello.coin);
@@ -193,7 +206,9 @@ void Negotiation::handleHelloAsApplicant(const HelloPayload& hello)
     a.whiteSessionKey = m_iAmBlack ? hello.sessionKey : m_sessionKey.publicKey();
     a.blackPeerIdHash = Cbor::sha256(m_iAmBlack ? m_config.myPeerId : hello.peerId);
     a.whitePeerIdHash = Cbor::sha256(m_iAmBlack ? hello.peerId : m_config.myPeerId);
-    a.rulesHash = Rules::v1Hash();
+    // 対局者の種別は、決まった先後に従って Rules に入れる（双方人間なら版 1 と同じ値）
+    m_rules = RulesTerms::forSides(m_iAmBlack, m_config.myKind, hello.playerKind);
+    a.rulesHash = m_rules.hash();
     a.timeControlHash = m_terms.hash();
     a.networkPolicyHash = NetworkPolicy::v1().hash();
     a.startBefore = now() + kStartWindowSeconds;
@@ -201,6 +216,7 @@ void Negotiation::handleHelloAsApplicant(const HelloPayload& hello)
     m_agreement = a;
     StartAgreementPayload payload;
     payload.agreement = a;
+    payload.rules = m_rules;
     payload.timeControl = m_terms;
     send(FrameType::StartAgreement, payload.toCbor(), zeroHash());
     m_stage = Stage::Confirming;
@@ -218,12 +234,18 @@ void Negotiation::handleAgreement(const StartAgreementPayload& payload)
     if (coinCommit(applicantNonce) != m_commitA) return fail(ErrorCode::ConditionMismatch, true);
     const std::optional<bool> applicantBlack = decideApplicantBlack(applicantNonce, m_myNonce);
     if (!applicantBlack || *applicantBlack == hostBlack) return fail(ErrorCode::ConditionMismatch, true);
+    // Rules の自分の側は HELLO で伝えた自分の種別。相手の側は申込側の種別で、エンジンと書けるのは版 2 に対応する相手だけ
+    const PlayerKind applicantKind = payload.rules.kind(!hostBlack);
+    if (payload.rules.kind(hostBlack) != m_config.myKind
+        || (applicantKind != PlayerKind::Human && !m_opponent->supportsPlayerKinds)) {
+        return fail(ErrorCode::ConditionMismatch, true);
+    }
     const QByteArray applicantPeerId = m_opponent->peerId;
     const bool matches = myNonceInAgreement == m_myNonce
         && a.playerKey(hostBlack) == m_playerKey->publicKey() && a.sessionKey(hostBlack) == m_sessionKey.publicKey()
         && a.playerKey(!hostBlack) == m_opponent->playerKey && a.sessionKey(!hostBlack) == m_opponent->sessionKey
         && a.peerIdHash(hostBlack) == Cbor::sha256(m_config.myPeerId)
-        && a.peerIdHash(!hostBlack) == Cbor::sha256(applicantPeerId) && a.rulesHash == Rules::v1Hash()
+        && a.peerIdHash(!hostBlack) == Cbor::sha256(applicantPeerId) && a.rulesHash == payload.rules.hash()
         && a.timeControlHash == m_terms.hash() && a.networkPolicyHash == NetworkPolicy::v1().hash();
     if (!matches || !a.hasDistinctKeys()) return fail(ErrorCode::ConditionMismatch, true);
     // 期限は今から3分以内（相手の時計のずれを少し見込む）
@@ -232,6 +254,8 @@ void Negotiation::handleAgreement(const StartAgreementPayload& payload)
         return fail(ErrorCode::Expired, true);
     }
     m_agreement = a;
+    m_rules = payload.rules;
+    m_opponentKind = applicantKind;
     m_iAmBlack = hostBlack;
     m_sidesByCoin = m_config.mySide == SidePreference::None && m_opponent->sidePreference == SidePreference::None;
     m_stage = Stage::Confirming;

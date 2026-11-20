@@ -87,16 +87,27 @@ std::optional<Frame> Frame::decode(QByteArrayView bytes, QString* error)
 CborValue HelloPayload::toCbor() const
 {
     std::vector<CborValue> conditions;
+    // 先後が決まる前なので、Rules は種別を入れない値（v1）。種別は playerKind と START_AGREEMENT の Rules で伝える
     if (timeControl) conditions = {Rules::v1(), timeControl->toCbor(), NetworkPolicy::v1().toCbor()};
-    return CborValue::array({t("SBQ-HELLO"), u(1), u(role), b(networkId), CborValue::array({u(1)}), b(peerId),
-                             b(connectionRandom), b(playerKey), b(sessionKey), CborValue::text(displayName),
-                             u(static_cast<quint64>(sidePreference)), b(offerId), b(coin),
-                             CborValue::array(std::move(conditions))});
+    std::vector<CborValue> versions{u(kVersionBase)};
+    if (supportsPlayerKinds) versions.push_back(u(kVersionPlayerKinds));
+    // 人間なら版 1 と同じ形（版 1 だけの実装も読める）。エンジンなら末尾に種別を足した版 2 の形
+    const bool withKind = playerKind != PlayerKind::Human;
+    std::vector<CborValue> items{t("SBQ-HELLO"), u(withKind ? kVersionPlayerKinds : kVersionBase), u(role), b(networkId),
+                                 CborValue::array(std::move(versions)), b(peerId), b(connectionRandom), b(playerKey),
+                                 b(sessionKey), CborValue::text(displayName), u(static_cast<quint64>(sidePreference)),
+                                 b(offerId), b(coin), CborValue::array(std::move(conditions))};
+    if (withKind) items.push_back(CborValue::text(playerKindLabel(playerKind)));
+    return CborValue::array(std::move(items));
 }
 
 std::optional<HelloPayload> HelloPayload::fromCbor(const CborValue& value)
 {
-    CborReader r(value, "SBQ-HELLO", 14);
+    // 2番目の要素がこの値の版。版 1 は 14 要素、版 2 は末尾に対局者の種別を足した 15 要素
+    const bool withKind = value.isArray() && value.items().size() == 15 && value.items()[1].isUInt()
+        && value.items()[1].toUInt() == kVersionPlayerKinds;
+    CborReader r(value, withKind ? nullptr : "SBQ-HELLO", withKind ? 15 : 14);
+    if (withKind) r.expectText(0, "SBQ-HELLO");
     HelloPayload h;
     h.role = static_cast<quint8>(r.uint(2, 2));
     h.networkId = r.bytes(3, kHashSize);
@@ -110,11 +121,20 @@ std::optional<HelloPayload> HelloPayload::fromCbor(const CborValue& value)
     h.offerId = r.bytes(11, kHashSize);
     h.coin = r.bytes(12, kHashSize);
     const std::vector<CborValue>& conditions = r.array(13, 3);
-    if (!r.ok() || h.role < kRoleApplicant || h.peerId.isEmpty()) return std::nullopt;
+    const std::optional<PlayerKind> kind =
+        withKind ? playerKindFromLabel(r.ascii(14, 16)) : std::optional<PlayerKind>(PlayerKind::Human);
+    if (!r.ok() || h.role < kRoleApplicant || h.peerId.isEmpty() || !kind) return std::nullopt;
     bool supportsV1 = false;
-    for (const CborValue& v : versions) supportsV1 = supportsV1 || (v.isUInt() && v.toUInt() == 1);
+    h.supportsPlayerKinds = false;
+    for (const CborValue& v : versions) {
+        supportsV1 = supportsV1 || (v.isUInt() && v.toUInt() == kVersionBase);
+        h.supportsPlayerKinds = h.supportsPlayerKinds || (v.isUInt() && v.toUInt() == kVersionPlayerKinds);
+    }
     // 表示名は受け取ったバイト列のまま判定する（QString にすると先頭の BOM が消える）
     if (!supportsV1 || !DisplayName::isValidUtf8(r.item(9).data())) return std::nullopt;
+    // 版 2 の形を送れるのは、一覧に版 2 を入れた募集側だけ
+    if (withKind && (h.role != kRoleHost || !h.supportsPlayerKinds)) return std::nullopt;
+    h.playerKind = *kind;
     h.sidePreference = static_cast<SidePreference>(side);
     if (h.role == kRoleApplicant) {
         if (!conditions.empty()) return std::nullopt;
@@ -148,7 +168,7 @@ std::optional<ReconnectHello> ReconnectHello::fromCbor(const CborValue& value)
 
 CborValue StartAgreementPayload::toCbor() const
 {
-    return CborValue::array({agreement.toCbor(), Rules::v1(), timeControl.toCbor(), NetworkPolicy::v1().toCbor()});
+    return CborValue::array({agreement.toCbor(), rules.toCbor(), timeControl.toCbor(), NetworkPolicy::v1().toCbor()});
 }
 
 std::optional<StartAgreementPayload> StartAgreementPayload::fromCbor(const CborValue& value)
@@ -156,13 +176,15 @@ std::optional<StartAgreementPayload> StartAgreementPayload::fromCbor(const CborV
     CborReader r(value, nullptr, 4);
     if (!r.ok()) return std::nullopt;
     const std::optional<StartAgreement> agreement = StartAgreement::fromCbor(r.item(0));
+    const std::optional<RulesTerms> rules = RulesTerms::fromCbor(r.item(1));
     const std::optional<TimeControlTerms> terms = TimeControlTerms::fromCbor(r.item(2));
-    if (!agreement || !terms || !Rules::isV1(r.item(1)) || !NetworkPolicy::fromCbor(r.item(3))) return std::nullopt;
+    if (!agreement || !rules || !terms || !NetworkPolicy::fromCbor(r.item(3))) return std::nullopt;
     StartAgreementPayload p;
     p.agreement = *agreement;
+    p.rules = *rules;
     p.timeControl = *terms;
     // 条件の配列のハッシュが合意と一致すること
-    if (p.agreement.rulesHash != Rules::v1Hash() || p.agreement.timeControlHash != p.timeControl.hash()
+    if (p.agreement.rulesHash != p.rules.hash() || p.agreement.timeControlHash != p.timeControl.hash()
         || p.agreement.networkPolicyHash != NetworkPolicy::v1().hash()) {
         return std::nullopt;
     }

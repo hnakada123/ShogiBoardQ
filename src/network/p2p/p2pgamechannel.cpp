@@ -26,6 +26,11 @@ void P2pGameChannel::breakOff()
     m_coordinator->offerAbort();
 }
 
+void P2pGameChannel::moveNow()
+{
+    m_coordinator->forceImmediateMove();
+}
+
 bool P2pGameChannel::isInProgress() const
 {
     return m_coordinator->isInProgress();

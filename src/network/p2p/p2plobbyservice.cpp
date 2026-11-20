@@ -289,6 +289,7 @@ void P2pLobbyService::handleConnectionOpened(const PeerIpc::ConnectionOpened& op
     request.myDisplayName = m_inviteDisplayName;
     request.mySide = m_inviteSide;
     request.hostTerms = m_inviteTerms;
+    request.player = m_invitePlayer;
     if (!m_deps.game->startNegotiation(request)) rejectConnection(connection, P2p::ErrorCode::Busy);
 }
 
@@ -301,12 +302,13 @@ void P2pLobbyService::rejectConnection(quint64 connection, P2p::ErrorCode code)
 // ---------------------------------------------------------------- 招待
 
 void P2pLobbyService::createInvite(const QString& displayName, const P2p::TimeControlTerms& terms,
-                                   P2p::SidePreference side)
+                                   P2p::SidePreference side, const P2pGameCoordinator::PlayerSetup& player)
 {
     if (!m_peer || m_status != Status::Online) return;
     m_inviteDisplayName = displayName;
     m_inviteTerms = terms;
     m_inviteSide = side;
+    m_invitePlayer = player;
     m_peer->request(PeerIpc::Requests::createInvite());
 }
 
@@ -316,12 +318,14 @@ void P2pLobbyService::inspectInvite(const QString& invite)
     m_peer->request(PeerIpc::Requests::inspectInvite(invite));
 }
 
-void P2pLobbyService::connectInvite(const QString& invite, bool allowPrivate, const QString& myDisplayName)
+void P2pLobbyService::connectInvite(const QString& invite, bool allowPrivate, const QString& myDisplayName,
+                                    const P2pGameCoordinator::PlayerSetup& player)
 {
     if (!m_peer || m_status != Status::Online || (m_deps.game && m_deps.game->isBusy())) return;
     P2pGameCoordinator::NegotiationRequest request;
     request.role = P2p::kRoleApplicant;
     request.myDisplayName = myDisplayName;
+    request.player = player;
     // 招待では先後の希望を「指定なし」にし、条件は招待した側の HELLO の応答で初めて知る
     request.mySide = P2p::SidePreference::None;
     const quint64 id = m_peer->request(PeerIpc::Requests::connectInvite(invite, allowPrivate));

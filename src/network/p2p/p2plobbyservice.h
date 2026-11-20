@@ -87,10 +87,12 @@ public:
     bool relayOnly() const { return m_relayOnly; }
     QJsonObject sandbox() const { return m_peer ? m_peer->sandbox() : QJsonObject(); }
 
-    // --- 招待 ---
-    void createInvite(const QString& displayName, const P2p::TimeControlTerms& terms, P2p::SidePreference side);
+    // --- 招待（player は自分の対局者。人間が指すか、登録エンジンが指すか） ---
+    void createInvite(const QString& displayName, const P2p::TimeControlTerms& terms, P2p::SidePreference side,
+                      const P2pGameCoordinator::PlayerSetup& player = {});
     void inspectInvite(const QString& invite);
-    void connectInvite(const QString& invite, bool allowPrivate, const QString& myDisplayName);
+    void connectInvite(const QString& invite, bool allowPrivate, const QString& myDisplayName,
+                       const P2pGameCoordinator::PlayerSetup& player = {});
 
     // --- P2pTransport ---
     QByteArray localPeerId() const override { return m_peerIdBytes; }
@@ -153,6 +155,7 @@ private:
     QString m_inviteDisplayName;
     P2p::TimeControlTerms m_inviteTerms;
     P2p::SidePreference m_inviteSide = P2p::SidePreference::None;
+    P2pGameCoordinator::PlayerSetup m_invitePlayer;
     bool m_inviteActive = false;
     // 招待で接続を開く要求（要求番号 → 交渉の条件）と、開こうとしている接続
     QHash<quint64, P2pGameCoordinator::NegotiationRequest> m_connectRequests;

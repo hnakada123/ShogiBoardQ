@@ -30,7 +30,12 @@ public:
     /// 一覧に出す短いプレイヤーID（先頭12文字。同一性の判断には使わせない）
     static QString shortPlayerId(const QByteArray& playerKey);
     static QString timeControlText(const P2p::TimeControlTerms& terms);
-    static QString rulesText();
+    /// 対局者の種別（「人間」「エンジン」）
+    static QString playerKindText(P2p::PlayerKind kind);
+    /// 先手・後手の対局者の種別（「先手: 人間、後手: エンジン」）
+    static QString playerKindsText(const P2p::RulesTerms& rules);
+    /// ルールの説明（rules は先手・後手の対局者の種別。エンジンが指す対局かどうかで最初の文が変わる）
+    static QString rulesText(const P2p::RulesTerms& rules);
     static QString recordContentsText();
     static QString outcomeText(P2p::Outcome outcome, P2p::Cause cause);
     static QString causeText(P2p::Cause cause);

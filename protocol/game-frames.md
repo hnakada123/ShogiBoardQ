@@ -8,7 +8,7 @@
 
 ```text
 Rules          = ["SBQ-RULES", 1, initialSfen, 512, "fourfold-draw", "perpetual-check-loss",
-                  "no-declaration", "human", "human"]
+                  "no-declaration", blackKind, whiteKind]
 TimeControl    = ["SBQ-TIME", 1, mainMs, byoyomiMs, 0, 0]
 NetworkPolicy  = ["SBQ-NET", 1, 10000, 30000, 120000, 5000, 86400000, 10000, 600000]
 State          = ["SBQ-STATE", 1, gameId, ply, previousStateHash, moveUsi, sfen, spentMs,
@@ -22,8 +22,11 @@ Control        = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHa
 FinalResult    = ["SBQ-RESULT", 1, gameId, finalStateHash, transcriptHash, ply, outcome, cause]
 ```
 
-- v1 で受け付ける Rules と NetworkPolicy は上の1つずつだけ（initialSfen は平手）。TimeControl は
-  mainMs 0〜86,400,000、byoyomiMs 0〜600,000、両方0は拒否。
+- `blackKind`・`whiteKind` は先手・後手の対局者の種別で、`"human"`（人間が盤で指す）か `"engine"`（エンジンが指す）。
+  受け付ける Rules はこの4つの値だけ（initialSfen は平手）で、双方 `"human"` の値が版 1 の Rules である。
+  `"engine"` を含む値は、版 2 に対応する実装どうしだけで使う（2章の「対応する版」）。4つの値のバイト列とハッシュは
+  `testvectors/rules.txt`。
+- 受け付ける NetworkPolicy は上の1つだけ。TimeControl は mainMs 0〜86,400,000、byoyomiMs 0〜600,000、両方0は拒否。
 - `moveUsi`・`sfen`・ラベルは ASCII の tstr。sfen は持駒の順 `RBGSNLPrbgsnlp`、手数の欄は `ply + 1`。
   State0 の moveUsi は空文字、previousStateHash はゼロ32バイト、spentMs は0、残り時間は mainMs。
 - `blackMainMs`・`whiteMainMs` はその手を指した後の基本持ち時間の残り（実装仕様 7.1節）。
@@ -43,7 +46,8 @@ FinalResult    = ["SBQ-RESULT", 1, gameId, finalStateHash, transcriptHash, ply, 
 
 | type | 名前 | gameId | payload |
 |---|---|---|---|
-| 1 | HELLO（開始前） | ゼロ | `["SBQ-HELLO", 1, role, networkId, [1], peerId, connectionRandom, playerKey, sessionKey, displayName, sidePreference, offerId, coin, conditions]` |
+| 1 | HELLO（開始前） | ゼロ | `["SBQ-HELLO", 1, role, networkId, versions, peerId, connectionRandom, playerKey, sessionKey, displayName, sidePreference, offerId, coin, conditions]` |
+| 1 | HELLO（開始前。版 2 の形） | ゼロ | `["SBQ-HELLO", 2, 2, networkId, versions, peerId, connectionRandom, playerKey, sessionKey, displayName, sidePreference, offerId, coin, conditions, playerKind]` |
 | 1 | HELLO（再接続） | gameId | `["SBQ-RECONNECT", 1, side, connectionRandom]` |
 | 2 | START_AGREEMENT | ゼロ | `[StartAgreement, Rules, TimeControl, NetworkPolicy]` |
 | 3 | START_SIGNATURE | gameId | `[side, signature]` |
@@ -56,6 +60,16 @@ FinalResult    = ["SBQ-RESULT", 1, gameId, finalStateHash, transcriptHash, ply, 
 | 10 | REJECT | ゼロか gameId | `[errorCode]` |
 
 - `role`: 1=申込側（招待を受けた側）、2=募集側（招待した側）。`side`: 1=先手、2=後手。
+- `versions`: 対応する版の一覧（uint の配列、8 件まで）。ShogiBoardQ は `[1, 2]` を送る（2026-11-20 より前は `[1]`）。
+  1 を含まない一覧は断る。版 2 は対局者の種別を扱える実装で、外枠の version とフレームの形は版 1 と同じ。
+  相手の一覧に 2 がなければ、版 1 だけの実装として扱う（人間どうしの対局だけができる）。
+- HELLO の版 2 の形は、値の版（2番目の要素）を 2 にし、末尾に `playerKind`（`"human"` か `"engine"`）を足した15要素。
+  募集側だけが、申込側の一覧に 2 があるときに送れる（申込側が送った版 2 の形と、一覧に 2 のない版 2 の形は断る）。
+  ShogiBoardQ は、募集側の手をエンジンが指すときだけこの形を送り、人間が指すときは版 1 の形を送る（版 1 の形の HELLO を
+  送った側の種別は `"human"`）。エンジンが指す募集側は、申込側の一覧に 2 がなければ、HELLO を返さずに REJECT
+  （UNSUPPORTED_VERSION）を返す。
+- 申込側の HELLO は、相手の版を知る前に送るので、常に版 1 の形。申込側の種別は START_AGREEMENT の Rules で伝える。
+  エンジンが指す申込側は、募集側の一覧に 2 がなければ、REJECT（UNSUPPORTED_VERSION）を送って交渉をやめる。
 - `peerId`: 自分の PeerId のバイナリ（通信プロセスが知らせた接続の相手と一致することを相手が確かめる）。
 - `connectionRandom`: bstr(32)。`connectionId = H(CBOR(["SBQ-CONN", 1, gameId, blackRandom, whiteRandom]))`。
   開始前の HELLO の乱数は、開始合意の後の最初の接続の connectionId に使う。再接続では再接続の HELLO で交換し直す。
@@ -63,7 +77,11 @@ FinalResult    = ["SBQ-RESULT", 1, gameId, finalStateHash, transcriptHash, ply, 
 - `sidePreference`: 0=指定なし、1=先手希望、2=後手希望。
 - `offerId`: 予約の項目。常にゼロ32バイトを入れ、ゼロ以外は断る（第4版までは公開募集への申込みで使った。実装仕様の「第5版の変更点」）。
 - `coin`: 申込側は `commitA = H(CBOR(["SBQ-COMMIT", 1, nonceA]))`、募集側は `nonceB`。どちらも bstr(32)。
-- `conditions`: 申込側は空の配列、募集側は `[Rules, TimeControl, NetworkPolicy]`。
+- `conditions`: 申込側は空の配列、募集側は `[Rules, TimeControl, NetworkPolicy]`。この Rules は、先後が決まる前なので、
+  種別を入れない値（双方 `"human"`）にする。
+- START_AGREEMENT の Rules は、申込側が、決まった先後と双方の種別から作る（先手の種別・後手の種別の順）。募集側は、
+  Rules の自分の側が自分の種別（HELLO で伝えたもの）であることを確かめ、相手の側を申込側の種別として利用者に示す。
+  一覧に 2 を入れていない申込側が `"engine"` と書いた Rules は断る（CONDITION_MISMATCH）。
 - STATE_ACCEPT の ply・stateHash は承認する State のもの。
 - SYNC_CHUNK は fromPly から連続した State を、両方の承認の署名とともに運ぶ。`final` は最後の塊なら1。1回に64件まで。
 - `errorCode`: 1=UNSUPPORTED_VERSION、2=WRONG_NETWORK、3=BUSY、4=EXPIRED、5=CONDITION_MISMATCH、
@@ -93,9 +111,10 @@ FinalResult    = ["SBQ-RESULT", 1, gameId, finalStateHash, transcriptHash, ply, 
 
 1. A → B: HELLO（role 1、commitA）。
 2. B: ブロック・先後の希望・表示名を確かめ、断るなら REJECT。受けるなら B → A: HELLO（role 2、nonceB、条件）。
-3. A: B の HELLO で条件を初めて知る。先後を決め、
-   StartAgreement を作って A → B: START_AGREEMENT（nonceA は StartAgreement の A の側の nonce に入る）。
-4. B: StartAgreement が双方の HELLO と一致すること、commitA の開示、先後の決定、期限を確かめる。
+3. A: B の HELLO で条件（持ち時間と、B の手を人間が指すかエンジンが指すか）を初めて知る。先後を決め、
+   StartAgreement を作って A → B: START_AGREEMENT（nonceA は StartAgreement の A の側の nonce に入る。
+   Rules には、決まった先後で双方の種別が入る）。
+4. B: StartAgreement が双方の HELLO と一致すること、commitA の開示、先後の決定、Rules の自分の側の種別、期限を確かめる。
 5. 双方の利用者が条件確認画面で開始を押す。A は押したときに START_SIGNATURE を送る。B は押していて、かつ
    A の START_SIGNATURE を確かめたときに START_SIGNATURE を送る。
 6. 両方の開始署名がそろったら、先手が STATE_PROPOSE（State0）、後手が STATE_ACCEPT（State0）と CONTROL READY を送る。

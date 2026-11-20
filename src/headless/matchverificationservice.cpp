@@ -74,6 +74,9 @@ QJsonObject toJson(const P2p::EvidenceReport& report)
     if (!report.networkName.isEmpty()) obj[QStringLiteral("network")] = report.networkName;
     obj[QStringLiteral("black_player_id")] = hex(report.blackPlayerKey);
     obj[QStringLiteral("white_player_id")] = hex(report.whitePlayerKey);
+    // 対局者の種別（"human"・"engine"）。双方が開始合意で署名した申告で、実際にだれが指したかは確かめられない
+    obj[QStringLiteral("black_player_kind")] = QString::fromLatin1(P2p::playerKindLabel(report.rules.black));
+    obj[QStringLiteral("white_player_kind")] = QString::fromLatin1(P2p::playerKindLabel(report.rules.white));
     obj[QStringLiteral("main_time_ms")] = static_cast<qint64>(report.timeControl.mainMs);
     obj[QStringLiteral("byoyomi_ms")] = static_cast<qint64>(report.timeControl.byoyomiMs);
     obj[QStringLiteral("states")] = report.stateCount;

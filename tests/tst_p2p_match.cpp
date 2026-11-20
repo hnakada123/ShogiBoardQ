@@ -4,6 +4,7 @@
 #include <QtTest>
 
 #include <deque>
+#include <functional>
 
 #include "matchending.h"
 #include "p2p_test_util.h"
@@ -47,6 +48,9 @@ public:
     bool connected = true;
     std::deque<Frame> toHost;
     std::deque<Frame> toApplicant;
+    /// 相手へ渡す直前のフレームを書き換える（版 1 だけの実装・条件を偽る相手を試す）
+    std::function<void(Frame&)> rewriteToHost;
+    std::function<void(Frame&)> rewriteToApplicant;
 
     Pair(SidePreference applicantSide = SidePreference::None, SidePreference hostSide = SidePreference::None)
     {
@@ -54,6 +58,17 @@ public:
         host.peerId = fakePeerId('h');
         applicant.negotiation = std::make_unique<Negotiation>(config(kRoleApplicant, applicantSide), &applicant.playerKey);
         host.negotiation = std::make_unique<Negotiation>(config(kRoleHost, hostSide), &host.playerKey);
+    }
+
+    /// 対局者の種別を決めて、交渉を作り直す
+    void setKinds(PlayerKind applicantKind, PlayerKind hostKind, SidePreference hostSide = SidePreference::None)
+    {
+        NegotiationConfig a = config(kRoleApplicant, SidePreference::None);
+        a.myKind = applicantKind;
+        NegotiationConfig h = config(kRoleHost, hostSide);
+        h.myKind = hostKind;
+        applicant.negotiation = std::make_unique<Negotiation>(a, &applicant.playerKey);
+        host.negotiation = std::make_unique<Negotiation>(h, &host.playerKey);
     }
 
     NegotiationConfig config(quint8 role, SidePreference side)
@@ -99,13 +114,15 @@ public:
             }
             if (toHost.empty() && toApplicant.empty()) return;
             if (!toHost.empty()) {
-                const Frame f = toHost.front();
+                Frame f = toHost.front();
                 toHost.pop_front();
+                if (rewriteToHost) rewriteToHost(f);
                 deliver(host, f);
             }
             if (!toApplicant.empty()) {
-                const Frame f = toApplicant.front();
+                Frame f = toApplicant.front();
                 toApplicant.pop_front();
+                if (rewriteToApplicant) rewriteToApplicant(f);
                 deliver(applicant, f);
             }
         }
@@ -127,6 +144,7 @@ public:
             QCOMPARE(n.stage(), Negotiation::Stage::Started);
             MatchSetup setup;
             setup.agreement = *n.agreement();
+            setup.rules = n.rules();
             setup.terms = n.terms();
             setup.iAmBlack = n.iAmBlack();
             setup.blackStartSignature = n.blackStartSignature();
@@ -283,6 +301,16 @@ private:
     quint64 m_controlSequence = 0;
 };
 
+/// HELLO の対応する版の一覧から版 2 を外す（版 1 だけの実装の HELLO にする）
+void dropPlayerKindSupport(Frame& frame)
+{
+    if (frame.type != FrameType::Hello) return;
+    std::optional<HelloPayload> hello = HelloPayload::fromCbor(frame.payload);
+    QVERIFY(hello);
+    hello->supportsPlayerKinds = false;
+    frame.payload = hello->toCbor();
+}
+
 } // namespace
 
 class TestP2pMatch : public QObject
@@ -393,6 +421,149 @@ private slots:
         pair.pump();
         QCOMPARE(pair.applicant.negotiation->stage(), Negotiation::Stage::Failed);
         QCOMPARE(*pair.applicant.negotiation->failure(), ErrorCode::Expired);
+    }
+
+    /// 対局者の種別（人間・エンジン）は交渉で相手に伝わり、双方が署名する開始合意の Rules に、決まった先後で入る
+    void playerKindsAreAgreedBySide_data()
+    {
+        QTest::addColumn<bool>("applicantEngine");
+        QTest::addColumn<bool>("hostEngine");
+        QTest::addColumn<int>("hostSide");
+        QTest::newRow("engine-host-black") << false << true << int(SidePreference::Black);
+        QTest::newRow("engine-host-white") << false << true << int(SidePreference::White);
+        QTest::newRow("engine-applicant-black") << true << false << int(SidePreference::White);
+        QTest::newRow("engine-applicant-white") << true << false << int(SidePreference::Black);
+        QTest::newRow("both-engines") << true << true << int(SidePreference::None);
+        QTest::newRow("both-humans") << false << false << int(SidePreference::None);
+    }
+
+    void playerKindsAreAgreedBySide()
+    {
+        QFETCH(bool, applicantEngine);
+        QFETCH(bool, hostEngine);
+        QFETCH(int, hostSide);
+        const PlayerKind applicantKind = applicantEngine ? PlayerKind::Engine : PlayerKind::Human;
+        const PlayerKind hostKind = hostEngine ? PlayerKind::Engine : PlayerKind::Human;
+        Pair pair;
+        pair.setKinds(applicantKind, hostKind, static_cast<SidePreference>(hostSide));
+        pair.applicant.negotiation->begin();
+        pair.pump();
+        const Negotiation& a = *pair.applicant.negotiation;
+        const Negotiation& h = *pair.host.negotiation;
+        QCOMPARE(a.stage(), Negotiation::Stage::Confirming);
+        QCOMPARE(h.stage(), Negotiation::Stage::Confirming);
+        // 条件確認画面を出す時点で、双方が相手の種別を知っている
+        QCOMPARE(a.opponentKind(), std::optional<PlayerKind>(hostKind));
+        QCOMPARE(h.opponentKind(), std::optional<PlayerKind>(applicantKind));
+        const RulesTerms expected = RulesTerms::forSides(a.iAmBlack(), applicantKind, hostKind);
+        QCOMPARE(a.rules(), expected);
+        QCOMPARE(h.rules(), expected);
+        QCOMPARE(a.agreement()->rulesHash, expected.hash());
+        QCOMPARE(a.gameId(), h.gameId());
+        // 双方人間の対局の開始合意は、版 1 と同じ rulesHash
+        QCOMPARE(expected.hash() == Rules::v1Hash(), !applicantEngine && !hostEngine);
+
+        // 対局して、証跡に同じ種別が残る
+        pair.host.negotiation->confirm();
+        pair.applicant.negotiation->confirm();
+        pair.pump();
+        pair.startMatches();
+        pair.play(pair.black(), "7g7f");
+        QVERIFY(pair.white().match->resign());
+        pair.pump();
+        for (Side* s : {&pair.applicant, &pair.host}) {
+            QCOMPARE(s->match->settlement(), Settlement::MutuallySigned);
+            const EvidenceReport report = EvidenceVerifier::verify(s->match->evidence().encode());
+            QVERIFY2(report.isValid(), qPrintable(report.error));
+            QCOMPARE(report.rules, expected);
+            // ジャーナルを読み戻しても同じ証跡（再起動の後の復旧）
+            const std::optional<JournalReplay> replay = RecordKinds::replay(s->journal);
+            QVERIFY(replay);
+            QCOMPARE(replay->evidence.encode(), s->match->evidence().encode());
+        }
+    }
+
+    /// 版 1 だけの実装（対局者の種別を扱えない）とは、人間どうしなら今までどおり対局でき、エンジンが指す対局は始めない
+    void versionOneOpponentPlaysOnlyHumanGames()
+    {
+        {
+            // 申込側が版 1 だけ: 双方人間なら、双方人間の Rules で合意する
+            Pair pair;
+            pair.rewriteToHost = &dropPlayerKindSupport;
+            pair.applicant.negotiation->begin();
+            pair.pump();
+            QCOMPARE(pair.host.negotiation->stage(), Negotiation::Stage::Confirming);
+            QCOMPARE(pair.applicant.negotiation->stage(), Negotiation::Stage::Confirming);
+            QVERIFY(!pair.host.negotiation->opponent()->supportsPlayerKinds);
+            QCOMPARE(pair.host.negotiation->agreement()->rulesHash, Rules::v1Hash());
+        }
+        {
+            // 募集側が版 1 だけ
+            Pair pair;
+            pair.rewriteToApplicant = &dropPlayerKindSupport;
+            pair.applicant.negotiation->begin();
+            pair.pump();
+            QCOMPARE(pair.applicant.negotiation->stage(), Negotiation::Stage::Confirming);
+            QVERIFY(!pair.applicant.negotiation->opponent()->supportsPlayerKinds);
+            QCOMPARE(pair.applicant.negotiation->agreement()->rulesHash, Rules::v1Hash());
+        }
+        {
+            // エンジンで指す募集側は、版 1 だけの申込側を、自分の HELLO を返さずに断る（UNSUPPORTED_VERSION）
+            Pair pair;
+            pair.setKinds(PlayerKind::Human, PlayerKind::Engine);
+            pair.rewriteToHost = &dropPlayerKindSupport;
+            pair.applicant.negotiation->begin();
+            pair.pump();
+            QCOMPARE(pair.host.negotiation->stage(), Negotiation::Stage::Failed);
+            QCOMPARE(*pair.host.negotiation->failure(), ErrorCode::UnsupportedVersion);
+            QVERIFY(!pair.host.negotiation->failedByPeer());
+            QVERIFY(!pair.applicant.negotiation->opponent());
+            QCOMPARE(*pair.applicant.negotiation->failure(), ErrorCode::UnsupportedVersion);
+            QVERIFY(pair.applicant.negotiation->failedByPeer());
+        }
+        {
+            // エンジンで指す申込側は、募集側が版 1 だけだと分かったら断る（開始合意を作らない）
+            Pair pair;
+            pair.setKinds(PlayerKind::Engine, PlayerKind::Human);
+            pair.rewriteToApplicant = &dropPlayerKindSupport;
+            pair.applicant.negotiation->begin();
+            pair.pump();
+            QCOMPARE(pair.applicant.negotiation->stage(), Negotiation::Stage::Failed);
+            QCOMPARE(*pair.applicant.negotiation->failure(), ErrorCode::UnsupportedVersion);
+            QVERIFY(!pair.applicant.negotiation->failedByPeer());
+            QVERIFY(!pair.applicant.negotiation->agreement());
+            QCOMPARE(*pair.host.negotiation->failure(), ErrorCode::UnsupportedVersion);
+        }
+        {
+            // 版 2 に対応すると言っていない申込側が、エンジンと書いた Rules を送ってきたら断る
+            Pair pair;
+            pair.setKinds(PlayerKind::Engine, PlayerKind::Human);
+            pair.rewriteToHost = &dropPlayerKindSupport;
+            pair.applicant.negotiation->begin();
+            pair.pump();
+            QCOMPARE(pair.host.negotiation->stage(), Negotiation::Stage::Failed);
+            QCOMPARE(*pair.host.negotiation->failure(), ErrorCode::ConditionMismatch);
+        }
+    }
+
+    /// 募集側は、開始合意の Rules の自分の側が、自分の種別と違えば断る（相手に種別を書き換えさせない）
+    void hostRejectsRulesThatMisstateItsKind()
+    {
+        Pair pair;
+        pair.setKinds(PlayerKind::Human, PlayerKind::Human);
+        pair.rewriteToHost = [](Frame& frame) {
+            if (frame.type != FrameType::StartAgreement) return;
+            std::optional<StartAgreementPayload> payload = StartAgreementPayload::fromCbor(frame.payload);
+            QVERIFY(payload);
+            // 双方をエンジンと書いた Rules と、それに合わせた rulesHash
+            payload->rules = RulesTerms{PlayerKind::Engine, PlayerKind::Engine};
+            payload->agreement.rulesHash = payload->rules.hash();
+            frame.payload = payload->toCbor();
+        };
+        pair.applicant.negotiation->begin();
+        pair.pump();
+        QCOMPARE(pair.host.negotiation->stage(), Negotiation::Stage::Failed);
+        QCOMPARE(*pair.host.negotiation->failure(), ErrorCode::ConditionMismatch);
     }
 
     void forgedStartSignatureIsRejected()

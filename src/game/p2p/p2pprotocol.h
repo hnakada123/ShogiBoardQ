@@ -32,7 +32,46 @@ QByteArray zeroHash();
 
 // ---------------------------------------------------------------- 条件
 
-/// v1 のルール（平手・512手・千日手は引き分け・連続王手の千日手は負け・入玉宣言なし・人間対人間）
+/// HELLO の「対応する版」の一覧に入れる版。版 2 は、版 1 に対局者の種別（エンジン）を足したもの
+/// （外枠・フレームの形は版 1 と同じ。双方が人間の対局は、版 2 でも版 1 と同じバイト列になる）
+inline constexpr quint64 kVersionBase = 1;
+inline constexpr quint64 kVersionPlayerKinds = 2;
+
+/// 対局者の種別（Rules の末尾の2つ。指すのが人間かエンジンか）
+enum class PlayerKind : quint8 { Human, Engine };
+/// Rules に書く語（"human"・"engine"）
+QByteArray playerKindLabel(PlayerKind kind);
+std::optional<PlayerKind> playerKindFromLabel(const QByteArray& label);
+
+/**
+ * @brief ルール（Rules）
+ *
+ * 平手・512手・千日手は引き分け・連続王手の千日手は負け・入玉宣言なしは固定で、変わるのは先手・後手の対局者の種別だけ。
+ * 双方が署名する開始合意にこのハッシュが入るので、エンジンが指す側は、相手にも第三者にも分かる。
+ */
+struct RulesTerms {
+    PlayerKind black = PlayerKind::Human;
+    PlayerKind white = PlayerKind::Human;
+
+    CborValue toCbor() const;
+    QByteArray hash() const { return Cbor::hash(toCbor()); }
+    /// 4つの値（種別の組み合わせ）のどれかと完全に同じときだけ読む
+    static std::optional<RulesTerms> fromCbor(const CborValue& value);
+    /// 自分の側と種別から作る
+    static RulesTerms forSides(bool iAmBlack, PlayerKind mine, PlayerKind opponent)
+    {
+        return iAmBlack ? RulesTerms{mine, opponent} : RulesTerms{opponent, mine};
+    }
+
+    PlayerKind kind(bool blackSide) const { return blackSide ? black : white; }
+    /// 双方が人間か（版 1 で使える唯一の値）
+    bool isHumanOnly() const { return black == PlayerKind::Human && white == PlayerKind::Human; }
+
+    friend bool operator==(const RulesTerms& a, const RulesTerms& b) { return a.black == b.black && a.white == b.white; }
+    friend bool operator!=(const RulesTerms& a, const RulesTerms& b) { return !(a == b); }
+};
+
+/// 人間どうしの Rules（版 1 で使える唯一の値）と、どの Rules でも同じ開始局面
 namespace Rules {
 CborValue v1();
 QByteArray v1Hash();

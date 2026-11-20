@@ -18,7 +18,8 @@ namespace P2p {
  * @brief 証跡を検証した結果
  *
  * 「署名が一致」「棋譜がルールに適合」「自己申告時間の計算が一致」「結果が棋譜から決まる」を別々に示す。
- * 実際の思考時間・人間が指したこと・対局した日時は確かめられないので、項目を持たない。
+ * 実際の思考時間・人間が指したこと・対局した日時は確かめられないので、項目を持たない（対局者の種別 rules は、
+ * 双方が開始合意で署名した申告。実際にだれが指したかは確かめられない）。
  */
 struct EvidenceReport {
     /// 記録の区分（実装仕様 8章）
@@ -37,6 +38,7 @@ struct EvidenceReport {
     bool networkKnown = false;         ///< このビルドが知るネットワーク（知らなければ条件を確かめられないので無効）
     QByteArray blackPlayerKey;
     QByteArray whitePlayerKey;
+    RulesTerms rules;                  ///< 先手・後手の対局者の種別（双方が署名した申告）
     TimeControlTerms timeControl;
 
     bool conditionsMatch = false;      ///< 条件の配列のハッシュが開始合意と一致

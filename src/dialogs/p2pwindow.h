@@ -9,6 +9,8 @@
 
 #include "p2plobbyservice.h"
 
+class EngineSelector;
+struct EngineEntry;
 class P2pGameCoordinator;
 class P2pHistoryPanel;
 class P2pPeersPanel;
@@ -38,8 +40,10 @@ class P2pWindow : public QDialog
 public:
     P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* parent = nullptr);
 
-    /// 名乗る表示名・持ち時間・先後の希望（ウィンドウの欄の値）
+    /// 名乗る表示名・持ち時間・先後の希望・自分の対局者（ウィンドウの欄の値）
     QString displayName() const;
+    /// 自分の手を人間が指すか、登録エンジンが指すか（「対局者」の欄）
+    P2pGameCoordinator::PlayerSetup playerSetup() const;
     P2p::TimeControlTerms terms() const;
     P2p::SidePreference sidePreference() const;
     QString networkName() const;
@@ -89,6 +93,7 @@ private slots:
     void onInviteRejected(PeerIpc::InviteRejection rejection);
     void onConnectFailed(PeerIpc::CloseReason reason);
     void onCopyPlayerId();
+    void onEngineSettingsRequested(const EngineEntry& engine);
     void saveSettings();
     void updateGameStatus();
     void onTabChanged(int index);
@@ -101,6 +106,8 @@ private:
     QWidget* createGameTab();
     QWidget* createSettingsTab();
     void loadSettings();
+    /// 登録エンジンの一覧を読み直す（選んでいたエンジンが削除されていれば「人間」に戻す。別のエンジンに替えない）
+    void reloadEngines();
     bool checkDisplayName();
     /// 文が増えて今の高さに収まらなくなったら、収まる高さまでウィンドウを広げる（画面の高さまで）。折り返すラベルの
     /// 高さは幅で決まり、ウィンドウの最小の高さには入らないので、Qt は自動では広げず、足りない分だけ文が欠ける
@@ -108,8 +115,9 @@ private:
 
     QPointer<P2pLobbyService> m_lobby;
     QPointer<P2pGameCoordinator> m_game;
-    /// この PC の何人目のプレイヤーか（1〜。2人目からは題名と上の案内に出し、表示名も別に覚える）
+    /// この PC の何人目のプレイヤーか（1〜。2人目からは題名と上の案内に出し、表示名と対局者の選択も別に覚える）
     int m_player = 1;
+    QByteArray m_engineNameKey;   ///< 選んだエンジンの登録名を保存するキー（プレイヤーごと。EngineSelector に渡す）
     QTabWidget* m_tabs = nullptr;
     QWidget* m_gameTab = nullptr;
 
@@ -123,6 +131,9 @@ private:
     QSpinBox* m_mainMinutes = nullptr;
     QSpinBox* m_byoyomi = nullptr;
     QComboBox* m_side = nullptr;
+    QComboBox* m_playerKind = nullptr;            ///< 「対局者」（先頭が「人間」、その後に登録エンジン）
+    QPushButton* m_engineSettings = nullptr;
+    EngineSelector* m_engineSelector = nullptr;
 
     // 招待
     QPushButton* m_createInvite = nullptr;

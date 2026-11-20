@@ -48,6 +48,7 @@ private:
     QLabel* m_opponent = nullptr;
     QLabel* m_identity = nullptr;
     QLabel* m_warning = nullptr;
+    QLabel* m_players = nullptr;   ///< だれが指すか（自分と相手。人間かエンジンか）
     QLabel* m_conditions = nullptr;
     QLabel* m_remaining = nullptr;
     QLabel* m_playerId = nullptr;

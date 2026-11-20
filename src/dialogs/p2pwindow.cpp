@@ -25,8 +25,11 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
+#include "buttonstyles.h"
+#include "changeenginesettingsdialog.h"
 #include "dialogfontscale.h"
 #include "dialogutils.h"
+#include "engineselector.h"
 #include "layoutboundarywidget.h"
 #include "networksettings.h"
 #include "p2pbuildexpiry.h"
@@ -62,6 +65,7 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     , m_lobby(lobby)
     , m_game(game)
     , m_player(lobby && lobby->profile() ? lobby->profile()->playerNumber() : 1)
+    , m_engineNameKey(NetworkSettings::p2pEngineNameKey(m_player))
 {
     setObjectName(QStringLiteral("p2pWindow"));
     setWindowTitle(m_player > 1 ? tr("P2P対局 — %1人目").arg(m_player) : tr("P2P対局"));
@@ -193,6 +197,24 @@ QWidget* P2pWindow::createConnectionTab()
     m_side->addItem(tr("先手希望"), 1);
     m_side->addItem(tr("後手希望"), 2);
     conditionForm->addRow(tr("先後"), m_side);
+    // 自分の手を人間が指すか、登録エンジンが指すか（コンボの先頭が「人間」。対局開始ダイアログの対局者の欄と同じ）
+    auto* playerRow = new QHBoxLayout;
+    m_playerKind = new QComboBox(conditionBox);
+    m_playerKind->setObjectName(QStringLiteral("p2pPlayerKind"));
+    m_engineSettings = new QPushButton(tr("エンジン設定"), conditionBox);
+    m_engineSettings->setObjectName(QStringLiteral("p2pEngineSettings"));
+    m_engineSettings->setStyleSheet(ButtonStyles::secondaryNeutral());
+    m_engineSettings->setAutoDefault(false);
+    playerRow->addWidget(m_playerKind, 1);
+    playerRow->addWidget(m_engineSettings);
+    conditionForm->addRow(tr("対局者"), playerRow);
+    conditionForm->addRow(QString(), plainLabel(conditionBox, tr("エンジンを選ぶと、あなたの手はエンジンが指します。エンジンが指すことは、"
+                                                                 "条件確認画面で相手に伝わり、対局記録（証跡）にも残ります。")));
+    EngineSelector::Options engineOptions;
+    engineOptions.keys = {m_engineNameKey.constData(), nullptr, nullptr};
+    engineOptions.builtinLabel = tr("人間");
+    m_engineSelector = new EngineSelector({m_playerKind, m_engineSettings, nullptr}, engineOptions, this);
+    connect(m_engineSelector, &EngineSelector::settingsRequested, this, &P2pWindow::onEngineSettingsRequested);
     layout->addWidget(conditionBox);
     layout->addWidget(plainLabel(tab, tr("対局の相手は招待で決めます。「招待で接続」タブで招待文字列を作って相手に渡すか、"
                                          "受け取った招待文字列で接続してください。")));
@@ -210,7 +232,7 @@ QWidget* P2pWindow::createInviteTab()
     createLayout->addWidget(plainLabel(createBox, tr("招待文字列には、あなたへの接続先が入ります（「直接接続を使わない」設定でなければ、"
                                                      "あなたのIPアドレスも入ります）。相手だけに届く経路で渡し、公開の場所に貼らないでください。"
                                                      "招待文字列は10分で使えなくなり、1回だけ使えます。"
-                                                     "持ち時間と先後は「接続と条件」の条件を使います。")));
+                                                     "持ち時間・先後・対局者は「接続と条件」の条件を使います。")));
     m_createInvite = new QPushButton(tr("招待文字列を作る"), createBox);
     m_createInvite->setObjectName(QStringLiteral("p2pCreateInvite"));
     connect(m_createInvite, &QPushButton::clicked, this, &P2pWindow::onCreateInvite);
@@ -339,6 +361,15 @@ void P2pWindow::loadSettings()
     m_mainMinutes->setValue(NetworkSettings::p2pMainTimeSeconds() / 60);
     m_byoyomi->setValue(NetworkSettings::p2pByoyomiSeconds());
     m_side->setCurrentIndex(m_side->findData(NetworkSettings::p2pSidePreference()));
+    // 既定は人間。保存したエンジンが削除されていれば人間に戻す（別のエンジンに替えない）
+    const std::optional<QString> savedEngine =
+        EngineSelectionSettings::savedSelectionName({m_engineNameKey.constData(), nullptr, nullptr});
+    if (NetworkSettings::p2pPlayAsEngine(m_player)() && savedEngine
+        && m_engineSelector->engines().indexOfName(*savedEngine) >= 0) {
+        m_engineSelector->select(*savedEngine);
+    } else {
+        m_engineSelector->selectBuiltin();
+    }
     const int network = m_network->findData(NetworkSettings::p2pNetworkName());
     m_network->setCurrentIndex(network < 0 ? 0 : network);
     m_bootstrap->setPlainText(NetworkSettings::p2pBootstrap().join(QLatin1Char('\n')));
@@ -352,6 +383,10 @@ void P2pWindow::saveSettings()
     NetworkSettings::p2pMainTimeSeconds.set(m_mainMinutes->value() * 60);
     NetworkSettings::p2pByoyomiSeconds.set(m_byoyomi->value());
     NetworkSettings::p2pSidePreference.set(m_side->currentData().toInt());
+    // 人間を選んでいる間は、前に選んだエンジンを残す
+    const bool engine = playerSetup().isEngine();
+    NetworkSettings::p2pPlayAsEngine(m_player).set(engine);
+    if (engine) m_engineSelector->saveSelection();
     NetworkSettings::p2pNetworkName.set(networkName());
     NetworkSettings::p2pBootstrap.set(bootstrap());
     NetworkSettings::p2pRelayOnly.set(relayOnly());
@@ -370,6 +405,31 @@ P2p::TimeControlTerms P2pWindow::terms() const
 P2p::SidePreference P2pWindow::sidePreference() const
 {
     return static_cast<P2p::SidePreference>(m_side->currentData().toInt());
+}
+
+P2pGameCoordinator::PlayerSetup P2pWindow::playerSetup() const
+{
+    P2pGameCoordinator::PlayerSetup setup;
+    if (const std::optional<EngineEntry> engine = m_engineSelector->selected()) {
+        setup.kind = P2p::PlayerKind::Engine;
+        setup.enginePath = engine->path;
+        setup.engineName = engine->name;
+    }
+    return setup;
+}
+
+void P2pWindow::reloadEngines()
+{
+    const std::optional<EngineEntry> before = m_engineSelector->selected();
+    m_engineSelector->reload();
+    const std::optional<EngineEntry> after = m_engineSelector->selected();
+    // 読み直しは、選んでいたエンジンが無くなると先頭の登録エンジンを選ぶ。相手に伝える対局者を黙って替えない
+    if (!before || !after || before->name != after->name) m_engineSelector->selectBuiltin();
+}
+
+void P2pWindow::onEngineSettingsRequested(const EngineEntry& engine)
+{
+    ChangeEngineSettingsDialog::showFor(engine, this);
 }
 
 QString P2pWindow::networkName() const { return m_network->currentData().toString(); }
@@ -419,6 +479,8 @@ void P2pWindow::setVisible(bool visible)
 {
     // 親（本体）のあるダイアログは、OS がいつも本体の前面に置き、盤を前面に出せない
     if (visible) DialogUtils::makeIndependentWindow(this);
+    // 閉じている間にエンジンの登録が変わっていれば合わせる（交渉・対局の間は、選んだ対局者を変えない）
+    if (visible && !isVisible() && m_engineSelector && !(m_game && m_game->isBusy())) reloadEngines();
     QDialog::setVisible(visible);
 }
 
@@ -449,6 +511,8 @@ void P2pWindow::refresh()
     m_playerId->setText(key.isEmpty() ? tr("（まだ作っていません）") : P2pWindowText::playerIdText(key));
     m_routeInfo->setText(online ? routeText() : QString());
 
+    // 交渉・対局の間は、相手に伝えた対局者を変えられない
+    m_engineSelector->setEnabled(!busy);
     m_createInvite->setEnabled(online && !busy);
     m_inspectInvite->setEnabled(online && !busy);
     if (!online || busy) m_connectInvite->setEnabled(false);
@@ -517,15 +581,19 @@ void P2pWindow::updateGameStatus()
         m_gameStatus->setText(tr("対局していません。"));
         return;
     }
+    const bool engine = m_game->playsWithEngine();
     QStringList lines;
     lines << tr("相手: 「%1」").arg(m_game->opponentDisplayName());
+    if (m_game->opponentKind() == P2p::PlayerKind::Engine) lines << tr("相手の手はエンジンが指します（相手の申告）");
     lines << (match->iAmBlack() ? tr("あなたは先手") : tr("あなたは後手"));
+    if (engine) lines << tr("あなたの手はエンジン「%1」が指します").arg(m_game->player().engineName);
     lines << tr("経路: %1").arg(m_game->viaRelay() ? tr("中継") : tr("直接"));
     switch (match->phase()) {
     case P2p::Match::Phase::Opening: lines << tr("開始の手続き中…"); break;
     case P2p::Match::Phase::Playing:
         if (match->hasPendingMove()) lines << tr("着手の確認を待っています…");
-        else lines << (match->isMyTurn() ? tr("あなたの手番です") : tr("相手の手番です"));
+        else if (!match->isMyTurn()) lines << tr("相手の手番です");
+        else lines << (engine ? tr("エンジンが考えています") : tr("あなたの手番です"));
         break;
     case P2p::Match::Phase::Reconnecting:
         lines << tr("再接続中（残り %1 秒）").arg(match->reconnectRemainingMs() / 1000);

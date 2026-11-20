@@ -73,9 +73,18 @@ struct HelloPayload {
     QByteArray coin;         ///< 申込側は commitA、募集側は nonceB
     /// 募集側だけが入れる持ち時間（Rules と NetworkPolicy は v1 の値）
     std::optional<TimeControlTerms> timeControl;
+    /// 対応する版の一覧に版 2（対局者の種別）があるか。版 1 だけの実装（2026-11-20 より前の ShogiBoardQ）の HELLO では false
+    bool supportsPlayerKinds = true;
+    /**
+     * @brief 募集側の対局者の種別
+     *
+     * 人間なら版 1 と同じ形の HELLO、エンジンなら末尾に種別を足した版 2 の形の HELLO になる（版 2 の形は、申込側の
+     * 一覧に版 2 があるときだけ送る）。申込側は最初に送るので常に版 1 の形で、種別は START_AGREEMENT の Rules で伝える。
+     */
+    PlayerKind playerKind = PlayerKind::Human;
 
     CborValue toCbor() const;
-    /// 形・表示名の規則・v1 の条件を確かめて読む（role に合わない条件の有無も拒否する）
+    /// 形・表示名の規則・条件を確かめて読む（role に合わない条件の有無・申込側の版 2 の形も拒否する）
     static std::optional<HelloPayload> fromCbor(const CborValue& value);
 };
 
@@ -90,6 +99,7 @@ struct ReconnectHello {
 
 struct StartAgreementPayload {
     StartAgreement agreement;
+    RulesTerms rules;   ///< 先手・後手の対局者の種別（申込側が、先後と双方の種別から作る）
     TimeControlTerms timeControl;
 
     CborValue toCbor() const;

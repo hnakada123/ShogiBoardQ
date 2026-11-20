@@ -4,6 +4,9 @@
 #include "mainwindowcomposer.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#ifdef SBQ_ENABLE_P2P
+#include "p2pgamecoordinator.h"
+#endif
 
 #include "analysissession.h"
 #include "branchtreeeditcontroller.h"
@@ -179,6 +182,15 @@ void MainWindowComposer::connectGame()
     connect(csa, &CsaGameCoordinator::connectionStateChanged, csaLog, &CsaLogPanel::setConnected);
     connect(csa, &CsaGameCoordinator::csaCommLogAppended, csaLog, &CsaLogPanel::append);
     connect(csaLog, &CsaLogPanel::csaRawCommandRequested, csa, &CsaGameCoordinator::sendRawCommand);
+
+#ifdef SBQ_ENABLE_P2P
+    // P2P対局で自分の手を指すエンジン（通信対局と同じく、評価値・思考の表・通信ログへつなぐ。交渉・終局の画面は
+    // P2pGameUiController）
+    P2pGameCoordinator* p2p = m_c.p2pGame;
+    connect(p2p, &P2pGameCoordinator::engineMovePlayed, m_c.evalGraph, &EvaluationGraphPresenter::plotEngineScore);
+    connect(p2p, &P2pGameCoordinator::matchEngineStarted, m_c.engineDisplay, &EngineDisplayPresenter::showMatchEngine);
+    connect(p2p, &P2pGameCoordinator::engineStarting, m_c.engineDisplay, &EngineDisplayPresenter::clearEngineLogs);
+#endif
 }
 
 // ---------------------------------------------------------------------------

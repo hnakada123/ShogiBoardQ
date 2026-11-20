@@ -76,7 +76,7 @@ Frame = [version, type, requestId, gameId, payload]
 
 | 項目 | 型 | 規則 |
 |---|---|---|
-| version | uint | 1 |
+| version | uint | 1（外枠の形の版。HELLO の対応する版の一覧の版 2（対局者の種別。`game-frames.md` 2章）でも 1 のまま） |
 | type | uint | 1〜11（下の表） |
 | requestId | uint | 0〜2^64−1 |
 | gameId | bstr | 32バイト。対局ID が決まる前はゼロ32バイト |
@@ -137,7 +137,8 @@ body   = CBOR(["SBQ-INVITE", 1, networkId, peerId, [addr, ...], token, expiresAt
 | `cbor.txt` | `valid <hex>` または `invalid <hex>`（決定的CBORとして読めるか） |
 | `frames.txt` | `valid <hex>` または `invalid <hex>`（2章の外枠として正しいか） |
 | `displayname.txt` | `accept <hex(UTF-8)>` または `reject <hex(UTF-8)>`（C++ だけが読む） |
-| `network.txt` | `<networkName> <hex(networkId)> <hex(rulesHash)>`（rulesHash は C++ だけが確かめる） |
+| `network.txt` | `<networkName> <hex(networkId)> <hex(rulesHash)>`（rulesHash は双方が人間の Rules のもの。C++ だけが確かめる） |
+| `rules.txt` | `<blackKind> <whiteKind> <hex(rulesHash)> <hex(Rules の決定的CBOR)>`（対局者の種別の4通り。C++ だけが読む） |
 
 `#` で始まる行と空行は読み飛ばす。C++（`tests/tst_p2p_protocol.cpp`）と Rust（`protocol/rust` の試験）が
 同じファイルを読み、同じ結果になることを確かめる（開発方針 5.1節の「実装どうしの一致」）。`frames.txt` は、

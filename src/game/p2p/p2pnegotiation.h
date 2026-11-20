@@ -24,6 +24,8 @@ struct NegotiationConfig {
     QByteArray opponentPeerId;   ///< 通信プロセスが知らせた接続の相手（バイナリ）
     QString myDisplayName;
     SidePreference mySide = SidePreference::None;
+    /// 自分の対局者の種別（人間が指すかエンジンが指すか。相手に伝え、開始合意の Rules に入る）
+    PlayerKind myKind = PlayerKind::Human;
     /// 招待した側の持ち時間（申込側は、招待した側の HELLO で初めて条件を知る）
     TimeControlTerms hostTerms;
     /// 今の時刻（UNIX秒）
@@ -39,6 +41,8 @@ struct OpponentHello {
     QByteArray sessionKey;
     QByteArray peerId;
     SidePreference sidePreference = SidePreference::None;
+    /// 対応する版の一覧に版 2（対局者の種別）があったか
+    bool supportsPlayerKinds = false;
 };
 
 /**
@@ -47,6 +51,9 @@ struct OpponentHello {
  * 受けたフレームを順に渡すと、送るフレーム（takeOutgoing）と段階が進む。ソケット・タイマー・UI に依存しない。
  * プレイヤー鍵で署名するのは confirm()（利用者が開始を押した）の後だけ。募集側は、申込側の開始署名を確かめるまで
  * 自分の開始署名を送らない。
+ *
+ * 対局者の種別（人間・エンジン）は、募集側は HELLO で、申込側は START_AGREEMENT の Rules で伝える（申込側は最初に
+ * 送るので、相手が版 2 に対応するかを知る前に種別を送れない）。エンジンが指す対局を、版 1 だけの相手とは始めない。
  */
 class Negotiation
 {
@@ -86,6 +93,11 @@ public:
 
     const std::optional<StartAgreement>& agreement() const { return m_agreement; }
     TimeControlTerms terms() const { return m_terms; }
+    /// 先手・後手の対局者の種別（開始合意ができるまでは双方人間の値）
+    RulesTerms rules() const { return m_rules; }
+    PlayerKind myKind() const { return m_config.myKind; }
+    /// 相手の種別（募集側の種別は HELLO、申込側の種別は START_AGREEMENT で分かる。分かる前は nullopt）
+    std::optional<PlayerKind> opponentKind() const { return m_opponentKind; }
     bool iAmBlack() const { return m_iAmBlack; }
     /// 先後を双方の乱数で決めたか（希望で決めたなら false）
     bool sidesByCoin() const { return m_sidesByCoin; }
@@ -131,6 +143,8 @@ private:
     QByteArray m_commitA;        ///< 募集側: 申込側の commit
     std::optional<OpponentHello> m_opponent;
     TimeControlTerms m_terms;
+    RulesTerms m_rules;
+    std::optional<PlayerKind> m_opponentKind;
     std::optional<StartAgreement> m_agreement;
     bool m_iAmBlack = false;
     bool m_sidesByCoin = false;

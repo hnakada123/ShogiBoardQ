@@ -21,11 +21,13 @@ constexpr char kEnding[] = "J-END";
 
 } // namespace
 
-CborValue start(const StartAgreement& agreement, const TimeControlTerms& terms, quint8 mySide,
+CborValue start(const StartAgreement& agreement, const RulesTerms& rules, const TimeControlTerms& terms, quint8 mySide,
                 const QString& opponentDisplayName)
 {
-    return CborValue::array({CborValue::text(kStart), agreement.toCbor(), terms.toCbor(), CborValue::uint(mySide),
-                             CborValue::text(opponentDisplayName)});
+    std::vector<CborValue> items{CborValue::text(kStart), agreement.toCbor(), terms.toCbor(), CborValue::uint(mySide),
+                                 CborValue::text(opponentDisplayName)};
+    if (!rules.isHumanOnly()) items.push_back(rules.toCbor());
+    return CborValue::array(std::move(items));
 }
 
 CborValue startSignature(quint8 side, const QByteArray& signature)
@@ -75,11 +77,14 @@ std::optional<JournalReplay> replay(const std::vector<CborValue>& records)
         if (!record.isArray() || record.items().empty() || !record.items()[0].isText()) continue;
         const QByteArray& kind = record.items()[0].data();
         const std::vector<CborValue>& items = record.items();
-        if (kind == kStart && items.size() == 5) {
+        if (kind == kStart && (items.size() == 5 || items.size() == 6)) {
             const std::optional<StartAgreement> agreement = StartAgreement::fromCbor(items[1]);
             const std::optional<TimeControlTerms> terms = TimeControlTerms::fromCbor(items[2]);
-            if (!agreement || !terms) return std::nullopt;
+            // 対局者の種別の無い件は、双方人間の対局
+            const std::optional<RulesTerms> rules = items.size() == 6 ? RulesTerms::fromCbor(items[5]) : RulesTerms{};
+            if (!agreement || !terms || !rules) return std::nullopt;
             e.agreement = *agreement;
+            e.rules = *rules;
             e.timeControl = *terms;
             out.mySide = items[3].isUInt() && items[3].toUInt() == kSideWhite ? kSideWhite : kSideBlack;
             out.opponentDisplayName = items[4].isText() ? items[4].toText() : QString();

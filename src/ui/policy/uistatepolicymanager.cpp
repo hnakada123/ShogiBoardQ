@@ -49,7 +49,7 @@ constexpr StateSet kAllStates = in(S::Idle) | in(S::DuringGame) | in(S::DuringAn
 constexpr StateSet kBrowsing = in(S::Idle) | in(S::DuringTsumeSearch) | in(S::DuringConsideration)
                              | in(S::DuringCsaConnection) | in(S::DuringP2pConnection);
 constexpr StateSet kPlaying = in(S::DuringGame) | in(S::DuringCsaGame);
-/// P2P対局（人間対人間。即指し・入玉宣言・待ったはない。実装仕様 10.3節）
+/// P2P対局（入玉宣言・待ったはない。即指しは、自分の手をエンジンに指させている対局で使う。実装仕様 10.3節）
 constexpr StateSet kP2p = in(S::DuringP2pConnection) | in(S::DuringP2pGame);
 
 enum class Off { Disable, Hide };
@@ -91,7 +91,7 @@ constexpr Rule kRules[] = {
     {E::GameP2p,                in(S::Idle) | kP2p, Off::Disable},  // 動かしている間はウィンドウを出すだけ
     {E::GameResign,             kPlaying | in(S::DuringP2pGame), Off::Disable},  // ローカル対局は人間が参加するときだけ（effectivePolicy）
     {E::GameUndo,               in(S::DuringGame), Off::Disable},  // 同上
-    {E::GameMakeImmediate,      kPlaying,     Off::Disable},
+    {E::GameMakeImmediate,      kPlaying | in(S::DuringP2pGame), Off::Disable},
     // 局と局の間はログアウト。P2P対局では合意中断の申し出
     {E::GameBreakOff,           kPlaying | in(S::DuringCsaConnection) | in(S::DuringP2pGame), Off::Disable},
     {E::GameResume,             in(S::Idle),  Off::Disable},  // 中断した対局があるときだけ（effectivePolicy）
@@ -213,6 +213,11 @@ UiStatePolicyManager::Policy UiStatePolicyManager::effectivePolicy(UiElement ele
         || ((element == UiElement::GameResign || element == UiElement::GameNyugyokuDeclaration)
             && currentState() == Activity::DuringGame)) {
         if (!m_deps.localGameHasHuman || !m_deps.localGameHasHuman()) return Policy::Disabled;
+    }
+    // P2P対局の「すぐ指させる」は、自分の手をエンジンに指させている対局だけ（人間が指す対局では指させるものがない）
+    if (element == UiElement::GameMakeImmediate && currentState() == Activity::DuringP2pGame
+        && !(m_deps.p2pGameUsesEngine && m_deps.p2pGameUsesEngine())) {
+        return Policy::Disabled;
     }
     return tablePolicy(currentState(), element);
 }

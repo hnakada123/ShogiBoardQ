@@ -38,6 +38,7 @@ struct Evidence {
     StartAgreement agreement;
     QByteArray blackStartSignature;
     QByteArray whiteStartSignature;
+    RulesTerms rules;   ///< 先手・後手の対局者の種別（開始合意の rulesHash と一致すること）
     TimeControlTerms timeControl;
     std::vector<SignedState> states;
     std::optional<FinalResult> result;

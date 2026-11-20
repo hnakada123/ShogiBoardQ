@@ -30,8 +30,7 @@ QByteArray initialSfen()
 
 CborValue v1()
 {
-    return CborValue::array({t("SBQ-RULES"), u(1), t(initialSfen()), u(kMaxPly), t("fourfold-draw"),
-                             t("perpetual-check-loss"), t("no-declaration"), t("human"), t("human")});
+    return RulesTerms{}.toCbor();
 }
 
 QByteArray v1Hash()
@@ -45,6 +44,37 @@ bool isV1(const CborValue& value)
 }
 
 } // namespace Rules
+
+QByteArray playerKindLabel(PlayerKind kind)
+{
+    return kind == PlayerKind::Engine ? QByteArrayLiteral("engine") : QByteArrayLiteral("human");
+}
+
+std::optional<PlayerKind> playerKindFromLabel(const QByteArray& label)
+{
+    if (label == "human") return PlayerKind::Human;
+    if (label == "engine") return PlayerKind::Engine;
+    return std::nullopt;
+}
+
+CborValue RulesTerms::toCbor() const
+{
+    return CborValue::array({t("SBQ-RULES"), u(1), t(Rules::initialSfen()), u(kMaxPly), t("fourfold-draw"),
+                             t("perpetual-check-loss"), t("no-declaration"), t(playerKindLabel(black)),
+                             t(playerKindLabel(white))});
+}
+
+std::optional<RulesTerms> RulesTerms::fromCbor(const CborValue& value)
+{
+    // 変わるのは種別の2つだけ。ほかの要素が1つでも違う値は読まない
+    for (const PlayerKind black : {PlayerKind::Human, PlayerKind::Engine}) {
+        for (const PlayerKind white : {PlayerKind::Human, PlayerKind::Engine}) {
+            const RulesTerms terms{black, white};
+            if (value == terms.toCbor()) return terms;
+        }
+    }
+    return std::nullopt;
+}
 
 CborValue TimeControlTerms::toCbor() const
 {

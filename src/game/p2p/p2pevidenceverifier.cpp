@@ -114,10 +114,11 @@ EvidenceReport verify(const Evidence& e)
     if (!report.networkKnown) setError(report, QStringLiteral("unknown network"));
     report.blackPlayerKey = e.agreement.blackPlayerKey;
     report.whitePlayerKey = e.agreement.whitePlayerKey;
+    report.rules = e.rules;
     report.timeControl = e.timeControl;
     report.stateCount = static_cast<int>(e.states.size());
 
-    report.conditionsMatch = e.agreement.rulesHash == Rules::v1Hash()
+    report.conditionsMatch = e.agreement.rulesHash == e.rules.hash()
         && e.agreement.timeControlHash == e.timeControl.hash()
         && e.agreement.networkPolicyHash == NetworkPolicy::v1().hash();
     if (!report.conditionsMatch) setError(report, QStringLiteral("conditions do not match the start agreement"));

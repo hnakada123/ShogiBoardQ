@@ -52,6 +52,7 @@ P2pGameUiController::P2pGameUiController(const Deps& deps, QObject* parent)
         connect(m_deps.game, &P2pGameCoordinator::resultAgreed, this, &P2pGameUiController::closeStaleOffer);
         connect(m_deps.game, &P2pGameCoordinator::proposalDeclined, this, &P2pGameUiController::onProposalDeclined);
         connect(m_deps.game, &P2pGameCoordinator::gameFinished, this, &P2pGameUiController::onGameFinished);
+        connect(m_deps.game, &P2pGameCoordinator::engineNotice, this, &P2pGameUiController::onEngineNotice);
     }
 }
 
@@ -246,7 +247,8 @@ void P2pGameUiController::onRecreateIdentity()
 
 void P2pGameUiController::onCreateInviteRequested()
 {
-    if (m_lobby && m_window) m_lobby->createInvite(m_window->displayName(), m_window->terms(), m_window->sidePreference());
+    if (!m_lobby || !m_window) return;
+    m_lobby->createInvite(m_window->displayName(), m_window->terms(), m_window->sidePreference(), m_window->playerSetup());
 }
 
 void P2pGameUiController::onInspectInviteRequested(const QString& invite)
@@ -256,7 +258,8 @@ void P2pGameUiController::onInspectInviteRequested(const QString& invite)
 
 void P2pGameUiController::onConnectInviteRequested(const QString& invite, bool allowPrivate)
 {
-    if (m_lobby && m_window) m_lobby->connectInvite(invite, allowPrivate, m_window->displayName());
+    if (!m_lobby || !m_window) return;
+    m_lobby->connectInvite(invite, allowPrivate, m_window->displayName(), m_window->playerSetup());
 }
 
 void P2pGameUiController::onOfferDrawRequested()
@@ -302,7 +305,11 @@ void P2pGameUiController::onNegotiationEnded(bool started, std::optional<P2p::Er
     if (*code == P2p::ErrorCode::Cancelled && !byPeer) return;
     QString text = byPeer ? tr("相手が対局を始めませんでした。") : tr("対局を始められませんでした。");
     if (*code == P2p::ErrorCode::Cancelled) text = tr("相手が取りやめました。");
-    else text += P2pWindowText::errorText(*code);
+    // こちらで版が合わないと判断するのは、エンジンで指す対局を、対局者の種別を扱えない版の相手と始めようとしたとき
+    else if (*code == P2p::ErrorCode::UnsupportedVersion && !byPeer) {
+        text += tr("相手のアプリは、エンジンが指す対局に対応していない版です。相手のアプリを新しい版にするか、"
+                   "「対局者」を「人間」にしてください。");
+    } else text += P2pWindowText::errorText(*code);
     NotificationPresenter::information(noticeParent(), tr("P2P対局"), text, NotificationPresenter::Wait::No);
 }
 
@@ -388,6 +395,13 @@ void P2pGameUiController::onGameFinished(P2p::Settlement ending, std::optional<P
     NotificationPresenter::information(noticeParent(), tr("P2P対局"), lines.join(QLatin1Char('\n')),
                                        NotificationPresenter::Wait::No);
     if (m_window) m_window->refresh();
+}
+
+void P2pGameUiController::onEngineNotice(const QString& message)
+{
+    // 司令塔の知らせの途中なので、閉じるのを待たない。交渉の取りやめ・投了・中断は司令塔が済ませている
+    if (m_engineBox) m_engineBox->close();
+    m_engineBox = NotificationPresenter::warning(noticeParent(), tr("P2P対局"), message, NotificationPresenter::Wait::No);
 }
 
 void P2pGameUiController::onPeerFailed(PeerProcess::Failure failure, const QString& detail)

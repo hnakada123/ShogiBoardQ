@@ -127,6 +127,21 @@ inline Setting<QString> p2pDisplayName(int player)
     if (player > 1) key += QByteArray::number(player);
     return {std::move(key), QString()};
 }
+/// 自分の手をエンジンに指させるか（既定は人間が指す）と、そのエンジンの登録名のキー。表示名と同じく、この PC の
+/// 何人目のプレイヤーかごとに覚える（同じ PC の2つのアプリで、別々のエンジンを対局させられる。1人目は
+/// P2p/playAsEngine・P2p/engineName、2人目からは末尾に番号）。エンジンの選択は EngineSelector が名前のキーに保存する
+inline Setting<bool> p2pPlayAsEngine(int player)
+{
+    QByteArray key("P2p/playAsEngine");
+    if (player > 1) key += QByteArray::number(player);
+    return {std::move(key), false};
+}
+inline QByteArray p2pEngineNameKey(int player)
+{
+    QByteArray key("P2p/engineName");
+    if (player > 1) key += QByteArray::number(player);
+    return key;
+}
 /// 招待の持ち時間（秒。既定 10分＋30秒）
 inline const BoundedSetting<int> p2pMainTimeSeconds{"P2p/mainTimeSeconds", 600, 0, 86400};
 inline const BoundedSetting<int> p2pByoyomiSeconds{"P2p/byoyomiSeconds", 30, 0, 600};

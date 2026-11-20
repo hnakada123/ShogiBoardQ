@@ -14,11 +14,15 @@
 
 #include "appactivitystate.h"
 #include "gamechannel.h"
+#include "matchtimesource.h"
 #include "p2pmatch.h"
 #include "p2pnegotiation.h"
+#include "usimatchhandler.h"
 #include "usimove.h"
 
+class EngineSlots;
 class GameBoard;
+class MatchEngineSeat;
 class MatchRecordSink;
 class P2pJournal;
 class P2pKnownPeers;
@@ -33,8 +37,12 @@ class QTimer;
  * 将棋の合法性と対局の進行、署名するかどうかはここ（と P2p::Match）が決める。通信プロセスから届いたものは
  * 外枠からすべて確かめ直す。両方の署名のない状態を盤・棋譜に入れない。棋譜を作ってから「P2P対局中」にし、
  * 終局では棋譜を確定してから手放す。相手の結果への署名の待ちは、棋譜の閲覧を止めない。
+ *
+ * 自分の手は、人間が盤で指すか、登録エンジンが指す（PlayerSetup）。エンジンで指すことは交渉で相手に伝え、双方が署名する
+ * 開始合意の Rules に入る。エンジンは交渉を始めたときに枠 E1 で起動し、初期化（readyok）が済むまで開始署名を送らない。
+ * エンジンの持ち時間はこの司令塔（MatchTimeSource）が、双方が署名した残り時間から返す。
  */
-class P2pGameCoordinator : public QObject
+class P2pGameCoordinator : public QObject, public MatchTimeSource
 {
     Q_OBJECT
 public:
@@ -42,6 +50,16 @@ public:
         GameBoard* gameBoard = nullptr;
         ShogiClock* clock = nullptr;
         AppActivityState* activity = nullptr;
+        EngineSlots* engines = nullptr;   ///< エンジンで指すとき、エンジンを置く枠（無ければエンジンでは指せない）
+    };
+
+    /// 自分の対局者（人間が盤で指すか、登録エンジンが指すか）
+    struct PlayerSetup {
+        P2p::PlayerKind kind = P2p::PlayerKind::Human;
+        QString enginePath;
+        QString engineName;   ///< 登録名
+
+        bool isEngine() const { return kind == P2p::PlayerKind::Engine; }
     };
 
     /// 交渉を始めるのに要るもの
@@ -54,6 +72,7 @@ public:
         P2p::SidePreference mySide = P2p::SidePreference::None;
         P2p::TimeControlTerms hostTerms;   ///< 招待した側の持ち時間
         bool viaRelay = false;
+        PlayerSetup player;                ///< 自分の対局者（人間かエンジンか）
     };
 
     enum class Phase { Idle, Negotiating, Playing, Finished };
@@ -74,7 +93,7 @@ public:
     /// 今の交渉・対局の接続（無ければ 0）
     quint64 currentConnection() const { return m_connection; }
 
-    /// 交渉を始める（申込側は HELLO を送る）
+    /// 交渉を始める（申込側は HELLO を送る。エンジンで指すなら、エンジンを起動する）
     bool startNegotiation(const NegotiationRequest& request);
     /// 通信プロセスからの知らせ
     void onConnectionOpened(quint64 connection, const QString& peerId, bool viaRelay);
@@ -84,14 +103,20 @@ public:
 
     // --- 交渉（条件確認画面） ---
     const P2p::Negotiation* negotiation() const { return m_negotiation.get(); }
+    /// 開始を押す（エンジンの初期化が済むまでは何もしない）
     void confirmStart();
     void cancelNegotiation();
+    /// エンジンの初期化（usi〜readyok）を待っているか（済むまで開始を押せない）
+    bool isEngineStarting() const;
 
     // --- 対局（P2pGameChannel） ---
     const P2p::Match* match() const { return m_match.get(); }
     GameChannel::MoveResult playMove(const UsiMove& move);
+    /// 投了できるか（自分の手番。エンジンに指させている対局でも、人が投了できる）
     bool canResign() const;
     void resign();
+    /// 自分のエンジンが手番で思考中なら、すぐ指させる
+    void forceImmediateMove();
     void offerDraw();
     void offerAbort();
     void answerOffer(bool accept);
@@ -102,6 +127,12 @@ public:
     Turn sideToMove() const;
 
     // --- 画面に出す値 ---
+    /// 自分の対局者（今の交渉・対局のもの）
+    const PlayerSetup& player() const { return m_player; }
+    /// 自分の手をエンジンに指させているか
+    bool playsWithEngine() const { return m_player.isEngine(); }
+    /// 相手の対局者の種別（交渉で分かる前は nullopt）
+    std::optional<P2p::PlayerKind> opponentKind() const;
     QString opponentDisplayName() const { return m_opponentDisplayName; }
     QByteArray opponentPlayerKey() const;
     bool viaRelay() const { return m_viaRelay; }
@@ -113,13 +144,25 @@ public:
         return m_phase == Phase::Negotiating ? qMax<qint64>(0, m_confirmationDeadline - now()) : 0;
     }
 
+    // --- MatchTimeSource（自分のエンジンの持ち時間。双方が署名した残り時間と、今の手番の経過時間） ---
+    MatchSearchTiming snapshot(Turn side, bool pondering) const override;
+
 signals:
-    /// 交渉の段階が変わった（条件確認画面を出す・更新する）
+    /// 交渉の段階が変わった（条件確認画面を出す・更新する。エンジンの初期化が済んだときも）
     void negotiationChanged();
     /// 交渉が終わった（started なら対局が始まった。そうでなければ code が理由）
     void negotiationEnded(bool started, std::optional<P2p::ErrorCode> code, bool byPeer);
     /// 対局が始まった（棋譜を作り、P2P対局中にした後）
     void gameStarted();
+    /// エンジンで指す交渉を始める（エンジンを起動する前。前の対局の通信ログを消す）
+    void engineStarting();
+    /// 自分のエンジンで指す対局が始まった（gameStarted の後。side は自分の手番、engineName は登録名。
+    /// 棋譜の対局者は表示名なので、評価値グラフの系列名はこれで知らせる。CsaGameCoordinator と同じ形）
+    void matchEngineStarted(Turn side, const QString& engineName);
+    /// 自分のエンジンが指した手を相手へ送った（score は自分から見た評価値。グラフの ply 手目に足す）
+    void engineMovePlayed(Turn side, int ply, const UsiScore& score);
+    /// エンジンについての知らせ（起動の失敗・異常終了・指せない手・入玉宣言）。交渉の取りやめ・投了・中断は済ませてから出す
+    void engineNotice(const QString& message);
     /// 対局の状態（手番・確認待ち・再接続・経路）が変わった
     void statusChanged();
     /// 相手が合意引き分け・合意中断を申し出た
@@ -132,6 +175,11 @@ signals:
 
 private slots:
     void onTick();
+    void onEngineInitialized();
+    void onEngineError(const QString& message);
+    void onEngineMoveReady(const UsiMatchMove& move);
+    void onEngineResigned();
+    void onEngineDeclaredWin();
 
 private:
     qint64 now() const { return m_elapsed.elapsed(); }
@@ -143,8 +191,18 @@ private:
     void handleMatchEvent(const P2p::MatchEvent& event);
     void applyCommittedMove(const P2p::MatchEvent& event);
     void syncClock();
-    /// 自分の手を相手へ送った時点で、自分の時計を止めて駒音を知らせる（盤は承認を受けてから動かす）
+    /// 自分の手を相手へ送った時点で、自分の時計を署名した残り時間で止める（盤は承認を受けてから動かす）
     void onMoveSent();
+    /// 自分の手を受け付ける時点か（対局中で、自分の手番で、確認待ちの手がない。人間・エンジンで共通）
+    bool isMyMoveExpected() const;
+    Turn mySide() const;
+    /// エンジンを枠 E1 に置いて起動する（初期化の完了・失敗は後で届く）
+    void startEngine();
+    /// 自分の手番ならエンジンに指し手を頼む（同じ手数では1回だけ）
+    void requestEngineMove();
+    /// 終局をエンジンに知らせて枠を空ける（result が無ければ勝ち負けのない終局）
+    void finishEngine(const P2p::FinalResult* result);
+    void releaseEngine();
     void writeEndingRecord(const P2p::FinalResult* result);
     void releaseGame();
     void saveEvidence();
@@ -158,6 +216,9 @@ private:
     P2pRecordStore* m_store = nullptr;
     P2pKnownPeers* m_knownPeers = nullptr;
     const P2p::SigningKey* m_playerKey = nullptr;
+    MatchEngineSeat* m_engineSeat = nullptr;   ///< 自分の手を指すエンジン（枠 E1。エンジンで指すときに作る）
+    PlayerSetup m_player;                      ///< 今の交渉・対局の自分の対局者
+    qint64 m_engineRequestedPly = -1;          ///< エンジンに指し手を頼んだ局面の手数（同じ局面で2回頼まない）
 
     Phase m_phase = Phase::Idle;
     QElapsedTimer m_elapsed;

@@ -23,6 +23,7 @@ namespace P2p {
 /// 対局を始めるのに要るもの（交渉の結果）
 struct MatchSetup {
     StartAgreement agreement;
+    RulesTerms rules;   ///< 先手・後手の対局者の種別（開始合意の rulesHash の元の値）
     TimeControlTerms terms;
     bool iAmBlack = true;
     QByteArray blackStartSignature;
@@ -102,6 +103,9 @@ public:
     bool iAmBlack() const { return m_setup.iAmBlack; }
     QByteArray gameId() const { return m_gameId; }
     const StartAgreement& agreement() const { return m_setup.agreement; }
+    /// 先手・後手の対局者の種別
+    const RulesTerms& rules() const { return m_setup.rules; }
+    TimeControlTerms terms() const { return m_setup.terms; }
     Settlement settlement() const { return m_settlement; }
     std::optional<ErrorCode> endingError() const { return m_endingError; }
     /// 合意した結果
@@ -110,6 +114,8 @@ public:
     bool isMyTurn() const;
     /// 確認待ちの自分の手があるか
     bool hasPendingMove() const { return m_pending.has_value(); }
+    /// 自分の今の手番の消費時間（ミリ秒。手番が始まる前は 0。エンジンに渡す残り時間の計算に使う）
+    qint64 myTurnSpentMs() const { return m_timer.mySpentMs(now()); }
     /// 相手の承認を待っている自分の状態（消費時間を引いた残り時間を持つ。無ければ nullptr）
     const GameState* pendingState() const { return m_pending ? &m_pending->state : nullptr; }
     /// 両方の署名がそろった最新の状態。開始局面（State0）の承認がそろう前は、手数 0 の空の状態を返す

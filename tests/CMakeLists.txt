@@ -1356,6 +1356,8 @@ if(ENABLE_P2P_PLAY)
     # 司令塔の結合（2つの司令塔をつなぎ、盤・時計・棋譜・動作状態・証跡・ジャーナルの復旧まで）
     add_shogi_test(tst_p2p_coordinator tst_p2p_coordinator.cpp)
     target_link_libraries(tst_p2p_coordinator PRIVATE shogiboardq_static)
+    # 自分の手をエンジンに指させる対局は、対局用のモックのエンジンで確かめる
+    add_dependencies(tst_p2p_coordinator mock_usi_match)
 endif()
 if(ENABLE_P2P_PLAY)
     # 端から端まで（本物の通信プロセス2つを sbq-local-1 で起動し、招待から終局と証跡の保存まで）
@@ -1385,6 +1387,8 @@ if(ENABLE_P2P_PLAY)
     # 画面（ウィンドウ・条件確認画面・プレイヤー鍵のダイアログ）
     add_shogi_test(tst_p2p_ui tst_p2p_ui.cpp)
     target_link_libraries(tst_p2p_ui PRIVATE shogiboardq_static)
+    # 条件確認画面の、エンジンの初期化の待ちは、対局用のモックのエンジンで確かめる
+    add_dependencies(tst_p2p_ui mock_usi_match)
 endif()
 if(ENABLE_P2P_PLAY)
     # プレイヤー鍵の保管（暗号化したファイル・誤ったパスフレーズ・書き換えたパラメータ・範囲外・権限・作り直し）

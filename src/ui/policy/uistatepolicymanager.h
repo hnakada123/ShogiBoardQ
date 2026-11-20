@@ -104,6 +104,7 @@ public:
         JosekiWindow* joseki = nullptr;                  ///< 定跡ウィンドウの「定跡を外れた手」・「棋譜に展開...」
         std::function<bool()> localGameHasHuman;  ///< ローカル対局に人間が参加しているか（待った・投了・入玉宣言）
         std::function<bool()> canResumeGame;      ///< 中断した対局を再開できるか（司令塔に問い合わせる）
+        std::function<bool()> p2pGameUsesEngine;  ///< P2P対局で自分の手をエンジンに指させているか（すぐ指させる）
         const AppActivityState* activity = nullptr;   ///< 動作状態（必須）
     };
 
