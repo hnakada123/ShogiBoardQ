@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="言語"><span aria-current="page">日本語</span><a href="../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 2／文書の版 2026-11-20.1（<a href="#sec-B">変更履歴</a>）</p>
+<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 2／文書の版 2026-11-20.2（<a href="#sec-B">変更履歴</a>）</p>
 <p class="lead">通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
@@ -137,6 +137,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li><a href="#sec-5-2">5.2 作る側</a></li>
 <li><a href="#sec-5-3">5.3 読む側</a></li>
 <li><a href="#sec-5-4">5.4 合言葉（同じ LAN の招待の短い形）</a></li>
+<li><a href="#sec-5-5">5.5 協力ノードを使う合言葉と待ち合わせ</a></li>
 </ul>
 </li>
 <li><a href="#sec-6">6. 対局ストリームとフレーム</a>
@@ -411,6 +412,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <tr><td>直接接続への切り替え</td><td>DCUtR（<code>/libp2p/dcutr</code>）</td><td>省いてよい。中継だけを使う設定では行ってはならない。行うときの対局ストリームの開き方は <a href="#sec-6-3">6.3節</a></td></tr>
 <tr><td>到達性の確認</td><td>AutoNAT v2（<code>/libp2p/autonat/2/dial-request</code>・<code>/libp2p/autonat/2/dial-back</code>）</td><td>省いてよい。中継だけを使う設定では行ってはならない。確かめてもらうのは、相手が観測した自分のアドレスの候補のうちインターネット上の直接のアドレスだけにする。待受のアドレス（私設・loopback・link-local を含む）を相手に送る AutoNAT v1（<code>/libp2p/autonat/1.0.0</code>）は使わない。ShogiBoardQ の協力ノードは v2 の確認に応え、ふつうのプレイヤーは応えない</td></tr>
 <tr><td>対局</td><td><code>/shogiboardq/game/1.0.0</code></td><td>6章以降。この文書の本体</td></tr>
+<tr><td>待ち合わせ</td><td><code>/shogiboardq/meet/1.0.0</code></td><td><a href="#sec-5-5">5.5節</a>。省いてよい。協力ノードを使う合言葉で、協力ノードとの間だけで使う</td></tr>
 </tbody>
 </table></div>
 <p>mDNS・Kademlia（DHT）・GossipSub は使わない。相手を自動で探す仕組みはなく、接続を始める相手は、利用者が指定した協力ノードと、招待・対局の相手だけである。</p>
@@ -431,7 +433,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <p>Identify で配る自分のアドレス（listenAddrs）には、待受のアドレスをそのまま入れてはならない。入れてよいのは、相手が実際に届くと確かめた・決めたアドレスだけである（<code>sbq-limited-1</code> では到達性の確認で確かめたインターネット上のアドレスと中継経由のアドレス。協力ノードは、インターネット上の待受のアドレスも入れてよい。4.4節）。<code>sbq-local-1</code> では入れない（Identify は招待を持たない相手にも届くので、待受のポートにつないだだけの LAN の機器に、PC の私設アドレスの一覧を配らない。相手への宛先は招待文字列で渡す）。待受のアドレスが変わったことを Identify の push で知らせない。</p>
 
 <h3 id="sec-4-4">4.4 協力ノードと中継</h3>
-<p>インターネット越し（<code>sbq-limited-1</code>）では、利用者が<strong>協力ノード</strong>のアドレス（<code>/ip4/…/tcp/…/p2p/&lt;PeerId&gt;</code> の形。16 件まで）を指定する。協力ノードは、Circuit Relay v2 の hop と Identify・Ping（と AutoNAT の応答）に対応した libp2p のノードで、対局のフレームの中身は読まない。標準の Circuit Relay v2 の中継ノードであれば、協力ノードとして使える。</p>
+<p>インターネット越し（<code>sbq-limited-1</code>）では、利用者が<strong>協力ノード</strong>のアドレス（<code>/ip4/…/tcp/…/p2p/&lt;PeerId&gt;</code> の形。16 件まで）を指定する。協力ノードは、Circuit Relay v2 の hop と Identify・Ping（と AutoNAT の応答）に対応した libp2p のノードで、対局のフレームの中身は読まない。標準の Circuit Relay v2 の中継ノードであれば、協力ノードとして使える。協力ノードは、合言葉の待ち合わせ（<a href="#sec-5-5">5.5節</a>）を受け持ってもよい。</p>
 <ul>
 <li>実装は、Identify の protocols に中継の hop がある協力ノードに、自分の到達性によらず中継の予約を取る（2件まで）。予約を断られたとき・協力ノードとの接続が切れて予約を失ったときは、少し待ってから頼み直すことが望ましい（ShogiBoardQ は 30 秒後）。頼み直さないと、つなぎ直すまで招待文字列に中継経由の宛先が入らない。</li>
 <li>中継経由の自分のアドレスは <code>&lt;協力ノードのアドレス&gt;/p2p/&lt;協力ノードの PeerId&gt;/p2p-circuit</code> の形で、利用者が指定した協力ノードのアドレスから作り、招待文字列に入れる（同じ協力ノードを指定した相手が、そのまま使える）。</li>
@@ -493,7 +495,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 </section>
 <section id="invite">
 <h2 id="sec-5">5. 招待文字列</h2>
-<p>対局の相手は、招待文字列で決める。招待側が作り、利用者が別の経路で相手に渡す。招待文字列には、招待側への接続先と、1回だけ使えるトークン（token）が入る。同じ LAN の招待には、同じ招待を指す短い合言葉（<a href="#sec-5-4">5.4節</a>）を付けられる。</p>
+<p>対局の相手は、招待文字列で決める。招待側が作り、利用者が別の経路で相手に渡す。招待文字列には、招待側への接続先と、1回だけ使えるトークン（token）が入る。同じ LAN の招待には、同じ招待を指す短い合言葉（<a href="#sec-5-4">5.4節</a>）を付けられる。協力ノードを使う招待には、接続先の入らない合言葉（<a href="#sec-5-5">5.5節</a>）を付けられる。</p>
 
 <h3 id="sec-5-1">5.1 形</h3>
 <pre><code>invite = "sbqinv1." + base64url(body) + "." + hex(H(body)[0..4])
@@ -558,7 +560,7 @@ addr = kind(2) | host(n) | more(1)</code></pre>
 <li>全体は 9〜33 文字である（区切りを除く。<code>192.168.x.y</code> のアドレス1件で、決まったポートなら 12 文字）。</li>
 </ul>
 <p><strong>作る側</strong>は、待受のアドレスのうち私設アドレス（4 件まで）を入れ、私設アドレスが1つもないときだけ <code>127.0.0.1</code> を入れる（同じ PC の相手は、私設アドレスでもつなげる）。QUIC も TCP も決まったポートで待ち受けていれば hasPort を 0 にし、そうでなければ QUIC の待受のポートを書く。合言葉も、招待文字列と同じく、相手だけに伝えるよう利用者に案内する（接続先が入っているため）。</p>
-<p><strong>読む側</strong>は、空白（ASCII の空白・タブ・CR・LF）と <code>-</code> を読み飛ばし、大文字と小文字を区別せず、<code>O</code> を <code>0</code>、<code>I</code> と <code>L</code> を <code>1</code> として読む。ほかの文字を含むもの、文字数・check・version・addr の件数・port・secret の長さが上のとおりでないもの、同じアドレスを2回含むものは使わない。合言葉を使うのは <code>sbq-local-1</code> だけである。合言葉の宛先のうち、自分の待受のアドレスと同じものは使わない（すべて自分の待受なら、自分の招待として扱う）。</p>
+<p><strong>読む側</strong>は、空白（ASCII の空白・タブ・CR・LF）と <code>-</code> を読み飛ばし、大文字と小文字を区別せず、<code>O</code> を <code>0</code>、<code>I</code> と <code>L</code> を <code>1</code> として読む。ほかの文字を含むもの、文字数・check・version・addr の件数・port・secret の長さが上のとおりでないもの、同じアドレスを2回含むものは使わない。この節の形の合言葉を使うのは <code>sbq-local-1</code> だけである（<a href="#sec-5-5">5.5節</a>の合言葉は、形が違う）。合言葉の宛先のうち、自分の待受のアドレスと同じものは使わない（すべて自分の待受なら、自分の招待として扱う）。</p>
 <p>合言葉には招待側の PeerId が入っていない。申込側は、合言葉の宛先へ PeerId を決めずに接続し、つながった相手の PeerId と、合言葉から作った鍵で、INVITE_TOKEN（<a href="#sec-6-3">6.3節</a>）で送る token を作る。secret そのものを送ってはならない。</p>
 <pre><code>salt  = H(CBOR(["SBQ-CODE-SALT", 1, networkId, port, [ip4, ...]]))[0..16]     ; port は hasPort が 0 なら 0。ip4 は bstr(4)。合言葉に入っている順
 key   = Argon2id(password = secret の 8 バイトのビッグエンディアン, salt,
@@ -570,6 +572,46 @@ token = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 招待側の PeerId, 申込側の Peer
 <li>secret は短いので、招待側は、合言葉の token の照合に続けて失敗できる回数を絞らなければならない（ShogiBoardQ は 8 回までで、4 秒ごとに1回分戻す。回数が残っていない間は、合言葉の token として照合しない）。招待文字列の token の照合は絞らない。</li>
 <li>申込側は、つながった相手が招待した本人かどうかを、接続の時点では確かめられない（招待文字列と違い、PeerId を前もって知らないため）。相手は、招待文字列のときと同じく、プレイヤーID で確かめる（<a href="#sec-3-5">3.5節</a>）。</li>
 </ul>
+<h3 id="sec-5-5">5.5 協力ノードを使う合言葉と待ち合わせ</h3>
+<p>中継経由の宛先は長いので、5.4節の形の合言葉には入らない。ShogiBoardQ は、5.4節の合言葉を付けない招待（<code>sbq-limited-1</code> の招待と、<a href="#sec-4-6">4.6節</a>の設定の招待）で、<strong>待ち合わせ</strong>に対応した協力ノードにつながっていて、到達候補が1件以上あるときに、10 文字の合言葉（<code>J6HB7-H6NWR</code> の形）を付ける。この合言葉は 45 ビットの秘密だけで、接続先も PeerId も入らない。招待側は、招待文字列の body（<a href="#sec-5-1">5.1節</a>）を合言葉から作った鍵で暗号化して協力ノードに預け、申込側は、同じ合言葉で引き取って復号し、招待文字列を読んだときと同じ手順でつなぐ。token は招待文字列と同じもので、1つの招待は、招待文字列と合言葉のどちらか一方で、1回だけ使える。</p>
+<p>この合言葉と待ち合わせへの対応は任意である。対応しない実装は、招待文字列だけを使えばよい。協力ノードも、待ち合わせを受け付けなくてよい（ShogiBoardQ の協力ノードは、<code>--meet</code> を付けて起動したときだけ受け付ける）。</p>
+<pre><code>code = base32c(secret) + check        ; 表示するときは、5文字ごとに "-" で区切る</code></pre>
+<ul>
+<li>secret は暗号用の乱数生成器で作る 45 ビットで、上位のビットから 5 ビットずつ9文字にする（文字の表は 5.4節と同じ）。</li>
+<li>check は1文字で、それより前の9文字（text）から <code>H(CBOR(["SBQ-MEET-CHECK", 1, text]))</code> の先頭のバイトの上位 5 ビットを、同じ文字の表で表す。</li>
+<li>読む側は、5.4節と同じ読み方（空白と <code>-</code>、大文字と小文字、<code>O</code>・<code>I</code>・<code>L</code>）で読む。接頭辞 <code>sbqinv1.</code> で始まらない文字列は、まずこの形（10 文字で check が合う）として読み、読めなければ 5.4節の合言葉として読む。5.4節の合言葉に 10 文字のものは無く、check の作り方も違うので、取り違えない。この形の合言葉は、どのネットワークでも使える。</li>
+</ul>
+<pre><code>salt   = H(CBOR(["SBQ-MEET-SALT", 1, networkId]))[0..16]
+master = Argon2id(password = secret の 8 バイトのビッグエンディアン, salt,
+                  版 0x13, メモリ 65536 KiB, 回数 2, 並列 1, 出力 32 バイト)
+slot   = H(CBOR(["SBQ-MEET-SLOT", 1, master]))
+key    = H(CBOR(["SBQ-MEET-KEY", 1, master]))
+blob   = nonce || XChaCha20-Poly1305(key, nonce, 平文, 一緒に認証する値)     ; nonce は 24 バイト。末尾の 16 バイトが認証の値
+平文             = 招待文字列の body（5.1節の決定的CBOR）
+一緒に認証する値 = CBOR(["SBQ-MEET-BLOB", 1, networkId])</code></pre>
+<ul>
+<li>Argon2id の条件は 5.4節と同じである。XChaCha20-Poly1305 は、libsodium の <code>crypto_aead_xchacha20poly1305_ietf</code> と同じである。nonce は、預けるたびに暗号用の乱数生成器で作る。blob は 1024 バイトまでで、収まらない招待には合言葉を付けない。</li>
+<li>slot は協力ノードに預けるときの番号、key は暗号化の鍵である。協力ノードに見える slot も、時間のかかる導出の後の値から作る（預かった slot から合言葉を総当たりするのにも、1回ごとに Argon2id の計算が要る）。</li>
+</ul>
+<p><strong>待ち合わせ</strong>は、協力ノードが受け付けるプロトコル <code>/shogiboardq/meet/1.0.0</code> で行う。1本のストリームで、頼む側が要求を1つ送り、協力ノードが応答を1つ返して閉じる。要求も応答も、4 バイトのビッグエンディアンの長さ（1〜1200）に、決定的CBOR（<a href="#sec-2-2">2.2節</a>）を続ける。</p>
+<pre><code>要求 = ["SBQ-MEET-REQ", 1, op, slot, blob, ttlSeconds, oneTime]
+応答 = ["SBQ-MEET-RES", 1, status, blob]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>op</td><td>uint</td><td>1: 預ける、2: 引き取る、3: 消す</td></tr>
+<tr><td>slot</td><td>bstr(32)</td><td>上の式の slot</td></tr>
+<tr><td>blob（要求）</td><td>bstr</td><td>op が 1 のときは 40〜1024 バイト（nonce と認証の値で 40 バイト）。ほかは空</td></tr>
+<tr><td>ttlSeconds</td><td>uint</td><td>預けておく秒数。op が 1 のときは 1〜600。ほかは 0</td></tr>
+<tr><td>oneTime</td><td>uint</td><td>op が 1 のときは 0 か 1（1 なら、1回引き取られたら消す）。ほかは 0</td></tr>
+<tr><td>status</td><td>uint</td><td>0: できた、1: 引き取るものが無い、2: 上限（件数・頻度）を超えた、3: 別のピアが預けた slot なので、置き換え・消去ができない、4: 要求を読めない</td></tr>
+<tr><td>blob（応答）</td><td>bstr</td><td>op が 2 で status が 0 のときは預かっていたもの。ほかは空</td></tr>
+</tbody>
+</table></div>
+<p><strong>協力ノード</strong>は、預かったものをメモリにだけ持ち、ディスクにもログにも書いてはならない（slot も書かない）。期限を過ぎたものと、oneTime が 1 で1回引き取られたものは消す。同じ slot に預けたものがあるとき、置き換え・消去ができるのは、預けたピア（PeerId）だけである（消すものが無い消去は、できたものとして扱う）。件数と頻度に上限を置かなければならない。ShogiBoardQ の協力ノードは、全体で 4096 件、接続元のアドレス帯ごとに 256 件まで預かり、要求は、接続元のアドレス帯ごとに続けて 64 回までで、1 秒に 4 回分ずつ戻す（PeerId は起動のたびに変えられるので、接続元で数える）。上限を超えた要求には status 2 を返す。</p>
+<p><strong>招待側</strong>は、待ち合わせに対応した協力ノード（Identify の protocols に <code>/shogiboardq/meet/1.0.0</code> があるもの）のうち、利用者が指定してつながっているものすべてに、op 1・ttlSeconds は期限までの秒数・oneTime 1 で預ける。1つも預けられなければ、合言葉を付けない。招待が使われた（招待文字列で使われた場合も）・取り消されたら、op 3 で消すことが望ましい。</p>
+<p><strong>申込側</strong>は、対応した協力ノードに順に op 2 で尋ね、復号できるものが見つかったらやめる。復号（認証の検査）に通らないものは、中身を読まずに捨てる。復号できた平文は、招待文字列の body と同じ規則（<a href="#sec-5-3">5.3節</a>）で確かめる。協力ノードは1回引き取られたら消すので、利用者に内容を確かめさせてからつなぐ実装は、引き取った招待を、つなぐまで（期限まで）持っておく。自分が預けた slot は引き取らない。引き取れなかった理由（合言葉が違う・期限が過ぎた・もう引き取られた・取り消された）は見分けられない。</p>
+<p>合言葉を期限内に知った第三者は、招待された人より先に引き取ってつなげる（招待文字列を知られたときと同じである）。相手は、プレイヤーID で確かめる（<a href="#sec-3-5">3.5節</a>）。協力ノードの運営者は、引き取りを止められるが、鍵を知らないので、別の招待に差し替えられない。</p>
 </section>
 <section id="stream">
 <h2 id="sec-6">6. 対局ストリームとフレーム</h2>
@@ -617,6 +659,7 @@ token = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 招待側の PeerId, 申込側の Peer
 <li>続けて HELLO を送る（<a href="#sec-8-2">8.2節</a>）。</li>
 </ol>
 <p>合言葉（<a href="#sec-5-4">5.4節</a>）でつなぐ申込側は、1 の代わりに、合言葉の宛先へ PeerId を決めずに接続し、最初につながった相手の PeerId から token を作って、その相手へストリームを開く（ShogiBoardQ は、合言葉のすべての宛先へ同時に接続を試み、宛先へつながるのを 30 秒まで待つ）。2 と 3 は同じである。</p>
+<p>協力ノードを使う合言葉（<a href="#sec-5-5">5.5節</a>）でつなぐ申込側は、協力ノードから引き取った招待の宛先と token を使い、招待文字列のときと同じ 1〜3 の手順で開く。</p>
 <p><strong>招待側</strong>は、届いたストリームの最初のフレームを 5 秒だけ待ち、次のように決める。</p>
 <ul>
 <li>最初のフレームが INVITE_TOKEN で、その token が、まだ使われていない有効期限内の招待の token と一致すれば、その招待を使用済みにして、ストリームを受け付ける。照合は、処理時間が中身によらない比較で、すべての招待と行う。</li>
@@ -1232,6 +1275,10 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>合言葉の長さ</td><td>9〜33 文字（区切りを除く）。アドレスは 1〜4 件、秘密は 34〜38 ビット</td><td><a href="#sec-5-4">5.4</a></td></tr>
 <tr><td>合言葉の鍵の導出</td><td>Argon2id（版 0x13、メモリ 65536 KiB、回数 2、並列 1、出力 32 バイト）</td><td><a href="#sec-5-4">5.4</a></td></tr>
 <tr><td>合言葉の token の照合の失敗（ShogiBoardQ の値）</td><td>続けて 8 回まで。4 秒ごとに1回分戻す</td><td><a href="#sec-5-4">5.4</a></td></tr>
+<tr><td>待ち合わせのプロトコル</td><td><code>/shogiboardq/meet/1.0.0</code></td><td><a href="#sec-5-5">5.5</a></td></tr>
+<tr><td>協力ノードを使う合言葉</td><td>10 文字（区切りを除く）。秘密は 45 ビット</td><td><a href="#sec-5-5">5.5</a></td></tr>
+<tr><td>待ち合わせの要求・応答の長さ</td><td>1〜1200 バイト。預けるものは 40〜1024 バイト、預けておく時間は 1〜600 秒</td><td><a href="#sec-5-5">5.5</a></td></tr>
+<tr><td>待ち合わせの上限（ShogiBoardQ の協力ノードの値）</td><td>全体で 4096 件、接続元のアドレス帯ごとに 256 件。要求は接続元のアドレス帯ごとに続けて 64 回まで（1 秒に 4 回分戻す）</td><td><a href="#sec-5-5">5.5</a></td></tr>
 <tr><td>ストリームの最初のフレームを待つ時間</td><td>5 秒</td><td><a href="#sec-6-3">6.3</a></td></tr>
 <tr><td>フレームの頻度</td><td>開始署名を交わすまで 5 件/秒（バースト 10）、交わしたストリームではその後 20 件/秒（バースト 40）。再接続で開いたストリームは 5 件/秒（バースト 10）のまま</td><td><a href="#sec-6-4">6.4</a></td></tr>
 <tr><td>表示名</td><td>1〜32 文字、96 バイト以下</td><td><a href="#sec-3-6">3.6</a></td></tr>
@@ -1267,6 +1314,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId と rulesHash（<a href="#sec-3-1">3.1節</a>・<a href="#sec-7-1">7.1節</a>）</td></tr>
 <tr><td><code>rules.txt</code></td><td><code>&lt;blackKind&gt; &lt;whiteKind&gt; &lt;hex(rulesHash)&gt; &lt;hex(CBOR(Rules))&gt;</code></td><td>対局者の種別ごとの Rules（4 通り）のバイト列とハッシュ（<a href="#sec-7-1">7.1節</a>）</td></tr>
 <tr><td><code>code.txt</code></td><td><code>code &lt;合言葉&gt; &lt;port か -&gt; &lt;アドレス,...&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;文字列&gt;</code>／<code>key &lt;networkName&gt; &lt;合言葉&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(key)&gt;</code>／<code>token &lt;hex(key)&gt; &lt;hex(招待側の PeerId)&gt; &lt;hex(申込側の PeerId)&gt; &lt;hex(token)&gt;</code></td><td>合言葉の形、読めない文字列、鍵と token（<a href="#sec-5-4">5.4節</a>）</td></tr>
+<tr><td><code>meet.txt</code></td><td><code>code &lt;合言葉&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;文字列&gt;</code>／<code>keys &lt;networkName&gt; &lt;合言葉&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(master)&gt; &lt;hex(slot)&gt; &lt;hex(key)&gt;</code>／<code>blob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(nonce)&gt; &lt;hex(平文) か -&gt; &lt;hex(blob)&gt;</code>／<code>badblob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(blob)&gt;</code>／<code>request &lt;hex&gt;</code>・<code>badrequest &lt;hex&gt;</code>／<code>response &lt;hex&gt;</code>・<code>badresponse &lt;hex&gt;</code></td><td>協力ノードを使う合言葉と待ち合わせ（<a href="#sec-5-5">5.5節</a>）。<code>invalid</code> は合言葉として読めない文字列、<code>badblob</code> は復号できない blob、<code>badrequest</code>・<code>badresponse</code> は読めない要求・応答</td></tr>
 </tbody>
 </table></div>
 
@@ -1275,7 +1323,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <ol>
 <li><strong>決定的CBORとハッシュ</strong>：15.1節の入力と、付録 A の値が一致する。</li>
 <li><strong>証跡の検証</strong>：ShogiBoardQ が保存した <code>.sbqmatch</code> を読み、<a href="#sec-13-2">13.2節</a>の検証がすべて通る（署名の検証と、指し手・局面・時間の計算が合っていることの確認になる）。</li>
-<li><strong>招待文字列</strong>：ShogiBoardQ が作った招待文字列を読めて、自分が作った招待文字列を ShogiBoardQ の「招待で接続する」の「確かめる」で読める。合言葉に対応するときは、ShogiBoardQ が作った合言葉でつなげて、自分が作った合言葉で ShogiBoardQ からつなげる。</li>
+<li><strong>招待文字列</strong>：ShogiBoardQ が作った招待文字列を読めて、自分が作った招待文字列を ShogiBoardQ の「招待で接続する」の「確かめる」で読める。合言葉に対応するときは、ShogiBoardQ が作った合言葉でつなげて、自分が作った合言葉で ShogiBoardQ からつなげる。協力ノードを使う合言葉に対応するときは、ShogiBoardQ の協力ノード（<code>shogiboardq-peer --service --relay --meet</code>）を使い、ShogiBoardQ が作った合言葉でつなげて、自分が作った合言葉で ShogiBoardQ からつなげる。</li>
 <li><strong>接続と交渉</strong>：ネットワークを <code>sbq-local-1</code> にして、同じ PC の ShogiBoardQ と、招待する側・される側の両方で条件確認画面まで進める。</li>
 <li><strong>対局</strong>：先手・後手の両方で、投了・詰み・時間切れ・合意による引き分けまで指し、双方の証跡が「双方で確定」になる。自分の書いた証跡を <code>shogiboardq-cli verify-match --input-path &lt;ファイル&gt;</code> で検証し、<code>valid</code> が true、<code>category</code> が <code>mutually_signed</code> になる。</li>
 <li><strong>エンジンが指す対局</strong>（版 2 に対応するとき）：自分・相手のそれぞれの種別が <code>"engine"</code> の対局を、招待する側・される側の両方で始め、条件確認画面に相手の種別が出ることと、証跡の Rules に種別が残ることを確かめる。版 1 だけの実装は、ShogiBoardQ の「対局者」をエンジンにした相手から、REJECT（UNSUPPORTED_VERSION）で断られることを確かめる。</li>
@@ -1386,6 +1434,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文書の版</th><th>プロトコルの版</th><th>互換実装の修正</th><th>変更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-20.2</td><td>2</td><td>要らない（協力ノードを使う合言葉に対応するときだけ要る）</td><td>協力ノードを使う合言葉と、協力ノードの待ち合わせを足した（<a href="#sec-4-1">4.1節</a>・<a href="#sec-5-5">5.5節</a>・<a href="#sec-6-3">6.3節</a>・<a href="#sec-14">14章</a>・<a href="#sec-15">15章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/826a5d9fc56dac084dc528d3dab38d4a792a6062">826a5d9f</a>）。ShogiBoardQ で、インターネット越しの相手（協力ノードを使う招待）も、10 文字の合言葉を伝えるだけで招待できるようにしたためである。合言葉は 45 ビットの秘密だけで、接続先は入らない。招待側は、招待文字列の body を、合言葉から作った鍵（Argon2id）で暗号化（XChaCha20-Poly1305）して、協力ノードの新しいプロトコル <code>/shogiboardq/meet/1.0.0</code> で預け、申込側は同じ合言葉で引き取って復号する。その後の手順と token は招待文字列と同じで、招待文字列の形、INVITE_TOKEN の形、対局の手順は変えていない。対応しない実装は、直さなくても、招待文字列で今までどおり対局できる。協力ノードは、ShogiBoardQ のものを <code>--meet</code> を付けて起動したときだけ待ち合わせを受け付ける（標準の中継ノードだけの協力ノードでは、合言葉は付かない）。5.4節の合言葉は変えていない（その形を使うのは <code>sbq-local-1</code> だけ、という文を、5.5節の合言葉と区別する書き方に直した）。試験の入力に <code>meet.txt</code> を足した。</td></tr>
 <tr><td>2026-11-20.1</td><td>2</td><td>要らない（合言葉に対応するときだけ要る）</td><td>同じ LAN の招待の短い形「合言葉」を足した（<a href="#sec-5-4">5.4節</a>・<a href="#sec-6-3">6.3節</a>・<a href="#sec-14">14章</a>・<a href="#sec-15">15章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/bb24553c79f25b41160738cc6c70da14d7ec04c5">bb24553c</a>）。ShogiBoardQ で、同じ LAN の相手を、12 文字ほどの合言葉を口頭で伝えるだけで招待できるようにしたためである。合言葉は、招待側の LAN の中のアドレスと短い秘密を入れたもので、招待文字列と同じ招待を指し、どちらか一方で1回だけ使える。申込側は、合言葉の宛先へ PeerId を決めずにつなぎ、合言葉から作った鍵（Argon2id）と双方の PeerId から作った token を INVITE_TOKEN で送る。招待文字列の形、INVITE_TOKEN の形、招待文字列でつなぐ手順は変えていない。合言葉に対応しない実装は、直さなくても、招待文字列で今までどおり対局できる（ShogiBoardQ は、合言葉を付けた招待でも招待文字列の token を受け付ける）。本文で、招待の token を「合言葉」と書いていた箇所を「トークン」に改めた（意味は変えていない）。試験の入力に <code>code.txt</code> を足した。</td></tr>
 <tr><td>2026-11-20</td><td>2</td><td>要らない（エンジンが指す対局に対応するときだけ要る）</td><td>プロトコルの版 2（対局者の種別）を足した（<a href="#sec-1-5">1.5節</a>・<a href="#sec-7-1">7.1節</a>・<a href="#sec-8-2">8.2節</a>・<a href="#sec-8-3">8.3節</a>・<a href="#sec-13">13章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/a8192d98a3790df05b074fd68843bb5a7e7713e1">a8192d98</a>）。ShogiBoardQ で、自分の手を登録したエンジンに指させて対局できるようにしたためである。Rules の末尾の 2 つ（先手・後手の対局者の種別）に <code>"engine"</code> を書けるようにし、HELLO の対応する版の一覧を <code>[1, 2]</code> に、エンジンが指す招待側の HELLO を版 2 の形（末尾に playerKind）にした。申込側の種別は START_AGREEMENT の Rules で伝える。双方が人間の対局は版 1 と同じバイト列のままで、版 1 だけの実装は、直さなくても ShogiBoardQ と人間どうしの対局ができる（対応する版の一覧に 1 のほかの値があっても受け付けること）。エンジンが指す対局は、版 1 だけの相手とは始めず、REJECT（UNSUPPORTED_VERSION）で断る。<code>verify-match</code> の結果に <code>black_player_kind</code>・<code>white_player_kind</code> を足し、付録 A.1 に種別ごとの rulesHash を、試験の入力に <code>rules.txt</code> を足した。</td></tr>
 <tr><td>2026-11-15.1</td><td>1</td><td>要らない</td><td>対局ストリームを開く接続の選び方を足した（<a href="#sec-6-3">6.3節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/78c04567189db3c6542211d181f842f1deb1dbd8">78c04567</a>）。ShogiBoardQ は、中継でつながった直後に対局ストリームを開いていたので、その後に DCUtR で直接の接続ができても、フレームは中継を通り続けていた。申込側が、直接の接続ができるのを 3 秒まで待ち、できたら中継経由の接続を閉じてから、直接の接続の上でストリームを開くようにした。フレームの形と手順は変えていない。DCUtR を行う互換実装も、同じようにすることが望ましい。</td></tr>

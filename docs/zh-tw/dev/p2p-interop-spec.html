@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="語言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><span aria-current="page">繁體中文</span></nav>
 <h1>P2P對局相容實作規格書</h1>
-<p>ShogiBoardQ（將棋盤Q）／協定版本 2／文件版本 2026-11-20.1（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
+<p>ShogiBoardQ（將棋盤Q）／協定版本 2／文件版本 2026-11-20.2（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
 <p class="lead">規定通訊層、邀請字串、訊框、開始前的協商、對局中的步驟、重新連線，以及對局記錄（憑證）的格式與驗證。</p>
 </header>
 <nav class="toc" aria-label="目錄">
@@ -137,6 +137,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <li><a href="#sec-5-2">5.2 產生方</a></li>
 <li><a href="#sec-5-3">5.3 讀取方</a></li>
 <li><a href="#sec-5-4">5.4 暗號（同一區域網路邀請的簡短形式）</a></li>
+<li><a href="#sec-5-5">5.5 使用協作節點的暗號與會合</a></li>
 </ul>
 </li>
 <li><a href="#sec-6">6. 對局串流與訊框</a>
@@ -411,6 +412,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <tr><td>切換為直接連線</td><td>DCUtR（<code>/libp2p/dcutr</code>）</td><td>可以省略。在只使用中繼的設定下不得進行。進行時對局串流的開啟方式見<a href="#sec-6-3">第 6.3 節</a></td></tr>
 <tr><td>可達性確認</td><td>AutoNAT v2（<code>/libp2p/autonat/2/dial-request</code>、<code>/libp2p/autonat/2/dial-back</code>）</td><td>可以省略。在只使用中繼的設定下不得進行。請對方確認的，只限於對方觀測到的自身位址候選中、網際網路上的直接位址。不使用會把監聽位址（包括私人、loopback、link-local 位址）傳給對方的 AutoNAT v1（<code>/libp2p/autonat/1.0.0</code>）。ShogiBoardQ 的協作節點會回應 v2 的確認，一般玩家則不回應</td></tr>
 <tr><td>對局</td><td><code>/shogiboardq/game/1.0.0</code></td><td>第 6 章以後。本文件的主體</td></tr>
+<tr><td>會合</td><td><code>/shogiboardq/meet/1.0.0</code></td><td><a href="#sec-5-5">第 5.5 節</a>。可以省略。用於使用協作節點的暗號，只在與協作節點之間使用</td></tr>
 </tbody>
 </table></div>
 <p>不使用 mDNS、Kademlia（DHT）、GossipSub。沒有自動尋找對手的機制，主動發起連線的對象只有使用者指定的協作節點，以及邀請、對局的對手。</p>
@@ -431,7 +433,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <p>在 Identify 中發布的自身位址（listenAddrs）中，不得直接放入監聽位址。可以放入的只有已確認或已決定對方實際能到達的位址（在 <code>sbq-limited-1</code> 中，是經可達性確認驗證過的網際網路上的位址，以及經由中繼的位址。協作節點也可以放入網際網路上的監聽位址。第 4.4 節）。在 <code>sbq-local-1</code> 中不放入（Identify 也會送達沒有邀請的對象，因此不把電腦的私人位址清單發給只是連上監聽連接埠的區域網路裝置。給對方的目的位址以邀請字串傳遞）。不以 Identify 的 push 通知監聽位址的變更。</p>
 
 <h3 id="sec-4-4">4.4 協作節點與中繼</h3>
-<p>透過網際網路（<code>sbq-limited-1</code>）時，由使用者指定<strong>協作節點</strong>的位址（<code>/ip4/…/tcp/…/p2p/&lt;PeerId&gt;</code> 形式。最多 16 個）。協作節點是支援 Circuit Relay v2 的 hop 與 Identify、Ping（以及 AutoNAT 的回應）的 libp2p 節點，不讀取對局訊框的內容。只要是標準的 Circuit Relay v2 中繼節點，就可以作為協作節點使用。</p>
+<p>透過網際網路（<code>sbq-limited-1</code>）時，由使用者指定<strong>協作節點</strong>的位址（<code>/ip4/…/tcp/…/p2p/&lt;PeerId&gt;</code> 形式。最多 16 個）。協作節點是支援 Circuit Relay v2 的 hop 與 Identify、Ping（以及 AutoNAT 的回應）的 libp2p 節點，不讀取對局訊框的內容。只要是標準的 Circuit Relay v2 中繼節點，就可以作為協作節點使用。協作節點也可以負責暗號的會合（<a href="#sec-5-5">第 5.5 節</a>）。</p>
 <ul>
 <li>實作不論自身的可達性如何，都向 Identify 的 protocols 中有中繼 hop 的協作節點預約中繼（最多 2 個）。預約被拒絕時，或與協作節點的連線中斷而失去預約時，應當稍候再重新請求（ShogiBoardQ 為 30 秒後）。若不重新請求，在重新連線之前，邀請字串中不會有經由中繼的目的位址。</li>
 <li>經由中繼的自身位址為 <code>&lt;協作節點的位址&gt;/p2p/&lt;協作節點的 PeerId&gt;/p2p-circuit</code> 形式，由使用者指定的協作節點位址產生，並放入邀請字串（指定了相同協作節點的對手可以直接使用）。</li>
@@ -493,7 +495,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 </section>
 <section id="invite">
 <h2 id="sec-5">5. 邀請字串</h2>
-<p>對局的對手由邀請字串決定。邀請字串由邀請方產生，再由使用者透過其他途徑交給對手。邀請字串中包含連線到邀請方的位址，以及只能使用一次的權杖（token）。同一區域網路的邀請還可以附帶指向同一邀請的簡短暗號（<a href="#sec-5-4">第 5.4 節</a>）。</p>
+<p>對局的對手由邀請字串決定。邀請字串由邀請方產生，再由使用者透過其他途徑交給對手。邀請字串中包含連線到邀請方的位址，以及只能使用一次的權杖（token）。同一區域網路的邀請還可以附帶指向同一邀請的簡短暗號（<a href="#sec-5-4">第 5.4 節</a>）。使用協作節點的邀請可以附帶不含連線位址的暗號（<a href="#sec-5-5">第 5.5 節</a>）。</p>
 
 <h3 id="sec-5-1">5.1 格式</h3>
 <pre><code>invite = "sbqinv1." + base64url(body) + "." + hex(H(body)[0..4])
@@ -558,7 +560,7 @@ addr = kind(2) | host(n) | more(1)</code></pre>
 <li>整體為 9～33 個字元（不含分隔符號。只有 1 個 <code>192.168.x.y</code> 位址且使用固定連接埠時為 12 個字元）。</li>
 </ul>
 <p><strong>產生方</strong>放入監聽位址中的私人位址（最多 4 個），只有在一個私人位址都沒有時才放入 <code>127.0.0.1</code>（同一台電腦上的對手也可以透過私人位址連線）。QUIC 與 TCP 都在固定連接埠監聽時，hasPort 設為 0，否則寫入 QUIC 監聽的連接埠。與邀請字串一樣，要提示使用者只把暗號告訴對手（因為其中包含連線位址）。</p>
-<p><strong>讀取方</strong>跳過空白（ASCII 空格、Tab、CR、LF）與 <code>-</code>，不區分大小寫，把 <code>O</code> 讀作 <code>0</code>，把 <code>I</code> 與 <code>L</code> 讀作 <code>1</code>。含有其他字元的、字元數・check・version・addr 的個數・port・secret 的長度不符合上述規定的、同一個位址出現兩次的，都不使用。暗號只在 <code>sbq-local-1</code> 中使用。暗號的目的位址中，與自己的監聽位址相同的不使用（若全部是自己的監聽位址，就當作自己的邀請處理）。</p>
+<p><strong>讀取方</strong>跳過空白（ASCII 空格、Tab、CR、LF）與 <code>-</code>，不區分大小寫，把 <code>O</code> 讀作 <code>0</code>，把 <code>I</code> 與 <code>L</code> 讀作 <code>1</code>。含有其他字元的、字元數・check・version・addr 的個數・port・secret 的長度不符合上述規定的、同一個位址出現兩次的，都不使用。本節形式的暗號只在 <code>sbq-local-1</code> 中使用（<a href="#sec-5-5">第 5.5 節</a>的暗號形式不同）。暗號的目的位址中，與自己的監聽位址相同的不使用（若全部是自己的監聽位址，就當作自己的邀請處理）。</p>
 <p>暗號中不包含邀請方的 PeerId。申請方不指定 PeerId 地連線到暗號中的位址，以連上的對方的 PeerId 和由暗號產生的金鑰，產生以 INVITE_TOKEN（<a href="#sec-6-3">第 6.3 節</a>）傳送的 token。不得傳送 secret 本身。</p>
 <pre><code>salt  = H(CBOR(["SBQ-CODE-SALT", 1, networkId, port, [ip4, ...]]))[0..16]     ; hasPort 為 0 時 port 為 0。ip4 為 bstr(4)，依暗號中的順序
 key   = Argon2id(password = secret 的 8 位元組大端序, salt,
@@ -570,6 +572,46 @@ token = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 邀請方的 PeerId, 申請方的 Peer
 <li>secret 很短，因此邀請方必須限制暗號 token 的比對可以連續失敗的次數（ShogiBoardQ 最多 8 次，每 4 秒恢復 1 次；沒有剩餘次數期間，不作為暗號的 token 進行比對）。邀請字串的 token 的比對不作限制。</li>
 <li>申請方在連線時無法確認連上的對方是否就是發出邀請的人（與邀請字串不同，事先不知道 PeerId）。與邀請字串一樣，對手以玩家ID 確認（<a href="#sec-3-5">第 3.5 節</a>）。</li>
 </ul>
+<h3 id="sec-5-5">5.5 使用協作節點的暗號與會合</h3>
+<p>經由中繼的位址很長，放不進第 5.4 節形式的暗號。對於不附帶第 5.4 節暗號的邀請（<code>sbq-limited-1</code> 的邀請，以及<a href="#sec-4-6">第 4.6 節</a>設定下的邀請），ShogiBoardQ 在連線到支援<strong>會合</strong>的協作節點、並且邀請中至少有 1 個可達候選時，附帶 10 個字元的暗號（<code>J6HB7-H6NWR</code> 的形式）。這種暗號只是 45 位元的秘密，不含連線位址，也不含 PeerId。邀請方以由暗號衍生的金鑰加密邀請字串的 body（<a href="#sec-5-1">第 5.1 節</a>），存放到協作節點；申請方以同一個暗號取回並解密，然後依照與讀取邀請字串之後相同的步驟連線。token 與邀請字串的相同，一個邀請只能以邀請字串或暗號擇一使用，且只能使用一次。</p>
+<p>是否支援這種暗號和會合是任意的。不支援的實作只使用邀請字串即可。協作節點也可以不接受會合（ShogiBoardQ 的協作節點只在以 <code>--meet</code> 啟動時接受）。</p>
+<pre><code>code = base32c(secret) + check        ; 顯示時每 5 個字元以 "-" 分隔</code></pre>
+<ul>
+<li>secret 是以密碼學亂數產生器產生的 45 位元，從高位起每 5 位元寫成 1 個字元，共 9 個字元（字元表與第 5.4 節相同）。</li>
+<li>check 是 1 個字元：以它之前的 9 個字元（記為 text）計算 <code>H(CBOR(["SBQ-MEET-CHECK", 1, text]))</code>，把第一個位元組的高 5 位元以同一個字元表表示。</li>
+<li>讀取方以與第 5.4 節相同的方式讀取（空白和 <code>-</code>、大小寫、<code>O</code>、<code>I</code>、<code>L</code>）。不以前綴 <code>sbqinv1.</code> 開頭的字串，先以這種形式（10 個字元且 check 一致）讀取，讀不出時再以第 5.4 節的暗號讀取。第 5.4 節的暗號沒有 10 個字元的，check 的產生方法也不同，所以不會混淆。這種形式的暗號在任何網路中都可以使用。</li>
+</ul>
+<pre><code>salt   = H(CBOR(["SBQ-MEET-SALT", 1, networkId]))[0..16]
+master = Argon2id(password = secret 的 8 位元組大端序, salt,
+                  版本 0x13, 記憶體 65536 KiB, 次數 2, 平行度 1, 輸出 32 位元組)
+slot   = H(CBOR(["SBQ-MEET-SLOT", 1, master]))
+key    = H(CBOR(["SBQ-MEET-KEY", 1, master]))
+blob   = nonce || XChaCha20-Poly1305(key, nonce, 明文, 附加驗證資料)     ; nonce 為 24 位元組。末尾 16 位元組是驗證值
+明文         = 邀請字串的 body（第 5.1 節的確定性CBOR）
+附加驗證資料 = CBOR(["SBQ-MEET-BLOB", 1, networkId])</code></pre>
+<ul>
+<li>Argon2id 的條件與第 5.4 節相同。XChaCha20-Poly1305 與 libsodium 的 <code>crypto_aead_xchacha20poly1305_ietf</code> 相同。nonce 在每次存放時以密碼學亂數產生器產生。blob 最多 1024 位元組，放不下的邀請不附帶暗號。</li>
+<li>slot 是存放到協作節點時的編號，key 是加密的金鑰。協作節點看得到的 slot，也由耗時的衍生之後的值產生（從存放的 slot 暴力猜測暗號，每次也需要一次 Argon2id 計算）。</li>
+</ul>
+<p><strong>會合</strong>透過協作節點接受的協定 <code>/shogiboardq/meet/1.0.0</code> 進行。在一條串流上，請求方傳送 1 個請求，協作節點回傳 1 個回應後關閉。請求和回應都是 4 位元組大端序的長度（1～1200）後接確定性CBOR（<a href="#sec-2-2">第 2.2 節</a>）。</p>
+<pre><code>請求 = ["SBQ-MEET-REQ", 1, op, slot, blob, ttlSeconds, oneTime]
+回應 = ["SBQ-MEET-RES", 1, status, blob]</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>型別</th><th>規則</th></tr></thead>
+<tbody>
+<tr><td>op</td><td>uint</td><td>1：存放，2：取回，3：刪除</td></tr>
+<tr><td>slot</td><td>bstr(32)</td><td>上式中的 slot</td></tr>
+<tr><td>blob（請求）</td><td>bstr</td><td>op 為 1 時為 40～1024 位元組（nonce 和驗證值占 40 位元組）。其他情況為空</td></tr>
+<tr><td>ttlSeconds</td><td>uint</td><td>存放的秒數。op 為 1 時為 1～600。其他情況為 0</td></tr>
+<tr><td>oneTime</td><td>uint</td><td>op 為 1 時為 0 或 1（為 1 時，被取回 1 次後刪除）。其他情況為 0</td></tr>
+<tr><td>status</td><td>uint</td><td>0：完成，1：沒有可取回的內容，2：超過上限（數量、頻率），3：該 slot 由其他節點存放，不能取代或刪除，4：無法讀取請求</td></tr>
+<tr><td>blob（回應）</td><td>bstr</td><td>op 為 2 且 status 為 0 時為存放的內容。其他情況為空</td></tr>
+</tbody>
+</table></div>
+<p><strong>協作節點</strong>必須只把存放的內容保存在記憶體中，不得寫入磁碟或記錄（slot 也不寫）。超過期限的內容，以及 oneTime 為 1 且已被取回 1 次的內容，要刪除。同一個 slot 已有存放的內容時，只有存放它的節點（PeerId）可以取代或刪除（沒有可刪除內容的刪除，視為完成）。必須對數量和頻率設定上限。ShogiBoardQ 的協作節點總共最多存放 4096 個，每個來源位址段最多 256 個；請求依來源位址段計算，最多連續 64 次，每秒恢復 4 次（PeerId 每次啟動都可以更換，所以依來源計數）。超過上限的請求回傳 status 2。</p>
+<p><strong>邀請方</strong>向使用者指定並已連線的協作節點中支援會合的所有節點（Identify 的 protocols 中有 <code>/shogiboardq/meet/1.0.0</code> 的節點），以 op 1、ttlSeconds 為到期限為止的秒數、oneTime 1 存放。一個也存放不了時，不附帶暗號。邀請被使用（包括以邀請字串使用）或被取消後，最好以 op 3 刪除。</p>
+<p><strong>申請方</strong>依序向支援會合的協作節點以 op 2 詢問，找到能解密的內容後停止。解密（驗證檢查）不通過的內容，不讀取其內容就捨棄。解密得到的明文，依與邀請字串的 body 相同的規則（<a href="#sec-5-3">第 5.3 節</a>）檢查。協作節點在內容被取回 1 次後就會刪除，所以讓使用者先確認內容再連線的實作，要把取回的邀請保留到連線為止（到期限為止）。不取回自己存放的 slot。取回失敗的原因（暗號不正確、已過期、已被取回、已被取消）無法區分。</p>
+<p>在期限內得知暗號的第三方，可以搶在被邀請者之前取回並連線（與邀請字串被他人得知時相同）。對手要以玩家ID 確認（<a href="#sec-3-5">第 3.5 節</a>）。協作節點的營運者可以阻止取回，但因為不知道金鑰，無法換成別的邀請。</p>
 </section>
 <section id="stream">
 <h2 id="sec-6">6. 對局串流與訊框</h2>
@@ -617,6 +659,7 @@ token = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 邀請方的 PeerId, 申請方的 Peer
 <li>接著傳送 HELLO（<a href="#sec-8-2">第 8.2 節</a>）。</li>
 </ol>
 <p>以暗號（<a href="#sec-5-4">第 5.4 節</a>）連線的申請方，把第 1 步換成：不指定 PeerId 地連線到暗號中的位址，以最先連上的對方的 PeerId 產生 token，並向該對方開啟串流（ShogiBoardQ 同時嘗試連線到暗號中的所有位址，等待連上位址的時間最長為 30 秒）。第 2、3 步相同。</p>
+<p>以使用協作節點的暗號（<a href="#sec-5-5">第 5.5 節</a>）連線的申請方，使用從協作節點取回的邀請中的位址和 token，依與邀請字串相同的第 1～3 步開啟串流。</p>
 <p><strong>邀請方</strong>對到達的串流，最多等待第一個訊框 5 秒，並依下列方式決定。</p>
 <ul>
 <li>第一個訊框是 INVITE_TOKEN，且其 token 與某個尚未使用、在有效期限內的邀請的 token 一致時，把該邀請標為已使用，並接受串流。比對以處理時間與內容無關的比較方式，對所有邀請進行。</li>
@@ -1232,6 +1275,10 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>暗號的長度</td><td>9～33 個字元（不含分隔符號）。位址 1～4 個，秘密 34～38 位元</td><td><a href="#sec-5-4">5.4</a></td></tr>
 <tr><td>暗號的金鑰衍生</td><td>Argon2id（版本 0x13、記憶體 65536 KiB、次數 2、平行度 1、輸出 32 位元組）</td><td><a href="#sec-5-4">5.4</a></td></tr>
 <tr><td>暗號 token 比對的失敗（ShogiBoardQ 的值）</td><td>最多連續 8 次。每 4 秒恢復 1 次</td><td><a href="#sec-5-4">5.4</a></td></tr>
+<tr><td>會合的協定</td><td><code>/shogiboardq/meet/1.0.0</code></td><td><a href="#sec-5-5">5.5</a></td></tr>
+<tr><td>使用協作節點的暗號</td><td>10 個字元（不含分隔符號）。秘密 45 位元</td><td><a href="#sec-5-5">5.5</a></td></tr>
+<tr><td>會合的請求、回應的長度</td><td>1～1200 位元組。存放的內容 40～1024 位元組，存放時間 1～600 秒</td><td><a href="#sec-5-5">5.5</a></td></tr>
+<tr><td>會合的上限（ShogiBoardQ 協作節點的值）</td><td>總共 4096 個，每個來源位址段 256 個。請求依來源位址段最多連續 64 次（每秒恢復 4 次）</td><td><a href="#sec-5-5">5.5</a></td></tr>
 <tr><td>等待串流第一個訊框的時間</td><td>5 秒</td><td><a href="#sec-6-3">6.3</a></td></tr>
 <tr><td>訊框的頻率</td><td>交換開始簽章之前每秒 5 個（突發 10），已交換的串流之後每秒 20 個（突發 40）。重新連線時開啟的串流維持每秒 5 個（突發 10）</td><td><a href="#sec-6-4">6.4</a></td></tr>
 <tr><td>顯示名稱</td><td>1〜32 個字元，96 位元組以下</td><td><a href="#sec-3-6">3.6</a></td></tr>
@@ -1267,6 +1314,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId 與 rulesHash（<a href="#sec-3-1">第 3.1 節</a>、<a href="#sec-7-1">第 7.1 節</a>）</td></tr>
 <tr><td><code>rules.txt</code></td><td><code>&lt;blackKind&gt; &lt;whiteKind&gt; &lt;hex(rulesHash)&gt; &lt;hex(CBOR(Rules))&gt;</code></td><td>各種對局者類別組合的 Rules（4 種）的位元組序列與雜湊（<a href="#sec-7-1">第 7.1 節</a>）</td></tr>
 <tr><td><code>code.txt</code></td><td><code>code &lt;暗號&gt; &lt;port 或 -&gt; &lt;位址,...&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;字串&gt;</code>／<code>key &lt;networkName&gt; &lt;暗號&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(key)&gt;</code>／<code>token &lt;hex(key)&gt; &lt;hex(邀請方的 PeerId)&gt; &lt;hex(申請方的 PeerId)&gt; &lt;hex(token)&gt;</code></td><td>暗號的形式、無法讀取的字串、金鑰與 token（<a href="#sec-5-4">第 5.4 節</a>）</td></tr>
+<tr><td><code>meet.txt</code></td><td><code>code &lt;暗號&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;字串&gt;</code>／<code>keys &lt;networkName&gt; &lt;暗號&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(master)&gt; &lt;hex(slot)&gt; &lt;hex(key)&gt;</code>／<code>blob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(nonce)&gt; &lt;hex(明文) 或 -&gt; &lt;hex(blob)&gt;</code>／<code>badblob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(blob)&gt;</code>／<code>request &lt;hex&gt;</code>、<code>badrequest &lt;hex&gt;</code>／<code>response &lt;hex&gt;</code>、<code>badresponse &lt;hex&gt;</code></td><td>使用協作節點的暗號與會合（<a href="#sec-5-5">第 5.5 節</a>）。<code>invalid</code> 是不能作為暗號讀取的字串，<code>badblob</code> 是無法解密的 blob，<code>badrequest</code>、<code>badresponse</code> 是無法讀取的請求、回應</td></tr>
 </tbody>
 </table></div>
 
@@ -1275,7 +1323,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <ol>
 <li><strong>確定性CBOR與雜湊</strong>：與第 15.1 節的輸入、附錄 A 的值一致。</li>
 <li><strong>憑證的驗證</strong>：讀取 ShogiBoardQ 儲存的 <code>.sbqmatch</code>，<a href="#sec-13-2">第 13.2 節</a>的驗證全部通過（這可以確認簽章的驗證，以及著手、局面、時間的計算都相符）。</li>
-<li><strong>邀請字串</strong>：能讀取 ShogiBoardQ 產生的邀請字串，且自己產生的邀請字串能以 ShogiBoardQ「透過邀請連線」中的「檢查」讀取。支援暗號時，能以 ShogiBoardQ 產生的暗號連線，且 ShogiBoardQ 能以自己產生的暗號連線。</li>
+<li><strong>邀請字串</strong>：能讀取 ShogiBoardQ 產生的邀請字串，且自己產生的邀請字串能以 ShogiBoardQ「透過邀請連線」中的「檢查」讀取。支援暗號時，能以 ShogiBoardQ 產生的暗號連線，且 ShogiBoardQ 能以自己產生的暗號連線。支援使用協作節點的暗號時，使用 ShogiBoardQ 的協作節點（<code>shogiboardq-peer --service --relay --meet</code>），能以 ShogiBoardQ 產生的暗號連線，且 ShogiBoardQ 能以自己產生的暗號連線。</li>
 <li><strong>連線與協商</strong>：把網路設為 <code>sbq-local-1</code>，與同一台電腦上的 ShogiBoardQ，在邀請方與被邀請方兩種角色下都能進行到條件確認畫面。</li>
 <li><strong>對局</strong>：在先手、後手兩種情況下，分別下到認輸、將死、超時負、協議和棋，雙方的憑證都成為「雙方已確定」。以 <code>shogiboardq-cli verify-match --input-path &lt;檔案&gt;</code> 驗證自己寫出的憑證，<code>valid</code> 為 true，<code>category</code> 為 <code>mutually_signed</code>。</li>
 <li><strong>由引擎下棋的對局</strong>（支援版本 2 時）：在邀請方與被邀請方兩種角色下，開始自己或對手的類別為 <code>"engine"</code> 的對局，確認條件確認畫面顯示對手的類別，並且憑證的 Rules 中保留了類別。只支援版本 1 的實作，確認會被在 ShogiBoardQ 中把「對局者」設為引擎的對手以 REJECT（UNSUPPORTED_VERSION）拒絕。</li>
@@ -1386,6 +1434,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文件版本</th><th>協定版本</th><th>相容實作是否需要修改</th><th>變更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-20.2</td><td>2</td><td>不需要（只有要支援使用協作節點的暗號時才需要）</td><td>增加了使用協作節點的暗號，以及協作節點的會合（<a href="#sec-4-1">第 4.1 節</a>、<a href="#sec-5-5">第 5.5 節</a>、<a href="#sec-6-3">第 6.3 節</a>、<a href="#sec-14">第 14 章</a>、<a href="#sec-15">第 15 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/826a5d9fc56dac084dc528d3dab38d4a792a6062">826a5d9f</a>）。這是因為 ShogiBoardQ 現在對透過網際網路的對手（使用協作節點的邀請），也只要告知 10 個字元的暗號就可以發出邀請。暗號只是 45 位元的秘密，不含連線位址。邀請方以由暗號衍生的金鑰（Argon2id）加密（XChaCha20-Poly1305）邀請字串的 body，透過協作節點的新協定 <code>/shogiboardq/meet/1.0.0</code> 存放；申請方以同一個暗號取回並解密。之後的步驟和 token 與邀請字串相同，邀請字串的形式、INVITE_TOKEN 的形式、對局的步驟都沒有改變。不支援的實作不需要修改，也可以照常以邀請字串對局。協作節點只有在使用 ShogiBoardQ 的節點並以 <code>--meet</code> 啟動時才接受會合（只是標準中繼節點的協作節點不會附帶暗號）。第 5.4 節的暗號沒有改變（把「該形式只在 <code>sbq-local-1</code> 中使用」一句改成了與第 5.5 節的暗號相區別的寫法）。測試輸入中增加了 <code>meet.txt</code>。</td></tr>
 <tr><td>2026-11-20.1</td><td>2</td><td>不需要（只有要支援暗號時才需要）</td><td>增加了同一區域網路邀請的簡短形式「暗號」（<a href="#sec-5-4">第 5.4 節</a>、<a href="#sec-6-3">第 6.3 節</a>、<a href="#sec-14">第 14 章</a>、<a href="#sec-15">第 15 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/bb24553c79f25b41160738cc6c70da14d7ec04c5">bb24553c</a>）。這是因為 ShogiBoardQ 現在只要把 12 個字元左右的暗號口頭告訴同一區域網路的對手，就可以發出邀請。暗號中放入邀請方在區域網路內的位址和簡短的秘密，與邀請字串指向同一個邀請，兩者只能擇一使用，且只能使用一次。申請方不指定 PeerId 地連線到暗號中的位址，把以由暗號衍生的金鑰（Argon2id）和雙方的 PeerId 產生的 token 以 INVITE_TOKEN 傳送。邀請字串的形式、INVITE_TOKEN 的形式、以邀請字串連線的步驟都沒有改變。不支援暗號的實作不需要修改，也可以照常以邀請字串對局（對於附帶暗號的邀請，ShogiBoardQ 也接受邀請字串的 token）。內文中把邀請的 token 稱為「通關密語」的地方改成了「權杖」（含義沒有改變）。測試輸入中增加了 <code>code.txt</code>。</td></tr>
 <tr><td>2026-11-20</td><td>2</td><td>不需要（只有要支援由引擎下棋的對局時才需要）</td><td>增加了協定版本 2（對局者類別。<a href="#sec-1-5">第 1.5 節</a>、<a href="#sec-7-1">第 7.1 節</a>、<a href="#sec-8-2">第 8.2 節</a>、<a href="#sec-8-3">第 8.3 節</a>、<a href="#sec-13">第 13 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/a8192d98a3790df05b074fd68843bb5a7e7713e1">a8192d98</a>）。這是因為 ShogiBoardQ 現在可以讓已註冊的引擎來下自己的著手。Rules 末尾的 2 個值（先手、後手的對局者類別）可以寫 <code>"engine"</code>，HELLO 中支援的版本清單改為 <code>[1, 2]</code>，由引擎下棋的邀請方的 HELLO 使用版本 2 的格式（末尾增加 playerKind）。申請方的類別透過 START_AGREEMENT 的 Rules 告知。雙方都是人類的對局仍與版本 1 的位元組序列相同，只支援版本 1 的實作不需修改即可與 ShogiBoardQ 進行人與人的對局（須接受含有 1 以外的值的支援版本清單）。由引擎下棋的對局不會與只支援版本 1 的對手開始，而是以 REJECT（UNSUPPORTED_VERSION）拒絕。在 <code>verify-match</code> 的結果中增加了 <code>black_player_kind</code>、<code>white_player_kind</code>，在附錄 A.1 中增加了各類別組合的 rulesHash，在測試輸入中增加了 <code>rules.txt</code>。</td></tr>
 <tr><td>2026-11-15.1</td><td>1</td><td>不需要</td><td>增加了選擇開啟對局串流的連線的方法（<a href="#sec-6-3">第 6.3 節</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/78c04567189db3c6542211d181f842f1deb1dbd8">78c04567</a>）。ShogiBoardQ 以前在經由中繼連線後立即開啟對局串流，因此即使之後透過 DCUtR 建立了直接連線，訊框仍然一直經過中繼。現在申請方最多等待 3 秒直接連線的建立，建立後先關閉經由中繼的連線，再在直接連線上開啟串流。訊框的格式和步驟沒有改變。進行 DCUtR 的相容實作最好也這樣做。</td></tr>
