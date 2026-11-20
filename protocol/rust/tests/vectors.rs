@@ -3,6 +3,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
 
 use sbq_protocol::code::{self, Code};
+use sbq_protocol::meet::{self, MeetCode};
 use sbq_protocol::{cbor, frame, hash, network};
 
 fn read_vectors(name: &str) -> Vec<(String, String)> {
@@ -113,6 +114,83 @@ fn code_vectors() {
                 let invitee = hash::from_hex(fields[2]).unwrap();
                 assert_eq!(hash::hex(&code::token(&key, &inviter, &invitee)), fields[3]);
                 counts[3] += 1;
+            }
+            other => panic!("unknown kind {other}"),
+        }
+    }
+    assert!(counts.iter().all(|c| *c >= 2), "{counts:?}");
+}
+
+#[test]
+fn meet_vectors() {
+    let mut counts = [0usize; 9];
+    for (kind, value) in read_vectors("meet.txt") {
+        let fields: Vec<&str> = value.split(' ').collect();
+        let bytes = |s: &str| hash::from_hex(s).unwrap_or_else(|| panic!("hex {s}"));
+        let key_of = |s: &str| -> [u8; 32] { bytes(s).try_into().unwrap() };
+        match kind.as_str() {
+            "code" => {
+                assert_eq!(fields.len(), 2, "{value}");
+                let secret = u64::from_str_radix(fields[1], 16).unwrap();
+                let decoded = MeetCode::decode(fields[0]).unwrap_or_else(|| panic!("{} should be readable", fields[0]));
+                assert_eq!(decoded.secret, secret, "{value}");
+                assert_eq!(decoded.encode().as_deref(), Some(fields[0]));
+                // 同じ LAN の合言葉としては読めない
+                assert!(Code::decode(fields[0]).is_none(), "{value}");
+                counts[0] += 1;
+            }
+            "invalid" => {
+                assert!(MeetCode::decode(&value).is_none(), "{value} should be unreadable");
+                counts[1] += 1;
+            }
+            "keys" => {
+                assert_eq!(fields.len(), 7, "{value}");
+                let network_id = network::network_id(fields[0]);
+                let decoded = MeetCode::decode(fields[1]).unwrap();
+                assert_eq!(hash::hex(&decoded.secret.to_be_bytes()), fields[2]);
+                assert_eq!(hash::hex(&MeetCode::salt(&network_id).unwrap()), fields[3]);
+                let keys = decoded.derive(&network_id).unwrap();
+                assert_eq!(hash::hex(&keys.master), fields[4]);
+                assert_eq!(hash::hex(&keys.slot), fields[5]);
+                assert_eq!(hash::hex(&keys.key), fields[6]);
+                assert_eq!(meet::keys_from(&key_of(fields[4])), keys);
+                counts[2] += 1;
+            }
+            "blob" => {
+                assert_eq!(fields.len(), 5, "{value}");
+                let network_id = network::network_id(fields[0]);
+                let key = key_of(fields[1]);
+                let nonce: [u8; meet::NONCE_BYTES] = bytes(fields[2]).try_into().unwrap();
+                let plain = if fields[3] == "-" { Vec::new() } else { bytes(fields[3]) };
+                let blob = bytes(fields[4]);
+                assert_eq!(meet::seal(&key, &network_id, &nonce, &plain).unwrap(), blob, "{value}");
+                assert_eq!(meet::open(&key, &network_id, &blob).unwrap(), plain, "{value}");
+                counts[3] += 1;
+            }
+            "badblob" => {
+                assert_eq!(fields.len(), 3, "{value}");
+                let network_id = network::network_id(fields[0]);
+                assert!(meet::open(&key_of(fields[1]), &network_id, &bytes(fields[2])).is_none(), "{value}");
+                counts[4] += 1;
+            }
+            "request" => {
+                let request = meet::Request::decode(&bytes(&value)).unwrap_or_else(|| panic!("{value} should be valid"));
+                assert_eq!(hash::hex(&request.encode()), value);
+                counts[5] += 1;
+            }
+            "badrequest" => {
+                assert!(meet::Request::decode(&bytes(&value)).is_none(), "{value} should be invalid");
+                counts[6] += 1;
+            }
+            "response" => {
+                let response =
+                    meet::Response::decode(&bytes(&value)).unwrap_or_else(|| panic!("{value} should be valid"));
+                assert_eq!(hash::hex(&response.encode()), value);
+                counts[7] += 1;
+            }
+            "badresponse" => {
+                assert!(meet::Response::decode(&bytes(&value)).is_none(), "{value} should be invalid");
+                counts[8] += 1;
             }
             other => panic!("unknown kind {other}"),
         }

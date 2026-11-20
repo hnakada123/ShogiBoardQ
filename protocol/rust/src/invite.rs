@@ -70,15 +70,20 @@ impl Invite {
         ])
     }
 
-    /// 招待文字列にする（上限を超えれば None）
-    pub fn encode(&self) -> Option<String> {
+    /// 招待の本体（決定的CBOR。招待文字列の中身で、協力ノードに預ける招待の平文でもある）。上限を超えれば None
+    pub fn to_body(&self) -> Option<Vec<u8>> {
         if self.addrs.len() > MAX_ADDRS || self.addrs.iter().any(|a| a.is_empty() || a.len() > MAX_ADDR_BYTES) {
             return None;
         }
         if !peerid::is_ed25519(&self.peer_id) {
             return None;
         }
-        let body = encode(&self.body_value());
+        Some(encode(&self.body_value()))
+    }
+
+    /// 招待文字列にする（上限を超えれば None）
+    pub fn encode(&self) -> Option<String> {
+        let body = self.to_body()?;
         let checksum = sha256(&body);
         let s = format!(
             "{}{}.{}",
@@ -112,7 +117,12 @@ impl Invite {
         if hex(checksum.get(..4).ok_or(InviteError::Invalid)?) != checksum_text {
             return Err(InviteError::Invalid);
         }
-        let value = decode(&body).map_err(|_| InviteError::Invalid)?;
+        Invite::from_body(&body)
+    }
+
+    /// 招待の本体（決定的CBOR）を読む。形だけを確かめ、期限・ネットワークは `check` で確かめる
+    pub fn from_body(body: &[u8]) -> Result<Invite, InviteError> {
+        let value = decode(body).map_err(|_| InviteError::Invalid)?;
         let items = labeled(&value, "SBQ-INVITE", 1, 7).ok_or(InviteError::Invalid)?;
         let network_id = items
             .first()

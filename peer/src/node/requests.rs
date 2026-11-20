@@ -9,9 +9,11 @@ use rand::RngCore;
 use sbq_protocol::code::Code;
 use sbq_protocol::frame;
 use sbq_protocol::invite::{self, Invite, InviteError};
+use sbq_protocol::meet::MeetCode;
 use sbq_protocol::network::Profile;
 use serde_json::{json, Value};
 
+use super::meets::Purpose;
 use super::streams::Internal;
 use super::{unix_now, ConnState, Node, MAX_GAME_CONNECTIONS};
 use crate::addr::{self, AddrPolicy};
@@ -41,21 +43,27 @@ enum Target {
         peer: PeerId,
         addrs: Vec<Multiaddr>,
     },
-    /// 合言葉（addrs は、合言葉の宛先から自分の待受を除いたもの）
+    /// 同じ LAN の合言葉（addrs は、合言葉の宛先から自分の待受を除いたもの）
     Code { code: Code, addrs: Vec<Multiaddr> },
+    /// 協力ノードを使う合言葉（招待は、協力ノードから引き取る）
+    Meet { code: MeetCode },
 }
 
-/// 合言葉の鍵を作り終えた招待（createInvite の応答を、鍵を作ってから返す）
+/// 合言葉を付け終えた招待（createInvite の応答を、合言葉の鍵を作ってから返す）
 pub struct ReadyInvite {
     request_id: String,
     /// 鍵を作り始めたときの番号（その後に招待が取り消されていれば、足さない）
     epoch: u64,
     invite: String,
     token: [u8; 32],
-    expires_at: u64,
+    pub(super) expires_at: u64,
     address_count: usize,
-    /// 合言葉と鍵（作れなければ None。招待文字列だけの招待にする）
-    code: Option<(String, [u8; 32])>,
+    /// 合言葉（付けられなければ空。招待文字列だけの招待にする）
+    pub(super) code: String,
+    /// 同じ LAN の合言葉の鍵（その合言葉を付けたときだけ）
+    code_key: Option<[u8; 32]>,
+    /// 協力ノードに預けた番号（協力ノードを使う合言葉を付けたときだけ）
+    pub(super) meet_slot: Option<[u8; 32]>,
 }
 
 /// 要求の引数の PeerId を表記から読む（Ed25519 の identity multihash に限る）
@@ -84,7 +92,12 @@ impl Node {
                 self.cancel_invites();
                 json!({})
             }),
-            Method::InspectInvite => self.inspect_invite(&request),
+            Method::InspectInvite => match self.inspect_invite(&request) {
+                Ok(Some(value)) => Ok(value),
+                // 応答は、協力ノードから招待を引き取ってから返す（on_meet_fetched）
+                Ok(None) => return,
+                Err(e) => Err(e),
+            },
             Method::ConnectInvite => self.connect_invite(&request),
             Method::SetGamePeer => self.set_game_peer(&request),
             Method::ConnectPeer => self.connect_peer(&request),
@@ -125,9 +138,11 @@ impl Node {
     fn cancel_invites(&mut self) {
         self.invites.clear();
         self.invite_epoch = self.invite_epoch.wrapping_add(1);
+        self.release_meets();
     }
 
-    /// 招待を作る。同じ LAN の相手と直接つなぐときは合言葉も付けるので、応答は鍵を作ってから返す
+    /// 招待を作る。合言葉も付けるときは（同じ LAN の相手と直接つなぐとき・待ち合わせに対応した協力ノードに
+    /// つながっているとき）、応答は鍵を作ってから返す
     fn create_invite(&mut self, request_id: &str) -> Result<(), (&'static str, String)> {
         let mut token = [0u8; 32];
         rand::rngs::OsRng.fill_bytes(&mut token);
@@ -151,17 +166,27 @@ impl Node {
             token,
             expires_at,
             address_count,
-            code: None,
+            code: String::new(),
+            code_key: None,
+            meet_slot: None,
         };
         let Some(code) = self.code_for_invite() else {
-            self.on_invite_ready(ready);
+            // 同じ LAN の合言葉を付けられないときは、協力ノードを使う合言葉を付ける。接続先の入っていない招待は
+            // 相手がつなげないので、付けない
+            match inv.to_body() {
+                Some(body) if address_count > 0 && self.can_meet() => self.start_meet_invite(ready, body),
+                _ => self.on_invite_ready(ready),
+            }
             return Ok(());
         };
         // 鍵の導出は時間とメモリを使うので、主ループの外で行う
         let internal = self.internal.clone();
         let network_id = self.network_id;
         tokio::task::spawn_blocking(move || {
-            ready.code = code.encode().zip(code.derive_key(&network_id));
+            if let Some((text, key)) = code.encode().zip(code.derive_key(&network_id)) {
+                ready.code = text;
+                ready.code_key = Some(key);
+            }
             let _ = internal.send(Internal::InviteReady(ready));
         });
         Ok(())
@@ -170,29 +195,29 @@ impl Node {
     /// 作った招待を覚えて、createInvite の応答を返す
     pub(super) fn on_invite_ready(&mut self, ready: ReadyInvite) {
         if ready.epoch != self.invite_epoch {
+            // 取り消された招待を協力ノードに預けていたら、消す
+            self.delete_meets(ready.meet_slot.into_iter().collect());
             self.out
                 .error(&ready.request_id, "invalid_state", "invites were cancelled");
             return;
         }
-        let (code, key) = match ready.code {
-            Some((code, key)) => (code, Some(key)),
-            None => (String::new(), None),
-        };
-        self.invites.add(ready.token, key, ready.expires_at);
+        self.invites
+            .add(ready.token, ready.code_key, ready.meet_slot, ready.expires_at);
+        // 上限で押し出された招待を協力ノードに預けていたら、消す
+        self.release_meets();
         self.out.result(
             &ready.request_id,
             json!({
                 "invite": ready.invite,
-                "code": code,
+                "code": ready.code,
                 "expiresAt": ready.expires_at.to_string(),
                 "addressCount": ready.address_count,
             }),
         );
     }
 
-    /// 招待文字列を読み、今のネットワークで使えるか確かめる
-    fn read_invite(&self, text: &str) -> Result<Target, (&'static str, String)> {
-        let inv = Invite::decode(text).map_err(invite_error)?;
+    /// 読んだ招待が今のネットワークで使えるか確かめ、相手の PeerId と宛先を取り出す
+    fn check_invite(&self, inv: Invite) -> Result<(Invite, PeerId, Vec<Multiaddr>), (&'static str, String)> {
         inv.check(unix_now(), &self.network_id, &self.local_peer.to_bytes())
             .map_err(invite_error)?;
         let peer = PeerId::from_bytes(&inv.peer_id).map_err(|_| invite_error(InviteError::Invalid))?;
@@ -201,10 +226,26 @@ impl Node {
             let a = Multiaddr::try_from(bytes.clone()).map_err(|_| invite_error(InviteError::Invalid))?;
             addrs.push(addr::without_peer_id(&a));
         }
+        Ok((inv, peer, addrs))
+    }
+
+    /// 招待文字列を読み、今のネットワークで使えるか確かめる
+    fn read_invite(&self, text: &str) -> Result<Target, (&'static str, String)> {
+        let inv = Invite::decode(text).map_err(invite_error)?;
+        let (inv, peer, addrs) = self.check_invite(inv)?;
         Ok(Target::Invite { inv, peer, addrs })
     }
 
-    /// 合言葉を読み、今のネットワークで使えるか確かめる（合言葉は同じ LAN の相手の宛先なので、ローカルだけ）
+    /// 協力ノードから引き取って復号した招待の本体を読み、今のネットワークで使えるか確かめる
+    pub(super) fn read_invite_body(
+        &self,
+        body: &[u8],
+    ) -> Result<(Invite, PeerId, Vec<Multiaddr>), (&'static str, String)> {
+        let inv = Invite::from_body(body).map_err(invite_error)?;
+        self.check_invite(inv)
+    }
+
+    /// 同じ LAN の合言葉を読み、今のネットワークで使えるか確かめる（相手の LAN の中の宛先なので、ローカルだけ）
     fn read_code(&self, text: &str) -> Result<Target, (&'static str, String)> {
         let code = Code::decode(text).ok_or_else(|| invite_error(InviteError::Invalid))?;
         if self.spec.profile != Profile::Local {
@@ -217,22 +258,41 @@ impl Node {
         Ok(Target::Code { code, addrs })
     }
 
-    /// 招待の要求の文字列（招待文字列か合言葉）を読む
+    /// 招待の要求の文字列（招待文字列か合言葉）を読む。合言葉の種類は形で決まる（協力ノードを使う合言葉は 10 文字で、
+    /// 検査の文字の作り方も違う。同じ LAN の合言葉として読めるものと重ならない）
     fn read_target(&self, text: &str) -> Result<Target, (&'static str, String)> {
         if text.trim_start().starts_with(invite::PREFIX) {
             self.read_invite(text)
+        } else if let Some(code) = MeetCode::decode(text) {
+            Ok(Target::Meet { code })
         } else {
             self.read_code(text)
         }
     }
 
-    fn inspect_invite(&mut self, request: &Request) -> ReqResult {
+    /// inspectInvite の応答。協力ノードから招待を引き取ってから返すときは None
+    fn inspect_invite(&mut self, request: &Request) -> Result<Option<Value>, (&'static str, String)> {
         let p: ipc::InviteParams = ipc::params(request).map_err(invalid)?;
         let (kind, peer_id, expires_at, addrs) = match self.read_target(&p.invite)? {
             Target::Invite { inv, peer, addrs } => ("invite", peer.to_base58(), inv.expires_at, addrs),
-            // 合言葉には、相手の PeerId も期限も入っていない
+            // 同じ LAN の合言葉には、相手の PeerId も期限も入っていない
             Target::Code { addrs, .. } => ("code", String::new(), 0, addrs),
+            Target::Meet { code } => match self.cached_meet(&code) {
+                Some(f) => ("meetCode", f.peer.to_base58(), f.inv.expires_at, f.addrs.clone()),
+                None => {
+                    let purpose = Purpose::Inspect {
+                        request_id: request.request_id.clone(),
+                    };
+                    self.start_meet_fetch(code, purpose)?;
+                    return Ok(None);
+                }
+            },
         };
+        Ok(Some(self.inspect_result(kind, &peer_id, expires_at, &addrs)))
+    }
+
+    /// inspectInvite の応答の中身
+    pub(super) fn inspect_result(&self, kind: &str, peer_id: &str, expires_at: u64, addrs: &[Multiaddr]) -> Value {
         let usable = addrs.iter().filter(|a| self.policy.usable(a)).count();
         let private: Vec<String> = if self.spec.profile == Profile::Internet {
             addrs
@@ -243,14 +303,14 @@ impl Node {
         } else {
             Vec::new()
         };
-        Ok(json!({
+        json!({
             "kind": kind,
             "peerId": peer_id,
             "expiresAt": expires_at.to_string(),
             "addressCount": addrs.len(),
             "usableAddressCount": usable,
             "privateAddresses": private,
-        }))
+        })
     }
 
     fn check_capacity(&self) -> Result<(), (&'static str, String)> {
@@ -271,16 +331,50 @@ impl Node {
                 self.start_code_connect(conn, code, usable);
                 return Ok(json!({ "connection": conn.to_string() }));
             }
+            Target::Meet { code } => {
+                self.check_capacity()?;
+                match self.take_cached_meet(&code) {
+                    // 確かめた（inspectInvite）ときに引き取った招待
+                    Some(f) => (f.inv, f.peer, f.addrs),
+                    None => {
+                        // 協力ノードから引き取ってからつなぐ（結果は connectionOpened・connectionClosed で知らせる）
+                        if !self.can_meet() {
+                            return Err(("invite_no_node", "no node for passcodes is connected".to_owned()));
+                        }
+                        let conn = self.alloc_conn();
+                        let purpose = Purpose::Connect {
+                            conn,
+                            allow_private: p.allow_private,
+                        };
+                        self.start_meet_fetch(code, purpose)?;
+                        self.meets.connects.insert(conn);
+                        return Ok(json!({ "connection": conn.to_string() }));
+                    }
+                }
+            }
         };
         self.check_capacity()?;
-        if p.allow_private && self.spec.profile == Profile::Internet {
+        let conn = self.alloc_conn();
+        self.connect_to_invite(conn, inv.token, peer, addrs, p.allow_private);
+        Ok(json!({ "connection": conn.to_string() }))
+    }
+
+    /// 招待の相手へつなぎ始める（招待文字列と、協力ノードから引き取った招待で共通）
+    pub(super) fn connect_to_invite(
+        &mut self,
+        conn: u64,
+        token: [u8; 32],
+        peer: PeerId,
+        addrs: Vec<Multiaddr>,
+        allow_private: bool,
+    ) {
+        if allow_private && self.spec.profile == Profile::Internet {
             for a in addrs.iter().filter(|a| AddrPolicy::is_private(a)) {
                 self.policy.allow_private(a);
             }
         }
         let had_addrs = !addrs.is_empty();
         let usable = self.policy.filter_addrs(addrs);
-        let conn = self.alloc_conn();
         if usable.is_empty() && !self.swarm.is_connected(&peer) {
             // 「直接接続を使わない」のときは、自分の協力ノードの中継を通る宛先が招待に無ければつながない
             let reason = if self.policy.relay_only() && had_addrs {
@@ -300,9 +394,8 @@ impl Node {
             );
             let _ = self.internal.send(super::Internal::OutboundFailed { conn, reason });
         } else {
-            self.start_outbound(conn, peer, usable, Some(inv.token), ipc::Origin::Invite);
+            self.start_outbound(conn, peer, usable, Some(token), ipc::Origin::Invite);
         }
-        Ok(json!({ "connection": conn.to_string() }))
     }
 
     fn set_game_peer(&mut self, request: &Request) -> ReqResult {
@@ -365,7 +458,10 @@ impl Node {
     fn close_connection(&mut self, request: &Request) -> ReqResult {
         let p: ipc::ConnectionParams = ipc::params(request).map_err(invalid)?;
         let conn = Self::parse_conn(&p.connection)?;
-        if !self.conns.contains_key(&conn) && !self.code_connects.contains_key(&conn) {
+        if !self.conns.contains_key(&conn)
+            && !self.code_connects.contains_key(&conn)
+            && !self.meets.connects.contains(&conn)
+        {
             return Err(("unknown_connection", "unknown connection".to_owned()));
         }
         self.close_conn(conn, ipc::CloseReason::Closed, false);

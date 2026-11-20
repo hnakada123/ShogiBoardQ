@@ -295,7 +295,7 @@ bool checkResult(const QString& method, const QJsonObject& result)
                                     {"addressCount", integer(0, 8)}});
     }
     if (method == QLatin1String(kInspectInvite)) {
-        if (!exactFields(result, {{"kind", oneOf({"invite", "code"})},
+        if (!exactFields(result, {{"kind", oneOf({"invite", "code", "meetCode"})},
                                   {"peerId", str(128)},
                                   {"expiresAt", u64()},
                                   {"addressCount", integer(0, 8)},
@@ -303,7 +303,8 @@ bool checkResult(const QString& method, const QJsonObject& result)
                                   {"privateAddresses", stringArray(8, 256)}})) {
             return false;
         }
-        // 合言葉には相手の PeerId も期限も入っていない。招待文字列は PeerId を必ず持つ
+        // 同じ LAN の合言葉には相手の PeerId も期限も入っていない。招待文字列と、協力ノードから引き取った招待は
+        // PeerId を必ず持つ
         const QJsonValue peerId = result.value(QStringLiteral("peerId"));
         if (result.value(QStringLiteral("kind")).toString() == QLatin1String("code")) {
             return peerId.toString().isEmpty() && parseU64(result.value(QStringLiteral("expiresAt"))) == quint64(0);
@@ -434,7 +435,9 @@ std::optional<Reply> readReply(const QString& method, const QJsonObject& result)
     }
     if (method == QLatin1String(kInspectInvite)) {
         InspectedInvite info;
-        info.isCode = result.value(QStringLiteral("kind")).toString() == QLatin1String("code");
+        const QString kind = result.value(QStringLiteral("kind")).toString();
+        info.kind = kind == QLatin1String("code") ? InviteKind::LanCode
+                    : kind == QLatin1String("meetCode") ? InviteKind::NodeCode : InviteKind::Invite;
         info.peerId = result.value(QStringLiteral("peerId")).toString();
         info.expiresAt = parseU64(result.value(QStringLiteral("expiresAt"))).value_or(0);
         info.addressCount = result.value(QStringLiteral("addressCount")).toInt();
@@ -459,6 +462,8 @@ std::optional<InviteRejection> inviteRejection(const QString& method, const QStr
     if (code == QLatin1String("invite_expired")) return InviteRejection::Expired;
     if (code == QLatin1String("invite_wrong_network")) return InviteRejection::WrongNetwork;
     if (code == QLatin1String("invite_own")) return InviteRejection::Own;
+    if (code == QLatin1String("invite_not_found")) return InviteRejection::NotFound;
+    if (code == QLatin1String("invite_no_node")) return InviteRejection::NoNode;
     return InviteRejection::Unreadable;
 }
 

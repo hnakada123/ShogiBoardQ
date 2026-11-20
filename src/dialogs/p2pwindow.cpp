@@ -232,8 +232,9 @@ QWidget* P2pWindow::createInviteTab()
 
     auto* createBox = new QGroupBox(tr("相手を招待する"), tab);
     auto* createLayout = new QVBoxLayout(createBox);
-    createLayout->addWidget(plainLabel(createBox, tr("招待を作ると、招待文字列ができます。「ローカル（同じPC・同じLAN）」では、口頭でも伝えられる短い合言葉も"
-                                                     "できます。どちらにも、あなたへの接続先が入ります（「直接接続を使わない」設定でなければ、"
+    createLayout->addWidget(plainLabel(createBox, tr("招待を作ると、招待文字列と、口頭でも伝えられる短い合言葉ができます（合言葉は、「ローカル（同じPC・同じLAN）」か、"
+                                                     "合言葉に対応した協力ノードを使うとき）。招待には、あなたへの接続先が入ります"
+                                                     "（「直接接続を使わない」設定でなければ、"
                                                      "あなたのIPアドレスも入ります）。相手だけに伝え、公開の場所に貼らないでください。"
                                                      "招待は10分で使えなくなり、合言葉と招待文字列のどちらかで1回だけ使えます。"
                                                      "持ち時間・先後・対局者は「接続と条件」の条件を使います。")));
@@ -733,16 +734,20 @@ void P2pWindow::onInspectInvite()
     m_inviteInInfo->setText(tr("確かめています…"));
     const QString input = m_inviteIn->toPlainText();
     m_inviteInIsCode = !P2pWindowText::isInviteString(input);
+    m_inviteInHasAddress = false;
     emit inspectInviteRequested(P2pWindowText::inviteInput(input));
 }
 
 void P2pWindow::onInviteInspected(const P2pLobbyService::InviteInfo& info)
 {
     QStringList lines;
-    if (info.isCode) {
-        // 合言葉には、相手の PeerId と期限が入っていない（期限は招待した側が確かめる）
+    m_inviteInHasAddress = info.kind == PeerIpc::InviteKind::LanCode;
+    if (info.kind == PeerIpc::InviteKind::LanCode) {
+        // 同じ LAN の合言葉には、相手の PeerId と期限が入っていない（期限は招待した側が確かめる）
         lines << tr("合言葉を読みました（同じLANの相手の招待）。");
     } else {
+        // 協力ノードを使う合言葉は、協力ノードから引き取った招待の中身が分かる
+        if (info.kind == PeerIpc::InviteKind::NodeCode) lines << tr("合言葉の招待を、協力ノードから受け取りました。");
         lines << tr("招待した相手のPeerId: %1…").arg(info.peerId.left(16));
         lines << tr("期限: %1").arg(dateText(info.expiresAt));
     }
@@ -778,10 +783,20 @@ void P2pWindow::onInviteRejected(PeerIpc::InviteRejection rejection)
     if (m_inviteInIsCode) {
         switch (rejection) {
         case PeerIpc::InviteRejection::WrongNetwork:
-            text = tr("合言葉は、「ローカル（同じPC・同じLAN）」で接続しているときに使えます。");
+            // 同じ LAN の合言葉（相手の LAN の中の接続先が入っている）を、「インターネット」で入力した
+            text = tr("この合言葉は、同じLANの相手の招待のものです。「ローカル（同じPC・同じLAN）」で接続しているときに使えます。");
             break;
         case PeerIpc::InviteRejection::Own: text = tr("自分が作った合言葉です。"); break;
         case PeerIpc::InviteRejection::Expired:
+        case PeerIpc::InviteRejection::NotFound:
+            // 協力ノードを使う合言葉: 協力ノードは、期限が過ぎた・1回引き取られた招待を消すので、理由を見分けられない
+            text = tr("この合言葉の招待が見つかりません。合言葉が違うか、期限（10分）が過ぎたか、もう使われています。"
+                      "相手に新しい招待を作ってもらってください。");
+            break;
+        case PeerIpc::InviteRejection::NoNode:
+            text = tr("この合言葉の招待は、協力ノードから受け取ります。招待した人と同じ協力ノード（合言葉に対応したもの）を"
+                      "「設定」の「接続候補」に入れて、接続し直してください。");
+            break;
         case PeerIpc::InviteRejection::Unreadable:
             text = tr("合言葉を読めません。入力した文字を確かめてください。");
             break;
@@ -791,10 +806,14 @@ void P2pWindow::onInviteRejected(PeerIpc::InviteRejection rejection)
         case PeerIpc::InviteRejection::Expired: text = tr("招待文字列の期限が過ぎています。"); break;
         case PeerIpc::InviteRejection::WrongNetwork: text = tr("別のネットワークの招待文字列です。"); break;
         case PeerIpc::InviteRejection::Own: text = tr("自分が作った招待文字列です。"); break;
+        // 協力ノードへの問い合わせは合言葉だけなので、招待文字列では起きない
+        case PeerIpc::InviteRejection::NotFound:
+        case PeerIpc::InviteRejection::NoNode:
         case PeerIpc::InviteRejection::Unreadable: text = tr("招待文字列を読めません。"); break;
         }
     }
     m_inviteInInfo->setText(text);
+    growToFit();
 }
 
 void P2pWindow::clearConnectProgress()
@@ -827,8 +846,8 @@ void P2pWindow::onConnectFailed(PeerIpc::CloseReason reason)
                   "相手と同じ協力ノードを「設定」の「接続候補」に入れる必要があります。");
     } else {
         text = reason == PeerIpc::CloseReason::Timeout ? tr("相手に接続できませんでした（時間切れ）。") : tr("相手に接続できませんでした。");
-        if (m_inviteInIsCode) {
-            // 合言葉には接続先が入っている。1文字違うと別の PC を指すことがある
+        if (m_inviteInIsCode && m_inviteInHasAddress) {
+            // 同じ LAN の合言葉には接続先が入っている。1文字違うと別の PC を指すことがある
             text += QLatin1Char('\n') + tr("合言葉が正しいか、招待した側のアプリが接続したままかを確かめてください。");
         }
         if (m_lobby && m_lobby->isLocalProfile()) {

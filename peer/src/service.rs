@@ -1,6 +1,7 @@
 //! 協力ノード（--service。protocol/ipc.md 7章）
 //!
-//! 利用者のアプリが最初に接続する相手になり、到達性の確認（AutoNAT）に応え、設定すれば中継（--relay）を受け持つ。
+//! 利用者のアプリが最初に接続する相手になり、到達性の確認（AutoNAT）に応え、設定すれば中継（--relay）と、
+//! 合言葉の待ち合わせ（--meet。中身の分からない小さなデータを、短い時間だけ預かる）を受け持つ。
 //! 対局ストリームは受け付けず、指し手も対局者の ID も読まない。接続元の IP はログに書かない。
 //! 識別鍵のファイルを読んだ（なければ作った）後に権限の制限を掛ける。
 
@@ -21,6 +22,7 @@ struct ServiceArgs {
     listen: Vec<Multiaddr>,
     bootstrap: Vec<String>,
     relay: bool,
+    meet: bool,
 }
 
 fn parse_args(args: &[String]) -> Result<ServiceArgs, String> {
@@ -29,6 +31,7 @@ fn parse_args(args: &[String]) -> Result<ServiceArgs, String> {
     let mut listen = Vec::new();
     let mut bootstrap = Vec::new();
     let mut relay = false;
+    let mut meet = false;
     let mut it = args.iter();
     while let Some(arg) = it.next() {
         match arg.as_str() {
@@ -40,6 +43,7 @@ fn parse_args(args: &[String]) -> Result<ServiceArgs, String> {
             }
             "--bootstrap" => bootstrap.push(it.next().ok_or("--bootstrap needs a value")?.clone()),
             "--relay" => relay = true,
+            "--meet" => meet = true,
             other => return Err(format!("unknown option {other}")),
         }
     }
@@ -49,6 +53,7 @@ fn parse_args(args: &[String]) -> Result<ServiceArgs, String> {
         listen,
         bootstrap,
         relay,
+        meet,
     })
 }
 
@@ -114,15 +119,21 @@ pub struct Counts {
     pub peers: usize,
     /// 中継している回路の数（中継を受け持つとき（--relay）だけ）
     pub relays: Option<usize>,
+    /// 待ち合わせで預かっている件数（待ち合わせを受け持つとき（--meet）だけ）
+    pub meets: Option<usize>,
 }
 
-/// 標準エラーへ書く行。つながっている相手の数と、中継を受け持つときは中継している回路の数だけを書く
-/// （接続元の IP もピアの ID も書かない）
+/// 標準エラーへ書く行。つながっている相手の数と、中継を受け持つときは中継している回路の数、待ち合わせを
+/// 受け持つときは預かっている件数だけを書く（接続元の IP もピアの ID も、預かったものの番号も書かない）
 pub fn log_line(counts: Counts) -> String {
-    match counts.relays {
-        Some(relays) => format!("shogiboardq-peer: peers={} relays={relays}", counts.peers),
-        None => format!("shogiboardq-peer: peers={}", counts.peers),
+    let mut line = format!("shogiboardq-peer: peers={}", counts.peers);
+    if let Some(relays) = counts.relays {
+        line.push_str(&format!(" relays={relays}"));
     }
+    if let Some(meets) = counts.meets {
+        line.push_str(&format!(" meets={meets}"));
+    }
+    line
 }
 
 /// 前に書いた数から変わっていれば、書く行を返す（起動した直後の最初の数も書く）。決まった間隔では書かない
@@ -179,6 +190,7 @@ pub fn run(args: &[String]) -> i32 {
             relay_only: false,
             service: true,
             relay_server: args.relay,
+            meet_server: args.meet,
             listen: args.listen.into_iter().map(|addr| vec![addr]).collect(),
         };
         let mut node = match Node::create(&out, config) {
@@ -200,7 +212,11 @@ mod tests {
     use super::*;
 
     fn counts(peers: usize, relays: Option<usize>) -> Counts {
-        Counts { peers, relays }
+        Counts {
+            peers,
+            relays,
+            meets: None,
+        }
     }
 
     #[test]
@@ -209,6 +225,14 @@ mod tests {
         assert_eq!(log_line(counts(0, Some(0))), "shogiboardq-peer: peers=0 relays=0");
         // --relay を付けていない協力ノードは、中継の数を書かない
         assert_eq!(log_line(counts(2, None)), "shogiboardq-peer: peers=2");
+        // --meet を付けた協力ノードは、預かっている件数も書く
+        let with_meets = |relays| Counts {
+            peers: 2,
+            relays,
+            meets: Some(3),
+        };
+        assert_eq!(log_line(with_meets(Some(1))), "shogiboardq-peer: peers=2 relays=1 meets=3");
+        assert_eq!(log_line(with_meets(None)), "shogiboardq-peer: peers=2 meets=3");
     }
 
     #[test]

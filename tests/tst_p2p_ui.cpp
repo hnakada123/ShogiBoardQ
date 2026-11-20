@@ -369,7 +369,7 @@ private slots:
 
         // 合言葉を確かめた結果には、相手の PeerId と期限を出さない（合言葉に入っていない）
         P2pLobbyService::InviteInfo info;
-        info.isCode = true;
+        info.kind = PeerIpc::InviteKind::LanCode;
         info.addressCount = 2;
         info.usableAddressCount = 2;
         emit lobby.inviteInspected(info);
@@ -384,6 +384,23 @@ private slots:
         QVERIFY(result->text().contains(QStringLiteral("ローカル")));
         emit lobby.inviteRejected(PeerIpc::InviteRejection::Own);
         QCOMPARE(result->text(), QStringLiteral("自分が作った合言葉です。"));
+        // 協力ノードを使う合言葉: 招待が見つからない・問い合わせる協力ノードが無い
+        emit lobby.inviteRejected(PeerIpc::InviteRejection::NotFound);
+        QVERIFY(result->text().contains(QStringLiteral("この合言葉の招待が見つかりません")));
+        emit lobby.inviteRejected(PeerIpc::InviteRejection::NoNode);
+        QVERIFY(result->text().contains(QStringLiteral("協力ノード")));
+        QVERIFY(result->text().contains(QStringLiteral("接続候補")));
+        // 協力ノードから引き取った招待は、招待文字列と同じく相手の PeerId と期限が分かる
+        P2pLobbyService::InviteInfo fetched;
+        fetched.kind = PeerIpc::InviteKind::NodeCode;
+        fetched.peerId = QStringLiteral("12D3KooWabcdefghijklmnop");
+        fetched.expiresAt = 1'900'000'000;
+        fetched.addressCount = 1;
+        fetched.usableAddressCount = 1;
+        emit lobby.inviteInspected(fetched);
+        QVERIFY(result->text().contains(QStringLiteral("協力ノードから受け取りました")));
+        QVERIFY(result->text().contains(QStringLiteral("PeerId: 12D3KooWabcdefgh…")));
+        QCOMPARE(result->text().count(QLatin1Char('\n')), 3);
         // 招待文字列を確かめた後は、招待文字列の文に戻る
         input->setPlainText(QStringLiteral("sbqinv1.AAAA.00000000"));
         QVERIFY(QMetaObject::invokeMethod(&window, "onInspectInvite"));

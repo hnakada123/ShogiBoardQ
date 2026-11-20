@@ -382,6 +382,99 @@ private slots:
         service.waitForFinished(3000);
     }
 
+    /// 協力ノードを使う合言葉で、招待から対局の開始まで進む。合言葉には接続先が入らず、招待は、合言葉に対応した
+    /// 協力ノード（--meet）に預けたものを相手が引き取る。違う合言葉では、招待が見つからないと知らせる
+    void nodeCodeInviteStartsAGame()
+    {
+#if !defined(Q_OS_LINUX) && !defined(Q_OS_MACOS)
+        QSKIP("the cooperating node (--service) runs only on Linux and macOS");
+#endif
+        QTcpServer probe;
+        QVERIFY(probe.listen(QHostAddress::LocalHost));
+        const quint16 port = probe.serverPort();
+        probe.close();
+        const QString listen = QStringLiteral("/ip4/127.0.0.1/tcp/%1").arg(port);
+        QProcess service;
+        service.setProcessEnvironment(QProcessEnvironment());
+        service.start(QStringLiteral(PEER_EXECUTABLE),
+                      {QStringLiteral("--service"), QStringLiteral("--network"), QStringLiteral("sbq-local-1"),
+                       QStringLiteral("--identity"), m_dir.filePath(QStringLiteral("meet-service.key")),
+                       QStringLiteral("--listen"), listen, QStringLiteral("--relay"), QStringLiteral("--meet")});
+        service.setReadChannel(QProcess::StandardError);
+        QVERIFY(service.waitForStarted(5000));
+        QTRY_VERIFY_WITH_TIMEOUT((service.waitForReadyRead(100), service.canReadLine()), 10000);
+        const QString line = QString::fromUtf8(service.readLine()).trimmed();
+        QVERIFY2(line.contains(QStringLiteral("service started")), qPrintable(line));
+        const QString bootstrap = listen + QStringLiteral("/p2p/") + line.section(QLatin1Char(' '), -1);
+
+        App host(m_dir.filePath(QStringLiteral("meet-host")));
+        App guest(m_dir.filePath(QStringLiteral("meet-guest")));
+        QVERIFY(createIdentity(host));
+        QVERIFY(createIdentity(guest));
+        // 「直接接続を使わない」では、同じ LAN の合言葉（LAN の中の接続先が入る）を出さず、協力ノードを使う合言葉にする
+        QCOMPARE(host.lobby.begin(QStringLiteral("sbq-local-1"), {bootstrap}, true), P2pLobbyService::StartFailure::None);
+        QCOMPARE(guest.lobby.begin(QStringLiteral("sbq-local-1"), {bootstrap}, true), P2pLobbyService::StartFailure::None);
+        QTRY_COMPARE_WITH_TIMEOUT(host.lobby.status(), P2pLobbyService::Status::Online, 15000);
+        QTRY_COMPARE_WITH_TIMEOUT(guest.lobby.status(), P2pLobbyService::Status::Online, 15000);
+        QTRY_VERIFY_WITH_TIMEOUT(host.lobby.relayReservations() >= 1 && guest.lobby.relayReservations() >= 1, 20000);
+
+        QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
+        host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::Black);
+        QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 15000);
+        const QString code = created.first().at(1).toString();
+        // 英数字 10 文字を5文字ずつ区切った形
+        QVERIFY2(QRegularExpression(QStringLiteral("^[0-9A-Z]{5}-[0-9A-Z]{5}$")).match(code).hasMatch(), qPrintable(code));
+
+        // 文字を1つ変えた合言葉は、検査の文字が合わずに読めない。検査の文字は1文字（32 通り）なので、32 回に
+        // 1回は別の合言葉として読めて、協力ノードに招待が見つからない。どちらでも、招待は受け取れない
+        QString typo = code;
+        typo[0] = typo.at(0) == QLatin1Char('0') ? QLatin1Char('1') : QLatin1Char('0');
+        QSignalSpy rejected(&guest.lobby, &P2pLobbyService::inviteRejected);
+        guest.lobby.inspectInvite(P2pWindowText::inviteInput(typo));
+        QTRY_COMPARE_WITH_TIMEOUT(rejected.count(), 1, 15000);
+        const auto typoRejection = rejected.first().at(0).value<PeerIpc::InviteRejection>();
+        QVERIFY(typoRejection == PeerIpc::InviteRejection::Unreadable
+                || typoRejection == PeerIpc::InviteRejection::NotFound);
+
+        // 相手は小文字・区切りなしで入力する。協力ノードから引き取った招待の中身（相手の PeerId・期限）が分かる
+        const QString typed = code.toLower().remove(QLatin1Char('-'));
+        QSignalSpy inspected(&guest.lobby, &P2pLobbyService::inviteInspected);
+        guest.lobby.inspectInvite(P2pWindowText::inviteInput(typed));
+        QTRY_COMPARE_WITH_TIMEOUT(inspected.count(), 1, 15000);
+        const P2pLobbyService::InviteInfo info = inspected.first().at(0).value<P2pLobbyService::InviteInfo>();
+        QCOMPARE(info.kind, PeerIpc::InviteKind::NodeCode);
+        QVERIFY(!info.peerId.isEmpty());
+        QCOMPARE(info.expiresAt, created.first().at(2).toULongLong());
+        QVERIFY(info.usableAddressCount >= 1);
+        guest.lobby.connectInvite(P2pWindowText::inviteInput(typed), false, QStringLiteral("招待された側"));
+
+        QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
+                                     && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
+        QTRY_VERIFY_WITH_TIMEOUT(host.game.negotiation()
+                                     && host.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
+        QCOMPARE(guest.game.opponentDisplayName(), QStringLiteral("招待した側"));
+        QCOMPARE(host.game.opponentDisplayName(), QStringLiteral("招待された側"));
+        host.game.confirmStart();
+        guest.game.confirmStart();
+        QTRY_VERIFY_WITH_TIMEOUT(host.game.isInProgress() && guest.game.isInProgress(), 20000);
+        QVERIFY(host.game.viaRelay());
+        QVERIFY(guest.game.viaRelay());
+
+        // 使った合言葉を、もう一度確かめると、招待が見つからない
+        guest.game.leaveGame();
+        QTRY_VERIFY_WITH_TIMEOUT(!guest.game.isInProgress(), 20000);
+        guest.lobby.inspectInvite(P2pWindowText::inviteInput(code));
+        QTRY_COMPARE_WITH_TIMEOUT(rejected.count(), 2, 15000);
+        QCOMPARE(rejected.last().at(0).value<PeerIpc::InviteRejection>(), PeerIpc::InviteRejection::NotFound);
+
+        host.lobby.end();
+        guest.lobby.end();
+        QTRY_VERIFY_WITH_TIMEOUT(host.lobby.status() == P2pLobbyService::Status::Off
+                                     && guest.lobby.status() == P2pLobbyService::Status::Off, 10000);
+        service.kill();
+        service.waitForFinished(3000);
+    }
+
     /// 合言葉（同じ LAN の招待の短い形）で、招待から対局の開始まで進む。合言葉は招待と一緒にでき、相手は
     /// 全角や小文字で入力しても、画面と同じ直し方（P2pWindowText::inviteInput）で読める
     void codeInviteStartsAGame()
@@ -416,7 +509,7 @@ private slots:
         guest.lobby.inspectInvite(P2pWindowText::inviteInput(typed));
         QTRY_COMPARE_WITH_TIMEOUT(inspected.count(), 1, 10000);
         const P2pLobbyService::InviteInfo info = inspected.first().at(0).value<P2pLobbyService::InviteInfo>();
-        QVERIFY(info.isCode);
+        QCOMPARE(info.kind, PeerIpc::InviteKind::LanCode);
         QVERIFY(info.peerId.isEmpty());
         QVERIFY(info.usableAddressCount >= 1);
         guest.lobby.connectInvite(P2pWindowText::inviteInput(typed), false, QStringLiteral("招待された側"));

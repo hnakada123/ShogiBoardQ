@@ -64,6 +64,10 @@ impl Node {
                     .entry(peer_id)
                     .or_default()
                     .insert(connection_id, relayed);
+                // 待ち合わせの件数と頻度は、接続元ごとに数える（待ち合わせを受け持つ協力ノード）
+                if let (Some(meet), Some(source)) = (&self.meet_service, self.inbound_prefixes.get(&connection_id)) {
+                    meet.set_source(peer_id, source.clone());
+                }
                 self.conn_since.insert(connection_id, Instant::now());
                 self.update_routes(&peer_id);
                 self.advance_opening(&peer_id);
@@ -79,6 +83,10 @@ impl Node {
                     conns.remove(&connection_id);
                     if conns.is_empty() {
                         self.peer_conns.remove(&peer_id);
+                        self.forget_meet_node(&peer_id);
+                        if let Some(meet) = &self.meet_service {
+                            meet.forget_source(&peer_id);
+                        }
                     }
                 }
                 self.update_routes(&peer_id);
@@ -228,6 +236,9 @@ impl Node {
         }
         // 中継の予約は、自分の到達性によらず取る。「直接接続を使わない」相手は、中継経由のアドレスでしか
         // つなげないので、外から直接届く側も中継経由のアドレスを招待に入れる
+        if !self.service && is_node {
+            self.note_meet_node(peer, &info);
+        }
         if !self.service && is_node && supports_relay_hop(&info) {
             self.reservations.add_hop_node(peer);
             self.request_reservation(peer);

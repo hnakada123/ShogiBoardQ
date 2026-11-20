@@ -8,6 +8,8 @@ mod behaviours;
 mod game;
 mod ipc;
 mod listen;
+mod meet;
+mod meetstore;
 mod node;
 mod sandbox;
 mod service;

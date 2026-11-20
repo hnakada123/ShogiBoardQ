@@ -129,13 +129,51 @@ impl BitReader<'_> {
 
 /// 検査の文字（それより前の文字から決まる）
 fn check_char(body: &str) -> Option<u8> {
+    labeled_check_char("SBQ-CODE-CHECK", body)
+}
+
+/// 検査の文字（label は合言葉の種類ごとの名前。同じ LAN の合言葉と、協力ノードを使う合言葉で分ける）
+pub(crate) fn labeled_check_char(label: &str, body: &str) -> Option<u8> {
     let digest = h(&Value::Array(vec![
-        Value::text("SBQ-CODE-CHECK"),
+        Value::text(label),
         Value::Uint(1),
         Value::text(body),
     ]));
     let index = usize::from(digest.first()?.checked_shr(3)?);
     ALPHABET.get(index).copied()
+}
+
+/// 合言葉の文字を、文字の表の番号（5ビット）の列にする。空白と "-" は読み飛ばし、大文字と小文字を区別しない。
+/// O は 0、I と L は 1 として読む。表にない文字がある・長すぎるなら None
+pub(crate) fn read_symbols(input: &str) -> Option<Vec<u8>> {
+    if input.len() > MAX_INPUT_BYTES {
+        return None;
+    }
+    let mut symbols: Vec<u8> = Vec::new();
+    for c in input.chars() {
+        if matches!(c, ' ' | '-' | '\t' | '\r' | '\n') {
+            continue;
+        }
+        let upper = c.to_ascii_uppercase();
+        let canonical = match upper {
+            'O' => '0',
+            'I' | 'L' => '1',
+            other => other,
+        };
+        let byte = u8::try_from(canonical).ok()?;
+        let index = ALPHABET.iter().position(|a| *a == byte)?;
+        symbols.push(u8::try_from(index).ok()?);
+    }
+    Some(symbols)
+}
+
+/// 文字の表の番号の列を文字にする
+pub(crate) fn symbols_text(symbols: &[u8]) -> Option<String> {
+    let mut text = String::new();
+    for s in symbols {
+        text.push(char::from(*ALPHABET.get(usize::from(*s))?));
+    }
+    Some(text)
 }
 
 impl Code {
@@ -208,32 +246,12 @@ impl Code {
     /// 文字列を読む。空白と "-" は読み飛ばし、大文字と小文字を区別しない。O は 0、I と L は 1 として読む。
     /// 形・検査の文字が合わなければ None
     pub fn decode(input: &str) -> Option<Code> {
-        if input.len() > MAX_INPUT_BYTES {
-            return None;
-        }
-        let mut symbols: Vec<u8> = Vec::new();
-        for c in input.chars() {
-            if matches!(c, ' ' | '-' | '\t' | '\r' | '\n') {
-                continue;
-            }
-            let upper = c.to_ascii_uppercase();
-            let canonical = match upper {
-                'O' => '0',
-                'I' | 'L' => '1',
-                other => other,
-            };
-            let byte = u8::try_from(canonical).ok()?;
-            let index = ALPHABET.iter().position(|a| *a == byte)?;
-            symbols.push(u8::try_from(index).ok()?);
-        }
+        let symbols = read_symbols(input)?;
         if !(MIN_CHARS..=MAX_CHARS).contains(&symbols.len()) {
             return None;
         }
         let (check, body_symbols) = symbols.split_last()?;
-        let mut body = String::new();
-        for s in body_symbols {
-            body.push(char::from(*ALPHABET.get(usize::from(*s))?));
-        }
+        let body = symbols_text(body_symbols)?;
         if check_char(&body)? != *ALPHABET.get(usize::from(*check))? {
             return None;
         }

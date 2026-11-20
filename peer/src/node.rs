@@ -2,7 +2,8 @@
 //!
 //! 主ループと Swarm の作成はここに置き、役割ごとに分ける: 要求の処理（requests）、Swarm の出来事（events）、
 //! 対局ストリーム（streams）、対局ストリームを開く接続の選び方（outbound）、作った招待（invites）、中継の予約
-//! （reservations）、協力ノードが中継している回路の数（circuits）、合言葉（codes）。待受は crate::listen
+//! （reservations）、協力ノードが中継している回路の数（circuits）、同じ LAN の合言葉（codes）、協力ノードを使う
+//! 合言葉（meets）。待受は crate::listen、協力ノードの待ち合わせは crate::meet
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -16,6 +17,7 @@ use libp2p::swarm::ConnectionId;
 use libp2p::{Multiaddr, PeerId, StreamProtocol, Swarm};
 use sbq_protocol::frame::GAME_PROTOCOL;
 use sbq_protocol::hash::hex;
+use sbq_protocol::meet::MEET_PROTOCOL;
 use sbq_protocol::network::{self, NetworkSpec, Profile};
 use serde_json::json;
 use tokio::sync::mpsc;
@@ -24,6 +26,7 @@ use crate::addr::{self, AddrPolicy};
 use crate::game::ConnEvent;
 use crate::ipc::{self, Method, Out, Request};
 use crate::listen;
+use crate::meet::{self, MeetService};
 use crate::sandbox::SandboxReport;
 use crate::service;
 use crate::swarm::{self, Behaviour, SwarmOptions};
@@ -32,6 +35,7 @@ mod circuits;
 mod codes;
 mod events;
 mod invites;
+mod meets;
 mod outbound;
 mod requests;
 mod reservations;
@@ -68,6 +72,8 @@ pub struct NodeConfig {
     pub relay_only: bool,
     pub service: bool,
     pub relay_server: bool,
+    /// 合言葉の待ち合わせを受け持つ（協力ノードの --meet）
+    pub meet_server: bool,
     /// 待受のアドレスの候補（1件ごとに、先頭から試して最初に開けたものを使う）
     pub listen: Vec<Vec<Multiaddr>>,
 }
@@ -98,6 +104,10 @@ pub struct Node {
     pub code_connects: HashMap<u64, codes::Pending>,
     /// 合言葉の宛先へ、PeerId を決めずに始めたダイヤル
     pub code_dials: HashMap<ConnectionId, u64>,
+    /// 協力ノードを使う合言葉（待ち合わせに対応した協力ノード・引き取った招待）
+    pub meets: meets::Meets,
+    /// 待ち合わせで預かっているもの（待ち合わせを受け持つ協力ノードだけ）
+    pub meet_service: Option<Arc<MeetService>>,
     pub game_peer: Option<PeerId>,
     /// 最初のフレームを待つ届いた対局ストリームの数と、対局中の相手（受け付けのタスクと共有する）
     pub accept_gate: Arc<streams::AcceptGate>,
@@ -218,6 +228,7 @@ impl Node {
             relay_only: p.relay_only,
             service: false,
             relay_server: false,
+            meet_server: false,
             listen: listen::candidates(spec.profile),
         };
         let mut node = Node::create(out, config).map_err(|e| ("internal", e))?;
@@ -270,6 +281,16 @@ impl Node {
                 .map_err(|e| e.to_string())?;
             tokio::spawn(streams::accept_task(incoming, internal_tx.clone(), accept_gate.clone()));
         }
+        let meet_service = if config.service && config.meet_server {
+            let incoming = control
+                .accept(StreamProtocol::new(MEET_PROTOCOL))
+                .map_err(|e| e.to_string())?;
+            let service = Arc::new(MeetService::default());
+            tokio::spawn(meet::accept_task(incoming, service.clone()));
+            Some(service)
+        } else {
+            None
+        };
 
         Ok(Node {
             out: out.clone(),
@@ -290,6 +311,8 @@ impl Node {
             invite_epoch: 0,
             code_connects: HashMap::new(),
             code_dials: HashMap::new(),
+            meets: meets::Meets::default(),
+            meet_service,
             game_peer: None,
             accept_gate,
             peer_conns: HashMap::new(),
@@ -386,6 +409,7 @@ impl Node {
         }
         self.last_second = Instant::now();
         self.invites.expire(unix_now());
+        self.release_meets();
         // 断られた・失われた中継の予約を頼み直す（協力ノードとつながっている間）
         for peer in self.reservations.due(Instant::now()) {
             if self.peer_conns.contains_key(&peer) {
@@ -399,6 +423,8 @@ impl Node {
             let counts = service::Counts {
                 peers: self.peer_conns.len(),
                 relays: self.circuits.as_ref().map(circuits::Circuits::count),
+                // 期限の過ぎたものを消してから数える
+                meets: self.meet_service.as_ref().map(|m| m.expire(Instant::now())),
             };
             if let Some(line) = service::log_line_if_changed(&mut self.logged_counts, counts) {
                 eprintln!("{line}");

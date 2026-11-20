@@ -116,6 +116,8 @@ pub enum Internal {
         conn: u64,
         reason: ipc::CloseReason,
     },
+    /// 協力ノードを使う合言葉の招待を引き取り終えた（node/meets）
+    MeetFetched(super::meets::FetchResult),
 }
 
 /// 開いた接続の状態
@@ -157,7 +159,10 @@ impl Node {
 
     /// 対局ストリームの数（合言葉でつなぐ途中のものを含む）
     pub fn game_connection_count(&self) -> usize {
-        self.conns.len().saturating_add(self.code_connects.len())
+        self.conns
+            .len()
+            .saturating_add(self.code_connects.len())
+            .saturating_add(self.meets.connects.len())
     }
 
     /// 相手との接続から見た経路（1つでも直接の接続があれば直接）。届いた対局ストリームは、どの接続の上にあるか
@@ -417,7 +422,8 @@ impl Node {
     pub fn close_conn(&mut self, conn: u64, reason: ipc::CloseReason, notify: bool) {
         // 開くのを待っていたら、やめる（知らせる側を捨てると、開くタスクが終わる）
         self.opening.remove(&conn);
-        let known = self.drop_code_connect(conn) | self.conns.remove(&conn).is_some();
+        let known =
+            self.drop_code_connect(conn) | self.meets.connects.remove(&conn) | self.conns.remove(&conn).is_some();
         if known && notify {
             self.out.notify(ipc::Notification::ConnectionClosed {
                 connection: conn,
@@ -466,6 +472,7 @@ impl Node {
             Internal::InviteReady(ready) => self.on_invite_ready(ready),
             Internal::CodeKey { conn, key } => self.on_code_key(conn, key),
             Internal::CodeFailed { conn, reason } => self.fail_code_connect(conn, reason),
+            Internal::MeetFetched(result) => self.on_meet_fetched(result),
         }
     }
 
@@ -490,6 +497,8 @@ impl Node {
             {
                 return;
             }
+            // 使われた招待を協力ノードに預けていたら、消す
+            self.release_meets();
             (ipc::Origin::Invite, false)
         } else {
             // 有効な招待のトークンを持たない相手のストリームは受け付けない

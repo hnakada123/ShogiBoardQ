@@ -158,6 +158,7 @@ private:
     quint64 m_inviteExpiresAt = 0;               ///< 作った招待の期限（UNIX 秒）
     QString m_copiedInvite;                      ///< コピーした招待文字列・合言葉（期限が過ぎたらクリップボードから消す）
     bool m_inviteInIsCode = false;               ///< 確かめた・接続に使った文字列が合言葉だった（断られた理由の文を選ぶ）
+    bool m_inviteInHasAddress = false;           ///< 確かめた合言葉に接続先が入っていた（同じ LAN の合言葉。つながらないときの文を選ぶ）
     QCheckBox* m_allowPrivate = nullptr;
     QPushButton* m_connectInvite = nullptr;
 

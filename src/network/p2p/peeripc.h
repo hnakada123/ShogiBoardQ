@@ -17,7 +17,7 @@ namespace PeerIpc {
 
 /// IPC 1件の上限（128 KiB）
 inline constexpr qsizetype kMaxMessageBytes = 128 * 1024;
-inline constexpr int kProtocolVersion = 3;
+inline constexpr int kProtocolVersion = 4;
 
 /// 長さの前置きを付けたメッセージ
 QByteArray frame(const QJsonObject& message);
@@ -82,14 +82,21 @@ struct StartResult {
 
 struct CreatedInvite {
     QString invite;
-    QString code;            ///< 合言葉（同じ LAN の相手に伝える短い形。出せないときは空）
+    QString code;            ///< 合言葉（口頭でも伝えられる短い形。同じ LAN の合言葉か、協力ノードを使う合言葉。出せないときは空）
     quint64 expiresAt = 0;
     int addressCount = 0;
 };
 
+/// 読んだものの種類
+enum class InviteKind {
+    Invite,    ///< 招待文字列
+    LanCode,   ///< 同じ LAN の合言葉（相手の PeerId と期限は入っていないので、peerId は空、expiresAt は 0）
+    NodeCode,  ///< 協力ノードを使う合言葉（協力ノードから引き取った招待の中身が入る）
+};
+
 /// 招待文字列・合言葉を読んだ結果（通信プロセスの解釈。対局・UI側は招待文字列も合言葉も読まない）
 struct InspectedInvite {
-    bool isCode = false;     ///< 合言葉（相手の PeerId と期限は入っていないので、peerId は空、expiresAt は 0）
+    InviteKind kind = InviteKind::Invite;
     QString peerId;
     quint64 expiresAt = 0;
     int addressCount = 0;
@@ -109,8 +116,10 @@ using Reply = std::variant<StartResult, CreatedInvite, InspectedInvite, Connecti
 /// 要求 method への応答を読む（知らないメソッドは nullopt）
 std::optional<Reply> readReply(const QString& method, const QJsonObject& result);
 
-/// 招待の要求（inspectInvite・connectInvite）が断られた理由（protocol/ipc.md のエラーの code）
-enum class InviteRejection { Unreadable, Expired, WrongNetwork, Own };
+/// 招待の要求（inspectInvite・connectInvite）が断られた理由（protocol/ipc.md のエラーの code）。NotFound は、
+/// 協力ノードにその合言葉の招待が無い（合言葉が違う・期限が過ぎた・もう引き取られた）、NoNode は、合言葉の
+/// 待ち合わせに対応した協力ノードにつながっていない
+enum class InviteRejection { Unreadable, Expired, WrongNetwork, Own, NotFound, NoNode };
 /// 招待の要求への失敗なら、その理由（ほかの要求なら nullopt）
 std::optional<InviteRejection> inviteRejection(const QString& method, const QString& code);
 

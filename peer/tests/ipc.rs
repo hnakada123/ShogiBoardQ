@@ -104,7 +104,7 @@ impl Peer {
         let id = self.next_id.to_string();
         self.next_id += 1;
         let msg = json!({
-            "protocolVersion": 3,
+            "protocolVersion": 4,
             "processGeneration": self.generation,
             "requestId": id,
             "method": method,
@@ -118,7 +118,7 @@ impl Peer {
                 .rx
                 .recv_timeout(remaining)
                 .unwrap_or_else(|_| panic!("no response to {method}"));
-            assert_eq!(v["protocolVersion"], 3);
+            assert_eq!(v["protocolVersion"], 4);
             assert_eq!(v["processGeneration"], self.generation.as_str());
             if v.get("requestId").and_then(Value::as_str) == Some(id.as_str()) {
                 return v;
@@ -165,7 +165,7 @@ impl Peer {
     /// relay_only: 「直接接続を使わない」
     fn start_with(&mut self, bootstrap: Vec<String>, relay_only: bool) {
         let hello = self.ok("hello", json!({ "uiVersion": "test" }));
-        assert_eq!(hello["ipcVersion"], 3);
+        assert_eq!(hello["ipcVersion"], 4);
         assert_eq!(hello["sandbox"]["applied"], true, "{hello}");
         let wait_node = !bootstrap.is_empty();
         let start = self.ok(
@@ -607,14 +607,14 @@ fn ipc_violations_end_the_process() {
     let mut p = Peer::spawn();
     p.ok("hello", json!({ "uiVersion": "test" }));
     p.send_raw(
-        &json!({ "protocolVersion": 3, "processGeneration": "7", "requestId": "2", "method": "evil", "params": {} }),
+        &json!({ "protocolVersion": 4, "processGeneration": "7", "requestId": "2", "method": "evil", "params": {} }),
     );
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 世代の違う要求
     let mut p = Peer::spawn();
     p.ok("hello", json!({ "uiVersion": "test" }));
-    p.send_raw(&json!({ "protocolVersion": 3, "processGeneration": "8", "requestId": "2", "method": "createInvite", "params": {} }));
+    p.send_raw(&json!({ "protocolVersion": 4, "processGeneration": "8", "requestId": "2", "method": "createInvite", "params": {} }));
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 上限を超える長さ
@@ -626,7 +626,7 @@ fn ipc_violations_end_the_process() {
 
     // 最初の要求が hello でない
     let mut p = Peer::spawn();
-    p.send_raw(&json!({ "protocolVersion": 3, "processGeneration": "7", "requestId": "1", "method": "createInvite", "params": {} }));
+    p.send_raw(&json!({ "protocolVersion": 4, "processGeneration": "7", "requestId": "1", "method": "createInvite", "params": {} }));
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 知らない引数はエラーの応答（終了しない）、start の前の要求は invalid_state
@@ -691,11 +691,16 @@ struct Service {
 impl Service {
     /// 標準エラーに、この行が書かれるのを待つ
     fn wait_log(&self, expected: &str) -> bool {
+        self.wait_log_where(|line| line == expected)
+    }
+
+    /// 標準エラーに、条件に合う行が書かれるのを待つ
+    fn wait_log_where(&self, pred: impl Fn(&str) -> bool) -> bool {
         let deadline = Instant::now() + TIMEOUT;
         loop {
             let remaining = deadline.saturating_duration_since(Instant::now());
             match self.log.recv_timeout(remaining) {
-                Ok(line) if line == expected => return true,
+                Ok(line) if pred(&line) => return true,
                 Ok(_) => {}
                 Err(_) => return false,
             }
@@ -712,6 +717,11 @@ impl Drop for Service {
 }
 
 fn spawn_service() -> Service {
+    spawn_service_with(&["--relay"])
+}
+
+/// options: 協力ノードが受け持つもの（--relay・--meet）
+fn spawn_service_with(options: &[&str]) -> Service {
     let port = std::net::TcpListener::bind("127.0.0.1:0")
         .unwrap()
         .local_addr()
@@ -724,7 +734,8 @@ fn spawn_service() -> Service {
     let mut child = Command::new(BIN)
         .args(["--service", "--network", "sbq-local-1", "--identity"])
         .arg(&identity)
-        .args(["--listen", &listen, "--relay"])
+        .args(["--listen", &listen])
+        .args(options)
         .env_clear()
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -1126,4 +1137,176 @@ fn local_network_listens_on_the_lan() {
     let opened_a = a.wait("connectionOpened", |_| true, TIMEOUT).expect("A opened");
     assert_eq!(opened_a["peerId"], b.peer_id.as_str());
     assert_eq!(opened_a["origin"], "invite");
+}
+
+/// 協力ノードを使う合言葉の、検査の文字まで正しい別の合言葉
+fn other_meet_code(code: &str) -> String {
+    let secret = sbq_protocol::meet::MeetCode::decode(code).unwrap().secret;
+    sbq_protocol::meet::MeetCode::new(secret ^ 1).encode().unwrap()
+}
+
+/// 協力ノードを使う合言葉: 招待する側は招待を暗号化して協力ノードに預け、つなぐ側は合言葉で引き取ってつなぐ。
+/// 協力ノードは、1回引き取られたら消す
+#[test]
+fn meet_code_connection_and_frames() {
+    let service = spawn_service_with(&["--relay", "--meet"]);
+    assert!(service.wait_log("shogiboardq-peer: peers=0 relays=0 meets=0"));
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    // 「直接接続を使わない」では、同じ LAN の合言葉を出さない（協力ノードを使う合言葉になる）
+    a.start_with(vec![service.addr.clone()], true);
+    b.start_with(vec![service.addr.clone()], true);
+    a.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("A reserved the relay");
+    b.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("B reserved the relay");
+
+    let created = a.ok("createInvite", json!({}));
+    let code = created["code"].as_str().unwrap().to_owned();
+    // 10 文字（5文字ごとに区切る）。接続先は入っていない
+    assert_eq!(code.len(), 11, "{code}");
+    assert_eq!(code.find('-'), Some(5));
+    assert!(sbq_protocol::meet::MeetCode::decode(&code).is_some());
+    assert!(Invite::decode(created["invite"].as_str().unwrap()).is_ok());
+    assert!(service.wait_log("shogiboardq-peer: peers=2 relays=0 meets=1"));
+
+    // 自分の合言葉は、協力ノードから引き取らない（相手が引き取れなくなる）
+    let own = a.call("inspectInvite", json!({ "invite": code }));
+    assert_eq!(own["error"]["code"], "invite_own", "{own}");
+
+    // 検査の文字まで正しい別の合言葉では、何も引き取れない
+    let wrong = b.call("inspectInvite", json!({ "invite": other_meet_code(&code) }));
+    assert_eq!(wrong["error"]["code"], "invite_not_found", "{wrong}");
+
+    // 小文字・区切りなしでも読める。確かめると、相手の PeerId・期限・到達候補が分かる
+    let typed = code.replace('-', "").to_lowercase();
+    let inspected = b.ok("inspectInvite", json!({ "invite": typed }));
+    assert_eq!(inspected["kind"], "meetCode");
+    assert_eq!(inspected["peerId"], a.peer_id.as_str());
+    assert_eq!(inspected["expiresAt"], created["expiresAt"]);
+    assert!(inspected["addressCount"].as_u64().unwrap() >= 1);
+    assert!(inspected["usableAddressCount"].as_u64().unwrap() >= 1);
+    // 協力ノードは、1回引き取られたら消す
+    assert!(service.wait_log("shogiboardq-peer: peers=2 relays=0 meets=0"));
+    // もう一度確かめても、引き取ってある招待から答える
+    let again = b.ok("inspectInvite", json!({ "invite": code }));
+    assert_eq!(again["peerId"], a.peer_id.as_str());
+
+    let conn_b = b.ok("connectInvite", json!({ "invite": code, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let opened_b = b
+        .wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B opened");
+    assert_eq!(opened_b["peerId"], a.peer_id.as_str());
+    assert_eq!(opened_b["origin"], "invite");
+    assert_eq!(opened_b["route"], "relay");
+    let opened_a = a.wait("connectionOpened", |_| true, TIMEOUT).expect("A opened");
+    assert_eq!(opened_a["peerId"], b.peer_id.as_str());
+    let conn_a = opened_a["connection"].as_str().unwrap().to_owned();
+    let f1 = hello_frame(1);
+    b.ok("sendFrame", json!({ "connection": conn_b, "frame": f1 }));
+    let got = a
+        .wait("frameReceived", |p| p["connection"] == conn_a.as_str(), TIMEOUT)
+        .expect("A frame");
+    assert_eq!(got["frame"], f1.as_str());
+
+    // 使った合言葉は、もう使えない（引き取ってある招待は接続に使った。協力ノードにも残っていない）
+    let used = b.call("inspectInvite", json!({ "invite": code }));
+    assert_eq!(used["error"]["code"], "invite_not_found", "{used}");
+}
+
+/// 協力ノードを使う合言葉: 確かめずにつないでも引き取ってつなぐ。招待が使われた・取り消されたら、預けたものを消す。
+/// 待ち合わせに対応した協力ノードにつながっていなければ、合言葉を出さず、読んだ合言葉も問い合わせられない
+#[test]
+fn meet_code_is_released_and_needs_a_meet_node() {
+    let service = spawn_service_with(&["--relay", "--meet"]);
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    a.start_with(vec![service.addr.clone()], true);
+    b.start_with(vec![service.addr.clone()], true);
+    a.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("A reserved the relay");
+    b.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("B reserved the relay");
+
+    // 確かめずに connectInvite: 協力ノードから引き取ってからつなぐ
+    let code = a.ok("createInvite", json!({}))["code"].as_str().unwrap().to_owned();
+    assert_eq!(code.len(), 11, "{code}");
+    let conn_b = b.ok("connectInvite", json!({ "invite": code, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    b.wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B opened");
+    let opened_a = a.wait("connectionOpened", |_| true, TIMEOUT).expect("A opened");
+    b.ok("closeConnection", json!({ "connection": conn_b }));
+    let conn_a = opened_a["connection"].as_str().unwrap().to_owned();
+    a.wait("connectionClosed", |p| p["connection"] == conn_a.as_str(), TIMEOUT)
+        .expect("A closed");
+
+    // 違う合言葉で connectInvite: 引き取れず、閉じた知らせが届く
+    let code = a.ok("createInvite", json!({}))["code"].as_str().unwrap().to_owned();
+    let conn = b.ok(
+        "connectInvite",
+        json!({ "invite": other_meet_code(&code), "allowPrivate": false }),
+    )["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let closed = b
+        .wait("connectionClosed", |p| p["connection"] == conn.as_str(), TIMEOUT)
+        .expect("closed");
+    assert_eq!(closed["reason"], "unreachable");
+
+    // 招待文字列で使われた招待の合言葉は、協力ノードから消える（協力ノードが預かっている件数は、1秒ごとに
+    // 変わっていればログに出る。中継の数は、閉じた対局の接続がしばらく残るので見ない）
+    let created = a.ok("createInvite", json!({}));
+    assert!(service.wait_log_where(|line| line.ends_with(" meets=2")));
+    let invite = created["invite"].as_str().unwrap().to_owned();
+    let conn_b = b.ok("connectInvite", json!({ "invite": invite, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    b.wait("connectionOpened", |p| p["connection"] == conn_b.as_str(), TIMEOUT)
+        .expect("B opened");
+    assert!(service.wait_log_where(|line| line.ends_with(" meets=1")));
+    b.ok("closeConnection", json!({ "connection": conn_b }));
+    let used = b.call("inspectInvite", json!({ "invite": created["code"] }));
+    assert_eq!(used["error"]["code"], "invite_not_found", "{used}");
+
+    // 取り消した招待の合言葉も消える
+    a.ok("cancelInvites", json!({}));
+    assert!(service.wait_log_where(|line| line.ends_with(" meets=0")));
+    let cancelled = b.call("inspectInvite", json!({ "invite": code }));
+    assert_eq!(cancelled["error"]["code"], "invite_not_found", "{cancelled}");
+
+    // 協力ノードにつながっていないピアは、合言葉を問い合わせられない
+    let mut alone = Peer::spawn();
+    alone.start(vec![]);
+    let no_node = alone.call("inspectInvite", json!({ "invite": code }));
+    assert_eq!(no_node["error"]["code"], "invite_no_node", "{no_node}");
+    let no_node = alone.call("connectInvite", json!({ "invite": code, "allowPrivate": false }));
+    assert_eq!(no_node["error"]["code"], "invite_no_node", "{no_node}");
+    // 同じ LAN の合言葉は、協力ノードなしで出る（形が違う）
+    let lan = alone.ok("createInvite", json!({}))["code"].as_str().unwrap().to_owned();
+    assert!(lan.replace('-', "").len() >= 9 && lan.replace('-', "").len() != 10, "{lan}");
+    assert!(sbq_protocol::meet::MeetCode::decode(&lan).is_none());
+}
+
+/// 待ち合わせを受け持たない協力ノード（--meet なし）では、協力ノードを使う合言葉を出さない
+#[test]
+fn node_without_meet_gives_no_meet_code() {
+    let service = spawn_service();
+    let mut a = Peer::spawn();
+    a.start_with(vec![service.addr.clone()], true);
+    a.wait_status(|p| p["relayReservations"].as_u64().unwrap_or(0) >= 1)
+        .expect("A reserved the relay");
+    let created = a.ok("createInvite", json!({}));
+    assert_eq!(created["code"], "");
+    assert!(created["addressCount"].as_u64().unwrap() >= 1);
+    let other = sbq_protocol::meet::MeetCode::new(12345).encode().unwrap();
+    let no_node = a.call("inspectInvite", json!({ "invite": other }));
+    assert_eq!(no_node["error"]["code"], "invite_no_node", "{no_node}");
 }
