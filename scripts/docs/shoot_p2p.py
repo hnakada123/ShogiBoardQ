@@ -8,7 +8,7 @@ usage:
     shoot_p2p.py lan <言語> <出力フォルダ> <協力ノードの multiaddr>
         p2p-lan-node-connected.png  p2p-internet-lan-address.png
         （協力ノードは先に起動しておく:
-          env -i build-p2p-docs/shogiboardq-peer --service --relay --network sbq-local-1 \\
+          env -i build-p2p-docs/shogiboardq-peer --service --relay --meet --network sbq-local-1 \\
               --identity <作業フォルダ>/node.key --listen /ip4/0.0.0.0/tcp/<空きポート>
           multiaddr は /ip4/<この PC の LAN の IP>/tcp/<ポート>/p2p/<起動時に出る PeerId>）
 

@@ -120,8 +120,8 @@
                     <span class="guide-step-title">协作节点做什么、不做什么</span>
                 </div>
                 <ul class="guide-step-text">
-                    <li><strong>做的事</strong>：只有可达性确认和中继。</li>
-                    <li><strong>不做的事</strong>：不判定着手和胜负，也不保存对局记录。中继的通信在双方的应用之间加密，因此它也读不到内容（着手、玩家ID、显示名）。</li>
+                    <li><strong>做的事</strong>：可达性确认和中继。加上 <code>--meet</code> 启动的协作节点，还负责暗号的会合（最多存放加密的邀请 10 分钟）。</li>
+                    <li><strong>不做的事</strong>：不判定着手和胜负，也不保存对局记录。中继的通信在双方的应用之间加密，因此它也读不到内容（着手、玩家ID、显示名）。为暗号的会合存放的邀请，也用由暗号生成的密钥加密，因此同样读不到。</li>
                     <li><strong>与对局服务器的区别</strong>：即使经过中继，对局的另一方仍是对手的应用，协作节点不起CSA网络对局的服务器那样的作用。对照表请见<a href="p2p-game.html#relay-not-server">经过中继时，协作节点也不是对局服务器</a>。</li>
                     <li><strong>运营者能看到的</strong>：使用者的 IP 地址，以及哪些 IP 地址之间建立了连接。协作节点的程序不会把来源 IP 地址写入日志，但运营者检查通信就能知道。确认可达性时，只请协作节点逐个确认它看到的地址，不发送使用者在局域网内的地址。</li>
                     <li><strong>中断或延迟通信</strong>：协作节点可以中断或延迟它中继的通信，但无法改写内容（改写过的通信会在加密的检查中被发现，应用不会接受）。通信中断时，与线路断开时一样处理（<a href="p2p-game.html#disconnect">线路断开时</a>）。</li>
@@ -209,7 +209,7 @@ $ sudo install -m 755 target/release/shogiboardq-peer /usr/local/bin/</code></pr
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">启动</span>
                 </div>
-                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --network sbq-limited-1 \
+                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --meet --network sbq-limited-1 \
       --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001
 shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                 <table class="info-table">
@@ -219,12 +219,13 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                     <tbody>
                         <tr><td><strong><code>--service</code></strong></td><td>作为协作节点运行。</td></tr>
                         <tr><td><strong><code>--relay</code></strong></td><td>负责中继。家庭网络之间的对局几乎都需要。</td></tr>
+                        <tr><td><strong><code>--meet</code></strong></td><td>负责暗号的会合。加上后，“互联网”的邀请也会得到可以口头告知的 10 个字符的暗号。协作节点只是最多存放加密的邀请 10 分钟，无法读取其内容。</td></tr>
                         <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>用于通过互联网对局的网络。应用的“互联网”会加入这个名称的网络。配合应用的“本地”使用的协作节点，要用 <code>sbq-local-1</code> 启动（<a href="#lan-test">在局域网内试用</a>）。</td></tr>
                         <tr><td><strong><code>--identity &lt;文件&gt;</code></strong></td><td>协作节点的身份密钥文件。不存在时会生成（只有所有者可以读写的权限）。只要一直使用同一个文件，PeerId 就不会变。删除后 PeerId 会变，需要重新告知地址。</td></tr>
                         <tr><td><strong><code>--listen &lt;地址&gt;</code></strong></td><td>监听的地址和端口。<code>0.0.0.0</code> 表示在所有网络接口上监听。端口不一定是 4001。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">启动后，<code>service started as</code> 后面会显示 PeerId。要停止时按 Ctrl+C。启动之后，每当数量变化时，输出已连接的应用数量（<code>peers=</code>），加上 <code>--relay</code> 启动时还会输出正在中继的连接数量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。<code>relays</code> 不是人数，每一对经由中继连接的两人计为 1。不输出连接来源的 IP 地址。</p>
+                <p class="guide-step-text">启动后，<code>service started as</code> 后面会显示 PeerId。要停止时按 Ctrl+C。启动之后，每当数量变化时，输出已连接的应用数量（<code>peers=</code>），加上 <code>--relay</code> 启动时还会输出正在中继的连接数量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。加上 <code>--meet</code> 启动时，后面还会输出存放中的邀请数量（<code>meets=</code>）（本页的示例中省略）。<code>relays</code> 不是人数，每一对经由中继连接的两人计为 1。不输出连接来源的 IP 地址。</p>
                 <p class="guide-step-text">协作节点没有使用期限（期限只在应用加入“互联网”时起作用）。</p>
             </div>
 
@@ -268,7 +269,7 @@ Wants=network-online.target
 [Service]
 DynamicUser=yes
 StateDirectory=sbq-coop-node
-ExecStart=/usr/local/bin/shogiboardq-peer --service --relay --network sbq-limited-1 \
+ExecStart=/usr/local/bin/shogiboardq-peer --service --relay --meet --network sbq-limited-1 \
     --identity /var/lib/sbq-coop-node/coop-node.key --listen /ip4/0.0.0.0/tcp/4001
 Restart=on-failure
 
@@ -335,15 +336,16 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">用邀请字符串连接</span>
+                    <span class="guide-step-title">用暗号或邀请字符串连接</span>
                 </div>
-                <p class="guide-step-text">邀请方在“通过邀请连接”标签页中用“生成邀请”生成邀请字符串，通过只能送达对方的方式交给对方，对方粘贴后点击“检查”（“互联网”的邀请不附带暗号。暗号只附带在与同一局域网的对手直接连接的“本地”邀请中）。“地址：N 个（可用 N 个）”中可用的地址有 1 个以上，就可以用“连接”连接。可用的地址为 0 个时，无法点击“连接”（<a href="#trouble">无法连接时</a>）。之后的条件确认画面和对局，与<a href="p2p-direct.html#steps">不使用协作节点的对局</a>相同。</p>
+                <p class="guide-step-text">邀请方在“通过邀请连接”标签页中点击“生成邀请”，就会生成邀请字符串。如果协作节点是加上 <code>--meet</code> 启动的，还会以大号字显示 10 个字符的暗号（<code>J6HB7-H6NWR</code> 的形式）。暗号可以口头或通过电话告知，邀请字符串则通过消息等只能送达对方的方式交给对方。对方输入暗号或粘贴邀请字符串后，点击“检查”。“地址：N 个（可用 N 个）”中可用的地址有 1 个以上，就可以用“连接”连接。可用的地址为 0 个时，无法点击“连接”（<a href="#trouble">无法连接时</a>）。之后的条件确认画面和对局，与<a href="p2p-direct.html#steps">不使用协作节点的对局</a>相同。</p>
+                <p class="guide-step-text">这种暗号中不包含连接地址。邀请经过加密后在协作节点上最多存放 10 分钟，由对方的应用用暗号取回（协作节点无法读取其内容）。它与同一局域网的“本地”暗号（12 个字符左右）形式不同，应用会自动区分。暗号和邀请字符串是同一个邀请，只能用其中之一，并且只能使用一次。</p>
                 <p class="guide-step-text">邀请字符串中放入经由协作节点的地址（如果邀请方的电脑可以从外部直接到达，还会放入那台电脑的 IP 地址）。请不要贴在公开的地方。</p>
                 <p class="guide-step-text">“地址：N 个（可用 N 个）”中，前一个数字是邀请字符串中包含的连接地址的数量（最多 8 个），“可用”是其中按您应用的设置可以连接的数量。两个数字都会随邀请方电脑和协作节点的地址数量而变化。</p>
                 <p class="guide-step-text">一个邀请字符串只能让一个人连接一次，10 分钟后失效。同时有效的最多 4 个，一次只能下一局（详见<a href="p2p-direct.html#invite-rules">可以邀请的人数与次数</a>）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-internet-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-invite.png" alt="检查收到的邀请字符串后，显示邀请方 PeerId、期限和地址数量的“通过邀请连接”标签页" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">被邀请方：检查收到的邀请字符串后</p>
+                    <a href="../../images/zh-cn/p2p-game/p2p-internet-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-invite.png" alt="检查收到的暗号后，显示邀请方 PeerId、期限和地址数量的“通过邀请连接”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">被邀请方：检查收到的暗号后</p>
                 </div>
             </div>
 
@@ -452,7 +454,7 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                     <span class="guide-step-title">把协作节点和应用都设为“本地”</span>
                 </div>
                 <p class="guide-step-text">用 <code>--network sbq-local-1</code> 启动协作节点。其他选项相同。</p>
-                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --network sbq-local-1 \
+                <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --meet --network sbq-local-1 \
       --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001</code></pre></div>
                 <p class="guide-step-text">填入“连接候选”的地址，请用运行协作节点的电脑在局域网内的 IP 地址书写（在同一台电脑上运行的应用也可以用这个地址）。身份密钥文件相同的话，PeerId 与用 <code>sbq-limited-1</code> 启动时相同。</p>
                 <div class="build-steps"><pre><code>/ip4/&lt;协作节点所在电脑的局域网IP地址&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
@@ -518,6 +520,9 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                         <tr><td><strong>“邀请的路径”中显示“尚无可从外部到达的连接地址。…”</strong></td><td>还没有连接到协作节点，或还没有预约到中继。稍等后仍无变化，请检查上一行。</td></tr>
                         <tr><td><strong>检查邀请字符串后显示“地址：0 个（可用 0 个）”，无法点击“连接”</strong></td><td>邀请字符串中没有连接地址。这是邀请方的应用还没有连接到协作节点，或还没有预约到中继时生成的邀请字符串。请邀请方确认“邀请的路径”是否仍是上一行的消息，等它变为“通过协作节点的中继（…）。”等之后，重新生成邀请字符串。</td></tr>
                         <tr><td><strong>“邀请的路径”中显示“无法使用中继。…”</strong></td><td>设置了“不使用直接连接”，但“连接候选”中没有可以中继的协作节点。还要确认协作节点是否加上 <code>--relay</code> 启动。</td></tr>
+                        <tr><td><strong>在“互联网”中生成邀请，但没有显示暗号</strong></td><td>协作节点没有加上 <code>--meet</code> 启动，或者还没有连接到协作节点。即使没有暗号，邀请字符串也可以使用。</td></tr>
+                        <tr><td><strong>“此暗号的邀请需要从协作节点取得。…”</strong></td><td>输入暗号的人的应用没有连接到支持暗号的协作节点。请在“连接候选”中填入与邀请方相同的协作节点，然后重新连接。</td></tr>
+                        <tr><td><strong>“找不到此暗号的邀请。…”</strong></td><td>暗号不正确、已超过期限（10 分钟），或已被使用。请让邀请方重新生成邀请。</td></tr>
                         <tr><td><strong>“此邀请字符串中没有通过您的协作节点中继的连接地址。…”</strong></td><td>设置了“不使用直接连接”，且与邀请方的协作节点不同。请填入相同的协作节点。</td></tr>
                         <tr><td><strong>“这是其他网络的邀请字符串。”</strong></td><td>两人的“网络”不同。两人都以“互联网”连接（在局域网内试用时，两人都用“本地”）。</td></tr>
                         <tr><td><strong>在“本地”下，“邀请的路径”中没有显示“（也可使用协作节点的中继）”</strong></td><td>请确认协作节点是否加上 <code>--network sbq-local-1</code> 和 <code>--relay</code> 启动，以及“连接候选”的地址是否为局域网内的地址（<a href="#lan-test">在局域网内试用</a>）。</td></tr>
@@ -547,6 +552,13 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
 
         <div class="screenshot-gallery">
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">对通过互联网的对手，也可以用暗号邀请吗</span>
+                </div>
+                <p class="guide-step-text">可以。如果协作节点是加上 <code>--meet</code> 启动的，点击“生成邀请”时，会与邀请字符串一起显示 10 个字符的暗号（<a href="#play">邀请并对局</a>）。协作节点只是最多存放加密的邀请 10 分钟，无法读取其内容（连接地址）。从暗号生成密钥时使用了耗时的计算，因此实际上也无法从存放的内容推算出暗号。没有加上 <code>--meet</code> 的协作节点不会显示暗号，只有邀请字符串。</p>
+            </div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>

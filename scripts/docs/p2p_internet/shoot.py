@@ -8,7 +8,7 @@
     internet-no-node.png   協力ノードを入れずに「インターネット」で接続したところ（招待に宛先が入らない）
     internet-settings.png  「設定」タブの「接続候補」に協力ノードを入れたところ（アドレスは見本。IP の前半は XXX.XXX）
     internet-connected.png 協力ノードにつながり、招待の経路が中継になったところ
-    internet-invite.png    受け取った招待文字列を確かめたところ（招待を受けた側）
+    internet-invite.png    受け取った合言葉を確かめたところ（招待を受けた側。協力ノードは --meet つき）
     internet-relay.png     中継を通って指している「対局中」タブ（ルーターの NAT がホールパンチングを通さない）
     internet-direct.png    中継でつながった後、直接の接続に切り替わった「対局中」タブ
     internet-relay-only.png 「直接接続を使わない」で接続したところ
@@ -176,16 +176,20 @@ def route(name):
 
 
 def invite(host, guest, out_dir=None, invite_shot=None):
-    """host が招待文字列を作り、guest が確かめて接続し、双方が開始を押す"""
+    """host が招待を作り、guest が合言葉（出なければ招待文字列）を確かめて接続し、双方が開始を押す"""
     tab(host, TAB_INVITE)
     click(host, "p2pCreateInvite")
     wait_until("invite created", lambda: text_of(host, "p2pInviteOut").strip() != "")
-    code = text_of(host, "p2pInviteOut").strip()
+    # 協力ノードが合言葉の待ち合わせに対応していれば（--meet）、10 文字の合言葉が出る
+    passcode = text_of(host, "p2pInviteCode").strip()
+    code = passcode or text_of(host, "p2pInviteOut").strip()
     tab(guest, TAB_INVITE)
     set_value(guest, "p2pInviteIn", code)
     click(guest, "p2pInspectInvite")
-    # 確かめた結果は3行（招待した相手の PeerId・期限・到達候補）。途中の「確かめています…」は1行
-    wait_until("invite inspected", lambda: len(text_of(guest, "p2pInviteInfo").splitlines()) >= 3)
+    # 確かめた結果は、招待文字列なら3行（招待した相手の PeerId・期限・到達候補）、合言葉ならその前に1行。
+    # 途中の「確かめています…」は1行
+    lines = 4 if passcode else 3
+    wait_until("invite inspected", lambda: len(text_of(guest, "p2pInviteInfo").splitlines()) >= lines)
     if invite_shot:
         shot(guest, out_dir, invite_shot)
     click(guest, "p2pConnectInvite")

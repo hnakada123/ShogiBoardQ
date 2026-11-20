@@ -82,8 +82,8 @@ EOF
         nat "$side" easy
     done
 
-    # 協力ノード（中継つき）
-    ip netns exec node "$BUILD/shogiboardq-peer" --service --relay --network sbq-limited-1 \
+    # 協力ノード（中継と、合言葉の待ち合わせつき）
+    ip netns exec node "$BUILD/shogiboardq-peer" --service --relay --meet --network sbq-limited-1 \
         --identity "$WORK/node.key" \
         --listen "/ip4/0.0.0.0/tcp/$NODE_PORT" --listen "/ip4/0.0.0.0/udp/$NODE_PORT/quic-v1" \
         > "$WORK/node.log" 2>&1 &
