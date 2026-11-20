@@ -11,12 +11,15 @@ usage:
           env -i build-p2p-docs/shogiboardq-peer --service --relay --meet --network sbq-local-1 \\
               --identity <作業フォルダ>/node.key --listen /ip4/0.0.0.0/tcp/<空きポート>
           multiaddr は /ip4/<この PC の LAN の IP>/tcp/<ポート>/p2p/<起動時に出る PeerId>）
+    shoot_p2p.py friends <言語> <出力フォルダ> <協力ノードの multiaddr>
+        p2p-peers.png（友だちにした相手が「オンライン」と出た「相手の管理」タブ。協力ノードは --meet つき）
 
 アプリは撮影用のビルド（cmake -DENABLE_P2P_DOCS_AUTOMATION=ON。既定 build-p2p-docs。SBQ_APP で変えられる）を
 launch.sh で起動する（Xvfb のディスプレイは SBQ_DISPLAY、既定 97。作業フォルダは SBQ_WORK、既定 /tmp/sbq-shots-<uid>）。
 登録エンジンは launch.sh の SBQ_ENGINES=1 の Hayanagi（build/Hayanagi/hayanagi）。インターネット越しの画像は
 p2p_internet/shoot.py で撮る。終わったら、起動した Xvfb を PID で止める（README の「後片付け」）。
 """
+import json
 import os
 import subprocess
 import sys
@@ -33,7 +36,7 @@ DISPLAY = os.environ.get("SBQ_DISPLAY", "97")
 WINDOW = "p2pWindow"
 CONFIRM = "p2pConfirmDialog"
 NAMES = {"ja_JP": ("鈴木", "山田"), "en": ("Suzuki", "Yamada"), "zh_CN": ("铃木", "山田"), "zh_TW": ("鈴木", "山田")}
-TAB_CONNECTION, TAB_INVITE, TAB_GAME, TAB_RECORDS, TAB_SETTINGS = 0, 1, 2, 3, 5
+TAB_CONNECTION, TAB_INVITE, TAB_GAME, TAB_RECORDS, TAB_PEERS, TAB_SETTINGS = 0, 1, 2, 3, 4, 5
 # 合言葉の見本（protocol/testvectors/code.txt の1行目。192.168.1.23 の PC の合言葉）
 SAMPLE_CODE = "008Q-4HMA-SW95"
 PIDS = {}
@@ -334,14 +337,84 @@ def lan(language, out_dir, node):
     shot(a, out_dir, "p2p-internet-lan-address.png")
 
 
+def select_peer(name, row=0):
+    """「相手の管理」の表の行を選ぶ"""
+    call(name, "widget.clickCell", {"target": WINDOW, "widget": "p2pPeerTable", "row": row, "column": 1})
+    time.sleep(0.3)
+
+
+def friends(language, out_dir, node):
+    """友だち一覧の画像を撮る: 1局指して互いを「相手の管理」に並べ、友だちにして、片方が在席を知らせる"""
+    os.makedirs(out_dir, exist_ok=True)
+    tag = language.replace("_", "").lower()
+    a, b = f"{tag}A", f"{tag}B"
+    name_a, name_b = NAMES[language]
+    launch(a, language)
+    launch(b, language)
+    connect_with_node(a, name_a, 0, node)
+    connect_with_node(b, name_b, 0, node)
+    time.sleep(3)
+
+    # 招待で1局始め、合意の引き分けで終える（対局した相手が「相手の管理」に並ぶ）
+    create_invite(b)
+    inspect(a, invite_code(b), lines=2)
+    click(a, "p2pConnectInvite")
+    for name in (a, b):
+        wait_until("confirm dialog", lambda n=name: window_open(n, CONFIRM), 60)
+    time.sleep(1)
+    for name in (b, a):
+        click(name, "p2pConfirmStart", target=CONFIRM)
+    for name in (a, b):
+        wait_until("game started", lambda n=name: call(n, "app.state")["play_mode"] != "not_started", 60)
+    black, white = (a, b) if not call(a, "app.state")["board_flipped"] else (b, a)
+    play(black, white, [((7, 7), (7, 6)), ((3, 3), (3, 4))])
+    set_value(a, "p2pTabs", TAB_GAME)
+    click(a, "p2pOfferDraw")
+    wait_until("offer box", lambda: window_open(b, "p2pOfferBox"), 30)
+    time.sleep(1.2)
+    call(b, "dialog.clickButton", {"target": "p2pOfferBox", "text": translated(language, "承諾", "P2pGameUiController")})
+    time.sleep(3)
+    for name in (a, b):
+        close_boxes(name)
+
+    # 互いを友だちにし、相手（b）が在席を知らせる
+    for name in (a, b):
+        set_value(name, "p2pTabs", TAB_PEERS)
+        time.sleep(0.5)
+        select_peer(name)
+        click(name, "p2pPeerFriend")
+        time.sleep(0.3)
+    set_value(b, "p2pTabs", TAB_PEERS)
+    set_value(b, "p2pSharePresence", True)
+    # a の「相手の管理」に「オンライン」と出るまで、開き直して調べ直す
+    online = translated(language, "オンライン", "P2pPeersPanel")
+    select_peer(a)
+    click(a, "p2pPeerVerified")
+    end = time.time() + 90
+    while time.time() < end:
+        set_value(a, "p2pTabs", TAB_CONNECTION)
+        set_value(a, "p2pTabs", TAB_PEERS)
+        time.sleep(2)
+        cells = call(a, "widget.text", {"target": WINDOW, "widget": "p2pPeerTable"})
+        if online in json.dumps(cells, ensure_ascii=False):
+            break
+    else:
+        raise RuntimeError("the friend did not come online")
+    select_peer(a)
+    time.sleep(0.5)
+    shot(a, out_dir, "p2p-peers.png")
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 4 or sys.argv[1] not in ("guide", "lan") or sys.argv[2] not in NAMES:
+    if len(sys.argv) < 4 or sys.argv[1] not in ("guide", "lan", "friends") or sys.argv[2] not in NAMES:
         sys.exit(__doc__)
     try:
         if sys.argv[1] == "guide":
             guide(sys.argv[2], os.path.abspath(sys.argv[3]))
         elif len(sys.argv) < 5:
             sys.exit(__doc__)
+        elif sys.argv[1] == "friends":
+            friends(sys.argv[2], os.path.abspath(sys.argv[3]), sys.argv[4])
         else:
             lan(sys.argv[2], os.path.abspath(sys.argv[3]), sys.argv[4])
     finally:

@@ -123,7 +123,7 @@
                     <li><strong>做的事</strong>：可達性確認和中繼。加上 <code>--meet</code> 啟動的協作節點，還負責暗號的會合（最多存放加密的邀請 10 分鐘）。</li>
                     <li><strong>不做的事</strong>：不判定著手和勝負，也不儲存對局記錄。中繼的通訊在雙方的應用程式之間加密，因此它也讀不到內容（著手、玩家ID、顯示名稱）。為暗號的會合存放的邀請，也以由暗號產生的金鑰加密，因此同樣讀不到。</li>
                     <li><strong>與對局伺服器的差異</strong>：即使經過中繼，對局的另一方仍是對手的應用程式，協作節點不扮演CSA網路對局的伺服器那樣的角色。對照表請見<a href="p2p-game.html#relay-not-server">經過中繼時，協作節點也不是對局伺服器</a>。</li>
-                    <li><strong>營運者能看到的</strong>：使用者的 IP 位址，以及哪些 IP 位址之間建立了連線。協作節點的程式不會把來源 IP 位址寫進輸出的記錄，但營運者檢查通訊就能知道。確認可達性時，只請協作節點逐一確認它看到的位址，不傳送使用者在區域網路內的位址。</li>
+                    <li><strong>營運者能看到的</strong>：使用者的 IP 位址，以及哪些 IP 位址之間建立了連線。協作節點的程式不會把來源 IP 位址寫進輸出的記錄，但營運者檢查通訊就能知道。確認可達性時，只請協作節點逐一確認它看到的位址，不傳送使用者在區域網路內的位址。對於使用好友清單的人，還能知道誰和誰是好友（存放同一個編號的 IP 位址與取回它的 IP 位址的組合）。</li>
                     <li><strong>中斷或延遲通訊</strong>：協作節點可以中斷或延遲它中繼的通訊，但無法改寫內容（改寫過的通訊會在加密的檢查中被發現，應用程式不會接受）。通訊中斷時，與線路中斷時一樣處理（<a href="p2p-game.html#disconnect">線路中斷時</a>）。</li>
                 </ul>
             </div>
@@ -219,7 +219,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                     <tbody>
                         <tr><td><strong><code>--service</code></strong></td><td>作為協作節點執行。</td></tr>
                         <tr><td><strong><code>--relay</code></strong></td><td>負責中繼。家用網路之間的對局幾乎都需要。</td></tr>
-                        <tr><td><strong><code>--meet</code></strong></td><td>負責暗號的會合。加上後，「網際網路」的邀請也會得到可以口頭告知的 10 個字元的暗號。協作節點只是最多存放加密的邀請 10 分鐘，無法讀取其內容。</td></tr>
+                        <tr><td><strong><code>--meet</code></strong></td><td>負責暗號的會合。加上後，「網際網路」的邀請也會得到可以口頭告知的 10 個字元的暗號。協作節點只是最多存放加密的邀請 10 分鐘，無法讀取其內容。也用於好友清單（上線通知）。</td></tr>
                         <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>用於透過網際網路對局的網路。應用程式的「網際網路」會加入這個名稱的網路。搭配應用程式的「本機」使用的協作節點，要用 <code>sbq-local-1</code> 啟動（<a href="#lan-test">在區域網路內試用</a>）。</td></tr>
                         <tr><td><strong><code>--identity &lt;檔案&gt;</code></strong></td><td>協作節點的識別金鑰檔案。不存在時會產生（只有擁有者可以讀寫的權限）。只要一直使用同一個檔案，PeerId 就不會變。刪除後 PeerId 會變，需要重新告知位址。</td></tr>
                         <tr><td><strong><code>--listen &lt;位址&gt;</code></strong></td><td>監聽的位址和連接埠。<code>0.0.0.0</code> 表示在所有網路介面上監聽。連接埠不一定是 4001。</td></tr>

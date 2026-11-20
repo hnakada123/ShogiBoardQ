@@ -510,10 +510,10 @@
                     <span class="guide-step-number">6</span>
                     <span class="guide-step-title">The Opponents Tab</span>
                 </div>
-                <p class="guide-step-text">The opponents you have played are listed one per row by player ID. Anyone can use the same display name, so use the player ID to tell whether it is the same person. Select a row and click a button below.</p>
+                <p class="guide-step-text">The opponents you have played are listed one per row by player ID. Anyone can use the same display name, so use the player ID to tell whether it is the same person. Select a row and click a button below. An opponent you have added as a friend shows as Online while connected, and you can ask them for a game from here.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-peers.png"><img src="../../images/en/p2p-game/p2p-peers.png" alt="Opponents tab with Player ID, Local name, Last display name, Verified, Block, Games, and Unconfirmed columns and the Name, Verification Code, Unmark Verified, Block, and Delete Record buttons" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Opponents tab: an opponent with a local name, verified with the verification code</p>
+                    <a href="../../images/en/p2p-game/p2p-peers.png"><img src="../../images/en/p2p-game/p2p-peers.png" alt="Opponents tab with the Player ID, Local name, Last display name, Friend, Verified, Blocked, Games, and Unconfirmed columns and the Name, Verification Code, Unmark Verified, Block, Delete Record, Remove Friend, and Ask for a Game buttons and the Tell friends when I am online checkbox" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Opponents tab: a friend showing as Online</p>
                 </div>
                 <table class="info-table">
                     <thead>
@@ -523,6 +523,7 @@
                         <tr><td><strong>Player ID</strong></td><td>The opponent's player ID. Use this value to tell whether it is the same person.</td></tr>
                         <tr><td><strong>Local name</strong></td><td>The name you gave with Name…. It is not shown to the opponent or written into game records.</td></tr>
                         <tr><td><strong>Last display name</strong></td><td>The display name the opponent used in the most recent game.</td></tr>
+                        <tr><td><strong>Friend</strong></td><td>Shows Friend for an opponent you have added as a friend, and Online for a friend who is connected and telling friends when they are online.</td></tr>
                         <tr><td><strong>Verified</strong></td><td>Shows Verified for opponents you checked with a verification code and marked with Mark Verified.</td></tr>
                         <tr><td><strong>Block</strong></td><td>Shows Blocked for opponents you have blocked.</td></tr>
                         <tr><td><strong>Games / Unconfirmed</strong></td><td>The number of games with that opponent, and how many of them ended without a confirmed result.</td></tr>
@@ -530,10 +531,14 @@
                         <tr><td><strong>Verification Code…</strong></td><td>Shows a 30-digit number made from both player IDs. Compare it with your opponent through another channel, such as a phone call or in person.</td></tr>
                         <tr><td><strong>Mark Verified / Unmark Verified</strong></td><td>Marks an opponent whose verification code matched as verified. Click again to remove the mark.</td></tr>
                         <tr><td><strong>Block / Unblock</strong></td><td>Refuses that opponent even if they connect with an invitation. They are told you are busy negotiating or playing with someone else. Click again to unblock.</td></tr>
+                        <tr><td><strong>Add Friend / Remove Friend</strong></td><td>Makes the selected opponent a friend (up to 64; a blocked opponent cannot be a friend). With an opponent who has also added you, you can see whether they are connected and ask for a game without passing an invitation. Click again to remove.</td></tr>
+                        <tr><td><strong>Ask for a Game</strong></td><td>Asks a friend who is Online for a game. The confirmation screen opens on their side, and the game starts when they click Start. The conditions (time control, side, and player) are those on their Connection and Conditions tab.</td></tr>
+                        <tr><td><strong>Tell friends when I am online</strong></td><td>While you are connected, tells only the opponents who have added you as a friend and whom you have added that you are connected (Online), and accepts their requests for a game (off by default). It uses a cooperating node that supports passcodes. The operator of that node can tell who is friends with whom (as pairs of IP addresses).</td></tr>
                         <tr><td><strong>Delete Record</strong></td><td>Removes the opponent's name, verified mark, block, and game count.</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">Anyone can create a new player key for free, so a block or past results can be avoided by recreating the key.</p>
+                <p class="guide-step-text">To see friends online and ask them for a game, both players enter a cooperating node that supports passcodes (one started with <code>--meet</code>; see <a href="p2p-relay.html#start">Start a Cooperating Node</a>) in Bootstrap nodes on the Settings tab and connect. Only a player who has turned on Tell friends when I am online on this tab (off by default) shows as Online to the other. Unless each has added the other as a friend, neither shows. An opponent who is playing or negotiating does not show as Online. While this tab is open, it checks again every minute.</p>
             </div>
 
             <div class="guide-step">
@@ -848,8 +853,9 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>Your opponent</strong></td><td>Your player ID, display name, and conditions. With a direct connection, they can also find your IP address by inspecting the traffic (it is not shown on screen). With Do not use direct connections, they cannot</td></tr>
+                        <tr><td><strong>An opponent you added as a friend</strong></td><td>That you are connected, while you are connected with Tell friends when I am online turned on (only if they have also added you as a friend). Once they ask and connect, the same as an opponent</td></tr>
                         <tr><td><strong>Anyone who sees the invitation string or passcode</strong></td><td>The addresses for reaching the inviter (including the IP address when direct connections are used. On “Local (same PC / same LAN)”, all of this PC's LAN addresses are included, also those of VPNs and virtual devices; a passcode contains up to four of them. A passcode that uses a cooperating node contains no address, but until it expires, the invitation can be collected from the cooperating node with it)</td></tr>
-                        <tr><td><strong>The operator of the cooperating node</strong></td><td>IP addresses and which IP addresses connected to each other. The reachability check only asks the node to test the address it saw; your LAN addresses are not sent. A cooperating node that supports passcodes keeps the encrypted invitation for up to 10 minutes but cannot read it. Not the moves, player IDs, or display names</td></tr>
+                        <tr><td><strong>The operator of the cooperating node</strong></td><td>IP addresses and which IP addresses connected to each other. The reachability check only asks the node to test the address it saw; your LAN addresses are not sent. A cooperating node that supports passcodes keeps the encrypted invitation for up to 10 minutes but cannot read it. Not the moves, player IDs, or display names For users of Tell friends when I am online, also who is friends with whom (the pairs of IP addresses that deposited and collected the same number).</td></tr>
                         <tr><td><strong>Devices on the same LAN</strong></td><td>While you are connected on “Local (same PC / same LAN)”, that this PC is running P2P play (anyone who connects to the listening port can tell). Without the invitation string or passcode, they see neither this PC's list of addresses nor the game</td></tr>
                         <tr><td><strong>Anyone who receives the game record (evidence)</strong></td><td>Both player IDs, the conditions, the approximate date and time the game started, all moves with self-reported time, and the result confirmed by both. Display names, IP addresses, and local names are not kept</td></tr>
                     </tbody>
@@ -882,7 +888,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">How do I find an opponent?</span>
                 </div>
-                <p class="guide-step-text">By invitation. The inviter creates an invitation, and tells an opponent on the same LAN its passcode of about 12 characters (by voice, for example) or sends a distant opponent the invitation string, for example in a private message (with a cooperating node that supports passcodes, telling a 10-character passcode is enough for a distant opponent too). The feature is meant for playing people you know; there is no public list for finding strangers (<a href="p2p-direct.html#steps">Steps to Start a Game</a>).</p>
+                <p class="guide-step-text">By invitation. The inviter creates an invitation, and tells an opponent on the same LAN its passcode of about 12 characters (by voice, for example) or sends a distant opponent the invitation string, for example in a private message (with a cooperating node that supports passcodes, telling a 10-character passcode is enough for a distant opponent too). The feature is meant for playing people you know; there is no public list for finding strangers (<a href="p2p-direct.html#steps">Steps to Start a Game</a>). For an opponent you play often, add them as a friend on the Opponents tab: you can then see whether they are connected and ask for a game from the list without passing an invitation (this uses a cooperating node that supports passcodes).</p>
             </div>
 
             <div class="guide-step">
