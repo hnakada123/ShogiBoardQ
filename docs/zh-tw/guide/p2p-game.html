@@ -234,7 +234,7 @@
                         <tr><th scope="col">項目</th><th scope="col">規則</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>讓子與對局者</strong></td><td>僅限平手，人與人之間的對局。對局中不能使用研究、詰棋搜尋、棋譜分析和定式顯示。</td></tr>
+                        <tr><td><strong>讓子與對局者</strong></td><td>僅限平手。自己的著手可以由自己在棋盤上走，也可以讓已註冊的引擎來走（選擇哪一種會在條件確認畫面告知對手，並保留在對局記錄中）。對局中不能使用研究、詰棋搜尋、棋譜分析和定式顯示。</td></tr>
                         <tr><td><strong>用時規則</strong></td><td>用時（分鐘）和讀秒（秒）。用時由雙方自報，並與對方測得的時間對照。</td></tr>
                         <tr><td><strong>先後手</strong></td><td>依邀請方的希望決定；選擇「不指定」時由雙方的亂數決定。</td></tr>
                         <tr><td><strong>終局</strong></td><td>認輸、將死、超時負、千日手（和棋）、連續王手千日手（王手方判負）、達到512手（和棋）、協議和棋、協議中斷。</td></tr>
@@ -381,7 +381,7 @@
                         <tr><th scope="col">分頁</th><th scope="col">用途</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>連線與條件</strong></td><td>連線網路，並設定給對手看的顯示名稱，以及邀請時的用時規則和先後手。</td></tr>
+                        <tr><td><strong>連線與條件</strong></td><td>連線網路，並設定給對手看的顯示名稱，邀請時的用時規則和先後手，以及由誰來走自己的著手（人類還是引擎）。</td></tr>
                         <tr><td><strong>透過邀請連線</strong></td><td>產生邀請字串交給對手，或用收到的邀請字串連線對手。</td></tr>
                         <tr><td><strong>對局中</strong></td><td>查看對局狀況，認輸，或提議和棋、中斷。</td></tr>
                         <tr><td><strong>對局記錄</strong></td><td>查看已結束對局的記錄（憑證），並進行驗證、匯出和刪除。</td></tr>
@@ -399,7 +399,7 @@
                 </div>
                 <p class="guide-step-text">在上方的「連線」中連線網路，在下方的「顯示名稱與條件」中設定給對手看的名稱，以及自己邀請時的對局條件。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-connection.png"><img src="../../images/zh-tw/p2p-game/p2p-connection.png" alt="已連線狀態的「連線與條件」分頁。顯示網路、狀態、玩家ID、邀請的路徑，以及顯示名稱、用時規則、讀秒和先後手的輸入欄" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/zh-tw/p2p-game/p2p-connection.png"><img src="../../images/zh-tw/p2p-game/p2p-connection.png" alt="已連線狀態的「連線與條件」分頁。顯示網路、狀態、玩家ID、邀請的路徑，以及顯示名稱、用時規則、讀秒、先後手和對局者的輸入欄" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">「連線與條件」分頁：連線後</p>
                 </div>
                 <table class="info-table">
@@ -415,9 +415,10 @@
                         <tr><td><strong>顯示名稱</strong></td><td>給對手看的名稱（1～32 個字元）。會顯示在條件確認畫面、對局資訊和對手的「對局記錄」分頁中，但不會保留在憑證裡。</td></tr>
                         <tr><td><strong>時間</strong></td><td>自己邀請時的「用時規則」（0～1440 分鐘）和「讀秒」（0～600 秒）。兩者不能同時為 0。</td></tr>
                         <tr><td><strong>先後手</strong></td><td>自己邀請時對先後手的希望。從「不指定（由雙方的亂數決定）」「希望先手」「希望後手」中選擇。</td></tr>
+                        <tr><td><strong>對局者</strong></td><td>由誰來走自己的著手。選擇「人類」時由自己在棋盤上走，選擇已註冊的引擎時由該引擎來走（「引擎設定」可以開啟所選引擎的設定）。由引擎下棋這一點會在條件確認畫面告知對手，並保留在對局記錄（憑證）中。邀請方和被邀請方都各自選擇自己的對局者。確認條件期間和對局中不能變更。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">用時規則和先後手使用邀請方的條件。被邀請方在條件確認畫面確認後再開始。</p>
+                <p class="guide-step-text">用時規則和先後手使用邀請方的條件。「對局者」由雙方各自決定。雙方都在條件確認畫面確認後再開始。</p>
             </div>
 
             <div class="guide-step">
@@ -460,10 +461,10 @@
                         <tr><th scope="col">顯示</th><th scope="col">含義</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>對手</strong></td><td>對手的顯示名稱。</td></tr>
-                        <tr><td><strong>您執先手／您執後手</strong></td><td>本局中自己的先後手。</td></tr>
+                        <tr><td><strong>對手</strong></td><td>對手的顯示名稱。對手的著手由引擎來走時，下一行會顯示「對手的著手由引擎來走（對手的申報）」。</td></tr>
+                        <tr><td><strong>您執先手／您執後手</strong></td><td>本局中自己的先後手。讓引擎來走自己的著手時，下一行會顯示「您的著手由引擎『…』來走」。</td></tr>
                         <tr><td><strong>路徑</strong></td><td>「直接」表示與對手直接連線，「中繼」表示經過協作節點的中繼。</td></tr>
-                        <tr><td><strong>輪到您走棋／輪到對手走棋</strong></td><td>輪到誰走棋。對手的應用程式確認您的著手期間顯示「正在等待著手確認…」，線路中斷時顯示「正在重新連線（剩餘 N 秒）」，終局後核對結果期間顯示「正在確定結果…」。</td></tr>
+                        <tr><td><strong>輪到您走棋／輪到對手走棋</strong></td><td>輪到誰走棋。在讓引擎來走自己著手的對局中，輪到自己時顯示「引擎正在思考」。對手的應用程式確認您的著手期間顯示「正在等待著手確認…」，線路中斷時顯示「正在重新連線（剩餘 N 秒）」，終局後核對結果期間顯示「正在確定結果…」。</td></tr>
                         <tr><td><strong>斷線時間剩餘</strong></td><td>本局中線路還可以中斷多久（從 600 秒開始減少）。變為 0 時對局中斷。</td></tr>
                         <tr><td><strong>結果</strong></td><td>結果確定後，會顯示「先手勝（認輸）」之類的內容。</td></tr>
                     </tbody>
@@ -491,7 +492,7 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>結束時間</strong></td><td>對局結束的日期和時間。</td></tr>
-                        <tr><td><strong>對手（顯示名稱）</strong></td><td>對手使用的顯示名稱。如果在「對手管理」中命名過，還會顯示本機備註名稱。</td></tr>
+                        <tr><td><strong>對手（顯示名稱）</strong></td><td>對手使用的顯示名稱。如果在「對手管理」中命名過，還會顯示本機備註名稱。由引擎下棋的一方，不論在本欄還是在「您」一欄，都會加上「（引擎）」。</td></tr>
                         <tr><td><strong>您</strong></td><td>自己的先後手（先手・後手）。</td></tr>
                         <tr><td><strong>結束方式</strong></td><td>在自己的應用程式中結束的方式（雙方已確定、無對手確定、中斷（結果未確定）、通訊中斷（結果未確定）等）。</td></tr>
                         <tr><td><strong>記錄類別</strong></td><td>驗證憑證的結果（雙方已確定、由棋譜決定的結果、結果未確定）。憑證損壞時顯示「驗證失敗」或「無法讀取」。</td></tr>
@@ -628,10 +629,23 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">確認條件後開始</span>
                 </div>
-                <p class="guide-step-text">「對局條件與記錄」中會顯示先後手及其決定方式、用時規則、規則以及對局記錄中保存的內容。沒有問題就按一下「開始」。雙方都按下「開始」後對局開始。按一下「取消」，或 60 秒內雙方沒有都開始，就會取消（剩餘秒數顯示在下方）。</p>
+                <p class="guide-step-text">「對局條件與記錄」的開頭會以粗體顯示自己和對手的著手由誰來走（人類還是引擎。對手的部分是對手的申報）。接著顯示先後手及其決定方式、用時規則、規則以及對局記錄中保存的內容。沒有問題就按一下「開始」。雙方都按下「開始」後對局開始。按一下「取消」，或 60 秒內雙方沒有都開始，就會取消（剩餘秒數顯示在下方）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-confirm.png"><img src="../../images/zh-tw/p2p-game/p2p-confirm.png" alt="顯示對手的顯示名稱和玩家ID、尚未驗證對手是否為ID的持有者、先後手、用時規則、規則和記錄內容的條件確認畫面" width="600" height="660" loading="lazy"></a>
+                    <a href="../../images/zh-tw/p2p-game/p2p-confirm.png"><img src="../../images/zh-tw/p2p-game/p2p-confirm.png" alt="顯示對手的顯示名稱和玩家ID、尚未驗證對手是否為ID的持有者、由誰下棋、先後手、用時規則、規則和記錄內容的條件確認畫面" width="600" height="660" loading="lazy"></a>
                     <p class="screenshot-caption">條件確認畫面（驗證對手之前）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">由引擎下棋的對局</span>
+                </div>
+                <p class="guide-step-text">讓引擎來走自己的著手時，會在條件確認畫面出現時啟動引擎。啟動完成之前，「開始」會顯示為「正在啟動引擎…」，無法按下。如果引擎無法啟動，則不開始對局而取消。</p>
+                <p class="guide-step-text">對手在「對局者」中選擇了引擎時，會顯示「對手的著手由引擎來走（對手的申報）。」。不想與引擎對局時，請按一下「取消」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/zh-tw/p2p-game/p2p-confirm-engine.png"><img src="../../images/zh-tw/p2p-game/p2p-confirm-engine.png" alt="在條件的開頭以粗體顯示對手的著手由引擎來走的條件確認畫面" width="600" height="660" loading="lazy"></a>
+                    <p class="screenshot-caption">對手讓引擎下棋時的條件確認畫面</p>
                 </div>
             </div>
 
@@ -654,6 +668,7 @@
                 </div>
                 <p class="guide-step-text">對局開始後，使用主視窗的棋盤、棋譜和對局時鐘。「對局資訊」中會填入雙方的顯示名稱和對局ID。執後手時，棋盤會自動翻轉，從自己一方觀看。</p>
                 <p class="guide-step-text">您走的棋要等對手的應用程式收到並確認後才會落在棋盤上（期間顯示「正在等待著手確認…」）。不能悔棋。</p>
+                <p class="guide-step-text">在「對局者」中選擇了引擎的對局裡，自己的著手由該引擎來走。棋盤上的著手不被接受，引擎的讀法和評價值會顯示在「思考」和「評價值圖表」中。「立即落子」、認輸和提議仍然可以由人來操作。引擎停止時，對局會中斷（結果未確定）。</p>
                 <div class="screenshot-item">
                     <a href="../../images/zh-tw/p2p-game/p2p-main.png"><img src="../../images/zh-tw/p2p-game/p2p-main.png" alt="P2P對局中的主視窗，顯示棋盤、棋譜，以及填入對局者的對局資訊" width="1376" height="980" loading="lazy"></a>
                     <p class="screenshot-caption">對局中的主視窗（到第14手）</p>
@@ -728,7 +743,7 @@
                     <span class="guide-step-title">驗證、匯出與刪除</span>
                 </div>
                 <p class="guide-step-text">按一下「驗證」，會顯示玩家金鑰的確定是否正確、棋譜是否符合規則、自報用時的計算是否一致、結果是否由棋譜決定，以及記錄類別。用「匯出憑證…」可以把憑證檔案（.sbqmatch）儲存到任意位置。「刪除記錄」會刪除本機的憑證（無法復原）。</p>
-                <p class="guide-step-text">記錄不能證明實際思考時間、是否由人類下棋以及對局日期。</p>
+                <p class="guide-step-text">記錄不能證明實際思考時間、實際由誰下棋以及對局日期（由人類還是引擎下棋，會作為雙方的申報保留在記錄中）。</p>
             </div>
 
             <div class="guide-step">
@@ -740,6 +755,7 @@
                 <div class="build-steps"><pre><code>$ shogiboardq-cli verify-match --input-path ~/game.sbqmatch
 {
   "black_player_id": "4b8788e2…",
+  "black_player_kind": "human",
   "byoyomi_ms": 30000,
   "category": "mutually_signed",
   "checks": {
@@ -772,9 +788,10 @@
   },
   "states": 16,
   "valid": true,
-  "white_player_id": "8a3569db…"
+  "white_player_id": "8a3569db…",
+  "white_player_kind": "human"
 }</code></pre></div>
-                <p class="guide-step-text"><code>valid</code> 為 true 表示玩家金鑰的確定和記錄的結構正確，<code>category</code> 是記錄類別（<code>mutually_signed</code> 為「雙方已確定」，<code>determined_by_record</code> 為「由棋譜決定的結果」，<code>unconfirmed</code> 為「結果未確定」）。<code>not_verifiable</code> 列出從此記錄無法確認的內容（實際思考時間、是否由人類下棋、對局日期）。</p>
+                <p class="guide-step-text"><code>valid</code> 為 true 表示玩家金鑰的確定和記錄的結構正確，<code>category</code> 是記錄類別（<code>mutually_signed</code> 為「雙方已確定」，<code>determined_by_record</code> 為「由棋譜決定的結果」，<code>unconfirmed</code> 為「結果未確定」）。<code>not_verifiable</code> 列出從此記錄無法確認的內容（實際思考時間、實際由誰下棋、對局日期）。<code>black_player_kind</code>、<code>white_player_kind</code> 表示申報的先手、後手的著手由誰來走（<code>human</code> 或 <code>engine</code>）。</p>
             </div>
 
             <div class="guide-step" id="spec">
@@ -813,7 +830,7 @@
                     <li><strong>顯示名稱</strong>：顯示名稱為自稱。確認對手的依據是玩家ID和確認碼。</li>
                     <li><strong>確定結果</strong>：若輸方的應用程式不確定結果（例如中途結束應用程式、中斷連線或使用改造過的應用程式），就不會留下雙方確定的記錄。</li>
                     <li><strong>用時</strong>：用時為自報。無法識別每步最多 10 秒的虛報，以及利用斷線拖延時間（每局合計最多 10 分鐘）。</li>
-                    <li><strong>引擎與串通</strong>：無法識別由引擎下的對局或串通的對局。雙方也可以串通確定虛構的結果。</li>
+                    <li><strong>引擎與串通</strong>：由誰下棋（人類還是引擎）為自報。無法識別申報為「人類」卻照引擎的著手下的對局，或串通的對局。雙方也可以串通確定虛構的結果。</li>
                     <li><strong>玩家金鑰</strong>：無法防止以同一使用者權限執行的惡意程式竊取玩家金鑰。</li>
                 </ul>
                 <p class="guide-step-text">請不要把記錄的勝局數作為正式等級分或棋力的依據。</p>
@@ -928,7 +945,15 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">對局中可以使用研究或棋譜分析嗎</span>
                 </div>
-                <p class="guide-step-text">不可以。P2P對局是人與人之間的對局，對局中不能使用研究、詰棋搜尋、棋譜分析和定式顯示（<a href="#about">什麼是P2P對局</a>中的「對局規則」）。</p>
+                <p class="guide-step-text">不可以。對局中不能使用研究、詰棋搜尋、棋譜分析和定式顯示（<a href="#about">什麼是P2P對局</a>中的「對局規則」）。想讓引擎下棋時，請在開始對局之前在「對局者」中選擇引擎（見下一項）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">可以讓引擎來下棋嗎</span>
+                </div>
+                <p class="guide-step-text">可以。在「連線與條件」分頁的「對局者」中選擇已註冊的引擎，然後發出邀請或透過邀請連線。由引擎下棋這一點會在條件確認畫面告知對手，並保留在對局記錄中。如果對手也選擇引擎，就是引擎與引擎的對局。如果對手的應用程式是不支援引擎對局的舊版本，開始之前會顯示提示（把「對局者」設為「人類」就可以對局）。由於沒有入玉宣言，如果引擎的設定中可以停用入玉宣言，請將其停用。</p>
             </div>
 
             <div class="guide-step">
@@ -936,7 +961,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">對局記錄（憑證）能證明什麼</span>
                 </div>
-                <p class="guide-step-text">「雙方已確定」的記錄能表明雙方同意了同一結果。憑證任何人都可以驗證，確定之後的改動會在驗證時被發現。記錄不能證明實際思考時間、是否由人類下棋以及對局日期（<a href="#records">對局記錄與驗證</a>）。</p>
+                <p class="guide-step-text">「雙方已確定」的記錄能表明雙方同意了同一結果。憑證任何人都可以驗證，確定之後的改動會在驗證時被發現。記錄不能證明實際思考時間、實際由誰下棋以及對局日期（<a href="#records">對局記錄與驗證</a>）。</p>
             </div>
 
         </div>

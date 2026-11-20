@@ -234,7 +234,7 @@
                         <tr><th scope="col">Item</th><th scope="col">Rule</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Handicap and players</strong></td><td>Even games only, between humans. Consideration, mate search, game analysis, and the opening book display are unavailable during a game.</td></tr>
+                        <tr><td><strong>Handicap and players</strong></td><td>Even games only. You play your moves on the board yourself, or have a registered engine play them (your choice is shown to the opponent on the confirmation screen and kept in the game record). Consideration, mate search, game analysis, and the opening book display are unavailable during a game.</td></tr>
                         <tr><td><strong>Time control</strong></td><td>Main time (minutes) and byoyomi (seconds). Each player reports their own time, which is checked against the time the opponent measured.</td></tr>
                         <tr><td><strong>Sides</strong></td><td>Assigned as the inviter prefers; with No preference, decided by random numbers from both players.</td></tr>
                         <tr><td><strong>Game end</strong></td><td>Resignation, checkmate, time loss, repetition (draw), perpetual check (the checking side loses), 512 moves reached (draw), draw by agreement, and abort by agreement.</td></tr>
@@ -344,7 +344,7 @@
                     <li><strong>Linux</strong>: <code>~/.local/share/ShogiBoardQ/p2p/identity</code></li>
                 </ul>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-identity.png"><img src="../../images/en/p2p-game/p2p-identity.png" alt="Prepare P2P Games dialog with three ways to store the player key and the list of what cannot be prevented" width="657" height="499" loading="lazy"></a>
+                    <a href="../../images/en/p2p-game/p2p-identity.png"><img src="../../images/en/p2p-game/p2p-identity.png" alt="Prepare P2P Games dialog with three ways to store the player key and the list of what cannot be prevented" width="668" height="517" loading="lazy"></a>
                     <p class="screenshot-caption">Prepare P2P Games, shown the first time you connect</p>
                 </div>
             </div>
@@ -381,7 +381,7 @@
                         <tr><th scope="col">Tab</th><th scope="col">When you use it</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Connection and Conditions</strong></td><td>Connect to a network, and set the display name shown to opponents and the time control and side used when you invite.</td></tr>
+                        <tr><td><strong>Connection and Conditions</strong></td><td>Connect to a network, and set the display name shown to opponents the time control and side used when you invite, and who plays your moves (a human or an engine).</td></tr>
                         <tr><td><strong>Connect by Invitation</strong></td><td>Create an invitation to send to your opponent, or connect with an invitation you received.</td></tr>
                         <tr><td><strong>Game</strong></td><td>See the state of the game, resign, or offer a draw or an abort.</td></tr>
                         <tr><td><strong>Game Records</strong></td><td>See the records (evidence) of finished games, and verify, export, or delete them.</td></tr>
@@ -399,7 +399,7 @@
                 </div>
                 <p class="guide-step-text">Connect to a network under Connect at the top, and under Display name and conditions set the name shown to opponents and the conditions of the games you invite people to.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-connection.png"><img src="../../images/en/p2p-game/p2p-connection.png" alt="The Connection and Conditions tab while connected, with the network, status, player ID, and invitation route, and the display name, time control, byoyomi, and side fields" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/en/p2p-game/p2p-connection.png"><img src="../../images/en/p2p-game/p2p-connection.png" alt="The Connection and Conditions tab while connected, with the network, status, player ID, and invitation route, and the display name, time control, byoyomi, side, and player fields" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">The Connection and Conditions tab: after connecting</p>
                 </div>
                 <table class="info-table">
@@ -415,9 +415,10 @@
                         <tr><td><strong>Display name</strong></td><td>The name shown to opponents (1 to 32 characters). It appears on the confirmation screen, in the game information, and on the opponent's Game Records tab, but it is not kept in the evidence.</td></tr>
                         <tr><td><strong>Time</strong></td><td>The Time control (0 to 1440 minutes) and Byoyomi (0 to 600 seconds) of the games you invite people to. They cannot both be 0.</td></tr>
                         <tr><td><strong>Side</strong></td><td>The side you prefer in the games you invite people to: No preference (decided by random numbers from both), Prefer Black, or Prefer White.</td></tr>
+                        <tr><td><strong>Player</strong></td><td>Who plays your moves. With Human, you play on the board yourself; if you choose a registered engine, that engine plays (Engine Settings opens the settings of the chosen engine). That an engine plays is shown to the opponent on the confirmation screen and is also kept in the game record (evidence). Both the inviter and the invited player choose this for themselves. It cannot be changed while conditions are being confirmed or during a game.</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">The time control and the side come from the inviter's conditions. The invited player checks them on the confirmation screen before starting.</p>
+                <p class="guide-step-text">The time control and the side come from the inviter's conditions. Each player sets Player for themselves. Both players check everything on the confirmation screen before starting.</p>
             </div>
 
             <div class="guide-step">
@@ -460,10 +461,10 @@
                         <tr><th scope="col">Shown</th><th scope="col">Meaning</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Opponent</strong></td><td>The opponent's display name.</td></tr>
-                        <tr><td><strong>You play Black / You play White</strong></td><td>Your side in this game.</td></tr>
+                        <tr><td><strong>Opponent</strong></td><td>The opponent's display name. When an engine plays the opponent's moves, the next line shows The opponent's moves are played by an engine (as declared by the opponent).</td></tr>
+                        <tr><td><strong>You play Black / You play White</strong></td><td>Your side in this game. When an engine plays your moves, the next line shows Your moves are played by the engine "…".</td></tr>
                         <tr><td><strong>Route</strong></td><td>direct means you are connected directly to the opponent; relay means the connection goes through the relay of a cooperating node.</td></tr>
-                        <tr><td><strong>Your turn / Opponent's turn</strong></td><td>Whose turn it is. It shows Waiting for move confirmation… while the opponent's app checks your move, Reconnecting (N s left) when the connection is lost, and Confirming the result… while the result is being compared after the game ends.</td></tr>
+                        <tr><td><strong>Your turn / Opponent's turn</strong></td><td>Whose turn it is. In a game where an engine plays your moves, your turn is shown as The engine is thinking. It shows Waiting for move confirmation… while the opponent's app checks your move, Reconnecting (N s left) when the connection is lost, and Confirming the result… while the result is being compared after the game ends.</td></tr>
                         <tr><td><strong>Disconnection time left</strong></td><td>How much longer the connection may be lost in this game (it counts down from 600 seconds). At 0 the game is interrupted.</td></tr>
                         <tr><td><strong>Result</strong></td><td>Once the result is confirmed, it is shown like Black wins (Resign).</td></tr>
                     </tbody>
@@ -491,7 +492,7 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>Ended</strong></td><td>When the game ended.</td></tr>
-                        <tr><td><strong>Opponent (display name)</strong></td><td>The display name the opponent used. If you named them on the Opponents tab, the local name is shown too.</td></tr>
+                        <tr><td><strong>Opponent (display name)</strong></td><td>The display name the opponent used. If you named them on the Opponents tab, the local name is shown too. The side whose moves an engine played is marked (engine), both in this column and in the You column.</td></tr>
                         <tr><td><strong>You</strong></td><td>Your side (Black or White).</td></tr>
                         <tr><td><strong>How it ended</strong></td><td>How the game ended in your app (Confirmed by both, Without opponent's confirmation, Interrupted (unconfirmed), Communication lost (unconfirmed), and so on).</td></tr>
                         <tr><td><strong>Record status</strong></td><td>The result of verifying the evidence (Confirmed by both, Determined by the moves, or Unconfirmed). If the evidence is damaged it shows Verification failed or Unreadable.</td></tr>
@@ -628,10 +629,23 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">Check the Conditions and Start</span>
                 </div>
-                <p class="guide-step-text">Game conditions and record shows the sides and how they were decided, the time control, the rules, and what the game record keeps. If everything is fine, click Start. The game begins when both players have clicked Start. Clicking Cancel, or not starting within 60 seconds, cancels it (the seconds left are shown at the bottom).</p>
+                <p class="guide-step-text">Game conditions and record first shows, in bold, who plays your moves and the opponent's moves (a human or an engine; the opponent's part is what the opponent declared). Below that come the sides and how they were decided, the time control, the rules, and what the game record keeps. If everything is fine, click Start. The game begins when both players have clicked Start. Clicking Cancel, or not starting within 60 seconds, cancels it (the seconds left are shown at the bottom).</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-confirm.png"><img src="../../images/en/p2p-game/p2p-confirm.png" alt="Confirmation screen showing the opponent&#x27;s display name and player ID, that the opponent&#x27;s ID is not verified yet, and the sides, time control, rules, and record" width="600" height="660" loading="lazy"></a>
+                    <a href="../../images/en/p2p-game/p2p-confirm.png"><img src="../../images/en/p2p-game/p2p-confirm.png" alt="Confirmation screen showing the opponent&#x27;s display name and player ID, that the opponent&#x27;s ID is not verified yet, and who plays, the sides, time control, rules, and record" width="600" height="660" loading="lazy"></a>
                     <p class="screenshot-caption">Confirmation screen (before the opponent is verified)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">When an Engine Plays</span>
+                </div>
+                <p class="guide-step-text">If an engine plays your moves, the engine is started when the confirmation screen appears. Until it is ready, Start reads Starting the engine… and cannot be clicked. If the engine cannot be started, the game is cancelled without starting.</p>
+                <p class="guide-step-text">When the opponent has chosen an engine in Player, the screen shows The opponent's moves are played by an engine (as declared by the opponent). If you do not want to play against an engine, click Cancel.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../../images/en/p2p-game/p2p-confirm-engine.png"><img src="../../images/en/p2p-game/p2p-confirm-engine.png" alt="Confirmation screen showing in bold, at the top of the conditions, that an engine plays the opponent&#x27;s moves" width="600" height="660" loading="lazy"></a>
+                    <p class="screenshot-caption">Confirmation screen when the opponent has an engine play</p>
                 </div>
             </div>
 
@@ -654,6 +668,7 @@
                 </div>
                 <p class="guide-step-text">When the game starts, the board, game record, and clocks of the main window are used. Game Info shows both display names and the game ID. When you play White, the board flips automatically so that you see it from your side.</p>
                 <p class="guide-step-text">Your move is placed on the board after your opponent's app has received and checked it (Waiting for move confirmation… is shown meanwhile). There are no takebacks.</p>
+                <p class="guide-step-text">In a game where you chose an engine in Player, that engine plays your moves. Moves on the board are not accepted, and the engine's principal variation and evaluation appear in Thinking and Evaluation Graph. Move Now, resigning, and offers can still be operated by you. If the engine stops, the game is interrupted (result unconfirmed).</p>
                 <div class="screenshot-item">
                     <a href="../../images/en/p2p-game/p2p-main.png"><img src="../../images/en/p2p-game/p2p-main.png" alt="Main window during a P2P game with the board, the game record, and Game Info showing the players" width="1423" height="1000" loading="lazy"></a>
                     <p class="screenshot-caption">Main window during a game (after move 14)</p>
@@ -728,7 +743,7 @@
                     <span class="guide-step-title">Verify, Export, or Delete</span>
                 </div>
                 <p class="guide-step-text">Click Verify to see whether the confirmations with player keys are valid, whether the moves follow the rules, whether the self-reported time arithmetic matches, whether the result is determined by the moves, and the record status. Export Evidence… saves the evidence file (.sbqmatch) wherever you like. Delete Record removes the evidence from your PC (this cannot be undone).</p>
-                <p class="guide-step-text">A record does not prove the actual thinking time, that humans played, or when the game was played.</p>
+                <p class="guide-step-text">A record does not prove the actual thinking time, who actually played the moves, or when the game was played (whether a human or an engine plays is kept in the record as what both players declared).</p>
             </div>
 
             <div class="guide-step">
@@ -740,6 +755,7 @@
                 <div class="build-steps"><pre><code>$ shogiboardq-cli verify-match --input-path ~/game.sbqmatch
 {
   "black_player_id": "4b8788e2…",
+  "black_player_kind": "human",
   "byoyomi_ms": 30000,
   "category": "mutually_signed",
   "checks": {
@@ -772,9 +788,10 @@
   },
   "states": 16,
   "valid": true,
-  "white_player_id": "8a3569db…"
+  "white_player_id": "8a3569db…",
+  "white_player_kind": "human"
 }</code></pre></div>
-                <p class="guide-step-text"><code>valid</code> is true when the confirmations with player keys and the record structure are correct, and <code>category</code> is the record status (<code>mutually_signed</code> is Confirmed by both, <code>determined_by_record</code> is Determined by the moves, and <code>unconfirmed</code> is Unconfirmed). <code>not_verifiable</code> lists what this record cannot show (actual thinking time, human play, and the date played).</p>
+                <p class="guide-step-text"><code>valid</code> is true when the confirmations with player keys and the record structure are correct, and <code>category</code> is the record status (<code>mutually_signed</code> is Confirmed by both, <code>determined_by_record</code> is Determined by the moves, and <code>unconfirmed</code> is Unconfirmed). <code>not_verifiable</code> lists what this record cannot show (actual thinking time, who actually played, and the date played). <code>black_player_kind</code> and <code>white_player_kind</code> are who was declared to play the moves of Black and White (<code>human</code> or <code>engine</code>).</p>
             </div>
 
             <div class="guide-step" id="spec">
@@ -813,7 +830,7 @@
                     <li><strong>Display names</strong>: Display names are self-declared. Identify opponents by player ID and verification code.</li>
                     <li><strong>Confirming the result</strong>: If the losing player's app does not confirm the result (for example, by quitting the app or cutting the connection midway, or by using a modified app), no record confirmed by both players remains.</li>
                     <li><strong>Time used</strong>: Time used is self-reported. Padding of up to 10 seconds per move and stalling by disconnecting (up to 10 minutes in total per game) cannot be detected.</li>
-                    <li><strong>Engines and arranged games</strong>: Games played by engines and arranged games cannot be detected. Both players can also agree to confirm a made-up result.</li>
+                    <li><strong>Engines and arranged games</strong>: Who plays (a human or an engine) is self-declared. Games in which a side declared as human played an engine's moves, and arranged games, cannot be detected. Both players can also agree to confirm a made-up result.</li>
                     <li><strong>Player key</strong>: Malicious programs running as the same user can steal the player key.</li>
                 </ul>
                 <p class="guide-step-text">Do not use recorded wins as the basis for an official rating or playing strength.</p>
@@ -928,7 +945,15 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">Can I use consideration or game analysis during a game?</span>
                 </div>
-                <p class="guide-step-text">No. P2P games are played between humans, and consideration, mate search, game analysis, and the opening book display are unavailable during a game (Game Rules under <a href="#about">What Are P2P Games?</a>).</p>
+                <p class="guide-step-text">No. Consideration, mate search, game analysis, and the opening book display are unavailable during a game (Game Rules under <a href="#about">What Are P2P Games?</a>). To have an engine play, choose the engine in Player before starting a game (see the next item).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">Can I have an engine play the game?</span>
+                </div>
+                <p class="guide-step-text">Yes. Choose a registered engine in Player on the Connection and Conditions tab, then invite someone or connect by invitation. That an engine plays is shown to the opponent on the confirmation screen and kept in the game record. If the opponent also chooses an engine, it becomes an engine-versus-engine game. If the opponent's app is an older version that does not support games played by an engine, a notice appears before the game starts (you can still play by setting Player to Human). There is no entering-king declaration, so if your engine's settings can disable entering-king declarations, disable them.</p>
             </div>
 
             <div class="guide-step">
@@ -936,7 +961,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">What does a game record (evidence) prove?</span>
                 </div>
-                <p class="guide-step-text">A record with the status Confirmed by both shows that both players agreed on the result. Anyone can verify the evidence, and any change made after confirmation is caught by verification. A record does not prove the actual thinking time, that humans played, or when the game was played (<a href="#records">Game Records and Verification</a>).</p>
+                <p class="guide-step-text">A record with the status Confirmed by both shows that both players agreed on the result. Anyone can verify the evidence, and any change made after confirmation is caught by verification. A record does not prove the actual thinking time, who actually played the moves, or when the game was played (<a href="#records">Game Records and Verification</a>).</p>
             </div>
 
         </div>

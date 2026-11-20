@@ -234,7 +234,7 @@
                         <tr><th scope="col">項目</th><th scope="col">決まり</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>手合・対局者</strong></td><td>平手だけです。人間どうしの対局で、対局中は検討・詰み探索・棋譜解析・定跡の表示を使えません。</td></tr>
+                        <tr><td><strong>手合・対局者</strong></td><td>平手だけです。自分の手は、自分が盤で指すか、登録したエンジンに指させます（どちらにするかは条件確認画面で相手に伝わり、対局記録にも残ります）。対局中は検討・詰み探索・棋譜解析・定跡の表示を使えません。</td></tr>
                         <tr><td><strong>持ち時間</strong></td><td>持ち時間（分）と秒読み（秒）。消費時間は双方が自己申告し、相手が測った時間と照らし合わせます。</td></tr>
                         <tr><td><strong>先後</strong></td><td>招待した側の希望どおりにします。「指定なし」なら双方の乱数で決めます。</td></tr>
                         <tr><td><strong>終局</strong></td><td>投了・詰み・時間切れ・千日手（引き分け）・連続王手の千日手（王手をかけた側の負け）・512手到達（引き分け）・合意による引き分け・合意による中断。</td></tr>
@@ -344,7 +344,7 @@
                     <li><strong>Linux</strong>：<code>~/.local/share/ShogiBoardQ/p2p/identity</code></li>
                 </ul>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-identity.png"><img src="../images/p2p-game/p2p-identity.png" alt="プレイヤー鍵の保管の方法を選ぶ3つの選択肢と、防げないことの一覧が並ぶ「P2P対局の準備」ダイアログ" width="669" height="516" loading="lazy"></a>
+                    <a href="../images/p2p-game/p2p-identity.png"><img src="../images/p2p-game/p2p-identity.png" alt="プレイヤー鍵の保管の方法を選ぶ3つの選択肢と、防げないことの一覧が並ぶ「P2P対局の準備」ダイアログ" width="669" height="535" loading="lazy"></a>
                     <p class="screenshot-caption">初めて接続するときに開く「P2P対局の準備」</p>
                 </div>
             </div>
@@ -381,7 +381,7 @@
                         <tr><th scope="col">タブ</th><th scope="col">使うとき</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>接続と条件</strong></td><td>ネットワークに接続し、相手に見せる表示名と、招待するときの持ち時間・先後を決めます。</td></tr>
+                        <tr><td><strong>接続と条件</strong></td><td>ネットワークに接続し、相手に見せる表示名と、招待するときの持ち時間・先後、自分の手をだれが指すか（人間かエンジンか）を決めます。</td></tr>
                         <tr><td><strong>招待で接続</strong></td><td>招待文字列を作って相手に渡すか、受け取った招待文字列で相手に接続します。</td></tr>
                         <tr><td><strong>対局中</strong></td><td>対局の状況を見て、投了や、引き分け・中断の申し出をします。</td></tr>
                         <tr><td><strong>対局記録</strong></td><td>終わった対局の記録（証跡）を見て、検証・書き出し・削除をします。</td></tr>
@@ -399,7 +399,7 @@
                 </div>
                 <p class="guide-step-text">上の「接続」でネットワークにつなぎ、下の「名乗る名前と条件」で、相手に見せる名前と、自分が招待するときの対局の条件を決めます。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-connection.png"><img src="../images/p2p-game/p2p-connection.png" alt="接続中の「接続と条件」タブ。ネットワーク・状態・プレイヤーID・招待の経路と、表示名・持ち時間・秒読み・先後の欄が並ぶ" width="900" height="790" loading="lazy"></a>
+                    <a href="../images/p2p-game/p2p-connection.png"><img src="../images/p2p-game/p2p-connection.png" alt="接続中の「接続と条件」タブ。ネットワーク・状態・プレイヤーID・招待の経路と、表示名・持ち時間・秒読み・先後・対局者の欄が並ぶ" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">「接続と条件」タブ：接続したところ</p>
                 </div>
                 <table class="info-table">
@@ -415,9 +415,10 @@
                         <tr><td><strong>表示名</strong></td><td>相手に見せる名前です（1〜32文字）。条件確認画面・対局情報・相手の「対局記録」タブに出ますが、証跡には残りません。</td></tr>
                         <tr><td><strong>時間</strong></td><td>自分が招待するときの「持ち時間」（0〜1440分）と「秒読み」（0〜600秒）です。両方を 0 にはできません。</td></tr>
                         <tr><td><strong>先後</strong></td><td>自分が招待するときの先後の希望です。「指定なし（双方の乱数で決める）」「先手希望」「後手希望」から選びます。</td></tr>
+                        <tr><td><strong>対局者</strong></td><td>自分の手をだれが指すかです。「人間」なら自分が盤で指し、登録したエンジンを選ぶと、そのエンジンが指します（「エンジン設定」で、選んだエンジンの設定を開けます）。エンジンが指すことは、条件確認画面で相手に伝わり、対局記録（証跡）にも残ります。招待する側も招待を受ける側も、自分の分を選びます。条件の確認中と対局中は変えられません。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">持ち時間と先後は、招待した側の条件を使います。招待を受けた側は、条件確認画面で確かめてから始めます。</p>
+                <p class="guide-step-text">持ち時間と先後は、招待した側の条件を使います。「対局者」は、それぞれが自分の分を決めます。どちらの側も、条件確認画面で確かめてから始めます。</p>
             </div>
 
             <div class="guide-step">
@@ -460,10 +461,10 @@
                         <tr><th scope="col">表示</th><th scope="col">意味</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>相手</strong></td><td>相手の表示名です。</td></tr>
-                        <tr><td><strong>あなたは先手／あなたは後手</strong></td><td>この対局での自分の先後です。</td></tr>
+                        <tr><td><strong>相手</strong></td><td>相手の表示名です。相手の手をエンジンが指すときは、次の行に「相手の手はエンジンが指します（相手の申告）」と出ます。</td></tr>
+                        <tr><td><strong>あなたは先手／あなたは後手</strong></td><td>この対局での自分の先後です。自分の手をエンジンに指させているときは、次の行に「あなたの手はエンジン「…」が指します」と出ます。</td></tr>
                         <tr><td><strong>経路</strong></td><td>「直接」は相手と直接つながっています。「中継」は協力ノードの中継を通っています。</td></tr>
-                        <tr><td><strong>あなたの手番です／相手の手番です</strong></td><td>手番です。指した手を相手のアプリが確かめている間は「着手の確認を待っています…」、回線が切れたときは「再接続中（残り N 秒）」、終局して結果を照らし合わせている間は「結果を確定しています…」と出ます。</td></tr>
+                        <tr><td><strong>あなたの手番です／相手の手番です</strong></td><td>手番です。自分の手をエンジンに指させている対局では、自分の手番に「エンジンが考えています」と出ます。指した手を相手のアプリが確かめている間は「着手の確認を待っています…」、回線が切れたときは「再接続中（残り N 秒）」、終局して結果を照らし合わせている間は「結果を確定しています…」と出ます。</td></tr>
                         <tr><td><strong>切断時間の残り</strong></td><td>1局で回線が切れていてよい時間の残りです（600秒から減ります）。0 になると対局は中断になります。</td></tr>
                         <tr><td><strong>結果</strong></td><td>結果が確定すると、「先手の勝ち（投了）」のように出ます。</td></tr>
                     </tbody>
@@ -491,7 +492,7 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>終わった日時</strong></td><td>対局が終わった日時です。</td></tr>
-                        <tr><td><strong>相手（表示名）</strong></td><td>相手が名乗った表示名です。「相手の管理」で名前を付けていれば、手元の名前も出ます。</td></tr>
+                        <tr><td><strong>相手（表示名）</strong></td><td>相手が名乗った表示名です。「相手の管理」で名前を付けていれば、手元の名前も出ます。エンジンが指した側には、この列にも「あなた」の列にも「（エンジン）」が付きます。</td></tr>
                         <tr><td><strong>あなた</strong></td><td>自分の先後（先手・後手）です。</td></tr>
                         <tr><td><strong>終わり方</strong></td><td>自分のアプリでの終わり方です（双方で確定・相手の確定なし・中断（結果未確定）・通信中断（結果未確定）など）。</td></tr>
                         <tr><td><strong>記録の区分</strong></td><td>証跡を検証した結果です（双方で確定・棋譜から決まる結果・結果未確定）。証跡が壊れているときは「検証に失敗」「読めません」と出ます。</td></tr>
@@ -628,10 +629,23 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">条件を確かめて始める</span>
                 </div>
-                <p class="guide-step-text">「対局の条件と記録」には、先後とその決め方、持ち時間、ルール、対局記録に残るものが出ます。よければ「開始」を押します。双方が「開始」を押すと対局が始まります。「取りやめる」を押すか、60秒以内に双方がそろわなければ取り消されます（残りの秒数が下に出ます）。</p>
+                <p class="guide-step-text">「対局の条件と記録」には、先頭に、自分と相手の手をだれが指すか（人間かエンジンか。相手の分は相手の申告です）が太字で出ます。続いて、先後とその決め方、持ち時間、ルール、対局記録に残るものが出ます。よければ「開始」を押します。双方が「開始」を押すと対局が始まります。「取りやめる」を押すか、60秒以内に双方がそろわなければ取り消されます（残りの秒数が下に出ます）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-confirm.png"><img src="../images/p2p-game/p2p-confirm.png" alt="相手の表示名とプレイヤーID、相手がIDの持ち主かをまだ確かめていないこと、先後・持ち時間・ルール・記録に残るものが並ぶ条件確認画面" width="600" height="660" loading="lazy"></a>
+                    <a href="../images/p2p-game/p2p-confirm.png"><img src="../images/p2p-game/p2p-confirm.png" alt="相手の表示名とプレイヤーID、相手がIDの持ち主かをまだ確かめていないこと、だれが指すか・先後・持ち時間・ルール・記録に残るものが並ぶ条件確認画面" width="600" height="660" loading="lazy"></a>
                     <p class="screenshot-caption">条件確認画面（相手を確かめる前）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">エンジンが指す対局のとき</span>
+                </div>
+                <p class="guide-step-text">自分の手をエンジンに指させるときは、条件確認画面が出たときにエンジンを起動します。起動が済むまでは「開始」が「エンジンを起動しています…」になり、押せません。エンジンを起動できなかったときは、対局を始めずに取りやめます。</p>
+                <p class="guide-step-text">相手が「対局者」でエンジンを選んでいるときは、「相手の手は、エンジンが指します（相手の申告）。」と出ます。エンジンとの対局を望まないときは、「取りやめる」を押します。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/p2p-game/p2p-confirm-engine.png"><img src="../images/p2p-game/p2p-confirm-engine.png" alt="相手の手はエンジンが指すことが、条件の先頭に太字で出ている条件確認画面" width="600" height="660" loading="lazy"></a>
+                    <p class="screenshot-caption">相手がエンジンに指させるときの条件確認画面</p>
                 </div>
             </div>
 
@@ -654,6 +668,7 @@
                 </div>
                 <p class="guide-step-text">対局が始まると、メインウィンドウの盤・棋譜・対局時計を使います。「対局情報」には双方の表示名と対局IDが入ります。後手のときは、盤が自動で反転して自分の側から見る向きになります。</p>
                 <p class="guide-step-text">指した手は、相手のアプリが受け取って確かめてから盤に指されます（その間は「着手の確認を待っています…」と出ます）。待ったはありません。</p>
+                <p class="guide-step-text">「対局者」でエンジンを選んだ対局では、自分の手をそのエンジンが指します。盤の手は受け付けず、エンジンの読み筋と評価値が「思考」と「評価値グラフ」に出ます。「すぐ指させる」と投了・申し出は、人が操作できます。エンジンが止まったときは、対局は中断（結果未確定）になります。</p>
                 <div class="screenshot-item">
                     <a href="../images/p2p-game/p2p-main.png"><img src="../images/p2p-game/p2p-main.png" alt="P2P対局中のメインウィンドウ。盤・棋譜と、対局者の入った対局情報" width="1389" height="980" loading="lazy"></a>
                     <p class="screenshot-caption">対局中のメインウィンドウ（14手目まで）</p>
@@ -728,7 +743,7 @@
                     <span class="guide-step-title">検証・書き出し・削除</span>
                 </div>
                 <p class="guide-step-text">「検証する」を押すと、プレイヤー鍵による確定が正しいか・棋譜がルールに適合するか・自己申告時間の計算の一致・結果が棋譜から決まるかと、記録の区分が出ます。「証跡を書き出す…」で証跡ファイル（.sbqmatch）を好きな場所に保存できます。「記録を削除」は手元の証跡を消します（戻せません）。</p>
-                <p class="guide-step-text">記録は、実際の思考時間・人間が指したこと・対局の日時を証明しません。</p>
+                <p class="guide-step-text">記録は、実際の思考時間・実際にだれが指したか・対局の日時を証明しません（人間かエンジンかは、双方の申告として記録に残ります）。</p>
             </div>
 
             <div class="guide-step">
@@ -740,6 +755,7 @@
                 <div class="build-steps"><pre><code>$ shogiboardq-cli verify-match --input-path ~/game.sbqmatch
 {
   "black_player_id": "4b8788e2…",
+  "black_player_kind": "human",
   "byoyomi_ms": 30000,
   "category": "mutually_signed",
   "checks": {
@@ -772,9 +788,10 @@
   },
   "states": 16,
   "valid": true,
-  "white_player_id": "8a3569db…"
+  "white_player_id": "8a3569db…",
+  "white_player_kind": "human"
 }</code></pre></div>
-                <p class="guide-step-text"><code>valid</code> が true ならプレイヤー鍵による確定と記録の形が正しく、<code>category</code> が記録の区分です（<code>mutually_signed</code> が「双方で確定」、<code>determined_by_record</code> が「棋譜から決まる結果」、<code>unconfirmed</code> が「結果未確定」）。<code>not_verifiable</code> には、この記録からは確かめられないこと（実際の思考時間・人間が指したこと・対局の日時）が並びます。</p>
+                <p class="guide-step-text"><code>valid</code> が true ならプレイヤー鍵による確定と記録の形が正しく、<code>category</code> が記録の区分です（<code>mutually_signed</code> が「双方で確定」、<code>determined_by_record</code> が「棋譜から決まる結果」、<code>unconfirmed</code> が「結果未確定」）。<code>not_verifiable</code> には、この記録からは確かめられないこと（実際の思考時間・実際にだれが指したか・対局の日時）が並びます。<code>black_player_kind</code>・<code>white_player_kind</code> は、先手・後手の手をだれが指すと申告されたか（<code>human</code> か <code>engine</code>）です。</p>
             </div>
 
             <div class="guide-step" id="spec">
@@ -813,7 +830,7 @@
                     <li><strong>表示名</strong>：表示名は自己申告です。相手を確かめる根拠はプレイヤーIDと確認コードです。</li>
                     <li><strong>結果の確定</strong>：負けた側のアプリが結果を確定しなければ（途中でアプリを終了する・回線を切る、作り変えたアプリを使うなど）、双方で確定した記録は残りません。</li>
                     <li><strong>消費時間</strong>：消費時間は自己申告です。1手あたり10秒までの水増しと、切断を使った時間稼ぎ（1局で合計10分まで）は見分けられません。</li>
-                    <li><strong>エンジン・示し合わせ</strong>：エンジンが指した対局や、示し合わせた対局は見分けられません。双方が示し合わせて架空の結果を確定することもできます。</li>
+                    <li><strong>エンジン・示し合わせ</strong>：だれが指すか（人間かエンジンか）は自己申告です。「人間」と申告してエンジンの手を指した対局や、示し合わせた対局は見分けられません。双方が示し合わせて架空の結果を確定することもできます。</li>
                     <li><strong>プレイヤー鍵</strong>：同じ利用者の権限で動く悪意のあるプログラムからは、プレイヤー鍵を守れません。</li>
                 </ul>
                 <p class="guide-step-text">記録した勝ち数を、公式のレーティングや棋力の根拠にしないでください。</p>
@@ -928,7 +945,15 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">対局中に、検討や棋譜解析は使えますか</span>
                 </div>
-                <p class="guide-step-text">使えません。P2P対局は人間どうしの対局で、対局中は検討・詰み探索・棋譜解析・定跡の表示を使えません（<a href="#about">P2P対局とは</a>の「対局の決まり」）。</p>
+                <p class="guide-step-text">使えません。対局中は、検討・詰み探索・棋譜解析・定跡の表示を使えません（<a href="#about">P2P対局とは</a>の「対局の決まり」）。エンジンに指させたいときは、対局を始める前に「対局者」でエンジンを選びます（次の項目）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">エンジンに指させて対局できますか</span>
+                </div>
+                <p class="guide-step-text">できます。「接続と条件」タブの「対局者」で登録したエンジンを選んでから、招待するか、招待で接続します。エンジンが指すことは、条件確認画面で相手に伝わり、対局記録にも残ります。相手もエンジンを選べば、エンジンどうしの対局になります。相手のアプリが、エンジンの対局に対応していない古い版のときは、始める前に知らせが出ます（「対局者」を「人間」にすれば対局できます）。入玉宣言はないので、エンジンの設定で入玉宣言を無効にできるときは、無効にしてください。</p>
             </div>
 
             <div class="guide-step">
@@ -936,7 +961,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">対局記録（証跡）は、何の証明になりますか</span>
                 </div>
-                <p class="guide-step-text">「双方で確定」の記録は、双方が同じ結果に同意したことを示せます。証跡はだれでも検証でき、確定した後に書き換えると検証で見つかります。実際の思考時間・人間が指したこと・対局の日時は証明しません（<a href="#records">対局記録と検証</a>）。</p>
+                <p class="guide-step-text">「双方で確定」の記録は、双方が同じ結果に同意したことを示せます。証跡はだれでも検証でき、確定した後に書き換えると検証で見つかります。実際の思考時間・実際にだれが指したか・対局の日時は証明しません（<a href="#records">対局記録と検証</a>）。</p>
             </div>
 
         </div>
