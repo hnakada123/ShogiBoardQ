@@ -313,7 +313,7 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                     <a href="../../images/zh-cn/p2p-game/p2p-internet-connected.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-connected.png" alt="以“互联网”连接，邀请的路径显示通过协作节点中继的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">连接到协作节点后</p>
                 </div>
-                <p class="guide-step-text">不填协作节点就连接时，不会连接到任何地方（“已连接（已连接的节点：0）”），“邀请的路径”中显示“尚无可从外部到达的连接地址。…”。在这种状态下生成的邀请字符串中没有连接地址，“生成邀请字符串”下方会显示“此邀请字符串中没有连接地址，对手无法连接。…”。“连接候选”中只填了局域网内的地址时，也是同样的状态（<a href="#lan-test">在局域网内试用</a>）。</p>
+                <p class="guide-step-text">不填协作节点就连接时，不会连接到任何地方（“已连接（已连接的节点：0）”），“邀请的路径”中显示“尚无可从外部到达的连接地址。…”。在这种状态下生成的邀请字符串中没有连接地址，“生成邀请”下方会显示“此邀请字符串中没有连接地址，对手无法连接。…”。“连接候选”中只填了局域网内的地址时，也是同样的状态（<a href="#lan-test">在局域网内试用</a>）。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-cn/p2p-game/p2p-internet-no-node.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-no-node.png" alt="不填协作节点就以“互联网”连接，显示尚无可从外部到达的连接地址的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">不填协作节点就连接后</p>
@@ -337,7 +337,7 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">用邀请字符串连接</span>
                 </div>
-                <p class="guide-step-text">邀请方在“通过邀请连接”标签页中用“生成邀请字符串”生成邀请字符串，通过只能送达对方的方式交给对方，对方点击“检查邀请字符串”。“地址：N 个（可用 N 个）”中可用的地址有 1 个以上，就可以用“连接”连接。可用的地址为 0 个时，无法点击“连接”（<a href="#trouble">无法连接时</a>）。之后的条件确认画面和对局，与<a href="p2p-direct.html#steps">不使用协作节点的对局</a>相同。</p>
+                <p class="guide-step-text">邀请方在“通过邀请连接”标签页中用“生成邀请”生成邀请字符串，通过只能送达对方的方式交给对方，对方粘贴后点击“检查”（“互联网”的邀请不附带暗号。暗号只附带在与同一局域网的对手直接连接的“本地”邀请中）。“地址：N 个（可用 N 个）”中可用的地址有 1 个以上，就可以用“连接”连接。可用的地址为 0 个时，无法点击“连接”（<a href="#trouble">无法连接时</a>）。之后的条件确认画面和对局，与<a href="p2p-direct.html#steps">不使用协作节点的对局</a>相同。</p>
                 <p class="guide-step-text">邀请字符串中放入经由协作节点的地址（如果邀请方的电脑可以从外部直接到达，还会放入那台电脑的 IP 地址）。请不要贴在公开的地方。</p>
                 <p class="guide-step-text">“地址：N 个（可用 N 个）”中，前一个数字是邀请字符串中包含的连接地址的数量（最多 8 个），“可用”是其中按您应用的设置可以连接的数量。两个数字都会随邀请方电脑和协作节点的地址数量而变化。</p>
                 <p class="guide-step-text">一个邀请字符串只能让一个人连接一次，10 分钟后失效。同时有效的最多 4 个，一次只能下一局（详见<a href="p2p-direct.html#invite-rules">可以邀请的人数与次数</a>）。</p>
@@ -437,7 +437,7 @@ $ journalctl -u sbq-coop-node    # 确认 PeerId</code></pre></div>
                 <p class="guide-step-text">在“互联网”下，应用只连接互联网上的地址。即使在自己的电脑或同一局域网的电脑上启动协作节点，并在“连接候选”中填入局域网内的地址（如 <code>/ip4/192.168.10.16/tcp/4001/p2p/…</code>），该行也不会被使用，结果与没有填协作节点时相同。</p>
                 <ul class="guide-step-text">
                     <li><strong>邀请方</strong>：“状态”一直是“已连接（已连接的节点：0）”，“邀请的路径”中显示“尚无可从外部到达的连接地址。…”。生成邀请字符串后，会显示“此邀请字符串中没有连接地址，对手无法连接。…”。</li>
-                    <li><strong>被邀请方</strong>：点击“检查邀请字符串”后显示“地址：0 个（可用 0 个）”，无法点击“连接”。</li>
+                    <li><strong>被邀请方</strong>：粘贴邀请字符串并点击“检查”后显示“地址：0 个（可用 0 个）”，无法点击“连接”。</li>
                 </ul>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-cn/p2p-game/p2p-internet-lan-address.png"><img src="../../images/zh-cn/p2p-game/p2p-internet-lan-address.png" alt="显示地址为 0 个、无法点击“连接”的“通过邀请连接”标签页" width="900" height="790" loading="lazy"></a>

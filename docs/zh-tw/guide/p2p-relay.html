@@ -313,7 +313,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <a href="../../images/zh-tw/p2p-game/p2p-internet-connected.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-connected.png" alt="以「網際網路」連線，邀請的路徑顯示透過協作節點中繼的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">連線到協作節點後</p>
                 </div>
-                <p class="guide-step-text">不填協作節點就連線時，不會連線到任何地方（「已連線（已連線的節點：0）」），「邀請的路徑」中顯示「尚無可從外部到達的連線位址。…」。在這種狀態下產生的邀請字串中沒有連線位址，「產生邀請字串」下方會顯示「此邀請字串中沒有連線位址，對手無法連線。…」。「連線候選」中只填了區域網路內的位址時，也是同樣的狀態（<a href="#lan-test">在區域網路內試用</a>）。</p>
+                <p class="guide-step-text">不填協作節點就連線時，不會連線到任何地方（「已連線（已連線的節點：0）」），「邀請的路徑」中顯示「尚無可從外部到達的連線位址。…」。在這種狀態下產生的邀請字串中沒有連線位址，「產生邀請」下方會顯示「此邀請字串中沒有連線位址，對手無法連線。…」。「連線候選」中只填了區域網路內的位址時，也是同樣的狀態（<a href="#lan-test">在區域網路內試用</a>）。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-tw/p2p-game/p2p-internet-no-node.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-no-node.png" alt="不填協作節點就以「網際網路」連線，顯示尚無可從外部到達的連線位址的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">不填協作節點就連線後</p>
@@ -337,7 +337,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">用邀請字串連線</span>
                 </div>
-                <p class="guide-step-text">邀請方在「透過邀請連線」分頁中用「產生邀請字串」產生邀請字串，透過只能送達對方的方式交給對方，對方按一下「檢查邀請字串」。「位址：N 個（可用 N 個）」中可用的位址有 1 個以上，就可以用「連線」連線。可用的位址為 0 個時，無法按「連線」（<a href="#trouble">無法連線時</a>）。之後的條件確認畫面和對局，與<a href="p2p-direct.html#steps">不使用協作節點的對局</a>相同。</p>
+                <p class="guide-step-text">邀請方在「透過邀請連線」分頁中用「產生邀請」產生邀請字串，透過只能送達對方的方式交給對方，對方貼上後按一下「檢查」（「網際網路」的邀請不附帶暗號。暗號只附帶在與同一區域網路的對手直接連線的「本機」邀請中）。「位址：N 個（可用 N 個）」中可用的位址有 1 個以上，就可以用「連線」連線。可用的位址為 0 個時，無法按「連線」（<a href="#trouble">無法連線時</a>）。之後的條件確認畫面和對局，與<a href="p2p-direct.html#steps">不使用協作節點的對局</a>相同。</p>
                 <p class="guide-step-text">邀請字串中放入經由協作節點的位址（如果邀請方的電腦可以從外部直接到達，還會放入那台電腦的 IP 位址）。請不要貼在公開的地方。</p>
                 <p class="guide-step-text">「位址：N 個（可用 N 個）」中，前一個數字是邀請字串中包含的連線位址的數量（最多 8 個），「可用」是其中依您應用程式的設定可以連線的數量。兩個數字都會隨邀請方電腦和協作節點的位址數量而變化。</p>
                 <p class="guide-step-text">一個邀請字串只能讓一個人連線一次，10 分鐘後失效。同時有效的最多 4 個，一次只能下一局（詳見<a href="p2p-direct.html#invite-rules">可以邀請的人數與次數</a>）。</p>
@@ -437,7 +437,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                 <p class="guide-step-text">在「網際網路」下，應用程式只連線到網際網路上的位址。即使在自己的電腦或同一區域網路的電腦上啟動協作節點，並在「連線候選」中填入區域網路內的位址（如 <code>/ip4/192.168.10.16/tcp/4001/p2p/…</code>），該行也不會被使用，結果與沒有填協作節點時相同。</p>
                 <ul class="guide-step-text">
                     <li><strong>邀請方</strong>：「狀態」一直是「已連線（已連線的節點：0）」，「邀請的路徑」中顯示「尚無可從外部到達的連線位址。…」。產生邀請字串後，會顯示「此邀請字串中沒有連線位址，對手無法連線。…」。</li>
-                    <li><strong>被邀請方</strong>：按一下「檢查邀請字串」後顯示「位址：0 個（可用 0 個）」，無法按「連線」。</li>
+                    <li><strong>被邀請方</strong>：貼上邀請字串並按一下「檢查」後顯示「位址：0 個（可用 0 個）」，無法按「連線」。</li>
                 </ul>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-tw/p2p-game/p2p-internet-lan-address.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-lan-address.png" alt="顯示位址為 0 個、無法按「連線」的「透過邀請連線」分頁" width="900" height="790" loading="lazy"></a>

@@ -184,7 +184,8 @@ def invite(host, guest, out_dir=None, invite_shot=None):
     tab(guest, TAB_INVITE)
     set_value(guest, "p2pInviteIn", code)
     click(guest, "p2pInspectInvite")
-    wait_until("invite inspected", lambda: text_of(guest, "p2pInviteInfo").strip() != "")
+    # 確かめた結果は3行（招待した相手の PeerId・期限・到達候補）。途中の「確かめています…」は1行
+    wait_until("invite inspected", lambda: len(text_of(guest, "p2pInviteInfo").splitlines()) >= 3)
     if invite_shot:
         shot(guest, out_dir, invite_shot)
     click(guest, "p2pConnectInvite")

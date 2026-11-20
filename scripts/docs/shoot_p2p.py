@@ -34,6 +34,8 @@ WINDOW = "p2pWindow"
 CONFIRM = "p2pConfirmDialog"
 NAMES = {"ja_JP": ("鈴木", "山田"), "en": ("Suzuki", "Yamada"), "zh_CN": ("铃木", "山田"), "zh_TW": ("鈴木", "山田")}
 TAB_CONNECTION, TAB_INVITE, TAB_GAME, TAB_RECORDS, TAB_SETTINGS = 0, 1, 2, 3, 5
+# 合言葉の見本（protocol/testvectors/code.txt の1行目。192.168.1.23 の PC の合言葉）
+SAMPLE_CODE = "008Q-4HMA-SW95"
 PIDS = {}
 
 
@@ -169,17 +171,25 @@ def connect_first_time(name, passphrase, out_dir=None):
 
 
 def create_invite(name):
+    """招待を作り、招待文字列を返す（作り直しのときは、前の招待文字列と違うものが出るまで待つ）"""
     set_value(name, "p2pTabs", TAB_INVITE)
+    before = text_of(name, "p2pInviteOut").strip()
     click(name, "p2pCreateInvite")
-    wait_until("invite created", lambda: text_of(name, "p2pInviteOut").strip() != "")
+    wait_until("invite created", lambda: text_of(name, "p2pInviteOut").strip() not in ("", before))
     return text_of(name, "p2pInviteOut").strip()
 
 
-def inspect(name, code):
+def invite_code(name):
+    """作った招待の合言葉（ローカルのネットワークで、直接つなぐ招待にだけ付く）"""
+    return text_of(name, "p2pInviteCode").strip()
+
+
+def inspect(name, code, lines=3):
+    """招待文字列（確かめた結果は3行）か合言葉（2行）を入れて確かめる"""
     set_value(name, "p2pTabs", TAB_INVITE)
     set_value(name, "p2pInviteIn", code)
     click(name, "p2pInspectInvite")
-    wait_until("invite inspected", lambda: len(text_of(name, "p2pInviteInfo").splitlines()) >= 3)
+    wait_until("invite inspected", lambda: len(text_of(name, "p2pInviteInfo").splitlines()) >= lines)
 
 
 def play(black, white, moves):
@@ -218,14 +228,20 @@ def guide(language, out_dir):
     prepare(b, name_b, 2)
     connect_first_time(b, passphrase=False)
 
-    # 招待: 自分の招待文字列を作り、受け取った招待文字列を確かめたところ
+    # 招待: 自分の招待を作り（合言葉と招待文字列）、受け取った合言葉を確かめたところ。先に起動した a は決まった
+    # ポートで待ち受けるので、合言葉は12文字になる。同じ PC の2つ目のアプリ（b）の合言葉はポートを含んで長くなるので、
+    # 画像の下の欄には、別の PC の合言葉の見本（12文字。確かめるだけで、つながない）を入れる
     create_invite(a)
-    code = create_invite(b)
-    inspect(a, code)
+    create_invite(b)
+    try:
+        inspect(a, SAMPLE_CODE, lines=2)
+    except RuntimeError:
+        inspect(a, invite_code(b), lines=2)   # 見本のアドレスがこの PC のものだった
     time.sleep(0.5)
     shot(a, out_dir, "p2p-invite.png")
 
-    # 条件確認画面（相手を確かめる前）
+    # 条件確認画面（相手を確かめる前）。相手の合言葉を、小文字・空白区切りで入力して接続する
+    inspect(a, invite_code(b).lower().replace("-", " "), lines=2)
     click(a, "p2pConnectInvite")
     for name in (a, b):
         wait_until("confirm dialog", lambda n=name: window_open(n, CONFIRM), 60)

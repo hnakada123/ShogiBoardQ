@@ -124,7 +124,7 @@
                 <ul class="guide-step-text">
                     <li><strong>Bootstrap nodes</strong>: You can leave it empty.</li>
                     <li><strong>Do not use direct connections</strong>: Leave it unchecked. When checked, the app stops using direct connections within the LAN as well, so you cannot connect (Invitation route shows "No relay is available. …").</li>
-                    <li><strong>Address your opponent can see</strong>: Only your address on the LAN. Your IP address on the Internet is not given to the opponent. The invitation contains all of this PC's LAN addresses (including those of VPNs and virtual devices), so give it only to your opponent.</li>
+                    <li><strong>Address your opponent can see</strong>: Only your address on the LAN. Your IP address on the Internet is not given to the opponent. The invitation string contains all of this PC's LAN addresses (including those of VPNs and virtual devices), and the passcode contains LAN addresses too, so give them only to your opponent.</li>
                     <li><strong>Expiry</strong>: None. It keeps working more than 180 days after the build (only the Internet network expires).</li>
                 </ul>
             </div>
@@ -137,7 +137,7 @@
 <section id="steps" class="section">
     <div class="section-inner">
         <h2 class="section-title">Steps to Start a Game</h2>
-        <p class="section-desc">Both players connect to Local, and one pastes the invitation the other created</p>
+        <p class="section-desc">Both players connect to Local, and one types the passcode the other created</p>
 
         <div class="screenshot-gallery">
 
@@ -157,22 +157,23 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">The Inviter: Create and Send an Invitation</span>
+                    <span class="guide-step-title">The Inviter: Create an Invitation and Tell the Passcode</span>
                 </div>
                 <p class="guide-step-text">The inviter first sets Time control, Byoyomi and Side on the Connection and Conditions tab. The game is played with these conditions.</p>
-                <p class="guide-step-text">Under Invite an opponent on the Connect by Invitation tab, click Create Invitation, click Copy, and send the invitation by a channel that reaches only your opponent, such as a private message. The expiry and the number of addresses appear below the box. An invitation stops working after 10 minutes, so send it right after creating it.</p>
+                <p class="guide-step-text">Under Invite an opponent on the Connect by Invitation tab, click Create Invitation, and a passcode of about 12 characters (in the form <code>K7MP-2QXD-9F3A</code>) appears in large type. Tell this passcode only to your opponent: by voice if you are in the same room, or by phone or message if not (Copy Passcode copies it). An invitation stops working after 10 minutes, so tell it right after creating it.</p>
+                <p class="guide-step-text">The box below the passcode shows the invitation string (a long string) of the same invitation. When sending text is easier, or when the passcode does not connect, click Copy Invitation String and send it by a channel that reaches only your opponent, such as a private message. The passcode and the invitation string are one and the same invitation, so only one of them can be used, once. The expiry and the number of addresses appear below the box.</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">The Invited Player: Paste and Connect</span>
+                    <span class="guide-step-title">The Invited Player: Type the Passcode and Connect</span>
                 </div>
-                <p class="guide-step-text">The invited player pastes the invitation into the Connect by invitation box on the Connect by Invitation tab and clicks Check Invitation. When the inviter's PeerId, the expiry and the number of addresses appear, click Connect.</p>
+                <p class="guide-step-text">The invited player types the passcode into the Connect by invitation box on the Connect by Invitation tab (or pastes the invitation string, if that is what was sent) and clicks Check. A passcode can be typed in lowercase and without the “-” separators. When "Passcode read (an invitation from an opponent on the same LAN)." and the number of addresses appear (for an invitation string: the inviter's PeerId, the expiry and the number of addresses), click Connect.</p>
                 <p class="guide-step-text">The invited player does not need to set the time control or other conditions (the inviter's conditions are used). Just enter a Display name.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Connect by Invitation tab, with an invitation created at the top and a received invitation checked at the bottom" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Top: the inviter has created an invitation. Bottom: the invited player has checked it</p>
+                    <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Connect by Invitation tab, with an invitation created at the top, showing its passcode and invitation string, and a received passcode checked at the bottom" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Top: the inviter has created an invitation (passcode and invitation string). Bottom: the invited player has checked a passcode</p>
                 </div>
             </div>
 
@@ -204,6 +205,7 @@
                 </div>
                 <ul class="guide-step-text">
                     <li><strong>One person only</strong>: Only one person can connect with an invitation. Once your opponent connects, that invitation can no longer be used.</li>
+                    <li><strong>The passcode and the invitation string are one invitation</strong>: They are two forms of the same invitation. Once your opponent connects with one of them, the other stops working too. They also share the 10-minute lifetime. Entering a passcode that has expired or has already been used shows "Connected to the opponent, but the passcode was not accepted. …".</li>
                     <li><strong>Expires in 10 minutes</strong>: Even if unused, an invitation stops working 10 minutes after it is created (the person who pastes it sees "The invitation has expired.").</li>
                     <li><strong>One-on-one games</strong>: There is no way for three or more people to play one game, and no way for others to watch.</li>
                     <li><strong>Another game</strong>: The connection is closed when a game ends. To play the same opponent again, create a new invitation and send it.</li>
@@ -296,7 +298,7 @@
                     <span class="guide-step-title">Open as Player 2, Player 3, …</span>
                 </div>
                 <p class="guide-step-text">If you start this app several times on the same PC and open P2P Game in each, the second one opens automatically as Player 2, the third as Player 3, and so on (up to eight at a time). The window title and the note at the top show which player it is. When only one app is running, it is always Player 1.</p>
-                <p class="guide-step-text">The player key (player ID), display name, game records and opponent list are saved separately for each player. Connect both to Local (same PC / same LAN), then paste the invitation created in one into the other to play without a cooperating node. Since the connection stays within the same PC, you usually do not need to change the firewall either.</p>
+                <p class="guide-step-text">The player key (player ID), display name, game records and opponent list are saved separately for each player. Connect both to Local (same PC / same LAN), then type the passcode created in one into the other (pasting the invitation string works too) to play without a cooperating node. Since the connection stays within the same PC, you usually do not need to change the firewall either.</p>
             </div>
 
         </div>
@@ -317,6 +319,14 @@
                     <span class="guide-step-title">Do I really not need a cooperating node?</span>
                 </div>
                 <p class="guide-step-text">No, you do not. On Local (same PC / same LAN), the invitation contains this PC's address on the LAN, and the opponent's PC can reach it directly. You cannot connect to an opponent on the Internet this way (<a href="p2p-relay.html">Playing with a Cooperating Node</a>).</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">Should I use the passcode or the invitation string?</span>
+                </div>
+                <p class="guide-step-text">For an opponent on the same LAN, the passcode is the easy way. It is about 12 characters, so you can tell it by voice or over the phone, and your opponent can type it by hand. The invitation string is the long form of the same invitation, for sending as text in a message. A passcode holds up to four of this PC's LAN addresses, so if the passcode does not connect, try the invitation string. Both are one and the same invitation, so only one of them can be used, once. Passcodes are available only on Local (same PC / same LAN); an invitation on Internet has only the invitation string.</p>
             </div>
 
             <div class="guide-step">

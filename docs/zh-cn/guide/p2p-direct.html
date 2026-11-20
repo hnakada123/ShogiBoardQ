@@ -124,7 +124,7 @@
                 <ul class="guide-step-text">
                     <li><strong>“连接候选”</strong>：保持为空即可。</li>
                     <li><strong>“不使用直接连接”</strong>：请取消勾选。勾选后，局域网内的直接连接也不再使用，因此无法连接（“邀请的路径”中显示“无法使用中继。…”）。</li>
-                    <li><strong>对手能看到的地址</strong>：只有局域网内的地址。互联网上的 IP 地址不会交给对手。邀请字符串中包含这台电脑在局域网内的全部地址（也包括 VPN 和虚拟设备的地址），请只交给对手。</li>
+                    <li><strong>对手能看到的地址</strong>：只有局域网内的地址。互联网上的 IP 地址不会交给对手。邀请字符串中包含这台电脑在局域网内的全部地址（也包括 VPN 和虚拟设备的地址），暗号中也包含局域网内的地址，请只告诉对手。</li>
                     <li><strong>使用期限</strong>：没有。构建后超过 180 天仍可使用（只有“互联网”有期限）。</li>
                 </ul>
             </div>
@@ -137,7 +137,7 @@
 <section id="steps" class="section">
     <div class="section-inner">
         <h2 class="section-title">开始对局的步骤</h2>
-        <p class="section-desc">双方都以“本地”连接，一方把另一方生成的邀请字符串粘贴进来</p>
+        <p class="section-desc">双方都以“本地”连接，一方输入另一方生成的暗号</p>
 
         <div class="screenshot-gallery">
 
@@ -157,22 +157,23 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">邀请方：生成并交给对方邀请字符串</span>
+                    <span class="guide-step-title">邀请方：生成邀请并告知暗号</span>
                 </div>
                 <p class="guide-step-text">邀请方先在“连接与条件”标签页中设定“用时规则”“读秒”“先后手”。对局按这些条件进行。</p>
-                <p class="guide-step-text">在“通过邀请连接”标签页的“邀请对手”中点击“生成邀请字符串”，用“复制”复制后，通过私信等只能送达对方的方式交给对方。输入框下方会显示期限和地址数量。邀请字符串 10 分钟后失效，生成后请立即交给对方。</p>
+                <p class="guide-step-text">在“通过邀请连接”标签页的“邀请对手”中点击“生成邀请”，就会以大号字显示 12 个字符左右的暗号（<code>K7MP-2QXD-9F3A</code> 的形式）。请只把这个暗号告诉对方：在同一个房间里可以口头告知，不在一起时可以通过电话或消息告知（可以用“复制暗号”复制）。邀请 10 分钟后失效，生成后请立即告知对方。</p>
+                <p class="guide-step-text">暗号下方的输入框中，还会显示同一邀请的邀请字符串（较长的字符串）。直接发送文字更方便时，或用暗号无法连接时，请用“复制邀请字符串”复制，通过私信等只能送达对方的方式交给对方。暗号和邀请字符串是同一个邀请，只能用其中之一，并且只能使用一次。输入框下方会显示期限和地址数量。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">被邀请方：粘贴并连接</span>
+                    <span class="guide-step-title">被邀请方：输入暗号并连接</span>
                 </div>
-                <p class="guide-step-text">被邀请方把邀请字符串粘贴到“通过邀请连接”标签页的“通过邀请连接”栏中，点击“检查邀请字符串”。显示邀请方的 PeerId、期限和地址数量后，点击“连接”。</p>
+                <p class="guide-step-text">被邀请方在“通过邀请连接”标签页的“通过邀请连接”栏中输入暗号（收到的是邀请字符串时则粘贴），点击“检查”。暗号可以用小写输入，也可以省略分隔符“-”。显示“已读取暗号（同一局域网的对手的邀请）。”和地址数量后（邀请字符串则显示邀请方的 PeerId、期限和地址数量），点击“连接”。</p>
                 <p class="guide-step-text">被邀请方无需设定用时规则等条件（按邀请方的条件对局）。只需填好“显示名”。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-invite.png" alt="“通过邀请连接”标签页。上方生成了邀请字符串，下方检查了收到的邀请字符串" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">上：邀请方生成了邀请字符串　下：被邀请方检查后</p>
+                    <a href="../../images/zh-cn/p2p-game/p2p-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-invite.png" alt="“通过邀请连接”标签页。上方生成了邀请并显示暗号和邀请字符串，下方检查了收到的暗号" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">上：邀请方生成了邀请（暗号和邀请字符串）　下：被邀请方检查暗号后</p>
                 </div>
             </div>
 
@@ -204,6 +205,7 @@
                 </div>
                 <ul class="guide-step-text">
                     <li><strong>只能一人</strong>：一个邀请字符串只能让一个人连接。对手连接的那一刻，这个邀请字符串就不能再用了。</li>
+                    <li><strong>暗号和邀请字符串是同一个邀请</strong>：暗号和邀请字符串是同一个邀请的两种形式。对手用其中之一连接后，另一个也不能再用了。期限（10 分钟）也相同。输入已过期或已被使用的暗号时，会显示“已连接到对手，但暗号未被接受。…”。</li>
                     <li><strong>10 分钟后过期</strong>：即使没有使用，生成 10 分钟后也会失效（粘贴的人会看到“邀请字符串已过期。”）。</li>
                     <li><strong>一对一对局</strong>：没有三人以上下同一局的机制，也没有他人观战的机制。</li>
                     <li><strong>再下一局</strong>：对局结束后会关闭连接。要与同一对手再下一局时，请生成新的邀请字符串交给对方。</li>
@@ -219,7 +221,7 @@
                     <li><strong>同时最多 4 个</strong>：可以为几个人各生成一个邀请字符串交给他们。同时有效的最多 4 个，生成第 5 个时，最早的一个会失效。</li>
                     <li><strong>一个应用一次只能下一局</strong>：会与最先连接的人进入条件确认。在此期间和对局中，其他人无法连接（条件确认期间，对方会看到“对手正在与他人协商或对局。”）。对于没能连接的人，请在对局结束后交给他们新的邀请字符串。8 人同时下 4 局时，每组由一方邀请另一方（<a href="p2p-game.html#one-game">一对一对局，一个应用一次一局</a>）。</li>
                     <li><strong>对局后仍可使用</strong>：对局结束后，仍在期限内且尚未使用的邀请字符串依然有效。</li>
-                    <li><strong>条件以最后一次生成时为准</strong>：所有有效的邀请字符串，都按最后一次点击“生成邀请字符串”时的显示名、用时规则、读秒、先后手和对局者（人类还是引擎）对局。要更改条件时，请先更改再重新生成。</li>
+                    <li><strong>条件以最后一次生成时为准</strong>：所有有效的邀请字符串，都按最后一次点击“生成邀请”时的显示名、用时规则、读秒、先后手和对局者（人类还是引擎）对局。要更改条件时，请先更改再重新生成。</li>
                     <li><strong>全部取消</strong>：在“连接与条件”标签页中点击“断开”，所有有效的邀请字符串都会失效。</li>
                 </ul>
             </div>
@@ -296,7 +298,7 @@
                     <span class="guide-step-title">以第2位、第3位玩家打开</span>
                 </div>
                 <p class="guide-step-text">在同一台电脑上多次启动本应用，并分别打开“P2P对局”，第二个会自动以“第2位玩家”的身份打开，第三个为“第3位玩家”（最多同时8个）。窗口标题和顶部的说明会显示是第几位玩家。只启动一个应用时，始终是第1位玩家。</p>
-                <p class="guide-step-text">玩家密钥（玩家ID）、显示名、对局记录和对手列表会按玩家分别保存。两边都以“本地（同一电脑・同一局域网）”连接，然后把其中一个生成的邀请字符串粘贴到另一个，无需协作节点即可对局。由于是同一台电脑内的连接，通常也不需要设置防火墙。</p>
+                <p class="guide-step-text">玩家密钥（玩家ID）、显示名、对局记录和对手列表会按玩家分别保存。两边都以“本地（同一电脑・同一局域网）”连接，然后把其中一个生成的暗号输入到另一个（粘贴邀请字符串也可以），无需协作节点即可对局。由于是同一台电脑内的连接，通常也不需要设置防火墙。</p>
             </div>
 
         </div>
@@ -317,6 +319,14 @@
                     <span class="guide-step-title">真的不需要协作节点吗</span>
                 </div>
                 <p class="guide-step-text">不需要。在“本地（同一电脑・同一局域网）”下，邀请字符串中包含这台电脑在局域网内的地址，对手的电脑可以直接到达。用这种方式无法连接互联网上的对手（<a href="p2p-relay.html">使用协作节点对局</a>）。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">Q</span>
+                    <span class="guide-step-title">暗号和邀请字符串，应该用哪一个</span>
+                </div>
+                <p class="guide-step-text">对同一局域网的对手，用暗号比较方便。暗号只有 12 个字符左右，可以口头或通过电话告知，对方可以手动输入。邀请字符串是同一邀请的较长形式，用于通过消息等直接发送文字。暗号中最多只包含这台电脑在局域网内的 4 个地址，因此用暗号无法连接时，请试试邀请字符串。两者是同一个邀请，只能用其中之一，并且只能使用一次。暗号只能在“本地（同一电脑・同一局域网）”中使用，“互联网”的邀请只有邀请字符串。</p>
             </div>
 
             <div class="guide-step">
