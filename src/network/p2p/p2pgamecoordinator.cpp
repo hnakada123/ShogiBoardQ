@@ -6,20 +6,17 @@
 #include <QDateTime>
 #include <QTimer>
 
-#include "engineslots.h"
 #include "gameboard.h"
 #include "gameinfokeys.h"
 #include "logcategories.h"
 #include "matchending.h"
-#include "matchengineseat.h"
 #include "matchrecordsink.h"
+#include "p2pengineplayer.h"
 #include "p2pknownpeers.h"
 #include "p2precordstore.h"
 #include "p2ptransport.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
-#include "usi.h"
-#include "usiposition.h"
 
 namespace {
 
@@ -30,20 +27,8 @@ constexpr qint64 kConfirmationMs = 60'000;
 /// 再接続の間隔
 constexpr qint64 kReconnectIntervalMs = 5'000;
 constexpr int kTickMs = 250;
-/// エンジンの異常を、持ち時間の間に指し手が返らなかったものとして扱う残り時間（対局の状態機械が時間切れにする）
-constexpr qint64 kEngineTimeoutSlackMs = 1000;
 
 Turn turnOf(bool black) { return black ? Turn::Black : Turn::White; }
-
-/// 合意した持ち時間を、棋譜と時計の持ち時間にする（先手・後手で同じ。v1 は加算なし）
-TimeControl timeControlOf(const P2p::TimeControlTerms& terms)
-{
-    TimeControl tc;
-    tc.black.mainMs = static_cast<qint64>(terms.mainMs);
-    tc.black.byoyomiMs = static_cast<qint64>(terms.byoyomiMs);
-    tc.white = tc.black;
-    return tc;
-}
 
 } // namespace
 
@@ -113,7 +98,18 @@ bool P2pGameCoordinator::startNegotiation(const NegotiationRequest& request)
     m_phase = Phase::Negotiating;
     m_ticker->start();
     // エンジンは、利用者が条件を確かめている間に起動しておく（readyok まで開始署名を送らない。起動の失敗は戻った後に届く）
-    if (m_player.isEngine()) startEngine();
+    if (m_player.isEngine()) {
+        if (!m_engine) {
+            m_engine = new P2pEnginePlayer(m_deps.engines, this);
+            connect(m_engine, &P2pEnginePlayer::initialized, this, &P2pGameCoordinator::onEngineInitialized);
+            connect(m_engine, &P2pEnginePlayer::errorOccurred, this, &P2pGameCoordinator::onEngineError);
+            connect(m_engine, &P2pEnginePlayer::moveReady, this, &P2pGameCoordinator::onEngineMoveReady);
+            connect(m_engine, &P2pEnginePlayer::resigned, this, &P2pGameCoordinator::onEngineResigned);
+            connect(m_engine, &P2pEnginePlayer::declaredWin, this, &P2pGameCoordinator::onEngineDeclaredWin);
+        }
+        emit engineStarting();
+        m_engine->start(m_player.enginePath, m_player.engineName);
+    }
     m_negotiation->begin();
     flushNegotiation();
     return true;
@@ -192,7 +188,7 @@ void P2pGameCoordinator::startMatch()
     m_phase = Phase::Playing;
     m_recordFinished = false;
     m_previousTo = BoardSquare{};
-    m_engineRequestedPly = -1;
+    if (m_player.isEngine() && m_engine) m_engine->beginMatch(m_match.get());
     if (m_transport) m_transport->setGamePeer(m_opponentPeerId);
 
     // 相手の開始署名を確かめたので、プレイヤーID を既知の相手として数える
@@ -206,12 +202,12 @@ void P2pGameCoordinator::startMatch()
         start.startSfen = QString::fromLatin1(P2p::Rules::initialSfen());
         start.players.seat(turnOf(setup.iAmBlack)).humanName = m_myDisplayName;
         start.players.seat(turnOf(!setup.iAmBlack)).humanName = m_opponentDisplayName;
-        start.timeControl = timeControlOf(setup.terms);
+        start.timeControl = P2p::GameRules::timeControl(setup.terms);
         start.extraInfo.append({GameInfoKeys::kP2pGameId, QString::fromLatin1(gameId.toHex())});
         m_sink->beginRecord(start);
     }
     if (m_deps.clock) {
-        m_deps.clock->setTimeControl(timeControlOf(setup.terms));
+        m_deps.clock->setTimeControl(P2p::GameRules::timeControl(setup.terms));
         // 時間切れは対局の状態機械が判定する（表示の時計では終局させない）
         m_deps.clock->setLoseOnTimeout(false);
         m_deps.clock->setCurrentPlayer(Turn::Black);
@@ -491,7 +487,6 @@ bool P2pGameCoordinator::clockDiscontinuity()
 void P2pGameCoordinator::resetMatch()
 {
     releaseEngine();
-    m_engineRequestedPly = -1;
     m_lastTickMono = -1;
     m_match.reset();
     m_negotiation.reset();
@@ -543,7 +538,7 @@ void P2pGameCoordinator::resign()
 {
     if (!m_match || !m_match->resign()) return;
     // エンジンに指させている対局で人が投了したら、考えているエンジンの指し手はもう受けない（投了を送った後に指さない）
-    if (Usi* engine = m_engineSeat ? m_engineSeat->engine() : nullptr) engine->cancelCurrentOperation();
+    if (m_engine) m_engine->cancelThinking();
     flushMatch();
 }
 
@@ -629,98 +624,27 @@ std::optional<P2p::PlayerKind> P2pGameCoordinator::opponentKind() const
 
 bool P2pGameCoordinator::isEngineStarting() const
 {
-    return m_phase == Phase::Negotiating && m_player.isEngine() && !(m_engineSeat && m_engineSeat->isReady());
-}
-
-void P2pGameCoordinator::startEngine()
-{
-    if (!m_engineSeat) {
-        m_engineSeat = new MatchEngineSeat(m_deps.engines, this);
-        connect(m_engineSeat, &MatchEngineSeat::initialized, this, &P2pGameCoordinator::onEngineInitialized);
-        connect(m_engineSeat, &MatchEngineSeat::errorOccurred, this, &P2pGameCoordinator::onEngineError);
-        connect(m_engineSeat, &MatchEngineSeat::moveReady, this, &P2pGameCoordinator::onEngineMoveReady);
-        connect(m_engineSeat, &MatchEngineSeat::resigned, this, &P2pGameCoordinator::onEngineResigned);
-        connect(m_engineSeat, &MatchEngineSeat::declaredWin, this, &P2pGameCoordinator::onEngineDeclaredWin);
-    }
-    emit engineStarting();
-    MatchEngineSeat::Params params;
-    params.slot = 1;
-    params.enginePath = m_player.enginePath;
-    params.engineName = m_player.engineName;
-    // 先後はまだ決まっていない（手番は送る局面で決まる）
-    params.role = QStringLiteral("P2P");
-    // 持ち時間はこの司令塔（MatchTimeSource）が、双方が署名した残り時間から返す
-    params.timeSource = this;
-    m_engineSeat->start(params);
+    return m_phase == Phase::Negotiating && m_player.isEngine() && !(m_engine && m_engine->isReady());
 }
 
 void P2pGameCoordinator::releaseEngine()
 {
-    if (m_engineSeat) m_engineSeat->release();
+    if (m_engine) m_engine->release();
 }
 
 void P2pGameCoordinator::finishEngine(const P2p::FinalResult* result)
 {
-    if (!m_engineSeat || !m_engineSeat->engine()) return;
-    // ローカル対局・通信対局と同じ手順と同じ対応（MatchEnding）。結果の決まらない終局は draw
-    const MatchGameEndInfo info = result ? P2p::GameRules::endInfo(*result) : MatchGameEndInfo{MatchCause::BreakOff, Turn::Black};
-    m_engineSeat->finish(MatchEnding::engineResult(info, mySide()));
-    m_engineSeat->release();
+    if (m_engine) m_engine->finish(result);
 }
 
 void P2pGameCoordinator::requestEngineMove()
 {
-    if (!m_player.isEngine() || !isMyMoveExpected() || !m_engineSeat || !m_engineSeat->isReady()) return;
-    const std::vector<P2p::SignedState>& states = m_match->confirmedStates();
-    if (states.empty()) return;
-    const qint64 ply = static_cast<qint64>(states.back().state.ply);
-    if (ply == m_engineRequestedPly) return;
-    // エンジンに送る局面は、双方が署名した手順（開始局面からの手の列）
-    QList<UsiMove> moves;
-    moves.reserve(static_cast<qsizetype>(states.size()));
-    for (std::size_t i = 1; i < states.size(); ++i) {
-        const std::optional<UsiMove> move = UsiMove::parse(QString::fromLatin1(states[i].state.moveUsi));
-        if (!move) return;
-        moves.append(*move);
-    }
-    const std::optional<UsiPosition> position =
-        UsiPosition::fromMoves(QString::fromLatin1(P2p::Rules::initialSfen()), moves);
-    if (!position) return;
-    m_engineRequestedPly = ply;
-    m_engineSeat->engine()->requestMatchMove(*position);
-}
-
-MatchSearchTiming P2pGameCoordinator::snapshot(Turn side, bool pondering) const
-{
-    if (!m_match) return MatchSearchTiming::fromInput(UsiGoTimeInput{});
-    const P2p::TimeControlTerms terms = m_match->terms();
-    // 残り時間は、双方が署名した最新の状態のもの。自分の手を送って承認を待つ間は、その手の消費を引いた残り
-    const P2p::GameState* pending = m_match->pendingState();
-    const P2p::GameState& state = pending ? *pending : m_match->lastState();
-    const Turn mine = mySide();
-    // 自分の今の手番の経過時間は、まだ残りから引いていない（先読みを始めるのは、指し手を送る直前。その手の消費を
-    // 引いた残りが、次の自分の手番の持ち時間になる）。相手の手番の経過時間は、相手の申告が届くまで分からない
-    const qint64 unsettled = !pending && m_match->isMyTurn() ? m_match->myTurnSpentMs() : 0;
-    const auto remainingOf = [&state](Turn player) {
-        return static_cast<qint64>(player == Turn::Black ? state.blackMainMs : state.whiteMainMs);
-    };
-    const auto clockSide = [&](Turn player) {
-        return UsiClockSide{remainingOf(player), false, player == mine ? unsettled : 0};
-    };
-    UsiGoTimeInput input = UsiGoTimeCalculator::fromClock(timeControlOf(terms), side, pondering, clockSide(Turn::Black),
-                                                          clockSide(Turn::White));
-    // 基本の持ち時間を使い切った後は、秒読みの残りだけを使える
-    const qint64 byoyomi = static_cast<qint64>(terms.byoyomiMs);
-    if (!pondering && side == mine && byoyomi > 0) {
-        input.moverByoyomiMs = qMax<qint64>(0, byoyomi - qMax<qint64>(0, unsettled - remainingOf(mine)));
-    }
-    return MatchSearchTiming::fromInput(input);
+    if (m_player.isEngine() && m_engine && isMyMoveExpected()) m_engine->requestMove();
 }
 
 void P2pGameCoordinator::forceImmediateMove()
 {
-    if (!m_player.isEngine() || !isMyMoveExpected() || !m_engineSeat) return;
-    if (Usi* engine = m_engineSeat->engine()) engine->requestImmediateMove();
+    if (m_player.isEngine() && m_engine && isMyMoveExpected()) m_engine->moveNow();
 }
 
 void P2pGameCoordinator::onEngineInitialized()
@@ -739,15 +663,10 @@ void P2pGameCoordinator::onEngineError(const QString& message)
         return;
     }
     if (m_phase != Phase::Playing || !m_match || m_recordFinished) return;
-    if (isMyMoveExpected()) {
-        // 持ち時間の間に指し手が返らなかったときは、対局の状態機械が時間切れとして相手に知らせる
-        const P2p::GameState& state = m_match->lastState();
-        const qint64 budget = static_cast<qint64>(m_match->iAmBlack() ? state.blackMainMs : state.whiteMainMs)
-            + static_cast<qint64>(m_match->terms().byoyomiMs);
-        if (m_match->myTurnSpentMs() + kEngineTimeoutSlackMs >= budget) {
-            emit engineNotice(tr("エンジンが持ち時間の間に指し手を返しませんでした。"));
-            return;
-        }
+    // 持ち時間の間に指し手が返らなかったときは、対局の状態機械が時間切れとして相手に知らせる
+    if (isMyMoveExpected() && m_engine && m_engine->hasRunOutOfTime()) {
+        emit engineNotice(tr("エンジンが持ち時間の間に指し手を返しませんでした。"));
+        return;
     }
     // エンジンが指せなくなったら、対局を中断する（結果未確定。通信対局と同じ）
     m_match->abort(P2p::ErrorCode::Cancelled);

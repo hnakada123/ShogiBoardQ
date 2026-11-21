@@ -18,6 +18,7 @@
 
 class Position;
 struct MatchGameEndInfo;
+struct TimeControl;
 
 namespace P2p {
 
@@ -92,6 +93,9 @@ inline Outcome winnerOutcome(Turn winner) { return winner == Turn::Black ? Outco
  * 合意の中断は中断（BreakOff）。勝ち負けのない終局では loser を使わない。
  */
 MatchGameEndInfo endInfo(const FinalResult& result);
+
+/// 合意した持ち時間を、棋譜・時計・エンジンの持ち時間にする（先手・後手で同じ。加算なし）
+TimeControl timeControl(const TimeControlTerms& terms);
 
 } // namespace GameRules
 

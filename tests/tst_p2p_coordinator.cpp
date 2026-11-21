@@ -11,6 +11,7 @@
 #include "engineslots.h"
 #include "gameboard.h"
 #include "matchrecordsink.h"
+#include "p2pengineplayer.h"
 #include "p2pevidenceverifier.h"
 #include "p2pgamecoordinator.h"
 #include "p2pknownpeers.h"
@@ -344,7 +345,8 @@ private slots:
         QVERIFY(!host.coordinator.isHumanToMove());
 
         // エンジンの持ち時間は、双方が署名した残り時間（秒読みは決まりのとおり）
-        const MatchSearchTiming timing = host.coordinator.snapshot(Turn::White, false);
+        QVERIFY(host.coordinator.enginePlayer());
+        const MatchSearchTiming timing = host.coordinator.enginePlayer()->snapshot(Turn::White, false);
         const GameState& last = host.coordinator.match()->lastState();
         QCOMPARE(timing.input.wtimeMs, static_cast<qint64>(last.whiteMainMs));
         QCOMPARE(timing.input.btimeMs, static_cast<qint64>(last.blackMainMs));
@@ -416,6 +418,49 @@ private slots:
             QVERIFY(s->activity.is(AppActivityState::Activity::Idle));
         }
         QVERIFY(!applicant.engines.engineInSlot(1));
+    }
+
+    /// 対局の途中でエンジンが使えなくなったら（異常終了・枠の取り上げ）、持ち時間が残っていれば対局を中断する
+    /// （結果未確定。通信対局と同じ）。相手にも中断が伝わる
+    void engineLostDuringGameAbortsIt()
+    {
+        const QByteArray applicantId(38, 'f');
+        const QByteArray hostId(38, 'm');
+        Side applicant(applicantId, m_dir.filePath(QStringLiteral("a6")));
+        Side host(hostId, m_dir.filePath(QStringLiteral("h6")));
+        applicant.transport.other = &host;
+        host.transport.other = &applicant;
+        QSignalSpy notices(&host.coordinator, &P2pGameCoordinator::engineNotice);
+        QSignalSpy hostFinished(&host.coordinator, &P2pGameCoordinator::gameFinished);
+        QSignalSpy applicantFinished(&applicant.coordinator, &P2pGameCoordinator::gameFinished);
+
+        P2pGameCoordinator::NegotiationRequest hostRequest = request(kRoleHost, applicantId, QStringLiteral("募集"));
+        hostRequest.mySide = SidePreference::White;
+        hostRequest.player = mockEngine();
+        QVERIFY(host.coordinator.startNegotiation(hostRequest));
+        QVERIFY(applicant.coordinator.startNegotiation(request(kRoleApplicant, hostId, QStringLiteral("申込"))));
+        QTRY_VERIFY(host.coordinator.negotiation()
+                    && host.coordinator.negotiation()->stage() == Negotiation::Stage::Confirming
+                    && !host.coordinator.isEngineStarting());
+        settle();
+        host.coordinator.confirmStart();
+        applicant.coordinator.confirmStart();
+        settle();
+        QVERIFY(host.activity.is(AppActivityState::Activity::DuringP2pGame));
+        QVERIFY(host.engines.engineInSlot(1));
+
+        // 先手（人間）の手番の間に、ほかの部品がエンジンの枠を取る
+        QObject other;
+        EngineLease lease = host.engines.acquire(&other, 1, QStringLiteral("other"));
+        QTRY_COMPARE(hostFinished.count(), 1);
+        QTRY_COMPARE(applicantFinished.count(), 1);
+        QCOMPARE(notices.count(), 1);
+        QVERIFY(notices.first().at(0).toString().contains(QStringLiteral("中断")));
+        QCOMPARE(host.coordinator.match()->endingError(), std::optional<ErrorCode>(ErrorCode::Cancelled));
+        for (Side* s : {&applicant, &host}) {
+            QVERIFY(!s->coordinator.match()->agreedResult());
+            QVERIFY(s->activity.is(AppActivityState::Activity::Idle));
+        }
     }
 
     /// エンジンを起動できなければ、対局を始めずに交渉を取りやめる（相手には取りやめが伝わる）

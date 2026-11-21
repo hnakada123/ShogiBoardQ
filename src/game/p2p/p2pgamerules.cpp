@@ -10,6 +10,7 @@
 #include "sennichitedetector.h"
 #include "sfenutils.h"
 #include "shogiposition.h"
+#include "timecontrol.h"
 
 namespace P2p {
 
@@ -139,6 +140,15 @@ std::optional<Terminal> TerminalJudge::append(const GameState& state)
 
     if (state.ply >= kMaxPly) return Terminal{Outcome::Draw, Cause::MaxPly};
     return std::nullopt;
+}
+
+TimeControl timeControl(const TimeControlTerms& terms)
+{
+    TimeControl tc;
+    tc.black.mainMs = static_cast<qint64>(terms.mainMs);
+    tc.black.byoyomiMs = static_cast<qint64>(terms.byoyomiMs);
+    tc.white = tc.black;
+    return tc;
 }
 
 MatchGameEndInfo endInfo(const FinalResult& result)

@@ -1181,6 +1181,8 @@ if(ENABLE_P2P_PLAY)
         src/network/p2p/p2pgamechannel.h
         src/network/p2p/p2pgamecoordinator.cpp
         src/network/p2p/p2pgamecoordinator.h
+        src/network/p2p/p2pengineplayer.cpp
+        src/network/p2p/p2pengineplayer.h
         src/network/p2p/p2pidentitystore.cpp
         src/network/p2p/p2pidentitystore.h
         src/network/p2p/p2pfriendpresence.cpp

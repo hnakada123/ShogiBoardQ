@@ -14,7 +14,6 @@
 
 #include "appactivitystate.h"
 #include "gamechannel.h"
-#include "matchtimesource.h"
 #include "p2pmatch.h"
 #include "p2pnegotiation.h"
 #include "usimatchhandler.h"
@@ -22,8 +21,8 @@
 
 class EngineSlots;
 class GameBoard;
-class MatchEngineSeat;
 class MatchRecordSink;
+class P2pEnginePlayer;
 class P2pJournal;
 class P2pKnownPeers;
 class P2pRecordStore;
@@ -40,9 +39,10 @@ class QTimer;
  *
  * 自分の手は、人間が盤で指すか、登録エンジンが指す（PlayerSetup）。エンジンで指すことは交渉で相手に伝え、双方が署名する
  * 開始合意の Rules に入る。エンジンは交渉を始めたときに枠 E1 で起動し、初期化（readyok）が済むまで開始署名を送らない。
- * エンジンの持ち時間はこの司令塔（MatchTimeSource）が、双方が署名した残り時間から返す。
+ * エンジンに送る局面と持ち時間は P2pEnginePlayer が双方の署名した手順から作り、エンジンの指し手・投了・入玉宣言・
+ * 異常を対局にどう反映するか（相手へ送る・投了・申し出・中断）はこの司令塔が決める。
  */
-class P2pGameCoordinator : public QObject, public MatchTimeSource
+class P2pGameCoordinator : public QObject
 {
     Q_OBJECT
 public:
@@ -150,8 +150,8 @@ public:
         return m_phase == Phase::Negotiating ? qMax<qint64>(0, m_confirmationDeadline - now()) : 0;
     }
 
-    // --- MatchTimeSource（自分のエンジンの持ち時間。双方が署名した残り時間と、今の手番の経過時間） ---
-    MatchSearchTiming snapshot(Turn side, bool pondering) const override;
+    /// 自分の手を指すエンジン（エンジンで指す交渉を始めるまで nullptr）
+    const P2pEnginePlayer* enginePlayer() const { return m_engine; }
 
 signals:
     /// 交渉の段階が変わった（条件確認画面を出す・更新する。エンジンの初期化が済んだときも）
@@ -215,9 +215,7 @@ private:
     /// 人間・エンジンで共通）
     bool isMyMoveExpected() const;
     Turn mySide() const;
-    /// エンジンを枠 E1 に置いて起動する（初期化の完了・失敗は後で届く）
-    void startEngine();
-    /// 自分の手番ならエンジンに指し手を頼む（同じ手数では1回だけ）
+    /// 自分の手番ならエンジンに指し手を頼む（同じ局面では1回だけ）
     void requestEngineMove();
     /// 終局をエンジンに知らせて枠を空ける（result が無ければ勝ち負けのない終局）
     void finishEngine(const P2p::FinalResult* result);
@@ -235,9 +233,8 @@ private:
     P2pRecordStore* m_store = nullptr;
     P2pKnownPeers* m_knownPeers = nullptr;
     const P2p::SigningKey* m_playerKey = nullptr;
-    MatchEngineSeat* m_engineSeat = nullptr;   ///< 自分の手を指すエンジン（枠 E1。エンジンで指すときに作る）
-    PlayerSetup m_player;                      ///< 今の交渉・対局の自分の対局者
-    qint64 m_engineRequestedPly = -1;          ///< エンジンに指し手を頼んだ局面の手数（同じ局面で2回頼まない）
+    P2pEnginePlayer* m_engine = nullptr;   ///< 自分の手を指すエンジン（枠 E1。エンジンで指すときに作る）
+    PlayerSetup m_player;                  ///< 今の交渉・対局の自分の対局者
 
     Phase m_phase = Phase::Idle;
     QElapsedTimer m_elapsed;
