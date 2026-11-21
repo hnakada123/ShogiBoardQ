@@ -37,7 +37,7 @@ libc = "0.2"
 sbq-peer-win32 = { path = "win32" }
 
 # macOS では、通信プロセスが自分でサンドボックス（Seatbelt）を掛ける。そのための libSystem の関数の呼び出しだけを
-# 別のクレートに置く。親の終了は kqueue で見張る
+# 別のクレートに置く。親の終了は kqueue で見張る。自己試験は、インターフェースのアドレスの一覧（getifaddrs）を読む
 [target.'cfg(target_os = "macos")'.dependencies]
 sbq-peer-macos = { path = "macos" }
-nix = { version = "0.29", default-features = false, features = ["event", "process", "resource", "signal", "user"] }
+nix = { version = "0.29", default-features = false, features = ["event", "net", "process", "resource", "signal", "user"] }

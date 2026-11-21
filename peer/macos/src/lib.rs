@@ -1,16 +1,19 @@
 //! 通信プロセスが自分に権限の制限を掛けるための macOS の関数の呼び出し（protocol/ipc.md 6章）
 //!
 //! macOS では、通信プロセスが起動の直後に自分でサンドボックス（Seatbelt）を掛ける。掛ける規則（プロファイル）は
-//! 通信プロセスの側（peer/src/sandbox.rs）が決め、ここは libSystem の関数を呼ぶだけ。
+//! 通信プロセスの側（peer/src/sandbox.rs）が決め、ここは libSystem の関数を呼ぶだけ（自己試験で、禁止した操作
+//! （プロセスの複製・sysctl の読み取り）が拒否されるかを試す関数も置く）。
 //! unsafe を書くのはこのクレートだけで、外へは安全な関数だけを出す。macOS 以外では空。
 
 #![cfg(target_os = "macos")]
 
-use std::ffi::{c_char, c_int, CStr, CString};
+use std::ffi::{c_char, c_int, c_uint, c_void, CStr, CString};
 use std::ptr::null_mut;
 
 /// ptrace の要求: デバッガなどがこのプロセスに接続するのを断る（sys/ptrace.h）
 const PT_DENY_ATTACH: c_int = 31;
+/// sysctl の値を読む領域の大きさ（自己試験用。ほかのプロセスの引数（kern.argmax は既定で 1 MiB）が入る大きさ）
+const SYSCTL_BUFFER_BYTES: usize = 2 * 1024 * 1024;
 
 extern "C" {
     /// sandbox.h。flags が 0 なら profile をプロファイルの本文（SBPL）として読む。掛けた制限は外せない
@@ -22,6 +25,28 @@ extern "C" {
     fn fork() -> c_int;
     fn _exit(status: c_int) -> !;
     fn waitpid(pid: c_int, status: *mut c_int, options: c_int) -> c_int;
+    /// sys/sysctl.h。MIB（整数の列）で値を読む。読めなければ -1 で errno
+    fn sysctl(
+        name: *mut c_int,
+        namelen: c_uint,
+        oldp: *mut c_void,
+        oldlenp: *mut usize,
+        newp: *mut c_void,
+        newlen: usize,
+    ) -> c_int;
+    /// sys/sysctl.h。名前で値を読む。読めなければ -1 で errno
+    fn sysctlbyname(
+        name: *const c_char,
+        oldp: *mut c_void,
+        oldlenp: *mut usize,
+        newp: *mut c_void,
+        newlen: usize,
+    ) -> c_int;
+}
+
+/// 直前の呼び出しの errno
+fn last_errno() -> i32 {
+    std::io::Error::last_os_error().raw_os_error().unwrap_or(0)
 }
 
 fn own_pid() -> Result<c_int, String> {
@@ -63,6 +88,56 @@ pub fn deny_attach() -> Result<(), String> {
         Ok(())
     } else {
         Err(std::io::Error::last_os_error().to_string())
+    }
+}
+
+/// sysctl の値を名前で読めるか（自己試験用。値そのものは返さない）。読めれば Ok(読んだバイト数)、読めなければ
+/// Err(errno。サンドボックスが拒否したときは EPERM)
+pub fn sysctl_by_name(name: &str) -> Result<usize, i32> {
+    let name = CString::new(name).map_err(|_| 0)?;
+    let mut buffer = vec![0u8; SYSCTL_BUFFER_BYTES];
+    let mut length = buffer.len();
+    // SAFETY: name は NUL で終わる有効な文字列。oldp と oldlenp は buffer とその長さで、呼び出しの間生きている。
+    // 書き込みはしない（newp は NULL、newlen は 0）
+    let result = unsafe {
+        sysctlbyname(
+            name.as_ptr(),
+            buffer.as_mut_ptr().cast::<c_void>(),
+            &mut length,
+            null_mut(),
+            0,
+        )
+    };
+    if result == 0 {
+        Ok(length)
+    } else {
+        Err(last_errno())
+    }
+}
+
+/// sysctl の値を MIB（整数の列。例えば kern.procargs2 は [CTL_KERN, KERN_PROCARGS2, pid]）で読めるか（自己試験用）。
+/// 読めれば Ok(読んだバイト数)、読めなければ Err(errno。サンドボックスが拒否したときは EPERM)
+pub fn sysctl_mib(mib: &[i32]) -> Result<usize, i32> {
+    let mut name: Vec<c_int> = mib.to_vec();
+    let count = c_uint::try_from(name.len()).map_err(|_| 0)?;
+    let mut buffer = vec![0u8; SYSCTL_BUFFER_BYTES];
+    let mut length = buffer.len();
+    // SAFETY: name は count 個の c_int で、呼び出しの間生きている（sysctl は読むだけ）。oldp と oldlenp は buffer と
+    // その長さ。書き込みはしない（newp は NULL、newlen は 0）
+    let result = unsafe {
+        sysctl(
+            name.as_mut_ptr(),
+            count,
+            buffer.as_mut_ptr().cast::<c_void>(),
+            &mut length,
+            null_mut(),
+            0,
+        )
+    };
+    if result == 0 {
+        Ok(length)
+    } else {
+        Err(last_errno())
     }
 }
 

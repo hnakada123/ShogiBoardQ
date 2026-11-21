@@ -17,17 +17,33 @@ use libp2p::swarm::behaviour::toggle::Toggle;
 use libp2p::swarm::NetworkBehaviour;
 use libp2p::{autonat, connection_limits, dcutr, identify, noise, ping, quic, relay, tcp, yamux, Swarm};
 
-use sbq_protocol::network::IDENTIFY_PROTOCOL;
+use sbq_protocol::network::{Profile, IDENTIFY_PROTOCOL};
 
 use crate::addr::{AddrPolicy, FilteredTransport};
-use crate::behaviours::{PendingPerSource, PublicAutonatClient};
+use crate::behaviours::{MeetSources, PendingPerSource, PublicAutonatClient};
+use crate::limits::TierLimits;
+use crate::meet::MeetService;
 
 /// 接続の確立（暗号の手続きと多重化の取り決め）の期限。何も送らない接続で確立前の枠を使い続けさせない
 const CONNECTION_SETUP_TIMEOUT: Duration = Duration::from_secs(20);
-/// 1つの接続元から受け付ける確立前の接続の上限（全体の上限 8 より小さくし、1つの接続元で使い切れないようにする）
-const MAX_PENDING_PER_SOURCE: usize = 3;
 /// 1つの接続で同時に開ける yamux のストリームの上限（対局・Identify・ping・中継の予約に足りる数）
 const MAX_YAMUX_STREAMS: usize = 64;
+
+/// 接続の数の上限（役割ごと。protocol/ipc.md 5章・7章）
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ConnLimits {
+    /// 確立した接続（受けと掛けの合計）
+    pub established: u32,
+    /// 確立前の接続（受け・掛け）
+    pub pending_incoming: u32,
+    pub pending_outgoing: u32,
+    /// 1ピアあたりの確立した接続
+    pub per_peer: u32,
+    /// 確立前の受けの、接続元ごと・アドレス帯ごとの上限（behaviours::PendingPerSource）
+    pub pending_per_source: TierLimits,
+    /// 受け付けた（確立した直接の）接続の、接続元ごと・アドレス帯ごとの上限（node/peerlinks）
+    pub inbound_per_source: TierLimits,
+}
 
 /// 中継の hop のプロトコル
 pub const RELAY_HOP_PROTOCOL: &str = "/libp2p/circuit/relay/0.2.0/hop";
@@ -37,6 +53,8 @@ pub const RELAY_HOP_PROTOCOL: &str = "/libp2p/circuit/relay/0.2.0/hop";
 pub struct Behaviour {
     pub limits: connection_limits::Behaviour,
     pub pending_per_source: PendingPerSource,
+    /// 待ち合わせの要求の接続元（待ち合わせを受け持つ協力ノードだけ）
+    pub meet_sources: Toggle<MeetSources>,
     pub identify: identify::Behaviour,
     pub ping: ping::Behaviour,
     pub relay_client: Toggle<relay::client::Behaviour>,
@@ -84,6 +102,44 @@ impl Role {
     pub fn uses_direct(self) -> bool {
         matches!(self, Role::Player { relay_only: false })
     }
+
+    /// 接続の数の上限。プレイヤーは、協力ノードと招待・対局の相手だけとつながるので小さく（全体 32）、IPv4 の /24・
+    /// IPv6 の /48 からは 8 本まで。協力ノードは、利用者のアプリ（在席を知らせる利用者・中継・待ち合わせ）を数百
+    /// 受けるので大きくし、帯ごとの上限を2段にする: 1つの接続元（IPv4 のアドレス・IPv6 の /64）から 16 本、同じ
+    /// /24・/48 から 64 本（CGNAT・IPoE の利用者どうしが分け合っても足り、数個のアドレス帯では埋められない。
+    /// 監査 2026-11-21 S2）。協力ノードの掛ける接続は、ほかの協力ノードと、到達性の確認の折り返し（AutoNAT）
+    pub fn limits(self) -> ConnLimits {
+        match self {
+            Role::Player { .. } => ConnLimits {
+                established: 32,
+                pending_incoming: 8,
+                pending_outgoing: 8,
+                per_peer: 4,
+                pending_per_source: TierLimits {
+                    per_source: 3,
+                    per_prefix: 8,
+                },
+                inbound_per_source: TierLimits {
+                    per_source: 8,
+                    per_prefix: 8,
+                },
+            },
+            Role::Service { .. } => ConnLimits {
+                established: 512,
+                pending_incoming: 64,
+                pending_outgoing: 32,
+                per_peer: 4,
+                pending_per_source: TierLimits {
+                    per_source: 4,
+                    per_prefix: 16,
+                },
+                inbound_per_source: TierLimits {
+                    per_source: 16,
+                    per_prefix: 64,
+                },
+            },
+        }
+    }
 }
 
 /// Swarm の組み立ての条件
@@ -91,8 +147,10 @@ pub struct SwarmOptions {
     pub keypair: Keypair,
     pub policy: Arc<AddrPolicy>,
     pub role: Role,
-    /// インターネットのネットワーク（到達性の確認を使う）
-    pub internet: bool,
+    /// ネットワークの profile（インターネットでは到達性の確認を使う。接続元の数え方も profile で決まる）
+    pub profile: Profile,
+    /// 待ち合わせ（協力ノードの --meet）。受け付けた接続の接続元を、その接続の要求が届く前に覚えさせる
+    pub meet: Option<Arc<MeetService>>,
 }
 
 fn io_err<E: std::fmt::Display>(e: E) -> String {
@@ -134,11 +192,14 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
         .boxed();
     let transport = FilteredTransport::new(combined, options.policy.clone()).boxed();
 
+    let role = options.role;
+    let role_limits = role.limits();
     let limits = connection_limits::ConnectionLimits::default()
-        .with_max_established(Some(32))
-        .with_max_pending_incoming(Some(8))
-        .with_max_pending_outgoing(Some(8))
-        .with_max_established_per_peer(Some(4));
+        .with_max_established(Some(role_limits.established))
+        .with_max_pending_incoming(Some(role_limits.pending_incoming))
+        .with_max_pending_outgoing(Some(role_limits.pending_outgoing))
+        .with_max_established_per_peer(Some(role_limits.per_peer));
+    let internet = options.profile == Profile::Internet;
 
     let identify_config = identify::Config::new(IDENTIFY_PROTOCOL.to_owned(), keypair.public())
         .with_agent_version(format!("shogiboardq-peer/{}", env!("CARGO_PKG_VERSION")))
@@ -147,7 +208,6 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
         .with_hide_listen_addrs(true)
         .with_push_listen_addr_updates(false);
 
-    let role = options.role;
     let relay_server = if role.relays() {
         let config = relay::Config {
             max_reservations: 128,
@@ -165,7 +225,9 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
 
     let behaviour = Behaviour {
         limits: connection_limits::Behaviour::new(limits),
-        pending_per_source: PendingPerSource::new(MAX_PENDING_PER_SOURCE),
+        pending_per_source: PendingPerSource::new(role_limits.pending_per_source, options.profile),
+        // 接続の上限（limits）が断った接続は覚えない（上の振る舞いが先に断る）
+        meet_sources: Toggle::from(options.meet.map(|service| MeetSources::new(service, options.profile))),
         identify: identify::Behaviour::new(identify_config),
         ping: ping::Behaviour::new(
             ping::Config::new()
@@ -177,10 +239,8 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
         dcutr: Toggle::from(role.uses_direct().then(|| dcutr::Behaviour::new(local_peer))),
         // 到達性の確認（AutoNAT）を頼むのは、インターネットで直接接続を使うプレイヤーだけ。確認に応えるのは協力ノード
         // だけ（AutoNAT v2 のクライアントは、応える側のピアにだけ頼むので、確認の依頼は協力ノードにだけ届く）
-        autonat_client: Toggle::from((options.internet && role.uses_direct()).then(PublicAutonatClient::new)),
-        autonat_server: Toggle::from(
-            (options.internet && role.is_service()).then(autonat::v2::server::Behaviour::default),
-        ),
+        autonat_client: Toggle::from((internet && role.uses_direct()).then(PublicAutonatClient::new)),
+        autonat_server: Toggle::from((internet && role.is_service()).then(autonat::v2::server::Behaviour::default)),
         game: libp2p_stream::Behaviour::new(),
     };
 
@@ -231,5 +291,39 @@ mod tests {
             }),
             (true, false, false, true, false)
         );
+    }
+
+    /// 協力ノードは数百の接続を受け、帯ごとの上限は2段（1つの接続元より同じアドレス帯を緩く）。数個のアドレス帯では
+    /// 確立した接続を埋められない（監査 2026-11-21 S2）。プレイヤーの上限は前のまま
+    #[test]
+    fn service_limits_are_larger_and_two_tiered() {
+        let player = Role::Player { relay_only: false }.limits();
+        assert_eq!(
+            (
+                player.established,
+                player.pending_incoming,
+                player.pending_outgoing,
+                player.per_peer
+            ),
+            (32, 8, 8, 4)
+        );
+        assert_eq!(player.inbound_per_source.per_prefix, 8);
+        assert_eq!(player.pending_per_source.per_source, 3);
+        let service = Role::Service {
+            relay: true,
+            meet: true,
+        }
+        .limits();
+        assert!(service.established >= 256);
+        assert!(service.pending_incoming > player.pending_incoming);
+        for tiers in [service.inbound_per_source, service.pending_per_source] {
+            assert!(tiers.per_source < tiers.per_prefix);
+        }
+        // 4つのアドレス帯では、確立した接続を埋められない
+        let per_prefix = u32::try_from(service.inbound_per_source.per_prefix).unwrap_or(u32::MAX);
+        assert!(per_prefix.saturating_mul(4) < service.established);
+        // 2つのアドレス帯では、確立前の受けを埋められない
+        let pending_per_prefix = u32::try_from(service.pending_per_source.per_prefix).unwrap_or(u32::MAX);
+        assert!(pending_per_prefix.saturating_mul(2) < service.pending_incoming);
     }
 }

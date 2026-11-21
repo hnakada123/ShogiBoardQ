@@ -18,7 +18,7 @@ use tokio::sync::mpsc;
 /// 1メッセージの上限（バイト）
 pub const MAX_MESSAGE_BYTES: usize = 128 * 1024;
 /// IPC の版
-pub const IPC_VERSION: u64 = 5;
+pub const IPC_VERSION: u64 = 6;
 /// start の bootstrap（利用者が指定した協力ノード）の上限（ipc.md 3章）
 pub const MAX_BOOTSTRAP: usize = 16;
 
@@ -297,6 +297,7 @@ words! {
         InvalidFrame => "invalid_frame",
         RateLimited => "rate_limited",
         Limit => "limit",
+        Refused => "refused",
     }
 }
 
@@ -638,6 +639,7 @@ mod tests {
             CloseReason::InvalidFrame,
             CloseReason::RateLimited,
             CloseReason::Limit,
+            CloseReason::Refused,
         ]
         .iter()
         .map(|r| r.as_str())
@@ -652,7 +654,8 @@ mod tests {
                 "no_relay_route",
                 "invalid_frame",
                 "rate_limited",
-                "limit"
+                "limit",
+                "refused"
             ]
         );
     }
@@ -715,7 +718,7 @@ mod tests {
     #[test]
     fn parses_valid_request() {
         let r = parse_request(
-            &req(r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x"}}"#),
+            &req(r#"{"protocolVersion":6,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x"}}"#),
             None,
         )
         .unwrap();
@@ -727,20 +730,21 @@ mod tests {
     #[test]
     fn rejects_envelope_violations() {
         for bad in [
+            r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"hello","params":{}}"#,
             r#"{"protocolVersion":4,"processGeneration":"3","requestId":"1","method":"hello","params":{}}"#,
-            r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"evil","params":{}}"#,
-            r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"hello","params":{},"extra":1}"#,
-            r#"{"protocolVersion":5,"processGeneration":"03","requestId":"1","method":"hello","params":{}}"#,
-            r#"{"protocolVersion":5,"processGeneration":"3","requestId":"x","method":"hello","params":{}}"#,
-            r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"hello","params":[]}"#,
-            r#"{"protocolVersion":5,"processGeneration":3,"requestId":"1","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":6,"processGeneration":"3","requestId":"1","method":"evil","params":{}}"#,
+            r#"{"protocolVersion":6,"processGeneration":"3","requestId":"1","method":"hello","params":{},"extra":1}"#,
+            r#"{"protocolVersion":6,"processGeneration":"03","requestId":"1","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":6,"processGeneration":"3","requestId":"x","method":"hello","params":{}}"#,
+            r#"{"protocolVersion":6,"processGeneration":"3","requestId":"1","method":"hello","params":[]}"#,
+            r#"{"protocolVersion":6,"processGeneration":3,"requestId":"1","method":"hello","params":{}}"#,
             r#"[]"#,
             r#"not json"#,
         ] {
             assert!(parse_request(&req(bad), None).is_err(), "{bad}");
         }
         assert!(parse_request(
-            &req(r#"{"protocolVersion":5,"processGeneration":"4","requestId":"1","method":"hello","params":{}}"#),
+            &req(r#"{"protocolVersion":6,"processGeneration":"4","requestId":"1","method":"hello","params":{}}"#),
             Some("3")
         )
         .is_err());
@@ -749,7 +753,7 @@ mod tests {
     #[test]
     fn rejects_unknown_params() {
         let r = parse_request(
-            &req(r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x","x":1}}"#),
+            &req(r#"{"protocolVersion":6,"processGeneration":"3","requestId":"1","method":"hello","params":{"uiVersion":"x","x":1}}"#),
             None,
         )
         .unwrap();
@@ -758,7 +762,7 @@ mod tests {
             Some(ErrorCode::InvalidRequest)
         );
         let r = parse_request(
-            &req(r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"cancelInvites","params":{"a":1}}"#),
+            &req(r#"{"protocolVersion":6,"processGeneration":"3","requestId":"1","method":"cancelInvites","params":{"a":1}}"#),
             None,
         )
         .unwrap();

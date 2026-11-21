@@ -18,7 +18,7 @@ namespace PeerIpc {
 
 /// IPC 1件の上限（128 KiB）
 inline constexpr qsizetype kMaxMessageBytes = 128 * 1024;
-inline constexpr int kProtocolVersion = 5;
+inline constexpr int kProtocolVersion = 6;
 
 // ---------------------------------------------------------------- 要求（protocol/ipc.md 3章）
 
@@ -237,7 +237,8 @@ struct FrameReceived {
 };
 
 /// 接続が閉じた理由
-enum class CloseReason { Closed, Reset, Timeout, Unreachable, NoRelayRoute, InvalidFrame, RateLimited, Limit };
+/// Refused は、開く前に相手が受け付けなかった（合言葉の確認の値が返らない・合わない。protocol/ipc.md 5章）
+enum class CloseReason { Closed, Reset, Timeout, Unreachable, NoRelayRoute, InvalidFrame, RateLimited, Limit, Refused };
 
 struct ConnectionClosed {
     quint64 connection = 0;

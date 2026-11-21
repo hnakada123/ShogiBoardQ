@@ -104,7 +104,7 @@ impl Peer {
         let id = self.next_id.to_string();
         self.next_id += 1;
         let msg = json!({
-            "protocolVersion": 5,
+            "protocolVersion": 6,
             "processGeneration": self.generation,
             "requestId": id,
             "method": method,
@@ -118,7 +118,7 @@ impl Peer {
                 .rx
                 .recv_timeout(remaining)
                 .unwrap_or_else(|_| panic!("no response to {method}"));
-            assert_eq!(v["protocolVersion"], 5);
+            assert_eq!(v["protocolVersion"], 6);
             assert_eq!(v["processGeneration"], self.generation.as_str());
             if v.get("requestId").and_then(Value::as_str) == Some(id.as_str()) {
                 return v;
@@ -165,7 +165,7 @@ impl Peer {
     /// relay_only: 「直接接続を使わない」
     fn start_with(&mut self, bootstrap: Vec<String>, relay_only: bool) {
         let hello = self.ok("hello", json!({ "uiVersion": "test" }));
-        assert_eq!(hello["ipcVersion"], 5);
+        assert_eq!(hello["ipcVersion"], 6);
         assert_eq!(hello["sandbox"]["applied"], true, "{hello}");
         let wait_node = !bootstrap.is_empty();
         let start = self.ok(
@@ -183,6 +183,12 @@ impl Peer {
             self.wait_status(|p| p["connectedPeers"].as_u64().unwrap_or(0) >= 1)
                 .expect("connected to the node");
         }
+    }
+
+    /// この接続の connectionOpened が、もう届いているか（待たない）
+    fn was_opened(&mut self, connection: &str) -> bool {
+        self.wait("connectionOpened", |p| p["connection"] == connection, Duration::ZERO)
+            .is_some()
     }
 
     /// networkStatus は変わったときにだけ届くので、最後に見た値から確かめる
@@ -419,24 +425,33 @@ fn code_connection_and_frames() {
     a.wait("connectionClosed", |p| p["connection"] == conn_a.as_str(), TIMEOUT)
         .expect("A closed");
 
-    // 合言葉で使った招待は、合言葉でも、同じ招待の招待文字列でも、もう使えない（招待した側に届かない）
-    for used in [code_text.as_str(), invite["invite"].as_str().unwrap()] {
-        let again = b.ok("connectInvite", json!({ "invite": used, "allowPrivate": false }))["connection"]
-            .as_str()
-            .unwrap()
-            .to_owned();
-        if b.wait("connectionOpened", |p| p["connection"] == again.as_str(), TIMEOUT)
-            .is_some()
-        {
-            let _ = b.call("sendFrame", json!({ "connection": again, "frame": hello_frame(3) }));
-        }
-        assert!(
-            a.wait("connectionOpened", |_| true, Duration::from_secs(3)).is_none(),
-            "a used invite was accepted"
-        );
+    // 合言葉で使った招待は、合言葉でも、同じ招待の招待文字列でも、もう使えない（招待した側に届かない）。
+    // 合言葉でつなぐ側には、招待した側の確認の値が届かないので、開かずに refused で閉じる
+    let again = b.ok("connectInvite", json!({ "invite": code_text, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let refused = b
+        .wait("connectionClosed", |p| p["connection"] == again.as_str(), TIMEOUT)
+        .expect("a used code was not refused");
+    assert_eq!(refused["reason"], "refused", "{refused}");
+    assert!(!b.was_opened(&again));
+    let invite_text = invite["invite"].as_str().unwrap().to_owned();
+    let again = b.ok("connectInvite", json!({ "invite": invite_text, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    if b.wait("connectionOpened", |p| p["connection"] == again.as_str(), TIMEOUT)
+        .is_some()
+    {
+        let _ = b.call("sendFrame", json!({ "connection": again, "frame": hello_frame(3) }));
     }
+    assert!(
+        a.wait("connectionOpened", |_| true, Duration::from_secs(3)).is_none(),
+        "a used invite was accepted"
+    );
 
-    // 秘密の違う合言葉は、招待した側に届かない
+    // 秘密の違う合言葉は、招待した側に届かず、つなぐ側は開かずに refused で閉じる（招待した側の確認の値が無い）
     let fresh = a.ok("createInvite", json!({}));
     let mut forged = Code::decode(fresh["code"].as_str().unwrap()).unwrap();
     forged.secret ^= 1;
@@ -447,13 +462,13 @@ fn code_connection_and_frames() {
         .as_str()
         .unwrap()
         .to_owned();
-    if b.wait("connectionOpened", |p| p["connection"] == wrong.as_str(), TIMEOUT)
-        .is_some()
-    {
-        let _ = b.call("sendFrame", json!({ "connection": wrong, "frame": hello_frame(4) }));
-    }
+    let refused = b
+        .wait("connectionClosed", |p| p["connection"] == wrong.as_str(), TIMEOUT)
+        .expect("a forged code was not refused");
+    assert_eq!(refused["reason"], "refused", "{refused}");
+    assert!(!b.was_opened(&wrong));
     assert!(
-        a.wait("connectionOpened", |_| true, Duration::from_secs(3)).is_none(),
+        a.wait("connectionOpened", |_| true, Duration::from_secs(1)).is_none(),
         "a forged code was accepted"
     );
     // 同じ招待の招待文字列は、まだ使える（合言葉の照合に失敗しても、招待は残る）
@@ -514,15 +529,90 @@ fn code_to_nowhere_and_cancelled_code() {
         .as_str()
         .unwrap()
         .to_owned();
-    if b.wait("connectionOpened", |p| p["connection"] == conn.as_str(), TIMEOUT)
-        .is_some()
-    {
-        let _ = b.call("sendFrame", json!({ "connection": conn, "frame": hello_frame(1) }));
-    }
+    let refused = b
+        .wait("connectionClosed", |p| p["connection"] == conn.as_str(), TIMEOUT)
+        .expect("a cancelled code was not refused");
+    assert_eq!(refused["reason"], "refused", "{refused}");
     assert!(
-        a.wait("connectionOpened", |_| true, Duration::from_secs(3)).is_none(),
+        a.wait("connectionOpened", |_| true, Duration::from_secs(1)).is_none(),
         "a cancelled code was accepted"
     );
+}
+
+/// 合言葉の宛先で応えた相手が、招待した本人でない（合言葉を知らない）なら、つなぐ側は開かずに refused で閉じる。
+/// ここでは、合言葉の宛先を別の通信プロセス（招待していない C）の待受に書き換えて確かめる（監査 2026-11-21 S3）
+#[test]
+fn code_to_someone_else_is_refused() {
+    let mut a = Peer::spawn();
+    let mut b = Peer::spawn();
+    let mut c = Peer::spawn();
+    a.start(vec![]);
+    b.start(vec![]);
+    c.start(vec![]);
+    // C の待受（招待文字列の到達候補から、QUIC のポートを読む）
+    let c_invite = Invite::decode(c.ok("createInvite", json!({}))["invite"].as_str().unwrap()).unwrap();
+    let c_port = c_invite
+        .addrs
+        .iter()
+        .find_map(|bytes| {
+            let addr = libp2p::Multiaddr::try_from(bytes.clone()).unwrap();
+            let mut port = None;
+            let mut quic = false;
+            for p in addr.iter() {
+                match p {
+                    libp2p::multiaddr::Protocol::Udp(n) => port = Some(n),
+                    libp2p::multiaddr::Protocol::QuicV1 => quic = true,
+                    _ => {}
+                }
+            }
+            port.filter(|_| quic)
+        })
+        .expect("C listens on QUIC");
+    c.ok("cancelInvites", json!({}));
+    // A の招待の合言葉の秘密のまま、宛先だけを C にする（C は合言葉の鍵を知らない）
+    let code = Code::decode(a.ok("createInvite", json!({}))["code"].as_str().unwrap()).unwrap();
+    let redirected = Code::new(vec![std::net::Ipv4Addr::LOCALHOST], Some(c_port), code.secret)
+        .unwrap()
+        .encode()
+        .unwrap();
+    let conn = b.ok("connectInvite", json!({ "invite": redirected, "allowPrivate": false }))["connection"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let closed = b
+        .wait("connectionClosed", |p| p["connection"] == conn.as_str(), TIMEOUT)
+        .expect("closed");
+    assert_eq!(closed["reason"], "refused", "{closed}");
+    assert!(!b.was_opened(&conn));
+    assert!(c.wait("connectionOpened", |_| true, Duration::from_secs(1)).is_none());
+    assert!(a.wait("connectionOpened", |_| true, Duration::from_secs(1)).is_none());
+}
+
+/// 起動した側の PID（--parent-pid）が、読んだ親と違えば、ほかのことをする前に終了コード 3 で終わる。
+/// 合っていれば、ふつうに動く（監査 2026-11-21 I-15）
+#[test]
+fn parent_pid_must_match() {
+    let own = std::process::id().to_string();
+    let wrong = (std::process::id() + 1).to_string();
+    for (pid, code) in [(wrong.as_str(), Some(3)), ("abc", Some(3))] {
+        let output = Command::new(BIN)
+            .args(["--parent-pid", pid, "--sandbox-self-test"])
+            .env_clear()
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), code, "{pid}");
+        assert!(output.stdout.is_empty(), "{pid}");
+        let line = String::from_utf8_lossy(&output.stderr);
+        assert!(line.starts_with("shogiboardq-peer: sandbox: "), "{line}");
+    }
+    let output = Command::new(BIN)
+        .args(["--sandbox-self-test", "--parent-pid", own.as_str()])
+        .env_clear()
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(0));
+    let v: Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(v["applied"], true);
 }
 
 /// 権限の制限の下でも、回線のつながっていないインターフェース（コンテナのいない docker0 など）を調べられ、
@@ -607,14 +697,14 @@ fn ipc_violations_end_the_process() {
     let mut p = Peer::spawn();
     p.ok("hello", json!({ "uiVersion": "test" }));
     p.send_raw(
-        &json!({ "protocolVersion": 5, "processGeneration": "7", "requestId": "2", "method": "evil", "params": {} }),
+        &json!({ "protocolVersion": 6, "processGeneration": "7", "requestId": "2", "method": "evil", "params": {} }),
     );
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 世代の違う要求
     let mut p = Peer::spawn();
     p.ok("hello", json!({ "uiVersion": "test" }));
-    p.send_raw(&json!({ "protocolVersion": 5, "processGeneration": "8", "requestId": "2", "method": "createInvite", "params": {} }));
+    p.send_raw(&json!({ "protocolVersion": 6, "processGeneration": "8", "requestId": "2", "method": "createInvite", "params": {} }));
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 上限を超える長さ
@@ -626,7 +716,7 @@ fn ipc_violations_end_the_process() {
 
     // 最初の要求が hello でない
     let mut p = Peer::spawn();
-    p.send_raw(&json!({ "protocolVersion": 5, "processGeneration": "7", "requestId": "1", "method": "createInvite", "params": {} }));
+    p.send_raw(&json!({ "protocolVersion": 6, "processGeneration": "7", "requestId": "1", "method": "createInvite", "params": {} }));
     assert_eq!(p.child.wait().unwrap().code(), Some(2));
 
     // 知らない引数はエラーの応答（終了しない）、start の前の要求は invalid_state
@@ -1120,6 +1210,8 @@ fn local_network_listens_on_the_lan() {
         eprintln!("this host has no private (LAN) address; the LAN connection is not exercised");
         return;
     }
+    // 私設アドレスがあるときは、合言葉と同じく loopback を入れない（監査 2026-11-21 I-1）
+    assert!(!seen_loopback, "{:?}", invite.addrs);
     // LAN のアドレスだけにした招待でつなぐ（相手は 127.0.0.1 を使えない別の PC、という場合に当たる）
     let lan_only = Invite { addrs: lan, ..invite }.encode().unwrap();
     let inspected = b.ok("inspectInvite", json!({ "invite": lan_only }));

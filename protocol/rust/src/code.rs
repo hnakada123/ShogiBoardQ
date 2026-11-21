@@ -1,7 +1,8 @@
 //! 合言葉（同じ LAN の招待の短い形。protocol/README.md 3.1節）
 //!
 //! 合言葉には、招待した側の LAN の中のアドレスと短い秘密だけを入れる。招待した側の PeerId は入らないので、
-//! つないだ相手が合言葉を知っていることは、秘密から作った鍵と双方の PeerId で作るトークンで確かめる
+//! つないだ相手が合言葉を知っていることは、秘密から作った鍵と双方の PeerId で作るトークンで確かめ、
+//! 応えた相手（招待した側）が合言葉を知っていることは、同じ鍵から作る確認の値で確かめる
 //! （秘密そのものは回線に流さない）。
 
 use std::net::Ipv4Addr;
@@ -325,8 +326,20 @@ impl Code {
 
 /// 合言葉でつなぐ側が INVITE_TOKEN で送るトークン（鍵と双方の PeerId で決まる。別の相手へは使えない）
 pub fn token(key: &[u8; 32], inviter_peer_id: &[u8], invitee_peer_id: &[u8]) -> [u8; 32] {
+    labeled_value("SBQ-CODE-TOKEN", key, inviter_peer_id, invitee_peer_id)
+}
+
+/// 招待した側が、合言葉のトークンを照合できた後に、同じストリームの最初のフレーム（INVITE_TOKEN の形）で返す
+/// 確認の値。つなぐ側は、これを確かめてから接続を開いたものとする（合言葉の宛先で応えた相手が、合言葉を
+/// 知っていることを確かめる。protocol/README.md 3.1節）。トークンとはラベルで分けるので、トークンからは作れない
+pub fn confirmation(key: &[u8; 32], inviter_peer_id: &[u8], invitee_peer_id: &[u8]) -> [u8; 32] {
+    labeled_value("SBQ-CODE-CONFIRM", key, inviter_peer_id, invitee_peer_id)
+}
+
+/// H(CBOR([label, 1, key, 招待した側の PeerId, つなぐ側の PeerId]))
+fn labeled_value(label: &str, key: &[u8; 32], inviter_peer_id: &[u8], invitee_peer_id: &[u8]) -> [u8; 32] {
     h(&Value::Array(vec![
-        Value::text("SBQ-CODE-TOKEN"),
+        Value::text(label),
         Value::Uint(1),
         Value::bytes(key),
         Value::bytes(inviter_peer_id),
@@ -435,6 +448,18 @@ mod tests {
         assert_ne!(t, token(&key, b"invitee", b"inviter"));
         assert_ne!(t, token(&key, b"inviter", b"other"));
         assert_eq!(t, token(&key, b"inviter", b"invitee"));
+    }
+
+    /// 確認の値も鍵と双方の PeerId で決まり、トークンとは別の値になる（トークンを受けた側が、確認の値を作れない）
+    #[test]
+    fn confirmation_differs_from_the_token() {
+        let key = [3u8; 32];
+        let c = confirmation(&key, b"inviter", b"invitee");
+        assert_ne!(c, token(&key, b"inviter", b"invitee"));
+        assert_ne!(c, confirmation(&[4u8; 32], b"inviter", b"invitee"));
+        assert_ne!(c, confirmation(&key, b"invitee", b"inviter"));
+        assert_ne!(c, confirmation(&key, b"inviter", b"other"));
+        assert_eq!(c, confirmation(&key, b"inviter", b"invitee"));
     }
 
     #[test]

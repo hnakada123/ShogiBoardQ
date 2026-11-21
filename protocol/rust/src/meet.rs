@@ -29,6 +29,34 @@ pub const MAX_MESSAGE_BYTES: usize = 1200;
 pub const NONCE_BYTES: usize = 24;
 /// 認証の値の長さ（Poly1305）
 pub const TAG_BYTES: usize = 16;
+/// ソルトに入れる期間の長さ（秒）。期間の番号は floor(UNIX秒 / 600)
+pub const WINDOW_SECS: u64 = 600;
+/// 引き取る側が、時計のずれに備えて次の期間も試す、期間の終わりまでの秒数
+pub const NEXT_WINDOW_MARGIN_SECS: u64 = 60;
+/// ソルトのラベルの版（期間を入れた形）
+const SALT_VERSION: u64 = 2;
+
+/// UNIX 秒の時刻が入る期間の番号（floor(t / 600)）。預ける側は、預けるときの期間で番号と鍵を作る
+pub fn window_of(unix_secs: u64) -> u64 {
+    unix_secs / WINDOW_SECS
+}
+
+/// 引き取る側が試す期間の番号（試す順）。今の期間と前の期間（預けものは 600 秒まで残るので、前の期間に預けたものが
+/// まだあることがある）、今の期間が終わる 60 秒前からは次の期間も（相手の時計が進んでいるとき）
+pub fn fetch_windows(unix_secs: u64) -> Vec<u64> {
+    let now = window_of(unix_secs);
+    let mut windows = vec![now];
+    if let Some(previous) = now.checked_sub(1) {
+        windows.push(previous);
+    }
+    let into_window = unix_secs % WINDOW_SECS;
+    if WINDOW_SECS.saturating_sub(into_window) <= NEXT_WINDOW_MARGIN_SECS {
+        if let Some(next) = now.checked_add(1) {
+            windows.push(next);
+        }
+    }
+    windows
+}
 
 /// 協力ノードを使う合言葉
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -97,21 +125,24 @@ impl MeetCode {
         Some(MeetCode { secret })
     }
 
-    /// 鍵の導出のソルト（16バイト。ネットワークで決まる）
-    pub fn salt(network_id: &[u8; 32]) -> Option<[u8; 16]> {
+    /// 鍵の導出のソルト（16バイト。ネットワークと、預けた期間（window。window_of）で決まる）。期間を入れるので、
+    /// 協力ノードの運営者が、預かっている全件をまとめて試すことも、一度作った番号から合言葉への表を使い続けることも
+    /// できない（期間ごとに作り直しになる）。ラベルの版は 2（期間を入れる前の版 1 とは、同じ合言葉でも番号が違う）
+    pub fn salt(network_id: &[u8; 32], window: u64) -> Option<[u8; 16]> {
         let digest = h(&Value::Array(vec![
             Value::text("SBQ-MEET-SALT"),
-            Value::Uint(1),
+            Value::Uint(SALT_VERSION),
             Value::bytes(network_id),
+            Value::Uint(window),
         ]));
         <[u8; 16]>::try_from(digest.get(..16)?).ok()
     }
 
     /// 合言葉から番号と鍵を作る（Argon2id。パスワードは秘密の8バイトのビッグエンディアン。時間とメモリを使うので、
-    /// 主ループの外で呼ぶ）。協力ノードに見える番号も、時間のかかる導出の後の値から作る（番号から合言葉を
-    /// 総当たりするのにも、1回ごとに同じ時間がかかる）
-    pub fn derive(&self, network_id: &[u8; 32]) -> Option<MeetKeys> {
-        let salt = MeetCode::salt(network_id)?;
+    /// 主ループの外で呼ぶ）。window は預けた期間（window_of）。協力ノードに見える番号も、時間のかかる導出の後の
+    /// 値から作る（番号から合言葉を総当たりするのにも、1回ごとに同じ時間がかかる）
+    pub fn derive(&self, network_id: &[u8; 32], window: u64) -> Option<MeetKeys> {
+        let salt = MeetCode::salt(network_id, window)?;
         let params = argon2::Params::new(KDF_MEMORY_KIB, KDF_PASSES, 1, Some(32)).ok()?;
         let kdf = argon2::Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
         let mut master = [0u8; 32];
@@ -428,17 +459,47 @@ mod tests {
     }
 
     #[test]
-    fn keys_depend_on_the_code_and_the_network() {
+    fn keys_depend_on_the_code_the_network_and_the_window() {
         let a = network::network_id("sbq-local-1");
         let b = network::network_id("sbq-limited-1");
         let code = MeetCode::new(42);
-        let keys = code.derive(&a).unwrap();
-        assert_eq!(keys, code.derive(&a).unwrap());
+        let window = window_of(1_790_000_000);
+        let keys = code.derive(&a, window).unwrap();
+        assert_eq!(keys, code.derive(&a, window).unwrap());
         assert_ne!(keys.slot, keys.key);
         assert_ne!(keys.slot, keys.master);
-        assert_ne!(keys.slot, code.derive(&b).unwrap().slot);
-        assert_ne!(keys.slot, MeetCode::new(43).derive(&a).unwrap().slot);
+        assert_ne!(keys.slot, code.derive(&b, window).unwrap().slot);
+        assert_ne!(keys.slot, MeetCode::new(43).derive(&a, window).unwrap().slot);
+        // 期間が違えば、同じ合言葉でも番号と鍵が違う（期間をまたいで、同じ表を使い回せない）
+        let next = code.derive(&a, window + 1).unwrap();
+        assert_ne!(keys.slot, next.slot);
+        assert_ne!(keys.key, next.key);
+        assert_ne!(MeetCode::salt(&a, window), MeetCode::salt(&a, window + 1));
         assert_eq!(keys, keys_from(&keys.master));
+    }
+
+    /// 引き取る側は、今の期間・前の期間の順に試し、期間が終わる 60 秒前からは次の期間も試す
+    #[test]
+    fn fetch_windows_cover_the_lifetime_and_clock_skew() {
+        assert_eq!(window_of(0), 0);
+        assert_eq!(window_of(599), 0);
+        assert_eq!(window_of(600), 1);
+        let start = 600 * 1000;
+        assert_eq!(fetch_windows(start), vec![1000, 999]);
+        assert_eq!(fetch_windows(start + 539), vec![1000, 999]);
+        assert_eq!(fetch_windows(start + 540), vec![1000, 999, 1001]);
+        assert_eq!(fetch_windows(start + 599), vec![1000, 999, 1001]);
+        // 最初の期間には前の期間が無い
+        assert_eq!(fetch_windows(10), vec![0]);
+        // 預けてから 600 秒（招待の期限）の間に引き取るなら、預けた期間はいつも試す期間に入る
+        for deposited in [start, start + 1, start + 300, start + 599] {
+            for later in [0, 1, 300, 599, 600] {
+                assert!(
+                    fetch_windows(deposited + later).contains(&window_of(deposited)),
+                    "{deposited} {later}"
+                );
+            }
+        }
     }
 
     #[test]

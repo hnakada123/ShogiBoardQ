@@ -17,6 +17,7 @@ use sbq_protocol::meet::{MeetCode, Request as MeetRequest};
 use sbq_protocol::network::Profile;
 use serde_json::{json, Value};
 
+use super::codes;
 use super::conns::{NotOpen, Outbound};
 use super::meets::{no_node, Purpose};
 use super::presences::PRESENCE_LIFETIME_SECS;
@@ -124,11 +125,12 @@ impl Node {
         Err(IpcError::new(ErrorCode::InvalidState, "already started"))
     }
 
-    /// 招待に入れる自分の到達候補
+    /// 招待に入れる自分の到達候補。ローカル（同じ PC・同じ LAN）では、合言葉と同じ選び方の待受（codes::lan_invite_addrs。
+    /// 回線のつながっていないインターフェースと、私設アドレスがあるときの loopback を入れない）
     fn invite_addrs(&self) -> Vec<Vec<u8>> {
         let mut candidates: Vec<Multiaddr> = Vec::new();
         match self.spec.profile {
-            Profile::Local => candidates.extend(self.listen_addrs.iter().cloned()),
+            Profile::Local => candidates.extend(codes::lan_invite_addrs(&self.listen_addrs, &codes::idle_addrs())),
             Profile::Internet => {
                 candidates.extend(self.swarm.external_addresses().cloned());
                 candidates.extend(self.listen_addrs.iter().filter(|a| addr::is_circuit(a)).cloned());
@@ -400,7 +402,7 @@ impl Node {
                 ipc::CloseReason::Unreachable
             });
         }
-        self.begin_outbound(peer, usable, Some(token), ipc::Origin::Invite)
+        self.begin_outbound(peer, usable, Some(token), None, ipc::Origin::Invite)
     }
 
     /// 在席の知らせを作る（自分の到達候補と、期限まで何度でも使えるトークン。招待の本体と同じ形）。対局・UI側が、
@@ -507,7 +509,7 @@ impl Node {
         }
         self.check_capacity()?;
         let addrs = self.addr_book.get(&peer).cloned().unwrap_or_default();
-        let start = self.begin_outbound(peer, addrs, None, ipc::Origin::Game);
+        let start = self.begin_outbound(peer, addrs, None, None, ipc::Origin::Game);
         Ok(connection(self.connect_new(start)))
     }
 

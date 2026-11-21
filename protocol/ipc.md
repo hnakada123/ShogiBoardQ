@@ -7,7 +7,7 @@
 
 | 起動のしかた | 用途 |
 |---|---|
-| `shogiboardq-peer`（引数なし。macOS では `--no-loopback` を付けることがある） | 対局・UI側から使う。標準入出力で IPC を行う |
+| `shogiboardq-peer`（Linux と macOS では `--parent-pid <起動した側の PID>`、macOS では `--no-loopback` を付けることがある） | 対局・UI側から使う。標準入出力で IPC を行う |
 | `shogiboardq-peer --service ...` | 協力ノード（7章）。IPC を使わない |
 | `shogiboardq-peer --sandbox-self-test [試す相手...]` | 権限の制限を掛けてから（Windows では掛かっていることを確かめてから）、禁止した操作を試し、結果を JSON 1行で標準出力に書いて終わる（試験用。6章） |
 | `shogiboardq-peer --version` | 版を1行で書いて終わる |
@@ -15,6 +15,13 @@
 `--no-loopback` は macOS だけの引数で、引数のどこに置いてもよい（IPC と `--sandbox-self-test` に効く）。loopback への
 発信をサンドボックスでも止める（6.3節）。対局・UI側は、ローカルのネットワーク（`sbq-local-1`）を使わないときに付ける。
 ほかの OS では受け付けない（終了コード 3）。
+
+`--parent-pid <PID>` は Linux と macOS だけの引数で、引数のどこに置いてもよい（どの起動のしかたにも効く）。値は起動した
+側の PID（10進の正の整数。先頭の 0・符号は付けない）。通信プロセスは、起動の直後に読んだ親の PID がこの値と違えば、
+ほかのことをする前に、標準エラーに `shogiboardq-peer: sandbox: the parent process has changed` の1行を書いて終了コード 3
+で終わる（起動した側がもう終わっていて親が替わっていると、親の終了を見張っても意味がないため）。値の形が違う・2回ある・
+値が無いときも、`shogiboardq-peer: sandbox: ...` の1行で終了コード 3。対局・UI側は、Linux と macOS ではいつも付ける。
+Windows では受け付けない（終了コード 3。Windows では、起動した側が持つジョブのハンドルで終わる）。
 
 - 対局・UI側は、実行ファイルをアプリと同じフォルダ（`QCoreApplication::applicationDirPath()`）から絶対パスで起動する。
   環境変数は渡さない（Linux と macOS は空の環境。Windows は、無いとプロセスを作れない `SystemRoot` と `LOCALAPPDATA` だけ）。
@@ -44,13 +51,14 @@
 対局・UI側は通信プロセスを終了させる）。
 
 ```json
-{"protocolVersion":5,"processGeneration":"3","requestId":"17","method":"sendFrame","params":{...}}
-{"protocolVersion":5,"processGeneration":"3","requestId":"17","result":{...}}
-{"protocolVersion":5,"processGeneration":"3","requestId":"17","error":{"code":"unknown_connection","message":"..."}}
-{"protocolVersion":5,"processGeneration":"3","notification":"frameReceived","params":{...}}
+{"protocolVersion":6,"processGeneration":"3","requestId":"17","method":"sendFrame","params":{...}}
+{"protocolVersion":6,"processGeneration":"3","requestId":"17","result":{...}}
+{"protocolVersion":6,"processGeneration":"3","requestId":"17","error":{"code":"unknown_connection","message":"..."}}
+{"protocolVersion":6,"processGeneration":"3","notification":"frameReceived","params":{...}}
 ```
 
-- `protocolVersion` は 5（`hello` の応答の `ipcVersion` と同じ）。違えば IPC の違反。
+- `protocolVersion` は 6（`hello` の応答の `ipcVersion` と同じ）。違えば IPC の違反。版 6 は、`connectionClosed` の
+  `reason` に `refused` を足した版（2026-11-21。同じ LAN の合言葉の確認の値。`README.md` 3.1節）。
 - `processGeneration` は対局・UI側が起動ごとに決める 10進の文字列。通信プロセスは最初の要求（`hello`）の値を覚え、
   以後の要求の値が違えば IPC の違反とし、応答と通知にはこの値を付ける。対局・UI側は、今の世代と違う値の
   メッセージを捨てる（古いプロセスの残り）。
@@ -81,7 +89,7 @@
 
 | method | params | result |
 |---|---|---|
-| `hello` | `{"uiVersion": 文字列}` | `{"peerVersion": 文字列, "ipcVersion": 5, "sandbox": Sandbox}` |
+| `hello` | `{"uiVersion": 文字列}` | `{"peerVersion": 文字列, "ipcVersion": 6, "sandbox": Sandbox}` |
 | `start` | `{"networkName", "bootstrap": [文字列], "relayOnly": 真偽}` | `{"peerId", "peerIdBytes", "networkId", "profile"}` |
 | `createInvite` | `{}` | `{"invite", "code", "expiresAt", "addressCount"}` |
 | `cancelInvites` | `{}` | `{}` |
@@ -100,12 +108,18 @@
 
 - `hello` は最初に1回だけ。`Sandbox` は `{"applied": 真偽, "os": "linux" か "windows" か "macos", "mechanisms": [文字列], "landlockAbi": 整数}`
   （`landlockAbi` は Linux 以外では 0）。
-  `mechanisms` には掛けたものを入れる。Linux は `no_new_privs`・`landlock_fs`・`seccomp`・`parent_death_signal`・`no_core_dump` と、
-  掛けられた場合だけ `landlock_scope`。Windows は `appcontainer`・`job_kill_on_close`・`job_single_process`・`no_child_process`・
-  `no_error_dialog`。macOS は `seatbelt`・`parent_death_watch`・`no_core_dump`・`deny_attach` と、`--no-loopback` を付けて
-  起動されたときだけ `seatbelt_no_loopback`。`applied` は必須のもの（`landlock_scope`・`seatbelt_no_loopback` 以外のすべて）を
-  掛けたとき true。対局・UI側は、自分の OS の
-  必須の名前（`PeerConfinement::requiredMechanisms()`）がすべて入っていることを確かめる。
+  `mechanisms` には掛けたもの（Windows では、掛かっていると確かめたもの）を入れる（16 件まで、1件 32 文字まで）。
+  Linux は `no_new_privs`・`landlock_fs`・`seccomp`・`parent_death_signal`・`no_core_dump` と、掛けられた場合だけ
+  `landlock_scope`。macOS は `seatbelt`・`parent_death_watch`・`no_core_dump`・`deny_attach` と、`--no-loopback` を付けて
+  起動されたときだけ `seatbelt_no_loopback`。Windows は `appcontainer`・`job_kill_on_close`・`job_single_process`・
+  `no_child_process`・`no_error_dialog` と、起動の条件で決まるもの（6.2節）: トークンに同じ LAN との送受信の能力
+  （privateNetworkClientServer）が無いときだけ `no_private_network`（確かめられなければ入れない）、起動した側が掛けた
+  緩和ポリシーのうち読めたものごとに `no_dynamic_code`・`no_win32k`・`no_untrusted_images`・`prefer_system32_images`・
+  `no_extension_points`・`no_non_system_fonts`。`applied` は必須のもの（`landlock_scope`・`seatbelt_no_loopback` と、Windows の起動の条件で決まる
+  もの以外のすべて）を掛けたとき true。対局・UI側は、自分の OS の必須の名前（`PeerConfinement::requiredMechanisms()`）と、
+  起動の条件で決まる名前（macOS の `--no-loopback` を付けたときの `seatbelt_no_loopback`、Windows の緩和ポリシーの6つと、
+  ローカルのネットワークを使わないときの `no_private_network`）がすべて入っていることを確かめる（起動の処理が退行しても
+  気づけるように）。
   通信プロセスは掛けられなければ終了しているので、`applied: false` を返すことはない。対局・UI側は値を確かめ直す。
 - `start` は `hello` の後に1回だけ。`networkName` は `README.md` 1.1節の一覧にあるもの。
   `bootstrap` は利用者が指定した協力ノード（`/p2p/<PeerId>` で終わる multiaddr。16件まで）。今の profile で使えない
@@ -132,6 +146,9 @@
 - `connectInvite`・`connectPeer` は接続を始めて、すぐに番号 `connection`（10進の文字列）を返す。
   同じ LAN の合言葉の `connectInvite` は、合言葉の宛先へ相手の PeerId を決めずにつなぎ、最初につながった相手に、
   合言葉から作ったトークンで対局ストリームを開く（宛先へつながるのを 30 秒まで待ち、その後に下の 30 秒を数える）。
+  相手が返す確認の値（`README.md` 2.1節・3.1節）を確かめてから `connectionOpened` を知らせる。確かめられなければ
+  （合言葉が違う・期限切れ・使用済み・取り消された・相手が招待した本人でない。見分けない）、`connectionOpened` を
+  出さずに `connectionClosed`（`reason` は `refused`）を知らせる。
   協力ノードを使う合言葉の `connectInvite` は、確かめたときに引き取った招待があればそれで、なければ協力ノードから
   引き取ってから、招待文字列のときと同じ手順でつなぐ（引き取れなければ `connectionClosed`、`reason` は
   `unreachable`。対応した協力ノードにつながっていなければ、要求を `invite_no_node` で断る）。
@@ -197,7 +214,9 @@
   `friend` のとき、使われた知らせの番号（`createPresence` の `id`）で、ほかは `"0"`。対局・UI側は、その番号の知らせを
   預けた友だちのプレイヤーID を、相手が名乗らなければ断る。
 - `frameReceived` は外枠を確かめたフレームだけを運ぶ。INVITE_TOKEN は運ばない。
-- `connectionClosed` の `reason` は `closed`・`reset`・`timeout`・`unreachable`・`no_relay_route`・`invalid_frame`・`rate_limited`・`limit`。
+- `connectionClosed` の `reason` は `closed`・`reset`・`timeout`・`unreachable`・`no_relay_route`・`invalid_frame`・`rate_limited`・`limit`・
+  `refused`。`refused` は、同じ LAN の合言葉の `connectInvite` で、相手が確認の値を返さなかった（`connectionOpened` の前だけ。
+  対局・UI側は、招待した側に受け付けられなかったときと同じ知らせを出す）。
   `shutdown` の後は、開いている接続を知らせずに終わる（接続は通信プロセスとともに閉じる）。
 
 ## 5. 宛先の規則
@@ -226,11 +245,13 @@ loopback（127.0.0.0/8、::1）、私設（10/8、172.16/12、192.168/16）、li
 - 自分が広告するアドレスからも私設アドレスを除く。Identify で配るのは対応するプロトコルとアプリの版
   （`shogiboardq-peer/<版>`）と、`internet` で到達性を確かめたアドレス・中継のアドレスだけにする。
 - mDNS は使わない。
-- `local` は、同じ PC と同じ LAN の相手と、協力ノードなしでつなぐ。待受のアドレスのうち loopback と私設アドレスを、
-  自分のアドレスとして招待に載せる（Identify には載せない。Identify は招待を持たない相手にも届くので、待受のポートに
+- `local` は、同じ PC と同じ LAN の相手と、協力ノードなしでつなぐ。待受のアドレスのうち私設アドレスを、自分のアドレス
+  として招待（と在席の知らせ）に載せる（Identify には載せない。Identify は招待を持たない相手にも届くので、待受のポートに
   つないだだけの LAN の機器に、この PC の私設アドレスの一覧を配らない。つなぎ直すのは招待で接続した側で、宛先は
-  招待のものを使う）。招待には、同じ LAN の相手が使う私設アドレスを先に、同じ PC でしか使えない loopback を最後に
-  入れる。届いた接続は、接続元が loopback・私設アドレスのものだけを受け付け、ほかは
+  招待のものを使う）。選び方は同じ LAN の合言葉と同じ（`README.md` 3.1節）: 回線のつながっていないインターフェース
+  （コンテナのいない docker0 など。調べられる OS だけ）のアドレスは、私設アドレスがすべてそうでなければ載せず、
+  loopback（127.0.0.1）は私設アドレスが1つもないときだけ載せる（同じ PC の相手も、私設アドレスでつなげる）。どの
+  アドレスも、TCP と QUIC の両方の待受を載せる。届いた接続は、接続元が loopback・私設アドレスのものだけを受け付け、ほかは
   暗号の手続きを始める前に閉じる（Transport の層。中継経由の接続は接続元の IP を持たないので、ここでは断らない）。
   私設アドレスへの接続に、招待ごとの許可（`allowPrivate`）は求めない（このネットワークを選んだ利用者は、LAN 内の
   宛先へつなぐことを選んでいる）。
@@ -275,9 +296,11 @@ loopback（127.0.0.0/8、::1）、私設（10/8、172.16/12、192.168/16）、li
 - AutoNAT（到達性の確認）と DCUtR（直接接続への切り替え）を行わない。どちらも、自分のアドレスの候補を
   相手に渡すため。
 
-上限（実装仕様4章）: 接続は合計32（確立前は受け・掛けそれぞれ8、同じ接続元の IP からの確立前の受けは3、1ピアあたり4）、
-接続の確立（暗号の手続きと多重化の取り決め）は20秒まで、同じアドレス帯（IPv4 は /24、IPv6 は /48。`local` では
-LAN 全体が同じ帯に入るので接続元の IP ごと）から受け付ける接続は8、1接続の yamux のストリームは64まで。
+上限（実装仕様4章）: 接続元は2段で数える。1つの接続元（IPv4 はアドレス、IPv6 は /64）と、同じアドレス帯（IPv4 は /24、
+IPv6 は /48）。`local` では LAN 全体が同じ帯に入るので、どちらの段も接続元の IP。IPv4 射影の IPv6 は IPv4 として数える。
+接続は合計32（確立前は受け・掛けそれぞれ8、1つの接続元からの確立前の受けは3、1ピアあたり4）、接続の確立（暗号の
+手続きと多重化の取り決め）は20秒まで、同じアドレス帯から受け付ける接続は8、1接続の yamux のストリームは64まで
+（協力ノードの上限は7章）。
 対局ストリームは合わせて8（`setGamePeer` の間は、その相手からのものだけを受け付け、ほかは最初のフレームを読まずに
 閉じる）。届いた対局ストリームの最初のフレームは5秒まで待ち、待つのは全体で16本・相手ごとに1本まで。
 接続ごとの受信キュー 256 KiB（対局・UI側へ書き終えていない受信。超えたら `limit` で閉じる）。
@@ -346,7 +369,25 @@ Windows では、プロセスを作る時点でしか掛けられない制限を
 
 通信プロセスが確かめるもの（`mechanisms` の名前）: トークンが AppContainer（`appcontainer`）、ジョブに入っていて
 ハンドルが閉じたら終わる（`job_kill_on_close`）、プロセスの上限が1（`job_single_process`）、子プロセスの禁止
-（`no_child_process`）、エラーの報告の画面を出さない（`no_error_dialog`）。緩和ポリシーと能力の内訳は確かめない。
+（`no_child_process`）、エラーの報告の画面を出さない（`no_error_dialog`）。どれかが無ければ終了コード 3 で終わる。
+
+続けて、起動の条件で決まるものを読み、掛かっているものだけを名前で知らせる（通信プロセスはこれでは終わらない。
+起動した側が、自分の起動の条件と照らす。起動の処理が退行しても気づけるように。監査 2026-11-21 I-13）:
+
+| 名前 | 意味（読み方） |
+|---|---|
+| `no_private_network` | トークンに `privateNetworkClientServer` の能力が無い（`CheckTokenCapability`。確かめられなければ入れない）。ローカルのネットワークを使わない起動で入る |
+| `no_dynamic_code` | 実行時のコード生成の禁止（`GetProcessMitigationPolicy` の `ProcessDynamicCodePolicy` の ProhibitDynamicCode） |
+| `no_win32k` | win32k のシステムコールの禁止（`ProcessSystemCallDisablePolicy` の DisallowWin32kSystemCalls） |
+| `no_untrusted_images` | ネットワーク上と低い整合性の場所からの DLL の読み込みの禁止（`ProcessImageLoadPolicy` の NoRemoteImages と NoLowMandatoryLabelImages の両方） |
+| `prefer_system32_images` | OS の DLL を、アプリのフォルダより先に System32 から読む（`ProcessImageLoadPolicy` の PreferSystem32Images） |
+| `no_extension_points` | 拡張ポイントの禁止（`ProcessExtensionPointDisablePolicy` の DisableExtensionPoints） |
+| `no_non_system_fonts` | システムのフォント以外の読み込みの禁止（`ProcessFontDisablePolicy` の DisableNonSystemFonts） |
+
+ヒープの破損での終了・ASLR・ハンドルの厳密な検査は知らせない。
+
+制限を確かめられなかったときに標準エラーへ書く文には、OS のエラーの文（利用者の言語に訳される）を使わず、
+`<関数> failed (os error <番号>)` の形で番号だけを書く（対局・UI側は、診断の行を印字できる ASCII に絞る）。
 
 Windows の `--sandbox-self-test` は、起動する側が渡した相手（`file=<パス>`・`pipe=<名前付きパイプの名前>`・
 `pid=<プロセス>`・`port=<loopback で待ち受けているポート>`）に次を試す: `read_file`・`write_file`（`<パス>.created` を作る）、
@@ -377,14 +418,25 @@ Linux と同じく、通信プロセスが自分で掛ける。標準入力を�
    既定ですべて拒否し（`(deny default)`）、次だけを許す。
    - TCP と UDP の待受・着信・発信（IPv4・IPv6）
    - 自分へのシグナル
-   - sysctl の読み取り（インターフェースのアドレスの一覧など）
+   - 次の名前の sysctl の読み取りだけ（許可の一覧。名前の一部で書くものは、その名前で始まるもの）:
+     `net.routetable`（インターフェースのアドレスの一覧。getifaddrs が読む）、`hw.`（CPU の数など。Rust の標準
+     ライブラリと tokio が読む）、`kern.os`（`kern.ostype`・`kern.osrelease`・`kern.osversion`・`kern.osproductversion`・
+     `kern.osvariant_status` など OS の版）、`kern.version`、`kern.maxfilesperproc`、`kern.maxfiles`、`kern.usrstack64`、
+     `sysctl.proc_cputype`
    - アドレスの変化の知らせを受ける configd（Mach のサービス `com.apple.SystemConfiguration.configd`）
 
    許していないので、ファイルの読み書き（開いてある標準入出力は使える）、プログラムの起動、プロセスの複製、
    ほかのプロセスへのシグナル、Unix ドメインのソケットへの接続（自動化 API など）、ほかの Mach のサービス
-   （キーチェーン・クリップボードなど）は拒否される。インターフェースの物理アドレス（MAC アドレス）の読み取りも
-   拒否する（一覧を読むたびに OS が確かめるので、この拒否だけはログに残さない）。
-5. `--no-loopback` を付けて起動されたときは、この Mac 自身（規則の `localhost`。127.0.0.1・::1 と、この Mac に付いているアドレス）への発信も拒否する（`seatbelt_no_loopback`）。
+   （キーチェーン・クリップボードなど）、一覧にない sysctl（ほかのプロセスの引数と環境変数を読む `kern.procargs2`・
+   `kern.procargs`、プロセスの一覧 `kern.proc`、コンピュータ名 `kern.hostname` など）は拒否される。インターフェースの
+   物理アドレス（MAC アドレス）の読み取りも拒否する（一覧を読むたびに OS が確かめるので、この拒否だけはログに残さない）。
+5. `--no-loopback` を付けて起動されたときは、規則の `localhost` を宛先とする発信も拒否する（`seatbelt_no_loopback`）。
+   Seatbelt の宛先の規則は「すべて」か `localhost` でしか書けず、OS が止めることを自己試験で確かめているのは
+   127.0.0.1 と ::1 への発信だけである。この Mac 自身を指すほかの宛先（127.0.0.0/8 のほかのアドレス・0.0.0.0・::・
+   IPv4 射影の ::ffff:127.0.0.1・この Mac の LAN や VPN のアドレス）を OS が止めるかは確かめていない（自己試験が
+   結果を書く。下）。止まらなくても、`internet` の profile では、通信プロセスの宛先の規則（5章。loopback・未指定・
+   IPv4 射影へはつながず、私設アドレスへは利用者が許可した招待の宛先にだけつなぐ。Transport の層で、どの経路で
+   始まった接続にも掛かる）が止める。
    対局・UI側の `PeerConfinement` は、ローカルのネットワーク（`sbq-local-1`）を使わないときに付ける。待受と着信には
    掛けない（loopback での待受の拒否は、すべてのアドレスでの待受まで止めてしまう）。
 
@@ -393,10 +445,20 @@ macOS の `--sandbox-self-test` は、上の制限を掛けた後に次を試す
 渡されなければ /tmp に作る）、`exec`（/usr/bin/true を起動）、`fork`、`connect_unix_socket`（渡されたときだけ）、
 `signal_parent`（親へ signal 0）、`listen_tcp`（すべてのアドレスでの待受。`allowed` が出る）、`connect_tcp`（渡された宛先へ接続。渡されたときだけ。
 ほかの PC の宛先なら `allowed`）、`connect_loopback_tcp`
-（127.0.0.1 と ::1 の閉じたポートへ接続。`--no-loopback` を付けたときは `denied`、付けないときは `allowed`）。
+（127.0.0.1 と ::1 の閉じたポートへ接続。`--no-loopback` を付けたときは `denied`、付けないときは `allowed`）、
+`list_interfaces`（getifaddrs。`allowed` が出る）、`sysctl_hw_ncpu`（`hw.ncpu`。`allowed` が出る）、`sysctl_procargs_parent`
+（起動した側の `kern.procargs2`。`denied` が出る）、`sysctl_proc_all`（`kern.proc.all`。`denied` が出る）、`sysctl_hostname`
+（`kern.hostname`。`denied` が出る）。sysctl は、サンドボックスが拒否した（EPERM・EACCES）ときだけ `denied`。
+続けて、`--no-loopback` の規則がどこまで止めるかを書く（試験はこれらを確かめない。実機で動かしたときに、OS が止めるかが
+分かる）: `connect_unspecified_v4`（0.0.0.0:9）、`connect_unspecified_v6`（[::]:9）、`connect_mapped_loopback`
+（[::ffff:127.0.0.1]:9）、`connect_loopback_other`（127.0.0.2:9）、`connect_own_address`（動いているインターフェースの
+loopback でない IPv4 アドレスの 9 番。そういうアドレスがあるときだけ）。どれも、OS が拒否した（PermissionDenied）ときだけ
+`denied`。
 
-止められないもの: 私設アドレスへの接続（サンドボックスの規則は、宛先を「すべて」か loopback でしか絞れない）と、
-`--no-loopback` を付けないとき（ローカルのネットワーク）の loopback への接続。どちらも通信プロセスのコードだけが守る。
+止められないもの: 私設アドレスへの接続（サンドボックスの規則は、宛先を「すべて」か `localhost` でしか絞れない）と、
+`--no-loopback` を付けないとき（ローカルのネットワーク）の loopback への接続。`--no-loopback` を付けたときも、
+127.0.0.1・::1 でない、この Mac 自身を指す宛先（5. の上）は、OS が止めると確かめていない。どれも通信プロセスの
+宛先の規則（5章）が守る。
 macOS 15 以降では、同じ LAN の相手と初めて通信するときに、OS が利用者に「ローカルネットワーク上のデバイスの検索」の
 許可を求めることがある（OS の設定で、通信プロセスの規則とは別）。
 
@@ -419,9 +481,15 @@ shogiboardq-peer --service --network <networkName> --identity <鍵ファイル> 
   読んだ後に、ファイルの操作を拒否する（Linux は Landlock、macOS はサンドボックス）。
 - 利用者のアプリが最初に接続する相手になり、到達性の確認（AutoNAT v2）に応える。`--relay` で Circuit Relay v2 の中継を
   有効にする。対局ストリームは受け付けない（指し手もプレイヤーID も読まない。中継する通信は当事者間で暗号化されている）。
+- 接続の上限（利用者のアプリより大きくする。在席を知らせる利用者・中継・待ち合わせの利用者を数百受けるため。
+  監査 2026-11-21 S2）: 確立した接続は合計 512、確立前は受け 64・掛け 32（掛けるのは、ほかの協力ノードと到達性の確認の
+  折り返し）、1ピアあたり 4。接続元は2段で数え（5章）、1つの接続元（IPv4 のアドレス・IPv6 の /64）からの確立前の受けは
+  4・受け付ける接続は 16、同じアドレス帯（IPv4 の /24・IPv6 の /48）からの確立前の受けは 16・受け付ける接続は 64
+  （CGNAT・IPoE で同じ帯を分け合う利用者を締め出さず、数個のアドレス帯では埋められない）。
 - 中継の上限: 予約 128、1ピアあたりの回路 4、1回路 30 分・8 MiB。
 - `--meet` で、合言葉の待ち合わせ（`README.md` 2.2節）を受け持つ。利用者が預けた、中身の分からない小さなデータ
-  （1 KiB まで）を、10 分までの間、メモリにだけ持つ。上限は、全体で 4096 件、接続元のアドレス帯ごとに 256 件。
+  （1 KiB まで）を、10 分までの間、メモリにだけ持つ。上限は、全体で 16384 件、1つの接続元から 512 件、同じアドレス帯から
+  2048 件（頻度と同時に処理する要求の上限は `README.md` 2.2節）。
 - ログは標準エラーに、起動・停止と、接続の数だけを書く（`shogiboardq-peer: peers=<つながっているピアの数>`。
   `--relay` のときは、続けて ` relays=<中継している回路の数>`、`--meet` のときは、続けて
   ` meets=<待ち合わせで預かっている件数>`）。数は、起動した直後と、変わったときに書く（1秒に1行まで。決まった

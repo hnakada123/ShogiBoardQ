@@ -14,6 +14,7 @@ use sbq_protocol::frame::{self, FrameHeader, GAME_PROTOCOL};
 use tokio::sync::mpsc;
 
 use super::conns::{ConnIo, Opened, Outbound, Release};
+use super::invites::constant_time_eq;
 use super::outbound::{self, Step};
 use super::{unix_now, Node};
 use crate::game::{self, ConnEvent, ConnShared};
@@ -22,6 +23,8 @@ use crate::limits::PeerSlots;
 
 /// 最初のフレームを待つ時間（つなぐ側は開いた直後に送る）
 const FIRST_FRAME_TIMEOUT: Duration = Duration::from_secs(5);
+/// 合言葉でつなぐ側が、招待した側の確認の値を待つ時間（招待した側は、トークンを照合したらすぐ返す）
+const CONFIRM_TIMEOUT: Duration = Duration::from_secs(10);
 /// 最初のフレームを待つ届いたストリームの上限（全体）。接続は同じアドレス帯から8本までなので、1つのアドレス帯で
 /// 使い切れない数にする
 const MAX_PENDING_STREAMS: usize = 16;
@@ -121,7 +124,26 @@ fn spawn_io(conn: u64, stream: Stream, events: &mpsc::UnboundedSender<ConnEvent>
     ConnIo::new(frame_tx, shared, reader_task.abort_handle())
 }
 
-/// 対局ストリームを開き、招待のトークンを送る（結果は Internal で届く）
+/// 招待した側が最初のフレームで返した確認の値が、合言葉から作った値（expected）と合うか。形は INVITE_TOKEN と同じ
+/// `[1, 11, 0, zero32, [確認の値]]`（protocol/README.md 2.1節・3.1節）。処理時間が中身によらない比較で確かめる
+fn confirmation_matches(first: &[u8], expected: &[u8; 32]) -> bool {
+    let Ok(header) = frame::check(first) else {
+        return false;
+    };
+    frame::invite_token(&header).is_some_and(|value| constant_time_eq(&value, expected))
+}
+
+/// 合言葉でつないだ相手が返す確認の値を待って確かめる。合わない・閉じられた・時間内に来ないなら、合言葉が
+/// 受け付けられなかったとする（どれかは見分けない。相手が合言葉を知らない機器でも、本物の招待した側に断られても同じ）
+async fn confirmed(stream: &mut Stream, expected: &[u8; 32]) -> bool {
+    match tokio::time::timeout(CONFIRM_TIMEOUT, game::read_frame(stream)).await {
+        Ok(Ok((first, _))) => confirmation_matches(&first, expected),
+        _ => false,
+    }
+}
+
+/// 対局ストリームを開き、招待のトークンを送る（結果は Internal で届く）。同じ LAN の合言葉でつなぐときは、相手が
+/// 返す確認の値を確かめてから開いたものとする（合わなければ refused）
 async fn open_task(
     mut control: libp2p_stream::Control,
     internal: mpsc::UnboundedSender<Internal>,
@@ -142,13 +164,23 @@ async fn open_task(
                     .is_ok(),
                 None => true,
             };
-            if token_ok {
-                Internal::OutboundOpened { conn, stream }
-            } else {
+            let confirm_ok = match (&release.confirm, token_ok) {
+                (Some(expected), true) => confirmed(&mut stream, expected).await,
+                _ => true,
+            };
+            if !token_ok {
                 Internal::OutboundFailed {
                     conn,
                     reason: ipc::CloseReason::Unreachable,
                 }
+            } else if !confirm_ok {
+                // ストリームは捨てると閉じる
+                Internal::OutboundFailed {
+                    conn,
+                    reason: ipc::CloseReason::Refused,
+                }
+            } else {
+                Internal::OutboundOpened { conn, stream }
             }
         }
         Ok(Err(_)) => Internal::OutboundFailed {
@@ -172,6 +204,7 @@ impl Node {
         peer: PeerId,
         addrs: Vec<Multiaddr>,
         token: Option<[u8; 32]>,
+        confirm: Option<[u8; 32]>,
         origin: ipc::Origin,
     ) -> Result<Outbound, ipc::CloseReason> {
         let connected = self.swarm.is_connected(&peer);
@@ -191,7 +224,12 @@ impl Node {
                 }
             }
         }
-        Ok(Outbound { peer, origin, token })
+        Ok(Outbound {
+            peer,
+            origin,
+            token,
+            confirm,
+        })
     }
 
     /// 新しい番号で、相手へ対局ストリームを開き始める。始められなかったら、応答の後で connectionClosed を知らせる
@@ -343,6 +381,8 @@ impl Node {
             return;
         }
         let mut presence = 0;
+        // 合言葉のトークンで受け付けたときに、相手へ最初に返す確認の値
+        let mut confirm: Option<[u8; 32]> = None;
         let (origin, forward_first) = if let Some(game_peer) = self.game_peer {
             if peer != game_peer || header.frame_type == frame::TYPE_INVITE_TOKEN {
                 return;
@@ -353,17 +393,24 @@ impl Node {
                 return;
             };
             let now = unix_now();
+            // 合言葉の照合に失敗してよい回数は、相手の接続元ごとに数える（分からなければ、まとめて1つ）
+            let source = self
+                .links
+                .source_of_peer(&peer)
+                .map(|key| key.strict.clone())
+                .unwrap_or_default();
             if let Some(id) = self.presences.find(&token, now) {
                 // 在席の知らせのトークン（友だちの申し込み）。使い終えない
                 presence = id;
                 (ipc::Origin::Friend, false)
-            } else if self
-                .invites
-                .redeem(&token, &self.local_peer.to_bytes(), &peer.to_bytes(), now)
+            } else if let Some(redeemed) =
+                self.invites
+                    .redeem(&token, &self.local_peer.to_bytes(), &peer.to_bytes(), &source, now)
             {
                 // 招待文字列のトークンか、合言葉の鍵とこの相手の PeerId から作ったトークン。
                 // 使われた招待を協力ノードに預けていたら、消す
                 self.release_meets();
+                confirm = redeemed.confirm;
                 (ipc::Origin::Invite, false)
             } else {
                 return;
@@ -377,6 +424,17 @@ impl Node {
         let opened = self
             .conns
             .accept(peer, origin, presence, route, |conn| spawn_io(conn, stream, events));
+        if let Some(value) = confirm {
+            // 確認の値は、対局・UI側が送るどのフレームよりも先に送る（connectionOpened を知らせる前に列に入れる）
+            let sent = self
+                .conns
+                .io(opened.conn)
+                .is_ok_and(|io| io.writer.try_send(frame::invite_token_frame(&value)).is_ok());
+            if !sent {
+                self.conns.cancel(opened.conn);
+                return;
+            }
+        }
         self.notify_opened(&opened);
         if forward_first {
             let Ok(io) = self.conns.io(opened.conn) else {
@@ -455,5 +513,26 @@ mod tests {
         assert!(fresh.enter(&friend));
         fresh.set_game_peer(None);
         assert!(fresh.enter(&attacker));
+    }
+
+    /// 合言葉でつなぐ側は、招待した側の最初のフレームが、INVITE_TOKEN の形の確認の値で、合言葉から作った値と
+    /// 合うときだけ開いたものとする（監査 2026-11-21 S3）
+    #[test]
+    fn confirmation_must_match_exactly() {
+        let expected = [5u8; 32];
+        assert!(confirmation_matches(&frame::invite_token_frame(&expected), &expected));
+        let mut wrong = expected;
+        wrong[31] ^= 1;
+        assert!(!confirmation_matches(&frame::invite_token_frame(&wrong), &expected));
+        // 別の種類のフレーム・壊れたフレームは、確認の値ではない
+        let hello = frame::build(
+            frame::TYPE_HELLO,
+            0,
+            &[0u8; 32],
+            vec![sbq_protocol::cbor::Value::bytes(&expected)],
+        );
+        assert!(!confirmation_matches(&hello, &expected));
+        assert!(!confirmation_matches(&[0x00], &expected));
+        assert!(!confirmation_matches(&[], &expected));
     }
 }

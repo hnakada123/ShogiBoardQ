@@ -209,7 +209,7 @@ private slots:
         QVERIFY(PeerIpc::encodeRequest(3, 19, PeerIpc::Requests::inspectInvite(QString(200'000, QLatin1Char('a')))).isEmpty());
 
         // 応答
-        const QJsonObject helloResult = object(R"({"peerVersion":"1.0","ipcVersion":5,"sandbox":{"applied":true,"os":"linux",)"
+        const QJsonObject helloResult = object(R"({"peerVersion":"1.0","ipcVersion":6,"sandbox":{"applied":true,"os":"linux",)"
                                                R"("mechanisms":["landlock","seccomp"],"landlockAbi":4}})");
         const std::optional<PeerIpc::Reply> hello = PeerIpc::readReply(PeerIpc::Method::Hello, helloResult);
         QVERIFY(hello && std::holds_alternative<PeerIpc::Hello>(*hello));
@@ -310,6 +310,11 @@ private slots:
         const std::optional<PeerIpc::Notification> closedRead = PeerIpc::readNotification(QStringLiteral("connectionClosed"), closed);
         QVERIFY(closedRead && std::holds_alternative<PeerIpc::ConnectionClosed>(*closedRead));
         QCOMPARE(std::get<PeerIpc::ConnectionClosed>(*closedRead).reason, PeerIpc::CloseReason::NoRelayRoute);
+        // 合言葉の確認の値が返らない・合わない（版 6。監査 2026-11-21 S3）
+        const std::optional<PeerIpc::Notification> refusedRead = PeerIpc::readNotification(
+            QStringLiteral("connectionClosed"), object(R"({"connection":"7","reason":"refused"})"));
+        QVERIFY(refusedRead && std::holds_alternative<PeerIpc::ConnectionClosed>(*refusedRead));
+        QCOMPARE(std::get<PeerIpc::ConnectionClosed>(*refusedRead).reason, PeerIpc::CloseReason::Refused);
         const std::optional<PeerIpc::Notification> frame =
             PeerIpc::readNotification(QStringLiteral("frameReceived"), object(R"({"connection":"7","frame":"YWI="})"));
         QVERIFY(frame && std::holds_alternative<PeerIpc::FrameReceived>(*frame));
@@ -375,16 +380,16 @@ private slots:
     {
         const auto json = [](const char* text) { return QByteArray(text); };
         // 外枠
-        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","requestId":"17","result":{}})")));
-        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","notification":"x","params":{}})")));
-        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","requestId":"17",)"
+        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":6,"processGeneration":"3","requestId":"17","result":{}})")));
+        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":6,"processGeneration":"3","notification":"x","params":{}})")));
+        QVERIFY(PeerIpc::parse(json(R"({"protocolVersion":6,"processGeneration":"3","requestId":"17",)"
                                     R"("error":{"code":"unknown_connection","message":"m"}})")));
         QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":4,"processGeneration":"3","requestId":"17","result":{}})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"03","requestId":"17","result":{}})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":3,"requestId":"17","result":{}})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","requestId":"+1","result":{}})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","requestId":"17","result":{},"x":1})")));
-        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":5,"processGeneration":"3","requestId":"17",)"
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":6,"processGeneration":"03","requestId":"17","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":6,"processGeneration":3,"requestId":"17","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":6,"processGeneration":"3","requestId":"+1","result":{}})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":6,"processGeneration":"3","requestId":"17","result":{},"x":1})")));
+        QVERIFY(!PeerIpc::parse(json(R"({"protocolVersion":6,"processGeneration":"3","requestId":"17",)"
                                      R"("error":{"code":"c","message":"m","extra":"e"}})")));
         QVERIFY(!PeerIpc::parse(json(R"([1,2])")));
         QCOMPARE(PeerIpc::parseU64(QJsonValue(QStringLiteral("18446744073709551615"))), std::optional<quint64>(~0ULL));

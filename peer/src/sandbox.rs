@@ -331,6 +331,24 @@ mod windows {
             return Err("the job does not suppress the error reporting dialog".to_owned());
         }
         mechanisms.push("no_error_dialog");
+        // ここからは、起動した側が起動の条件と照らす（どれが要るかは起動の条件で決まるので、ここでは断らない）。
+        // 同じ LAN との送受信の能力が無い（ローカルのネットワークを使わない起動。確かめられなければ入れない）
+        if !c.private_network {
+            mechanisms.push("no_private_network");
+        }
+        // 起動した側が掛ける緩和ポリシー（読めなかったものは入れない）
+        for (on, name) in [
+            (c.no_dynamic_code, "no_dynamic_code"),
+            (c.no_win32k, "no_win32k"),
+            (c.no_untrusted_images, "no_untrusted_images"),
+            (c.prefer_system32_images, "prefer_system32_images"),
+            (c.no_extension_points, "no_extension_points"),
+            (c.no_non_system_fonts, "no_non_system_fonts"),
+        ] {
+            if on {
+                mechanisms.push(name);
+            }
+        }
         Ok(SandboxReport {
             applied: true,
             os: "windows",
@@ -352,7 +370,13 @@ mod macos {
 
     /// サンドボックスの規則（SBPL）。既定ですべて拒否し、通信プロセスが使うものだけを許す:
     /// TCP と UDP の待受・着信・発信（IPv4・IPv6。Unix ドメインのソケットは許さない）、自分へのシグナル、
-    /// sysctl の読み取り（インターフェースのアドレスの一覧・CPU の数など）、アドレスの変化の知らせを受ける configd。
+    /// 決めた名前の sysctl の読み取り、アドレスの変化の知らせを受ける configd。
+    /// sysctl は名前を許可の一覧にする（監査 2026-11-21 S12。すべてを許すと、`kern.procargs2` で同じ利用者のほかの
+    /// プロセスの引数と環境変数を、`kern.proc.all` でプロセスの一覧を、`kern.hostname` でコンピュータ名を読めた）:
+    /// インターフェースのアドレスの一覧（getifaddrs が読む `net.routetable`）、CPU の数など Rust の標準ライブラリと
+    /// tokio が読む `hw.` の値、OS の版（`kern.os` で始まるもの・`kern.version`）、ファイルの数の上限
+    /// （`kern.maxfilesperproc`・`kern.maxfiles`）、スタックの位置（`kern.usrstack64`）、CPU の種類
+    /// （`sysctl.proc_cputype`）。
     /// ファイルの読み書き・プログラムの起動・プロセスの複製・ほかのプロセスへのシグナル・ほかの Mach のサービスは
     /// 許していないので拒否される（開いてある標準入出力は使える）。インターフェースの一覧を読むたびに OS が確かめる
     /// 物理アドレス（MAC アドレス）の読み取りは、拒否したうえでログに残さない（一覧のたびに何行も出るので）
@@ -360,7 +384,15 @@ mod macos {
 (deny default)
 (deny system-info (with no-log) (info-type "net.link.addr"))
 (allow signal (target self))
-(allow sysctl-read)
+(allow sysctl-read
+  (sysctl-name-prefix "net.routetable")
+  (sysctl-name-prefix "hw.")
+  (sysctl-name-prefix "kern.os")
+  (sysctl-name "kern.version")
+  (sysctl-name "kern.maxfilesperproc")
+  (sysctl-name "kern.maxfiles")
+  (sysctl-name "kern.usrstack64")
+  (sysctl-name "sysctl.proc_cputype"))
 (allow mach-lookup (global-name "com.apple.SystemConfiguration.configd"))
 (allow network-bind (local tcp "*:*") (local udp "*:*"))
 (allow network-inbound (local tcp "*:*") (local udp "*:*"))
@@ -622,11 +654,18 @@ mod windows_probe {
 
 #[cfg(target_os = "macos")]
 mod macos_probe {
-    use std::net::{SocketAddr, TcpStream};
+    use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream};
     use std::time::Duration;
 
     use nix::errno::Errno;
+    use nix::net::if_::InterfaceFlags;
     use serde_json::{Map, Value};
+
+    /// sys/sysctl.h の MIB の番号（libc の apple の定義と同じ）
+    const CTL_KERN: i32 = 1;
+    const KERN_PROC: i32 = 14;
+    const KERN_PROC_ALL: i32 = 0;
+    const KERN_PROCARGS2: i32 = 49;
 
     fn verdict(ok: bool) -> Value {
         Value::from(if ok { "allowed" } else { "denied" })
@@ -634,6 +673,34 @@ mod macos_probe {
 
     fn target<'a>(targets: &'a [String], name: &str) -> Option<&'a str> {
         targets.iter().find_map(|t| t.strip_prefix(name)?.strip_prefix('='))
+    }
+
+    /// sysctl の読み取りの結果。サンドボックスが拒否した（EPERM・EACCES）なら denied、読めた・ほかの理由で
+    /// 読めなかったなら allowed（サンドボックスでは止まっていない）
+    fn sysctl_verdict(result: Result<usize, i32>) -> Value {
+        let denied = matches!(result, Err(e) if e == Errno::EPERM as i32 || e == Errno::EACCES as i32);
+        verdict(!denied)
+    }
+
+    /// 閉じたポートへの TCP の接続。つながった・相手に拒まれた・届かないなら、OS の側では止めていない（allowed）
+    fn connect_verdict(addr: SocketAddr) -> Value {
+        verdict(match TcpStream::connect_timeout(&addr, Duration::from_millis(500)) {
+            Ok(_) => true,
+            Err(e) => e.kind() != std::io::ErrorKind::PermissionDenied,
+        })
+    }
+
+    /// 動いているインターフェースの、loopback でない IPv4 アドレス（この Mac に付いているアドレス。無ければ None）
+    fn own_ipv4() -> Option<Ipv4Addr> {
+        nix::ifaddrs::getifaddrs().ok()?.find_map(|interface| {
+            if !interface.flags.contains(InterfaceFlags::IFF_UP)
+                || interface.flags.contains(InterfaceFlags::IFF_LOOPBACK)
+            {
+                return None;
+            }
+            let ip = interface.address.as_ref()?.as_sockaddr_in()?.ip();
+            (!ip.is_loopback() && !ip.is_unspecified()).then_some(ip)
+        })
     }
 
     pub fn run(targets: &[String]) -> Value {
@@ -687,7 +754,7 @@ mod macos_probe {
         // `--no-loopback` を付けて起動されたときだけ denied になる
         let closed = [
             SocketAddr::from(([127, 0, 0, 1], 9)),
-            SocketAddr::from((std::net::Ipv6Addr::LOCALHOST, 9)),
+            SocketAddr::from((Ipv6Addr::LOCALHOST, 9)),
         ];
         let tcp = closed.iter().any(
             |addr| match TcpStream::connect_timeout(addr, Duration::from_millis(500)) {
@@ -696,6 +763,53 @@ mod macos_probe {
             },
         );
         results.insert("connect_loopback_tcp".into(), verdict(tcp));
+
+        // この Mac 自身を指す、127.0.0.1・::1 でない宛先。`--no-loopback` の規則（`localhost`）がどこまで止めるかを
+        // 書くだけで、試験はこれを確かめない（止まらなくても、通信プロセスの宛先の規則が止める。監査 2026-11-21 S14）
+        results.insert(
+            "connect_unspecified_v4".into(),
+            connect_verdict(SocketAddr::from((Ipv4Addr::UNSPECIFIED, 9))),
+        );
+        results.insert(
+            "connect_unspecified_v6".into(),
+            connect_verdict(SocketAddr::from((Ipv6Addr::UNSPECIFIED, 9))),
+        );
+        results.insert(
+            "connect_mapped_loopback".into(),
+            connect_verdict(SocketAddr::from((Ipv4Addr::LOCALHOST.to_ipv6_mapped(), 9))),
+        );
+        results.insert(
+            "connect_loopback_other".into(),
+            connect_verdict(SocketAddr::from((Ipv4Addr::new(127, 0, 0, 2), 9))),
+        );
+        // インターフェースの一覧は読める（net.routetable の sysctl。待受のアドレスを知るのに要る）
+        results.insert("list_interfaces".into(), verdict(nix::ifaddrs::getifaddrs().is_ok()));
+        if let Some(own) = own_ipv4() {
+            results.insert(
+                "connect_own_address".into(),
+                connect_verdict(SocketAddr::from((own, 9))),
+            );
+        }
+
+        // sysctl: 許した名前は読め、ほかのプロセスの引数と環境変数（起動した側の kern.procargs2）・プロセスの一覧・
+        // コンピュータ名は読めない（監査 2026-11-21 S12）
+        results.insert(
+            "sysctl_hw_ncpu".into(),
+            sysctl_verdict(sbq_peer_macos::sysctl_by_name("hw.ncpu")),
+        );
+        let parent = nix::unistd::getppid().as_raw();
+        results.insert(
+            "sysctl_procargs_parent".into(),
+            sysctl_verdict(sbq_peer_macos::sysctl_mib(&[CTL_KERN, KERN_PROCARGS2, parent])),
+        );
+        results.insert(
+            "sysctl_proc_all".into(),
+            sysctl_verdict(sbq_peer_macos::sysctl_mib(&[CTL_KERN, KERN_PROC, KERN_PROC_ALL])),
+        );
+        results.insert(
+            "sysctl_hostname".into(),
+            sysctl_verdict(sbq_peer_macos::sysctl_by_name("kern.hostname")),
+        );
 
         Value::Object(results)
     }

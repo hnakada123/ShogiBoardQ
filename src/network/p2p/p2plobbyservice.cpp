@@ -300,7 +300,12 @@ void P2pLobbyService::handleNotification(const PeerIpc::ConnectionClosed& closed
 {
     if (m_pendingConnections.contains(closed.connection)) {
         const PendingConnect pending = m_pendingConnections.take(closed.connection);
-        failAttempt(pending.attempt, ConnectFailure::Stage::NotOpened, PeerIpc::InviteRejection::Unreadable, closed.reason);
+        // 合言葉の宛先で応えた相手が、合言葉を知っていることを確かめられなかった（確認の値が返らない・合わない）。
+        // 開いた後に相手が何も返さずに閉じたときと同じく、断られたものとして知らせる（監査 2026-11-21 S3）
+        const ConnectFailure::Stage stage = closed.reason == PeerIpc::CloseReason::Refused
+                                                ? ConnectFailure::Stage::Refused
+                                                : ConnectFailure::Stage::NotOpened;
+        failAttempt(pending.attempt, stage, PeerIpc::InviteRejection::Unreadable, closed.reason);
     }
     if (m_deps.game) m_deps.game->onConnectionClosed(closed.connection);
 }

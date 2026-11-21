@@ -56,6 +56,8 @@ pub struct Outbound {
     pub origin: Origin,
     /// 開いた直後に送る招待のトークン（対局の相手へのつなぎ直しは None）
     pub token: Option<[u8; 32]>,
+    /// 相手が最初のフレームで返すはずの確認の値（同じ LAN の合言葉でつなぐときだけ。protocol/README.md 3.1節）
+    pub confirm: Option<[u8; 32]>,
 }
 
 /// ストリームを開くタスクに渡すもの（release）
@@ -63,6 +65,8 @@ pub struct Outbound {
 pub struct Release {
     pub peer: PeerId,
     pub token: Option<[u8; 32]>,
+    /// 相手が返すはずの確認の値（あれば、確かめてから開いたものとする）
+    pub confirm: Option<[u8; 32]>,
     /// 開くのをあきらめる時刻（開く相手が決まってから CONNECT_TIMEOUT）
     pub deadline: Instant,
 }
@@ -366,6 +370,7 @@ impl Conns {
         let release = Release {
             peer: w.outbound.peer,
             token: w.outbound.token,
+            confirm: w.outbound.confirm,
             deadline: w.deadline,
         };
         let origin = w.outbound.origin;
@@ -540,6 +545,7 @@ mod tests {
             peer,
             origin: Origin::Invite,
             token: Some([7; 32]),
+            confirm: Some([8; 32]),
         }
     }
 
@@ -715,6 +721,7 @@ mod tests {
             Some(Release {
                 peer,
                 token: Some([7; 32]),
+                confirm: Some([8; 32]),
                 deadline: later(now, 30)
             })
         );

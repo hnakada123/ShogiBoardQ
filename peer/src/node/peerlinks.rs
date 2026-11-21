@@ -1,4 +1,4 @@
-//! 相手との libp2p の接続（相手ごとの接続と中継経由か・接続ができた時刻・受け付けた接続の接続元のアドレス帯）
+//! 相手との libp2p の接続（相手ごとの接続と中継経由か・接続ができた時刻・受け付けた接続の接続元）
 //!
 //! 数えるのは、確立して受け付けた接続だけ。確立した直後に閉じた接続（接続元のアドレス帯の上限・中継の上で
 //! 対局ストリームを開いた後の直接の接続）は数えず、その接続が閉じた知らせでは、相手との接続がなくなったと
@@ -11,10 +11,9 @@ use libp2p::swarm::ConnectionId;
 use libp2p::PeerId;
 
 use super::outbound::{self, Links};
+use crate::addr::SourceKey;
 use crate::ipc::Route;
-
-/// 同じアドレス帯（ローカルでは同じ IP）から受け付ける接続の上限
-pub const MAX_INBOUND_PER_PREFIX: usize = 8;
+use crate::limits::TierLimits;
 
 /// 相手との接続
 #[derive(Default)]
@@ -23,28 +22,30 @@ pub struct PeerLinks {
     by_peer: HashMap<PeerId, HashMap<ConnectionId, bool>>,
     /// 接続ができた時刻（中継経由の接続で、直接の接続を待つ時間を測る）
     since: HashMap<ConnectionId, Instant>,
-    /// 受け付けた接続の接続元のアドレス帯
-    inbound_prefixes: HashMap<ConnectionId, Vec<u8>>,
+    /// 受け付けた接続の接続元（2段。addr::SourceKey）
+    inbound_sources: HashMap<ConnectionId, SourceKey>,
 }
 
 impl PeerLinks {
-    /// 届いた直接の接続を受け付けるか。同じアドレス帯（key）から受け付けた接続が多すぎなければ数に入れる。
-    /// アドレス帯の分からない接続は受け付ける
-    pub fn admit_inbound(&mut self, id: ConnectionId, key: Option<Vec<u8>>) -> bool {
-        let Some(prefix) = key else {
+    /// 届いた直接の接続を受け付けるか。同じ接続元・同じアドレス帯（key）から受け付けた接続が、それぞれの上限
+    /// （limits。役割で決まる）に届いていなければ数に入れる。接続元の分からない接続は受け付ける
+    pub fn admit_inbound(&mut self, id: ConnectionId, key: Option<SourceKey>, limits: TierLimits) -> bool {
+        let Some(key) = key else {
             return true;
         };
-        let count = self.inbound_prefixes.values().filter(|p| **p == prefix).count();
-        if count >= MAX_INBOUND_PER_PREFIX {
+        if !limits.admits(self.inbound_sources.values(), &key) {
             return false;
         }
-        self.inbound_prefixes.insert(id, prefix);
+        self.inbound_sources.insert(id, key);
         true
     }
 
-    /// 受け付けた接続の接続元のアドレス帯
-    pub fn source_of(&self, id: ConnectionId) -> Option<&Vec<u8>> {
-        self.inbound_prefixes.get(&id)
+    /// 相手から届いた（数に入れた）接続の接続元（どれか1つ。相手から届いた接続が無ければ None）
+    pub fn source_of_peer(&self, peer: &PeerId) -> Option<&SourceKey> {
+        self.by_peer
+            .get(peer)?
+            .keys()
+            .find_map(|id| self.inbound_sources.get(id))
     }
 
     /// 接続を受け付けた（数に入れる）
@@ -56,7 +57,7 @@ impl PeerLinks {
     /// 接続が閉じた。数に入れていた接続なら、相手との接続がもう無いか（Some(true) で無い）。数に入れていなかった
     /// 接続（受け付けずに閉じた接続）は None
     pub fn closed(&mut self, peer: &PeerId, id: ConnectionId) -> Option<bool> {
-        self.inbound_prefixes.remove(&id);
+        self.inbound_sources.remove(&id);
         self.since.remove(&id);
         let links = self.by_peer.get_mut(peer)?;
         links.remove(&id)?;
@@ -167,24 +168,59 @@ mod tests {
         assert!(links.contains(&peer));
     }
 
-    /// 同じアドレス帯から受け付ける接続は8まで。閉じたら空く。アドレス帯の分からない接続は数えない
+    fn key(strict: &[u8], wide: &[u8]) -> SourceKey {
+        SourceKey {
+            strict: strict.to_vec(),
+            wide: wide.to_vec(),
+        }
+    }
+
+    /// 1つの接続元・同じアドレス帯から受け付ける接続は、それぞれの上限まで。閉じたら空く。接続元の分からない接続は
+    /// 数えない
     #[test]
-    fn inbound_connections_are_limited_per_prefix() {
+    fn inbound_connections_are_limited_per_source_and_prefix() {
+        let limits = TierLimits {
+            per_source: 2,
+            per_prefix: 3,
+        };
         let peer = PeerId::random();
         let mut links = PeerLinks::default();
-        let home = vec![203, 0, 113];
-        for n in 0..MAX_INBOUND_PER_PREFIX {
-            assert!(links.admit_inbound(id(n), Some(home.clone())));
-        }
-        assert!(!links.admit_inbound(id(100), Some(home.clone())));
-        assert!(links.admit_inbound(id(101), Some(vec![198, 51, 100])));
-        assert!(links.admit_inbound(id(102), None));
-        assert_eq!(links.source_of(id(0)), Some(&home));
-        assert_eq!(links.source_of(id(102)), None);
+        let home = key(&[203, 0, 114, 7], &[203, 0, 114]);
+        let neighbour = key(&[203, 0, 114, 8], &[203, 0, 114]);
+        assert!(links.admit_inbound(id(0), Some(home.clone()), limits));
+        assert!(links.admit_inbound(id(1), Some(home.clone()), limits));
+        assert!(!links.admit_inbound(id(100), Some(home.clone()), limits));
+        // 同じ /24 の別の接続元は、帯の上限まで
+        assert!(links.admit_inbound(id(2), Some(neighbour.clone()), limits));
+        assert!(!links.admit_inbound(id(101), Some(neighbour), limits));
+        assert!(links.admit_inbound(id(3), Some(key(&[198, 51, 101, 1], &[198, 51, 101])), limits));
+        assert!(links.admit_inbound(id(102), None, limits));
         // 受け付けずに閉じた接続も、受け付けた接続も、閉じた知らせで忘れる
         assert_eq!(links.closed(&peer, id(0)), None);
-        assert_eq!(links.source_of(id(0)), None);
-        assert!(links.admit_inbound(id(103), Some(home)));
+        assert!(links.admit_inbound(id(103), Some(home), limits));
+    }
+
+    /// 相手から届いた接続の接続元（合言葉の照合の回数を、接続元ごとに数える）
+    #[test]
+    fn source_of_a_peer_comes_from_its_inbound_connections() {
+        let limits = TierLimits {
+            per_source: 8,
+            per_prefix: 8,
+        };
+        let now = Instant::now();
+        let peer = PeerId::random();
+        let mut links = PeerLinks::default();
+        assert_eq!(links.source_of_peer(&peer), None);
+        // こちらからつないだ接続には接続元が無い
+        links.established(peer, id(1), false, now);
+        assert_eq!(links.source_of_peer(&peer), None);
+        let home = key(&[192, 168, 1, 20], &[192, 168, 1, 20]);
+        assert!(links.admit_inbound(id(2), Some(home.clone()), limits));
+        links.established(peer, id(2), false, now);
+        assert_eq!(links.source_of_peer(&peer), Some(&home));
+        assert_eq!(links.source_of_peer(&PeerId::random()), None);
+        assert_eq!(links.closed(&peer, id(2)), Some(false));
+        assert_eq!(links.source_of_peer(&peer), None);
     }
 
     /// 中継経由の接続ができてからの時間（いちばん古いもの）と、接続の数

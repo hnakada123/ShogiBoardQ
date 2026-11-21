@@ -79,6 +79,7 @@ constexpr Word<CloseReason> kCloseReasons[] = {
     {"invalid_frame", CloseReason::InvalidFrame},
     {"rate_limited", CloseReason::RateLimited},
     {"limit", CloseReason::Limit},
+    {"refused", CloseReason::Refused},
 };
 /// 招待の要求が断られた理由（表にない code は Unreadable）
 constexpr Word<InviteRejection> kInviteRejections[] = {

@@ -74,10 +74,10 @@ fn network_vectors() {
     assert_eq!(count, network::NETWORKS.len());
 }
 
-/// 合言葉（README 3.1節）: 文字列と中身の対応、読めない文字列、鍵の導出、トークン
+/// 合言葉（README 3.1節）: 文字列と中身の対応、読めない文字列、鍵の導出、トークン、確認の値
 #[test]
 fn code_vectors() {
-    let mut counts = [0usize; 4];
+    let mut counts = [0usize; 5];
     for (kind, value) in read_vectors("code.txt") {
         let fields: Vec<&str> = value.split(' ').collect();
         match kind.as_str() {
@@ -115,6 +115,16 @@ fn code_vectors() {
                 assert_eq!(hash::hex(&code::token(&key, &inviter, &invitee)), fields[3]);
                 counts[3] += 1;
             }
+            "confirm" => {
+                assert_eq!(fields.len(), 4, "{value}");
+                let key: [u8; 32] = hash::from_hex(fields[0]).unwrap().try_into().unwrap();
+                let inviter = hash::from_hex(fields[1]).unwrap();
+                let invitee = hash::from_hex(fields[2]).unwrap();
+                assert_eq!(hash::hex(&code::confirmation(&key, &inviter, &invitee)), fields[3]);
+                let token = code::token(&key, &inviter, &invitee);
+                assert_ne!(code::confirmation(&key, &inviter, &invitee), token);
+                counts[4] += 1;
+            }
             other => panic!("unknown kind {other}"),
         }
     }
@@ -144,16 +154,17 @@ fn meet_vectors() {
                 counts[1] += 1;
             }
             "keys" => {
-                assert_eq!(fields.len(), 7, "{value}");
+                assert_eq!(fields.len(), 8, "{value}");
                 let network_id = network::network_id(fields[0]);
-                let decoded = MeetCode::decode(fields[1]).unwrap();
-                assert_eq!(hash::hex(&decoded.secret.to_be_bytes()), fields[2]);
-                assert_eq!(hash::hex(&MeetCode::salt(&network_id).unwrap()), fields[3]);
-                let keys = decoded.derive(&network_id).unwrap();
-                assert_eq!(hash::hex(&keys.master), fields[4]);
-                assert_eq!(hash::hex(&keys.slot), fields[5]);
-                assert_eq!(hash::hex(&keys.key), fields[6]);
-                assert_eq!(meet::keys_from(&key_of(fields[4])), keys);
+                let window: u64 = fields[1].parse().unwrap();
+                let decoded = MeetCode::decode(fields[2]).unwrap();
+                assert_eq!(hash::hex(&decoded.secret.to_be_bytes()), fields[3]);
+                assert_eq!(hash::hex(&MeetCode::salt(&network_id, window).unwrap()), fields[4]);
+                let keys = decoded.derive(&network_id, window).unwrap();
+                assert_eq!(hash::hex(&keys.master), fields[5]);
+                assert_eq!(hash::hex(&keys.slot), fields[6]);
+                assert_eq!(hash::hex(&keys.key), fields[7]);
+                assert_eq!(meet::keys_from(&key_of(fields[5])), keys);
                 counts[2] += 1;
             }
             "blob" => {

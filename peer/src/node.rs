@@ -18,7 +18,7 @@ use libp2p::{Multiaddr, PeerId, StreamProtocol, Swarm};
 use sbq_protocol::frame::GAME_PROTOCOL;
 use sbq_protocol::hash::hex;
 use sbq_protocol::meet::MEET_PROTOCOL;
-use sbq_protocol::network::{self, NetworkSpec, Profile};
+use sbq_protocol::network::{self, NetworkSpec};
 use serde_json::json;
 use tokio::sync::mpsc;
 
@@ -246,11 +246,14 @@ impl Node {
         let policy = Arc::new(AddrPolicy::new(spec.profile, role.relay_only()));
         let keypair = config.keypair;
         let local_peer = keypair.public().to_peer_id();
+        // 待ち合わせ（協力ノードの --meet）は Swarm より先に作る（受け付けた接続の接続元を、振る舞いが覚える）
+        let meet_service = role.meets().then(|| Arc::new(MeetService::default()));
         let mut swarm = swarm::build(SwarmOptions {
             keypair,
             policy: policy.clone(),
             role,
-            internet: spec.profile == Profile::Internet,
+            profile: spec.profile,
+            meet: meet_service.clone(),
         })?;
 
         if listen::open(&mut swarm, config.listen) == 0 {
@@ -268,16 +271,12 @@ impl Node {
                 .map_err(|e| e.to_string())?;
             tokio::spawn(streams::accept_task(incoming, internal_tx.clone(), accept_gate.clone()));
         }
-        let meet_service = if role.meets() {
+        if let Some(service) = &meet_service {
             let incoming = control
                 .accept(StreamProtocol::new(MEET_PROTOCOL))
                 .map_err(|e| e.to_string())?;
-            let service = Arc::new(MeetService::default());
             tokio::spawn(meet::accept_task(incoming, service.clone()));
-            Some(service)
-        } else {
-            None
-        };
+        }
 
         Ok(Node {
             out: out.clone(),

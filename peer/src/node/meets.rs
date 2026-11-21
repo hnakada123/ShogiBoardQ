@@ -1,9 +1,10 @@
 //! 協力ノードを使う合言葉（protocol/README.md 3.2節・ipc.md 3章）
 //!
-//! 招待する側: 招待の本体を合言葉から作った鍵で暗号化し、待ち合わせに対応した協力ノードに預ける
-//! （start_meet_invite）。招待が使われた・取り消されたら、預けたものを消す（release_meets）。
-//! つなぐ側: 合言葉から番号と鍵を作り、協力ノードから引き取って復号し（start_meet_fetch）、招待文字列のときと
-//! 同じ手順でつなぐ。合言葉には接続先が入らず、協力ノードには預かったものの中身が分からない。
+//! 招待する側: 招待の本体を合言葉と今の期間（10 分ごと）から作った鍵で暗号化し、待ち合わせに対応した協力ノードに
+//! 預ける（start_meet_invite）。招待が使われた・取り消されたら、預けたものを消す（release_meets）。
+//! つなぐ側: 合言葉と、預けられたかもしれない期間（今・前・変わり目の近くでは次）ごとに番号と鍵を作り、協力ノード
+//! から引き取って復号し（start_meet_fetch）、招待文字列のときと同じ手順でつなぐ。合言葉には接続先が入らず、
+//! 協力ノードには預かったものの中身が分からない。
 
 use std::collections::HashMap;
 
@@ -74,6 +75,55 @@ pub(super) fn no_node() -> IpcError {
     IpcError::new(ErrorCode::InviteNoNode, "no node for passcodes is connected")
 }
 
+/// 合言葉の招待を、期間ごとに番号と鍵を作って、協力ノードから引き取る（期間は試す順。見つかったらやめる）。
+/// 自分が預けた番号なら引き取らない
+async fn fetch_in_windows(
+    control: &mut libp2p_stream::Control,
+    nodes: &[PeerId],
+    code: MeetCode,
+    network_id: [u8; 32],
+    windows: &[u64],
+    own_slots: &[[u8; 32]],
+) -> Outcome {
+    let mut answered = false;
+    for &window in windows {
+        // 鍵の導出は時間とメモリを使うので、主ループの外で、期間ごとに1つずつ行う
+        let keys = tokio::task::spawn_blocking(move || code.derive(&network_id, window))
+            .await
+            .ok()
+            .flatten();
+        let Some(keys) = keys else {
+            return Outcome::NoAnswer;
+        };
+        if own_slots.contains(&keys.slot) {
+            return Outcome::Own;
+        }
+        let mut found = None;
+        let request = Request::Get { slot: keys.slot };
+        meet::ask_nodes(control, nodes, &request, |response| {
+            match response.status {
+                // 鍵を知らない協力ノードや第三者が作ったものは、復号の検査で捨てる
+                Status::Ok => {
+                    answered = true;
+                    found = protocol::open(&keys.key, &network_id, &response.blob);
+                }
+                Status::None => answered = true,
+                Status::Limit | Status::Refused | Status::Invalid => {}
+            }
+            found.is_some()
+        })
+        .await;
+        if let Some(body) = found {
+            return Outcome::Found(body);
+        }
+    }
+    if answered {
+        Outcome::NotFound
+    } else {
+        Outcome::NoAnswer
+    }
+}
+
 impl Node {
     /// 利用者が指定した協力ノードが名乗った内容から、待ち合わせに対応しているかを覚える
     pub(super) fn note_meet_node(&mut self, peer: PeerId, info: &identify::Info) {
@@ -99,14 +149,17 @@ impl Node {
         let code = MeetCode::new(rand::rngs::OsRng.next_u64());
         let mut nonce = [0u8; NONCE_BYTES];
         rand::rngs::OsRng.fill_bytes(&mut nonce);
-        let ttl_secs = ready.expires_at.saturating_sub(unix_now()).clamp(1, MAX_TTL_SECS);
+        let now = unix_now();
+        let ttl_secs = ready.expires_at.saturating_sub(now).clamp(1, MAX_TTL_SECS);
+        // 番号と鍵は、預ける時刻の期間で作る（引き取る側は、今と前の期間を試す）
+        let window = protocol::window_of(now);
         let nodes = self.meets.nodes.clone();
         let mut control = self.control.clone();
         let internal = self.internal.clone();
         let network_id = self.network_id;
         tokio::spawn(async move {
             // 鍵の導出は時間とメモリを使うので、主ループの外で行う
-            let keys = tokio::task::spawn_blocking(move || code.derive(&network_id))
+            let keys = tokio::task::spawn_blocking(move || code.derive(&network_id, window))
                 .await
                 .ok()
                 .flatten();
@@ -186,38 +239,10 @@ impl Node {
         let mut control = self.control.clone();
         let internal = self.internal.clone();
         let network_id = self.network_id;
+        // 預けられたかもしれない期間（今・前・変わり目の近くでは次）を順に試す
+        let windows = protocol::fetch_windows(unix_now());
         tokio::spawn(async move {
-            let keys = tokio::task::spawn_blocking(move || code.derive(&network_id))
-                .await
-                .ok()
-                .flatten();
-            let outcome = match keys {
-                None => Outcome::NoAnswer,
-                Some(keys) if own_slots.contains(&keys.slot) => Outcome::Own,
-                Some(keys) => {
-                    let mut found = None;
-                    let mut answered = false;
-                    let request = Request::Get { slot: keys.slot };
-                    meet::ask_nodes(&mut control, &nodes, &request, |response| {
-                        match response.status {
-                            // 鍵を知らない協力ノードや第三者が作ったものは、復号の検査で捨てる
-                            Status::Ok => {
-                                answered = true;
-                                found = protocol::open(&keys.key, &network_id, &response.blob);
-                            }
-                            Status::None => answered = true,
-                            Status::Limit | Status::Refused | Status::Invalid => {}
-                        }
-                        found.is_some()
-                    })
-                    .await;
-                    match (found, answered) {
-                        (Some(body), _) => Outcome::Found(body),
-                        (None, true) => Outcome::NotFound,
-                        (None, false) => Outcome::NoAnswer,
-                    }
-                }
-            };
+            let outcome = fetch_in_windows(&mut control, &nodes, code, network_id, &windows, &own_slots).await;
             let _ = internal.send(Internal::MeetFetched(FetchResult {
                 secret: code.secret,
                 outcome,

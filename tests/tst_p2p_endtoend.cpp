@@ -16,6 +16,7 @@
 
 #include "appactivitystate.h"
 #include "gameboard.h"
+#include "p2pcbor.h"
 #include "matchrecordsink.h"
 #include "p2pevidenceverifier.h"
 #include "p2pfriendpresence.h"
@@ -624,6 +625,70 @@ private slots:
 
     /// 合言葉（同じ LAN の招待の短い形）で、招待から対局の開始まで進む。合言葉は招待と一緒にでき、相手は
     /// 全角や小文字で入力しても、画面と同じ直し方（P2pWindowText::inviteInput）で読める
+    /// 秘密だけを違えた合言葉（アドレスは同じ。検査の文字は付け直す）
+    static QString codeWithWrongSecret(const QString& code)
+    {
+        static const QByteArray alphabet("0123456789ABCDEFGHJKMNPQRSTVWXYZ");
+        QByteArray body = code.toLatin1();
+        body.replace('-', QByteArray());
+        body.chop(1);   // 検査の文字
+        // 最後の文字の最下位のビットは秘密の末尾
+        const qsizetype last = body.size() - 1;
+        body[last] = alphabet.at(alphabet.indexOf(body.at(last)) ^ 1);
+        const QByteArray digest =
+            Cbor::hash(CborValue::array({CborValue::text("SBQ-CODE-CHECK"), CborValue::uint(1), CborValue::text(body)}));
+        body.append(alphabet.at(static_cast<quint8>(digest.at(0)) >> 3));
+        QString out;
+        for (qsizetype i = 0; i < body.size(); ++i) {
+            if (i > 0 && i % 4 == 0) out += QLatin1Char('-');
+            out += QLatin1Char(body.at(i));
+        }
+        return out;
+    }
+
+    /// 秘密の違う合言葉では、招待した側は確認の値を返さないので、つなぐ側は条件確認へ進まず、断られたと知らせる
+    /// （通信プロセスの connectionClosed の refused。監査 2026-11-21 S3）。正しい合言葉は、その後も使える
+    void codeWithWrongSecretIsRefused()
+    {
+        App host(m_dir.filePath(QStringLiteral("wrong-code-host")));
+        App guest(m_dir.filePath(QStringLiteral("wrong-code-guest")));
+        QVERIFY(createIdentity(host));
+        QVERIFY(createIdentity(guest));
+        QCOMPARE(host.lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::None);
+        QCOMPARE(guest.lobby.begin(QStringLiteral("sbq-local-1"), {}, false), P2pLobbyService::StartFailure::None);
+        QTRY_COMPARE_WITH_TIMEOUT(host.lobby.status(), P2pLobbyService::Status::Online, 15000);
+        QTRY_COMPARE_WITH_TIMEOUT(guest.lobby.status(), P2pLobbyService::Status::Online, 15000);
+
+        QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
+        host.lobby.createInvite(conditions(QStringLiteral("招待した側")));
+        QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 10000);
+        const QString code = created.first().at(1).toString();
+        QVERIFY(!code.isEmpty());
+        const QString wrong = codeWithWrongSecret(code);
+        QVERIFY(wrong != code);
+
+        QSignalSpy failed(&guest.lobby, &P2pLobbyService::connectAttemptFailed);
+        guest.lobby.connectInvite(P2pWindowText::inviteInput(wrong), P2pLobbyService::ConnectAttempt::LanCode, false,
+                                  conditions(QStringLiteral("招待された側")));
+        QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 20000);
+        const auto failure = failed.first().at(0).value<P2pLobbyService::ConnectFailure>();
+        QCOMPARE(failure.attempt, P2pLobbyService::ConnectAttempt::LanCode);
+        QCOMPARE(failure.stage, P2pLobbyService::ConnectFailure::Stage::Refused);
+        QCOMPARE(failure.reason, PeerIpc::CloseReason::Refused);
+        // どちらも交渉を始めていない
+        QVERIFY(!guest.game.negotiation());
+        QVERIFY(!host.game.negotiation());
+
+        // 正しい合言葉は使える
+        QTRY_VERIFY_WITH_TIMEOUT(!guest.game.isBusy(), 10000);
+        guest.lobby.connectInvite(P2pWindowText::inviteInput(code), P2pLobbyService::ConnectAttempt::LanCode, false,
+                                  conditions(QStringLiteral("招待された側")));
+        QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
+                                     && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
+        host.lobby.end();
+        guest.lobby.end();
+    }
+
     void codeInviteStartsAGame()
     {
         App host(m_dir.filePath(QStringLiteral("code-host")));

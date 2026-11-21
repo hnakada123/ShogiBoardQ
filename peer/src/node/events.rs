@@ -6,7 +6,6 @@ use libp2p::core::ConnectedPoint;
 use libp2p::multiaddr::Protocol;
 use libp2p::swarm::{DialError, SwarmEvent};
 use libp2p::{autonat, dcutr, identify, ping, relay, Multiaddr, PeerId};
-use sbq_protocol::network::Profile;
 
 use super::Node;
 use crate::addr;
@@ -59,10 +58,6 @@ impl Node {
                     return;
                 }
                 self.links.established(peer_id, connection_id, relayed, Instant::now());
-                // 待ち合わせの件数と頻度は、接続元ごとに数える（待ち合わせを受け持つ協力ノード）
-                if let (Some(meet), Some(source)) = (&self.meet_service, self.links.source_of(connection_id)) {
-                    meet.set_source(peer_id, source.clone());
-                }
                 self.update_routes(&peer_id);
                 self.advance_opening(&peer_id);
                 // 合言葉の宛先へ、PeerId を決めずに始めたダイヤルなら、相手の PeerId がここで分かる
@@ -78,9 +73,6 @@ impl Node {
                 };
                 if peer_left {
                     self.forget_meet_node(&peer_id);
-                    if let Some(meet) = &self.meet_service {
-                        meet.forget_source(&peer_id);
-                    }
                 }
                 self.update_routes(&peer_id);
                 if peer_left {
@@ -120,15 +112,13 @@ impl Node {
         }
     }
 
-    /// 同じアドレス帯から受け付けた接続が多すぎるか（多すぎなければ数に入れる）。ローカル（同じPC・同じLAN）では
-    /// LAN 全体が同じアドレス帯に入るので、接続元の IP ごとに数える（1台の機器で LAN の相手を締め出させない）
+    /// 同じ接続元・同じアドレス帯から受け付けた接続が多すぎるか（多すぎなければ数に入れる。上限は役割で決まる）。
+    /// ローカル（同じPC・同じLAN）では LAN 全体が同じアドレス帯に入るので、接続元の IP ごとに数える（1台の機器で
+    /// LAN の相手を締め出させない。addr::SourceKey）
     fn admit_inbound(&mut self, connection: libp2p::swarm::ConnectionId, addr: &Multiaddr) -> bool {
-        let key = if self.spec.profile == Profile::Local {
-            addr::ip_key(addr)
-        } else {
-            addr::prefix_of(addr)
-        };
-        self.links.admit_inbound(connection, key)
+        let key = addr::SourceKey::of_addr(addr, self.spec.profile);
+        self.links
+            .admit_inbound(connection, key, self.role.limits().inbound_per_source)
     }
 
     /// 届いた側の対局ストリームの経路（直接・中継）が変わったら知らせる（つないだ側は、対局ストリームを開いた

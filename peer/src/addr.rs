@@ -164,19 +164,49 @@ pub fn is_public_direct(addr: &Multiaddr) -> bool {
     has_known_shape(addr) && !is_circuit(addr) && first_ip(addr).map(classify) == Some(IpClass::Public)
 }
 
-/// 接続元の IP（同じ機器からの接続の数を数える）
-pub fn ip_key(addr: &Multiaddr) -> Option<Vec<u8>> {
-    match first_ip(addr)? {
-        IpAddr::V4(v4) => Some(v4.octets().to_vec()),
-        IpAddr::V6(v6) => Some(v6.octets().to_vec()),
-    }
+/// 接続元を数える単位（2段。接続・確立前の接続・待ち合わせの要求と預かりもの・合言葉の照合の上限で共通）。
+///
+/// strict は1つの接続元（IPv4 のアドレス、IPv6 の /64。家庭や端末1台の単位。IPv6 の利用者は /64 の中でアドレスを
+/// いくらでも替えられるので、/128 では数えない）。wide はまわりの接続元をまとめたアドレス帯（IPv4 の /24、IPv6 の
+/// /48）。CGNAT（IPv4）や IPoE（共有の /48 から /56・/64 を配る IPv6）では、別の利用者どうしが同じ /24・/48 を
+/// 分け合うので、wide の上限は strict より緩くする（1人がアドレスを替えて上限を逃れるのは、wide で止める）。
+/// 長さが段と種類で違う（4・3・8・6 バイト）ので、別の段・別の種類の値と重ならない
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct SourceKey {
+    pub strict: Vec<u8>,
+    pub wide: Vec<u8>,
 }
 
-/// 接続元のアドレス帯（IPv4 は /24、IPv6 は /48。同じ帯からの接続の数を数える）
-pub fn prefix_of(addr: &Multiaddr) -> Option<Vec<u8>> {
-    match first_ip(addr)? {
-        IpAddr::V4(v4) => v4.octets().get(..3).map(<[u8]>::to_vec),
-        IpAddr::V6(v6) => v6.octets().get(..6).map(<[u8]>::to_vec),
+impl SourceKey {
+    /// 接続元の IP から作る。ローカル（同じ PC・同じ LAN）では LAN 全体が同じ帯に入るので、どちらの段も IP そのもの
+    /// （1台の機器で LAN の相手を締め出させない）。IPv4 射影の IPv6 は IPv4 として数える
+    pub fn of_ip(ip: IpAddr, profile: Profile) -> SourceKey {
+        let octets = match ip.to_canonical() {
+            IpAddr::V4(v4) => v4.octets().to_vec(),
+            IpAddr::V6(v6) => v6.octets().to_vec(),
+        };
+        let (strict, wide) = match profile {
+            Profile::Local => (octets.len(), octets.len()),
+            Profile::Internet if octets.len() == 4 => (4, 3),
+            Profile::Internet => (8, 6),
+        };
+        SourceKey {
+            strict: octets.get(..strict).map(<[u8]>::to_vec).unwrap_or_default(),
+            wide: octets.get(..wide).map(<[u8]>::to_vec).unwrap_or_default(),
+        }
+    }
+
+    /// 接続元のアドレス（先頭の IP）から作る。IP を持たない（中継経由の）接続は None
+    pub fn of_addr(addr: &Multiaddr, profile: Profile) -> Option<SourceKey> {
+        first_ip(addr).map(|ip| SourceKey::of_ip(ip, profile))
+    }
+
+    /// 接続元の分からない要求をまとめて数える値（どの接続元の値とも重ならない）
+    pub fn unknown() -> SourceKey {
+        SourceKey {
+            strict: Vec::new(),
+            wide: Vec::new(),
+        }
     }
 }
 
@@ -734,6 +764,79 @@ mod tests {
                 "/ip4/192.168.1.20/tcp/1/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN/p2p-circuit"
             )) < AddrPolicy::invite_rank(&ma("/ip4/127.0.0.1/tcp/1"))
         );
+    }
+
+    /// 接続元の2段: IPv4 はアドレスと /24、IPv6 は /64 と /48。IPv4 射影は IPv4 として数える。ローカルでは IP そのもの
+    #[test]
+    fn source_keys_have_two_tiers() {
+        let key = |s: &str, profile| SourceKey::of_ip(s.parse::<IpAddr>().unwrap(), profile);
+        let v4 = key("203.0.114.7", Profile::Internet);
+        assert_eq!(v4.strict, vec![203, 0, 114, 7]);
+        assert_eq!(v4.wide, vec![203, 0, 114]);
+        assert_eq!(key("::ffff:203.0.114.7", Profile::Internet), v4);
+        let v6 = key("2400:4050:1:2:3:4:5:6", Profile::Internet);
+        assert_eq!(v6.strict, vec![0x24, 0x00, 0x40, 0x50, 0, 1, 0, 2]);
+        assert_eq!(v6.wide, vec![0x24, 0x00, 0x40, 0x50, 0, 1]);
+        // 同じ /64 の中で替えたアドレスは、同じ接続元
+        assert_eq!(key("2400:4050:1:2:ffff::1", Profile::Internet), v6);
+        // 同じ /48 の別の /64 は、別の接続元で同じアドレス帯
+        let neighbour = key("2400:4050:1:3::1", Profile::Internet);
+        assert_ne!(neighbour.strict, v6.strict);
+        assert_eq!(neighbour.wide, v6.wide);
+        // ローカルでは、どちらの段も IP そのもの（LAN 全体が同じ /24 に入る）
+        let lan = key("192.168.1.20", Profile::Local);
+        assert_eq!(
+            (lan.strict.as_slice(), lan.wide.as_slice()),
+            (&[192, 168, 1, 20][..], &[192, 168, 1, 20][..])
+        );
+        // 中継経由（IP が無い）の接続元は分からない
+        let relayed = ma("/p2p/12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN");
+        assert_eq!(SourceKey::of_addr(&relayed, Profile::Internet), None);
+        assert_eq!(
+            SourceKey::of_addr(&ma("/ip4/203.0.114.7/udp/1/quic-v1"), Profile::Internet),
+            Some(v4)
+        );
+        // 分からない接続元をまとめる値は、どの接続元とも重ならない
+        assert!(SourceKey::unknown().strict.is_empty() && SourceKey::unknown().wide.is_empty());
+    }
+
+    /// この PC 自身を指す宛先（loopback のほかのアドレス・未指定・IPv4 射影・IPv4 互換）へは、インターネットの profile
+    /// ではつながない（macOS のサンドボックスの `--no-loopback` は 127.0.0.1 と ::1 しか確かめられないので、
+    /// ほかの形はこの規則だけが止める。監査 2026-11-21 S14）。ローカルの profile でも、未指定と射影は使わない
+    #[test]
+    fn self_pointing_destinations_are_refused() {
+        let internet = AddrPolicy::new(Profile::Internet, false);
+        let local = AddrPolicy::new(Profile::Local, false);
+        for bad in [
+            "/ip4/127.0.0.2/tcp/9",
+            "/ip4/127.255.255.254/udp/9/quic-v1",
+            "/ip4/0.0.0.0/tcp/9",
+            "/ip4/0.0.0.0/udp/9/quic-v1",
+            "/ip4/0.1.2.3/tcp/9",
+            "/ip6/::/tcp/9",
+            "/ip6/::/udp/9/quic-v1",
+            "/ip6/::1/udp/9/quic-v1",
+            "/ip6/::ffff:127.0.0.1/tcp/9",
+            "/ip6/::ffff:127.0.0.1/udp/9/quic-v1",
+            "/ip6/::ffff:0.0.0.0/tcp/9",
+            "/ip6/::ffff:8.8.8.8/tcp/9",
+            "/ip6/::127.0.0.1/tcp/9",
+        ] {
+            assert!(!internet.usable(&ma(bad)), "{bad}");
+            assert!(!internet.allows_dial(&ma(bad)), "{bad}");
+        }
+        for bad in [
+            "/ip4/0.0.0.0/tcp/9",
+            "/ip6/::/tcp/9",
+            "/ip6/::ffff:127.0.0.1/tcp/9",
+            "/ip6/::ffff:192.168.1.2/tcp/9",
+        ] {
+            assert!(!local.usable(&ma(bad)), "{bad}");
+        }
+        // 中継経由の宛先の先頭が、この PC 自身を指すものも使わない
+        let relay = "12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN";
+        assert!(!internet.usable(&ma(&format!("/ip4/127.0.0.2/tcp/1/p2p/{relay}/p2p-circuit"))));
+        assert!(!internet.usable(&ma(&format!("/ip6/::/tcp/1/p2p/{relay}/p2p-circuit"))));
     }
 
     #[test]
