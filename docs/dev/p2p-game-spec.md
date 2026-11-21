@@ -848,7 +848,7 @@ Evidence = ["SBQ-MATCH", 1,
 | `src/network/p2p/p2pgamecoordinator.h/.cpp` | 交渉と対局の状態機械を、盤・時計・棋譜・動作状態・証跡へつなぐ司令塔。自分の手をエンジンに指させるときは、エンジンの席（`MatchEngineSeat`）を持ち、エンジンの持ち時間の出どころ（`MatchTimeSource`）になる（第6版。10.3節） |
 | `src/network/p2p/p2pgamechannel.h/.cpp` | GameChannelを実装。送信直後はMoveResult::Sent |
 | `src/headless/matchverificationservice.h/.cpp`・`src/cli/clicommands_p2p.cpp` | 証跡の検証サービスと `verify-match` コマンド |
-| `src/dialogs/p2pwindow.h/.cpp`・`p2pstatusstrip`・`p2pconnectionpanel`（選択肢の枠は `p2pchoicecard`）・`p2pgamepanel`・`p2phistorypanel`・`p2ppeerspanel`・`p2psettingspanel` | 接続の状態の帯と、接続、招待、対局中、記録、相手、設定のタブ。対局中も開いたまま本体の盤と行き来して使うので、本体の前面に固定しない独立したウィンドウにする（`DialogUtils::makeIndependentWindow`） |
+| `src/dialogs/p2pwindow.h/.cpp`・`p2pstatusstrip`・`p2pconnectionpanel`（選択肢の枠は `p2pchoicecard`）・`p2pinvitepanel`・`p2pgamepanel`・`p2phistorypanel`・`p2ppeerspanel`・`p2psettingspanel` | 接続の状態の帯と、接続、招待、対局中、記録、相手、設定のタブ。対局中も開いたまま本体の盤と行き来して使うので、本体の前面に固定しない独立したウィンドウにする（`DialogUtils::makeIndependentWindow`） |
 | `src/dialogs/p2pconfirmdialog.h/.cpp` | 条件、相手の確認、対局記録に残る内容の確認 |
 | `src/dialogs/p2pidentitydialog.h/.cpp` | プレイヤー鍵の作成・読み込み |
 | `src/dialogs/p2pwindowtext.h/.cpp` | P2P対局の画面で共通の文 |

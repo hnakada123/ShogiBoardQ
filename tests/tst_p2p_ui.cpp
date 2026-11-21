@@ -45,6 +45,7 @@
 #include "p2phistorypanel.h"
 #include "p2pidentitydialog.h"
 #include "p2pidentitystore.h"
+#include "p2pinvitepanel.h"
 #include "p2pknownpeers.h"
 #include "p2plobbyservice.h"
 #include "p2ppeerspanel.h"
@@ -312,7 +313,9 @@ private slots:
         auto* inviteOut = window.findChild<QPlainTextEdit*>(QStringLiteral("p2pInviteOut"));
         QVERIFY(inviteOut);
         inviteOut->setPlainText(QStringLiteral("sbqinv1.test"));
-        QVERIFY(QMetaObject::invokeMethod(&window, "onCopyInvite"));
+        auto* invitePanel = window.findChild<P2pInvitePanel*>();
+        QVERIFY(invitePanel);
+        QVERIFY(QMetaObject::invokeMethod(invitePanel, "onCopyInvite"));
         const QMimeData* copied = QApplication::clipboard()->mimeData();
         QVERIFY(copied);
         QCOMPARE(copied->text(), QStringLiteral("sbqinv1.test"));
@@ -355,7 +358,7 @@ private slots:
         QVERIFY(!noCode->isVisible());
         window.findChild<QLineEdit*>(QStringLiteral("p2pDisplayName"))->setText(QStringLiteral("試験"));
         QSignalSpy createRequested(&window, &P2pWindow::createInviteRequested);
-        QVERIFY(QMetaObject::invokeMethod(&window, "onCreateInvite"));
+        QVERIFY(QMetaObject::invokeMethod(invitePanel, "onCreateInvite"));
         QCOMPARE(createRequested.count(), 1);
         QVERIFY(inviteOut->toPlainText().isEmpty());
         QVERIFY(codeOut->text().isEmpty());
@@ -389,12 +392,13 @@ private slots:
         auto* input = window.findChild<QPlainTextEdit*>(QStringLiteral("p2pInviteIn"));
         auto* result = window.findChild<QLabel*>(QStringLiteral("p2pInviteInfo"));
         auto* connectButton = window.findChild<QPushButton*>(QStringLiteral("p2pConnectInvite"));
-        QVERIFY(input && result && connectButton);
+        auto* panel = window.findChild<P2pInvitePanel*>();
+        QVERIFY(input && result && connectButton && panel);
 
         // 確かめるときに渡すのは、直した文字列
         QSignalSpy inspect(&window, &P2pWindow::inspectInviteRequested);
         input->setPlainText(QStringLiteral("００８ｑ－４ｈｍａ－ｓｗ９５"));
-        QVERIFY(QMetaObject::invokeMethod(&window, "onInspectInvite"));
+        QVERIFY(QMetaObject::invokeMethod(panel, "onInspectInvite"));
         QCOMPARE(inspect.count(), 1);
         QCOMPARE(inspect.first().at(0).toString(), QStringLiteral("008Q4HMASW95"));
 
@@ -409,16 +413,16 @@ private slots:
         QCOMPARE(result->text().count(QLatin1Char('\n')), 1);
 
         // 断られた理由は、合言葉の文で出す
-        emit lobby.inviteRejected(PeerIpc::InviteRejection::Unreadable);
+        emit lobby.inspectRejected(PeerIpc::InviteRejection::Unreadable);
         QCOMPARE(result->text(), QStringLiteral("合言葉を読めません。入力した文字を確かめてください。"));
-        emit lobby.inviteRejected(PeerIpc::InviteRejection::WrongNetwork);
+        emit lobby.inspectRejected(PeerIpc::InviteRejection::WrongNetwork);
         QVERIFY(result->text().contains(QStringLiteral("同じPC・同じLAN")));
-        emit lobby.inviteRejected(PeerIpc::InviteRejection::Own);
+        emit lobby.inspectRejected(PeerIpc::InviteRejection::Own);
         QCOMPARE(result->text(), QStringLiteral("自分が作った合言葉です。"));
         // 協力ノードを使う合言葉: 招待が見つからない・問い合わせる協力ノードが無い
-        emit lobby.inviteRejected(PeerIpc::InviteRejection::NotFound);
+        emit lobby.inspectRejected(PeerIpc::InviteRejection::NotFound);
         QVERIFY(result->text().contains(QStringLiteral("この合言葉の招待が見つかりません")));
-        emit lobby.inviteRejected(PeerIpc::InviteRejection::NoNode);
+        emit lobby.inspectRejected(PeerIpc::InviteRejection::NoNode);
         QVERIFY(result->text().contains(QStringLiteral("協力ノード")));
         QVERIFY(result->text().contains(QStringLiteral("「接続」タブ")));
         // 協力ノードから引き取った招待は、招待文字列と同じく相手の PeerId と期限が分かる
@@ -434,35 +438,91 @@ private slots:
         QCOMPARE(result->text().count(QLatin1Char('\n')), 3);
         // 招待文字列を確かめた後は、招待文字列の文に戻る
         input->setPlainText(QStringLiteral("sbqinv1.AAAA.00000000"));
-        QVERIFY(QMetaObject::invokeMethod(&window, "onInspectInvite"));
+        QVERIFY(QMetaObject::invokeMethod(panel, "onInspectInvite"));
         QCOMPARE(inspect.last().at(0).toString(), QStringLiteral("sbqinv1.AAAA.00000000"));
-        emit lobby.inviteRejected(PeerIpc::InviteRejection::Unreadable);
+        emit lobby.inspectRejected(PeerIpc::InviteRejection::Unreadable);
         QCOMPARE(result->text(), QStringLiteral("招待文字列を読めません。"));
 
         // 接続した後に、相手が招待を受け付けなかった（合言葉が違う・期限切れ・使用済み）: 「接続しています…」のまま
-        // 残さず、理由を出す
+        // 残さず、理由を出す。接続を頼むときは、確かめた結果の種類（同じ LAN の合言葉か）を渡す
+        using Attempt = P2pLobbyService::ConnectAttempt;
+        using Stage = P2pLobbyService::ConnectFailure::Stage;
+        const auto failure = [](Attempt attempt, Stage stage) {
+            P2pLobbyService::ConnectFailure f;
+            f.attempt = attempt;
+            f.stage = stage;
+            return f;
+        };
         QLineEdit* name = window.findChild<QLineEdit*>(QStringLiteral("p2pDisplayName"));
         QVERIFY(name);
         name->setText(QStringLiteral("試験"));
+        QSignalSpy connectRequested(&window, &P2pWindow::connectInviteRequested);
         input->setPlainText(QStringLiteral("008Q-4HMA-SW95"));
-        QVERIFY(QMetaObject::invokeMethod(&window, "onConnectInvite"));
+        QVERIFY(QMetaObject::invokeMethod(panel, "onInspectInvite"));
+        emit lobby.inviteInspected(info);
+        QVERIFY(QMetaObject::invokeMethod(panel, "onConnectInvite"));
+        QCOMPARE(connectRequested.count(), 1);
+        QCOMPARE(connectRequested.last().at(0).toString(), QStringLiteral("008Q4HMASW95"));
+        QCOMPARE(connectRequested.last().at(1).value<Attempt>(), Attempt::LanCode);
         QCOMPARE(result->text(), QStringLiteral("接続しています…"));
         QVERIFY(input->toPlainText().isEmpty());
         emit game.negotiationEnded(false, P2p::ErrorCode::Cancelled, false);
         QVERIFY(result->text().isEmpty());
-        emit game.inviteRefused();
+        emit lobby.connectAttemptFailed(failure(Attempt::LanCode, Stage::Refused));
         QVERIFY(result->text().contains(QStringLiteral("合言葉が受け付けられませんでした")));
         // 招待文字列で接続したときは、招待文字列の文
         input->setPlainText(QStringLiteral("sbqinv1.AAAA.00000000"));
-        QVERIFY(QMetaObject::invokeMethod(&window, "onConnectInvite"));
+        QVERIFY(QMetaObject::invokeMethod(panel, "onConnectInvite"));
+        QCOMPARE(connectRequested.last().at(1).value<Attempt>(), Attempt::InviteString);
         emit game.negotiationEnded(false, P2p::ErrorCode::Cancelled, false);
-        emit game.inviteRefused();
+        emit lobby.connectAttemptFailed(failure(Attempt::InviteString, Stage::Refused));
         QVERIFY(result->text().contains(QStringLiteral("招待文字列が受け付けられませんでした")));
+        // 通信プロセスが接続の要求を断ったときも、欄の下に、確かめたときと同じ文で出す
+        P2pLobbyService::ConnectFailure expired = failure(Attempt::InviteString, Stage::Rejected);
+        expired.rejection = PeerIpc::InviteRejection::Expired;
+        emit lobby.connectAttemptFailed(expired);
+        QCOMPARE(result->text(), QStringLiteral("招待文字列の期限が過ぎています。"));
         // 対局が始まったときは、途中の文を消すだけ
         input->setPlainText(QStringLiteral("008Q-4HMA-SW95"));
-        QVERIFY(QMetaObject::invokeMethod(&window, "onConnectInvite"));
+        QVERIFY(QMetaObject::invokeMethod(panel, "onConnectInvite"));
         emit game.negotiationEnded(true, std::nullopt, false);
         QVERIFY(result->text().isEmpty());
+
+        // 回線でつながらなかったときは、欄の「接続しています…」を消して、知らせの箱で出す（同じ LAN の合言葉なら、
+        // 合言葉と相手のアプリを確かめる案内も添える）
+        const auto visibleNotice = [&window]() -> QMessageBox* {
+            const QList<QMessageBox*> boxes = window.findChildren<QMessageBox*>();
+            for (QMessageBox* box : boxes) {
+                if (box->isVisible()) return box;
+            }
+            return nullptr;
+        };
+        QSignalSpy lanConnect(&window, &P2pWindow::connectInviteRequested);
+        input->setPlainText(QStringLiteral("008Q-4HMA-SW95"));
+        QVERIFY(QMetaObject::invokeMethod(panel, "onInspectInvite"));
+        emit lobby.inviteInspected(info);
+        QVERIFY(QMetaObject::invokeMethod(panel, "onConnectInvite"));
+        P2pLobbyService::ConnectFailure timedOut = failure(Attempt::LanCode, Stage::NotOpened);
+        timedOut.reason = PeerIpc::CloseReason::Timeout;
+        emit lobby.connectAttemptFailed(timedOut);
+        QVERIFY(result->text().isEmpty());
+        QMessageBox* notice = visibleNotice();
+        QVERIFY(notice);
+        QVERIFY2(notice->text().contains(QStringLiteral("時間切れ")) && notice->text().contains(QStringLiteral("合言葉が正しいか")),
+                 qPrintable(notice->text()));
+        notice->close();
+        // 友だちへの申し込みの結果は、招待の欄に触れずに、知らせの箱で出す
+        emit lobby.inviteInspected(info);
+        const QString inspected = result->text();
+        emit lobby.connectAttemptFailed(failure(Attempt::Friend, Stage::Refused));
+        QCOMPARE(result->text(), inspected);
+        QTRY_VERIFY(visibleNotice());
+        QVERIFY2(visibleNotice()->text().contains(QStringLiteral("今は申し込みを受けられません")),
+                 qPrintable(visibleNotice()->text()));
+        emit lobby.connectAttemptFailed(failure(Attempt::Friend, Stage::Rejected));
+        QVERIFY2(visibleNotice()->text().contains(QStringLiteral("在席の知らせを使えませんでした")),
+                 qPrintable(visibleNotice()->text()));
+        visibleNotice()->close();
     }
 
     /// 友だち: 「相手」タブで友だちにする・外す。ブロックした相手は友だちにできず、ブロックすると友だちから

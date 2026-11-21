@@ -56,6 +56,13 @@ public:
     static QString inviteInput(const QString& input);
     /// 通信プロセスが使えなくなった理由（None なら空。権限の制限の失敗だけ、診断の detail を添える）
     static QString peerFailureText(PeerProcess::Failure failure, const QString& detail);
+    /// 招待文字列・合言葉を、通信プロセスが断った理由（確かめたとき・接続しようとしたとき。code は合言葉か）
+    static QString inviteRejectionText(PeerIpc::InviteRejection rejection, bool code);
+    /// 招待・友だちへの申し込みでつなぐ試みが、交渉を始める前に終わった理由。localNetwork は「同じPC・同じLAN」で
+    /// 接続しているか（同じ LAN の別の PC とつながらないときの案内を足す）
+    static QString connectFailureText(const P2pLobbyService::ConnectFailure& failure, bool localNetwork);
+    /// 日時（UNIX 秒。招待の期限・ビルドの使用期限）
+    static QString dateTimeText(quint64 seconds);
 };
 
 #endif // P2PWINDOWTEXT_H

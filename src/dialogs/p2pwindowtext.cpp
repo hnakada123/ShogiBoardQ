@@ -3,7 +3,10 @@
 
 #include "p2pwindowtext.h"
 
+#include <QDateTime>
 #include <QStringList>
+
+#include "p2pprotocolvalues.h"
 
 bool P2pWindowText::isInviteString(const QString& input)
 {
@@ -213,4 +216,95 @@ QString P2pWindowText::peerFailureText(PeerProcess::Failure failure, const QStri
         return tr("通信プロセスが異常終了しました。招待・交渉は取り消し、対局中なら中断（結果未確定）になります。");
     }
     return QString();
+}
+
+QString P2pWindowText::inviteRejectionText(PeerIpc::InviteRejection rejection, bool code)
+{
+    if (code) {
+        switch (rejection) {
+        case PeerIpc::InviteRejection::WrongNetwork:
+            // 同じ LAN の合言葉（相手の LAN の中の接続先が入っている）を、「インターネット」で入力した
+            return tr("この合言葉は、同じLANの相手の招待のものです。「同じPC・同じLAN」で接続しているときに使えます。");
+        case PeerIpc::InviteRejection::Own: return tr("自分が作った合言葉です。");
+        case PeerIpc::InviteRejection::Expired:
+        case PeerIpc::InviteRejection::NotFound:
+            // 協力ノードを使う合言葉: 協力ノードは、期限が過ぎた・1回引き取られた招待を消すので、理由を見分けられない
+            return tr("この合言葉の招待が見つかりません。合言葉が違うか、期限（10分）が過ぎたか、もう使われています。"
+                      "相手に新しい招待を作ってもらってください。");
+        case PeerIpc::InviteRejection::NoNode:
+            return tr("この合言葉の招待は、協力ノードから受け取ります。招待した人と同じ協力ノード（合言葉に対応したもの）を"
+                      "「接続」タブで登録して、接続し直してください。");
+        case PeerIpc::InviteRejection::Unreadable: return tr("合言葉を読めません。入力した文字を確かめてください。");
+        }
+        return QString();
+    }
+    switch (rejection) {
+    case PeerIpc::InviteRejection::Expired: return tr("招待文字列の期限が過ぎています。");
+    case PeerIpc::InviteRejection::WrongNetwork: return tr("別のネットワークの招待文字列です。");
+    case PeerIpc::InviteRejection::Own: return tr("自分が作った招待文字列です。");
+    // 協力ノードへの問い合わせは合言葉だけなので、招待文字列では起きない
+    case PeerIpc::InviteRejection::NotFound:
+    case PeerIpc::InviteRejection::NoNode:
+    case PeerIpc::InviteRejection::Unreadable: return tr("招待文字列を読めません。");
+    }
+    return QString();
+}
+
+QString P2pWindowText::connectFailureText(const P2pLobbyService::ConnectFailure& failure, bool localNetwork)
+{
+    using Attempt = P2pLobbyService::ConnectAttempt;
+    using Stage = P2pLobbyService::ConnectFailure::Stage;
+    if (failure.attempt == Attempt::Friend) {
+        switch (failure.stage) {
+        case Stage::Rejected:
+            // 在席の知らせは通信プロセスが作って読む。読めない・期限が過ぎたものは、調べ直すまで使えない
+            return tr("相手の在席の知らせを使えませんでした（期限が過ぎています）。少し待ってから、もう一度お試しください。");
+        case Stage::NotOpened:
+            if (failure.reason == PeerIpc::CloseReason::NoRelayRoute) {
+                return tr("相手の在席の知らせに、あなたの協力ノードの中継を通る接続先がありません。「協力ノードの中継だけを使う」設定では、"
+                          "相手と同じ協力ノードを「接続」タブで登録する必要があります。");
+            }
+            return tr("相手に接続できませんでした。相手が接続を終えたか、回線の状態が変わっています。");
+        case Stage::Refused:
+            // 友だちは、対局中・交渉中の間と、在席の知らせを取り消した後は、申し込みを何も返さずに閉じる
+            return tr("相手は、今は申し込みを受けられません。対局中か、在席の知らせが古くなっています。"
+                      "少し待ってから、もう一度お試しください。");
+        }
+        return QString();
+    }
+    const bool code = failure.attempt != Attempt::InviteString;
+    switch (failure.stage) {
+    case Stage::Rejected: return inviteRejectionText(failure.rejection, code);
+    case Stage::Refused:
+        // 招待した側は、招待のトークンが合わない接続を何も返さずに閉じる。合言葉は、形が正しければ中身の違いを
+        // こちらでは見分けられない（期限も入っていない）ので、考えられる理由を並べる
+        return code ? tr("相手につながりましたが、合言葉が受け付けられませんでした。合言葉が違うか、期限（10分）が過ぎたか、"
+                         "もう使われています。相手に新しい招待を作ってもらってください。")
+                    : tr("相手につながりましたが、招待文字列が受け付けられませんでした。もう使われたか、取り消されています。"
+                         "相手に新しい招待を作ってもらってください。");
+    case Stage::NotOpened: break;
+    }
+    if (failure.reason == PeerIpc::CloseReason::NoRelayRoute) {
+        return tr("この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。「協力ノードの中継だけを使う」設定では、"
+                  "相手と同じ協力ノードを「接続」タブで登録する必要があります。");
+    }
+    QString text = failure.reason == PeerIpc::CloseReason::Timeout ? tr("相手に接続できませんでした（時間切れ）。")
+                                                                   : tr("相手に接続できませんでした。");
+    if (failure.attempt == Attempt::LanCode) {
+        // 同じ LAN の合言葉には接続先が入っている。1文字違うと別の PC を指すことがある
+        text += QLatin1Char('\n') + tr("合言葉が正しいか、招待した側のアプリが接続したままかを確かめてください。");
+    }
+    if (localNetwork) {
+        // 同じ LAN の別の PC: 招待した側の PC が、外から届く接続を止めていることが多い
+        text += QLatin1Char('\n')
+                + tr("同じLANの別のPCとつなぐときは、招待した側のPCのファイアウォールで、TCP と UDP の %1 番ポートへの接続が"
+                     "許可されているか確かめてください。招待する側を入れ替えると、つながることがあります。")
+                      .arg(kP2pLanPort);
+    }
+    return text;
+}
+
+QString P2pWindowText::dateTimeText(quint64 seconds)
+{
+    return QDateTime::fromSecsSinceEpoch(static_cast<qint64>(seconds)).toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
 }

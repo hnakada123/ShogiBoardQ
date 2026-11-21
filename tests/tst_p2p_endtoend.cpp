@@ -109,7 +109,8 @@ private:
         QSignalSpy inspected(&guest.lobby, &P2pLobbyService::inviteInspected);
         guest.lobby.inspectInvite(invite);
         QTRY_COMPARE_WITH_TIMEOUT(inspected.count(), 1, 10000);
-        guest.lobby.connectInvite(invite, false, QStringLiteral("招待された側"));
+        guest.lobby.connectInvite(invite, P2pLobbyService::ConnectAttempt::InviteString, false,
+                                  QStringLiteral("招待された側"));
 
         // 双方が条件確認画面の段階まで進む
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
@@ -268,7 +269,8 @@ private slots:
         QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
         host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::None);
         QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 10000);
-        guest.lobby.connectInvite(created.first().at(0).toString(), false, QStringLiteral("招待された側"));
+        guest.lobby.connectInvite(created.first().at(0).toString(), P2pLobbyService::ConnectAttempt::InviteString, false,
+                                  QStringLiteral("招待された側"));
         QTRY_VERIFY_WITH_TIMEOUT(host.game.negotiation()
                                      && host.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
@@ -345,7 +347,8 @@ private slots:
         QSignalSpy inspected(&guest.lobby, &P2pLobbyService::inviteInspected);
         guest.lobby.inspectInvite(created.first().at(0).toString());
         QTRY_COMPARE_WITH_TIMEOUT(inspected.count(), 1, 10000);
-        guest.lobby.connectInvite(created.first().at(0).toString(), false, QStringLiteral("招待された側"));
+        guest.lobby.connectInvite(created.first().at(0).toString(), P2pLobbyService::ConnectAttempt::InviteString, false,
+                                  QStringLiteral("招待された側"));
 
         QTRY_VERIFY_WITH_TIMEOUT(host.game.negotiation()
                                      && host.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
@@ -431,7 +434,7 @@ private slots:
         // 1回は別の合言葉として読めて、協力ノードに招待が見つからない。どちらでも、招待は受け取れない
         QString typo = code;
         typo[0] = typo.at(0) == QLatin1Char('0') ? QLatin1Char('1') : QLatin1Char('0');
-        QSignalSpy rejected(&guest.lobby, &P2pLobbyService::inviteRejected);
+        QSignalSpy rejected(&guest.lobby, &P2pLobbyService::inspectRejected);
         guest.lobby.inspectInvite(P2pWindowText::inviteInput(typo));
         QTRY_COMPARE_WITH_TIMEOUT(rejected.count(), 1, 15000);
         const auto typoRejection = rejected.first().at(0).value<PeerIpc::InviteRejection>();
@@ -448,7 +451,8 @@ private slots:
         QVERIFY(!info.peerId.isEmpty());
         QCOMPARE(info.expiresAt, created.first().at(2).toULongLong());
         QVERIFY(info.usableAddressCount >= 1);
-        guest.lobby.connectInvite(P2pWindowText::inviteInput(typed), false, QStringLiteral("招待された側"));
+        guest.lobby.connectInvite(P2pWindowText::inviteInput(typed), P2pLobbyService::ConnectAttempt::NodeCode, false,
+                                  QStringLiteral("招待された側"));
 
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
                                      && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
@@ -557,9 +561,13 @@ private slots:
         QVERIFY(host.profile.knownPeers()->setFriend(guestKey, false));
         hostPresence.reloadFriends();
         QTest::qWait(500);
-        QSignalSpy refused(&guest.game, &P2pGameCoordinator::inviteRefused);
+        // 申し込んだ側には、友だちへの申し込みが、開いた後に何も返されずに閉じられたと届く
+        QSignalSpy refused(&guest.lobby, &P2pLobbyService::connectAttemptFailed);
         QCOMPARE(guestPresence.apply(hostKey, QStringLiteral("申し込む側"), {}), P2pFriendPresence::ApplyResult::Started);
         QTRY_COMPARE_WITH_TIMEOUT(refused.count(), 1, 20000);
+        const auto refusal = refused.first().at(0).value<P2pLobbyService::ConnectFailure>();
+        QCOMPARE(refusal.attempt, P2pLobbyService::ConnectAttempt::Friend);
+        QCOMPARE(refusal.stage, P2pLobbyService::ConnectFailure::Stage::Refused);
         QVERIFY(!host.game.negotiation() || host.game.negotiation()->stage() == Negotiation::Stage::Failed
                 || !host.game.isBusy());
 
@@ -629,7 +637,7 @@ private slots:
         QVERIFY(!P2pWindowText::isInviteString(code));
 
         // 自分の合言葉は使えない
-        QSignalSpy hostRejected(&host.lobby, &P2pLobbyService::inviteRejected);
+        QSignalSpy hostRejected(&host.lobby, &P2pLobbyService::inspectRejected);
         host.lobby.inspectInvite(P2pWindowText::inviteInput(code));
         QTRY_COMPARE_WITH_TIMEOUT(hostRejected.count(), 1, 10000);
         QCOMPARE(hostRejected.first().at(0).value<PeerIpc::InviteRejection>(), PeerIpc::InviteRejection::Own);
@@ -643,7 +651,8 @@ private slots:
         QCOMPARE(info.kind, PeerIpc::InviteKind::LanCode);
         QVERIFY(info.peerId.isEmpty());
         QVERIFY(info.usableAddressCount >= 1);
-        guest.lobby.connectInvite(P2pWindowText::inviteInput(typed), false, QStringLiteral("招待された側"));
+        guest.lobby.connectInvite(P2pWindowText::inviteInput(typed), P2pLobbyService::ConnectAttempt::LanCode, false,
+                                  QStringLiteral("招待された側"));
 
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
                                      && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);

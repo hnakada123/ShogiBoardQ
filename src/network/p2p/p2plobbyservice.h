@@ -60,6 +60,28 @@ public:
     /// 招待文字列を読んだ結果（通信プロセスの解釈。対局・UI側は文字列を読まない）
     using InviteInfo = PeerIpc::InspectedInvite;
 
+    /// 招待・友だちへの申し込みでつなぐ試み（つながらなかったときの理由の文は、試みで変わる）
+    enum class ConnectAttempt {
+        InviteString,  ///< 招待文字列
+        LanCode,       ///< 同じ LAN の合言葉（接続先が入っている）
+        NodeCode,      ///< 協力ノードを使う合言葉
+        Friend,        ///< 友だちの在席の知らせ（友だちへの申し込み）
+    };
+    Q_ENUM(ConnectAttempt)
+
+    /// つなぐ試みが、交渉を始める前に終わった
+    struct ConnectFailure {
+        enum class Stage {
+            Rejected,   ///< 通信プロセスが要求を断った（読めない・期限切れ・自分の招待など。rejection）
+            NotOpened,  ///< 接続が開かなかった（reason）
+            Refused,    ///< 開いたが、相手が何も返さずに閉じた（招待のトークンが合わない・友だちが今は受けられない）
+        };
+        ConnectAttempt attempt = ConnectAttempt::InviteString;
+        Stage stage = Stage::Rejected;
+        PeerIpc::InviteRejection rejection = PeerIpc::InviteRejection::Unreadable;
+        PeerIpc::CloseReason reason = PeerIpc::CloseReason::Closed;
+    };
+
     /// profile はこのアプリが使うプレイヤーの保存先（非所有。この部品より長く生きること）
     P2pLobbyService(const Deps& deps, P2pPlayerProfile* profile, QObject* parent = nullptr);
     ~P2pLobbyService() override;
@@ -94,7 +116,8 @@ public:
     void createInvite(const QString& displayName, const P2p::TimeControlTerms& terms, P2p::SidePreference side,
                       const P2pGameCoordinator::PlayerSetup& player = {});
     void inspectInvite(const QString& invite);
-    void connectInvite(const QString& invite, bool allowPrivate, const QString& myDisplayName,
+    /// 招待文字列・合言葉で接続する（attempt は、確かめた結果の種類。つながらなかったときの知らせに付けて返す）
+    void connectInvite(const QString& invite, ConnectAttempt attempt, bool allowPrivate, const QString& myDisplayName,
                        const P2pGameCoordinator::PlayerSetup& player = {});
 
     // --- 友だち一覧（在席の知らせ。中身の暗号化と復号は P2pFriendPresence が行い、ここは通信プロセスへ運ぶだけ） ---
@@ -128,10 +151,10 @@ signals:
     /// ときだけ付く（付かなければ空）
     void inviteCreated(const QString& invite, const QString& code, quint64 expiresAt, int addressCount);
     void inviteInspected(const P2pLobbyService::InviteInfo& info);
-    /// 招待文字列・合言葉の確認と、招待での接続を、通信プロセスが断った
-    void inviteRejected(PeerIpc::InviteRejection rejection);
-    /// 招待の接続が開けなかった
-    void connectFailed(PeerIpc::CloseReason reason);
+    /// 招待文字列・合言葉の確認（inspectInvite）を、通信プロセスが断った
+    void inspectRejected(PeerIpc::InviteRejection rejection);
+    /// 招待・友だちへの申し込みでつなぐ試みが、交渉を始める前に終わった（断られた・開かなかった・相手が閉じた）
+    void connectAttemptFailed(const P2pLobbyService::ConnectFailure& failure);
     /// 通信プロセスが使えなくなった
     void peerFailed(PeerProcess::Failure failure, const QString& detail);
     /// 友だち一覧の要求の応答（requestId は createPresence・meetPut・meetGet が返した番号）
@@ -140,8 +163,6 @@ signals:
     void meetFetched(quint64 requestId, const QList<QByteArray>& blobs);
     /// 友だち一覧の要求（createPresence・meetPut・meetGet）を、通信プロセスが断った
     void presenceRequestFailed(quint64 requestId);
-    /// 友だちへの申し込みの接続を、通信プロセスが断った（知らせが読めない・期限切れなど）
-    void friendApplyRejected(PeerIpc::InviteRejection rejection);
 
 private slots:
     void onPeerReady();
@@ -152,8 +173,16 @@ private slots:
     void onPeerStopped();
     void onActivityRevoked(QObject* owner);
     void onGameReleased();
+    /// 自分がつないだ接続で始めた交渉で、相手が何も返さずに閉じた
+    void onInviteRefused();
 
 private:
+    /// 接続を始めた・開こうとしている、つなぐ試み
+    struct PendingConnect {
+        P2pGameCoordinator::NegotiationRequest request;
+        ConnectAttempt attempt = ConnectAttempt::InviteString;
+    };
+
     /// 動作状態を「P2P接続中」にする（対局中は司令塔が持つ）
     void holdConnectionActivity();
     // 応答（種類ごと。足りない種類があればコンパイルできない）
@@ -173,6 +202,10 @@ private:
     void handleNotification(const PeerIpc::FrameReceived& received);
     void handleNotification(const PeerIpc::ConnectionClosed& closed);
     void rejectConnection(quint64 connection, P2p::ErrorCode code);
+    /// 自分から接続を始める（友だちへの申し込みと招待で共通。送れなければ false）
+    bool startConnect(const PeerIpc::Request& ipcRequest, const PendingConnect& pending);
+    void failAttempt(ConnectAttempt attempt, ConnectFailure::Stage stage, PeerIpc::InviteRejection rejection,
+                     PeerIpc::CloseReason reason);
 
     Deps m_deps;
     QPointer<P2pPlayerProfile> m_profile;     ///< 非所有
@@ -202,9 +235,11 @@ private:
     P2p::SidePreference m_inviteSide = P2p::SidePreference::None;
     P2pGameCoordinator::PlayerSetup m_invitePlayer;
     bool m_inviteActive = false;
-    // 招待で接続を開く要求（要求番号 → 交渉の条件）と、開こうとしている接続
-    QHash<quint64, P2pGameCoordinator::NegotiationRequest> m_connectRequests;
-    QHash<quint64, P2pGameCoordinator::NegotiationRequest> m_pendingConnections;
+    // 自分から接続を開く要求（要求番号 → 試み）と、開こうとしている接続（接続の番号 → 試み）
+    QHash<quint64, PendingConnect> m_connectRequests;
+    QHash<quint64, PendingConnect> m_pendingConnections;
+    /// 自分がつないだ接続で、司令塔が交渉している試み（相手が何も返さずに閉じたときに、どの試みかを知らせる）
+    std::optional<ConnectAttempt> m_negotiatingAttempt;
 };
 
 #endif // P2PLOBBYSERVICE_H

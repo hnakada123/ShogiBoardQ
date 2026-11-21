@@ -35,6 +35,7 @@ P2pLobbyService::P2pLobbyService(const Deps& deps, P2pPlayerProfile* profile, QO
     if (m_deps.game) {
         connect(m_deps.game, &P2pGameCoordinator::resultAgreed, this, &P2pLobbyService::onGameReleased);
         connect(m_deps.game, &P2pGameCoordinator::gameFinished, this, &P2pLobbyService::onGameReleased);
+        connect(m_deps.game, &P2pGameCoordinator::inviteRefused, this, &P2pLobbyService::onInviteRefused);
     }
 }
 
@@ -190,13 +191,13 @@ void P2pLobbyService::handleReply(quint64, const PeerIpc::InspectedInvite& inspe
 
 void P2pLobbyService::handleReply(quint64 requestId, const PeerIpc::ConnectionStarted& connecting)
 {
-    // 招待で接続を始めた（接続し直しの connectPeer は振り分けない）。開いたら交渉を始める
+    // 招待・友だちへの申し込みで接続を始めた（接続し直しの connectPeer は振り分けない）。開いたら交渉を始める
     const auto it = m_connectRequests.find(requestId);
     if (it == m_connectRequests.end()) return;
-    P2pGameCoordinator::NegotiationRequest request = it.value();
+    PendingConnect pending = it.value();
     m_connectRequests.erase(it);
-    request.connection = connecting.connection;
-    m_pendingConnections.insert(request.connection, request);
+    pending.request.connection = connecting.connection;
+    m_pendingConnections.insert(connecting.connection, pending);
 }
 
 void P2pLobbyService::handleReply(quint64, const PeerIpc::Done&)
@@ -220,11 +221,16 @@ void P2pLobbyService::handleReply(quint64 requestId, const PeerIpc::MeetFetched&
 
 void P2pLobbyService::onPeerRequestFailed(quint64 requestId, PeerIpc::Method method, const QString& errorCode)
 {
-    m_connectRequests.remove(requestId);
     qCInfo(lcGame) << "P2P request failed:" << PeerIpc::methodName(method) << errorCode;
-    if (const std::optional<PeerIpc::InviteRejection> rejection = PeerIpc::inviteRejection(method, errorCode)) {
-        if (method == PeerIpc::Method::ConnectPresence) emit friendApplyRejected(*rejection);
-        else emit inviteRejected(*rejection);
+    const std::optional<PendingConnect> pending =
+        m_connectRequests.contains(requestId) ? std::optional<PendingConnect>(m_connectRequests.take(requestId)) : std::nullopt;
+    const std::optional<PeerIpc::InviteRejection> rejection = PeerIpc::inviteRejection(method, errorCode);
+    if (pending && rejection) {
+        failAttempt(pending->attempt, ConnectFailure::Stage::Rejected, *rejection, PeerIpc::CloseReason::Closed);
+        return;
+    }
+    if (method == PeerIpc::Method::InspectInvite && rejection) {
+        emit inspectRejected(*rejection);
         return;
     }
     switch (method) {
@@ -292,7 +298,10 @@ void P2pLobbyService::handleNotification(const PeerIpc::FrameReceived& received)
 
 void P2pLobbyService::handleNotification(const PeerIpc::ConnectionClosed& closed)
 {
-    if (m_pendingConnections.remove(closed.connection)) emit connectFailed(closed.reason);
+    if (m_pendingConnections.contains(closed.connection)) {
+        const PendingConnect pending = m_pendingConnections.take(closed.connection);
+        failAttempt(pending.attempt, ConnectFailure::Stage::NotOpened, PeerIpc::InviteRejection::Unreadable, closed.reason);
+    }
     if (m_deps.game) m_deps.game->onConnectionClosed(closed.connection);
 }
 
@@ -314,18 +323,22 @@ void P2pLobbyService::handleNotification(const PeerIpc::ConnectionOpened& opened
     }
 
     if (opened.outbound) {
-        // 自分が招待で接続した
+        // 自分が招待・友だちへの申し込みで接続した
         const auto it = m_pendingConnections.find(connection);
         if (it == m_pendingConnections.end()) {
             closeConnection(connection);
             return;
         }
-        P2pGameCoordinator::NegotiationRequest request = it.value();
+        PendingConnect pending = it.value();
         m_pendingConnections.erase(it);
-        request.opponentPeerId = opened.peerId;
-        request.opponentPeerIdBytes = opened.peerIdBytes;
-        request.viaRelay = opened.viaRelay;
-        if (!m_deps.game->startNegotiation(request)) closeConnection(connection);
+        pending.request.opponentPeerId = opened.peerId;
+        pending.request.opponentPeerIdBytes = opened.peerIdBytes;
+        pending.request.viaRelay = opened.viaRelay;
+        if (!m_deps.game->startNegotiation(pending.request)) {
+            closeConnection(connection);
+            return;
+        }
+        m_negotiatingAttempt = pending.attempt;
         return;
     }
 
@@ -392,18 +405,14 @@ void P2pLobbyService::inspectInvite(const QString& invite)
     m_peer->request(PeerIpc::Requests::inspectInvite(invite));
 }
 
-void P2pLobbyService::connectInvite(const QString& invite, bool allowPrivate, const QString& myDisplayName,
-                                    const P2pGameCoordinator::PlayerSetup& player)
+void P2pLobbyService::connectInvite(const QString& invite, ConnectAttempt attempt, bool allowPrivate,
+                                    const QString& myDisplayName, const P2pGameCoordinator::PlayerSetup& player)
 {
-    if (!m_peer || m_status != Status::Online || (m_deps.game && m_deps.game->isBusy())) return;
-    P2pGameCoordinator::NegotiationRequest request;
-    request.role = P2p::kRoleApplicant;
-    request.myDisplayName = myDisplayName;
-    request.player = player;
-    // 招待では先後の希望を「指定なし」にし、条件は招待した側の HELLO の応答で初めて知る
-    request.mySide = P2p::SidePreference::None;
-    const quint64 id = m_peer->request(PeerIpc::Requests::connectInvite(invite, allowPrivate));
-    if (id != 0) m_connectRequests.insert(id, request);
+    PendingConnect pending;
+    pending.attempt = attempt;
+    pending.request.myDisplayName = myDisplayName;
+    pending.request.player = player;
+    startConnect(PeerIpc::Requests::connectInvite(invite, allowPrivate), pending);
 }
 
 // ---------------------------------------------------------------- 友だち一覧
@@ -433,18 +442,43 @@ quint64 P2pLobbyService::meetGet(const QByteArray& slot)
 
 bool P2pLobbyService::connectPresence(const QByteArray& presence, const P2pGameCoordinator::NegotiationRequest& request)
 {
-    if (!m_peer || m_status != Status::Online || (m_deps.game && m_deps.game->isBusy())
-        || request.friendPlayerKey.isEmpty()) {
-        return false;
-    }
-    P2pGameCoordinator::NegotiationRequest applicant = request;
-    applicant.role = P2p::kRoleApplicant;
-    // 招待と同じく、先後の希望は「指定なし」にし、条件は相手の HELLO の応答で初めて知る
-    applicant.mySide = P2p::SidePreference::None;
-    const quint64 id = m_peer->request(PeerIpc::Requests::connectPresence(presence, false));
+    if (request.friendPlayerKey.isEmpty()) return false;
+    PendingConnect pending;
+    pending.attempt = ConnectAttempt::Friend;
+    pending.request = request;
+    return startConnect(PeerIpc::Requests::connectPresence(presence, false), pending);
+}
+
+bool P2pLobbyService::startConnect(const PeerIpc::Request& ipcRequest, const PendingConnect& pending)
+{
+    if (!m_peer || m_status != Status::Online || (m_deps.game && m_deps.game->isBusy())) return false;
+    PendingConnect applicant = pending;
+    applicant.request.role = P2p::kRoleApplicant;
+    // 先後の希望は「指定なし」にし、条件は相手（招待した側・友だち）の HELLO の応答で初めて知る
+    applicant.request.mySide = P2p::SidePreference::None;
+    const quint64 id = m_peer->request(ipcRequest);
     if (id == 0) return false;
     m_connectRequests.insert(id, applicant);
     return true;
+}
+
+void P2pLobbyService::failAttempt(ConnectAttempt attempt, ConnectFailure::Stage stage, PeerIpc::InviteRejection rejection,
+                                  PeerIpc::CloseReason reason)
+{
+    ConnectFailure failure;
+    failure.attempt = attempt;
+    failure.stage = stage;
+    failure.rejection = rejection;
+    failure.reason = reason;
+    emit connectAttemptFailed(failure);
+}
+
+void P2pLobbyService::onInviteRefused()
+{
+    if (!m_negotiatingAttempt) return;
+    const ConnectAttempt attempt = *m_negotiatingAttempt;
+    m_negotiatingAttempt.reset();
+    failAttempt(attempt, ConnectFailure::Stage::Refused, PeerIpc::InviteRejection::Unreadable, PeerIpc::CloseReason::Closed);
 }
 
 // ---------------------------------------------------------------- P2pTransport

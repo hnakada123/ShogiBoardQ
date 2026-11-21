@@ -12,6 +12,7 @@
 
 #include "p2pframes.h"
 #include "p2pidentitystore.h"
+#include "p2plobbyservice.h"
 #include "p2pmatch.h"
 #include "peerprocess.h"
 
@@ -71,10 +72,9 @@ private slots:
     void onRecreateIdentity();
     void onCreateInviteRequested();
     void onInspectInviteRequested(const QString& invite);
-    void onConnectInviteRequested(const QString& invite, bool allowPrivate);
+    void onConnectInviteRequested(const QString& invite, P2pLobbyService::ConnectAttempt attempt, bool allowPrivate);
     /// 「相手」タブで選んだ友だちに対局を申し込む
     void onApplyToFriendRequested(const QByteArray& playerKey);
-    void onFriendApplyRejected(PeerIpc::InviteRejection rejection);
     void onOfferDrawRequested();
     void onLeaveGameRequested();
     void onNegotiationChanged();
