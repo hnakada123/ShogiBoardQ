@@ -369,16 +369,15 @@ void P2pFriendPresence::expire()
     if (changed) emit presenceChanged();
 }
 
-P2pFriendPresence::ApplyResult P2pFriendPresence::apply(const QByteArray& playerKey, const QString& myDisplayName,
-                                                        const P2pGameCoordinator::PlayerSetup& player)
+P2pFriendPresence::ApplyResult P2pFriendPresence::apply(const QByteArray& playerKey,
+                                                        const P2pGameCoordinator::Conditions& mine)
 {
     if (!isAvailable()) return ApplyResult::Unavailable;
     if (m_game && m_game->isBusy()) return ApplyResult::Busy;
     const auto it = m_online.constFind(playerKey);
     if (it == m_online.constEnd() || it->presence.expiresAt <= nowSeconds()) return ApplyResult::NotOnline;
     P2pGameCoordinator::NegotiationRequest request;
-    request.myDisplayName = myDisplayName;
-    request.player = player;
+    request.mine = mine.asApplicant();
     // 相手は、この友だちのプレイヤーID を名乗らなければならない
     request.friendPlayerKey = playerKey;
     return m_lobby->connectPresence(it->presence.body, request) ? ApplyResult::Started : ApplyResult::Unavailable;
@@ -393,13 +392,10 @@ std::optional<P2pGameCoordinator::NegotiationRequest> P2pFriendPresence::acceptA
     const P2pKnownPeers* known = m_lobby && m_lobby->profile() ? m_lobby->profile()->knownPeers() : nullptr;
     const P2pKnownPeer* peer = known ? known->find(playerKey) : nullptr;
     if (!peer || !peer->isFriend || peer->blocked) return std::nullopt;
-    const std::optional<HostSetup> setup = m_hostSetup ? m_hostSetup() : std::nullopt;
-    if (!setup) return std::nullopt;
+    const std::optional<P2pGameCoordinator::Conditions> mine = m_conditions ? m_conditions() : std::nullopt;
+    if (!mine) return std::nullopt;
     P2pGameCoordinator::NegotiationRequest request;
-    request.myDisplayName = setup->displayName;
-    request.mySide = setup->side;
-    request.hostTerms = setup->terms;
-    request.player = setup->player;
+    request.mine = *mine;
     request.friendPlayerKey = playerKey;
     return request;
 }

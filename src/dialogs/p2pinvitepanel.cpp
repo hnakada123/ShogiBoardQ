@@ -218,43 +218,31 @@ QWidget* P2pInvitePanel::createInviteInBox()
 
 // ---------------------------------------------------------------- 値と設定
 
-QString P2pInvitePanel::displayName() const
+P2pGameCoordinator::Conditions P2pInvitePanel::conditions() const
 {
-    return m_displayName->text();
-}
-
-P2p::TimeControlTerms P2pInvitePanel::terms() const
-{
-    return P2p::TimeControlTerms{static_cast<quint64>(m_mainMinutes->value()) * 60'000,
-                                 static_cast<quint64>(m_byoyomi->value()) * 1000};
-}
-
-P2p::SidePreference P2pInvitePanel::sidePreference() const
-{
-    return static_cast<P2p::SidePreference>(m_side->currentData().toInt());
-}
-
-P2pGameCoordinator::PlayerSetup P2pInvitePanel::playerSetup() const
-{
-    P2pGameCoordinator::PlayerSetup setup;
+    P2pGameCoordinator::Conditions c;
+    c.displayName = m_displayName->text();
+    c.terms = P2p::TimeControlTerms{static_cast<quint64>(m_mainMinutes->value()) * 60'000,
+                                    static_cast<quint64>(m_byoyomi->value()) * 1000};
+    c.side = static_cast<P2p::SidePreference>(m_side->currentData().toInt());
     if (const std::optional<EngineEntry> engine = m_engineSelector->selected()) {
-        setup.kind = P2p::PlayerKind::Engine;
-        setup.enginePath = engine->path;
-        setup.engineName = engine->name;
+        c.player.kind = P2p::PlayerKind::Engine;
+        c.player.enginePath = engine->path;
+        c.player.engineName = engine->name;
     }
-    return setup;
+    return c;
 }
 
 bool P2pInvitePanel::hasValidDisplayName() const
 {
-    return P2p::DisplayName::isValid(displayName());
+    return P2p::DisplayName::isValid(m_displayName->text());
 }
 
 bool P2pInvitePanel::checkDisplayName()
 {
     if (hasValidDisplayName()) return true;
     QString text;
-    if (!displayName().isEmpty()) {
+    if (!m_displayName->text().isEmpty()) {
         text = tr("表示名は1〜32文字で、前後に空白を置かず、英数字・記号・かな・漢字・全角英数だけを使ってください。");
     } else if (m_player > 1) {
         // 表示名はプレイヤーごとに覚えるので、2人目からは1人目の名前が入っていない
@@ -288,12 +276,12 @@ void P2pInvitePanel::loadSettings()
 
 void P2pInvitePanel::saveSettings()
 {
-    if (hasValidDisplayName()) NetworkSettings::p2pDisplayName(m_player).set(displayName());
+    if (hasValidDisplayName()) NetworkSettings::p2pDisplayName(m_player).set(m_displayName->text());
     NetworkSettings::p2pMainTimeSeconds.set(m_mainMinutes->value() * 60);
     NetworkSettings::p2pByoyomiSeconds.set(m_byoyomi->value());
     NetworkSettings::p2pSidePreference.set(m_side->currentData().toInt());
     // 人間を選んでいる間は、前に選んだエンジンを残す
-    const bool engine = playerSetup().isEngine();
+    const bool engine = m_engineSelector->selected().has_value();
     NetworkSettings::p2pPlayAsEngine(m_player).set(engine);
     if (engine) m_engineSelector->saveSelection();
 }
@@ -356,7 +344,7 @@ void P2pInvitePanel::clearConnectProgress()
 
 void P2pInvitePanel::onCreateInvite()
 {
-    if (!m_lobby || !checkDisplayName() || !terms().isValid()) return;
+    if (!m_lobby || !checkDisplayName() || !conditions().terms.isValid()) return;
     saveSettings();
     // 新しい招待ができるまで（合言葉の鍵を作る間）、前の招待を新しい招待と取り違えないように消しておく
     m_inviteOut->clear();

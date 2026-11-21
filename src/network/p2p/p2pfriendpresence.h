@@ -36,15 +36,9 @@ class P2pFriendPresence : public QObject
 {
     Q_OBJECT
 public:
-    /// 申し込みを受けるときの自分の条件（「招待」タブの条件の欄の値）
-    struct HostSetup {
-        QString displayName;
-        P2p::TimeControlTerms terms;
-        P2p::SidePreference side = P2p::SidePreference::None;
-        P2pGameCoordinator::PlayerSetup player;
-    };
-    /// 今の条件を返す部品（表示名が使えないなど、申し込みを受けられなければ nullopt）
-    using HostSetupProvider = std::function<std::optional<HostSetup>()>;
+    /// 申し込みを受けるときの自分の今の条件（「招待」タブの欄の値）を返す部品（表示名が使えないなど、申し込みを
+    /// 受けられなければ nullopt）
+    using ConditionsProvider = std::function<std::optional<P2pGameCoordinator::Conditions>()>;
 
     /// 申し込みを始めた結果
     enum class ApplyResult {
@@ -64,7 +58,7 @@ public:
     P2pFriendPresence(P2pLobbyService* lobby, P2pGameCoordinator* game, QObject* parent = nullptr);
     ~P2pFriendPresence() override;
 
-    void setHostSetupProvider(HostSetupProvider provider) { m_hostSetup = std::move(provider); }
+    void setConditionsProvider(ConditionsProvider provider) { m_conditions = std::move(provider); }
 
     /// 「友だちに在席を知らせる」（無効にすると、作った知らせを無効にする）
     void setSharing(bool sharing);
@@ -81,9 +75,8 @@ public:
 
     /// 友だちの記録が変わった（追加・外した・ブロック・削除）。外した友だちへの知らせを無効にして、預け直す
     void reloadFriends();
-    /// 友だちに対局を申し込む（myDisplayName・player は「招待」タブの欄の値）
-    ApplyResult apply(const QByteArray& playerKey, const QString& myDisplayName,
-                      const P2pGameCoordinator::PlayerSetup& player);
+    /// 友だちに対局を申し込む（mine は「招待」タブの欄の値。持ち時間と先後は使わない）
+    ApplyResult apply(const QByteArray& playerKey, const P2pGameCoordinator::Conditions& mine);
 
 signals:
     /// 友だちの在席・使えるかどうかが変わった
@@ -126,7 +119,7 @@ private:
 
     QPointer<P2pLobbyService> m_lobby;
     QPointer<P2pGameCoordinator> m_game;
-    HostSetupProvider m_hostSetup;
+    ConditionsProvider m_conditions;
     QTimer* m_depositTimer = nullptr;
     QTimer* m_watchTimer = nullptr;
     QTimer* m_stepTimer = nullptr;

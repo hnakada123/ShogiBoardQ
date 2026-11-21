@@ -43,12 +43,9 @@ class P2pWindow : public QDialog
 public:
     P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* parent = nullptr);
 
-    /// 名乗る表示名・持ち時間・先後の希望・自分の対局者（「招待」タブの欄の値）
-    QString displayName() const;
-    /// 自分の手を人間が指すか、登録エンジンが指すか（「対局者」の欄）
-    P2pGameCoordinator::PlayerSetup playerSetup() const;
-    P2p::TimeControlTerms terms() const;
-    P2p::SidePreference sidePreference() const;
+    /// 名乗る表示名・持ち時間・先後の希望・自分の対局者（「招待」タブの欄の値。対局者は、自分の手を人間が指すか、
+    /// 登録エンジンが指すか）
+    P2pGameCoordinator::Conditions conditions() const;
     /// 相手とのつなぎ方（「接続」タブの値）
     QString networkName() const;
     QStringList bootstrap() const;

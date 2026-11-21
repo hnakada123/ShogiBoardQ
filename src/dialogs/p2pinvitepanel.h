@@ -38,10 +38,7 @@ public:
     P2pInvitePanel(P2pLobbyService* lobby, P2pGameCoordinator* game, int player, QWidget* parent = nullptr);
 
     /// 名乗る表示名・持ち時間・先後の希望・自分の対局者（人間か、登録エンジンか）
-    QString displayName() const;
-    P2pGameCoordinator::PlayerSetup playerSetup() const;
-    P2p::TimeControlTerms terms() const;
-    P2p::SidePreference sidePreference() const;
+    P2pGameCoordinator::Conditions conditions() const;
 
     /// 表示名が使えるか
     bool hasValidDisplayName() const;

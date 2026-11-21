@@ -112,8 +112,8 @@ P2pGameCoordinator::NegotiationRequest request(quint8 role, const QByteArray& op
     r.opponentPeerId = QString::fromLatin1(opponentPeerId.toHex());
     r.opponentPeerIdBytes = opponentPeerId;
     r.role = role;
-    r.myDisplayName = name;
-    r.hostTerms = TimeControlTerms{60'000, 10'000};
+    r.mine.displayName = name;
+    r.mine.terms = TimeControlTerms{60'000, 10'000};
     return r;
 }
 
@@ -288,8 +288,8 @@ private slots:
 
         // 招待した側がエンジン（後手を希望。モックのエンジンの最初の手 8c8d は後手の手）
         P2pGameCoordinator::NegotiationRequest hostRequest = request(kRoleHost, applicantId, QStringLiteral("募集"));
-        hostRequest.mySide = SidePreference::White;
-        hostRequest.player = mockEngine();
+        hostRequest.mine.side = SidePreference::White;
+        hostRequest.mine.player = mockEngine();
         qputenv("SBQ_MATCH_INIT_DELAY_MS", "300");
         QVERIFY(host.coordinator.startNegotiation(hostRequest));
         QVERIFY(applicant.coordinator.startNegotiation(request(kRoleApplicant, hostId, QStringLiteral("申込"))));
@@ -394,9 +394,9 @@ private slots:
 
         // 申込側がエンジンで先手（招待した側が後手を希望）。モックのエンジンの最初の手 8c8d は先手には指せない
         P2pGameCoordinator::NegotiationRequest hostRequest = request(kRoleHost, applicantId, QStringLiteral("募集"));
-        hostRequest.mySide = SidePreference::White;
+        hostRequest.mine.side = SidePreference::White;
         P2pGameCoordinator::NegotiationRequest applicantRequest = request(kRoleApplicant, hostId, QStringLiteral("申込"));
-        applicantRequest.player = mockEngine();
+        applicantRequest.mine.player = mockEngine();
         QVERIFY(host.coordinator.startNegotiation(hostRequest));
         QVERIFY(applicant.coordinator.startNegotiation(applicantRequest));
         QTRY_VERIFY(applicant.coordinator.negotiation()
@@ -435,8 +435,8 @@ private slots:
         QSignalSpy applicantFinished(&applicant.coordinator, &P2pGameCoordinator::gameFinished);
 
         P2pGameCoordinator::NegotiationRequest hostRequest = request(kRoleHost, applicantId, QStringLiteral("募集"));
-        hostRequest.mySide = SidePreference::White;
-        hostRequest.player = mockEngine();
+        hostRequest.mine.side = SidePreference::White;
+        hostRequest.mine.player = mockEngine();
         QVERIFY(host.coordinator.startNegotiation(hostRequest));
         QVERIFY(applicant.coordinator.startNegotiation(request(kRoleApplicant, hostId, QStringLiteral("申込"))));
         QTRY_VERIFY(host.coordinator.negotiation()
@@ -477,8 +477,8 @@ private slots:
         QSignalSpy applicantEnded(&applicant.coordinator, &P2pGameCoordinator::negotiationEnded);
 
         P2pGameCoordinator::NegotiationRequest hostRequest = request(kRoleHost, applicantId, QStringLiteral("募集"));
-        hostRequest.player = mockEngine();
-        hostRequest.player.enginePath = m_dir.filePath(QStringLiteral("no-such-engine"));
+        hostRequest.mine.player = mockEngine();
+        hostRequest.mine.player.enginePath = m_dir.filePath(QStringLiteral("no-such-engine"));
         QVERIFY(host.coordinator.startNegotiation(hostRequest));
         QVERIFY(applicant.coordinator.startNegotiation(request(kRoleApplicant, hostId, QStringLiteral("申込"))));
         QTRY_COMPARE(notices.count(), 1);
@@ -491,7 +491,7 @@ private slots:
         QVERIFY(host.activity.is(AppActivityState::Activity::Idle));
 
         // エンジンの場所の無い対局者・エンジンの枠の無い司令塔では、交渉を始めない
-        hostRequest.player.enginePath.clear();
+        hostRequest.mine.player.enginePath.clear();
         QVERIFY(!host.coordinator.startNegotiation(hostRequest));
     }
 

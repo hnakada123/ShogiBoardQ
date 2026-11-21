@@ -118,12 +118,10 @@ bool P2pGameUiController::ensureLobby()
     // 友だちの在席（預ける・調べる・友だちの申し込みを受ける）。申し込みを受けるときの条件は、ウィンドウの
     // 「招待」タブの条件の今の値（招待を作るときと同じ）
     m_presence = new P2pFriendPresence(m_lobby, m_deps.game, this);
-    m_presence->setHostSetupProvider([this]() -> std::optional<P2pFriendPresence::HostSetup> {
-        if (!m_window || !P2p::DisplayName::isValid(m_window->displayName()) || !m_window->terms().isValid()) {
-            return std::nullopt;
-        }
-        return P2pFriendPresence::HostSetup{m_window->displayName(), m_window->terms(), m_window->sidePreference(),
-                                            m_window->playerSetup()};
+    m_presence->setConditionsProvider([this]() -> std::optional<P2pGameCoordinator::Conditions> {
+        if (!m_window) return std::nullopt;
+        const P2pGameCoordinator::Conditions mine = m_window->conditions();
+        return mine.isValid() ? std::optional<P2pGameCoordinator::Conditions>(mine) : std::nullopt;
     });
     connect(m_profile->identity(), &P2pIdentityStore::finished, this, &P2pGameUiController::onIdentityFinished);
     // p2p/ 全体の大きさが上限を超えていたら、古い記録を消すかを尋ねる（黙って消さない）
@@ -262,7 +260,7 @@ void P2pGameUiController::onRecreateIdentity()
 void P2pGameUiController::onCreateInviteRequested()
 {
     if (!m_lobby || !m_window) return;
-    m_lobby->createInvite(m_window->displayName(), m_window->terms(), m_window->sidePreference(), m_window->playerSetup());
+    m_lobby->createInvite(m_window->conditions());
 }
 
 void P2pGameUiController::onInspectInviteRequested(const QString& invite)
@@ -274,14 +272,14 @@ void P2pGameUiController::onConnectInviteRequested(const QString& invite, P2pLob
                                                    bool allowPrivate)
 {
     if (!m_lobby || !m_window) return;
-    m_lobby->connectInvite(invite, attempt, allowPrivate, m_window->displayName(), m_window->playerSetup());
+    m_lobby->connectInvite(invite, attempt, allowPrivate, m_window->conditions());
 }
 
 void P2pGameUiController::onApplyToFriendRequested(const QByteArray& playerKey)
 {
     if (!m_presence || !m_window || !m_window->confirmDisplayName()) return;
     QString text;
-    switch (m_presence->apply(playerKey, m_window->displayName(), m_window->playerSetup())) {
+    switch (m_presence->apply(playerKey, m_window->conditions())) {
     case P2pFriendPresence::ApplyResult::Started:
         // つながると、双方に条件確認画面が開く。つながらない・断られたときの文は、ウィンドウが出す
         // （P2pLobbyService::connectAttemptFailed）

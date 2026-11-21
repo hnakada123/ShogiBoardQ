@@ -188,10 +188,7 @@ void P2pWindow::saveSettings()
     if (m_history) m_history->setHideUnknownNames(hideUnknownNames());
 }
 
-QString P2pWindow::displayName() const { return m_invite->displayName(); }
-P2pGameCoordinator::PlayerSetup P2pWindow::playerSetup() const { return m_invite->playerSetup(); }
-P2p::TimeControlTerms P2pWindow::terms() const { return m_invite->terms(); }
-P2p::SidePreference P2pWindow::sidePreference() const { return m_invite->sidePreference(); }
+P2pGameCoordinator::Conditions P2pWindow::conditions() const { return m_invite->conditions(); }
 QString P2pWindow::networkName() const { return m_connection->networkName(); }
 QStringList P2pWindow::bootstrap() const { return m_connection->bootstrap(); }
 bool P2pWindow::relayOnly() const { return m_connection->relayOnly(); }

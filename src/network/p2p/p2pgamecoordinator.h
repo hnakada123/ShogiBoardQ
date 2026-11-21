@@ -62,17 +62,35 @@ public:
         bool isEngine() const { return kind == P2p::PlayerKind::Engine; }
     };
 
+    /// 自分が名乗る表示名と、対局の条件（「招待」タブの欄の値。持ち時間と先後は、招待した側・友だちの申し込みを
+    /// 受けた側の条件）
+    struct Conditions {
+        QString displayName;
+        P2p::TimeControlTerms terms;
+        P2p::SidePreference side = P2p::SidePreference::None;
+        PlayerSetup player;
+
+        /// 交渉を始められるか（表示名と持ち時間が規則に合う）
+        bool isValid() const;
+        /// 申し込む側として使う条件（持ち時間と先後は、相手の HELLO の応答で初めて知るので、決めない）
+        Conditions asApplicant() const
+        {
+            Conditions c;
+            c.displayName = displayName;
+            c.player = player;
+            return c;
+        }
+    };
+
     /// 交渉を始めるのに要るもの
     struct NegotiationRequest {
         quint64 connection = 0;
         QString opponentPeerId;          ///< 文字列表記（再接続に使う）
         QByteArray opponentPeerIdBytes;  ///< バイナリ（開始合意の PeerId のハッシュ）
         quint8 role = P2p::kRoleApplicant;
-        QString myDisplayName;
-        P2p::SidePreference mySide = P2p::SidePreference::None;
-        P2p::TimeControlTerms hostTerms;   ///< 招待した側の持ち時間
+        /// 自分の条件（申込側は表示名と対局者だけを使う。asApplicant）
+        Conditions mine;
         bool viaRelay = false;
-        PlayerSetup player;                ///< 自分の対局者（人間かエンジンか）
         /// 友だちとの交渉（友だちの在席の知らせで始めた申し込み）で、相手が名乗るべきプレイヤーID。招待では空
         QByteArray friendPlayerKey;
     };

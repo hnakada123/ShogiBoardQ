@@ -73,6 +73,17 @@ struct App {
     P2pLobbyService lobby;
 };
 
+/// 自分の条件（表示名・持ち時間・先後の希望。対局者は人間）
+P2pGameCoordinator::Conditions conditions(const QString& displayName, const TimeControlTerms& terms = {},
+                                          SidePreference side = SidePreference::None)
+{
+    P2pGameCoordinator::Conditions c;
+    c.displayName = displayName;
+    c.terms = terms;
+    c.side = side;
+    return c;
+}
+
 } // namespace
 
 class TestP2pEndToEnd : public QObject
@@ -102,7 +113,7 @@ private:
 
         // 招待を作り、相手が読んで接続する（招待文字列は対局・UI側では読まない）
         QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
-        host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::Black);
+        host.lobby.createInvite(conditions(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::Black));
         QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 10000);
         const QString invite = created.first().at(0).toString();
         QVERIFY(invite.startsWith(QStringLiteral("sbqinv1.")));
@@ -110,7 +121,7 @@ private:
         guest.lobby.inspectInvite(invite);
         QTRY_COMPARE_WITH_TIMEOUT(inspected.count(), 1, 10000);
         guest.lobby.connectInvite(invite, P2pLobbyService::ConnectAttempt::InviteString, false,
-                                  QStringLiteral("招待された側"));
+                                  conditions(QStringLiteral("招待された側")));
 
         // 双方が条件確認画面の段階まで進む
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
@@ -267,10 +278,10 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(guest.lobby.status(), P2pLobbyService::Status::Online, 15000);
 
         QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
-        host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::None);
+        host.lobby.createInvite(conditions(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::None));
         QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 10000);
         guest.lobby.connectInvite(created.first().at(0).toString(), P2pLobbyService::ConnectAttempt::InviteString, false,
-                                  QStringLiteral("招待された側"));
+                                  conditions(QStringLiteral("招待された側")));
         QTRY_VERIFY_WITH_TIMEOUT(host.game.negotiation()
                                      && host.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
@@ -340,7 +351,7 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(host.lobby.relayReservations() >= 1 && guest.lobby.relayReservations() >= 1, 20000);
 
         QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
-        host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{300'000, 30'000}, SidePreference::None);
+        host.lobby.createInvite(conditions(QStringLiteral("招待した側"), TimeControlTerms{300'000, 30'000}, SidePreference::None));
         QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 10000);
         const int hostAddresses = created.first().at(3).toInt();
         QVERIFY(hostAddresses >= 2);   // 直接のアドレスと、中継経由のアドレス
@@ -348,7 +359,7 @@ private slots:
         guest.lobby.inspectInvite(created.first().at(0).toString());
         QTRY_COMPARE_WITH_TIMEOUT(inspected.count(), 1, 10000);
         guest.lobby.connectInvite(created.first().at(0).toString(), P2pLobbyService::ConnectAttempt::InviteString, false,
-                                  QStringLiteral("招待された側"));
+                                  conditions(QStringLiteral("招待された側")));
 
         QTRY_VERIFY_WITH_TIMEOUT(host.game.negotiation()
                                      && host.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
@@ -424,7 +435,7 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(host.lobby.relayReservations() >= 1 && guest.lobby.relayReservations() >= 1, 20000);
 
         QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
-        host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::Black);
+        host.lobby.createInvite(conditions(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::Black));
         QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 15000);
         const QString code = created.first().at(1).toString();
         // 英数字 10 文字を5文字ずつ区切った形
@@ -452,7 +463,7 @@ private slots:
         QCOMPARE(info.expiresAt, created.first().at(2).toULongLong());
         QVERIFY(info.usableAddressCount >= 1);
         guest.lobby.connectInvite(P2pWindowText::inviteInput(typed), P2pLobbyService::ConnectAttempt::NodeCode, false,
-                                  QStringLiteral("招待された側"));
+                                  conditions(QStringLiteral("招待された側")));
 
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
                                      && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
@@ -528,9 +539,8 @@ private slots:
 
         P2pFriendPresence hostPresence(&host.lobby, &host.game);
         P2pFriendPresence guestPresence(&guest.lobby, &guest.game);
-        hostPresence.setHostSetupProvider([]() -> std::optional<P2pFriendPresence::HostSetup> {
-            return P2pFriendPresence::HostSetup{QStringLiteral("受ける側"), TimeControlTerms{60'000, 10'000},
-                                                SidePreference::Black, {}};
+        hostPresence.setConditionsProvider([]() -> std::optional<P2pGameCoordinator::Conditions> {
+            return conditions(QStringLiteral("受ける側"), TimeControlTerms{60'000, 10'000}, SidePreference::Black);
         });
         QVERIFY(hostPresence.isAvailable() && guestPresence.isAvailable());
         const auto waitOnline = [](P2pFriendPresence& watcher, const QByteArray& playerKey) {
@@ -546,7 +556,7 @@ private slots:
         guestPresence.setWatching(true);
         QTest::qWait(1500);
         QVERIFY(!guestPresence.isOnline(hostKey));
-        QCOMPARE(guestPresence.apply(hostKey, QStringLiteral("申し込む側"), {}), P2pFriendPresence::ApplyResult::NotOnline);
+        QCOMPARE(guestPresence.apply(hostKey, conditions(QStringLiteral("申し込む側"))), P2pFriendPresence::ApplyResult::NotOnline);
 
         // 知らせると、友だちにだけオンラインに見える（知らせていない側は、相手から見えない）
         QSignalSpy changed(&guestPresence, &P2pFriendPresence::presenceChanged);
@@ -563,7 +573,7 @@ private slots:
         QTest::qWait(500);
         // 申し込んだ側には、友だちへの申し込みが、開いた後に何も返されずに閉じられたと届く
         QSignalSpy refused(&guest.lobby, &P2pLobbyService::connectAttemptFailed);
-        QCOMPARE(guestPresence.apply(hostKey, QStringLiteral("申し込む側"), {}), P2pFriendPresence::ApplyResult::Started);
+        QCOMPARE(guestPresence.apply(hostKey, conditions(QStringLiteral("申し込む側"))), P2pFriendPresence::ApplyResult::Started);
         QTRY_COMPARE_WITH_TIMEOUT(refused.count(), 1, 20000);
         const auto refusal = refused.first().at(0).value<P2pLobbyService::ConnectFailure>();
         QCOMPARE(refusal.attempt, P2pLobbyService::ConnectAttempt::Friend);
@@ -579,7 +589,7 @@ private slots:
         QTest::qWait(1500);
         QVERIFY(waitOnline(guestPresence, hostKey));
         QTRY_VERIFY_WITH_TIMEOUT(!guest.game.isBusy(), 10000);
-        QTRY_COMPARE_WITH_TIMEOUT(guestPresence.apply(hostKey, QStringLiteral("申し込む側"), {}),
+        QTRY_COMPARE_WITH_TIMEOUT(guestPresence.apply(hostKey, conditions(QStringLiteral("申し込む側"))),
                                   P2pFriendPresence::ApplyResult::Started, 10000);
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
                                      && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);
@@ -601,7 +611,7 @@ private slots:
         QCOMPARE(host.game.playMove(UsiMove::fromString(u"7g7f")), GameChannel::MoveResult::Sent);
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.isHumanToMove(), 20000);
         // 対局中は、申し込めない
-        QCOMPARE(guestPresence.apply(hostKey, QStringLiteral("申し込む側"), {}), P2pFriendPresence::ApplyResult::Busy);
+        QCOMPARE(guestPresence.apply(hostKey, conditions(QStringLiteral("申し込む側"))), P2pFriendPresence::ApplyResult::Busy);
 
         host.lobby.end();
         guest.lobby.end();
@@ -628,7 +638,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(guest.lobby.status(), P2pLobbyService::Status::Online, 15000);
 
         QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);
-        host.lobby.createInvite(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::Black);
+        host.lobby.createInvite(conditions(QStringLiteral("招待した側"), TimeControlTerms{60'000, 10'000}, SidePreference::Black));
         QTRY_COMPARE_WITH_TIMEOUT(created.count(), 1, 10000);
         const QString code = created.first().at(1).toString();
         QVERIFY2(!code.isEmpty(), "the local network gives a code with the invite");
@@ -652,7 +662,7 @@ private slots:
         QVERIFY(info.peerId.isEmpty());
         QVERIFY(info.usableAddressCount >= 1);
         guest.lobby.connectInvite(P2pWindowText::inviteInput(typed), P2pLobbyService::ConnectAttempt::LanCode, false,
-                                  QStringLiteral("招待された側"));
+                                  conditions(QStringLiteral("招待された側")));
 
         QTRY_VERIFY_WITH_TIMEOUT(guest.game.negotiation()
                                      && guest.game.negotiation()->stage() == Negotiation::Stage::Confirming, 20000);

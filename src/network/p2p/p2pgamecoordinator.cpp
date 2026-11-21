@@ -11,6 +11,7 @@
 #include "logcategories.h"
 #include "matchending.h"
 #include "matchrecordsink.h"
+#include "p2pdisplayname.h"
 #include "p2pengineplayer.h"
 #include "p2pknownpeers.h"
 #include "p2precordstore.h"
@@ -53,6 +54,11 @@ void P2pGameCoordinator::setEnvironment(P2pTransport* transport, P2pRecordStore*
     m_playerKey = playerKey;
 }
 
+bool P2pGameCoordinator::Conditions::isValid() const
+{
+    return P2p::DisplayName::isValid(displayName) && terms.isValid();
+}
+
 QByteArray P2pGameCoordinator::opponentPlayerKey() const
 {
     if (m_match) return m_match->agreement().playerKey(!m_match->iAmBlack());
@@ -66,17 +72,18 @@ bool P2pGameCoordinator::startNegotiation(const NegotiationRequest& request)
 {
     if (isBusy() || !m_transport || !m_playerKey || !m_playerKey->isValid() || request.connection == 0) return false;
     // エンジンで指すなら、エンジンの枠と、登録エンジンの場所が要る
-    if (request.player.isEngine() && (!m_deps.engines || request.player.enginePath.isEmpty())) return false;
+    const PlayerSetup& player = request.mine.player;
+    if (player.isEngine() && (!m_deps.engines || player.enginePath.isEmpty())) return false;
     resetMatch();
     P2p::NegotiationConfig config;
     config.role = request.role;
     config.networkId = m_transport->networkId();
     config.myPeerId = m_transport->localPeerId();
     config.opponentPeerId = request.opponentPeerIdBytes;
-    config.myDisplayName = request.myDisplayName;
-    config.mySide = request.mySide;
-    config.myKind = request.player.kind;
-    config.hostTerms = request.hostTerms;
+    config.myDisplayName = request.mine.displayName;
+    config.mySide = request.mine.side;
+    config.myKind = player.kind;
+    config.hostTerms = request.mine.terms;
     config.expectedPlayerKey = request.friendPlayerKey;
     config.nowSeconds = []() { return static_cast<quint64>(QDateTime::currentSecsSinceEpoch()); };
     P2pKnownPeers* known = m_knownPeers;
@@ -92,8 +99,8 @@ bool P2pGameCoordinator::startNegotiation(const NegotiationRequest& request)
     m_viaRelay = request.viaRelay;
     m_friendNegotiation = !request.friendPlayerKey.isEmpty();
     m_opponentDisplayName.clear();
-    m_myDisplayName = request.myDisplayName;
-    m_player = request.player;
+    m_myDisplayName = request.mine.displayName;
+    m_player = player;
     m_confirmationDeadline = now() + kConfirmationMs;
     m_phase = Phase::Negotiating;
     m_ticker->start();

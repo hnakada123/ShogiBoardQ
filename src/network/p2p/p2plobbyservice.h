@@ -112,13 +112,13 @@ public:
     /// 通信プロセスに掛かっている権限の制限（動かしていない間は、何も掛かっていない値）
     PeerIpc::Sandbox sandbox() const { return m_peer ? m_peer->sandbox() : PeerIpc::Sandbox(); }
 
-    // --- 招待（player は自分の対局者。人間が指すか、登録エンジンが指すか） ---
-    void createInvite(const QString& displayName, const P2p::TimeControlTerms& terms, P2p::SidePreference side,
-                      const P2pGameCoordinator::PlayerSetup& player = {});
+    // --- 招待（mine は自分の条件。対局者は、人間が指すか、登録エンジンが指すか） ---
+    void createInvite(const P2pGameCoordinator::Conditions& mine);
     void inspectInvite(const QString& invite);
-    /// 招待文字列・合言葉で接続する（attempt は、確かめた結果の種類。つながらなかったときの知らせに付けて返す）
-    void connectInvite(const QString& invite, ConnectAttempt attempt, bool allowPrivate, const QString& myDisplayName,
-                       const P2pGameCoordinator::PlayerSetup& player = {});
+    /// 招待文字列・合言葉で接続する（attempt は、確かめた結果の種類。つながらなかったときの知らせに付けて返す。
+    /// mine の持ち時間と先後は使わない）
+    void connectInvite(const QString& invite, ConnectAttempt attempt, bool allowPrivate,
+                       const P2pGameCoordinator::Conditions& mine);
 
     // --- 友だち一覧（在席の知らせ。中身の暗号化と復号は P2pFriendPresence が行い、ここは通信プロセスへ運ぶだけ） ---
     /// 在席の知らせを作らせる（応答は presenceCreated）。送れなければ 0
@@ -230,10 +230,7 @@ private:
     FriendHandler m_friendHandler;
 
     // 招待（招待した側の条件。文字列は持たない）
-    QString m_inviteDisplayName;
-    P2p::TimeControlTerms m_inviteTerms;
-    P2p::SidePreference m_inviteSide = P2p::SidePreference::None;
-    P2pGameCoordinator::PlayerSetup m_invitePlayer;
+    P2pGameCoordinator::Conditions m_inviteConditions;
     bool m_inviteActive = false;
     // 自分から接続を開く要求（要求番号 → 試み）と、開こうとしている接続（接続の番号 → 試み）
     QHash<quint64, PendingConnect> m_connectRequests;

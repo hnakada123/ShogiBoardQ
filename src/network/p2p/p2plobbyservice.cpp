@@ -373,10 +373,7 @@ void P2pLobbyService::handleNotification(const PeerIpc::ConnectionOpened& opened
     request.opponentPeerIdBytes = opened.peerIdBytes;
     request.role = P2p::kRoleHost;
     request.viaRelay = opened.viaRelay;
-    request.myDisplayName = m_inviteDisplayName;
-    request.mySide = m_inviteSide;
-    request.hostTerms = m_inviteTerms;
-    request.player = m_invitePlayer;
+    request.mine = m_inviteConditions;
     if (!m_deps.game->startNegotiation(request)) rejectConnection(connection, P2p::ErrorCode::Busy);
 }
 
@@ -388,14 +385,10 @@ void P2pLobbyService::rejectConnection(quint64 connection, P2p::ErrorCode code)
 
 // ---------------------------------------------------------------- 招待
 
-void P2pLobbyService::createInvite(const QString& displayName, const P2p::TimeControlTerms& terms,
-                                   P2p::SidePreference side, const P2pGameCoordinator::PlayerSetup& player)
+void P2pLobbyService::createInvite(const P2pGameCoordinator::Conditions& mine)
 {
     if (!m_peer || m_status != Status::Online) return;
-    m_inviteDisplayName = displayName;
-    m_inviteTerms = terms;
-    m_inviteSide = side;
-    m_invitePlayer = player;
+    m_inviteConditions = mine;
     m_peer->request(PeerIpc::Requests::createInvite());
 }
 
@@ -406,12 +399,11 @@ void P2pLobbyService::inspectInvite(const QString& invite)
 }
 
 void P2pLobbyService::connectInvite(const QString& invite, ConnectAttempt attempt, bool allowPrivate,
-                                    const QString& myDisplayName, const P2pGameCoordinator::PlayerSetup& player)
+                                    const P2pGameCoordinator::Conditions& mine)
 {
     PendingConnect pending;
     pending.attempt = attempt;
-    pending.request.myDisplayName = myDisplayName;
-    pending.request.player = player;
+    pending.request.mine = mine;
     startConnect(PeerIpc::Requests::connectInvite(invite, allowPrivate), pending);
 }
 
@@ -455,7 +447,7 @@ bool P2pLobbyService::startConnect(const PeerIpc::Request& ipcRequest, const Pen
     PendingConnect applicant = pending;
     applicant.request.role = P2p::kRoleApplicant;
     // 先後の希望は「指定なし」にし、条件は相手（招待した側・友だち）の HELLO の応答で初めて知る
-    applicant.request.mySide = P2p::SidePreference::None;
+    applicant.request.mine = applicant.request.mine.asApplicant();
     const quint64 id = m_peer->request(ipcRequest);
     if (id == 0) return false;
     m_connectRequests.insert(id, applicant);

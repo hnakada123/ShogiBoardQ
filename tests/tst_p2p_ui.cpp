@@ -132,8 +132,8 @@ P2pGameCoordinator::NegotiationRequest request(quint8 role, const QByteArray& op
     r.opponentPeerId = QString::fromLatin1(opponentPeerId.toHex());
     r.opponentPeerIdBytes = opponentPeerId;
     r.role = role;
-    r.myDisplayName = name;
-    r.hostTerms = TimeControlTerms{600'000, 30'000};
+    r.mine.displayName = name;
+    r.mine.terms = TimeControlTerms{600'000, 30'000};
     return r;
 }
 
@@ -1159,13 +1159,13 @@ private slots:
         h.opponentPeerId = QStringLiteral("a");
         h.opponentPeerIdBytes = toHost.peerId;
         h.role = kRoleHost;
-        h.myDisplayName = QStringLiteral("募集する人");
-        h.hostTerms = TimeControlTerms{600'000, 30'000};
+        h.mine.displayName = QStringLiteral("募集する人");
+        h.mine.terms = TimeControlTerms{600'000, 30'000};
         P2pGameCoordinator::NegotiationRequest a = h;
         a.opponentPeerId = QStringLiteral("h");
         a.opponentPeerIdBytes = toApplicant.peerId;
         a.role = kRoleApplicant;
-        a.myDisplayName = QStringLiteral("申し込む人");
+        a.mine.displayName = QStringLiteral("申し込む人");
         QVERIFY(host.startNegotiation(h));
         QVERIFY(applicant.startNegotiation(a));
         QTRY_VERIFY(applicant.negotiation()->stage() == Negotiation::Stage::Confirming);
@@ -1225,10 +1225,10 @@ private slots:
             QCOMPARE(kind->count(), 3);
             QCOMPARE(kind->itemText(0), QStringLiteral("人間"));
             QCOMPARE(kind->currentIndex(), 0);
-            QVERIFY(!window.playerSetup().isEngine());
+            QVERIFY(!window.conditions().player.isEngine());
             QVERIFY(!settings->isEnabled());
             kind->setCurrentIndex(2);
-            const P2pGameCoordinator::PlayerSetup player = window.playerSetup();
+            const P2pGameCoordinator::PlayerSetup player = window.conditions().player;
             QVERIFY(player.isEngine());
             QCOMPARE(player.engineName, QStringLiteral("Engine B"));
             QCOMPARE(player.enginePath, QStringLiteral("/engines/b"));
@@ -1239,7 +1239,7 @@ private slots:
         {
             // 開き直すと、選んだエンジンに戻る
             P2pWindow window(&lobby, &game);
-            QCOMPARE(window.playerSetup().engineName, QStringLiteral("Engine B"));
+            QCOMPARE(window.conditions().player.engineName, QStringLiteral("Engine B"));
             // 人間に戻して保存しても、前に選んだエンジンの名前は残す（次にエンジンを選ぶときのため）
             window.findChild<QComboBox*>(QStringLiteral("p2pPlayerKind"))->setCurrentIndex(0);
             QVERIFY(QMetaObject::invokeMethod(&window, "saveSettings"));
@@ -1247,24 +1247,24 @@ private slots:
         }
         {
             P2pWindow window(&lobby, &game);
-            QVERIFY(!window.playerSetup().isEngine());
+            QVERIFY(!window.conditions().player.isEngine());
         }
         // 選んだエンジンが登録から消えたら、別のエンジンではなく人間にする
         NetworkSettings::p2pPlayAsEngine(1).set(true);
         EngineProfileStore::saveEngines({engines.first()});
         {
             P2pWindow window(&lobby, &game);
-            QVERIFY(!window.playerSetup().isEngine());
+            QVERIFY(!window.conditions().player.isEngine());
             // 開いている間に登録が変わっても同じ（閉じて開き直すと一覧を読み直す）
             window.findChild<QComboBox*>(QStringLiteral("p2pPlayerKind"))->setCurrentIndex(1);
-            QCOMPARE(window.playerSetup().engineName, QStringLiteral("Engine A"));
+            QCOMPARE(window.conditions().player.engineName, QStringLiteral("Engine A"));
             window.show();
             QVERIFY(QTest::qWaitForWindowExposed(&window));
-            QCOMPARE(window.playerSetup().engineName, QStringLiteral("Engine A"));
+            QCOMPARE(window.conditions().player.engineName, QStringLiteral("Engine A"));
             window.hide();
             EngineProfileStore::saveEngines({engines.last()});
             window.show();
-            QVERIFY(!window.playerSetup().isEngine());
+            QVERIFY(!window.conditions().player.isEngine());
             QCOMPARE(window.findChild<QComboBox*>(QStringLiteral("p2pPlayerKind"))->count(), 2);
         }
         EngineProfileStore::saveEngines({});
@@ -1297,17 +1297,17 @@ private slots:
         h.opponentPeerId = QStringLiteral("a");
         h.opponentPeerIdBytes = toHost.peerId;
         h.role = kRoleHost;
-        h.myDisplayName = QStringLiteral("募集する人");
-        h.hostTerms = TimeControlTerms{600'000, 30'000};
+        h.mine.displayName = QStringLiteral("募集する人");
+        h.mine.terms = TimeControlTerms{600'000, 30'000};
         P2pGameCoordinator::NegotiationRequest a = h;
         a.opponentPeerId = QStringLiteral("h");
         a.opponentPeerIdBytes = toApplicant.peerId;
         a.role = kRoleApplicant;
-        a.myDisplayName = QStringLiteral("申し込む人");
+        a.mine.displayName = QStringLiteral("申し込む人");
         // 招待した側がエンジン（初期化に時間のかかるモックのエンジン）
-        h.player.kind = PlayerKind::Engine;
-        h.player.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        h.player.engineName = QStringLiteral("確認画面のエンジン");
+        h.mine.player.kind = PlayerKind::Engine;
+        h.mine.player.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        h.mine.player.engineName = QStringLiteral("確認画面のエンジン");
         qputenv("SBQ_MATCH_INIT_DELAY_MS", "500");
         QVERIFY(host.startNegotiation(h));
         QVERIFY(applicant.startNegotiation(a));
