@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="言語"><span aria-current="page">日本語</span><a href="../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 2／文書の版 2026-11-20.3（<a href="#sec-B">変更履歴</a>）</p>
+<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 2／文書の版 2026-11-21（<a href="#sec-B">変更履歴</a>）</p>
 <p class="lead">通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
@@ -349,7 +349,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>networkName</th><th>用途</th><th>networkId（16進）</th></tr></thead>
 <tbody>
-<tr><td><code>sbq-local-1</code></td><td>ローカル（ShogiBoardQ の画面では「ローカル（同じPC・同じLAN）」）。同じ PC・同じ LAN の中だけでつなぐ（<a href="#sec-4-5">4.5節</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
+<tr><td><code>sbq-local-1</code></td><td>ローカル（ShogiBoardQ の画面では、「相手のいる場所」の「同じPC・同じLAN」）。同じ PC・同じ LAN の中だけでつなぐ（<a href="#sec-4-5">4.5節</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
 <tr><td><code>sbq-limited-1</code></td><td>インターネット（ShogiBoardQ の画面では「インターネット」。networkName は実験版のときに付けたまま変えていない）。インターネット上の相手とつなぐ</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
 </tbody>
 </table></div>
@@ -468,7 +468,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 </ul>
 
 <h3 id="sec-4-6">4.6 直接接続を使わない設定</h3>
-<p>対局の相手に自分の IP アドレスを見せないための設定である（実装するかは任意）。この設定の実装は、次を守らなければならない。</p>
+<p>対局の相手に自分の IP アドレスを見せないための設定である（実装するかは任意。ShogiBoardQ の画面では、「相手とのつなぎ方」の「協力ノードの中継だけを使う」）。この設定の実装は、次を守らなければならない。</p>
 <ul>
 <li>直接つなぐ宛先は、利用者が指定した協力ノードの宛先（と、そのノードが Identify で名乗った別の宛先）だけにする。ほかの宛先への直接の接続は、どの経路で始まったものも断る。</li>
 <li>中継経由の宛先は、中継が指定した協力ノードのときだけ使う（指定していない中継には自分の IP が見える）。</li>
@@ -1351,11 +1351,11 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <ol>
 <li><strong>決定的CBORとハッシュ</strong>：15.1節の入力と、付録 A の値が一致する。</li>
 <li><strong>証跡の検証</strong>：ShogiBoardQ が保存した <code>.sbqmatch</code> を読み、<a href="#sec-13-2">13.2節</a>の検証がすべて通る（署名の検証と、指し手・局面・時間の計算が合っていることの確認になる）。</li>
-<li><strong>招待文字列</strong>：ShogiBoardQ が作った招待文字列を読めて、自分が作った招待文字列を ShogiBoardQ の「招待で接続する」の「確かめる」で読める。合言葉に対応するときは、ShogiBoardQ が作った合言葉でつなげて、自分が作った合言葉で ShogiBoardQ からつなげる。協力ノードを使う合言葉に対応するときは、ShogiBoardQ の協力ノード（<code>shogiboardq-peer --service --relay --meet</code>）を使い、ShogiBoardQ が作った合言葉でつなげて、自分が作った合言葉で ShogiBoardQ からつなげる。</li>
+<li><strong>招待文字列</strong>：ShogiBoardQ が作った招待文字列を読めて、自分が作った招待文字列を ShogiBoardQ の「招待」タブの「招待を受ける」の「確かめる」で読める。合言葉に対応するときは、ShogiBoardQ が作った合言葉でつなげて、自分が作った合言葉で ShogiBoardQ からつなげる。協力ノードを使う合言葉に対応するときは、ShogiBoardQ の協力ノード（<code>shogiboardq-peer --service --relay --meet</code>）を使い、ShogiBoardQ が作った合言葉でつなげて、自分が作った合言葉で ShogiBoardQ からつなげる。</li>
 <li><strong>接続と交渉</strong>：ネットワークを <code>sbq-local-1</code> にして、同じ PC の ShogiBoardQ と、招待する側・される側の両方で条件確認画面まで進める。</li>
 <li><strong>対局</strong>：先手・後手の両方で、投了・詰み・時間切れ・合意による引き分けまで指し、双方の証跡が「双方で確定」になる。自分の書いた証跡を <code>shogiboardq-cli verify-match --input-path &lt;ファイル&gt;</code> で検証し、<code>valid</code> が true、<code>category</code> が <code>mutually_signed</code> になる。</li>
 <li><strong>エンジンが指す対局</strong>（版 2 に対応するとき）：自分・相手のそれぞれの種別が <code>"engine"</code> の対局を、招待する側・される側の両方で始め、条件確認画面に相手の種別が出ることと、証跡の Rules に種別が残ることを確かめる。版 1 だけの実装は、ShogiBoardQ の「対局者」をエンジンにした相手から、REJECT（UNSUPPORTED_VERSION）で断られることを確かめる。</li>
-<li><strong>友だち一覧</strong>（対応するとき）：ShogiBoardQ と互いを友だちにし（ShogiBoardQ では、一度対局した後に「相手の管理」で友だちに追加する）、協力ノード（<code>--meet</code>）を使って、ShogiBoardQ が預けた在席の知らせを読めることと、自分が預けた知らせで ShogiBoardQ に「オンライン」と出ること、どちらからも申し込んで対局を始められることを確かめる。</li>
+<li><strong>友だち一覧</strong>（対応するとき）：ShogiBoardQ と互いを友だちにし（ShogiBoardQ では、一度対局した後に「相手」タブで友だちに追加する）、協力ノード（<code>--meet</code>）を使って、ShogiBoardQ が預けた在席の知らせを読めることと、自分が預けた知らせで ShogiBoardQ に「オンライン」と出ること、どちらからも申し込んで対局を始められることを確かめる。</li>
 <li><strong>再接続</strong>：対局中にストリームを切り、つなぎ直して続けられる（自分が申込側のとき・招待側のとき、未承認の手があるとき・ないとき）。</li>
 <li><strong>断ること</strong>：不正な署名・合法でない手・時間の計算の合わない State・番号の飛んだ CONTROL などを送り、相手が勝ち負けを付けずに止めることを確かめる。自分の実装も、同じ入力を同じように断る。</li>
 </ol>
@@ -1463,6 +1463,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文書の版</th><th>プロトコルの版</th><th>互換実装の修正</th><th>変更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-21</td><td>2</td><td>要らない</td><td>ShogiBoardQ の画面の名前を、P2P対局のウィンドウの組み替え（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/6273b1832691cc66a2a9c0ce246f49080f9b4f26">6273b183</a>）に合わせた（<a href="#sec-3-1">3.1節</a>・<a href="#sec-4-6">4.6節</a>・<a href="#sec-15">15章</a>）。画面では、ネットワークの「ローカル」は「相手のいる場所」の「同じPC・同じLAN」、4.6節の設定は「相手とのつなぎ方」の「協力ノードの中継だけを使う」、招待文字列を確かめる欄は「招待」タブの「招待を受ける」、友だちの追加は「相手」タブになった。networkName・フレームの形・手順などの決まりは変えていない。</td></tr>
 <tr><td>2026-11-20.3</td><td>2</td><td>要らない（友だち一覧に対応するときだけ要る）</td><td>友だち一覧の在席の知らせを足した（<a href="#sec-5-6">5.6節</a>・<a href="#sec-6-3">6.3節</a>・<a href="#sec-8-2">8.2節</a>・<a href="#sec-14">14章</a>・<a href="#sec-15">15章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/4c5f06a791663bd82071377bfda11a04eac9873b">4c5f06a7</a>）。ShogiBoardQ で、友だちにした相手が接続しているかが分かり、招待を渡さずに一覧から対局を申し込めるようにしたためである。互いを友だちにした2人は、プレイヤー鍵と相手のプレイヤーID から鍵交換（X25519）で2人だけの秘密を作り、在席の知らせ（接続先と、期限まで何度でも使える token）を暗号化して、協力ノードの待ち合わせ（5.5節。<code>--meet</code>）に 10 分ごとに変わる番号で預ける。申し込みは、その token を INVITE_TOKEN で送って対局ストリームを開き、受ける側は、知らせを預けた友だちのプレイヤーID を相手が HELLO で名乗らなければ断る。協力ノードの待ち合わせのプロトコル、INVITE_TOKEN の形、HELLO の形、対局の手順は変えていない。対応しない実装は、直さなくても、招待で今までどおり対局できる（友だち一覧からの申し込みは届かない）。試験の入力に <code>friend.txt</code> を足した。</td></tr>
 <tr><td>2026-11-20.2</td><td>2</td><td>要らない（協力ノードを使う合言葉に対応するときだけ要る）</td><td>協力ノードを使う合言葉と、協力ノードの待ち合わせを足した（<a href="#sec-4-1">4.1節</a>・<a href="#sec-5-5">5.5節</a>・<a href="#sec-6-3">6.3節</a>・<a href="#sec-14">14章</a>・<a href="#sec-15">15章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/826a5d9fc56dac084dc528d3dab38d4a792a6062">826a5d9f</a>）。ShogiBoardQ で、インターネット越しの相手（協力ノードを使う招待）も、10 文字の合言葉を伝えるだけで招待できるようにしたためである。合言葉は 45 ビットの秘密だけで、接続先は入らない。招待側は、招待文字列の body を、合言葉から作った鍵（Argon2id）で暗号化（XChaCha20-Poly1305）して、協力ノードの新しいプロトコル <code>/shogiboardq/meet/1.0.0</code> で預け、申込側は同じ合言葉で引き取って復号する。その後の手順と token は招待文字列と同じで、招待文字列の形、INVITE_TOKEN の形、対局の手順は変えていない。対応しない実装は、直さなくても、招待文字列で今までどおり対局できる。協力ノードは、ShogiBoardQ のものを <code>--meet</code> を付けて起動したときだけ待ち合わせを受け付ける（標準の中継ノードだけの協力ノードでは、合言葉は付かない）。5.4節の合言葉は変えていない（その形を使うのは <code>sbq-local-1</code> だけ、という文を、5.5節の合言葉と区別する書き方に直した）。試験の入力に <code>meet.txt</code> を足した。</td></tr>
 <tr><td>2026-11-20.1</td><td>2</td><td>要らない（合言葉に対応するときだけ要る）</td><td>同じ LAN の招待の短い形「合言葉」を足した（<a href="#sec-5-4">5.4節</a>・<a href="#sec-6-3">6.3節</a>・<a href="#sec-14">14章</a>・<a href="#sec-15">15章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/bb24553c79f25b41160738cc6c70da14d7ec04c5">bb24553c</a>）。ShogiBoardQ で、同じ LAN の相手を、12 文字ほどの合言葉を口頭で伝えるだけで招待できるようにしたためである。合言葉は、招待側の LAN の中のアドレスと短い秘密を入れたもので、招待文字列と同じ招待を指し、どちらか一方で1回だけ使える。申込側は、合言葉の宛先へ PeerId を決めずにつなぎ、合言葉から作った鍵（Argon2id）と双方の PeerId から作った token を INVITE_TOKEN で送る。招待文字列の形、INVITE_TOKEN の形、招待文字列でつなぐ手順は変えていない。合言葉に対応しない実装は、直さなくても、招待文字列で今までどおり対局できる（ShogiBoardQ は、合言葉を付けた招待でも招待文字列の token を受け付ける）。本文で、招待の token を「合言葉」と書いていた箇所を「トークン」に改めた（意味は変えていない）。試験の入力に <code>code.txt</code> を足した。</td></tr>

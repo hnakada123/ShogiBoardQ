@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="语言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><span aria-current="page">简体中文</span><a href="../../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P对局 兼容实现规范</h1>
-<p>ShogiBoardQ（将棋盘Q）／协议版本 2／文档版本 2026-11-20.3（<a href="#sec-B">变更履历</a>）／日语原文的简体中文译本</p>
+<p>ShogiBoardQ（将棋盘Q）／协议版本 2／文档版本 2026-11-21（<a href="#sec-B">变更履历</a>）／日语原文的简体中文译本</p>
 <p class="lead">规定通信层、邀请字符串、帧、开始前的协商、对局中的步骤、重新连接，以及对局记录（凭证）的格式与验证。</p>
 </header>
 <nav class="toc" aria-label="目录">
@@ -349,7 +349,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <div class="table-wrap"><table>
 <thead><tr><th>networkName</th><th>用途</th><th>networkId（十六进制）</th></tr></thead>
 <tbody>
-<tr><td><code>sbq-local-1</code></td><td>本地（在 ShogiBoardQ 的画面中显示为“本地（同一电脑・同一局域网）”）。只在同一电脑、同一局域网内连接（<a href="#sec-4-5">第 4.5 节</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
+<tr><td><code>sbq-local-1</code></td><td>本地（在 ShogiBoardQ 的画面中显示为“对手所在位置”的“同一电脑・同一局域网”）。只在同一电脑、同一局域网内连接（<a href="#sec-4-5">第 4.5 节</a>）</td><td><code>83cc9dfdba4b78083aad3ab064df1ef5ba0e18e8c9665f56a95db403dc55b6bf</code></td></tr>
 <tr><td><code>sbq-limited-1</code></td><td>互联网（在 ShogiBoardQ 的画面中显示为“互联网”。networkName 沿用实验版时的名称，没有改变）。与互联网上的对手连接</td><td><code>e2972f65cf26d46415718eb13b8a97e42478963e698c8e550d6ed0d197cb1d93</code></td></tr>
 </tbody>
 </table></div>
@@ -468,7 +468,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 </ul>
 
 <h3 id="sec-4-6">4.6 不使用直接连接的设置</h3>
-<p>这是不让对局对手看到自己 IP 地址的设置（是否实现可以自选）。实现此设置时，必须遵守以下各项。</p>
+<p>这是不让对局对手看到自己 IP 地址的设置（是否实现可以自选。在 ShogiBoardQ 的画面中是“与对手的连接方式”的“仅使用协作节点的中继”）。实现此设置时，必须遵守以下各项。</p>
 <ul>
 <li>直接连接的地址，只限于用户指定的协作节点的地址（以及该节点在 Identify 中自报的其他地址）。对其他地址的直接连接，无论是从哪条途径开始的，都予以拒绝。</li>
 <li>经由中继的地址，只在中继是指定的协作节点时使用（未指定的中继能看到自己的 IP）。</li>
@@ -1351,11 +1351,11 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <ol>
 <li><strong>确定性CBOR与哈希</strong>：与第 15.1 节的输入和附录 A 的值一致。</li>
 <li><strong>凭证的验证</strong>：读取 ShogiBoardQ 保存的 <code>.sbqmatch</code>，<a href="#sec-13-2">第 13.2 节</a>的验证全部通过（这也确认了签名的验证，以及着法、局面、时间的计算是否正确）。</li>
-<li><strong>邀请字符串</strong>：能读取 ShogiBoardQ 生成的邀请字符串，并且自己生成的邀请字符串能用 ShogiBoardQ“通过邀请连接”中的“检查”读取。支持暗号时，能用 ShogiBoardQ 生成的暗号连接，并且 ShogiBoardQ 能用自己生成的暗号连接。支持使用协作节点的暗号时，使用 ShogiBoardQ 的协作节点（<code>shogiboardq-peer --service --relay --meet</code>），能用 ShogiBoardQ 生成的暗号连接，并且 ShogiBoardQ 能用自己生成的暗号连接。</li>
+<li><strong>邀请字符串</strong>：能读取 ShogiBoardQ 生成的邀请字符串，并且自己生成的邀请字符串能用 ShogiBoardQ“邀请”标签页的“接受邀请”中的“检查”读取。支持暗号时，能用 ShogiBoardQ 生成的暗号连接，并且 ShogiBoardQ 能用自己生成的暗号连接。支持使用协作节点的暗号时，使用 ShogiBoardQ 的协作节点（<code>shogiboardq-peer --service --relay --meet</code>），能用 ShogiBoardQ 生成的暗号连接，并且 ShogiBoardQ 能用自己生成的暗号连接。</li>
 <li><strong>连接与协商</strong>：把网络设为 <code>sbq-local-1</code>，与同一电脑上的 ShogiBoardQ，分别作为邀请方和被邀请方，进行到条件确认画面。</li>
 <li><strong>对局</strong>：在执先手和执后手两种情况下，分别下到认输、将死、超时、协议和棋，双方的凭证都成为“双方已确定”。用 <code>shogiboardq-cli verify-match --input-path &lt;文件&gt;</code> 验证自己写出的凭证，<code>valid</code> 为 true，<code>category</code> 为 <code>mutually_signed</code>。</li>
 <li><strong>由引擎下棋的对局</strong>（支持版本 2 时）：分别作为邀请方和被邀请方，开始自己或对手的类别为 <code>"engine"</code> 的对局，确认条件确认画面上显示对手的类别，并且凭证的 Rules 中保留了类别。只支持版本 1 的实现，确认会被在 ShogiBoardQ 中把“对局者”设为引擎的对手以 REJECT（UNSUPPORTED_VERSION）拒绝。</li>
-<li><strong>好友列表</strong>（支持时）：与 ShogiBoardQ 互相加为好友（在 ShogiBoardQ 中，对局一次后在“对手管理”中加为好友），使用协作节点（<code>--meet</code>），确认能读取 ShogiBoardQ 存放的在线通知，自己存放的通知能让 ShogiBoardQ 显示“在线”，并且双方都能通过申请开始对局。</li>
+<li><strong>好友列表</strong>（支持时）：与 ShogiBoardQ 互相加为好友（在 ShogiBoardQ 中，对局一次后在“对手”标签页中加为好友），使用协作节点（<code>--meet</code>），确认能读取 ShogiBoardQ 存放的在线通知，自己存放的通知能让 ShogiBoardQ 显示“在线”，并且双方都能通过申请开始对局。</li>
 <li><strong>重新连接</strong>：在对局中切断流，能重新连接并继续（分别在自己是申请方和邀请方时、有和没有未被认可的着手时）。</li>
 <li><strong>拒绝</strong>：发送不正确的签名、不合法的着法、时间计算不符的 State、编号跳跃的 CONTROL 等，确认对方不判胜负而终止。自己的实现对相同的输入也同样拒绝。</li>
 </ol>
@@ -1463,6 +1463,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文档版本</th><th>协议版本</th><th>兼容实现是否需要修改</th><th>变更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-21</td><td>2</td><td>不需要</td><td>按照重新编排后的 P2P 对局窗口（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/6273b1832691cc66a2a9c0ce246f49080f9b4f26">6273b183</a>），更新了 ShogiBoardQ 画面上的名称（<a href="#sec-3-1">第 3.1 节</a>、<a href="#sec-4-6">第 4.6 节</a>、<a href="#sec-15">第 15 章</a>）。在画面上，网络的“本地”现在是“对手所在位置”的“同一电脑・同一局域网”，第 4.6 节的设置是“与对手的连接方式”的“仅使用协作节点的中继”，检查邀请字符串的栏位是“邀请”标签页的“接受邀请”，加为好友在“对手”标签页中进行。networkName、帧的格式、步骤等规定没有改变。</td></tr>
 <tr><td>2026-11-20.3</td><td>2</td><td>不需要（仅在要支持好友列表时需要）</td><td>增加了好友列表的在线通知（<a href="#sec-5-6">第 5.6 节</a>、<a href="#sec-6-3">第 6.3 节</a>、<a href="#sec-8-2">第 8.2 节</a>、<a href="#sec-14">第 14 章</a>、<a href="#sec-15">第 15 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/4c5f06a791663bd82071377bfda11a04eac9873b">4c5f06a7</a>）。这是因为 ShogiBoardQ 现在可以知道加为好友的对手是否已连接，并且不需要传递邀请就能从列表中申请对局。互相加为好友的两人，用玩家密钥和对方的玩家ID 通过密钥交换（X25519）生成只有两人知道的秘密，把在线通知（连接地址，以及在期限之前可以多次使用的 token）加密后，以每 10 分钟变化一次的编号存放到协作节点的会合（第 5.5 节。<code>--meet</code>）中。申请时，用 INVITE_TOKEN 发送该 token 来打开对局流；接受的一方，如果对方在 HELLO 中声称的不是为其存放通知的好友的玩家ID，就拒绝。协作节点的会合协议、INVITE_TOKEN 的形式、HELLO 的形式、对局的步骤都没有改变。不支持的实现不需要修改，也可以照常用邀请对局（收不到来自好友列表的申请）。测试输入中增加了 <code>friend.txt</code>。</td></tr>
 <tr><td>2026-11-20.2</td><td>2</td><td>不需要（仅在要支持使用协作节点的暗号时需要）</td><td>增加了使用协作节点的暗号，以及协作节点的会合（<a href="#sec-4-1">第 4.1 节</a>、<a href="#sec-5-5">第 5.5 节</a>、<a href="#sec-6-3">第 6.3 节</a>、<a href="#sec-14">第 14 章</a>、<a href="#sec-15">第 15 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/826a5d9fc56dac084dc528d3dab38d4a792a6062">826a5d9f</a>）。这是因为 ShogiBoardQ 现在对通过互联网的对手（使用协作节点的邀请），也只需告知 10 个字符的暗号就可以发出邀请。暗号只是 45 比特的秘密，不含连接地址。邀请方用由暗号派生的密钥（Argon2id）加密（XChaCha20-Poly1305）邀请字符串的 body，通过协作节点的新协议 <code>/shogiboardq/meet/1.0.0</code> 存放；申请方用同一个暗号取回并解密。之后的步骤和 token 与邀请字符串相同，邀请字符串的形式、INVITE_TOKEN 的形式、对局的步骤都没有改变。不支持的实现不需要修改，也可以照常用邀请字符串对局。协作节点只有在使用 ShogiBoardQ 的节点并以 <code>--meet</code> 启动时才接受会合（只是标准中继节点的协作节点不会附带暗号）。第 5.4 节的暗号没有改变（把“该形式只在 <code>sbq-local-1</code> 中使用”一句改成了与第 5.5 节的暗号相区别的写法）。测试输入中增加了 <code>meet.txt</code>。</td></tr>
 <tr><td>2026-11-20.1</td><td>2</td><td>不需要（仅在要支持暗号时需要）</td><td>增加了同一局域网邀请的简短形式“暗号”（<a href="#sec-5-4">第 5.4 节</a>、<a href="#sec-6-3">第 6.3 节</a>、<a href="#sec-14">第 14 章</a>、<a href="#sec-15">第 15 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/bb24553c79f25b41160738cc6c70da14d7ec04c5">bb24553c</a>）。这是因为 ShogiBoardQ 现在只需把 12 个字符左右的暗号口头告诉同一局域网的对手，就可以发出邀请。暗号中放入邀请方在局域网内的地址和简短的秘密，与邀请字符串指向同一个邀请，两者只能用其中之一，并且只能使用一次。申请方不指定 PeerId 地连接暗号中的地址，把用由暗号派生的密钥（Argon2id）和双方的 PeerId 生成的 token 用 INVITE_TOKEN 发送。邀请字符串的形式、INVITE_TOKEN 的形式、用邀请字符串连接的步骤都没有改变。不支持暗号的实现不需要修改，也可以照常用邀请字符串对局（对于附带暗号的邀请，ShogiBoardQ 也接受邀请字符串的 token）。正文中把邀请的 token 称为“口令”的地方改成了“令牌”（含义没有改变）。测试输入中增加了 <code>code.txt</code>。</td></tr>
