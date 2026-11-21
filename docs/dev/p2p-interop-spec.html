@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="言語"><span aria-current="page">日本語</span><a href="../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 2／文書の版 2026-11-21（<a href="#sec-B">変更履歴</a>）</p>
+<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 2／文書の版 2026-11-21.1（<a href="#sec-B">変更履歴</a>）</p>
 <p class="lead">通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
@@ -945,6 +945,7 @@ payload = [State, signature]       ; signature は、指した側の一局用鍵
 <li><code>spentMs</code> は、自分の手番が始まってから State を作る直前までの時間（自分の時計）である。</li>
 <li>残り時間は 9.4節の計算で決める。</li>
 <li>相手の承認（STATE_ACCEPT）が届くまで、次の手を提案してはならない。未承認の自分の手は、同時に1つだけである。</li>
+<li>最新の局面で棋譜から終局が決まっていれば（<a href="#sec-10-3">10.3節</a>）、STATE_PROPOSE を送ってはならない。</li>
 <li>5 秒たっても承認が届かなければ、<strong>同じバイト列</strong>（requestId も同じ）のフレームを送り直す。最初に送ってから 30 秒たっても届かなければ、接続が切れたものとして再接続へ移る（<a href="#sec-11">11章</a>）。</li>
 </ul>
 <p>受けた側は、次の順で確かめる。</p>
@@ -952,7 +953,7 @@ payload = [State, signature]       ; signature は、指した側の一局用鍵
 <li>State の gameId が対局ID である。違えばエラー（CONDITION_MISMATCH）。</li>
 <li><code>ply</code> が 0 なら、9.1節のとおりに扱う（State0 が期待の値と違う・署名が正しくないときは、エラー（INVALID_SIGNATURE））。<code>ply</code> が 1 以上なのに、State0 の承認と READY がまだ済んでいなければ、エラー（CONDITION_MISMATCH）。</li>
 <li><code>ply</code> が、自分の知る最新の State 以下なら、再送として扱う。同じ State なら、保存してある自分の承認を STATE_ACCEPT で送り直す（盤・時計は動かさない）。同じ手数で<strong>違う</strong> State なら、エラー（STATE_CONFLICT）で止める。</li>
-<li><code>ply</code> が最新の次（＋1）で、相手の手番であり、自分に未承認の手がない。外れればエラー（STATE_CONFLICT）。</li>
+<li><code>ply</code> が最新の次（＋1）で、相手の手番であり、自分に未承認の手がない。外れればエラー（STATE_CONFLICT）。最新の State で棋譜から終局が決まっていれば（<a href="#sec-10-3">10.3節</a>）、エラー（INVALID_MOVE）。</li>
 <li>署名が相手の一局用鍵で正しい。外れればエラー（INVALID_SIGNATURE）。</li>
 <li><code>previousStateHash</code> が最新の State のハッシュであり、指し手の文字列が 7.3節の形である。外れればエラー（INVALID_MOVE）。</li>
 <li>申告された <code>spentMs</code> が時間切れ（<code>E ≥ R + B</code>。9.4節）でない。時間切れならエラー（CLOCK_MISMATCH）。</li>
@@ -1102,6 +1103,7 @@ Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]    
 </li>
 <li><strong>512 手到達</strong>：最新の ply が 512 なら、引き分け（cause 7）。</li>
 </ol>
+<p>終局が決まった後は、どちらの側も手を提案してはならない。受けた STATE_PROPOSE は承認せずにエラー（INVALID_MOVE）で止め（<a href="#sec-9-2">9.2節</a>の手順 4）、再接続の照合で届いた State は取り込まずにエラー（STATE_CONFLICT）で止める（<a href="#sec-11-4">11.4節</a>）。承認すると、相手が次の手で結果を消せる（連続王手の千日手で負けた側が負けを逃れるなど）。止めても、双方が承認した手順は終局の局面で終わるので、証跡は棋譜から決まる結果を示す（<a href="#sec-13-2">13.2節</a>）。</p>
 
 <h3 id="sec-10-4">10.4 結果への署名（RESULT_SIGNATURE）</h3>
 <pre><code>Frame   = [1, 9, requestId, gameId, payload]
@@ -1166,7 +1168,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <ul>
 <li>古い側は、<code>fromPly</code> ＝ 自分の最新の手数＋1、<code>previousStateHash</code> ＝ 自分の最新の State のハッシュで求める。</li>
 <li>新しい側は、相手の RESUME を受けた後であること、<code>fromPly</code> が 1 以上で自分の最新の手数以下であること、<code>previousStateHash</code> が自分の <code>fromPly − 1</code> 手目の State のハッシュであることを確かめる。外れればエラー（STATE_CONFLICT）。通れば、<code>fromPly</code> から最新までの State を、双方の承認の署名（どちらも bstr(64)）とともに、1回に 64 件までの SYNC_CHUNK で順に返す。最後の塊は <code>final</code> ＝ 1、それ以外は 0。求められた範囲の外のものは送らない。</li>
-<li>古い側は、受けた State を1つずつ、手数が連続していること・双方の承認が正しいこと・<a href="#sec-9-2">9.2節</a>の手順 6〜9（前状態ハッシュ・指し手の形・時間切れ・合法手・局面・残り時間の計算）で確かめてから取り込む。どれが外れても、エラー（STATE_CONFLICT）で止める。自分に未承認の手があり、同じ手数で違う State が届いたら、エラー（STATE_CONFLICT）で止める（片方の署名しかない別の手順へ巻き戻さない）。同じ State なら、未承認の手が承認されたものとして扱う。</li>
+<li>古い側は、受けた State を1つずつ、手数が連続していること・双方の承認が正しいこと・<a href="#sec-9-2">9.2節</a>の手順 6〜9（前状態ハッシュ・指し手の形・時間切れ・合法手・局面・残り時間の計算）で確かめてから取り込む。どれが外れても、エラー（STATE_CONFLICT）で止める。自分に未承認の手があり、同じ手数で違う State が届いたら、エラー（STATE_CONFLICT）で止める（片方の署名しかない別の手順へ巻き戻さない）。同じ State なら、未承認の手が承認されたものとして扱う。棋譜から終局が決まった State（<a href="#sec-10-3">10.3節</a>）の後の State は取り込まず、エラー（STATE_CONFLICT）で止める。</li>
 <li>再接続で初めて知った相手の手については、自分の手番の計時を、取り込んだ時点から始める（失われた時刻を推測しない）。</li>
 </ul>
 
@@ -1256,6 +1258,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
   <li>長さ 0 でない承認の署名が、対応する側の一局用鍵（blackSessionKey・whiteSessionKey）で正しい。どちらの承認もない State は認めない。</li>
   <li>State0 が <a href="#sec-7-2">7.2節</a>の値と一致する。それ以降は、前の State から <a href="#sec-9-2">9.2節</a>の手順 6〜9（前状態ハッシュ・指し手の形・時間切れ・合法手・局面・残り時間の計算）のとおりに作られている。</li>
   <li>片方の承認しかない State は、列の最後にだけ置ける。</li>
+  <li>双方が承認した手順の途中で棋譜から終局が決まったら（<a href="#sec-10-3">10.3節</a>）、その後に State を置けない（片方の承認しかない State も）。</li>
   </ul>
 </li>
 <li><strong>双方が承認した手順</strong>：両方の承認がそろった State（列の先頭からの連続した部分）を「双方が承認した手順」とする。これが空でなければ、<a href="#sec-10-3">10.3節</a>の判定を行い、棋譜から終局が決まるかを求める。</li>
@@ -1463,6 +1466,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文書の版</th><th>プロトコルの版</th><th>互換実装の修正</th><th>変更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-21.1</td><td>2</td><td>要る</td><td>棋譜から終局が決まった局面（<a href="#sec-10-3">10.3節</a>）の後の手を禁じた（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/5292fc73cfafcb40e7d4aecd9445caec20d82738">5292fc73</a>）。手番の側は、終局が決まった局面で STATE_PROPOSE を送ってはならない（<a href="#sec-9-2">9.2節</a>）。受けた側は承認せずにエラー（INVALID_MOVE）で止め（9.2節の手順 4）、再接続の照合で届いた State も取り込まない（<a href="#sec-11-4">11.4節</a>。STATE_CONFLICT）。証跡の検証は、終局の State の後に State が続く記録を、規則に合わないものとする（<a href="#sec-13-2">13.2節</a>）。以前は、終局の直後に届いた手を承認していたので、改造したクライアントは、連続王手の千日手で負けた結果を次の手で消すことができ、その記録も検証に通った。正しく作った実装は終局の後に手を送らないので、対局はそのままできる（プロトコルの版は 2 のまま）。互換実装は、受ける側の検査と証跡の検証を直す必要がある。</td></tr>
 <tr><td>2026-11-21</td><td>2</td><td>要らない</td><td>ShogiBoardQ の画面の名前を、P2P対局のウィンドウの組み替え（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/6273b1832691cc66a2a9c0ce246f49080f9b4f26">6273b183</a>）に合わせた（<a href="#sec-3-1">3.1節</a>・<a href="#sec-4-6">4.6節</a>・<a href="#sec-15">15章</a>）。画面では、ネットワークの「ローカル」は「相手のいる場所」の「同じPC・同じLAN」、4.6節の設定は「相手とのつなぎ方」の「協力ノードの中継だけを使う」、招待文字列を確かめる欄は「招待」タブの「招待を受ける」、友だちの追加は「相手」タブになった。networkName・フレームの形・手順などの決まりは変えていない。</td></tr>
 <tr><td>2026-11-20.3</td><td>2</td><td>要らない（友だち一覧に対応するときだけ要る）</td><td>友だち一覧の在席の知らせを足した（<a href="#sec-5-6">5.6節</a>・<a href="#sec-6-3">6.3節</a>・<a href="#sec-8-2">8.2節</a>・<a href="#sec-14">14章</a>・<a href="#sec-15">15章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/4c5f06a791663bd82071377bfda11a04eac9873b">4c5f06a7</a>）。ShogiBoardQ で、友だちにした相手が接続しているかが分かり、招待を渡さずに一覧から対局を申し込めるようにしたためである。互いを友だちにした2人は、プレイヤー鍵と相手のプレイヤーID から鍵交換（X25519）で2人だけの秘密を作り、在席の知らせ（接続先と、期限まで何度でも使える token）を暗号化して、協力ノードの待ち合わせ（5.5節。<code>--meet</code>）に 10 分ごとに変わる番号で預ける。申し込みは、その token を INVITE_TOKEN で送って対局ストリームを開き、受ける側は、知らせを預けた友だちのプレイヤーID を相手が HELLO で名乗らなければ断る。協力ノードの待ち合わせのプロトコル、INVITE_TOKEN の形、HELLO の形、対局の手順は変えていない。対応しない実装は、直さなくても、招待で今までどおり対局できる（友だち一覧からの申し込みは届かない）。試験の入力に <code>friend.txt</code> を足した。</td></tr>
 <tr><td>2026-11-20.2</td><td>2</td><td>要らない（協力ノードを使う合言葉に対応するときだけ要る）</td><td>協力ノードを使う合言葉と、協力ノードの待ち合わせを足した（<a href="#sec-4-1">4.1節</a>・<a href="#sec-5-5">5.5節</a>・<a href="#sec-6-3">6.3節</a>・<a href="#sec-14">14章</a>・<a href="#sec-15">15章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/826a5d9fc56dac084dc528d3dab38d4a792a6062">826a5d9f</a>）。ShogiBoardQ で、インターネット越しの相手（協力ノードを使う招待）も、10 文字の合言葉を伝えるだけで招待できるようにしたためである。合言葉は 45 ビットの秘密だけで、接続先は入らない。招待側は、招待文字列の body を、合言葉から作った鍵（Argon2id）で暗号化（XChaCha20-Poly1305）して、協力ノードの新しいプロトコル <code>/shogiboardq/meet/1.0.0</code> で預け、申込側は同じ合言葉で引き取って復号する。その後の手順と token は招待文字列と同じで、招待文字列の形、INVITE_TOKEN の形、対局の手順は変えていない。対応しない実装は、直さなくても、招待文字列で今までどおり対局できる。協力ノードは、ShogiBoardQ のものを <code>--meet</code> を付けて起動したときだけ待ち合わせを受け付ける（標準の中継ノードだけの協力ノードでは、合言葉は付かない）。5.4節の合言葉は変えていない（その形を使うのは <code>sbq-local-1</code> だけ、という文を、5.5節の合言葉と区別する書き方に直した）。試験の入力に <code>meet.txt</code> を足した。</td></tr>

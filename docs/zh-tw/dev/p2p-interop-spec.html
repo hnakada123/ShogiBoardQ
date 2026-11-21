@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="語言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><span aria-current="page">繁體中文</span></nav>
 <h1>P2P對局相容實作規格書</h1>
-<p>ShogiBoardQ（將棋盤Q）／協定版本 2／文件版本 2026-11-21（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
+<p>ShogiBoardQ（將棋盤Q）／協定版本 2／文件版本 2026-11-21.1（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
 <p class="lead">規定通訊層、邀請字串、訊框、開始前的協商、對局中的步驟、重新連線，以及對局記錄（憑證）的格式與驗證。</p>
 </header>
 <nav class="toc" aria-label="目錄">
@@ -945,6 +945,7 @@ payload = [State, signature]       ; signature 為走棋方以單局金鑰對 St
 <li><code>spentMs</code> 是從自己的回合開始到即將產生 State 之前的時間（以自己的時鐘計）。</li>
 <li>剩餘時間依第 9.4 節的計算決定。</li>
 <li>在對方的認可（STATE_ACCEPT）到達之前，不得提議下一手。自己未獲認可的著手，同時只能有 1 個。</li>
+<li>在最新的局面中，若已由棋譜決定終局（<a href="#sec-10-3">第 10.3 節</a>），不得傳送 STATE_PROPOSE。</li>
 <li>過了 5 秒認可仍未到達時，重新傳送<strong>相同位元組序列</strong>（requestId 也相同）的訊框。從第一次傳送起過了 30 秒仍未到達時，視為連線已中斷，轉入重新連線（<a href="#sec-11">第 11 章</a>）。</li>
 </ul>
 <p>接收方依下列順序檢查。</p>
@@ -952,7 +953,7 @@ payload = [State, signature]       ; signature 為走棋方以單局金鑰對 St
 <li>State 的 gameId 是對局ID。不同時為錯誤（CONDITION_MISMATCH）。</li>
 <li><code>ply</code> 為 0 時，依第 9.1 節處理（State0 與預期值不同或簽章不正確時，為錯誤（INVALID_SIGNATURE））。<code>ply</code> 為 1 以上，但 State0 的認可與 READY 尚未完成時，為錯誤（CONDITION_MISMATCH）。</li>
 <li><code>ply</code> 在自己所知的最新 State 以下時，當作重送處理。若是相同的 State，就以 STATE_ACCEPT 重新傳送已儲存的自己的認可（不變動棋盤與時鐘）。若是同一手數但<strong>不同</strong>的 State，以錯誤（STATE_CONFLICT）停止。</li>
-<li><code>ply</code> 是最新的下一個（＋1），輪到對方走棋，且自己沒有未獲認可的著手。不符時為錯誤（STATE_CONFLICT）。</li>
+<li><code>ply</code> 是最新的下一個（＋1），輪到對方走棋，且自己沒有未獲認可的著手。不符時為錯誤（STATE_CONFLICT）。在最新的 State 中若已由棋譜決定終局（<a href="#sec-10-3">第 10.3 節</a>），為錯誤（INVALID_MOVE）。</li>
 <li>簽章以對方的單局金鑰驗證正確。不符時為錯誤（INVALID_SIGNATURE）。</li>
 <li><code>previousStateHash</code> 是最新 State 的雜湊，且著手字串為第 7.3 節的形式。不符時為錯誤（INVALID_MOVE）。</li>
 <li>申報的 <code>spentMs</code> 不是超時（<code>E ≥ R + B</code>。第 9.4 節）。超時則為錯誤（CLOCK_MISMATCH）。</li>
@@ -1102,6 +1103,7 @@ Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]    
 </li>
 <li><strong>達到 512 手</strong>：最新的 ply 為 512 時，為和棋（cause 7）。</li>
 </ol>
+<p>終局確定之後，雙方都不得提議著手。收到的 STATE_PROPOSE 不予認可，以錯誤（INVALID_MOVE）停止（<a href="#sec-9-2">第 9.2 節</a>的步驟 4）；在重新連線後的核對中到達的 State 不予納入，以錯誤（STATE_CONFLICT）停止（<a href="#sec-11-4">第 11.4 節</a>）。若予以認可，對方就能以下一手消除結果（例如因連續王手千日手而輸的一方逃過敗局）。即使停止，雙方都已認可的著手序列也會在終局的局面結束，因此憑證會顯示由棋譜決定的結果（<a href="#sec-13-2">第 13.2 節</a>）。</p>
 
 <h3 id="sec-10-4">10.4 對結果的簽章（RESULT_SIGNATURE）</h3>
 <pre><code>Frame   = [1, 9, requestId, gameId, payload]
@@ -1166,7 +1168,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <ul>
 <li>較舊的一方，以 <code>fromPly</code> ＝ 自己最新的手數＋1、<code>previousStateHash</code> ＝ 自己最新 State 的雜湊來請求。</li>
 <li>較新的一方檢查：已收到對方的 RESUME、<code>fromPly</code> 為 1 以上且在自己最新的手數以下，以及 <code>previousStateHash</code> 是自己第 <code>fromPly − 1</code> 手的 State 的雜湊。不符時為錯誤（STATE_CONFLICT）。通過後，把從 <code>fromPly</code> 到最新的 State，連同雙方認可的簽章（皆為 bstr(64)），以每次最多 64 個的 SYNC_CHUNK 依序回傳。最後一個區塊的 <code>final</code> ＝ 1，其他為 0。不傳送請求範圍以外的內容。</li>
-<li>較舊的一方對收到的 State 逐一檢查手數是否連續、雙方的認可是否正確，以及<a href="#sec-9-2">第 9.2 節</a>的步驟 6〜9（前一狀態的雜湊、著手的形式、超時、合法著手、局面、剩餘時間的計算），通過後再納入。任何一項不符，都以錯誤（STATE_CONFLICT）停止。自己有未獲認可的著手，而同一手數到達了不同的 State 時，以錯誤（STATE_CONFLICT）停止（不回退到只有單方簽章的另一個著手序列）。若是相同的 State，就把未獲認可的著手當作已獲認可處理。</li>
+<li>較舊的一方對收到的 State 逐一檢查手數是否連續、雙方的認可是否正確，以及<a href="#sec-9-2">第 9.2 節</a>的步驟 6〜9（前一狀態的雜湊、著手的形式、超時、合法著手、局面、剩餘時間的計算），通過後再納入。任何一項不符，都以錯誤（STATE_CONFLICT）停止。自己有未獲認可的著手，而同一手數到達了不同的 State 時，以錯誤（STATE_CONFLICT）停止（不回退到只有單方簽章的另一個著手序列）。若是相同的 State，就把未獲認可的著手當作已獲認可處理。由棋譜決定終局的 State（<a href="#sec-10-3">第 10.3 節</a>）之後的 State 不予納入，以錯誤（STATE_CONFLICT）停止。</li>
 <li>對於透過重新連線才首次得知的對方著手，自己回合的計時從納入的時點開始（不推測遺失的時刻）。</li>
 </ul>
 
@@ -1256,6 +1258,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
   <li>長度不為 0 的認可簽章，以對應一方的單局金鑰（blackSessionKey、whiteSessionKey）驗證正確。不接受雙方認可都沒有的 State。</li>
   <li>State0 與<a href="#sec-7-2">第 7.2 節</a>的值一致。其後的 State 都是依<a href="#sec-9-2">第 9.2 節</a>的步驟 6〜9（前一狀態的雜湊、著手的形式、超時、合法著手、局面、剩餘時間的計算），由前一個 State 產生。</li>
   <li>只有單方認可的 State，只能放在序列的最後。</li>
+  <li>若在雙方都已認可的著手序列中途已由棋譜決定終局（<a href="#sec-10-3">第 10.3 節</a>），其後不得再放置 State（只有單方認可的 State 也不行）。</li>
   </ul>
 </li>
 <li><strong>雙方都已認可的著手序列</strong>：把雙方認可都齊備的 State（從序列開頭起連續的部分）稱為「雙方都已認可的著手序列」。若它不是空的，就進行<a href="#sec-10-3">第 10.3 節</a>的判定，求出終局是否由棋譜決定。</li>
@@ -1463,6 +1466,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文件版本</th><th>協定版本</th><th>相容實作是否需要修改</th><th>變更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-21.1</td><td>2</td><td>需要</td><td>禁止了在由棋譜決定終局的局面（<a href="#sec-10-3">第 10.3 節</a>）之後的著手（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/5292fc73cfafcb40e7d4aecd9445caec20d82738">5292fc73</a>）。輪到走棋的一方在終局已確定的局面中不得傳送 STATE_PROPOSE（<a href="#sec-9-2">第 9.2 節</a>）。接收方不予認可，以錯誤（INVALID_MOVE）停止（第 9.2 節的步驟 4），在重新連線後的核對中到達的 State 也不予納入（<a href="#sec-11-4">第 11.4 節</a>。STATE_CONFLICT）。憑證的驗證把終局的 State 之後還有 State 的記錄視為不符合規則（<a href="#sec-13-2">第 13.2 節</a>）。以前會認可終局之後緊接著到達的著手，因此修改過的用戶端可以用下一手消除因連續王手千日手而輸的結果，該記錄也能通過驗證。正確實作的程式不會在終局之後傳送著手，因此對局照常可以進行（協定版本仍為 2）。相容實作需要修改接收方的檢查與憑證的驗證。</td></tr>
 <tr><td>2026-11-21</td><td>2</td><td>不需要</td><td>依照重新編排後的 P2P 對局視窗（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/6273b1832691cc66a2a9c0ce246f49080f9b4f26">6273b183</a>），更新了 ShogiBoardQ 畫面上的名稱（<a href="#sec-3-1">第 3.1 節</a>、<a href="#sec-4-6">第 4.6 節</a>、<a href="#sec-15">第 15 章</a>）。在畫面上，網路的「本機」現在是「對手所在位置」的「同一電腦・同一區域網路」，第 4.6 節的設定是「與對手的連線方式」的「僅使用協作節點的中繼」，檢查邀請字串的欄位是「邀請」分頁的「接受邀請」，加為好友在「對手」分頁中進行。networkName、訊框的格式、步驟等規則沒有改變。</td></tr>
 <tr><td>2026-11-20.3</td><td>2</td><td>不需要（只有要支援好友清單時才需要）</td><td>增加了好友清單的上線通知（<a href="#sec-5-6">第 5.6 節</a>、<a href="#sec-6-3">第 6.3 節</a>、<a href="#sec-8-2">第 8.2 節</a>、<a href="#sec-14">第 14 章</a>、<a href="#sec-15">第 15 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/4c5f06a791663bd82071377bfda11a04eac9873b">4c5f06a7</a>）。這是因為 ShogiBoardQ 現在可以知道加為好友的對手是否已連線，並且不需要傳遞邀請就能從清單中申請對局。互相加為好友的兩人，以玩家金鑰和對方的玩家ID 透過金鑰交換（X25519）產生只有兩人知道的秘密，把上線通知（連線位址，以及在期限之前可以多次使用的 token）加密後，以每 10 分鐘變化一次的編號存放到協作節點的會合（第 5.5 節。<code>--meet</code>）中。申請時，以 INVITE_TOKEN 傳送該 token 來開啟對局串流；接受的一方，如果對方在 HELLO 中聲稱的不是為其存放通知的好友的玩家ID，就拒絕。協作節點的會合協定、INVITE_TOKEN 的形式、HELLO 的形式、對局的步驟都沒有改變。不支援的實作不需要修改，也可以照常以邀請對局（收不到來自好友清單的申請）。測試輸入中增加了 <code>friend.txt</code>。</td></tr>
 <tr><td>2026-11-20.2</td><td>2</td><td>不需要（只有要支援使用協作節點的暗號時才需要）</td><td>增加了使用協作節點的暗號，以及協作節點的會合（<a href="#sec-4-1">第 4.1 節</a>、<a href="#sec-5-5">第 5.5 節</a>、<a href="#sec-6-3">第 6.3 節</a>、<a href="#sec-14">第 14 章</a>、<a href="#sec-15">第 15 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/826a5d9fc56dac084dc528d3dab38d4a792a6062">826a5d9f</a>）。這是因為 ShogiBoardQ 現在對透過網際網路的對手（使用協作節點的邀請），也只要告知 10 個字元的暗號就可以發出邀請。暗號只是 45 位元的秘密，不含連線位址。邀請方以由暗號衍生的金鑰（Argon2id）加密（XChaCha20-Poly1305）邀請字串的 body，透過協作節點的新協定 <code>/shogiboardq/meet/1.0.0</code> 存放；申請方以同一個暗號取回並解密。之後的步驟和 token 與邀請字串相同，邀請字串的形式、INVITE_TOKEN 的形式、對局的步驟都沒有改變。不支援的實作不需要修改，也可以照常以邀請字串對局。協作節點只有在使用 ShogiBoardQ 的節點並以 <code>--meet</code> 啟動時才接受會合（只是標準中繼節點的協作節點不會附帶暗號）。第 5.4 節的暗號沒有改變（把「該形式只在 <code>sbq-local-1</code> 中使用」一句改成了與第 5.5 節的暗號相區別的寫法）。測試輸入中增加了 <code>meet.txt</code>。</td></tr>
