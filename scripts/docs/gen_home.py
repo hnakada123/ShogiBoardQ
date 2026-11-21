@@ -115,7 +115,7 @@ T["ja"] = {
     "more": "詳しく見る",
     "ft_title": "機能一覧",
     "ft_desc": "利用ガイドで、すべての機能の使い方を目的別に解説しています。",
-    "engine_note": "対局・検討・解析には、USIプロトコルに対応した<a href=\"{engine}\">将棋エンジンを登録</a>して使います。各OSの配布パッケージには将棋エンジンHayanagiを同梱しています。将棋エンジンの開発者の方々に感謝いたします。",
+    "engine_note": "対局・検討・解析には、USIプロトコルに対応した<a href=\"{engine}\">将棋エンジンを登録</a>して使います。各OSの配布パッケージには将棋エンジンHayanagiを同梱しています。将棋エンジンの開発者の方々と、参考にさせていただいた将棋対局ソフトの開発者の方々に感謝いたします。",
     "groups": {"play": "対局", "analysis": "研究・解析", "records": "棋譜・局面の操作", "tsume": "詰将棋",
                "setup": "導入・画面設定", "ai": "AI連携"},
     "cards": {
@@ -253,7 +253,7 @@ T["en"] = {
     "more": "Learn more",
     "ft_title": "Features",
     "ft_desc": "The User Guide explains every feature, organized by task.",
-    "engine_note": "Games and analysis use a shogi engine that supports the USI protocol, which you <a href=\"{engine}\">register</a> first. The release packages for every OS include the Hayanagi engine. We thank the developers of shogi engines for their work.",
+    "engine_note": "Games and analysis use a shogi engine that supports the USI protocol, which you <a href=\"{engine}\">register</a> first. The release packages for every OS include the Hayanagi engine. We thank the developers of shogi engines, and the developers of the shogi applications we learned from, for their work.",
     "groups": {"play": "Playing", "analysis": "Study &amp; Analysis", "records": "Records &amp; Positions",
                "tsume": "Tsume Shogi", "setup": "Setup &amp; Appearance", "ai": "AI Integration"},
     "cards": {
@@ -391,7 +391,7 @@ T["zh-cn"] = {
     "more": "了解更多",
     "ft_title": "功能一览",
     "ft_desc": "使用指南按用途介绍了全部功能的用法。",
-    "engine_note": "对局、研究和分析需要<a href=\"{engine}\">注册</a>支持 USI 协议的将棋引擎。各操作系统的发布包中都附带了将棋引擎 Hayanagi。在此向各位将棋引擎开发者致以谢意。",
+    "engine_note": "对局、研究和分析需要<a href=\"{engine}\">注册</a>支持 USI 协议的将棋引擎。各操作系统的发布包中都附带了将棋引擎 Hayanagi。在此向各位将棋引擎开发者，以及我们参考过的将棋对局软件的开发者致以谢意。",
     "groups": {"play": "对局", "analysis": "研究与分析", "records": "棋谱与局面", "tsume": "诘棋",
                "setup": "界面与设置", "ai": "AI 集成"},
     "cards": {
@@ -529,7 +529,7 @@ T["zh-tw"] = {
     "more": "了解更多",
     "ft_title": "功能一覽",
     "ft_desc": "使用指南依用途介紹所有功能的用法。",
-    "engine_note": "對局、研究與分析需要<a href=\"{engine}\">註冊</a>支援 USI 協定的將棋引擎。各作業系統的發行套件中都附有將棋引擎 Hayanagi。在此向各位將棋引擎開發者致上謝意。",
+    "engine_note": "對局、研究與分析需要<a href=\"{engine}\">註冊</a>支援 USI 協定的將棋引擎。各作業系統的發行套件中都附有將棋引擎 Hayanagi。在此向各位將棋引擎開發者，以及我們參考過的將棋對局軟體的開發者致上謝意。",
     "groups": {"play": "對局", "analysis": "研究與分析", "records": "棋譜與局面", "tsume": "詰棋",
                "setup": "介面與設定", "ai": "AI 整合"},
     "cards": {
