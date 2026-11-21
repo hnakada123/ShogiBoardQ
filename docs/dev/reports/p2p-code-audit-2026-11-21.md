@@ -56,7 +56,7 @@
 
 ### R2 対局の状態機械 `P2p::Match`（game/p2p）
 
-**状態: 済（コミットは次の項目の修正で書き足す）**。直し方の 1〜3 を入れ、4 は値をまとめるところまでにした。
+**状態: 済（5fa33d65）**。直し方の 1〜3 を入れ、4 は値をまとめるところまでにした。
 - 制御メッセージの通し番号・署名・1局の件数は値 `ControlChannel`（`p2pcontrolchannel`）。成り立たない検査（`m_controlOut + m_controlIn > 4096`）は消した。上限の数は `ControlChannel::kMaxMessages` の1か所。
 - 双方が署名した手順と、そこから決まる終局は値 `SignedLine`（`p2psignedline`）。終局は手を足すたびに1度だけ求める（以前は結果の提案のたびに、全手順の千日手を調べ直していた）。結果が今の手数を指すか（`isCurrent`）もここ。
 - 確認待ちの手は1つの構造体 `PendingMove` の optional にした。送るフレームはバイト列でなく `Frame` で持ち、再送のたびに復号し直さない。
@@ -131,6 +131,14 @@
 
 ### R5 Rust: つなぐ途中の接続が5つの表に分かれている（peer）
 
+**状態: 済（コミットは次の項目の修正で書き足す）**。
+- 番号1つに段階1つの表 `Conns`（`peer/src/node/conns.rs`。引き取り中・合言葉の宛先へダイヤル中・開く接続を待つ・開いている途中・開いた・閉じる）にし、`conns`・`opening`・`code_connects`・`code_dials`・`meets.connects` をなくした。Swarm と IPC に触れず、段階の進み方の単体試験を付けた。
+- 「応答の後で失敗を知らせる」3通りは、段階を「閉じる」にするだけの1通りにした。主ループが出来事を1つ処理するたびに、閉じた接続の connectionClosed をまとめて出す（応答より前には出ない）。
+- IPC のエラーの語は `ipc::ErrorCode`（`words!`）、エラーは `IpcError`、要求の処理は `Result<Reply, IpcError>` の1行ずつの表にした。語の文字列は変えていない。
+- あわせて、libp2p の接続の表3つを `PeerLinks` に（2章の範囲外の整理）、役割の bool 4つを `swarm::Role` に（S9）、枠の数え方・トークンバケット・長さ付きの読み書きの重複を `limits.rs`・`wire.rs` に（S11）まとめた。
+- 動きの違い: connectionClosed は、その出来事の出力の最後に番号の順で出る（合言葉の引き取りの結果は inspectInvite の応答の後、宛先の時間切れは networkStatus の後になる。応答より前に出ることはない）。開く接続を待つ間の 30 秒の期限は 250ms ごとの見回りで確かめる（最大 250ms 遅れる。理由の語は同じ）。引き取り中・ダイヤル中の番号への sendFrame の message が "connection is not open" になった（code は同じ `unknown_connection`）。
+- 確かめたこと: `cargo test`（protocol 26・peer の単体 76・`peer/tests/ipc.rs` 18）、`cargo clippy -D warnings`、本物の通信プロセスを使う `tst_p2p_endtoend`・`tst_p2p_sandbox`。
+
 **今の形**
 
 - 1つの接続番号が「協力ノードから引き取り中 → 合言葉の宛先へダイヤル中 → どの接続で開くか待ち → 開いた」と進む間、段階ごとに別の表に入る: `conns`・`opening`・`code_connects`・`code_dials`（`peer/src/node.rs:95-109`）、`meets.connects`（`peer/src/node/meets.rs:63`）。
@@ -186,9 +194,9 @@
 | # | 疑い | 根拠 |
 |---|---|---|
 | U1 | 千日手などで棋譜から終局が決まった直後に、次の手を指せる。その直後に回線が切れると、双方の記録が食い違う恐れがある。**確認・修正済み（R2 と同じコミット）**: 試験で再現した。千日手の手を受けた側が送った承認・結果の提案が切断の前にどこまで届いたかで、千日手を飛ばして対局が続く・一方だけが千日手で終わる、のどれかになった。`Match::playMove` が、棋譜から終局が決まった局面では手を作らない（`MoveError::Finished`）ようにし、司令塔も手を求めない（`isMyMoveExpected`）。試験は `tst_p2p_match` の `moveAfterRepetitionAndDisconnect`。受ける側は変えていない: 終局の後の手を、以前の版の相手が送ってくれば、今も承認する。断るかどうかはプロトコルの決まり（互換実装の仕様書）を変えることになるので、別に決める | `Match::playMove`（`p2pmatch.cpp:380-392`）と司令塔の `isMyMoveExpected` は、棋譜から決まった終局を見ない。切断がなければ、相手は先に届いた結果の提案で一致し、後から届いた手を取り込まない（`p2pmatch.cpp:200`）ので無害である。切断があると、指した側は確認待ちの手があるために結果の提案を送り直せない（`p2pmatch_control.cpp:148`・`484-488`）。この先の経路は確かめていない |
-| U2 | Rust: 確立の直後に閉じた接続の知らせで、同じ相手へ開く途中の接続が `unreachable` で失敗しうる | `peer/src/node/events.rs:51-62`・`77-98`。`peer_conns` に入れずに閉じた接続にも ConnectionClosed が届き、その相手のほかの接続が無ければ `fail_openings_of` が走る |
-| U3 | Rust: 協力ノードが預けものを置き換えるとき、古いものを消してから件数の上限を調べる | `peer/src/meetstore.rs:133-143`。接続元が変わっていて新しい接続元が上限なら、古いものを失ったうえで断られる |
-| U4 | Rust: 「協力ノードの中継だけを使う」で同じ LAN の合言葉につなぐと、理由が `no_relay_route` でなく `unreachable` になる | `peer/src/node/requests.rs:344-349` → `codes.rs:182-190`。画面は使える候補が0件なら接続ボタンを押せなくするので、通常は届かない |
+| U2 | Rust: 確立の直後に閉じた接続の知らせで、同じ相手へ開く途中の接続が `unreachable` で失敗しうる。**修正済み（R5 と同じコミット）**: 受け付けずに閉じた接続（数に入れていない接続）の知らせでは、相手との接続がなくなったとみなさない（`PeerLinks::closed`）。試験 `closing_an_untracked_connection_does_not_drop_the_peer` は、以前の判断に戻すと落ちることを確かめた | `peer/src/node/events.rs:51-62`・`77-98`。`peer_conns` に入れずに閉じた接続にも ConnectionClosed が届き、その相手のほかの接続が無ければ `fail_openings_of` が走る |
+| U3 | Rust: 協力ノードが預けものを置き換えるとき、古いものを消してから件数の上限を調べる。**確認・修正済み（R5 と同じコミット）**: 試験 `refused_replacement_keeps_the_old_deposit` で再現した。上限を先に調べ、断るときは前の預けものを残す | `peer/src/meetstore.rs:133-143`。接続元が変わっていて新しい接続元が上限なら、古いものを失ったうえで断られる |
+| U4 | Rust: 「協力ノードの中継だけを使う」で同じ LAN の合言葉につなぐと、理由が `no_relay_route` でなく `unreachable` になる。**変えていない**: アプリの `no_relay_route` の文（「この招待文字列には…協力ノードを登録」）が同じ LAN の合言葉に当てはまらないので、直すなら画面の文と一緒に直す（画面は使える候補が0件なら「接続する」を押せないので、通常は届かない） | `peer/src/node/requests.rs:344-349` → `codes.rs:182-190`。画面は使える候補が0件なら接続ボタンを押せなくするので、通常は届かない |
 
 ---
 

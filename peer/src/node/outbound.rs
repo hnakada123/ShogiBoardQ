@@ -16,21 +16,9 @@
 
 use std::time::Duration;
 
-use libp2p::PeerId;
-use tokio::sync::oneshot;
-
 /// 中継でつながった相手との直接の接続（穴あけ）を待つ時間。対局・UI側は、切れた対局の相手へ5秒ごとに
 /// つなぎ直す（P2pGameCoordinator）。前のつなぎ直しが開く前に次を始めないよう、それより短くする
 pub const HOLE_PUNCH_WAIT: Duration = Duration::from_secs(3);
-
-/// 対局ストリームを開くのを待っている接続
-pub struct Opening {
-    pub peer: PeerId,
-    /// 開くタスクへの知らせ（true で開く、false でやめる）
-    pub go: oneshot::Sender<bool>,
-    /// 直接の接続を待たない（穴あけをあきらめた）
-    pub no_hole_punch: bool,
-}
 
 /// 相手との接続の様子
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

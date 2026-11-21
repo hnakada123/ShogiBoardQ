@@ -7,11 +7,13 @@ use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
-use futures::{AsyncReadExt, AsyncWriteExt, StreamExt};
+use futures::{AsyncWriteExt, StreamExt};
 use libp2p::{PeerId, Stream, StreamProtocol};
 use sbq_protocol::meet::{Request, Response, Status, MAX_MESSAGE_BYTES, MEET_PROTOCOL};
 
+use crate::limits::PeerSlots;
 use crate::meetstore::MeetStore;
+use crate::wire;
 
 /// 要求1つを終えるまでの時間（頼む側・受け付ける側とも）
 const EXCHANGE_TIMEOUT: Duration = Duration::from_secs(5);
@@ -21,22 +23,11 @@ const MAX_PENDING: usize = 64;
 const MAX_PENDING_PER_PEER: usize = 4;
 
 async fn read_message(stream: &mut Stream) -> Option<Vec<u8>> {
-    let mut len_buf = [0u8; 4];
-    stream.read_exact(&mut len_buf).await.ok()?;
-    let len = usize::try_from(u32::from_be_bytes(len_buf)).ok()?;
-    if len == 0 || len > MAX_MESSAGE_BYTES {
-        return None;
-    }
-    let mut body = vec![0u8; len];
-    stream.read_exact(&mut body).await.ok()?;
-    Some(body)
+    wire::read(stream, MAX_MESSAGE_BYTES).await.ok()
 }
 
 async fn write_message(stream: &mut Stream, body: &[u8]) -> Option<()> {
-    let len = u32::try_from(body.len()).ok()?;
-    stream.write_all(&len.to_be_bytes()).await.ok()?;
-    stream.write_all(body).await.ok()?;
-    stream.flush().await.ok()
+    wire::write(stream, body).await.ok()
 }
 
 /// 協力ノードに要求を1つ送り、応答を受ける。つながらない・待ち合わせに対応していない・時間切れ・読めない応答は None
@@ -78,8 +69,8 @@ struct ServiceState {
     store: MeetStore,
     /// つながっているピアの接続元（アドレス帯）。主ループが、接続ができた・なくなったときに書く
     sources: HashMap<PeerId, Vec<u8>>,
-    pending: usize,
-    pending_per_peer: HashMap<PeerId, usize>,
+    /// 処理している要求
+    pending: PeerSlots,
 }
 
 /// 協力ノードの待ち合わせ（受け付けのタスクと主ループで共有する）
@@ -114,25 +105,11 @@ impl MeetService {
     }
 
     fn enter(&self, peer: &PeerId) -> bool {
-        let mut state = self.lock();
-        let mine = state.pending_per_peer.get(peer).copied().unwrap_or(0);
-        if state.pending >= MAX_PENDING || mine >= MAX_PENDING_PER_PEER {
-            return false;
-        }
-        state.pending = state.pending.saturating_add(1);
-        state.pending_per_peer.insert(*peer, mine.saturating_add(1));
-        true
+        self.lock().pending.enter(peer, MAX_PENDING, MAX_PENDING_PER_PEER)
     }
 
     fn leave(&self, peer: &PeerId) {
-        let mut state = self.lock();
-        state.pending = state.pending.saturating_sub(1);
-        let left = state.pending_per_peer.get(peer).copied().unwrap_or(0).saturating_sub(1);
-        if left == 0 {
-            state.pending_per_peer.remove(peer);
-        } else {
-            state.pending_per_peer.insert(*peer, left);
-        }
+        self.lock().pending.leave(peer);
     }
 
     fn handle(&self, peer: &PeerId, request: Request) -> Response {

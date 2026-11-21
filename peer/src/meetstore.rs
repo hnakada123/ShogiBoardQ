@@ -10,6 +10,8 @@ use std::time::{Duration, Instant};
 use libp2p::PeerId;
 use sbq_protocol::meet::{Request, Response, Status};
 
+use crate::limits::TokenBucket;
+
 /// 預かる件数の上限（全体）
 pub const MAX_ENTRIES: usize = 4096;
 /// 預かる件数の上限（接続元ごと）
@@ -31,25 +33,6 @@ struct Entry {
     one_time: bool,
 }
 
-/// 要求の頻度（トークンバケット。値はミリ単位のトークン）
-struct Bucket {
-    tokens_milli: u64,
-    last: Instant,
-}
-
-const BUCKET_FULL: u64 = REQUEST_BURST * 1000;
-
-impl Bucket {
-    fn refill(&mut self, now: Instant) {
-        let elapsed_ms = u64::try_from(now.saturating_duration_since(self.last).as_millis()).unwrap_or(u64::MAX);
-        self.last = now;
-        self.tokens_milli = self
-            .tokens_milli
-            .saturating_add(elapsed_ms.saturating_mul(REQUEST_RATE))
-            .min(BUCKET_FULL);
-    }
-}
-
 /// 預かっているもの
 #[derive(Default)]
 pub struct MeetStore {
@@ -57,7 +40,7 @@ pub struct MeetStore {
     /// 接続元ごとの、預かっている件数
     per_source: HashMap<Vec<u8>, usize>,
     /// 接続元ごとの、要求の頻度
-    buckets: HashMap<Vec<u8>, Bucket>,
+    buckets: HashMap<Vec<u8>, TokenBucket>,
 }
 
 impl MeetStore {
@@ -72,23 +55,13 @@ impl MeetStore {
             if self.buckets.len() >= MAX_SOURCES {
                 return false;
             }
-            self.buckets.insert(
-                source.to_vec(),
-                Bucket {
-                    tokens_milli: BUCKET_FULL,
-                    last: now,
-                },
-            );
+            self.buckets
+                .insert(source.to_vec(), TokenBucket::full(REQUEST_BURST, now));
         }
         let Some(bucket) = self.buckets.get_mut(source) else {
             return false;
         };
-        bucket.refill(now);
-        if bucket.tokens_milli < 1000 {
-            return false;
-        }
-        bucket.tokens_milli = bucket.tokens_milli.saturating_sub(1000);
-        true
+        bucket.take(now, REQUEST_RATE, REQUEST_BURST)
     }
 
     fn remove(&mut self, slot: &[u8; 32]) -> Option<Entry> {
@@ -130,17 +103,29 @@ impl MeetStore {
                 let Some(expires) = now.checked_add(Duration::from_secs(ttl_secs)) else {
                     return Response::status(Status::Invalid);
                 };
-                match self.live(&slot, now) {
-                    // 同じ番号に預けたものは、預けたピアだけが置き換えられる
+                // 同じ番号に預けたものは、預けたピアだけが置き換えられる。置き換えは件数を増やさない（同じ接続元
+                // からなら、その接続元の件数も増やさない）
+                let replaced_source = match self.live(&slot, now) {
                     Some(existing) if &existing.owner != peer => return Response::status(Status::Refused),
-                    Some(_) => {
-                        self.remove(&slot);
-                    }
-                    None => {}
-                }
-                let mine = self.per_source.get(source).copied().unwrap_or(0);
-                if self.entries.len() >= MAX_ENTRIES || mine >= MAX_ENTRIES_PER_SOURCE {
+                    Some(existing) => Some(existing.source.clone()),
+                    None => None,
+                };
+                let total = self
+                    .entries
+                    .len()
+                    .saturating_sub(usize::from(replaced_source.is_some()));
+                let mine = self
+                    .per_source
+                    .get(source)
+                    .copied()
+                    .unwrap_or(0)
+                    .saturating_sub(usize::from(replaced_source.as_deref() == Some(source)));
+                // 上限を調べてから古いものを消す（断ったときに、前に預けたものを失わない。監査 2026-11-21 U3）
+                if total >= MAX_ENTRIES || mine >= MAX_ENTRIES_PER_SOURCE {
                     return Response::status(Status::Limit);
+                }
+                if replaced_source.is_some() {
+                    self.remove(&slot);
                 }
                 self.per_source.insert(source.to_vec(), mine.saturating_add(1));
                 self.entries.insert(
@@ -192,8 +177,8 @@ impl MeetStore {
         }
         // 満杯まで戻った頻度の記録は、消しても同じ（次の要求で満杯から始まる）
         self.buckets.retain(|_, bucket| {
-            bucket.refill(now);
-            bucket.tokens_milli < BUCKET_FULL
+            bucket.refill(now, REQUEST_RATE, REQUEST_BURST);
+            !bucket.is_full(REQUEST_BURST)
         });
     }
 }
@@ -326,6 +311,51 @@ mod tests {
         store.expire(later);
         assert_eq!(store.len(), 0);
         assert_eq!(put_slot(&mut store, 1, HOME, later), Status::Ok);
+    }
+
+    /// 預けたピアが別の接続元から同じ番号を置き換えようとして、その接続元が件数の上限なら、断る。
+    /// 断ったときに、前に預けたものを失わない（上限を調べる前に消さない）
+    #[test]
+    fn refused_replacement_keeps_the_old_deposit() {
+        let mut store = MeetStore::default();
+        let owner = PeerId::random();
+        let t0 = Instant::now();
+        assert_eq!(store.handle(&owner, HOME, put(1, 7, 600, false), t0).status, Status::Ok);
+        // 別の接続元を、件数の上限まで埋める（頻度の上限に掛からないように時間を進める）
+        let filler = PeerId::random();
+        let filler_put = |i: usize, n: u8| {
+            let mut slot = [0xffu8; 32];
+            slot[..8].copy_from_slice(&(i as u64).to_be_bytes());
+            Request::Put {
+                slot,
+                blob: blob(n),
+                ttl_secs: 600,
+                one_time: false,
+            }
+        };
+        let mut now = t0;
+        for i in 0..MAX_ENTRIES_PER_SOURCE {
+            now += Duration::from_secs(1);
+            assert_eq!(store.handle(&filler, OTHER, filler_put(i, 1), now).status, Status::Ok);
+        }
+        now += Duration::from_secs(1);
+        assert_eq!(
+            store.handle(&owner, OTHER, put(1, 9, 300, false), now).status,
+            Status::Limit
+        );
+        let got = store.handle(&PeerId::random(), HOME, get(1), now);
+        assert_eq!((got.status, got.blob), (Status::Ok, blob(7)));
+        assert_eq!(store.len(), MAX_ENTRIES_PER_SOURCE + 1);
+        // 同じ接続元からの置き換えは、その接続元が上限でもできる（件数は増えない）
+        assert_eq!(store.handle(&filler, OTHER, filler_put(0, 2), now).status, Status::Ok);
+        assert_eq!(store.len(), MAX_ENTRIES_PER_SOURCE + 1);
+        // 上限でない接続元へ移る置き換えは、できる（件数は増えず、数える接続元が替わる）
+        assert_eq!(store.handle(&filler, HOME, filler_put(0, 3), now).status, Status::Ok);
+        assert_eq!(store.len(), MAX_ENTRIES_PER_SOURCE + 1);
+        assert_eq!(
+            store.handle(&owner, OTHER, put(2, 9, 300, false), now).status,
+            Status::Ok
+        );
     }
 
     #[test]

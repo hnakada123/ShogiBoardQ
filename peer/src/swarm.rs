@@ -49,19 +49,50 @@ pub struct Behaviour {
     pub game: libp2p_stream::Behaviour,
 }
 
+/// 通信プロセスの役割
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Role {
+    /// 対局・UI側から使うプレイヤー。relay_only は「直接接続を使わない」（協力ノードの中継だけを使う）
+    Player { relay_only: bool },
+    /// 協力ノード（--service）。relay は中継（--relay）を、meet は合言葉の待ち合わせ（--meet）を受け持つ
+    Service { relay: bool, meet: bool },
+}
+
+impl Role {
+    /// 協力ノードか
+    pub fn is_service(self) -> bool {
+        matches!(self, Role::Service { .. })
+    }
+
+    /// 直接接続を使わないプレイヤーか
+    pub fn relay_only(self) -> bool {
+        matches!(self, Role::Player { relay_only: true })
+    }
+
+    /// 中継を受け持つ協力ノードか
+    pub fn relays(self) -> bool {
+        matches!(self, Role::Service { relay: true, .. })
+    }
+
+    /// 合言葉の待ち合わせを受け持つ協力ノードか
+    pub fn meets(self) -> bool {
+        matches!(self, Role::Service { meet: true, .. })
+    }
+
+    /// 直接の接続（穴あけ・DCUtR）と到達性の確認の依頼（AutoNAT）を使うか。直接接続を使うプレイヤーだけ
+    /// （「直接接続を使わない」では、どちらも自分のアドレスの候補を相手に渡すので使わない。協力ノードは使わない）
+    pub fn uses_direct(self) -> bool {
+        matches!(self, Role::Player { relay_only: false })
+    }
+}
+
 /// Swarm の組み立ての条件
 pub struct SwarmOptions {
     pub keypair: Keypair,
     pub policy: Arc<AddrPolicy>,
-    /// 協力ノード（中継の server）
-    pub service: bool,
-    pub relay_server: bool,
-    /// 直接接続を使わない（DCUtR をしない）
-    pub relay_only: bool,
-    /// 到達性の確認を頼む（internet のふつうのプレイヤーで、直接接続を使うとき）
-    pub autonat_client: bool,
-    /// 到達性の確認に応える（internet の協力ノード）
-    pub autonat_server: bool,
+    pub role: Role,
+    /// インターネットのネットワーク（到達性の確認を使う）
+    pub internet: bool,
 }
 
 fn io_err<E: std::fmt::Display>(e: E) -> String {
@@ -116,7 +147,8 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
         .with_hide_listen_addrs(true)
         .with_push_listen_addr_updates(false);
 
-    let relay_server = if options.relay_server {
+    let role = options.role;
+    let relay_server = if role.relays() {
         let config = relay::Config {
             max_reservations: 128,
             max_reservations_per_peer: 1,
@@ -140,15 +172,15 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
                 .with_interval(Duration::from_secs(10))
                 .with_timeout(Duration::from_secs(30)),
         ),
-        relay_client: Toggle::from(if options.service { None } else { Some(relay_client) }),
+        relay_client: Toggle::from(if role.is_service() { None } else { Some(relay_client) }),
         relay_server: Toggle::from(relay_server),
-        dcutr: Toggle::from(if options.relay_only || options.service {
-            None
-        } else {
-            Some(dcutr::Behaviour::new(local_peer))
-        }),
-        autonat_client: Toggle::from(options.autonat_client.then(PublicAutonatClient::new)),
-        autonat_server: Toggle::from(options.autonat_server.then(autonat::v2::server::Behaviour::default)),
+        dcutr: Toggle::from(role.uses_direct().then(|| dcutr::Behaviour::new(local_peer))),
+        // 到達性の確認（AutoNAT）を頼むのは、インターネットで直接接続を使うプレイヤーだけ。確認に応えるのは協力ノード
+        // だけ（AutoNAT v2 のクライアントは、応える側のピアにだけ頼むので、確認の依頼は協力ノードにだけ届く）
+        autonat_client: Toggle::from((options.internet && role.uses_direct()).then(PublicAutonatClient::new)),
+        autonat_server: Toggle::from(
+            (options.internet && role.is_service()).then(autonat::v2::server::Behaviour::default),
+        ),
         game: libp2p_stream::Behaviour::new(),
     };
 
@@ -159,4 +191,45 @@ pub fn build(options: SwarmOptions) -> Result<Swarm<Behaviour>, String> {
 /// 中継の hop を持つピアか（Identify の protocols）
 pub fn supports_relay_hop(info: &identify::Info) -> bool {
     info.protocols.iter().any(|p| p.as_ref() == RELAY_HOP_PROTOCOL)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 役割から決まること（以前の bool の組 service・relay_only・relay_server・meet_server と同じ）
+    #[test]
+    fn role_decides_the_behaviours() {
+        let row = |role: Role| {
+            (
+                role.is_service(),
+                role.relay_only(),
+                role.relays(),
+                role.meets(),
+                role.uses_direct(),
+            )
+        };
+        assert_eq!(
+            row(Role::Player { relay_only: false }),
+            (false, false, false, false, true)
+        );
+        assert_eq!(
+            row(Role::Player { relay_only: true }),
+            (false, true, false, false, false)
+        );
+        assert_eq!(
+            row(Role::Service {
+                relay: true,
+                meet: false
+            }),
+            (true, false, true, false, false)
+        );
+        assert_eq!(
+            row(Role::Service {
+                relay: false,
+                meet: true
+            }),
+            (true, false, false, true, false)
+        );
+    }
 }

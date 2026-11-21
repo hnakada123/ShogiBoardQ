@@ -5,7 +5,7 @@
 //! つなぐ側: 合言葉から番号と鍵を作り、協力ノードから引き取って復号し（start_meet_fetch）、招待文字列のときと
 //! 同じ手順でつなぐ。合言葉には接続先が入らず、協力ノードには預かったものの中身が分からない。
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use libp2p::{identify, Multiaddr, PeerId};
 use rand::RngCore;
@@ -15,7 +15,7 @@ use sbq_protocol::meet::{self as protocol, MeetCode, Request, Status, MAX_TTL_SE
 use super::requests::ReadyInvite;
 use super::streams::Internal;
 use super::{unix_now, Node};
-use crate::ipc;
+use crate::ipc::{self, ErrorCode, IpcError};
 use crate::meet;
 
 /// 引き取った招待（合言葉の秘密で見分ける）
@@ -59,8 +59,6 @@ pub struct Meets {
     pub nodes: Vec<PeerId>,
     /// 引き取った招待（最後の1つ。確かめた（inspectInvite）後の接続に使う）
     fetched: Option<Fetched>,
-    /// 引き取りを待っている接続（connectInvite の応答を返した後、つなぎ始めるまで）
-    pub connects: HashSet<u64>,
     /// 引き取っている途中の合言葉（秘密）と、その結果を待っている要求。協力ノードは1回引き取られたら消すので、
     /// 同じ合言葉を続けて確かめられても、引き取りは1回にして、結果を全部の要求に返す
     inflight: HashMap<u64, Vec<Purpose>>,
@@ -71,8 +69,9 @@ fn supports_meet(info: &identify::Info) -> bool {
     info.protocols.iter().any(|p| p.as_ref() == MEET_PROTOCOL)
 }
 
-fn no_node() -> (&'static str, String) {
-    ("invite_no_node", "no node for passcodes is connected".to_owned())
+/// 待ち合わせに対応した協力ノードにつながっていない
+pub(super) fn no_node() -> IpcError {
+    IpcError::new(ErrorCode::InviteNoNode, "no node for passcodes is connected")
 }
 
 impl Node {
@@ -173,7 +172,7 @@ impl Node {
     }
 
     /// 合言葉の招待を協力ノードから引き取り始める（結果は Internal::MeetFetched で届く）
-    pub(super) fn start_meet_fetch(&mut self, code: MeetCode, purpose: Purpose) -> Result<(), (&'static str, String)> {
+    pub(super) fn start_meet_fetch(&mut self, code: MeetCode, purpose: Purpose) -> Result<(), IpcError> {
         if !self.can_meet() {
             return Err(no_node());
         }
@@ -282,41 +281,39 @@ impl Node {
                 peer,
                 addrs,
             }),
-            Outcome::NotFound => Err(("invite_not_found", "no invite for this passcode".to_owned())),
+            Outcome::NotFound => Err(IpcError::new(ErrorCode::InviteNotFound, "no invite for this passcode")),
             Outcome::NoAnswer => Err(no_node()),
-            Outcome::Own => Err(("invite_own", "own invite".to_owned())),
+            Outcome::Own => Err(IpcError::new(ErrorCode::InviteOwn, "own invite")),
         };
-        let inspected = match &fetched {
-            Ok(f) => Ok(self.inspect_result("meetCode", &f.peer.to_base58(), f.inv.expires_at, &f.addrs)),
-            Err((code, message)) => Err((*code, message.clone())),
-        };
-        // つなぎ始めるのは、待っていた接続の最初の1つだけ（1つの招待でつなげるのは1回）
+        let inspected = fetched
+            .as_ref()
+            .map(|f| self.inspect_result("meetCode", &f.peer.to_base58(), f.inv.expires_at, &f.addrs))
+            .map_err(Clone::clone);
+        // つなぎ始めるのは、待っていた接続の最初の1つだけ（1つの招待でつなげるのは1回）。ほかは unreachable で閉じる
         let mut connect: Option<(u64, bool)> = None;
         for purpose in waiting {
             match purpose {
                 Purpose::Inspect { request_id } => match &inspected {
                     Ok(value) => self.out.result(&request_id, value.clone()),
-                    Err((code, message)) => self.out.error(&request_id, code, message),
+                    Err(e) => self.out.error(&request_id, e),
                 },
                 Purpose::Connect { conn, allow_private } => {
-                    if !self.meets.connects.remove(&conn) {
+                    if !self.conns.is_fetching(conn) {
                         // 引き取りを待つ間に、接続が取りやめられた（closeConnection）
                         continue;
                     }
                     if connect.is_none() && fetched.is_ok() {
                         connect = Some((conn, allow_private));
                     } else {
-                        self.out.notify(ipc::Notification::ConnectionClosed {
-                            connection: conn,
-                            reason: ipc::CloseReason::Unreachable,
-                        });
+                        self.conns.fail(conn, ipc::CloseReason::Unreachable);
                     }
                 }
             }
         }
         match (connect, fetched) {
             (Some((conn, allow_private)), Ok(f)) => {
-                self.connect_to_invite(conn, f.inv.token, f.peer, f.addrs, allow_private);
+                let start = self.invite_outbound(f.inv.token, f.peer, f.addrs, allow_private);
+                self.proceed(conn, start);
             }
             // 協力ノードは、1回引き取られたら消す。続く connectInvite で使えるように持っておく
             (None, Ok(f)) => self.meets.fetched = Some(f),

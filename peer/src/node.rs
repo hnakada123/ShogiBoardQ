@@ -1,9 +1,10 @@
 //! 対局・UI側から使うときの通信プロセス（IPC の要求を受けて Swarm を動かす）
 //!
 //! 主ループと Swarm の作成はここに置き、役割ごとに分ける: 要求の処理（requests）、Swarm の出来事（events）、
-//! 対局ストリーム（streams）、対局ストリームを開く接続の選び方（outbound）、作った招待（invites）、中継の予約
-//! （reservations）、協力ノードが中継している回路の数（circuits）、同じ LAN の合言葉（codes）、協力ノードを使う
-//! 合言葉（meets）。待受は crate::listen、協力ノードの待ち合わせは crate::meet
+//! 対局ストリーム（streams）、対局ストリームの接続の番号と段階（conns）、相手との libp2p の接続（peerlinks）、
+//! 対局ストリームを開く接続の選び方（outbound）、作った招待（invites）、中継の予約（reservations）、協力ノードが
+//! 中継している回路の数（circuits）、同じ LAN の合言葉（codes）、協力ノードを使う合言葉（meets）。待受は
+//! crate::listen、協力ノードの待ち合わせは crate::meet
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -13,7 +14,6 @@ use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
 use futures::StreamExt;
 use libp2p::identity::Keypair;
-use libp2p::swarm::ConnectionId;
 use libp2p::{Multiaddr, PeerId, StreamProtocol, Swarm};
 use sbq_protocol::frame::GAME_PROTOCOL;
 use sbq_protocol::hash::hex;
@@ -24,25 +24,27 @@ use tokio::sync::mpsc;
 
 use crate::addr::{self, AddrPolicy};
 use crate::game::ConnEvent;
-use crate::ipc::{self, Method, Out, Request};
+use crate::ipc::{self, ErrorCode, IpcError, Method, Out, Request};
 use crate::listen;
 use crate::meet::{self, MeetService};
 use crate::sandbox::SandboxReport;
 use crate::service;
-use crate::swarm::{self, Behaviour, SwarmOptions};
+use crate::swarm::{self, Behaviour, Role, SwarmOptions};
 
 mod circuits;
 mod codes;
+mod conns;
 mod events;
 mod invites;
 mod meets;
 mod outbound;
+mod peerlinks;
 mod presences;
 mod requests;
 mod reservations;
 mod streams;
 
-pub use streams::{Conn, ConnState, Internal, MAX_GAME_CONNECTIONS};
+pub use streams::Internal;
 
 /// 宛先を覚えるピアの上限
 const MAX_ADDR_BOOK_PEERS: usize = 64;
@@ -70,11 +72,7 @@ pub fn build_expired(now: u64) -> bool {
 pub struct NodeConfig {
     pub spec: NetworkSpec,
     pub keypair: Keypair,
-    pub relay_only: bool,
-    pub service: bool,
-    pub relay_server: bool,
-    /// 合言葉の待ち合わせを受け持つ（協力ノードの --meet）
-    pub meet_server: bool,
+    pub role: Role,
     /// 待受のアドレスの候補（1件ごとに、先頭から試して最初に開けたものを使う）
     pub listen: Vec<Vec<Multiaddr>>,
 }
@@ -87,26 +85,18 @@ pub struct Node {
     pub network_id: [u8; 32],
     /// 宛先の規則（「直接接続を使わない」も持つ）
     pub policy: Arc<AddrPolicy>,
-    /// 協力ノード（--service）
-    pub service: bool,
+    /// プレイヤーか協力ノードか（直接の接続（穴あけ）を試すかも、これで決まる）
+    pub role: Role,
     pub control: libp2p_stream::Control,
     pub conn_events: mpsc::UnboundedSender<ConnEvent>,
     pub internal: mpsc::UnboundedSender<Internal>,
-    pub conns: HashMap<u64, Conn>,
-    pub next_conn: u64,
-    /// 対局ストリームを開くのを待っている接続（つなぐ側。どの接続の上で開くかが決まるまで）
-    pub opening: HashMap<u64, outbound::Opening>,
-    /// 直接の接続（穴あけ）を試すか（「直接接続を使わない」と協力ノードは試さない）
-    pub hole_punching: bool,
+    /// 対局ストリームの接続（つなぐ途中・開いた・閉じる途中）
+    pub conns: conns::Conns,
     pub invites: invites::Invites,
     /// 在席の知らせ（友だちの申し込みを受けるトークン）
     pub presences: presences::Presences,
     /// 招待を取り消すたびに増やす番号（鍵を作っている間に取り消された招待を足さない）
     pub invite_epoch: u64,
-    /// 合言葉でつなぐ途中の接続（相手の PeerId が分かるまで）
-    pub code_connects: HashMap<u64, codes::Pending>,
-    /// 合言葉の宛先へ、PeerId を決めずに始めたダイヤル
-    pub code_dials: HashMap<ConnectionId, u64>,
     /// 協力ノードを使う合言葉（待ち合わせに対応した協力ノード・引き取った招待）
     pub meets: meets::Meets,
     /// 待ち合わせで預かっているもの（待ち合わせを受け持つ協力ノードだけ）
@@ -114,11 +104,8 @@ pub struct Node {
     pub game_peer: Option<PeerId>,
     /// 最初のフレームを待つ届いた対局ストリームの数と、対局中の相手（受け付けのタスクと共有する）
     pub accept_gate: Arc<streams::AcceptGate>,
-    pub peer_conns: HashMap<PeerId, HashMap<ConnectionId, bool>>,
-    /// 接続ができた時刻（中継経由の接続で、直接の接続を待つ時間を測る）
-    pub conn_since: HashMap<ConnectionId, Instant>,
-    /// 受け付けた接続の接続元のアドレス帯
-    pub inbound_prefixes: HashMap<ConnectionId, Vec<u8>>,
+    /// 相手との libp2p の接続
+    pub links: peerlinks::PeerLinks,
     pub addr_book: HashMap<PeerId, Vec<Multiaddr>>,
     /// 利用者が指定した協力ノードと、指定された宛先
     pub bootstrap: HashMap<PeerId, Multiaddr>,
@@ -190,7 +177,7 @@ pub async fn run(report: SandboxReport) {
                 "sandbox": report.to_json(),
             }),
         ),
-        Err(e) => out.error(&hello.request_id, "invalid_request", &e),
+        Err(e) => out.error(&hello.request_id, &e),
     }
 
     // start
@@ -199,42 +186,45 @@ pub async fn run(report: SandboxReport) {
         match request.method {
             Method::Start => match Node::start(&out, &request) {
                 Ok(node) => break node,
-                Err((code, message)) => out.error(&request.request_id, code, &message),
+                Err(e) => out.error(&request.request_id, &e),
             },
             Method::Shutdown => {
                 out.result(&request.request_id, json!({}));
                 tokio::time::sleep(Duration::from_millis(200)).await;
                 std::process::exit(0);
             }
-            _ => out.error(&request.request_id, "invalid_state", "start has not been called"),
+            _ => out.error(
+                &request.request_id,
+                &IpcError::new(ErrorCode::InvalidState, "start has not been called"),
+            ),
         }
     };
     node.run_loop(Some(req_rx)).await;
 }
 
 impl Node {
-    fn start(out: &Out, request: &Request) -> Result<Node, (&'static str, String)> {
-        let p: ipc::StartParams = ipc::params(request).map_err(|e| ("invalid_request", e))?;
+    fn start(out: &Out, request: &Request) -> Result<Node, IpcError> {
+        let p: ipc::StartParams = ipc::params(request)?;
         if !network::is_valid_name(&p.network_name) {
-            return Err(("invalid_request", "invalid networkName".into()));
+            return Err(IpcError::invalid_request("invalid networkName"));
         }
-        let spec = network::find(&p.network_name).ok_or(("network_not_allowed", "network not allowed".into()))?;
+        let spec = network::find(&p.network_name)
+            .ok_or_else(|| IpcError::new(ErrorCode::NetworkNotAllowed, "network not allowed"))?;
         if spec.expires_with_build && build_expired(unix_now()) {
-            return Err(("build_expired", "this build has expired".into()));
+            return Err(IpcError::new(ErrorCode::BuildExpired, "this build has expired"));
         }
         if p.bootstrap.len() > ipc::MAX_BOOTSTRAP {
-            return Err(("invalid_request", "too many addresses".into()));
+            return Err(IpcError::invalid_request("too many addresses"));
         }
         let config = NodeConfig {
             spec,
             keypair: Keypair::generate_ed25519(),
-            relay_only: p.relay_only,
-            service: false,
-            relay_server: false,
-            meet_server: false,
+            role: Role::Player {
+                relay_only: p.relay_only,
+            },
             listen: listen::candidates(spec.profile),
         };
-        let mut node = Node::create(out, config).map_err(|e| ("internal", e))?;
+        let mut node = Node::create(out, config).map_err(|e| IpcError::new(ErrorCode::Internal, e))?;
         node.connect_nodes(&p.bootstrap);
         out.result(
             &request.request_id,
@@ -252,21 +242,15 @@ impl Node {
     pub fn create(out: &Out, config: NodeConfig) -> Result<Node, String> {
         let spec = config.spec;
         let network_id = network::network_id(spec.name);
-        let policy = Arc::new(AddrPolicy::new(spec.profile, config.relay_only));
+        let role = config.role;
+        let policy = Arc::new(AddrPolicy::new(spec.profile, role.relay_only()));
         let keypair = config.keypair;
         let local_peer = keypair.public().to_peer_id();
-        let internet = spec.profile == Profile::Internet;
         let mut swarm = swarm::build(SwarmOptions {
             keypair,
             policy: policy.clone(),
-            service: config.service,
-            relay_server: config.relay_server,
-            relay_only: config.relay_only,
-            // 「直接接続を使わない」のときは、到達性の確認（AutoNAT）をしない。確認の依頼には自分の
-            // アドレスの候補が入る。確認に応えるのは協力ノードだけ（AutoNAT v2 のクライアントは、応える側の
-            // ピアにだけ頼むので、確認の依頼は協力ノードにだけ届く）
-            autonat_client: internet && !config.relay_only && !config.service,
-            autonat_server: internet && config.service,
+            role,
+            internet: spec.profile == Profile::Internet,
         })?;
 
         if listen::open(&mut swarm, config.listen) == 0 {
@@ -277,14 +261,14 @@ impl Node {
         let (internal_tx, internal_rx) = mpsc::unbounded_channel();
         let mut control = swarm.behaviour().game.new_control();
         let accept_gate = Arc::new(streams::AcceptGate::default());
-        if !config.service {
+        if !role.is_service() {
             // 協力ノードは対局ストリームを受け付けない
             let incoming = control
                 .accept(StreamProtocol::new(GAME_PROTOCOL))
                 .map_err(|e| e.to_string())?;
             tokio::spawn(streams::accept_task(incoming, internal_tx.clone(), accept_gate.clone()));
         }
-        let meet_service = if config.service && config.meet_server {
+        let meet_service = if role.meets() {
             let incoming = control
                 .accept(StreamProtocol::new(MEET_PROTOCOL))
                 .map_err(|e| e.to_string())?;
@@ -302,30 +286,23 @@ impl Node {
             spec,
             network_id,
             policy,
-            service: config.service,
+            role,
             control,
             conn_events: conn_tx,
             internal: internal_tx,
-            conns: HashMap::new(),
-            next_conn: 1,
-            opening: HashMap::new(),
-            hole_punching: !config.relay_only && !config.service,
+            conns: conns::Conns::default(),
             invites: invites::Invites::default(),
             presences: presences::Presences::default(),
             invite_epoch: 0,
-            code_connects: HashMap::new(),
-            code_dials: HashMap::new(),
             meets: meets::Meets::default(),
             meet_service,
             game_peer: None,
             accept_gate,
-            peer_conns: HashMap::new(),
-            conn_since: HashMap::new(),
-            inbound_prefixes: HashMap::new(),
+            links: peerlinks::PeerLinks::default(),
             addr_book: HashMap::new(),
             bootstrap: HashMap::new(),
             reservations: reservations::Reservations::default(),
-            circuits: config.relay_server.then(circuits::Circuits::default),
+            circuits: role.relays().then(circuits::Circuits::default),
             listen_addrs: Vec::new(),
             reachability: ipc::Reachability::Unknown,
             last_status: None,
@@ -396,6 +373,8 @@ impl Node {
                 Some(event) = internal.recv() => self.on_internal(event),
                 _ = tick.tick() => self.on_tick(),
             }
+            // 閉じた接続を知らせる（つなぎ始められなかった接続は、番号を返す応答の後になる）
+            self.report_closed();
         }
     }
 
@@ -405,9 +384,10 @@ impl Node {
                 std::process::exit(0);
             }
         }
-        // 直接の接続を待つ時間が過ぎた対局ストリームを開く
+        // 期限を過ぎた接続（合言葉の宛先へのダイヤル・開く接続を待つ間）を閉じ、直接の接続を待つ時間が過ぎた
+        // 対局ストリームを開く
+        self.conns.expire(Instant::now());
         self.advance_all_openings();
-        self.expire_code_connects();
         if self.last_second.elapsed() < Duration::from_secs(1) {
             return;
         }
@@ -417,16 +397,16 @@ impl Node {
         self.release_meets();
         // 断られた・失われた中継の予約を頼み直す（協力ノードとつながっている間）
         for peer in self.reservations.due(Instant::now()) {
-            if self.peer_conns.contains_key(&peer) {
+            if self.links.contains(&peer) {
                 self.request_reservation(peer);
             }
         }
         self.emit_status();
-        if self.service {
+        if self.role.is_service() {
             // 接続元の IP もピアの ID も書かない（数だけ）。数が変わったときに書く（ここは1秒に1回なので、
             // 続けて変わっても1秒に1行まで）
             let counts = service::Counts {
-                peers: self.peer_conns.len(),
+                peers: self.links.peer_count(),
                 relays: self.circuits.as_ref().map(circuits::Circuits::count),
                 // 期限の過ぎたものを消してから数える
                 meets: self.meet_service.as_ref().map(|m| m.expire(Instant::now())),
@@ -438,7 +418,7 @@ impl Node {
     }
 
     pub fn emit_status(&mut self) {
-        let connected = self.peer_conns.len();
+        let connected = self.links.peer_count();
         let state = if connected > 0 || (self.bootstrap.is_empty() && !self.listen_addrs.is_empty()) {
             ipc::NetworkState::Online
         } else if !self.bootstrap.is_empty() {

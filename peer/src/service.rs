@@ -15,6 +15,7 @@ use sbq_protocol::network;
 use crate::ipc::Out;
 use crate::node::{Node, NodeConfig};
 use crate::sandbox;
+use crate::swarm::Role;
 
 struct ServiceArgs {
     network: String,
@@ -187,10 +188,10 @@ pub fn run(args: &[String]) -> i32 {
         let config = NodeConfig {
             spec,
             keypair,
-            relay_only: false,
-            service: true,
-            relay_server: args.relay,
-            meet_server: args.meet,
+            role: Role::Service {
+                relay: args.relay,
+                meet: args.meet,
+            },
             listen: args.listen.into_iter().map(|addr| vec![addr]).collect(),
         };
         let mut node = match Node::create(&out, config) {

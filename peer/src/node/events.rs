@@ -8,13 +8,11 @@ use libp2p::swarm::{DialError, SwarmEvent};
 use libp2p::{autonat, dcutr, identify, ping, relay, Multiaddr, PeerId};
 use sbq_protocol::network::Profile;
 
-use super::{ConnState, Node};
+use super::Node;
 use crate::addr;
 use crate::ipc;
 use crate::swarm::{supports_relay_hop, BehaviourEvent};
 
-/// 同じアドレス帯（ローカルでは同じ IP）から受け付ける接続の上限
-const MAX_INBOUND_PER_PREFIX: usize = 8;
 /// 覚える待受のアドレスの上限
 const MAX_LISTEN_ADDRS: usize = 16;
 
@@ -27,7 +25,7 @@ impl Node {
                 }
                 // 協力ノードは、インターネットのグローバルな待受を自分のアドレスにする（中継の予約の応答に載せる）。
                 // ふつうのプレイヤーの待受は Identify に載せない（ローカルの宛先は招待で渡す）
-                if self.policy.listen_is_external(self.service, &address) {
+                if self.policy.listen_is_external(self.role.is_service(), &address) {
                     self.swarm.add_external_address(address);
                 }
             }
@@ -55,20 +53,16 @@ impl Node {
                 }
                 // 中継経由の接続の上で対局ストリームを開いた後にできた直接の接続は、使わないので閉じる（開いた
                 // ストリームは動かせない。残すと、使われないまましばらくして閉じる。次につなぎ直すときに試し直す）
-                if !relayed && self.has_relayed_stream_to(&peer_id) {
+                if !relayed && self.conns.has_relayed_stream_to(&peer_id) {
                     self.swarm.close_connection(connection_id);
                     self.on_code_dial_failed(connection_id);
                     return;
                 }
-                self.peer_conns
-                    .entry(peer_id)
-                    .or_default()
-                    .insert(connection_id, relayed);
+                self.links.established(peer_id, connection_id, relayed, Instant::now());
                 // 待ち合わせの件数と頻度は、接続元ごとに数える（待ち合わせを受け持つ協力ノード）
-                if let (Some(meet), Some(source)) = (&self.meet_service, self.inbound_prefixes.get(&connection_id)) {
+                if let (Some(meet), Some(source)) = (&self.meet_service, self.links.source_of(connection_id)) {
                     meet.set_source(peer_id, source.clone());
                 }
-                self.conn_since.insert(connection_id, Instant::now());
                 self.update_routes(&peer_id);
                 self.advance_opening(&peer_id);
                 // 合言葉の宛先へ、PeerId を決めずに始めたダイヤルなら、相手の PeerId がここで分かる
@@ -77,24 +71,23 @@ impl Node {
             SwarmEvent::ConnectionClosed {
                 peer_id, connection_id, ..
             } => {
-                self.inbound_prefixes.remove(&connection_id);
-                self.conn_since.remove(&connection_id);
-                if let Some(conns) = self.peer_conns.get_mut(&peer_id) {
-                    conns.remove(&connection_id);
-                    if conns.is_empty() {
-                        self.peer_conns.remove(&peer_id);
-                        self.forget_meet_node(&peer_id);
-                        if let Some(meet) = &self.meet_service {
-                            meet.forget_source(&peer_id);
-                        }
+                // 確立した直後に受け付けずに閉じた接続（数に入れていない）は、相手とのほかの接続にも、開く途中の
+                // 対局ストリームにも関わらない（監査 2026-11-21 U2）
+                let Some(peer_left) = self.links.closed(&peer_id, connection_id) else {
+                    return;
+                };
+                if peer_left {
+                    self.forget_meet_node(&peer_id);
+                    if let Some(meet) = &self.meet_service {
+                        meet.forget_source(&peer_id);
                     }
                 }
                 self.update_routes(&peer_id);
-                if self.peer_conns.contains_key(&peer_id) {
-                    self.advance_opening(&peer_id);
-                } else {
+                if peer_left {
                     // 対局ストリームを開く前に、相手との接続がなくなった
                     self.fail_openings_of(&peer_id);
+                } else {
+                    self.advance_opening(&peer_id);
                 }
             }
             SwarmEvent::OutgoingConnectionError {
@@ -111,7 +104,7 @@ impl Node {
                 // つながっていない相手への接続に失敗したら、対局ストリームを開くのをやめる。中継でつながった相手への
                 // 直接の接続（穴あけ）の失敗は、相手がやり直すことがあるので、待つ時間が過ぎるまで待つ
                 if let Some(peer) = peer_id {
-                    if !self.peer_conns.contains_key(&peer) {
+                    if !self.links.contains(&peer) {
                         self.fail_openings_of(&peer);
                     }
                 }
@@ -135,34 +128,17 @@ impl Node {
         } else {
             addr::prefix_of(addr)
         };
-        let Some(prefix) = key else {
-            return true;
-        };
-        let count = self.inbound_prefixes.values().filter(|p| **p == prefix).count();
-        if count >= MAX_INBOUND_PER_PREFIX {
-            return false;
-        }
-        self.inbound_prefixes.insert(connection, prefix);
-        true
+        self.links.admit_inbound(connection, key)
     }
 
-    /// 対局ストリームの経路（直接・中継）が変わったら知らせる
+    /// 届いた側の対局ストリームの経路（直接・中継）が変わったら知らせる（つないだ側は、対局ストリームを開いた
+    /// 接続の経路を知っているので、接続が増減しても変わらない）。相手との接続が無くなったときは変えない
     fn update_routes(&mut self, peer: &PeerId) {
-        let route = self.route_of(peer);
-        let mut changed = Vec::new();
-        for (id, conn) in self.conns.iter_mut() {
-            // つないだ側は、対局ストリームを開いた接続の経路を知っている（接続が増減しても変わらない）
-            if &conn.peer != peer || conn.known_route.is_some() {
-                continue;
-            }
-            if let ConnState::Open { route: current, .. } = &mut conn.state {
-                if *current != route && self.peer_conns.contains_key(peer) {
-                    *current = route;
-                    changed.push(*id);
-                }
-            }
+        if !self.links.contains(peer) {
+            return;
         }
-        for id in changed {
+        let route = self.links.route_of(peer);
+        for id in self.conns.reroute(peer, route) {
             self.out
                 .notify(ipc::Notification::ConnectionRoute { connection: id, route });
         }
@@ -236,10 +212,11 @@ impl Node {
         }
         // 中継の予約は、自分の到達性によらず取る。「直接接続を使わない」相手は、中継経由のアドレスでしか
         // つなげないので、外から直接届く側も中継経由のアドレスを招待に入れる
-        if !self.service && is_node {
+        let player = !self.role.is_service();
+        if player && is_node {
             self.note_meet_node(peer, &info);
         }
-        if !self.service && is_node && supports_relay_hop(&info) {
+        if player && is_node && supports_relay_hop(&info) {
             self.reservations.add_hop_node(peer);
             self.request_reservation(peer);
         }

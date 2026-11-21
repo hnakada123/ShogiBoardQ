@@ -7,50 +7,28 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use futures::io::{ReadHalf, WriteHalf};
-use futures::{AsyncReadExt, AsyncWriteExt};
+use futures::AsyncWriteExt;
 use libp2p::Stream;
 use sbq_protocol::frame::{self, FrameHeader, MAX_FRAME_BYTES, TYPE_INVITE_TOKEN, TYPE_START_SIGNATURE};
 use tokio::sync::mpsc;
 
 use crate::ipc;
+use crate::limits::TokenBucket;
+use crate::wire::{self, ReadError};
 
 /// 接続ごとの受信キューの上限（バイト）
 pub const MAX_PENDING_BYTES: usize = 256 * 1024;
 
-/// フレームの読み取りの失敗
-#[derive(Debug)]
-pub enum FrameReadError {
-    Closed,
-    Io,
-    Invalid,
-}
-
-/// 長さ付きのフレームを1つ読む（長さを確かめてから領域を確保する）
-pub async fn read_frame<R: futures::AsyncRead + Unpin>(
-    reader: &mut R,
-) -> Result<(Vec<u8>, FrameHeader), FrameReadError> {
-    let mut len_buf = [0u8; 4];
-    match reader.read_exact(&mut len_buf).await {
-        Ok(()) => {}
-        Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => return Err(FrameReadError::Closed),
-        Err(_) => return Err(FrameReadError::Io),
-    }
-    let len = usize::try_from(u32::from_be_bytes(len_buf)).map_err(|_| FrameReadError::Invalid)?;
-    if len == 0 || len > MAX_FRAME_BYTES {
-        return Err(FrameReadError::Invalid);
-    }
-    let mut body = vec![0u8; len];
-    reader.read_exact(&mut body).await.map_err(|_| FrameReadError::Io)?;
-    let header = frame::check(&body).map_err(|_| FrameReadError::Invalid)?;
+/// 長さ付きのフレームを1つ読み、外枠を確かめる（外枠の違反は Invalid）
+pub async fn read_frame<R: futures::AsyncRead + Unpin>(reader: &mut R) -> Result<(Vec<u8>, FrameHeader), ReadError> {
+    let body = wire::read(reader, MAX_FRAME_BYTES).await?;
+    let header = frame::check(&body).map_err(|_| ReadError::Invalid)?;
     Ok((body, header))
 }
 
 /// 長さ付きのフレームを書く
 pub async fn write_frame<W: futures::AsyncWrite + Unpin>(writer: &mut W, frame: &[u8]) -> std::io::Result<()> {
-    let len = u32::try_from(frame.len()).map_err(|_| std::io::Error::other("frame too large"))?;
-    writer.write_all(&len.to_be_bytes()).await?;
-    writer.write_all(frame).await?;
-    writer.flush().await
+    wire::write(writer, frame).await
 }
 
 /// 双方が START_SIGNATURE を送るまでの、1秒あたりのフレームの数（protocol/ipc.md 5章。バーストは2倍）。
@@ -58,39 +36,6 @@ pub async fn write_frame<W: futures::AsyncWrite + Unpin>(writer: &mut W, frame: 
 pub const OPENING_RATE: u64 = 5;
 /// 双方が START_SIGNATURE を送った後の、1秒あたりのフレームの数（バーストは2倍）
 pub const GAME_RATE: u64 = 20;
-
-/// フレームの頻度の上限（トークンバケット。値はミリ単位のトークン）
-pub struct RateLimiter {
-    tokens_milli: u64,
-    last: Instant,
-}
-
-impl RateLimiter {
-    pub fn new(burst: u64) -> RateLimiter {
-        RateLimiter {
-            tokens_milli: burst.saturating_mul(1000),
-            last: Instant::now(),
-        }
-    }
-
-    /// 1件を受け付けるか。rate は1秒あたりの件数、burst はバーストの件数
-    pub fn allow(&mut self, rate: u64, burst: u64) -> bool {
-        let now = Instant::now();
-        let elapsed_ms = u64::try_from(now.saturating_duration_since(self.last).as_millis()).unwrap_or(u64::MAX);
-        self.last = now;
-        let cap = burst.saturating_mul(1000);
-        self.tokens_milli = self
-            .tokens_milli
-            .saturating_add(elapsed_ms.saturating_mul(rate))
-            .min(cap);
-        if self.tokens_milli >= 1000 {
-            self.tokens_milli = self.tokens_milli.saturating_sub(1000);
-            true
-        } else {
-            false
-        }
-    }
-}
 
 /// 接続の両方向で共有する状態
 #[derive(Default)]
@@ -147,16 +92,17 @@ pub async fn reader_task(
     shared: Arc<ConnShared>,
     events: mpsc::UnboundedSender<ConnEvent>,
 ) {
-    let mut limiter = RateLimiter::new(OPENING_RATE.saturating_mul(2));
+    // フレームの頻度の上限（1秒あたりの件数とバーストは、双方が START_SIGNATURE を送ると上がる）
+    let mut limiter = TokenBucket::full(OPENING_RATE.saturating_mul(2), Instant::now());
     let reason = loop {
         let (bytes, header) = match read_frame(&mut reader).await {
             Ok(v) => v,
-            Err(FrameReadError::Closed) => break ipc::CloseReason::Closed,
-            Err(FrameReadError::Io) => break ipc::CloseReason::Reset,
-            Err(FrameReadError::Invalid) => break ipc::CloseReason::InvalidFrame,
+            Err(ReadError::Closed) => break ipc::CloseReason::Closed,
+            Err(ReadError::Io) => break ipc::CloseReason::Reset,
+            Err(ReadError::Invalid) => break ipc::CloseReason::InvalidFrame,
         };
         let (rate, burst) = shared.rate();
-        if !limiter.allow(rate, burst) {
+        if !limiter.take(Instant::now(), rate, burst) {
             break ipc::CloseReason::RateLimited;
         }
         if header.frame_type == TYPE_INVITE_TOKEN {
@@ -208,13 +154,6 @@ pub async fn writer_task(
 mod tests {
     use super::*;
 
-    #[test]
-    fn rate_limiter_burst() {
-        let mut l = RateLimiter::new(10);
-        let allowed = (0..20).filter(|_| l.allow(5, 10)).count();
-        assert_eq!(allowed, 10);
-    }
-
     /// 双方が START_SIGNATURE を送った後だけ、頻度の上限が上がる（protocol/ipc.md 5章）
     #[test]
     fn rate_rises_after_both_start_signatures() {
@@ -240,8 +179,8 @@ mod tests {
         assert_eq!(header.frame_type, 1);
 
         let mut too_long = futures::io::Cursor::new(vec![0u8, 1, 0, 1]);
-        assert!(matches!(read_frame(&mut too_long).await, Err(FrameReadError::Invalid)));
+        assert!(matches!(read_frame(&mut too_long).await, Err(ReadError::Invalid)));
         let mut not_frame = futures::io::Cursor::new(vec![0u8, 0, 0, 1, 0]);
-        assert!(matches!(read_frame(&mut not_frame).await, Err(FrameReadError::Invalid)));
+        assert!(matches!(read_frame(&mut not_frame).await, Err(ReadError::Invalid)));
     }
 }

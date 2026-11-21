@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
+use sbq_protocol::invite::InviteError;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -168,9 +169,10 @@ pub fn parse_request(body: &[u8], expected_generation: Option<&str>) -> Result<R
     })
 }
 
-/// 引数を型に読む（知らないフィールドは拒否する型を使う）
-pub fn params<T: DeserializeOwned>(request: &Request) -> Result<T, String> {
-    serde_json::from_value(request.params.clone()).map_err(|e| format!("invalid params: {e}"))
+/// 引数を型に読む（知らないフィールドは拒否する型を使う）。形が違えば invalid_request
+pub fn params<T: DeserializeOwned>(request: &Request) -> Result<T, IpcError> {
+    serde_json::from_value(request.params.clone())
+        .map_err(|e| IpcError::invalid_request(format!("invalid params: {e}")))
 }
 
 #[derive(Deserialize)]
@@ -306,6 +308,69 @@ words! {
 words! {
     /// インターネットから届くか（AutoNAT）
     Reachability { Unknown => "unknown", Public => "public", Private => "private" }
+}
+
+words! {
+    /// エラーの応答の code（ipc.md 2章の表）
+    ErrorCode {
+        InvalidRequest => "invalid_request",
+        InvalidState => "invalid_state",
+        NetworkNotAllowed => "network_not_allowed",
+        BuildExpired => "build_expired",
+        InviteInvalid => "invite_invalid",
+        InviteExpired => "invite_expired",
+        InviteWrongNetwork => "invite_wrong_network",
+        InviteOwn => "invite_own",
+        InviteNotFound => "invite_not_found",
+        InviteNoNode => "invite_no_node",
+        UnknownConnection => "unknown_connection",
+        InvalidFrame => "invalid_frame",
+        RateLimited => "rate_limited",
+        Limit => "limit",
+        Internal => "internal",
+    }
+}
+
+/// エラーの応答（code は対局・UI側が見分ける語、message は記録に残す文）
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IpcError {
+    pub code: ErrorCode,
+    pub message: String,
+}
+
+impl IpcError {
+    pub fn new(code: ErrorCode, message: impl Into<String>) -> IpcError {
+        IpcError {
+            code,
+            message: message.into(),
+        }
+    }
+
+    /// 引数の形が違う
+    pub fn invalid_request(message: impl Into<String>) -> IpcError {
+        IpcError::new(ErrorCode::InvalidRequest, message)
+    }
+}
+
+impl From<InviteError> for IpcError {
+    fn from(e: InviteError) -> IpcError {
+        let code = match e {
+            InviteError::Invalid => ErrorCode::InviteInvalid,
+            InviteError::Expired => ErrorCode::InviteExpired,
+            InviteError::WrongNetwork => ErrorCode::InviteWrongNetwork,
+            InviteError::Own => ErrorCode::InviteOwn,
+        };
+        IpcError::new(code, e.to_string())
+    }
+}
+
+/// 要求の処理の結果（エラーでないとき）
+#[derive(Debug)]
+pub enum Reply {
+    /// 応答をすぐ返す
+    Now(Value),
+    /// 応答は、主ループの外の処理（鍵の導出・協力ノードとのやり取り）を終えてから返す
+    Later,
 }
 
 /// networkStatus の中身（変わったときにだけ知らせるので比べられる）
@@ -470,12 +535,12 @@ impl Out {
         self.send(&v, None);
     }
 
-    pub fn error(&self, request_id: &str, code: &str, message: &str) {
+    pub fn error(&self, request_id: &str, error: &IpcError) {
         let v = json!({
             "protocolVersion": IPC_VERSION,
             "processGeneration": self.generation(),
             "requestId": request_id,
-            "error": { "code": code, "message": message },
+            "error": { "code": error.code.as_str(), "message": error.message },
         });
         self.send(&v, None);
     }
@@ -592,6 +657,61 @@ mod tests {
         );
     }
 
+    /// エラーの code の語は ipc.md 2章の表のとおり（対局・UI側と結合試験は、この語で見分ける）
+    #[test]
+    fn error_codes_have_the_documented_words() {
+        let words: Vec<&str> = [
+            ErrorCode::InvalidRequest,
+            ErrorCode::InvalidState,
+            ErrorCode::NetworkNotAllowed,
+            ErrorCode::BuildExpired,
+            ErrorCode::InviteInvalid,
+            ErrorCode::InviteExpired,
+            ErrorCode::InviteWrongNetwork,
+            ErrorCode::InviteOwn,
+            ErrorCode::InviteNotFound,
+            ErrorCode::InviteNoNode,
+            ErrorCode::UnknownConnection,
+            ErrorCode::InvalidFrame,
+            ErrorCode::RateLimited,
+            ErrorCode::Limit,
+            ErrorCode::Internal,
+        ]
+        .iter()
+        .map(|c| c.as_str())
+        .collect();
+        assert_eq!(
+            words,
+            [
+                "invalid_request",
+                "invalid_state",
+                "network_not_allowed",
+                "build_expired",
+                "invite_invalid",
+                "invite_expired",
+                "invite_wrong_network",
+                "invite_own",
+                "invite_not_found",
+                "invite_no_node",
+                "unknown_connection",
+                "invalid_frame",
+                "rate_limited",
+                "limit",
+                "internal"
+            ]
+        );
+        // 招待の誤りは、種類ごとの語になる。文は招待の誤りの文のまま
+        for (invite, code) in [
+            (InviteError::Invalid, ErrorCode::InviteInvalid),
+            (InviteError::Expired, ErrorCode::InviteExpired),
+            (InviteError::WrongNetwork, ErrorCode::InviteWrongNetwork),
+            (InviteError::Own, ErrorCode::InviteOwn),
+        ] {
+            let error = IpcError::from(invite);
+            assert_eq!((error.code, error.message), (code, invite.to_string()));
+        }
+    }
+
     #[test]
     fn parses_valid_request() {
         let r = parse_request(
@@ -633,7 +753,10 @@ mod tests {
             None,
         )
         .unwrap();
-        assert!(params::<HelloParams>(&r).is_err());
+        assert_eq!(
+            params::<HelloParams>(&r).err().map(|e| e.code),
+            Some(ErrorCode::InvalidRequest)
+        );
         let r = parse_request(
             &req(r#"{"protocolVersion":5,"processGeneration":"3","requestId":"1","method":"cancelInvites","params":{"a":1}}"#),
             None,

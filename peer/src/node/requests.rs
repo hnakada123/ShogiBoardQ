@@ -1,4 +1,8 @@
 //! IPC の要求の処理（protocol/ipc.md 3章）
+//!
+//! 要求ごとの処理は、どれも `fn(&mut Node, &Request) -> Result<Reply, IpcError>` の形で、メソッドとの対応は
+//! handler の表1つ。応答をすぐ返すものは Reply::Now、主ループの外の処理（鍵の導出・協力ノードとのやり取り）を
+//! 終えてから返すものは Reply::Later を返す。
 
 use std::time::{Duration, Instant};
 
@@ -13,27 +17,46 @@ use sbq_protocol::meet::{MeetCode, Request as MeetRequest};
 use sbq_protocol::network::Profile;
 use serde_json::{json, Value};
 
-use super::meets::Purpose;
+use super::conns::{NotOpen, Outbound};
+use super::meets::{no_node, Purpose};
 use super::presences::PRESENCE_LIFETIME_SECS;
 use super::streams::Internal;
-use super::{unix_now, ConnState, Node, MAX_GAME_CONNECTIONS};
+use super::{unix_now, Node};
 use crate::addr::{self, AddrPolicy};
-use crate::ipc::{self, Method, Request};
+use crate::ipc::{self, ErrorCode, IpcError, Method, Reply, Request};
 
-type ReqResult = Result<Value, (&'static str, String)>;
+/// 要求の処理
+type Handler = fn(&mut Node, &Request) -> Result<Reply, IpcError>;
 
-fn invalid(message: impl Into<String>) -> (&'static str, String) {
-    ("invalid_request", message.into())
+/// メソッドごとの処理（hello・start は、始めた後には受け付けない）
+fn handler(method: Method) -> Handler {
+    match method {
+        Method::Hello | Method::Start => Node::already_started,
+        Method::CreateInvite => Node::create_invite,
+        Method::CancelInvites => Node::cancel_invites,
+        Method::InspectInvite => Node::inspect_invite,
+        Method::ConnectInvite => Node::connect_invite,
+        Method::SetGamePeer => Node::set_game_peer,
+        Method::ConnectPeer => Node::connect_peer,
+        Method::SendFrame => Node::send_frame,
+        Method::CloseConnection => Node::close_connection,
+        Method::CreatePresence => Node::create_presence,
+        Method::CancelPresence => Node::cancel_presence,
+        Method::ConnectPresence => Node::connect_presence,
+        Method::MeetPut => Node::meet_put,
+        Method::MeetGet => Node::meet_get,
+        Method::Shutdown => Node::shutdown,
+    }
 }
 
-fn invite_error(e: InviteError) -> (&'static str, String) {
-    let code = match e {
-        InviteError::Invalid => "invite_invalid",
-        InviteError::Expired => "invite_expired",
-        InviteError::WrongNetwork => "invite_wrong_network",
-        InviteError::Own => "invite_own",
-    };
-    (code, e.to_string())
+/// 引数のない要求の引数を確かめる
+fn empty(request: &Request) -> Result<(), IpcError> {
+    ipc::params::<ipc::Empty>(request).map(|_| ())
+}
+
+/// 接続の番号
+fn connection(conn: u64) -> Reply {
+    Reply::Now(json!({ "connection": conn.to_string() }))
 }
 
 /// 招待の要求（inspectInvite・connectInvite）の文字列を読んだもの
@@ -77,65 +100,28 @@ fn parse_peer_id(text: &str) -> Option<PeerId> {
     }
 }
 
+/// 要求の引数の番号（16進 64 文字）を読む
+fn parse_slot(text: &str) -> Result<[u8; 32], IpcError> {
+    sbq_protocol::hash::from_hex(text)
+        .and_then(|bytes| <[u8; 32]>::try_from(bytes).ok())
+        .ok_or_else(|| IpcError::invalid_request("invalid slot"))
+}
+
+fn parse_conn(text: &str) -> Result<u64, IpcError> {
+    ipc::parse_u64(text).ok_or_else(|| IpcError::invalid_request("invalid connection"))
+}
+
 impl Node {
     pub fn on_request(&mut self, request: Request) {
-        let result = match request.method {
-            Method::Hello | Method::Start => Err(("invalid_state", "already started".to_owned())),
-            Method::CreateInvite => match self.empty(&request) {
-                // 応答は、合言葉の鍵を作ってから返す（on_invite_ready）
-                Ok(()) => match self.create_invite(&request.request_id) {
-                    Ok(()) => return,
-                    Err(e) => Err(e),
-                },
-                Err(e) => Err(e),
-            },
-            Method::CancelInvites => self.empty(&request).map(|()| {
-                self.cancel_invites();
-                json!({})
-            }),
-            Method::InspectInvite => match self.inspect_invite(&request) {
-                Ok(Some(value)) => Ok(value),
-                // 応答は、協力ノードから招待を引き取ってから返す（on_meet_fetched）
-                Ok(None) => return,
-                Err(e) => Err(e),
-            },
-            Method::ConnectInvite => self.connect_invite(&request),
-            Method::SetGamePeer => self.set_game_peer(&request),
-            Method::ConnectPeer => self.connect_peer(&request),
-            Method::SendFrame => self.send_frame(&request),
-            Method::CloseConnection => self.close_connection(&request),
-            Method::CreatePresence => self.empty(&request).and_then(|()| self.create_presence()),
-            Method::CancelPresence => self.empty(&request).map(|()| {
-                self.presences.clear();
-                json!({})
-            }),
-            Method::ConnectPresence => self.connect_presence(&request),
-            // 応答は、協力ノードとのやり取りを終えてから返す（Internal::MeetPutDone・MeetGot）
-            Method::MeetPut => match self.meet_put(&request) {
-                Ok(()) => return,
-                Err(e) => Err(e),
-            },
-            Method::MeetGet => match self.meet_get(&request) {
-                Ok(()) => return,
-                Err(e) => Err(e),
-            },
-            Method::Shutdown => self.empty(&request).map(|()| {
-                self.presences.clear();
-                self.cancel_invites();
-                self.shutdown_at = Instant::now()
-                    .checked_add(Duration::from_millis(300))
-                    .or_else(|| Some(Instant::now()));
-                json!({})
-            }),
-        };
-        match result {
-            Ok(value) => self.out.result(&request.request_id, value),
-            Err((code, message)) => self.out.error(&request.request_id, code, &message),
+        match handler(request.method)(self, &request) {
+            Ok(Reply::Now(value)) => self.out.result(&request.request_id, value),
+            Ok(Reply::Later) => {}
+            Err(e) => self.out.error(&request.request_id, &e),
         }
     }
 
-    fn empty(&self, request: &Request) -> Result<(), (&'static str, String)> {
-        ipc::params::<ipc::Empty>(request).map(|_| ()).map_err(invalid)
+    fn already_started(&mut self, _request: &Request) -> Result<Reply, IpcError> {
+        Err(IpcError::new(ErrorCode::InvalidState, "already started"))
     }
 
     /// 招待に入れる自分の到達候補
@@ -152,15 +138,22 @@ impl Node {
     }
 
     /// すべての招待を無効にする（鍵を作っている途中の招待も足さない）
-    fn cancel_invites(&mut self) {
+    fn invalidate_invites(&mut self) {
         self.invites.clear();
         self.invite_epoch = self.invite_epoch.wrapping_add(1);
         self.release_meets();
     }
 
+    fn cancel_invites(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        empty(request)?;
+        self.invalidate_invites();
+        Ok(Reply::Now(json!({})))
+    }
+
     /// 招待を作る。合言葉も付けるときは（同じ LAN の相手と直接つなぐとき・待ち合わせに対応した協力ノードに
-    /// つながっているとき）、応答は鍵を作ってから返す
-    fn create_invite(&mut self, request_id: &str) -> Result<(), (&'static str, String)> {
+    /// つながっているとき）、応答は鍵を作ってから返す（on_invite_ready）
+    fn create_invite(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        empty(request)?;
         let mut token = [0u8; 32];
         rand::rngs::OsRng.fill_bytes(&mut token);
         let expires_at = unix_now().saturating_add(invite::MAX_LIFETIME_SECS);
@@ -175,9 +168,9 @@ impl Node {
         };
         let text = inv
             .encode()
-            .ok_or(("internal", "could not encode the invite".to_owned()))?;
+            .ok_or_else(|| IpcError::new(ErrorCode::Internal, "could not encode the invite"))?;
         let mut ready = ReadyInvite {
-            request_id: request_id.to_owned(),
+            request_id: request.request_id.clone(),
             epoch: self.invite_epoch,
             invite: text,
             token,
@@ -190,11 +183,13 @@ impl Node {
         let Some(code) = self.code_for_invite() else {
             // 同じ LAN の合言葉を付けられないときは、協力ノードを使う合言葉を付ける。接続先の入っていない招待は
             // 相手がつなげないので、付けない
-            match inv.to_body() {
-                Some(body) if address_count > 0 && self.can_meet() => self.start_meet_invite(ready, body),
-                _ => self.on_invite_ready(ready),
-            }
-            return Ok(());
+            return match inv.to_body() {
+                Some(body) if address_count > 0 && self.can_meet() => {
+                    self.start_meet_invite(ready, body);
+                    Ok(Reply::Later)
+                }
+                _ => self.finish_invite(ready).map(Reply::Now),
+            };
         };
         // 鍵の導出は時間とメモリを使うので、主ループの外で行う
         let internal = self.internal.clone();
@@ -206,78 +201,78 @@ impl Node {
             }
             let _ = internal.send(Internal::InviteReady(ready));
         });
-        Ok(())
+        Ok(Reply::Later)
     }
 
-    /// 作った招待を覚えて、createInvite の応答を返す
-    pub(super) fn on_invite_ready(&mut self, ready: ReadyInvite) {
+    /// 作った招待を覚えて、createInvite の応答の中身を返す
+    fn finish_invite(&mut self, ready: ReadyInvite) -> Result<Value, IpcError> {
         if ready.epoch != self.invite_epoch {
             // 取り消された招待を協力ノードに預けていたら、消す
             self.delete_meets(ready.meet_slot.into_iter().collect());
-            self.out
-                .error(&ready.request_id, "invalid_state", "invites were cancelled");
-            return;
+            return Err(IpcError::new(ErrorCode::InvalidState, "invites were cancelled"));
         }
         self.invites
             .add(ready.token, ready.code_key, ready.meet_slot, ready.expires_at);
         // 上限で押し出された招待を協力ノードに預けていたら、消す
         self.release_meets();
-        self.out.result(
-            &ready.request_id,
-            json!({
-                "invite": ready.invite,
-                "code": ready.code,
-                "expiresAt": ready.expires_at.to_string(),
-                "addressCount": ready.address_count,
-            }),
-        );
+        Ok(json!({
+            "invite": ready.invite,
+            "code": ready.code,
+            "expiresAt": ready.expires_at.to_string(),
+            "addressCount": ready.address_count,
+        }))
+    }
+
+    /// 合言葉を付け終えた招待の createInvite の応答を返す
+    pub(super) fn on_invite_ready(&mut self, ready: ReadyInvite) {
+        let request_id = ready.request_id.clone();
+        match self.finish_invite(ready) {
+            Ok(value) => self.out.result(&request_id, value),
+            Err(e) => self.out.error(&request_id, &e),
+        }
     }
 
     /// 読んだ招待が今のネットワークで使えるか確かめ、相手の PeerId と宛先を取り出す
-    fn check_invite(&self, inv: Invite) -> Result<(Invite, PeerId, Vec<Multiaddr>), (&'static str, String)> {
-        inv.check(unix_now(), &self.network_id, &self.local_peer.to_bytes())
-            .map_err(invite_error)?;
-        let peer = PeerId::from_bytes(&inv.peer_id).map_err(|_| invite_error(InviteError::Invalid))?;
+    fn check_invite(&self, inv: Invite) -> Result<(Invite, PeerId, Vec<Multiaddr>), IpcError> {
+        inv.check(unix_now(), &self.network_id, &self.local_peer.to_bytes())?;
+        let peer = PeerId::from_bytes(&inv.peer_id).map_err(|_| IpcError::from(InviteError::Invalid))?;
         let mut addrs = Vec::new();
         for bytes in &inv.addrs {
-            let a = Multiaddr::try_from(bytes.clone()).map_err(|_| invite_error(InviteError::Invalid))?;
+            let a = Multiaddr::try_from(bytes.clone()).map_err(|_| IpcError::from(InviteError::Invalid))?;
             addrs.push(addr::without_peer_id(&a));
         }
         Ok((inv, peer, addrs))
     }
 
     /// 招待文字列を読み、今のネットワークで使えるか確かめる
-    fn read_invite(&self, text: &str) -> Result<Target, (&'static str, String)> {
-        let inv = Invite::decode(text).map_err(invite_error)?;
+    fn read_invite(&self, text: &str) -> Result<Target, IpcError> {
+        let inv = Invite::decode(text)?;
         let (inv, peer, addrs) = self.check_invite(inv)?;
         Ok(Target::Invite { inv, peer, addrs })
     }
 
     /// 協力ノードから引き取って復号した招待の本体を読み、今のネットワークで使えるか確かめる
-    pub(super) fn read_invite_body(
-        &self,
-        body: &[u8],
-    ) -> Result<(Invite, PeerId, Vec<Multiaddr>), (&'static str, String)> {
-        let inv = Invite::from_body(body).map_err(invite_error)?;
+    pub(super) fn read_invite_body(&self, body: &[u8]) -> Result<(Invite, PeerId, Vec<Multiaddr>), IpcError> {
+        let inv = Invite::from_body(body)?;
         self.check_invite(inv)
     }
 
     /// 同じ LAN の合言葉を読み、今のネットワークで使えるか確かめる（相手の LAN の中の宛先なので、ローカルだけ）
-    fn read_code(&self, text: &str) -> Result<Target, (&'static str, String)> {
-        let code = Code::decode(text).ok_or_else(|| invite_error(InviteError::Invalid))?;
+    fn read_code(&self, text: &str) -> Result<Target, IpcError> {
+        let code = Code::decode(text).ok_or(InviteError::Invalid)?;
         if self.spec.profile != Profile::Local {
-            return Err(invite_error(InviteError::WrongNetwork));
+            return Err(InviteError::WrongNetwork.into());
         }
         let addrs = self.code_addrs(&code);
         if addrs.is_empty() {
-            return Err(invite_error(InviteError::Own));
+            return Err(InviteError::Own.into());
         }
         Ok(Target::Code { code, addrs })
     }
 
     /// 招待の要求の文字列（招待文字列か合言葉）を読む。合言葉の種類は形で決まる（協力ノードを使う合言葉は 10 文字で、
     /// 検査の文字の作り方も違う。同じ LAN の合言葉として読めるものと重ならない）
-    fn read_target(&self, text: &str) -> Result<Target, (&'static str, String)> {
+    fn read_target(&self, text: &str) -> Result<Target, IpcError> {
         if text.trim_start().starts_with(invite::PREFIX) {
             self.read_invite(text)
         } else if let Some(code) = MeetCode::decode(text) {
@@ -287,9 +282,9 @@ impl Node {
         }
     }
 
-    /// inspectInvite の応答。協力ノードから招待を引き取ってから返すときは None
-    fn inspect_invite(&mut self, request: &Request) -> Result<Option<Value>, (&'static str, String)> {
-        let p: ipc::InviteParams = ipc::params(request).map_err(invalid)?;
+    /// inspectInvite。協力ノードを使う合言葉は、協力ノードから招待を引き取ってから応答する（on_meet_fetched）
+    fn inspect_invite(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        let p: ipc::InviteParams = ipc::params(request)?;
         let (kind, peer_id, expires_at, addrs) = match self.read_target(&p.invite)? {
             Target::Invite { inv, peer, addrs } => ("invite", peer.to_base58(), inv.expires_at, addrs),
             // 同じ LAN の合言葉には、相手の PeerId も期限も入っていない
@@ -301,11 +296,11 @@ impl Node {
                         request_id: request.request_id.clone(),
                     };
                     self.start_meet_fetch(code, purpose)?;
-                    return Ok(None);
+                    return Ok(Reply::Later);
                 }
             },
         };
-        Ok(Some(self.inspect_result(kind, &peer_id, expires_at, &addrs)))
+        Ok(Reply::Now(self.inspect_result(kind, &peer_id, expires_at, &addrs)))
     }
 
     /// inspectInvite の応答の中身
@@ -330,61 +325,66 @@ impl Node {
         })
     }
 
-    fn check_capacity(&self) -> Result<(), (&'static str, String)> {
-        if self.game_connection_count() >= MAX_GAME_CONNECTIONS {
-            return Err(("limit", "too many game connections".to_owned()));
+    fn check_capacity(&self) -> Result<(), IpcError> {
+        if !self.conns.has_room() {
+            return Err(IpcError::new(ErrorCode::Limit, "too many game connections"));
         }
         Ok(())
     }
 
-    fn connect_invite(&mut self, request: &Request) -> ReqResult {
-        let p: ipc::ConnectInviteParams = ipc::params(request).map_err(invalid)?;
-        let (inv, peer, addrs) = match self.read_target(&p.invite)? {
-            Target::Invite { inv, peer, addrs } => (inv, peer, addrs),
+    /// connectInvite。番号をすぐ返し、結果は connectionOpened・connectionClosed で知らせる
+    fn connect_invite(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        let p: ipc::ConnectInviteParams = ipc::params(request)?;
+        let conn = match self.read_target(&p.invite)? {
+            Target::Invite { inv, peer, addrs } => {
+                self.check_capacity()?;
+                let start = self.invite_outbound(inv.token, peer, addrs, p.allow_private);
+                self.connect_new(start)
+            }
             Target::Code { code, addrs } => {
                 self.check_capacity()?;
                 let usable = self.policy.filter_addrs(addrs);
-                let conn = self.alloc_conn();
-                self.start_code_connect(conn, code, usable);
-                return Ok(json!({ "connection": conn.to_string() }));
+                self.start_code_connect(code, usable)
             }
             Target::Meet { code } => {
                 self.check_capacity()?;
                 match self.take_cached_meet(&code) {
                     // 確かめた（inspectInvite）ときに引き取った招待
-                    Some(f) => (f.inv, f.peer, f.addrs),
+                    Some(f) => {
+                        let start = self.invite_outbound(f.inv.token, f.peer, f.addrs, p.allow_private);
+                        self.connect_new(start)
+                    }
+                    // 協力ノードから引き取ってからつなぐ（on_meet_fetched）
                     None => {
-                        // 協力ノードから引き取ってからつなぐ（結果は connectionOpened・connectionClosed で知らせる）
                         if !self.can_meet() {
-                            return Err(("invite_no_node", "no node for passcodes is connected".to_owned()));
+                            return Err(no_node());
                         }
-                        let conn = self.alloc_conn();
+                        let conn = self.conns.fetch();
                         let purpose = Purpose::Connect {
                             conn,
                             allow_private: p.allow_private,
                         };
-                        self.start_meet_fetch(code, purpose)?;
-                        self.meets.connects.insert(conn);
-                        return Ok(json!({ "connection": conn.to_string() }));
+                        if let Err(e) = self.start_meet_fetch(code, purpose) {
+                            self.conns.cancel(conn);
+                            return Err(e);
+                        }
+                        conn
                     }
                 }
             }
         };
-        self.check_capacity()?;
-        let conn = self.alloc_conn();
-        self.connect_to_invite(conn, inv.token, peer, addrs, p.allow_private);
-        Ok(json!({ "connection": conn.to_string() }))
+        Ok(connection(conn))
     }
 
-    /// 招待の相手へつなぎ始める（招待文字列と、協力ノードから引き取った招待で共通）
-    pub(super) fn connect_to_invite(
+    /// 招待の相手へつなぐ準備（招待文字列・協力ノードから引き取った招待・在席の知らせで共通）。使える宛先がなく、
+    /// つながってもいなければ閉じる理由
+    pub(super) fn invite_outbound(
         &mut self,
-        conn: u64,
         token: [u8; 32],
         peer: PeerId,
         addrs: Vec<Multiaddr>,
         allow_private: bool,
-    ) {
+    ) -> Result<Outbound, ipc::CloseReason> {
         if allow_private && self.spec.profile == Profile::Internet {
             for a in addrs.iter().filter(|a| AddrPolicy::is_private(a)) {
                 self.policy.allow_private(a);
@@ -394,31 +394,19 @@ impl Node {
         let usable = self.policy.filter_addrs(addrs);
         if usable.is_empty() && !self.swarm.is_connected(&peer) {
             // 「直接接続を使わない」のときは、自分の協力ノードの中継を通る宛先が招待に無ければつながない
-            let reason = if self.policy.relay_only() && had_addrs {
+            return Err(if self.policy.relay_only() && had_addrs {
                 ipc::CloseReason::NoRelayRoute
             } else {
                 ipc::CloseReason::Unreachable
-            };
-            self.conns.insert(
-                conn,
-                super::Conn {
-                    peer,
-                    origin: ipc::Origin::Invite,
-                    direction: ipc::Direction::Outbound,
-                    state: ConnState::Connecting,
-                    known_route: None,
-                    presence: 0,
-                },
-            );
-            let _ = self.internal.send(super::Internal::OutboundFailed { conn, reason });
-        } else {
-            self.start_outbound(conn, peer, usable, Some(token), ipc::Origin::Invite);
+            });
         }
+        self.begin_outbound(peer, usable, Some(token), ipc::Origin::Invite)
     }
 
     /// 在席の知らせを作る（自分の到達候補と、期限まで何度でも使えるトークン。招待の本体と同じ形）。対局・UI側が、
     /// 友だちごとの鍵で暗号化して協力ノードに預ける（中身は読まない）
-    fn create_presence(&mut self) -> ReqResult {
+    fn create_presence(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        empty(request)?;
         let mut token = [0u8; 32];
         rand::rngs::OsRng.fill_bytes(&mut token);
         let expires_at = unix_now().saturating_add(PRESENCE_LIFETIME_SECS);
@@ -433,46 +421,45 @@ impl Node {
         };
         let body = inv
             .to_body()
-            .ok_or(("internal", "could not encode the presence".to_owned()))?;
+            .ok_or_else(|| IpcError::new(ErrorCode::Internal, "could not encode the presence"))?;
         let id = self.presences.add(token, expires_at);
-        Ok(json!({
+        Ok(Reply::Now(json!({
             "presence": B64.encode(body),
             "id": id.to_string(),
             "expiresAt": expires_at.to_string(),
             "addressCount": address_count,
-        }))
+        })))
+    }
+
+    fn cancel_presence(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        empty(request)?;
+        self.presences.clear();
+        Ok(Reply::Now(json!({})))
     }
 
     /// 友だちの在席の知らせ（対局・UI側が協力ノードから引き取って復号したもの）の相手へ、申し込みの接続を始める
-    fn connect_presence(&mut self, request: &Request) -> ReqResult {
-        let p: ipc::ConnectPresenceParams = ipc::params(request).map_err(invalid)?;
+    fn connect_presence(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        let p: ipc::ConnectPresenceParams = ipc::params(request)?;
         if p.presence.len() > invite::MAX_STRING_BYTES.saturating_mul(2) {
-            return Err(invalid("presence is too long"));
+            return Err(IpcError::invalid_request("presence is too long"));
         }
         let body = B64
             .decode(p.presence.as_bytes())
-            .map_err(|_| invalid("presence is not base64"))?;
+            .map_err(|_| IpcError::invalid_request("presence is not base64"))?;
         let (inv, peer, addrs) = self.read_invite_body(&body)?;
         self.check_capacity()?;
-        let conn = self.alloc_conn();
-        self.connect_to_invite(conn, inv.token, peer, addrs, p.allow_private);
-        Ok(json!({ "connection": conn.to_string() }))
-    }
-
-    /// 要求の引数の番号（16進 64 文字）を読む
-    fn parse_slot(text: &str) -> Result<[u8; 32], (&'static str, String)> {
-        sbq_protocol::hash::from_hex(text)
-            .and_then(|bytes| <[u8; 32]>::try_from(bytes).ok())
-            .ok_or_else(|| invalid("invalid slot"))
+        let start = self.invite_outbound(inv.token, peer, addrs, p.allow_private);
+        Ok(connection(self.connect_new(start)))
     }
 
     /// 対局・UI側が作った番号と預けるもの（中身は読まない）を、待ち合わせに対応した協力ノードに預ける
-    fn meet_put(&mut self, request: &Request) -> Result<(), (&'static str, String)> {
-        let p: ipc::MeetPutParams = ipc::params(request).map_err(invalid)?;
-        let slot = Self::parse_slot(&p.slot)?;
+    /// （応答は Internal::MeetPutDone）
+    fn meet_put(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        let p: ipc::MeetPutParams = ipc::params(request)?;
+        let slot = parse_slot(&p.slot)?;
         let blob = B64
             .decode(p.blob.as_bytes())
-            .map_err(|_| invalid("blob is not base64"))?;
+            .map_err(|_| IpcError::invalid_request("blob is not base64"))?;
         let put = MeetRequest::Put {
             slot,
             blob,
@@ -481,87 +468,93 @@ impl Node {
         };
         // 大きさと秒数の範囲は、協力ノードが読むときと同じ規則で確かめる
         if MeetRequest::decode(&put.encode()).is_none() {
-            return Err(invalid("blob or ttlSeconds out of range"));
+            return Err(IpcError::invalid_request("blob or ttlSeconds out of range"));
         }
         self.start_meet_put(request.request_id.clone(), put);
-        Ok(())
+        Ok(Reply::Later)
     }
 
-    /// 番号で預けられているものを、待ち合わせに対応した協力ノードから引き取る（中身は読まずに返す）
-    fn meet_get(&mut self, request: &Request) -> Result<(), (&'static str, String)> {
-        let p: ipc::MeetGetParams = ipc::params(request).map_err(invalid)?;
-        let slot = Self::parse_slot(&p.slot)?;
+    /// 番号で預けられているものを、待ち合わせに対応した協力ノードから引き取る（中身は読まずに返す。
+    /// 応答は Internal::MeetGot）
+    fn meet_get(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        let p: ipc::MeetGetParams = ipc::params(request)?;
+        let slot = parse_slot(&p.slot)?;
         self.start_meet_get(request.request_id.clone(), slot);
-        Ok(())
+        Ok(Reply::Later)
     }
 
-    fn set_game_peer(&mut self, request: &Request) -> ReqResult {
-        let p: ipc::PeerIdParams = ipc::params(request).map_err(invalid)?;
+    fn set_game_peer(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        let p: ipc::PeerIdParams = ipc::params(request)?;
         if p.peer_id.is_empty() {
             self.game_peer = None;
         } else {
-            let peer = parse_peer_id(&p.peer_id).ok_or_else(|| invalid("invalid peerId"))?;
+            let peer = parse_peer_id(&p.peer_id).ok_or_else(|| IpcError::invalid_request("invalid peerId"))?;
             self.game_peer = Some(peer);
         }
         // 対局中は、相手以外の届いた対局ストリームを読まずに閉じる
         self.accept_gate.set_game_peer(self.game_peer);
-        Ok(json!({}))
+        Ok(Reply::Now(json!({})))
     }
 
-    fn connect_peer(&mut self, request: &Request) -> ReqResult {
-        let p: ipc::PeerIdParams = ipc::params(request).map_err(invalid)?;
-        let peer = parse_peer_id(&p.peer_id).ok_or_else(|| invalid("invalid peerId"))?;
+    fn connect_peer(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        let p: ipc::PeerIdParams = ipc::params(request)?;
+        let peer = parse_peer_id(&p.peer_id).ok_or_else(|| IpcError::invalid_request("invalid peerId"))?;
         if self.game_peer != Some(peer) {
-            return Err(("invalid_state", "connectPeer is only for the game peer".to_owned()));
+            return Err(IpcError::new(
+                ErrorCode::InvalidState,
+                "connectPeer is only for the game peer",
+            ));
         }
         self.check_capacity()?;
         let addrs = self.addr_book.get(&peer).cloned().unwrap_or_default();
-        let conn = self.alloc_conn();
-        self.start_outbound(conn, peer, addrs, None, ipc::Origin::Game);
-        Ok(json!({ "connection": conn.to_string() }))
+        let start = self.begin_outbound(peer, addrs, None, ipc::Origin::Game);
+        Ok(connection(self.connect_new(start)))
     }
 
-    fn parse_conn(text: &str) -> Result<u64, (&'static str, String)> {
-        ipc::parse_u64(text).ok_or_else(|| invalid("invalid connection"))
-    }
-
-    fn send_frame(&mut self, request: &Request) -> ReqResult {
-        let p: ipc::SendFrameParams = ipc::params(request).map_err(invalid)?;
-        let conn = Self::parse_conn(&p.connection)?;
+    fn send_frame(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        let p: ipc::SendFrameParams = ipc::params(request)?;
+        let conn = parse_conn(&p.connection)?;
         let bytes = B64
             .decode(p.frame.as_bytes())
-            .map_err(|_| invalid("frame is not base64"))?;
-        let header = frame::check(&bytes).map_err(|e| ("invalid_frame", e.to_string()))?;
+            .map_err(|_| IpcError::invalid_request("frame is not base64"))?;
+        let header = frame::check(&bytes).map_err(|e| IpcError::new(ErrorCode::InvalidFrame, e.to_string()))?;
         if header.frame_type == frame::TYPE_INVITE_TOKEN {
-            return Err(("invalid_frame", "INVITE_TOKEN cannot be sent".to_owned()));
+            return Err(IpcError::new(ErrorCode::InvalidFrame, "INVITE_TOKEN cannot be sent"));
         }
-        let entry = self
-            .conns
-            .get(&conn)
-            .ok_or(("unknown_connection", "unknown connection".to_owned()))?;
-        let ConnState::Open { writer, shared, .. } = &entry.state else {
-            return Err(("unknown_connection", "connection is not open".to_owned()));
-        };
-        shared.observe_sent(&header);
-        writer.try_send(bytes).map_err(|e| match e {
-            tokio::sync::mpsc::error::TrySendError::Full(_) => ("rate_limited", "send queue is full".to_owned()),
+        let io = self.conns.io(conn).map_err(|e| match e {
+            NotOpen::Unknown => IpcError::new(ErrorCode::UnknownConnection, "unknown connection"),
+            NotOpen::Pending => IpcError::new(ErrorCode::UnknownConnection, "connection is not open"),
+        })?;
+        io.shared.observe_sent(&header);
+        io.writer.try_send(bytes).map_err(|e| match e {
+            tokio::sync::mpsc::error::TrySendError::Full(_) => {
+                IpcError::new(ErrorCode::RateLimited, "send queue is full")
+            }
             tokio::sync::mpsc::error::TrySendError::Closed(_) => {
-                ("unknown_connection", "connection is closing".to_owned())
+                IpcError::new(ErrorCode::UnknownConnection, "connection is closing")
             }
         })?;
-        Ok(json!({}))
+        Ok(Reply::Now(json!({})))
     }
 
-    fn close_connection(&mut self, request: &Request) -> ReqResult {
-        let p: ipc::ConnectionParams = ipc::params(request).map_err(invalid)?;
-        let conn = Self::parse_conn(&p.connection)?;
-        if !self.conns.contains_key(&conn)
-            && !self.code_connects.contains_key(&conn)
-            && !self.meets.connects.contains(&conn)
-        {
-            return Err(("unknown_connection", "unknown connection".to_owned()));
+    /// closeConnection（閉じた接続には connectionClosed を出さない）
+    fn close_connection(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        let p: ipc::ConnectionParams = ipc::params(request)?;
+        let conn = parse_conn(&p.connection)?;
+        if !self.conns.cancel(conn) {
+            return Err(IpcError::new(ErrorCode::UnknownConnection, "unknown connection"));
         }
-        self.close_conn(conn, ipc::CloseReason::Closed, false);
-        Ok(json!({}))
+        Ok(Reply::Now(json!({})))
+    }
+
+    /// shutdown（応答を返した後、招待と在席の知らせを無効にして終わる）
+    fn shutdown(&mut self, request: &Request) -> Result<Reply, IpcError> {
+        empty(request)?;
+        self.presences.clear();
+        self.invalidate_invites();
+        self.shutdown_at = Instant::now()
+            .checked_add(Duration::from_millis(300))
+            .or_else(|| Some(Instant::now()));
+        Ok(Reply::Now(json!({})))
     }
 }

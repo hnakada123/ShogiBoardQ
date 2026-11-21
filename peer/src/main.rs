@@ -7,6 +7,7 @@ mod addr;
 mod behaviours;
 mod game;
 mod ipc;
+mod limits;
 mod listen;
 mod meet;
 mod meetstore;
@@ -14,6 +15,7 @@ mod node;
 mod sandbox;
 mod service;
 mod swarm;
+mod wire;
 
 const NO_LOOPBACK: &str = "--no-loopback";
 

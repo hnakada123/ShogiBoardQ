@@ -2,10 +2,11 @@
 //!
 //! 招待する側: 招待に付ける合言葉を、待受のアドレスから作る（code_for_invite）。
 //! つなぐ側: 合言葉には相手の PeerId が入っていないので、合言葉の宛先へ PeerId を決めずにつなぎ、つながった相手の
-//! PeerId と合言葉の鍵からトークンを作って、招待文字列のときと同じ手順で対局ストリームを開く。
+//! PeerId と合言葉の鍵からトークンを作って、招待文字列のときと同じ手順で対局ストリームを開く。つなぐ途中の段階
+//! （ダイヤルの結果・相手・鍵・期限）は node/conns が持つ。
 
 use std::net::Ipv4Addr;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use libp2p::multiaddr::Protocol;
 use libp2p::swarm::dial_opts::DialOpts;
@@ -15,26 +16,11 @@ use rand::RngCore;
 use sbq_protocol::code::{self, Code};
 use sbq_protocol::network::{Profile, LAN_PORT};
 
+use super::conns::{CodeReady, DialStep};
 use super::streams::Internal;
 use super::Node;
 use crate::addr::{self, IpClass};
 use crate::ipc;
-
-/// 合言葉の宛先へつながるのを待つ時間（対局ストリームを開く時間は、この後に別に数える）
-const CODE_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
-
-/// 合言葉でつなぐ途中の接続（相手の PeerId が分かるまで。分かったら streams の接続に移す）
-pub struct Pending {
-    /// 合言葉の宛先（自分の待受を除いたもの）
-    pub addrs: Vec<Multiaddr>,
-    /// 結果を待っているダイヤルの数
-    pub dials_left: usize,
-    /// 最初につながった相手
-    pub peer: Option<PeerId>,
-    /// 合言葉から作った鍵（作り終えるまで None）
-    pub key: Option<[u8; 32]>,
-    pub started: Instant,
-}
 
 /// 待受のアドレスが ip4 の QUIC か TCP なら、その IP・ポート・QUIC か
 fn listen_parts(addr: &Multiaddr) -> Option<(Ipv4Addr, u16, bool)> {
@@ -162,33 +148,24 @@ impl Node {
             .collect()
     }
 
-    /// 合言葉の宛先へつなぎ始める（結果は ConnectionEstablished・OutgoingConnectionError と Internal::CodeKey で届く）
-    pub(super) fn start_code_connect(&mut self, conn: u64, code: Code, addrs: Vec<Multiaddr>) {
-        let mut pending = Pending {
-            addrs: addrs.clone(),
-            dials_left: 0,
-            peer: None,
-            key: None,
-            started: Instant::now(),
-        };
-        for a in addrs {
-            let opts = DialOpts::unknown_peer_id().address(a).build();
+    /// 合言葉の宛先へつなぎ始め、接続の番号を返す（結果は ConnectionEstablished・OutgoingConnectionError と
+    /// Internal::CodeKey で届く）。addrs は、宛先の規則で使える宛先
+    pub(super) fn start_code_connect(&mut self, code: Code, addrs: Vec<Multiaddr>) -> u64 {
+        let mut dials = Vec::new();
+        for a in &addrs {
+            let opts = DialOpts::unknown_peer_id().address(a.clone()).build();
             let id = opts.connection_id();
             if self.swarm.dial(opts).is_ok() {
-                self.code_dials.insert(id, conn);
-                pending.dials_left = pending.dials_left.saturating_add(1);
+                dials.push(id);
             }
         }
-        let reachable = pending.dials_left > 0;
-        self.code_connects.insert(conn, pending);
-        if !reachable {
-            // 応答（connection の番号）を返した後で知らせる
-            let _ = self.internal.send(Internal::CodeFailed {
-                conn,
-                reason: ipc::CloseReason::Unreachable,
-            });
-            return;
+        if dials.is_empty() {
+            // 応答（connection の番号）を返した後で知らせる。「直接接続を使わない」で宛先が残らなかったときも
+            // unreachable のまま（no_relay_route の画面の文は、招待文字列と協力ノードの登録を案内するため。
+            // 監査 2026-11-21 U4）
+            return self.conns.connect(Err(ipc::CloseReason::Unreachable), Instant::now());
         }
+        let conn = self.conns.dial(addrs, dials, Instant::now());
         // 鍵の導出は時間とメモリを使うので、主ループの外で行う
         let internal = self.internal.clone();
         let network_id = self.network_id;
@@ -196,98 +173,39 @@ impl Node {
             let key = code.derive_key(&network_id);
             let _ = internal.send(Internal::CodeKey { conn, key });
         });
+        conn
     }
 
     /// PeerId を決めずに始めたダイヤルがつながった
     pub(super) fn on_code_dial_established(&mut self, connection: ConnectionId, peer: PeerId) {
-        let Some(conn) = self.code_dials.remove(&connection) else {
-            return;
-        };
-        let Some(pending) = self.code_connects.get_mut(&conn) else {
-            // 対局ストリームを開く段階へ移った後につながった接続は、そのままにする（開く途中の接続を閉じない）
-            return;
-        };
-        pending.dials_left = pending.dials_left.saturating_sub(1);
-        if pending.peer.is_some() {
-            // 2本目からの接続は使わない（対局ストリームは最初の接続の上で開く）
-            self.swarm.close_connection(connection);
-            return;
+        match self.conns.dial_established(connection, peer) {
+            DialStep::Wait => {}
+            DialStep::CloseExtra => {
+                self.swarm.close_connection(connection);
+            }
+            DialStep::Ready(ready) => self.connect_code_peer(ready),
         }
-        pending.peer = Some(peer);
-        self.advance_code_connect(conn);
     }
 
     /// PeerId を決めずに始めたダイヤルが失敗した
     pub(super) fn on_code_dial_failed(&mut self, connection: ConnectionId) {
-        let Some(conn) = self.code_dials.remove(&connection) else {
-            return;
-        };
-        if let Some(pending) = self.code_connects.get_mut(&conn) {
-            pending.dials_left = pending.dials_left.saturating_sub(1);
-            self.advance_code_connect(conn);
+        if let DialStep::Ready(ready) = self.conns.dial_failed(connection) {
+            self.connect_code_peer(ready);
         }
     }
 
     /// 合言葉の鍵を作り終えた（作れなければ None）
     pub(super) fn on_code_key(&mut self, conn: u64, key: Option<[u8; 32]>) {
-        let Some(pending) = self.code_connects.get_mut(&conn) else {
-            return;
-        };
-        match key {
-            Some(key) => {
-                pending.key = Some(key);
-                self.advance_code_connect(conn);
-            }
-            None => self.fail_code_connect(conn, ipc::CloseReason::Unreachable),
+        if let DialStep::Ready(ready) = self.conns.code_key(conn, key) {
+            self.connect_code_peer(ready);
         }
     }
 
-    /// 相手の PeerId と鍵がそろったら、トークンを作って対局ストリームを開く段階へ移る
-    fn advance_code_connect(&mut self, conn: u64) {
-        let Some(pending) = self.code_connects.get(&conn) else {
-            return;
-        };
-        match (pending.peer, pending.key) {
-            (Some(peer), Some(key)) => {
-                let Some(pending) = self.code_connects.remove(&conn) else {
-                    return;
-                };
-                let token = code::token(&key, &peer.to_bytes(), &self.local_peer.to_bytes());
-                self.start_outbound(conn, peer, pending.addrs, Some(token), ipc::Origin::Invite);
-            }
-            (None, _) if pending.dials_left == 0 => self.fail_code_connect(conn, ipc::CloseReason::Unreachable),
-            _ => {}
-        }
-    }
-
-    /// 合言葉での接続をやめて connectionClosed を知らせる
-    pub(super) fn fail_code_connect(&mut self, conn: u64, reason: ipc::CloseReason) {
-        if self.drop_code_connect(conn) {
-            self.out.notify(ipc::Notification::ConnectionClosed {
-                connection: conn,
-                reason,
-            });
-        }
-    }
-
-    /// 合言葉での接続を、知らせずにやめる（あれば true）
-    pub(super) fn drop_code_connect(&mut self, conn: u64) -> bool {
-        self.code_dials.retain(|_, c| *c != conn);
-        self.code_connects.remove(&conn).is_some()
-    }
-
-    /// 時間が過ぎた合言葉での接続をやめる
-    pub(super) fn expire_code_connects(&mut self) {
-        let now = Instant::now();
-        let expired: Vec<u64> = self
-            .code_connects
-            .iter()
-            .filter(|(_, p)| now.saturating_duration_since(p.started) >= CODE_CONNECT_TIMEOUT)
-            .map(|(conn, _)| *conn)
-            .collect();
-        for conn in expired {
-            self.fail_code_connect(conn, ipc::CloseReason::Timeout);
-        }
+    /// 相手の PeerId と鍵がそろった。トークンを作って、対局ストリームを開く段階へ移る
+    fn connect_code_peer(&mut self, ready: CodeReady) {
+        let token = code::token(&ready.key, &ready.peer.to_bytes(), &self.local_peer.to_bytes());
+        let start = self.begin_outbound(ready.peer, ready.addrs, Some(token), ipc::Origin::Invite);
+        self.proceed(ready.conn, start);
     }
 }
 
