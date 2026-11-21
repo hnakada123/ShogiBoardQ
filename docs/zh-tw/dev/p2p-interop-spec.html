@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="語言"><a href="../../dev/p2p-interop-spec.html" lang="ja" hreflang="ja">日本語</a><a href="../../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><span aria-current="page">繁體中文</span></nav>
 <h1>P2P對局相容實作規格書</h1>
-<p>ShogiBoardQ（將棋盤Q）／協定版本 2／文件版本 2026-11-21.1（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
+<p>ShogiBoardQ（將棋盤Q）／協定版本 2／文件版本 2026-11-21.2（<a href="#sec-B">變更履歷</a>）／日文原文的繁體中文譯本</p>
 <p class="lead">規定通訊層、邀請字串、訊框、開始前的協商、對局中的步驟、重新連線，以及對局記錄（憑證）的格式與驗證。</p>
 </header>
 <nav class="toc" aria-label="目錄">
@@ -560,18 +560,21 @@ addr = kind(2) | host(n) | more(1)</code></pre>
 <li>check 是 1 個字元：以它之前的字元（去掉分隔符號的大寫字元序列，記為 text）計算 <code>H(CBOR(["SBQ-CODE-CHECK", 1, text]))</code>，把第一個位元組的高 5 位元以同一個字元表表示。它用來發現輸入錯誤，不是秘密。</li>
 <li>整體為 9～33 個字元（不含分隔符號。只有 1 個 <code>192.168.x.y</code> 位址且使用固定連接埠時為 12 個字元）。</li>
 </ul>
-<p><strong>產生方</strong>放入監聽位址中的私人位址（最多 4 個），只有在一個私人位址都沒有時才放入 <code>127.0.0.1</code>（同一台電腦上的對手也可以透過私人位址連線）。QUIC 與 TCP 都在固定連接埠監聽時，hasPort 設為 0，否則寫入 QUIC 監聽的連接埠。與邀請字串一樣，要提示使用者只把暗號告訴對手（因為其中包含連線位址）。</p>
+<p><strong>產生方</strong>放入監聽位址中的私人位址（最多 4 個），只有在一個私人位址都沒有時才放入 <code>127.0.0.1</code>（同一台電腦上的對手也可以透過私人位址連線）。線路未連接的網路介面（沒有容器的虛擬橋接器等）的位址，除非所有私人位址都是如此，否則不放入（ShogiBoardQ 在 Linux 上檢查，並在同一邀請的邀請字串中放入以同樣方式選出的位址）。QUIC 與 TCP 都在固定連接埠監聽時，hasPort 設為 0，否則寫入 QUIC 監聽的連接埠。與邀請字串一樣，要提示使用者只把暗號告訴對手（因為其中包含連線位址）。</p>
 <p><strong>讀取方</strong>跳過空白（ASCII 空格、Tab、CR、LF）與 <code>-</code>，不區分大小寫，把 <code>O</code> 讀作 <code>0</code>，把 <code>I</code> 與 <code>L</code> 讀作 <code>1</code>。含有其他字元的、字元數・check・version・addr 的個數・port・secret 的長度不符合上述規定的、同一個位址出現兩次的，都不使用。本節形式的暗號只在 <code>sbq-local-1</code> 中使用（<a href="#sec-5-5">第 5.5 節</a>的暗號形式不同）。暗號的目的位址中，與自己的監聽位址相同的不使用（若全部是自己的監聽位址，就當作自己的邀請處理）。</p>
 <p>暗號中不包含邀請方的 PeerId。申請方不指定 PeerId 地連線到暗號中的位址，以連上的對方的 PeerId 和由暗號產生的金鑰，產生以 INVITE_TOKEN（<a href="#sec-6-3">第 6.3 節</a>）傳送的 token。不得傳送 secret 本身。</p>
 <pre><code>salt  = H(CBOR(["SBQ-CODE-SALT", 1, networkId, port, [ip4, ...]]))[0..16]     ; hasPort 為 0 時 port 為 0。ip4 為 bstr(4)，依暗號中的順序
 key   = Argon2id(password = secret 的 8 位元組大端序, salt,
                  版本 0x13, 記憶體 65536 KiB, 次數 2, 平行度 1, 輸出 32 位元組)
-token = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 邀請方的 PeerId, 申請方的 PeerId]))</code></pre>
+token   = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 邀請方的 PeerId, 申請方的 PeerId]))       ; 申請方 → 邀請方
+confirm = H(CBOR(["SBQ-CODE-CONFIRM", 1, key, 邀請方的 PeerId, 申請方的 PeerId]))     ; 邀請方 → 申請方</code></pre>
 <ul>
 <li>Argon2id 的條件與 libsodium 的 <code>crypto_pwhash</code>（<code>crypto_pwhash_ALG_ARGON2ID13</code>、opslimit 2、memlimit 67108864）相同。PeerId 為二進位表示（<a href="#sec-3-2">第 3.2 節</a>）。</li>
 <li>邀請方為每個附帶暗號的邀請保存 key，把收到的 INVITE_TOKEN 的 token 與以自己的 PeerId 和開啟串流的對方的 PeerId（在連線的加密交握中確認過的）產生的值進行比對。token 與雙方的 PeerId 綁定，因此冒用暗號中位址的其他裝置無法把收到的 token 用於連線到邀請方。</li>
-<li>secret 很短，因此邀請方必須限制暗號 token 的比對可以連續失敗的次數（ShogiBoardQ 最多 8 次，每 4 秒恢復 1 次；沒有剩餘次數期間，不作為暗號的 token 進行比對）。邀請字串的 token 的比對不作限制。</li>
-<li>申請方在連線時無法確認連上的對方是否就是發出邀請的人（與邀請字串不同，事先不知道 PeerId）。與邀請字串一樣，對手以玩家ID 確認（<a href="#sec-3-5">第 3.5 節</a>）。</li>
+<li>只有在暗號的 token 比對成功時，邀請方才在同一個串流中，作為第一個訊框，以與 INVITE_TOKEN 相同的形式（<a href="#sec-6-3">第 6.3 節</a>）回傳 confirm，然後在該串流上開始對局的流程（比任何訊框都先傳送）。對邀請字串的 token、上線通知的 token 不回傳。比對失敗的 token，與以前一樣不作任何回覆就關閉（傳送錯誤 token 的一方得不到任何新的資訊）。</li>
+<li>申請方傳送 token 後，最多等待 10 秒對方的第一個訊框。只有當它是 INVITE_TOKEN 的形式，且其值與以暗號產生的 key 和雙方的 PeerId 產生的 confirm 一致（以處理時間不取決於內容的比較）時，才進入對局的流程。不一致、收到其他訊框、被關閉、在時間內沒有收到時，關閉串流，視為暗號未被接受。confirm 以標籤與 token 區分，因此即使是冒用暗號的位址並收到了 token 的裝置也無法產生（申請方可以確認對方知道暗號）。</li>
+<li>secret 很短，因此邀請方必須依傳送方的來源（IP）和整體兩方面，限制暗號 token 的比對可以失敗的次數。ShogiBoardQ 每個來源最多連續 8 次，每 4 秒恢復 1 次；整體最多連續 32 次，每秒恢復 2 次（10 分鐘的邀請合計最多 1232 次。猜中一個邀請的機率不超過 7.2 × 10<sup>-8</sup>）。任一方沒有剩餘次數期間，不作為暗號的 token 進行比對。即使區域網路內的一台裝置不斷傳送錯誤的 token，也不會使其他來源的比對停止。邀請字串的 token 的比對不作限制。</li>
+<li>申請方不確定 PeerId 就連線到暗號中的位址，因此會把 token 傳送給最先回應的對方。冒用該位址的裝置也能收到 token，但 token 與雙方的 PeerId 綁定，因此不能用於連線到邀請方，只能作為暴力猜測的材料（secret 為 34 位元以上，每次都需要一次 Argon2id 計算）。該裝置無法產生 confirm，因此申請方不會進入對局的流程。與邀請字串一樣，對手也以玩家ID 確認（<a href="#sec-3-5">第 3.5 節</a>）。</li>
 </ul>
 <h3 id="sec-5-5">5.5 使用協作節點的暗號與會合</h3>
 <p>經由中繼的位址很長，放不進第 5.4 節形式的暗號。對於不附帶第 5.4 節暗號的邀請（<code>sbq-limited-1</code> 的邀請，以及<a href="#sec-4-6">第 4.6 節</a>設定下的邀請），ShogiBoardQ 在連線到支援<strong>會合</strong>的協作節點、並且邀請中至少有 1 個可達候選時，附帶 10 個字元的暗號（<code>J6HB7-H6NWR</code> 的形式）。這種暗號只是 45 位元的秘密，不含連線位址，也不含 PeerId。邀請方以由暗號衍生的金鑰加密邀請字串的 body（<a href="#sec-5-1">第 5.1 節</a>），存放到協作節點；申請方以同一個暗號取回並解密，然後依照與讀取邀請字串之後相同的步驟連線。token 與邀請字串的相同，一個邀請只能以邀請字串或暗號擇一使用，且只能使用一次。</p>
@@ -582,7 +585,8 @@ token = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 邀請方的 PeerId, 申請方的 Peer
 <li>check 是 1 個字元：以它之前的 9 個字元（記為 text）計算 <code>H(CBOR(["SBQ-MEET-CHECK", 1, text]))</code>，把第一個位元組的高 5 位元以同一個字元表表示。</li>
 <li>讀取方以與第 5.4 節相同的方式讀取（空白和 <code>-</code>、大小寫、<code>O</code>、<code>I</code>、<code>L</code>）。不以前綴 <code>sbqinv1.</code> 開頭的字串，先以這種形式（10 個字元且 check 一致）讀取，讀不出時再以第 5.4 節的暗號讀取。第 5.4 節的暗號沒有 10 個字元的，check 的產生方法也不同，所以不會混淆。這種形式的暗號在任何網路中都可以使用。</li>
 </ul>
-<pre><code>salt   = H(CBOR(["SBQ-MEET-SALT", 1, networkId]))[0..16]
+<pre><code>window = floor(存放時刻的 UNIX 秒 / 600)
+salt   = H(CBOR(["SBQ-MEET-SALT", 2, networkId, window]))[0..16]
 master = Argon2id(password = secret 的 8 位元組大端序, salt,
                   版本 0x13, 記憶體 65536 KiB, 次數 2, 平行度 1, 輸出 32 位元組)
 slot   = H(CBOR(["SBQ-MEET-SLOT", 1, master]))
@@ -593,6 +597,7 @@ blob   = nonce || XChaCha20-Poly1305(key, nonce, 明文, 附加驗證資料)    
 <ul>
 <li>Argon2id 的條件與第 5.4 節相同。XChaCha20-Poly1305 與 libsodium 的 <code>crypto_aead_xchacha20poly1305_ietf</code> 相同。nonce 在每次存放時以密碼學亂數產生器產生。blob 最多 1024 位元組，放不下的邀請不附帶暗號。</li>
 <li>slot 是存放到協作節點時的編號，key 是加密的金鑰。協作節點看得到的 slot，也由耗時的衍生之後的值產生（從存放的 slot 暴力猜測暗號，每次也需要一次 Argon2id 計算）。</li>
+<li>salt 中包含期間（window），因此協作節點的營運者既不能對存放的內容一起暴力猜測，也不能事先製作暗號與 slot 的對應表並一直使用。申請方依目前期間、上一個期間的順序嘗試，從目前期間結束前 60 秒起也嘗試下一個期間（以因應時鐘偏差。找到後即停止）。每個期間計算一次 Argon2id。</li>
 </ul>
 <p><strong>會合</strong>透過協作節點接受的協定 <code>/shogiboardq/meet/1.0.0</code> 進行。在一條串流上，請求方傳送 1 個請求，協作節點回傳 1 個回應後關閉。請求和回應都是 4 位元組大端序的長度（1～1200）後接確定性CBOR（<a href="#sec-2-2">第 2.2 節</a>）。</p>
 <pre><code>請求 = ["SBQ-MEET-REQ", 1, op, slot, blob, ttlSeconds, oneTime]
@@ -609,7 +614,7 @@ blob   = nonce || XChaCha20-Poly1305(key, nonce, 明文, 附加驗證資料)    
 <tr><td>blob（回應）</td><td>bstr</td><td>op 為 2 且 status 為 0 時為存放的內容。其他情況為空</td></tr>
 </tbody>
 </table></div>
-<p><strong>協作節點</strong>必須只把存放的內容保存在記憶體中，不得寫入磁碟或記錄（slot 也不寫）。超過期限的內容，以及 oneTime 為 1 且已被取回 1 次的內容，要刪除。同一個 slot 已有存放的內容時，只有存放它的節點（PeerId）可以取代或刪除（沒有可刪除內容的刪除，視為完成）。必須對數量和頻率設定上限。ShogiBoardQ 的協作節點總共最多存放 4096 個，每個來源位址段最多 256 個；請求依來源位址段計算，最多連續 64 次，每秒恢復 4 次（PeerId 每次啟動都可以更換，所以依來源計數）。超過上限的請求回傳 status 2。</p>
+<p><strong>協作節點</strong>必須只把存放的內容保存在記憶體中，不得寫入磁碟或記錄（slot 也不寫）。超過期限的內容，以及 oneTime 為 1 且已被取回 1 次的內容，要刪除。同一個 slot 已有存放的內容時，只有存放它的節點（PeerId）可以取代或刪除（沒有可刪除內容的刪除，視為完成）。必須對數量和頻率設定上限。ShogiBoardQ 的協作節點分兩級計算來源（一個來源：IPv4 為位址，IPv6 為 /64。同一位址段：IPv4 為 /24，IPv6 為 /48。PeerId 每次啟動都可以更換，所以依來源計數）。總共最多存放 16384 個，每個來源最多 512 個，同一位址段最多 2048 個；請求每個來源最多連續 256 次，每秒恢復 16 次，同一位址段最多連續 1024 次，每秒恢復 64 次。來源不明的連線（經由中繼等）上的請求，不讀取就回傳 status 2。超過上限的請求回傳 status 2。</p>
 <p><strong>邀請方</strong>向使用者指定並已連線的協作節點中支援會合的所有節點（Identify 的 protocols 中有 <code>/shogiboardq/meet/1.0.0</code> 的節點），以 op 1、ttlSeconds 為到期限為止的秒數、oneTime 1 存放。一個也存放不了時，不附帶暗號。邀請被使用（包括以邀請字串使用）或被取消後，最好以 op 3 刪除。</p>
 <p><strong>申請方</strong>依序向支援會合的協作節點以 op 2 詢問，找到能解密的內容後停止。解密（驗證檢查）不通過的內容，不讀取其內容就捨棄。解密得到的明文，依與邀請字串的 body 相同的規則（<a href="#sec-5-3">第 5.3 節</a>）檢查。協作節點在內容被取回 1 次後就會刪除，所以讓使用者先確認內容再連線的實作，要把取回的邀請保留到連線為止（到期限為止）。不取回自己存放的 slot。取回失敗的原因（暗號不正確、已過期、已被取回、已被取消）無法區分。</p>
 <p>在期限內得知暗號的第三方，可以搶在被邀請者之前取回並連線（與邀請字串被他人得知時相同）。對手要以玩家ID 確認（<a href="#sec-3-5">第 3.5 節</a>）。協作節點的營運者可以阻止取回，但因為不知道金鑰，無法換成別的邀請。</p>
@@ -632,7 +637,7 @@ body         = 與邀請字串的 body 形式相同的確定性CBOR（第 5.1 �
 <p><strong>存放方</strong>在使用者設定為告知上線狀態（ShogiBoardQ 預設關閉）、已連線、並且不在協商中或對局中的期間，對每位好友，把以與該好友之間的 key 加密的通知存放到 slot（ShogiBoardQ 存放 180 秒，每 75 秒重新產生並重新存放）。對已移出好友或已封鎖的對手不存放，並使已經存放的通知中的 token 失效。</p>
 <p><strong>查詢方</strong>從好友存放的 slot（存放方的玩家ID 是好友的）取回，如果通過解密（驗證檢查）並且 expiresAt 尚未過期，就認為該好友已連線。目前的 epoch 沒有時，在 epoch 變化後 180 秒內還查詢上一個 epoch，在變化前 60 秒起還查詢下一個 epoch（考慮重新存放的間隔和時鐘誤差）。對協作節點的請求要留出間隔，避免超過頻率上限（ShogiBoardQ 只在使用者顯示好友清單期間，每 60 秒查詢一次）。</p>
 <p><strong>申請對局的一方</strong>（擔任申請方的角色）依與邀請字串相同的步驟（<a href="#sec-6-3">第 6.3 節</a>）連線到解密得到的 body 中的位址，並以 INVITE_TOKEN 傳送 body 中的 token。之後的協商與邀請相同（<a href="#sec-8">第 8 章</a>）。<strong>接受的一方</strong>（擔任邀請方的角色）記住各個 token 是為哪位好友存放的通知中的，如果申請方在 HELLO 中聲稱的不是該好友的玩家ID，就拒絕（<a href="#sec-8-2">第 8.2 節</a>）。申請對局的一方也一樣，如果回應的對方聲稱的不是所申請好友的玩家ID，就中止。聲稱的玩家ID，與邀請時一樣，透過開始簽章（<a href="#sec-8-5">第 8.5 節</a>）確認。條件（用時規則、先後手的希望）由接受的一方決定，只有在接受一方的使用者確認後才開始對局。</p>
-<p>只有一方把對方加為好友時，什麼也不會發生（對方既不存放，也不取回）。協作節點的營運者可以看到存放同一個 slot 的來源和取回它的來源（哪些 IP 位址之間是好友），以及存放的 slot 數量。看不到玩家ID、顯示名稱和連線位址。實作必須把這一點告知使用者。</p>
+<p>對方沒有把自己加為好友時，ShogiBoardQ 不取回對方存放的內容。但是，存放方會向自己加為好友的所有人的 slot 存放，因此經過修改的實作，即使對方沒有把自己加為好友，只要自己把對方加為好友，就能讀取上線通知（包含連線用的 IP 位址）。協作節點的營運者可以看到存放同一個 slot 的來源和取回它的來源（哪些 IP 位址之間是好友），以及存放的 slot 數量。在同一個連線期間，可以用 PeerId 和來源，跨期間把 slot 關聯起來。看不到玩家ID、顯示名稱和連線位址。實作必須把這一點告知使用者。</p>
 </section>
 <section id="stream">
 <h2 id="sec-6">6. 對局串流與訊框</h2>
@@ -986,7 +991,7 @@ payload = [ply, stateHash, signature]    ; signature 為接收方以單局金鑰
 <thead><tr><th>測量的對象</th><th>起點</th></tr></thead>
 <tbody>
 <tr><td>自己回合的時間（E）</td><td>先手的第一手，為收到 READY 的時點。其他為檢查完對方的著手並傳送 STATE_ACCEPT 的時點</td></tr>
-<tr><td>對方回合的觀測</td><td>第一次傳送自己的 STATE_PROPOSE 的時點。後手觀測先手的第一手時，為傳送 READY 的時點。<strong>重新連線後，重新傳送自己未獲認可的著手時，從重新傳送的時點重新測量</strong>（因為對方的回合從對方收到並認可該著手的時點開始。<a href="#sec-11-5">第 11.5 節</a>）</td></tr>
+<tr><td>對方回合的觀測</td><td>第一次傳送自己的 STATE_PROPOSE 的時點。後手觀測先手的第一手時，為傳送 READY 的時點。<strong>重新連線後，重新傳送自己未獲認可的著手時，從重新傳送的時點重新測量</strong>（因為對方的回合從對方收到並認可該著手的時點開始。<a href="#sec-11-5">第 11.5 節</a>）。作為代價，重新傳送之前未獲認可而等待的時間要加到斷線時間的合計中</td></tr>
 </tbody>
 </table></div>
 <ul>
@@ -1089,7 +1094,7 @@ Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]    
 <tr><td>協議和棋、協議中斷（cause 6、8）</td><td>詢問使用者。接受時回傳相同的提議而一致，拒絕時 RESULT_DECLINE。若在回覆前自己走了棋，視為拒絕</td></tr>
 </tbody>
 </table></div>
-<p>協議和棋、協議中斷的請求，作為使用者的操作，在對方拒絕（回傳 RESULT_DECLINE）或手數前進之前，各最多一次（不會不等回覆就重新傳送，以免反覆詢問對方）。對方拒絕之後，即使在同一手數，也可以再次提出請求。即使同一手數反覆收到相同的提議，接收方也不得將其視為違規（每次都依上表處理）。ShogiBoardQ 在被拒絕後使用者再次提出請求時會傳送相同的提議，在重新連線後會重新傳送提議（<a href="#sec-11-5">第 11.5 節</a>），並在超過每局實際時間的上限後，每次被拒絕都會重新提議協議中斷（第 10.5 節）。</p>
+<p>協議和棋、協議中斷的請求，作為使用者的操作，在對方拒絕（回傳 RESULT_DECLINE）或手數前進之前，各最多一次（不會不等回覆就重新傳送，以免反覆詢問對方）。對方拒絕之後，即使在同一手數，也可以再次提出請求。即使同一手數反覆收到相同的提議，接收方也不得將其視為違規。與正在詢問使用者的請求相同的請求，可以不再次詢問（目前的回覆同時回覆兩者）。為了不反覆詢問使用者，可以限制詢問的數量，對超出的請求不詢問而直接拒絕（回傳 RESULT_DECLINE）。ShogiBoardQ 在使用者回覆之前最多詢問 2 個（和棋與中斷各一次），每個手數最多詢問 8 個，超出的請求會被拒絕。依照上述規則提出請求的實作不會達到這些數量。ShogiBoardQ 在被拒絕後使用者再次提出請求時會傳送相同的提議，在重新連線後會重新傳送提議（<a href="#sec-11-5">第 11.5 節</a>），並在超過每局實際時間的上限後，每次被拒絕都會重新提議協議中斷（第 10.5 節）。</p>
 
 <h3 id="sec-10-3">10.3 由棋譜決定的終局</h3>
 <p>每前進一手（雙方都已認可的 State 增加時），雙方都依下列順序判定，若為終局，就以 RESULT_PROPOSE 提議該結果。雙方做出相同的判定時，就會互相傳送相同的提議而一致。</p>
@@ -1177,6 +1182,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <li>若還有未獲對方認可的自己的著手，就重新傳送<strong>相同位元組序列</strong>的 STATE_PROPOSE。對方回合的觀測（<a href="#sec-9-4">第 9.4 節</a>）從這次重新傳送的時點重新測量。若透過 SYNC 得知未獲認可的著手已「認可」，則不重新測量（從第一次傳送的時點起測量，並扣除斷線的時間）。</li>
 <li>若已提議過結果，就重新傳送 RESULT_PROPOSE。<strong>若已達到由棋譜決定的終局（<a href="#sec-10-3">第 10.3 節</a>），核對之後一定要提議。</strong>ShogiBoardQ 不會從透過 SYNC 得知最後一手的一方提議，因此若持有最新狀態的一方不重新傳送提議，對局就不會結束。</li>
 <li>把斷線的時間（從判斷已斷線到核對結束）加到該局斷線時間的合計中。</li>
+<li>對於重新傳送的著手，從第一次傳送到判斷已斷線為止、未獲認可而等待的時間（扣除其間已斷線的時間）也要加到斷線時間的合計中。因為無法區分對方是收到後在思考，還是根本沒有收到。若不加上，對方只要不回傳認可並反覆重新連線，就能讓觀測無數次重新測量，在一步棋上想多久都行。加上後若合計超過上限（<a href="#sec-11-6">第 11.6 節</a>），就在核對結束時作為中斷（DISCONNECT_LIMIT）結束。</li>
 </ul>
 
 <h3 id="sec-11-6">11.6 斷線的上限</h3>
@@ -1301,11 +1307,12 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>同時有效的邀請</td><td>最多 4 個</td><td><a href="#sec-5-2">5.2</a></td></tr>
 <tr><td>暗號的長度</td><td>9～33 個字元（不含分隔符號）。位址 1～4 個，秘密 34～38 位元</td><td><a href="#sec-5-4">5.4</a></td></tr>
 <tr><td>暗號的金鑰衍生</td><td>Argon2id（版本 0x13、記憶體 65536 KiB、次數 2、平行度 1、輸出 32 位元組）</td><td><a href="#sec-5-4">5.4</a></td></tr>
-<tr><td>暗號 token 比對的失敗（ShogiBoardQ 的值）</td><td>最多連續 8 次。每 4 秒恢復 1 次</td><td><a href="#sec-5-4">5.4</a></td></tr>
+<tr><td>暗號 token 比對的失敗（ShogiBoardQ 的值）</td><td>每個來源最多連續 8 次（每 4 秒恢復 1 次）。整體最多連續 32 次（每秒恢復 2 次）</td><td><a href="#sec-5-4">5.4</a></td></tr>
+<tr><td>等待暗號 confirm 的時間</td><td>10 秒</td><td><a href="#sec-5-4">5.4</a></td></tr>
 <tr><td>會合的協定</td><td><code>/shogiboardq/meet/1.0.0</code></td><td><a href="#sec-5-5">5.5</a></td></tr>
 <tr><td>使用協作節點的暗號</td><td>10 個字元（不含分隔符號）。秘密 45 位元</td><td><a href="#sec-5-5">5.5</a></td></tr>
 <tr><td>會合的請求、回應的長度</td><td>1～1200 位元組。存放的內容 40～1024 位元組，存放時間 1～600 秒</td><td><a href="#sec-5-5">5.5</a></td></tr>
-<tr><td>會合的上限（ShogiBoardQ 協作節點的值）</td><td>總共 4096 個，每個來源位址段 256 個。請求依來源位址段最多連續 64 次（每秒恢復 4 次）</td><td><a href="#sec-5-5">5.5</a></td></tr>
+<tr><td>會合的上限（ShogiBoardQ 協作節點的值）</td><td>總共 16384 個，每個來源 512 個，同一位址段 2048 個。請求每個來源最多連續 256 次（每秒恢復 16 次），同一位址段最多連續 1024 次（每秒恢復 64 次）</td><td><a href="#sec-5-5">5.5</a></td></tr>
 <tr><td>上線通知的編號和金鑰變化的間隔（epoch）</td><td>600 秒</td><td><a href="#sec-5-6">5.6</a></td></tr>
 <tr><td>上線通知的期限</td><td>產生後 300 秒以內</td><td><a href="#sec-5-6">5.6</a></td></tr>
 <tr><td>上線通知的存放與查詢（ShogiBoardQ 的值）</td><td>存放 180 秒，每 75 秒重新存放。每 60 秒查詢一次。好友最多 64 人</td><td><a href="#sec-5-6">5.6</a></td></tr>
@@ -1343,8 +1350,8 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td><code>displayname.txt</code></td><td><code>accept &lt;hex(UTF-8)&gt;</code>／<code>reject &lt;hex(UTF-8)&gt;</code></td><td>顯示名稱的規則（<a href="#sec-3-6">第 3.6 節</a>）</td></tr>
 <tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId 與 rulesHash（<a href="#sec-3-1">第 3.1 節</a>、<a href="#sec-7-1">第 7.1 節</a>）</td></tr>
 <tr><td><code>rules.txt</code></td><td><code>&lt;blackKind&gt; &lt;whiteKind&gt; &lt;hex(rulesHash)&gt; &lt;hex(CBOR(Rules))&gt;</code></td><td>各種對局者類別組合的 Rules（4 種）的位元組序列與雜湊（<a href="#sec-7-1">第 7.1 節</a>）</td></tr>
-<tr><td><code>code.txt</code></td><td><code>code &lt;暗號&gt; &lt;port 或 -&gt; &lt;位址,...&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;字串&gt;</code>／<code>key &lt;networkName&gt; &lt;暗號&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(key)&gt;</code>／<code>token &lt;hex(key)&gt; &lt;hex(邀請方的 PeerId)&gt; &lt;hex(申請方的 PeerId)&gt; &lt;hex(token)&gt;</code></td><td>暗號的形式、無法讀取的字串、金鑰與 token（<a href="#sec-5-4">第 5.4 節</a>）</td></tr>
-<tr><td><code>meet.txt</code></td><td><code>code &lt;暗號&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;字串&gt;</code>／<code>keys &lt;networkName&gt; &lt;暗號&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(master)&gt; &lt;hex(slot)&gt; &lt;hex(key)&gt;</code>／<code>blob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(nonce)&gt; &lt;hex(明文) 或 -&gt; &lt;hex(blob)&gt;</code>／<code>badblob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(blob)&gt;</code>／<code>request &lt;hex&gt;</code>、<code>badrequest &lt;hex&gt;</code>／<code>response &lt;hex&gt;</code>、<code>badresponse &lt;hex&gt;</code></td><td>使用協作節點的暗號與會合（<a href="#sec-5-5">第 5.5 節</a>）。<code>invalid</code> 是不能作為暗號讀取的字串，<code>badblob</code> 是無法解密的 blob，<code>badrequest</code>、<code>badresponse</code> 是無法讀取的請求、回應</td></tr>
+<tr><td><code>code.txt</code></td><td><code>code &lt;暗號&gt; &lt;port 或 -&gt; &lt;位址,...&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;字串&gt;</code>／<code>key &lt;networkName&gt; &lt;暗號&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(key)&gt;</code>／<code>token &lt;hex(key)&gt; &lt;hex(邀請方的 PeerId)&gt; &lt;hex(申請方的 PeerId)&gt; &lt;hex(token)&gt;</code>／<code>confirm &lt;hex(key)&gt; &lt;hex(邀請方的 PeerId)&gt; &lt;hex(申請方的 PeerId)&gt; &lt;hex(confirm)&gt;</code></td><td>暗號的形式、無法讀取的字串、金鑰與 token（<a href="#sec-5-4">第 5.4 節</a>）</td></tr>
+<tr><td><code>meet.txt</code></td><td><code>code &lt;暗號&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;字串&gt;</code>／<code>keys &lt;networkName&gt; &lt;window&gt; &lt;暗號&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(master)&gt; &lt;hex(slot)&gt; &lt;hex(key)&gt;</code>／<code>blob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(nonce)&gt; &lt;hex(明文) 或 -&gt; &lt;hex(blob)&gt;</code>／<code>badblob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(blob)&gt;</code>／<code>request &lt;hex&gt;</code>、<code>badrequest &lt;hex&gt;</code>／<code>response &lt;hex&gt;</code>、<code>badresponse &lt;hex&gt;</code></td><td>使用協作節點的暗號與會合（<a href="#sec-5-5">第 5.5 節</a>）。<code>invalid</code> 是不能作為暗號讀取的字串，<code>badblob</code> 是無法解密的 blob，<code>badrequest</code>、<code>badresponse</code> 是無法讀取的請求、回應</td></tr>
 <tr><td><code>friend.txt</code></td><td><code>pair &lt;hex(玩家金鑰的種子)&gt; &lt;hex(自己的玩家ID)&gt; &lt;hex(對方的玩家ID)&gt; &lt;hex(shared)&gt; &lt;hex(pairSecret)&gt;</code>／<code>badkey &lt;hex(對方的玩家ID)&gt;</code>／<code>slot &lt;networkName&gt; &lt;hex(pairSecret)&gt; &lt;hex(存放方的玩家ID)&gt; &lt;epoch&gt; &lt;hex(slot)&gt; &lt;hex(key)&gt;</code>／<code>blob &lt;networkName&gt; &lt;hex(pairSecret)&gt; &lt;hex(存放方的玩家ID)&gt; &lt;epoch&gt; &lt;hex(nonce)&gt; &lt;expiresAt&gt; &lt;hex(body)&gt; &lt;hex(blob)&gt;</code>／<code>badblob &lt;networkName&gt; &lt;hex(pairSecret)&gt; &lt;hex(存放方的玩家ID)&gt; &lt;epoch&gt; &lt;hex(blob)&gt;</code></td><td>好友清單的上線通知（<a href="#sec-5-6">第 5.6 節</a>）。玩家金鑰是由種子產生的 Ed25519 金鑰（libsodium 的 <code>crypto_sign_seed_keypair</code>）。<code>badkey</code> 是不得與之產生秘密的對方玩家ID，<code>badblob</code> 是無法讀取的 blob</td></tr>
 </tbody>
 </table></div>
@@ -1466,6 +1473,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文件版本</th><th>協定版本</th><th>相容實作是否需要修改</th><th>變更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-21.2</td><td>2</td><td>需要（支援暗號或使用協作節點的暗號的實作，以及重新連線後的核對）</td><td>修正了安全稽核（2026-11-21）的指出事項。(1) 同一區域網路的暗號（<a href="#sec-5-4">第 5.4 節</a>）：邀請方比對暗號的 token 成功後回傳 confirm，申請方確認後才進入對局的流程。以前，在暗號的位址上最先回應的裝置可以冒充邀請方，一直進行到條件確認。暗號 token 比對的失敗次數改為依來源和整體兩級計算（以前只有整體一個，區域網路內的一台裝置不斷傳送錯誤的 token，正確的暗號也會被拒絕）。與 2026-11-20.1 的暗號實作之間，以暗號無法連線（以邀請字串可以連線）。(2) 使用協作節點的暗號（<a href="#sec-5-5">第 5.5 節</a>）：salt 中加入期間（window），標籤的版本改為 2。這是為了讓協作節點的營運者既不能對存放的內容一起暴力猜測，也不能事先製作對應表。與 2026-11-20.2 的實作之間，無法以暗號取回（以邀請字串可以連線）。把 ShogiBoardQ 協作節點的會合上限改為兩級，並拒絕來源不明的連線上的請求。(3) 重新連線核對後重新傳送的著手（<a href="#sec-9-4">第 9.4 節</a>、<a href="#sec-11-5">第 11.5 節</a>）：把重新傳送之前等待認可的時間加到每局的斷線時間合計中。以前，對方只要不回傳認可並反覆重新連線，就能讓觀測無數次重新測量，在一步棋上想多久都行。(4) 和棋、中斷的請求（<a href="#sec-10-2">第 10.2 節</a>）：寫明接收方可以不再次詢問與正在詢問的請求相同的請求，可以限制詢問的數量並拒絕超出的請求（依規則提出請求的實作不受影響）。(5) 好友的上線狀態（<a href="#sec-5-6">第 5.6 節</a>）：修正了只有一方加為好友時的說明（經過修改的實作能讀取存放方的連線位址），並寫明協作節點的營運者在同一個連線期間可以跨期間關聯 slot。協定版本、訊框的形式、對局的流程沒有變化。測試輸入 <code>code.txt</code> 中加入了 confirm 行，<code>meet.txt</code> 的 keys 行中加入了期間一欄。</td></tr>
 <tr><td>2026-11-21.1</td><td>2</td><td>需要</td><td>禁止了在由棋譜決定終局的局面（<a href="#sec-10-3">第 10.3 節</a>）之後的著手（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/5292fc73cfafcb40e7d4aecd9445caec20d82738">5292fc73</a>）。輪到走棋的一方在終局已確定的局面中不得傳送 STATE_PROPOSE（<a href="#sec-9-2">第 9.2 節</a>）。接收方不予認可，以錯誤（INVALID_MOVE）停止（第 9.2 節的步驟 4），在重新連線後的核對中到達的 State 也不予納入（<a href="#sec-11-4">第 11.4 節</a>。STATE_CONFLICT）。憑證的驗證把終局的 State 之後還有 State 的記錄視為不符合規則（<a href="#sec-13-2">第 13.2 節</a>）。以前會認可終局之後緊接著到達的著手，因此修改過的用戶端可以用下一手消除因連續王手千日手而輸的結果，該記錄也能通過驗證。正確實作的程式不會在終局之後傳送著手，因此對局照常可以進行（協定版本仍為 2）。相容實作需要修改接收方的檢查與憑證的驗證。</td></tr>
 <tr><td>2026-11-21</td><td>2</td><td>不需要</td><td>依照重新編排後的 P2P 對局視窗（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/6273b1832691cc66a2a9c0ce246f49080f9b4f26">6273b183</a>），更新了 ShogiBoardQ 畫面上的名稱（<a href="#sec-3-1">第 3.1 節</a>、<a href="#sec-4-6">第 4.6 節</a>、<a href="#sec-15">第 15 章</a>）。在畫面上，網路的「本機」現在是「對手所在位置」的「同一電腦・同一區域網路」，第 4.6 節的設定是「與對手的連線方式」的「僅使用協作節點的中繼」，檢查邀請字串的欄位是「邀請」分頁的「接受邀請」，加為好友在「對手」分頁中進行。networkName、訊框的格式、步驟等規則沒有改變。</td></tr>
 <tr><td>2026-11-20.3</td><td>2</td><td>不需要（只有要支援好友清單時才需要）</td><td>增加了好友清單的上線通知（<a href="#sec-5-6">第 5.6 節</a>、<a href="#sec-6-3">第 6.3 節</a>、<a href="#sec-8-2">第 8.2 節</a>、<a href="#sec-14">第 14 章</a>、<a href="#sec-15">第 15 章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/4c5f06a791663bd82071377bfda11a04eac9873b">4c5f06a7</a>）。這是因為 ShogiBoardQ 現在可以知道加為好友的對手是否已連線，並且不需要傳遞邀請就能從清單中申請對局。互相加為好友的兩人，以玩家金鑰和對方的玩家ID 透過金鑰交換（X25519）產生只有兩人知道的秘密，把上線通知（連線位址，以及在期限之前可以多次使用的 token）加密後，以每 10 分鐘變化一次的編號存放到協作節點的會合（第 5.5 節。<code>--meet</code>）中。申請時，以 INVITE_TOKEN 傳送該 token 來開啟對局串流；接受的一方，如果對方在 HELLO 中聲稱的不是為其存放通知的好友的玩家ID，就拒絕。協作節點的會合協定、INVITE_TOKEN 的形式、HELLO 的形式、對局的步驟都沒有改變。不支援的實作不需要修改，也可以照常以邀請對局（收不到來自好友清單的申請）。測試輸入中增加了 <code>friend.txt</code>。</td></tr>

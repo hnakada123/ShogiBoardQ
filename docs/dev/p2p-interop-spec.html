@@ -85,7 +85,7 @@ footer.doc { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--li
 <header class="doc">
 <nav class="langs" aria-label="言語"><span aria-current="page">日本語</span><a href="../en/dev/p2p-interop-spec.html" lang="en" hreflang="en">English</a><a href="../zh-cn/dev/p2p-interop-spec.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a><a href="../zh-tw/dev/p2p-interop-spec.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></nav>
 <h1>P2P対局 互換実装のための仕様書</h1>
-<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 2／文書の版 2026-11-21.1（<a href="#sec-B">変更履歴</a>）</p>
+<p>ShogiBoardQ（将棋盤Q）／プロトコルの版 2／文書の版 2026-11-21.2（<a href="#sec-B">変更履歴</a>）</p>
 <p class="lead">通信の層、招待文字列、フレーム、開始の交渉、対局中の手順、再接続、対局記録（証跡）の形と検証を定める。</p>
 </header>
 <nav class="toc" aria-label="目次">
@@ -560,18 +560,21 @@ addr = kind(2) | host(n) | more(1)</code></pre>
 <li>check は1文字で、それより前の文字（区切りを除いた大文字の列。text）から <code>H(CBOR(["SBQ-CODE-CHECK", 1, text]))</code> の先頭のバイトの上位 5 ビットを、同じ文字の表で表す。打ち間違いを見つけるためのもので、秘密ではない。</li>
 <li>全体は 9〜33 文字である（区切りを除く。<code>192.168.x.y</code> のアドレス1件で、決まったポートなら 12 文字）。</li>
 </ul>
-<p><strong>作る側</strong>は、待受のアドレスのうち私設アドレス（4 件まで）を入れ、私設アドレスが1つもないときだけ <code>127.0.0.1</code> を入れる（同じ PC の相手は、私設アドレスでもつなげる）。QUIC も TCP も決まったポートで待ち受けていれば hasPort を 0 にし、そうでなければ QUIC の待受のポートを書く。合言葉も、招待文字列と同じく、相手だけに伝えるよう利用者に案内する（接続先が入っているため）。</p>
+<p><strong>作る側</strong>は、待受のアドレスのうち私設アドレス（4 件まで）を入れ、私設アドレスが1つもないときだけ <code>127.0.0.1</code> を入れる（同じ PC の相手は、私設アドレスでもつなげる）。回線のつながっていないインターフェース（コンテナのいない仮想のブリッジなど）のアドレスは、私設アドレスがすべてそうでなければ入れない（ShogiBoardQ は Linux で調べ、同じ招待の招待文字列にも、同じ選び方のアドレスを入れる）。QUIC も TCP も決まったポートで待ち受けていれば hasPort を 0 にし、そうでなければ QUIC の待受のポートを書く。合言葉も、招待文字列と同じく、相手だけに伝えるよう利用者に案内する（接続先が入っているため）。</p>
 <p><strong>読む側</strong>は、空白（ASCII の空白・タブ・CR・LF）と <code>-</code> を読み飛ばし、大文字と小文字を区別せず、<code>O</code> を <code>0</code>、<code>I</code> と <code>L</code> を <code>1</code> として読む。ほかの文字を含むもの、文字数・check・version・addr の件数・port・secret の長さが上のとおりでないもの、同じアドレスを2回含むものは使わない。この節の形の合言葉を使うのは <code>sbq-local-1</code> だけである（<a href="#sec-5-5">5.5節</a>の合言葉は、形が違う）。合言葉の宛先のうち、自分の待受のアドレスと同じものは使わない（すべて自分の待受なら、自分の招待として扱う）。</p>
 <p>合言葉には招待側の PeerId が入っていない。申込側は、合言葉の宛先へ PeerId を決めずに接続し、つながった相手の PeerId と、合言葉から作った鍵で、INVITE_TOKEN（<a href="#sec-6-3">6.3節</a>）で送る token を作る。secret そのものを送ってはならない。</p>
 <pre><code>salt  = H(CBOR(["SBQ-CODE-SALT", 1, networkId, port, [ip4, ...]]))[0..16]     ; port は hasPort が 0 なら 0。ip4 は bstr(4)。合言葉に入っている順
 key   = Argon2id(password = secret の 8 バイトのビッグエンディアン, salt,
                  版 0x13, メモリ 65536 KiB, 回数 2, 並列 1, 出力 32 バイト)
-token = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 招待側の PeerId, 申込側の PeerId]))</code></pre>
+token   = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 招待側の PeerId, 申込側の PeerId]))       ; 申込側 → 招待側
+confirm = H(CBOR(["SBQ-CODE-CONFIRM", 1, key, 招待側の PeerId, 申込側の PeerId]))     ; 招待側 → 申込側</code></pre>
 <ul>
 <li>Argon2id の条件は、libsodium の <code>crypto_pwhash</code>（<code>crypto_pwhash_ALG_ARGON2ID13</code>、opslimit 2、memlimit 67108864）と同じである。PeerId はバイナリ表現（<a href="#sec-3-2">3.2節</a>）。</li>
 <li>招待側は、合言葉を付けた招待ごとに key を持ち、届いた INVITE_TOKEN の token を、自分の PeerId と、ストリームを開いた相手の PeerId（接続の暗号の手続きで確かめたもの）から作った値と照合する。token は双方の PeerId に結び付くので、合言葉の宛先を名乗った別の機器が受け取った token を、招待側への接続に使い回せない。</li>
-<li>secret は短いので、招待側は、合言葉の token の照合に続けて失敗できる回数を絞らなければならない（ShogiBoardQ は 8 回までで、4 秒ごとに1回分戻す。回数が残っていない間は、合言葉の token として照合しない）。招待文字列の token の照合は絞らない。</li>
-<li>申込側は、つながった相手が招待した本人かどうかを、接続の時点では確かめられない（招待文字列と違い、PeerId を前もって知らないため）。相手は、招待文字列のときと同じく、プレイヤーID で確かめる（<a href="#sec-3-5">3.5節</a>）。</li>
+<li>招待側は、合言葉の token を照合できたときだけ、同じストリームの最初のフレームとして、INVITE_TOKEN と同じ形（<a href="#sec-6-3">6.3節</a>）で confirm を返してから、そのストリームで対局の手順を始める（どのフレームよりも先に送る）。招待文字列の token・在席の知らせの token には返さない。照合できなかった token には、これまでどおり何も返さずに閉じる（誤った token を送った者が新しく得るものはない）。</li>
+<li>申込側は、token を送った後、相手の最初のフレームを 10 秒まで待つ。それが INVITE_TOKEN の形で、値が、合言葉から作った key と双方の PeerId から作った confirm と（処理時間が中身によらない比較で）一致したときだけ、対局の手順へ進む。一致しない・ほかのフレームが来た・閉じられた・時間内に来ないときは、ストリームを閉じ、合言葉が受け付けられなかったものとして扱う。confirm はラベルで token と分けてあるので、合言葉の宛先を乗っ取って token を受け取った機器にも作れない（相手が合言葉を知っていることを、申込側が確かめられる）。</li>
+<li>secret は短いので、招待側は、合言葉の token の照合に失敗できる回数を、送ってきた相手の接続元（IP）ごとと、全体の両方で絞らなければならない。ShogiBoardQ は、接続元ごとに続けて 8 回までで 4 秒ごとに1回分戻し、全体で続けて 32 回までで1秒に 2 回分戻す（10 分の招待に合わせて 1232 回まで。1つの招待を当てられる確率は 7.2 × 10<sup>-8</sup> 以下）。どちらかの回数が残っていない間は、合言葉の token として照合しない。LAN の1台が誤った token を送り続けても、ほかの接続元の照合は止まらない。招待文字列の token の照合は絞らない。</li>
+<li>申込側は、合言葉の宛先へ PeerId を決めずにつなぐので、最初に応えた相手に token を送る。宛先を乗っ取った機器も token を受け取れるが、token は双方の PeerId に結び付くので招待側への接続には使えず、総当たりの材料になるだけである（secret は 34 ビット以上で、1回ごとに Argon2id の計算が要る）。その機器は confirm を作れないので、申込側は対局の手順へ進まない。相手は、招待文字列のときと同じく、プレイヤーID でも確かめる（<a href="#sec-3-5">3.5節</a>）。</li>
 </ul>
 <h3 id="sec-5-5">5.5 協力ノードを使う合言葉と待ち合わせ</h3>
 <p>中継経由の宛先は長いので、5.4節の形の合言葉には入らない。ShogiBoardQ は、5.4節の合言葉を付けない招待（<code>sbq-limited-1</code> の招待と、<a href="#sec-4-6">4.6節</a>の設定の招待）で、<strong>待ち合わせ</strong>に対応した協力ノードにつながっていて、到達候補が1件以上あるときに、10 文字の合言葉（<code>J6HB7-H6NWR</code> の形）を付ける。この合言葉は 45 ビットの秘密だけで、接続先も PeerId も入らない。招待側は、招待文字列の body（<a href="#sec-5-1">5.1節</a>）を合言葉から作った鍵で暗号化して協力ノードに預け、申込側は、同じ合言葉で引き取って復号し、招待文字列を読んだときと同じ手順でつなぐ。token は招待文字列と同じもので、1つの招待は、招待文字列と合言葉のどちらか一方で、1回だけ使える。</p>
@@ -582,7 +585,8 @@ token = H(CBOR(["SBQ-CODE-TOKEN", 1, key, 招待側の PeerId, 申込側の Peer
 <li>check は1文字で、それより前の9文字（text）から <code>H(CBOR(["SBQ-MEET-CHECK", 1, text]))</code> の先頭のバイトの上位 5 ビットを、同じ文字の表で表す。</li>
 <li>読む側は、5.4節と同じ読み方（空白と <code>-</code>、大文字と小文字、<code>O</code>・<code>I</code>・<code>L</code>）で読む。接頭辞 <code>sbqinv1.</code> で始まらない文字列は、まずこの形（10 文字で check が合う）として読み、読めなければ 5.4節の合言葉として読む。5.4節の合言葉に 10 文字のものは無く、check の作り方も違うので、取り違えない。この形の合言葉は、どのネットワークでも使える。</li>
 </ul>
-<pre><code>salt   = H(CBOR(["SBQ-MEET-SALT", 1, networkId]))[0..16]
+<pre><code>window = floor(預ける時刻の UNIX 秒 / 600)
+salt   = H(CBOR(["SBQ-MEET-SALT", 2, networkId, window]))[0..16]
 master = Argon2id(password = secret の 8 バイトのビッグエンディアン, salt,
                   版 0x13, メモリ 65536 KiB, 回数 2, 並列 1, 出力 32 バイト)
 slot   = H(CBOR(["SBQ-MEET-SLOT", 1, master]))
@@ -593,6 +597,7 @@ blob   = nonce || XChaCha20-Poly1305(key, nonce, 平文, 一緒に認証する�
 <ul>
 <li>Argon2id の条件は 5.4節と同じである。XChaCha20-Poly1305 は、libsodium の <code>crypto_aead_xchacha20poly1305_ietf</code> と同じである。nonce は、預けるたびに暗号用の乱数生成器で作る。blob は 1024 バイトまでで、収まらない招待には合言葉を付けない。</li>
 <li>slot は協力ノードに預けるときの番号、key は暗号化の鍵である。協力ノードに見える slot も、時間のかかる導出の後の値から作る（預かった slot から合言葉を総当たりするのにも、1回ごとに Argon2id の計算が要る）。</li>
+<li>salt に期間（window）を入れるので、協力ノードの運営者は、預かったものをまとめて総当たりすることも、合言葉と slot の表を前もって作って使い続けることもできない。申込側は、今の期間、前の期間の順に試し、今の期間が終わる 60 秒前からは次の期間も試す（時計のずれに備える。見つかったところでやめる）。期間ごとに Argon2id を1回計算する。</li>
 </ul>
 <p><strong>待ち合わせ</strong>は、協力ノードが受け付けるプロトコル <code>/shogiboardq/meet/1.0.0</code> で行う。1本のストリームで、頼む側が要求を1つ送り、協力ノードが応答を1つ返して閉じる。要求も応答も、4 バイトのビッグエンディアンの長さ（1〜1200）に、決定的CBOR（<a href="#sec-2-2">2.2節</a>）を続ける。</p>
 <pre><code>要求 = ["SBQ-MEET-REQ", 1, op, slot, blob, ttlSeconds, oneTime]
@@ -609,7 +614,7 @@ blob   = nonce || XChaCha20-Poly1305(key, nonce, 平文, 一緒に認証する�
 <tr><td>blob（応答）</td><td>bstr</td><td>op が 2 で status が 0 のときは預かっていたもの。ほかは空</td></tr>
 </tbody>
 </table></div>
-<p><strong>協力ノード</strong>は、預かったものをメモリにだけ持ち、ディスクにもログにも書いてはならない（slot も書かない）。期限を過ぎたものと、oneTime が 1 で1回引き取られたものは消す。同じ slot に預けたものがあるとき、置き換え・消去ができるのは、預けたピア（PeerId）だけである（消すものが無い消去は、できたものとして扱う）。件数と頻度に上限を置かなければならない。ShogiBoardQ の協力ノードは、全体で 4096 件、接続元のアドレス帯ごとに 256 件まで預かり、要求は、接続元のアドレス帯ごとに続けて 64 回までで、1 秒に 4 回分ずつ戻す（PeerId は起動のたびに変えられるので、接続元で数える）。上限を超えた要求には status 2 を返す。</p>
+<p><strong>協力ノード</strong>は、預かったものをメモリにだけ持ち、ディスクにもログにも書いてはならない（slot も書かない）。期限を過ぎたものと、oneTime が 1 で1回引き取られたものは消す。同じ slot に預けたものがあるとき、置き換え・消去ができるのは、預けたピア（PeerId）だけである（消すものが無い消去は、できたものとして扱う）。件数と頻度に上限を置かなければならない。ShogiBoardQ の協力ノードは、接続元を2段で数える（1つの接続元: IPv4 はアドレス、IPv6 は /64。同じアドレス帯: IPv4 は /24、IPv6 は /48。PeerId は起動のたびに変えられるので、接続元で数える）。全体で 16384 件、1つの接続元から 512 件、同じアドレス帯から 2048 件まで預かり、要求は、1つの接続元から続けて 256 回までで1秒に 16 回分ずつ、同じアドレス帯から続けて 1024 回までで1秒に 64 回分ずつ戻す。接続元の分からない接続（中継経由など）の上の要求には、読まずに status 2 を返す。上限を超えた要求には status 2 を返す。</p>
 <p><strong>招待側</strong>は、待ち合わせに対応した協力ノード（Identify の protocols に <code>/shogiboardq/meet/1.0.0</code> があるもの）のうち、利用者が指定してつながっているものすべてに、op 1・ttlSeconds は期限までの秒数・oneTime 1 で預ける。1つも預けられなければ、合言葉を付けない。招待が使われた（招待文字列で使われた場合も）・取り消されたら、op 3 で消すことが望ましい。</p>
 <p><strong>申込側</strong>は、対応した協力ノードに順に op 2 で尋ね、復号できるものが見つかったらやめる。復号（認証の検査）に通らないものは、中身を読まずに捨てる。復号できた平文は、招待文字列の body と同じ規則（<a href="#sec-5-3">5.3節</a>）で確かめる。協力ノードは1回引き取られたら消すので、利用者に内容を確かめさせてからつなぐ実装は、引き取った招待を、つなぐまで（期限まで）持っておく。自分が預けた slot は引き取らない。引き取れなかった理由（合言葉が違う・期限が過ぎた・もう引き取られた・取り消された）は見分けられない。</p>
 <p>合言葉を期限内に知った第三者は、招待された人より先に引き取ってつなげる（招待文字列を知られたときと同じである）。相手は、プレイヤーID で確かめる（<a href="#sec-3-5">3.5節</a>）。協力ノードの運営者は、引き取りを止められるが、鍵を知らないので、別の招待に差し替えられない。</p>
@@ -632,7 +637,7 @@ body             = 招待文字列の body と同じ形の決定的CBOR（5.1節
 <p><strong>預ける側</strong>は、利用者が在席を知らせる設定にして（ShogiBoardQ の既定は無効）接続していて、交渉中・対局中でない間、友だちごとに、その友だちとの key で暗号化した知らせを slot に預ける（ShogiBoardQ は 180 秒預け、75 秒ごとに作り直して預け直す）。友だちから外した相手・ブロックした相手には預けず、預けてあった知らせの token を無効にする。</p>
 <p><strong>調べる側</strong>は、友だちが預ける slot（預ける側のプレイヤーID は友だちのもの）から引き取り、復号（認証の検査）に通り、expiresAt が過ぎていなければ、その友だちが接続しているとみなす。今の epoch に無ければ、epoch が変わって 180 秒たつまでは前の epoch、変わる 60 秒前からは次の epoch も調べる（預け直しの間隔と、時計のずれに備える）。協力ノードへの要求は、頻度の上限に掛からないように間を空ける（ShogiBoardQ は、利用者が友だちの一覧を表示している間だけ、60 秒ごとに調べる）。</p>
 <p><strong>申し込む側</strong>（申込側の役割になる）は、復号した body の宛先へ、招待文字列のときと同じ手順（<a href="#sec-6-3">6.3節</a>）で接続し、body の token を INVITE_TOKEN で送る。その後の交渉は招待と同じである（<a href="#sec-8">8章</a>）。<strong>受ける側</strong>（招待側の役割になる）は、token がどの友だちに預けた知らせのものかを覚えておき、申込側が HELLO で、その友だちのプレイヤーID を名乗らなければ断る（<a href="#sec-8-2">8.2節</a>）。申し込む側も、応えた相手が、申し込んだ友だちのプレイヤーID を名乗らなければ打ち切る。名乗ったプレイヤーID は、招待のときと同じく、開始署名（<a href="#sec-8-5">8.5節</a>）で確かめる。条件（持ち時間・先後の希望）は受ける側が決め、受ける側の利用者が確認したときだけ対局を始める。</p>
-<p>片方だけが相手を友だちにしていても、何も起きない（相手は預けず、引き取りもしない）。協力ノードの運営者には、同じ slot を預けた接続元と引き取った接続元（どの IP アドレスどうしが友だちか）と、預けている slot の数が見える。プレイヤーID・表示名・接続先は見えない。実装は、このことを利用者に案内すること。</p>
+<p>ShogiBoardQ は、相手が自分を友だちにしていないときは、その相手の預けたものを引き取らない。ただし、預ける側は自分が友だちにした全員の slot に預けるので、改造した実装なら、相手がこちらを友だちにしていなくても、こちらが友だちにしただけで在席の知らせ（接続先の IP アドレスを含む）を読める。協力ノードの運営者には、同じ slot を預けた接続元と引き取った接続元（どの IP アドレスどうしが友だちか）と、預けている slot の数が見える。同じ接続の間は、PeerId と接続元で、期間をまたいで slot を結び付けられる。プレイヤーID・表示名・接続先は見えない。実装は、このことを利用者に案内すること。</p>
 </section>
 <section id="stream">
 <h2 id="sec-6">6. 対局ストリームとフレーム</h2>
@@ -986,7 +991,7 @@ payload = [ply, stateHash, signature]    ; signature は、受けた側の一局
 <thead><tr><th>測るもの</th><th>始まり</th></tr></thead>
 <tbody>
 <tr><td>自分の手番の時間（E）</td><td>先手の初手は、READY を受けた時点。それ以外は、相手の手を確かめて STATE_ACCEPT を送った時点</td></tr>
-<tr><td>相手の手番の観測</td><td>自分の STATE_PROPOSE を最初に送った時点。後手が先手の初手を観測するときは、READY を送った時点。<strong>再接続の後に、未承認の自分の手を送り直したときは、送り直した時点から測り直す</strong>（相手の手番は、相手がその手を受け取って承認した時点から始まるため。<a href="#sec-11-5">11.5節</a>）</td></tr>
+<tr><td>相手の手番の観測</td><td>自分の STATE_PROPOSE を最初に送った時点。後手が先手の初手を観測するときは、READY を送った時点。<strong>再接続の後に、未承認の自分の手を送り直したときは、送り直した時点から測り直す</strong>（相手の手番は、相手がその手を受け取って承認した時点から始まるため。<a href="#sec-11-5">11.5節</a>）。そのかわり、送り直すまでに承認のないまま待った時間を、切断時間の合計に足す</td></tr>
 </tbody>
 </table></div>
 <ul>
@@ -1089,7 +1094,7 @@ Control = ["SBQ-CONTROL", 1, gameId, connectionId, sequence, kind, bodyHash]    
 <tr><td>合意による引き分け・合意による中断（cause 6・8）</td><td>利用者に尋ねる。承諾なら同じ提案を送り返して一致、断るなら RESULT_DECLINE。答える前に自分が指したら、断ったことにする</td></tr>
 </tbody>
 </table></div>
-<p>合意による引き分け・中断の申し出は、利用者の操作としては、相手が断る（RESULT_DECLINE を返す）か手数が進むまでの間に、それぞれ1回までとする（答えを待たずに送り直して、相手に何度も尋ねない）。相手が断った後は、同じ手数でも、もう一度申し出てよい。受ける側は、同じ手数で同じ提案が繰り返し届いても、違反として扱ってはならない（その都度、上の表のとおりに扱う）。ShogiBoardQ は、断られた後に利用者がもう一度申し出れば同じ提案を送り、再接続の後に提案を送り直し（<a href="#sec-11-5">11.5節</a>）、1局の実時間の上限を超えた後は、断られるたびに合意による中断を提案し直す（10.5節）。</p>
+<p>合意による引き分け・中断の申し出は、利用者の操作としては、相手が断る（RESULT_DECLINE を返す）か手数が進むまでの間に、それぞれ1回までとする（答えを待たずに送り直して、相手に何度も尋ねない）。相手が断った後は、同じ手数でも、もう一度申し出てよい。受ける側は、同じ手数で同じ提案が繰り返し届いても、違反として扱ってはならない。利用者に尋ねている申し出と同じ申し出は、尋ね直さなくてよい（今の答えが両方への答えになる）。利用者に何度も尋ねないよう、尋ねる数を絞り、超えた申し出は尋ねずに断って（RESULT_DECLINE を返して）よい。ShogiBoardQ は、利用者が答えるまでに2件（引き分けと中断を1回ずつ）・1つの手数で8件まで尋ね、それを超える申し出は断る。上の決まりどおりに申し出る実装は、この数に当たらない。ShogiBoardQ は、断られた後に利用者がもう一度申し出れば同じ提案を送り、再接続の後に提案を送り直し（<a href="#sec-11-5">11.5節</a>）、1局の実時間の上限を超えた後は、断られるたびに合意による中断を提案し直す（10.5節）。</p>
 
 <h3 id="sec-10-3">10.3 棋譜から決まる終局</h3>
 <p>手が1つ進む（双方が承認した State が増える）たびに、双方が次の順で判定し、終局なら、その結果を RESULT_PROPOSE で提案する。双方が同じ判定をすれば、同じ提案を送り合って一致する。</p>
@@ -1177,6 +1182,7 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <li>相手の承認のない自分の手が残っていれば、<strong>同じバイト列</strong>の STATE_PROPOSE を送り直す。相手の手番の観測（<a href="#sec-9-4">9.4節</a>）は、この送り直しの時点から測り直す。未承認だった手が SYNC で「承認済み」と分かったときは、測り直さない（最初に送った時点から測り、切れていた時間を差し引く）。</li>
 <li>結果を提案していたなら、RESULT_PROPOSE を送り直す。<strong>棋譜から決まる終局（<a href="#sec-10-3">10.3節</a>）に達しているなら、照合の後に必ず提案する。</strong>ShogiBoardQ は、最後の手を SYNC で知った側からは提案しないので、最新だった側が提案を送り直さないと、対局が終わらない。</li>
 <li>切れていた時間（切れたと判断してから照合が終わるまで）を、その対局の切断時間の合計に足す。</li>
+<li>送り直す手については、最初に送ってから回線が切れたと判断するまでの、承認のないまま待った時間（その間に切れていた時間を除く）も、切断時間の合計に足す。相手が受け取って考えていたのか、届いていなかったのかを区別できないためである。足さないと、相手は承認を返さずに再接続を繰り返すだけで観測を何度でも測り直させ、1手に何分でも考えられる。足した結果、合計が上限（<a href="#sec-11-6">11.6節</a>）を超えていれば、照合を終えた時点で中断（DISCONNECT_LIMIT）として終える。</li>
 </ul>
 
 <h3 id="sec-11-6">11.6 切断の上限</h3>
@@ -1301,11 +1307,12 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td>同時に有効な招待</td><td>4 つまで</td><td><a href="#sec-5-2">5.2</a></td></tr>
 <tr><td>合言葉の長さ</td><td>9〜33 文字（区切りを除く）。アドレスは 1〜4 件、秘密は 34〜38 ビット</td><td><a href="#sec-5-4">5.4</a></td></tr>
 <tr><td>合言葉の鍵の導出</td><td>Argon2id（版 0x13、メモリ 65536 KiB、回数 2、並列 1、出力 32 バイト）</td><td><a href="#sec-5-4">5.4</a></td></tr>
-<tr><td>合言葉の token の照合の失敗（ShogiBoardQ の値）</td><td>続けて 8 回まで。4 秒ごとに1回分戻す</td><td><a href="#sec-5-4">5.4</a></td></tr>
+<tr><td>合言葉の token の照合の失敗（ShogiBoardQ の値）</td><td>接続元ごとに続けて 8 回まで（4 秒ごとに1回分戻す）。全体で続けて 32 回まで（1秒に 2 回分戻す）</td><td><a href="#sec-5-4">5.4</a></td></tr>
+<tr><td>合言葉の confirm を待つ時間</td><td>10 秒</td><td><a href="#sec-5-4">5.4</a></td></tr>
 <tr><td>待ち合わせのプロトコル</td><td><code>/shogiboardq/meet/1.0.0</code></td><td><a href="#sec-5-5">5.5</a></td></tr>
 <tr><td>協力ノードを使う合言葉</td><td>10 文字（区切りを除く）。秘密は 45 ビット</td><td><a href="#sec-5-5">5.5</a></td></tr>
 <tr><td>待ち合わせの要求・応答の長さ</td><td>1〜1200 バイト。預けるものは 40〜1024 バイト、預けておく時間は 1〜600 秒</td><td><a href="#sec-5-5">5.5</a></td></tr>
-<tr><td>待ち合わせの上限（ShogiBoardQ の協力ノードの値）</td><td>全体で 4096 件、接続元のアドレス帯ごとに 256 件。要求は接続元のアドレス帯ごとに続けて 64 回まで（1 秒に 4 回分戻す）</td><td><a href="#sec-5-5">5.5</a></td></tr>
+<tr><td>待ち合わせの上限（ShogiBoardQ の協力ノードの値）</td><td>全体で 16384 件、1つの接続元から 512 件、同じアドレス帯から 2048 件。要求は1つの接続元から続けて 256 回まで（1秒に 16 回分戻す）、同じアドレス帯から続けて 1024 回まで（1秒に 64 回分戻す）</td><td><a href="#sec-5-5">5.5</a></td></tr>
 <tr><td>在席の知らせの番号と鍵を変える間隔（epoch）</td><td>600 秒</td><td><a href="#sec-5-6">5.6</a></td></tr>
 <tr><td>在席の知らせの期限</td><td>作ってから 300 秒以内</td><td><a href="#sec-5-6">5.6</a></td></tr>
 <tr><td>在席の知らせの預け方・調べ方（ShogiBoardQ の値）</td><td>180 秒預け、75 秒ごとに預け直す。60 秒ごとに調べる。友だちは 64 人まで</td><td><a href="#sec-5-6">5.6</a></td></tr>
@@ -1343,8 +1350,8 @@ SYNC_CHUNK:   Frame = [1, 8, requestId, gameId, [[[State, blackApproval, whiteAp
 <tr><td><code>displayname.txt</code></td><td><code>accept &lt;hex(UTF-8)&gt;</code>／<code>reject &lt;hex(UTF-8)&gt;</code></td><td>表示名の規則（<a href="#sec-3-6">3.6節</a>）</td></tr>
 <tr><td><code>network.txt</code></td><td><code>&lt;networkName&gt; &lt;hex(networkId)&gt; &lt;hex(rulesHash)&gt;</code></td><td>networkId と rulesHash（<a href="#sec-3-1">3.1節</a>・<a href="#sec-7-1">7.1節</a>）</td></tr>
 <tr><td><code>rules.txt</code></td><td><code>&lt;blackKind&gt; &lt;whiteKind&gt; &lt;hex(rulesHash)&gt; &lt;hex(CBOR(Rules))&gt;</code></td><td>対局者の種別ごとの Rules（4 通り）のバイト列とハッシュ（<a href="#sec-7-1">7.1節</a>）</td></tr>
-<tr><td><code>code.txt</code></td><td><code>code &lt;合言葉&gt; &lt;port か -&gt; &lt;アドレス,...&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;文字列&gt;</code>／<code>key &lt;networkName&gt; &lt;合言葉&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(key)&gt;</code>／<code>token &lt;hex(key)&gt; &lt;hex(招待側の PeerId)&gt; &lt;hex(申込側の PeerId)&gt; &lt;hex(token)&gt;</code></td><td>合言葉の形、読めない文字列、鍵と token（<a href="#sec-5-4">5.4節</a>）</td></tr>
-<tr><td><code>meet.txt</code></td><td><code>code &lt;合言葉&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;文字列&gt;</code>／<code>keys &lt;networkName&gt; &lt;合言葉&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(master)&gt; &lt;hex(slot)&gt; &lt;hex(key)&gt;</code>／<code>blob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(nonce)&gt; &lt;hex(平文) か -&gt; &lt;hex(blob)&gt;</code>／<code>badblob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(blob)&gt;</code>／<code>request &lt;hex&gt;</code>・<code>badrequest &lt;hex&gt;</code>／<code>response &lt;hex&gt;</code>・<code>badresponse &lt;hex&gt;</code></td><td>協力ノードを使う合言葉と待ち合わせ（<a href="#sec-5-5">5.5節</a>）。<code>invalid</code> は合言葉として読めない文字列、<code>badblob</code> は復号できない blob、<code>badrequest</code>・<code>badresponse</code> は読めない要求・応答</td></tr>
+<tr><td><code>code.txt</code></td><td><code>code &lt;合言葉&gt; &lt;port か -&gt; &lt;アドレス,...&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;文字列&gt;</code>／<code>key &lt;networkName&gt; &lt;合言葉&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(key)&gt;</code>／<code>token &lt;hex(key)&gt; &lt;hex(招待側の PeerId)&gt; &lt;hex(申込側の PeerId)&gt; &lt;hex(token)&gt;</code>／<code>confirm &lt;hex(key)&gt; &lt;hex(招待側の PeerId)&gt; &lt;hex(申込側の PeerId)&gt; &lt;hex(confirm)&gt;</code></td><td>合言葉の形、読めない文字列、鍵と token と confirm（<a href="#sec-5-4">5.4節</a>）</td></tr>
+<tr><td><code>meet.txt</code></td><td><code>code &lt;合言葉&gt; &lt;hex(secret)&gt;</code>／<code>invalid &lt;文字列&gt;</code>／<code>keys &lt;networkName&gt; &lt;window&gt; &lt;合言葉&gt; &lt;hex(password)&gt; &lt;hex(salt)&gt; &lt;hex(master)&gt; &lt;hex(slot)&gt; &lt;hex(key)&gt;</code>／<code>blob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(nonce)&gt; &lt;hex(平文) か -&gt; &lt;hex(blob)&gt;</code>／<code>badblob &lt;networkName&gt; &lt;hex(key)&gt; &lt;hex(blob)&gt;</code>／<code>request &lt;hex&gt;</code>・<code>badrequest &lt;hex&gt;</code>／<code>response &lt;hex&gt;</code>・<code>badresponse &lt;hex&gt;</code></td><td>協力ノードを使う合言葉と待ち合わせ（<a href="#sec-5-5">5.5節</a>）。<code>invalid</code> は合言葉として読めない文字列、<code>badblob</code> は復号できない blob、<code>badrequest</code>・<code>badresponse</code> は読めない要求・応答</td></tr>
 <tr><td><code>friend.txt</code></td><td><code>pair &lt;hex(プレイヤー鍵の種)&gt; &lt;hex(自分のプレイヤーID)&gt; &lt;hex(相手のプレイヤーID)&gt; &lt;hex(shared)&gt; &lt;hex(pairSecret)&gt;</code>／<code>badkey &lt;hex(相手のプレイヤーID)&gt;</code>／<code>slot &lt;networkName&gt; &lt;hex(pairSecret)&gt; &lt;hex(預ける側のプレイヤーID)&gt; &lt;epoch&gt; &lt;hex(slot)&gt; &lt;hex(key)&gt;</code>／<code>blob &lt;networkName&gt; &lt;hex(pairSecret)&gt; &lt;hex(預ける側のプレイヤーID)&gt; &lt;epoch&gt; &lt;hex(nonce)&gt; &lt;expiresAt&gt; &lt;hex(body)&gt; &lt;hex(blob)&gt;</code>／<code>badblob &lt;networkName&gt; &lt;hex(pairSecret)&gt; &lt;hex(預ける側のプレイヤーID)&gt; &lt;epoch&gt; &lt;hex(blob)&gt;</code></td><td>友だち一覧の在席の知らせ（<a href="#sec-5-6">5.6節</a>）。プレイヤー鍵は、種から作る Ed25519 の鍵（libsodium の <code>crypto_sign_seed_keypair</code>）。<code>badkey</code> は秘密を作ってはならない相手のプレイヤーID、<code>badblob</code> は読めない blob</td></tr>
 </tbody>
 </table></div>
@@ -1466,6 +1473,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa58203215de1e8656241070b33e65d55ca1
 <div class="table-wrap"><table>
 <thead><tr><th>文書の版</th><th>プロトコルの版</th><th>互換実装の修正</th><th>変更</th></tr></thead>
 <tbody>
+<tr><td>2026-11-21.2</td><td>2</td><td>要る（合言葉・協力ノードを使う合言葉に対応する実装と、再接続の照合）</td><td>セキュリティ監査（2026-11-21）の指摘を直した。(1) 同じ LAN の合言葉（<a href="#sec-5-4">5.4節</a>）: 招待側は、合言葉の token を照合できたら confirm を返し、申込側は、それを確かめてから対局の手順へ進む。以前は、合言葉の宛先で最初に応えた機器が、招待側に成りすまして条件の確認まで進めた。合言葉の token の照合に失敗できる回数を、接続元ごとと全体の2段で数える（以前は全体で1つで、LAN の1台が誤った token を送り続けると、正しい合言葉も断られた）。2026-11-20.1 の合言葉の実装とは、合言葉ではつながらない（招待文字列ではつながる）。(2) 協力ノードを使う合言葉（<a href="#sec-5-5">5.5節</a>）: salt に期間（window）を入れ、ラベルの版を 2 にした。協力ノードの運営者が、預かったものをまとめて総当たりしたり、表を前もって作ったりできないようにするためである。2026-11-20.2 の実装とは、合言葉で引き取れない（招待文字列ではつながる）。ShogiBoardQ の協力ノードの待ち合わせの上限を2段に直し、接続元の分からない接続の上の要求を断るようにした。(3) 再接続の照合の後に送り直す手（<a href="#sec-9-4">9.4節</a>・<a href="#sec-11-5">11.5節</a>）: 送り直すまでに承認を待った時間を、1局の切断時間の合計に足す。以前は、相手が承認を返さずに再接続を繰り返すだけで、観測を何度でも測り直させ、1手に何分でも考えられた。(4) 引き分け・中断の申し出（<a href="#sec-10-2">10.2節</a>）: 受ける側は、尋ねている申し出と同じ申し出を尋ね直さず、尋ねる数を絞って、超えた申し出を断ってよいことを書いた（決まりどおりに申し出る実装には影響しない）。(5) 友だちの在席（<a href="#sec-5-6">5.6節</a>）: 片方だけが友だちにしたときの記述を直した（改造した実装は、預けた側の接続先を読める）。協力ノードの運営者が、同じ接続の間は slot を期間をまたいで結び付けられることを書いた。プロトコルの版、フレームの形、対局の手順は変えていない。試験の入力の <code>code.txt</code> に confirm の行を足し、<code>meet.txt</code> の keys の行に期間の欄を足した。</td></tr>
 <tr><td>2026-11-21.1</td><td>2</td><td>要る</td><td>棋譜から終局が決まった局面（<a href="#sec-10-3">10.3節</a>）の後の手を禁じた（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/5292fc73cfafcb40e7d4aecd9445caec20d82738">5292fc73</a>）。手番の側は、終局が決まった局面で STATE_PROPOSE を送ってはならない（<a href="#sec-9-2">9.2節</a>）。受けた側は承認せずにエラー（INVALID_MOVE）で止め（9.2節の手順 4）、再接続の照合で届いた State も取り込まない（<a href="#sec-11-4">11.4節</a>。STATE_CONFLICT）。証跡の検証は、終局の State の後に State が続く記録を、規則に合わないものとする（<a href="#sec-13-2">13.2節</a>）。以前は、終局の直後に届いた手を承認していたので、改造したクライアントは、連続王手の千日手で負けた結果を次の手で消すことができ、その記録も検証に通った。正しく作った実装は終局の後に手を送らないので、対局はそのままできる（プロトコルの版は 2 のまま）。互換実装は、受ける側の検査と証跡の検証を直す必要がある。</td></tr>
 <tr><td>2026-11-21</td><td>2</td><td>要らない</td><td>ShogiBoardQ の画面の名前を、P2P対局のウィンドウの組み替え（<a href="https://github.com/hnakada123/ShogiBoardQ/commit/6273b1832691cc66a2a9c0ce246f49080f9b4f26">6273b183</a>）に合わせた（<a href="#sec-3-1">3.1節</a>・<a href="#sec-4-6">4.6節</a>・<a href="#sec-15">15章</a>）。画面では、ネットワークの「ローカル」は「相手のいる場所」の「同じPC・同じLAN」、4.6節の設定は「相手とのつなぎ方」の「協力ノードの中継だけを使う」、招待文字列を確かめる欄は「招待」タブの「招待を受ける」、友だちの追加は「相手」タブになった。networkName・フレームの形・手順などの決まりは変えていない。</td></tr>
 <tr><td>2026-11-20.3</td><td>2</td><td>要らない（友だち一覧に対応するときだけ要る）</td><td>友だち一覧の在席の知らせを足した（<a href="#sec-5-6">5.6節</a>・<a href="#sec-6-3">6.3節</a>・<a href="#sec-8-2">8.2節</a>・<a href="#sec-14">14章</a>・<a href="#sec-15">15章</a>。<a href="https://github.com/hnakada123/ShogiBoardQ/commit/4c5f06a791663bd82071377bfda11a04eac9873b">4c5f06a7</a>）。ShogiBoardQ で、友だちにした相手が接続しているかが分かり、招待を渡さずに一覧から対局を申し込めるようにしたためである。互いを友だちにした2人は、プレイヤー鍵と相手のプレイヤーID から鍵交換（X25519）で2人だけの秘密を作り、在席の知らせ（接続先と、期限まで何度でも使える token）を暗号化して、協力ノードの待ち合わせ（5.5節。<code>--meet</code>）に 10 分ごとに変わる番号で預ける。申し込みは、その token を INVITE_TOKEN で送って対局ストリームを開き、受ける側は、知らせを預けた友だちのプレイヤーID を相手が HELLO で名乗らなければ断る。協力ノードの待ち合わせのプロトコル、INVITE_TOKEN の形、HELLO の形、対局の手順は変えていない。対応しない実装は、直さなくても、招待で今までどおり対局できる（友だち一覧からの申し込みは届かない）。試験の入力に <code>friend.txt</code> を足した。</td></tr>
