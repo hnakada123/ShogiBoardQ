@@ -22,6 +22,7 @@
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "usi.h"
+#include "mock_engine_path.h"
 
 using namespace P2p;
 
@@ -122,7 +123,7 @@ P2pGameCoordinator::PlayerSetup mockEngine()
 {
     P2pGameCoordinator::PlayerSetup player;
     player.kind = PlayerKind::Engine;
-    player.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+    player.enginePath = MockEnginePath::usiMatch();
     player.engineName = QStringLiteral("P2P test engine");
     return player;
 }

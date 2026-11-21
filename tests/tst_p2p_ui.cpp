@@ -57,6 +57,7 @@
 #include "p2pwindowtext.h"
 #include "shogiclock.h"
 #include "shogiview.h"
+#include "mock_engine_path.h"
 
 using namespace P2p;
 
@@ -1331,7 +1332,7 @@ private slots:
         a.mine.displayName = QStringLiteral("申し込む人");
         // 招待した側がエンジン（初期化に時間のかかるモックのエンジン）
         h.mine.player.kind = PlayerKind::Engine;
-        h.mine.player.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        h.mine.player.enginePath = MockEnginePath::usiMatch();
         h.mine.player.engineName = QStringLiteral("確認画面のエンジン");
         qputenv("SBQ_MATCH_INIT_DELAY_MS", "500");
         QVERIFY(host.startNegotiation(h));

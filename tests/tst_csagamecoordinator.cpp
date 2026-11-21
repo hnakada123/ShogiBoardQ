@@ -52,6 +52,7 @@
 #include "csagameuicontroller.h"
 #include <QStatusBar>
 #include "gameboard.h"
+#include "mock_engine_path.h"
 
 namespace {
 
@@ -154,7 +155,7 @@ struct Harness {
         options.password = QStringLiteral("pass");
         if (engine) {
             options.playerType = CsaGameCoordinator::PlayerType::Engine;
-            options.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+            options.enginePath = MockEnginePath::usiMatch();
             options.engineName = QStringLiteral("CSA test engine");
         }
         options.keepAliveEnabled = false;

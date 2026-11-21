@@ -16,6 +16,7 @@
 #include "usienginesession.h"
 #include "usilineparser.h"
 #include "usiprotocolhandler.h"
+#include "mock_engine_path.h"
 
 namespace {
 
@@ -59,11 +60,7 @@ class TestUsiProtocolHandler : public QObject
 private:
     static QString mockEnginePath()
     {
-        QString path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-#ifdef Q_OS_WIN
-        path += QStringLiteral(".exe");
-#endif
-        return path;
+        return MockEnginePath::usiMatch();
     }
 
     static bool startProcess(EngineProcessManager& process)

@@ -23,6 +23,7 @@
 #include "usi.h"
 #include "sfenutils.h"
 #include <QTemporaryDir>
+#include "mock_engine_path.h"
 
 // 本体と同じ時計・USI・子プロセスを使い、応答シグナルで結果を検証する。
 class MatchHarness : public QObject
@@ -151,11 +152,7 @@ class TestUsiMatchHandler : public QObject
     }
     QString mockPath() const
     {
-        QString path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-#ifdef Q_OS_WIN
-        path += QStringLiteral(".exe");
-#endif
-        return path;
+        return MockEnginePath::usiMatch();
     }
 private slots:
     void initTestCase()

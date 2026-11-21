@@ -21,6 +21,7 @@
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
+#include "mock_engine_path.h"
 #include "gameboard.h"
 
 /// エンジンが指した手（指した側・考えた時間・評価値）
@@ -125,11 +126,7 @@ struct MatchHarness {
 
     static QString mockEnginePath()
     {
-        QString path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-#ifdef Q_OS_WIN
-        path += QStringLiteral(".exe");
-#endif
-        return path;
+        return MockEnginePath::usiMatch();
     }
 };
 

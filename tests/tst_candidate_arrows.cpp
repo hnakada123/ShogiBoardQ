@@ -23,6 +23,7 @@
 #include "usi.h"
 #include "usienginesession.h"
 #include "usiprotocolhandler.h"
+#include "mock_engine_path.h"
 
 class TestCandidateArrows : public QObject
 {
@@ -394,7 +395,7 @@ private slots:
         // 検討中かは検討のセッションが決める（矢印は検討の表から作る）
         AnalysisOptions options;
         options.mode = AnalysisOptions::Mode::Consideration;
-        options.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        options.enginePath = MockEnginePath::usiMatch();
         options.engineName = QStringLiteral("ArrowTest");
         options.position = *UsiPosition::parse(QStringLiteral("position startpos"));
         QVERIFY(session.start(options));

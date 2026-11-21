@@ -17,6 +17,7 @@
 #include "shogiclock.h"
 #include "gameboard.h"
 #include "usi.h"
+#include "mock_engine_path.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -70,7 +71,7 @@ struct TestHarness {
     {
         MatchStartOptions opt = hvh();
         opt.players.seat(Turn::White).engine = true;
-        opt.engine(Turn::White).path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        opt.engine(Turn::White).path = MockEnginePath::usiMatch();
         opt.players.seat(Turn::White).engineName = QStringLiteral("TestEngine");
         return opt;
     }
@@ -80,8 +81,8 @@ struct TestHarness {
         MatchStartOptions opt = hvh();
         opt.players.seat(Turn::Black).engine = true;
         opt.players.seat(Turn::White).engine = true;
-        opt.engine(Turn::Black).path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        opt.engine(Turn::White).path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        opt.engine(Turn::Black).path = MockEnginePath::usiMatch();
+        opt.engine(Turn::White).path = MockEnginePath::usiMatch();
         opt.players.seat(Turn::Black).engineName = QStringLiteral("Engine1");
         opt.players.seat(Turn::White).engineName = QStringLiteral("Engine2");
         return opt;

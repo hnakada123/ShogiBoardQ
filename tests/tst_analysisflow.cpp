@@ -60,6 +60,7 @@
 #include "usimodelbinding.h"
 #include "header_drag_helper.h"
 #include "checkable_action.h"
+#include "mock_engine_path.h"
 
 namespace {
 /// 検討・詰み探索のセッションと、それが使うエンジンの枠
@@ -85,7 +86,7 @@ void writeEngineSettings(const QString& path, const QString& name)
 
 QString mockEngine()
 {
-    return QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+    return MockEnginePath::usiMatch();
 }
 
 /// テスト用エンジンの振る舞いを変える環境変数を、このスコープの間だけ置く（起動するときに読まれる）
@@ -219,7 +220,7 @@ private slots:
     {
         TestHelper h;
         KifuAnalysisRequest request = h.request();
-        request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        request.enginePath = MockEnginePath::usiMatch();
         request.engineName = QStringLiteral("HeadlessAnalysis");
         request.options.endPly = 2;
         KifuAnalysisSession session({nullptr, &h.activity, h.usi});
@@ -337,7 +338,7 @@ private slots:
         KifuAnalysisRequest request = h.request();
         request.line.entries[0].move.move = *UsiMove::parse(QStringLiteral("5e5d"));
         request.line.entries[0].sfen = QStringLiteral("broken");
-        request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        request.enginePath = MockEnginePath::usiMatch();
         request.engineName = QStringLiteral("SkipAnalysis");
         request.options.endPly = 2;
         KifuAnalysisSession session({nullptr, &h.activity, h.usi});
@@ -355,7 +356,7 @@ private slots:
     {
         TestHelper h;
         KifuAnalysisRequest request = h.request();
-        request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        request.enginePath = MockEnginePath::usiMatch();
         KifuAnalysisSession session({nullptr, &h.activity, h.usi});
         QSignalSpy positions(&session, &KifuAnalysisSession::plyStarted);
         QSignalSpy finished(&session, &KifuAnalysisSession::finished);
@@ -456,7 +457,7 @@ private slots:
         AnalysisSession& session = h.session;
         AnalysisOptions options;
         options.mode = AnalysisOptions::Mode::Consideration;
-        options.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        options.enginePath = MockEnginePath::usiMatch();
         options.engineName = QStringLiteral("RestartTest");
         options.position = *UsiPosition::parse(QStringLiteral("position startpos"));
         QSignalSpy waiting(&session, &AnalysisSession::considerationWaitingStarted);
