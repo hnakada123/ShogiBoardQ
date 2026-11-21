@@ -22,11 +22,10 @@
 
 namespace {
 
-QLabel* plainLabel(QWidget* parent)
+/// 選んでコピーできる文（相手のプレイヤーID や条件を、別の経路で見比べるときに写せる）
+QLabel* selectableLabel(QWidget* parent)
 {
-    auto* label = new QLabel(parent);
-    label->setTextFormat(Qt::PlainText);
-    label->setWordWrap(true);
+    QLabel* label = DialogUtils::wrappedLabel(QString(), parent);
     label->setTextInteractionFlags(Qt::TextSelectableByMouse);
     return label;
 }
@@ -57,12 +56,12 @@ P2pConfirmDialog::P2pConfirmDialog(P2pGameCoordinator* game, P2pKnownPeers* know
 
     auto* opponentBox = new QGroupBox(tr("相手"), content);
     auto* opponentLayout = new QVBoxLayout(opponentBox);
-    m_opponent = plainLabel(opponentBox);
-    m_identity = plainLabel(opponentBox);
+    m_opponent = selectableLabel(opponentBox);
+    m_identity = selectableLabel(opponentBox);
     // プレイヤーID は省略せずに出す（同一性を省略した表示だけで判断させない）
-    m_playerId = plainLabel(opponentBox);
+    m_playerId = selectableLabel(opponentBox);
     m_playerId->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-    m_warning = plainLabel(opponentBox);
+    m_warning = selectableLabel(opponentBox);
     m_warning->setStyleSheet(QStringLiteral("color: #b71c1c;"));
     opponentLayout->addWidget(m_opponent);
     opponentLayout->addWidget(new QLabel(tr("相手のプレイヤーID"), opponentBox));
@@ -74,19 +73,19 @@ P2pConfirmDialog::P2pConfirmDialog(P2pGameCoordinator* game, P2pKnownPeers* know
     auto* conditionBox = new QGroupBox(tr("対局の条件と記録"), content);
     auto* conditionLayout = new QVBoxLayout(conditionBox);
     // だれが指すかは、ほかの条件に埋もれないよう先頭に太字で出す
-    m_players = plainLabel(conditionBox);
+    m_players = selectableLabel(conditionBox);
     m_players->setObjectName(QStringLiteral("p2pConfirmPlayers"));
     QFont playersFont = m_players->font();
     playersFont.setBold(true);
     m_players->setFont(playersFont);
     conditionLayout->addWidget(m_players);
-    m_conditions = plainLabel(conditionBox);
+    m_conditions = selectableLabel(conditionBox);
     m_conditions->setObjectName(QStringLiteral("p2pConfirmConditions"));
     conditionLayout->addWidget(m_conditions);
     contentLayout->addWidget(conditionBox);
     contentLayout->addStretch();
 
-    m_remaining = plainLabel(this);
+    m_remaining = selectableLabel(this);
     layout->addWidget(m_remaining);
 
     auto* buttons = new QDialogButtonBox(this);

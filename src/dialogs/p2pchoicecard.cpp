@@ -11,6 +11,8 @@
 #include <QStyle>
 #include <QVBoxLayout>
 
+#include "dialogutils.h"
+
 namespace {
 
 constexpr int kPadding = 9;
@@ -65,9 +67,7 @@ void P2pChoiceCard::setRows(const QList<Row>& rows)
         const bool wide = rows.at(row).label.isEmpty();
         label->setText(rows.at(row).label);
         label->setVisible(!wide);
-        value->setText(rows.at(row).value);
-        // 文が替わると要る高さも変わる（前の文に合わせた最小の高さを残さない）
-        value->setMinimumHeight(0);
+        DialogUtils::setWrappedText(value, rows.at(row).value);
         m_grid->removeWidget(label);
         m_grid->removeWidget(value);
         if (wide) {

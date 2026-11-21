@@ -29,32 +29,6 @@ namespace {
 const QLatin1String kLocalNetwork("sbq-local-1");
 const QLatin1String kInternetNetwork("sbq-limited-1");
 
-QLabel* headingLabel(const QString& text, QWidget* parent)
-{
-    auto* label = new QLabel(text, parent);
-    label->setTextFormat(Qt::PlainText);
-    QFont bold = label->font();
-    bold.setBold(true);
-    label->setFont(bold);
-    return label;
-}
-
-QLabel* wrappedLabel(QWidget* parent, const QString& text = QString())
-{
-    auto* label = new QLabel(text, parent);
-    label->setTextFormat(Qt::PlainText);
-    label->setWordWrap(true);
-    return label;
-}
-
-/// 文を入れ替える（前の文に合わせた最小の高さを残さない。折り返すラベルの最小の高さは、表示のときに文から決まる）
-void setWrappedText(QLabel* label, const QString& text)
-{
-    if (label->text() == text) return;
-    label->setMinimumHeight(0);
-    label->setText(text);
-}
-
 /// 協力ノードのアドレスの形（/…/p2p/<PeerId>）をしているか。中身を解釈するのは通信プロセスで、ここでは、
 /// アドレスでない文字列（説明の文や合言葉）を入れたことに気づけるだけの確かめをする
 bool looksLikeNodeAddress(const QString& text)
@@ -74,13 +48,13 @@ P2pConnectionPanel::P2pConnectionPanel(QWidget* parent)
 {
     auto* layout = new QVBoxLayout(this);
 
-    m_lockNote = wrappedLabel(this, tr("接続している間は、つなぎ方を変えられません。変えるときは「切断」を押してください。"));
+    m_lockNote = DialogUtils::wrappedLabel(tr("接続している間は、つなぎ方を変えられません。変えるときは「切断」を押してください。"), this);
     m_lockNote->setObjectName(QStringLiteral("p2pConnectionLock"));
     m_lockNote->setVisible(false);
     layout->addWidget(m_lockNote);
 
     // --- 相手のいる場所（参加するネットワーク）
-    layout->addWidget(headingLabel(tr("相手のいる場所"), this));
+    layout->addWidget(DialogUtils::headingLabel(tr("相手のいる場所"), this));
     m_lan = new P2pChoiceCard(tr("同じPC・同じLAN"), this);
     m_lan->radio()->setObjectName(QStringLiteral("p2pPlaceLan"));
     m_lan->setRows({{QString(), tr("協力ノードなしで、招待だけでつながります。")}});
@@ -96,7 +70,7 @@ P2pConnectionPanel::P2pConnectionPanel(QWidget* parent)
     layout->addLayout(placeRow);
 
     // --- 相手とのつなぎ方（チェックだと、付けない場合に何が起きるかが分からないので、2つを並べて説明する）
-    layout->addWidget(headingLabel(tr("相手とのつなぎ方"), this));
+    layout->addWidget(DialogUtils::headingLabel(tr("相手とのつなぎ方"), this));
     m_direct = new P2pChoiceCard(tr("直接つなぐ（既定）"), this);
     m_direct->radio()->setObjectName(QStringLiteral("p2pRouteDirect"));
     m_relay = new P2pChoiceCard(tr("協力ノードの中継だけを使う"), this);
@@ -133,8 +107,8 @@ QWidget* P2pConnectionPanel::createNodeSection()
     auto* layout = new QVBoxLayout(m_nodeSection);
     layout->setContentsMargins(0, 0, 0, 0);
     auto* header = new QHBoxLayout;
-    header->addWidget(headingLabel(tr("協力ノード"), m_nodeSection), 0, Qt::AlignTop);
-    m_nodeCaption = wrappedLabel(m_nodeSection);
+    header->addWidget(DialogUtils::headingLabel(tr("協力ノード"), m_nodeSection), 0, Qt::AlignTop);
+    m_nodeCaption = DialogUtils::wrappedLabel(QString(), m_nodeSection);
     header->addWidget(m_nodeCaption, 1);
     layout->addLayout(header);
     m_nodes = new QListWidget(m_nodeSection);
@@ -156,7 +130,7 @@ QWidget* P2pConnectionPanel::createNodeSection()
         buttons->addWidget(button);
     }
     // 接続している間は、協力ノードで中継と合言葉を使えるかを、ボタンの横に出す
-    m_nodeStatus = wrappedLabel(m_nodeSection);
+    m_nodeStatus = DialogUtils::wrappedLabel(QString(), m_nodeSection);
     m_nodeStatus->setObjectName(QStringLiteral("p2pNodeStatus"));
     buttons->addWidget(m_nodeStatus, 1);
     layout->addLayout(buttons);
@@ -173,9 +147,9 @@ QWidget* P2pConnectionPanel::createNodeCollapsed()
     m_nodeCollapsed = new QWidget(this);
     auto* layout = new QHBoxLayout(m_nodeCollapsed);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->addWidget(headingLabel(tr("協力ノード"), m_nodeCollapsed));
+    layout->addWidget(DialogUtils::headingLabel(tr("協力ノード"), m_nodeCollapsed));
     layout->addWidget(
-        wrappedLabel(m_nodeCollapsed, tr("この設定では要りません。協力ノードの中継や友だち一覧を使うときだけ登録します。")), 1);
+        DialogUtils::wrappedLabel(tr("この設定では要りません。協力ノードの中継や友だち一覧を使うときだけ登録します。"), m_nodeCollapsed), 1);
     m_showNodes = new QPushButton(tr("登録する…"), m_nodeCollapsed);
     m_showNodes->setObjectName(QStringLiteral("p2pNodeShow"));
     m_showNodes->setAutoDefault(false);
@@ -193,14 +167,14 @@ QWidget* P2pConnectionPanel::createSummary()
     auto* layout = new QGridLayout(m_summary);
     layout->setVerticalSpacing(2);
     layout->setColumnStretch(1, 1);
-    layout->addWidget(headingLabel(tr("この設定でつなぐと"), m_summary), 0, 0, 1, 2);
+    layout->addWidget(DialogUtils::headingLabel(tr("この設定でつなぐと"), m_summary), 0, 0, 1, 2);
     const QStringList captions{tr("対局できる相手"), tr("招待の形"), tr("あなたのIPアドレスが見える人")};
     QList<QLabel*> values;
     for (int row = 0; row < captions.size(); ++row) {
         auto* caption = new QLabel(captions.at(row), m_summary);
         caption->setTextFormat(Qt::PlainText);
         layout->addWidget(caption, row + 1, 0, Qt::AlignLeft | Qt::AlignTop);
-        values << wrappedLabel(m_summary);
+        values << DialogUtils::wrappedLabel(QString(), m_summary);
         layout->addWidget(values.last(), row + 1, 1);
     }
     m_summaryWho = values.at(0);
@@ -222,9 +196,9 @@ QWidget* P2pConnectionPanel::createWarning()
     layout->addWidget(icon, 0, Qt::AlignTop);
     auto* texts = new QVBoxLayout;
     texts->setSpacing(2);
-    m_warningTitle = headingLabel(QString(), m_warning);
+    m_warningTitle = DialogUtils::headingLabel(QString(), m_warning);
     m_warningTitle->setObjectName(QStringLiteral("p2pConnectionWarningTitle"));
-    m_warningBody = wrappedLabel(m_warning);
+    m_warningBody = DialogUtils::wrappedLabel(QString(), m_warning);
     texts->addWidget(m_warningTitle);
     texts->addWidget(m_warningBody);
     layout->addLayout(texts, 1);
@@ -352,7 +326,7 @@ void P2pConnectionPanel::updateTexts()
     } else {
         caption = tr("この設定では要りません（任意）。登録すると、協力ノードの中継と友だち一覧を使えます。");
     }
-    setWrappedText(m_nodeCaption, caption);
+    DialogUtils::setWrappedText(m_nodeCaption, caption);
     QString status;
     if (m_status && hasNode) {
         const QStringList parts{m_status->relayReservations > 0 ? tr("中継: 使えます") : tr("中継: 使えません"),
@@ -360,7 +334,7 @@ void P2pConnectionPanel::updateTexts()
                                                         : tr("合言葉・友だち一覧: 対応した協力ノードがありません")};
         status = parts.join(QStringLiteral(" / "));
     }
-    setWrappedText(m_nodeStatus, status);
+    DialogUtils::setWrappedText(m_nodeStatus, status);
 
     // つながらない組み合わせ: 中継だけなのに協力ノードがない・「インターネット」なのに協力ノードがない
     const bool problem = needsNode && !hasNode;
@@ -369,13 +343,14 @@ void P2pConnectionPanel::updateTexts()
     if (problem) {
         if (relay) {
             m_warningTitle->setText(tr("このままでは、中継を使えません"));
-            setWrappedText(m_warningBody, tr("「協力ノードの中継だけを使う」には、中継のできる協力ノードが要ります。"
-                                             "「追加…」で登録するか、「直接つなぐ」を選んでください。"));
+            DialogUtils::setWrappedText(m_warningBody, tr("「協力ノードの中継だけを使う」には、中継のできる協力ノードが要ります。"
+                                                          "「追加…」で登録するか、「直接つなぐ」を選んでください。"));
         } else {
             m_warningTitle->setText(tr("このままでは、相手は接続できません"));
-            setWrappedText(m_warningBody, tr("「インターネット」では、協力ノードがないと招待に接続先が入りません。「追加…」で協力ノードを"
-                                             "登録してください。同じPC・同じLANの相手とは、「同じPC・同じLAN」を選べば"
-                                             "協力ノードなしでつながります。"));
+            DialogUtils::setWrappedText(m_warningBody,
+                                        tr("「インターネット」では、協力ノードがないと招待に接続先が入りません。「追加…」で協力ノードを"
+                                           "登録してください。同じPC・同じLANの相手とは、「同じPC・同じLAN」を選べば"
+                                           "協力ノードなしでつながります。"));
         }
     } else {
         const QString viaNode = tr("招待文字列。協力ノードが合言葉に対応していれば、10文字の合言葉も");
@@ -395,9 +370,9 @@ void P2pConnectionPanel::updateTexts()
             invite = viaNode;
             seen = tr("相手と、協力ノードの運営者");
         }
-        setWrappedText(m_summaryWho, who);
-        setWrappedText(m_summaryInvite, invite);
-        setWrappedText(m_summarySeen, seen);
+        DialogUtils::setWrappedText(m_summaryWho, who);
+        DialogUtils::setWrappedText(m_summaryInvite, invite);
+        DialogUtils::setWrappedText(m_summarySeen, seen);
     }
     updateNodeButtons();
     emit contentResized();

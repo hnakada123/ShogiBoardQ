@@ -10,6 +10,8 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
+#include "dialogutils.h"
+
 namespace {
 
 constexpr int kMarkSize = 12;
@@ -97,8 +99,5 @@ void P2pStatusStrip::setStatus(State state, const QString& title, const QString&
         m_mark->setPixmap(markPixmap(state, palette(), devicePixelRatioF()));
     }
     if (m_title->text() != title) m_title->setText(title);
-    if (m_detail->text() != detail) {
-        m_detail->setMinimumHeight(0);
-        m_detail->setText(detail);
-    }
+    DialogUtils::setWrappedText(m_detail, detail);
 }

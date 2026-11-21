@@ -79,6 +79,8 @@
 
 ### R3 折り返すラベルの高さ合わせ（dialogs・widgets）
 
+**状態: 一部済（コミットは次の項目の修正で書き足す）**。ラベルの作り方と文の入れ替えを `DialogUtils::wrappedLabel`・`headingLabel`・`setWrappedText`（`fitWrappedLabels` の隣）にまとめ、9つの補助関数と、文を替えるたびの `setMinimumHeight(0)` をなくした。高さを外していなかった折り返すラベル（招待の結果・期限、友だちの説明、ビルドの期限）も、短い文に替えると縮むようになった。ウィンドウを広げる処理は、直し方の案（届いた `LayoutRequest` で広げる）を採らなかった。配置のやり直しは部品の段ごとにイベントループを1回ずつ回って上がるので、その途中で文の欠けた画面を1度描き、広げた後にもう1度全体を描く（「描き直しを増やさない」に反する）。今の `growToFit` は、知らせを同期で流してから広げるので、最初の描画から欠けない。この処理は残し、呼ぶ所は R1 で「招待」タブをパネルに切り出すときに、パネルの知らせ（`contentResized`）1本にまとめる。
+
 **今の形**
 
 3段の回避策が7ファイルに散っている。
@@ -98,7 +100,7 @@
 
 ### R4 `PeerIpc` の検査と読み取りの二重記述（network/p2p）
 
-**状態: 済**。`readReply(Method, result)`・`readNotification(name, params)` が、フィールドを1つずつ形を確かめながら読む（読み残したフィールドがあれば断る）。`PeerProcess` は読めた型（`Reply`・`Notification`）だけを知らせ、JSON は外へ出さない。hello の応答は `Hello { Sandbox }`、メソッドは enum `Method`、到達性は enum `Reachability`、接続の出どころは enum `Origin` にした。要求の外枠と長さの前置き（`encodeRequest`・`takeMessage`）も `peeripc` に移した。検査が少し厳しくなった所が2つある: `meetGet` の `blobs` と `createPresence` の `presence` は base64 として読めること（以前は印字できる ASCII かだけを見て、読むときに読めない文字を読み飛ばした）。通信プロセスは正しい base64 しか送らないので、動きは変わらない。
+**状態: 済（05a5e72b）**。`readReply(Method, result)`・`readNotification(name, params)` が、フィールドを1つずつ形を確かめながら読む（読み残したフィールドがあれば断る）。`PeerProcess` は読めた型（`Reply`・`Notification`）だけを知らせ、JSON は外へ出さない。hello の応答は `Hello { Sandbox }`、メソッドは enum `Method`、到達性は enum `Reachability`、接続の出どころは enum `Origin` にした。要求の外枠と長さの前置き（`encodeRequest`・`takeMessage`）も `peeripc` に移した。検査が少し厳しくなった所が2つある: `meetGet` の `blobs` と `createPresence` の `presence` は base64 として読めること（以前は印字できる ASCII かだけを見て、読むときに読めない文字を読み飛ばした）。通信プロセスは正しい base64 しか送らないので、動きは変わらない。
 
 **今の形**
 

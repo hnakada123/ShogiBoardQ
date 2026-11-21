@@ -108,6 +108,31 @@ void standardizeDialog(QWidget* dialog)
     }
 }
 
+QLabel* wrappedLabel(const QString& text, QWidget* parent)
+{
+    auto* label = new QLabel(text, parent);
+    label->setTextFormat(Qt::PlainText);
+    label->setWordWrap(true);
+    return label;
+}
+
+QLabel* headingLabel(const QString& text, QWidget* parent)
+{
+    auto* label = new QLabel(text, parent);
+    label->setTextFormat(Qt::PlainText);
+    QFont bold = label->font();
+    bold.setBold(true);
+    label->setFont(bold);
+    return label;
+}
+
+void setWrappedText(QLabel* label, const QString& text)
+{
+    if (label->text() == text) return;
+    label->setMinimumHeight(0);
+    label->setText(text);
+}
+
 void fitWrappedLabels(QWidget* dialog)
 {
     // 表示前の仮の幅で折り返しを計算すると、不要な最小高さが残る。

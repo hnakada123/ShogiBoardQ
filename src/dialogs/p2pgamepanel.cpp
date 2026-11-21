@@ -10,28 +10,11 @@
 #include <QVBoxLayout>
 
 #include "buttonstyles.h"
+#include "dialogutils.h"
 #include "p2pgamecoordinator.h"
 #include "p2pwindowtext.h"
 
 namespace {
-
-QLabel* plainLabel(QWidget* parent, const QString& text = QString())
-{
-    auto* label = new QLabel(text, parent);
-    label->setTextFormat(Qt::PlainText);
-    label->setWordWrap(true);
-    return label;
-}
-
-QLabel* headingLabel(const QString& text, QWidget* parent)
-{
-    auto* label = new QLabel(text, parent);
-    label->setTextFormat(Qt::PlainText);
-    QFont bold = label->font();
-    bold.setBold(true);
-    label->setFont(bold);
-    return label;
-}
 
 /// 終える操作の1組（見出し・ボタン・説明）の枠
 QFrame* actionGroup(QWidget* parent, const QString& title, const QList<QPushButton*>& buttons, const QString& note)
@@ -39,7 +22,7 @@ QFrame* actionGroup(QWidget* parent, const QString& title, const QList<QPushButt
     auto* frame = new QFrame(parent);
     frame->setFrameShape(QFrame::StyledPanel);
     auto* layout = new QVBoxLayout(frame);
-    layout->addWidget(headingLabel(title, frame));
+    layout->addWidget(DialogUtils::headingLabel(title, frame));
     auto* row = new QHBoxLayout;
     for (QPushButton* button : buttons) {
         button->setParent(frame);
@@ -47,7 +30,7 @@ QFrame* actionGroup(QWidget* parent, const QString& title, const QList<QPushButt
         row->addWidget(button);
     }
     layout->addLayout(row);
-    layout->addWidget(plainLabel(frame, note));
+    layout->addWidget(DialogUtils::wrappedLabel(note, frame));
     layout->addStretch();
     return frame;
 }
@@ -61,7 +44,7 @@ P2pGamePanel::P2pGamePanel(P2pGameCoordinator* game, QWidget* parent)
     auto* layout = new QVBoxLayout(this);
 
     // 今の段階（手番・再接続中など）は、ほかの文より大きく出す
-    m_headline = plainLabel(this);
+    m_headline = DialogUtils::wrappedLabel(QString(), this);
     m_headline->setObjectName(QStringLiteral("p2pGameHeadline"));
     QFont large = m_headline->font();
     large.setBold(true);
@@ -69,7 +52,7 @@ P2pGamePanel::P2pGamePanel(P2pGameCoordinator* game, QWidget* parent)
     m_headline->setFont(large);
     // 状態の文は、このタブの配置に直接置く（枠に入れて1段深くすると、選択できるラベルは、配置のやり直しが
     // 1段上へ伝わるたびに描き直される。文は1手ごとに替わる）
-    m_status = plainLabel(this);
+    m_status = DialogUtils::wrappedLabel(QString(), this);
     m_status->setObjectName(QStringLiteral("p2pGameStatus"));
     m_status->setTextInteractionFlags(Qt::TextSelectableByMouse);
     layout->addWidget(m_headline);
@@ -79,7 +62,7 @@ P2pGamePanel::P2pGamePanel(P2pGameCoordinator* game, QWidget* parent)
     separator->setFrameShadow(QFrame::Sunken);
     layout->addWidget(separator);
 
-    layout->addWidget(headingLabel(tr("対局を終える"), this));
+    layout->addWidget(DialogUtils::headingLabel(tr("対局を終える"), this));
     m_resign = new QPushButton(tr("投了"), this);
     m_resign->setObjectName(QStringLiteral("p2pResign"));
     m_offerDraw = new QPushButton(tr("引き分けを申し出る"), this);

@@ -12,29 +12,8 @@
 #include <QSignalBlocker>
 #include <QVBoxLayout>
 
+#include "dialogutils.h"
 #include "p2pidentitydialog.h"
-
-namespace {
-
-QLabel* plainLabel(QWidget* parent, const QString& text = QString())
-{
-    auto* label = new QLabel(text, parent);
-    label->setTextFormat(Qt::PlainText);
-    label->setWordWrap(true);
-    return label;
-}
-
-QLabel* headingLabel(const QString& text, QWidget* parent)
-{
-    auto* label = new QLabel(text, parent);
-    label->setTextFormat(Qt::PlainText);
-    QFont bold = label->font();
-    bold.setBold(true);
-    label->setFont(bold);
-    return label;
-}
-
-} // namespace
 
 P2pSettingsPanel::P2pSettingsPanel(QWidget* parent)
     : QWidget(parent)
@@ -43,8 +22,9 @@ P2pSettingsPanel::P2pSettingsPanel(QWidget* parent)
 
     // 以前はここにあった欄の行き先
     auto* movedRow = new QHBoxLayout;
-    movedRow->addWidget(plainLabel(this, tr("協力ノードと、相手とのつなぎ方（以前の「接続候補」「直接接続を使わない」）は、"
-                                            "「接続」タブで決めます。")),
+    movedRow->addWidget(DialogUtils::wrappedLabel(tr("協力ノードと、相手とのつなぎ方（以前の「接続候補」「直接接続を使わない」）は、"
+                                                     "「接続」タブで決めます。"),
+                                                  this),
                         1);
     auto* openConnection = new QPushButton(tr("「接続」タブを開く"), this);
     openConnection->setObjectName(QStringLiteral("p2pOpenConnectionTab"));
@@ -53,17 +33,17 @@ P2pSettingsPanel::P2pSettingsPanel(QWidget* parent)
     movedRow->addWidget(openConnection, 0, Qt::AlignTop);
     layout->addLayout(movedRow);
 
-    layout->addWidget(headingLabel(tr("表示"), this));
+    layout->addWidget(DialogUtils::headingLabel(tr("表示"), this));
     m_hideUnknown = new QCheckBox(tr("対局したことのない相手の表示名を出さない"), this);
     m_hideUnknown->setObjectName(QStringLiteral("p2pHideUnknownNames"));
     connect(m_hideUnknown, &QCheckBox::toggled, this, &P2pSettingsPanel::hideUnknownNamesToggled);
     layout->addWidget(m_hideUnknown);
 
-    layout->addWidget(headingLabel(tr("あなたのプレイヤーIDとプレイヤー鍵"), this));
+    layout->addWidget(DialogUtils::headingLabel(tr("あなたのプレイヤーIDとプレイヤー鍵"), this));
     auto* identity = new QGridLayout;
     identity->setColumnStretch(1, 1);
     identity->addWidget(new QLabel(tr("プレイヤーID"), this), 0, 0, Qt::AlignLeft | Qt::AlignTop);
-    m_playerId = plainLabel(this);
+    m_playerId = DialogUtils::wrappedLabel(QString(), this);
     m_playerId->setObjectName(QStringLiteral("p2pPlayerId"));
     m_playerId->setTextInteractionFlags(Qt::TextSelectableByMouse);
     identity->addWidget(m_playerId, 0, 1);
@@ -72,7 +52,7 @@ P2pSettingsPanel::P2pSettingsPanel(QWidget* parent)
     copyId->setAutoDefault(false);
     connect(copyId, &QPushButton::clicked, this, &P2pSettingsPanel::copyPlayerIdRequested);
     identity->addWidget(copyId, 0, 2, Qt::AlignTop);
-    m_identityInfo = plainLabel(this);
+    m_identityInfo = DialogUtils::wrappedLabel(QString(), this);
     m_identityInfo->setObjectName(QStringLiteral("p2pIdentityInfo"));
     m_identityInfo->setTextInteractionFlags(Qt::TextSelectableByMouse);
     identity->addWidget(m_identityInfo, 1, 0, 1, 2);
@@ -83,7 +63,7 @@ P2pSettingsPanel::P2pSettingsPanel(QWidget* parent)
     identity->addWidget(recreate, 1, 2, Qt::AlignTop);
     layout->addLayout(identity);
 
-    m_buildInfo = plainLabel(this);
+    m_buildInfo = DialogUtils::wrappedLabel(QString(), this);
     m_buildInfo->setObjectName(QStringLiteral("p2pBuildInfo"));
     layout->addWidget(m_buildInfo);
 
@@ -95,13 +75,13 @@ P2pSettingsPanel::P2pSettingsPanel(QWidget* parent)
     limitsLayout->setHorizontalSpacing(16);
     limitsLayout->setColumnStretch(0, 1);
     limitsLayout->setColumnStretch(1, 1);
-    limitsLayout->addWidget(headingLabel(tr("P2P対局で防げないこと"), limits), 0, 0, 1, 2);
+    limitsLayout->addWidget(DialogUtils::headingLabel(tr("P2P対局で防げないこと"), limits), 0, 0, 1, 2);
     const QList<P2pIdentityDialog::KnownLimit> items = P2pIdentityDialog::knownLimits();
     for (int index = 0; index < items.size(); ++index) {
         auto* cell = new QVBoxLayout;
         cell->setSpacing(1);
-        cell->addWidget(headingLabel(items.at(index).title, limits));
-        cell->addWidget(plainLabel(limits, items.at(index).text));
+        cell->addWidget(DialogUtils::headingLabel(items.at(index).title, limits));
+        cell->addWidget(DialogUtils::wrappedLabel(items.at(index).text, limits));
         cell->addStretch();
         limitsLayout->addLayout(cell, 1 + index / 2, index % 2);
     }
@@ -124,12 +104,10 @@ void P2pSettingsPanel::setPlayerId(const QString& text)
 
 void P2pSettingsPanel::setIdentityInfo(const QString& text)
 {
-    if (m_identityInfo->text() == text) return;
-    m_identityInfo->setMinimumHeight(0);
-    m_identityInfo->setText(text);
+    DialogUtils::setWrappedText(m_identityInfo, text);
 }
 
 void P2pSettingsPanel::setBuildInfo(const QString& text)
 {
-    if (m_buildInfo->text() != text) m_buildInfo->setText(text);
+    DialogUtils::setWrappedText(m_buildInfo, text);
 }

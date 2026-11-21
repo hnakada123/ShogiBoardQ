@@ -10,6 +10,8 @@
 
 #include "setting.h"
 
+class QLabel;
+
 namespace DialogUtils {
 
 /// 保存済みサイズを復元する。savedSize が無効または小さすぎる場合は何もしない。
@@ -58,6 +60,14 @@ void standardizeDialog(QWidget* dialog);
 
 /// 折り返しラベルの必要な高さを確保し、内容の重なりを防ぐ。
 void fitWrappedLabels(QWidget* dialog);
+
+/// 折り返す文のラベル（PlainText で読む。外から来た文字列を HTML として読ませない）
+QLabel* wrappedLabel(const QString& text, QWidget* parent);
+/// 見出しのラベル（PlainText・太字。折り返さない）
+QLabel* headingLabel(const QString& text, QWidget* parent);
+/// 折り返すラベルの文を替える。fitWrappedLabels が前の文に合わせて固定した最小の高さを外してから入れる
+/// （外さないと、短い文に替えても前の高さが残る）。同じ文なら何もしない
+void setWrappedText(QLabel* label, const QString& text);
 
 /// 確認を、実行する操作名のボタンと「キャンセル」で尋ねる。操作を選んだときだけ true を返す。
 /// KDE（KF6）では Yes/No の訳がなく、日本語の画面でも英語のまま表示されるため使わない。

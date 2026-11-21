@@ -15,19 +15,8 @@
 #include <algorithm>
 
 #include "dialogfontscale.h"
+#include "dialogutils.h"
 #include "networksettings.h"
-
-namespace {
-
-QLabel* wrappedLabel(const QString& text, QWidget* parent)
-{
-    auto* label = new QLabel(text, parent);
-    label->setTextFormat(Qt::PlainText);
-    label->setWordWrap(true);
-    return label;
-}
-
-} // namespace
 
 QList<P2pIdentityDialog::KnownLimit> P2pIdentityDialog::knownLimits()
 {
@@ -64,7 +53,7 @@ P2pIdentityDialog::P2pIdentityDialog(Mode mode, P2pIdentityStore* store, QWidget
     auto* layout = new QVBoxLayout(this);
 
     if (mode == Mode::Create) {
-        layout->addWidget(wrappedLabel(
+        layout->addWidget(DialogUtils::wrappedLabel(
             tr("P2P対局では、対局の開始と結果を、このアプリが作るプレイヤー鍵で自動的に確定します（操作は要りません）。"
                "公開鍵があなたのプレイヤーIDになります。"
                "実名や外部サービスのアカウントは使いません。鍵の保管の方法を選んでください。"),
@@ -86,7 +75,7 @@ P2pIdentityDialog::P2pIdentityDialog(Mode mode, P2pIdentityStore* store, QWidget
         layout->addWidget(m_plainFile);
         connect(m_methods, &QButtonGroup::idToggled, this, &P2pIdentityDialog::updateState);
     } else {
-        layout->addWidget(wrappedLabel(tr("プレイヤー鍵はパスフレーズで暗号化されています。パスフレーズを入力してください。"), this));
+        layout->addWidget(DialogUtils::wrappedLabel(tr("プレイヤー鍵はパスフレーズで暗号化されています。パスフレーズを入力してください。"), this));
     }
 
     auto* form = new QFormLayout;
@@ -104,9 +93,9 @@ P2pIdentityDialog::P2pIdentityDialog(Mode mode, P2pIdentityStore* store, QWidget
     connect(m_passphrase, &QLineEdit::textChanged, this, &P2pIdentityDialog::updateState);
     layout->addLayout(form);
 
-    if (mode == Mode::Create) layout->addWidget(wrappedLabel(knownLimitsText(), this));
+    if (mode == Mode::Create) layout->addWidget(DialogUtils::wrappedLabel(knownLimitsText(), this));
 
-    m_status = wrappedLabel(QString(), this);
+    m_status = DialogUtils::wrappedLabel(QString(), this);
     layout->addWidget(m_status);
     m_buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     m_buttons->button(QDialogButtonBox::Ok)->setText(mode == Mode::Create ? tr("プレイヤー鍵を作る") : tr("読み込む"));

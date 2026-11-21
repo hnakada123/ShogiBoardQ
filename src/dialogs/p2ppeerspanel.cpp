@@ -192,11 +192,9 @@ void P2pPeersPanel::onSelectionChanged()
     const QString sharing = tr("「友だちに在席を知らせる」を有効にすると、接続している間、互いに友だちに追加した相手にだけ、"
                                "接続していること（オンライン）が伝わり、対局の申し込みを受けます。合言葉に対応した協力ノードを使い、"
                                "その運営者には、だれとだれが友だちか（IPアドレスの組）が分かります。");
-    m_friendNote->setText(available
-        ? sharing
-        : tr("友だちの在席を調べたり、友だちに対局を申し込んだりするには、合言葉に対応した協力ノードを"
-             "「接続」タブで登録して接続します。")
-              + QLatin1Char('\n') + sharing);
+    const QString howToUse = tr("友だちの在席を調べたり、友だちに対局を申し込んだりするには、合言葉に対応した協力ノードを"
+                                "「接続」タブで登録して接続します。");
+    DialogUtils::setWrappedText(m_friendNote, available ? sharing : howToUse + QLatin1Char('\n') + sharing);
 }
 
 void P2pPeersPanel::onToggleFriend()

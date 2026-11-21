@@ -48,14 +48,6 @@
 
 namespace {
 
-QLabel* plainLabel(QWidget* parent, const QString& text = QString())
-{
-    auto* label = new QLabel(text, parent);
-    label->setTextFormat(Qt::PlainText);
-    label->setWordWrap(true);
-    return label;
-}
-
 QString dateText(quint64 seconds)
 {
     return QDateTime::fromSecsSinceEpoch(static_cast<qint64>(seconds)).toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
@@ -76,11 +68,12 @@ P2pWindow::P2pWindow(P2pLobbyService* lobby, P2pGameCoordinator* game, QWidget* 
     auto* layout = new QVBoxLayout(this);
     if (m_player > 1) {
         // 同じ PC でほかのアプリが先に開いているとき。どのタブでも見えるよう、タブの上に出す
-        QLabel* notice = plainLabel(
-            this, tr("このPCでは、ほかの ShogiBoardQ が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。"
-                     "プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。"
-                     "同じPCのアプリどうしで、招待で対局できます。")
-                      .arg(m_player));
+        QLabel* notice = DialogUtils::wrappedLabel(
+            tr("このPCでは、ほかの ShogiBoardQ が先に P2P対局を開いているので、このアプリは「%1人目」として開きました。"
+               "プレイヤー鍵（プレイヤーID）・表示名・対局記録・相手の一覧は、%1人目用に別に保存します。"
+               "同じPCのアプリどうしで、招待で対局できます。")
+                .arg(m_player),
+            this);
         notice->setObjectName(QStringLiteral("p2pPlayerNotice"));
         layout->addWidget(notice);
     }
@@ -235,7 +228,7 @@ QWidget* P2pWindow::createConditionBox(QWidget* parent)
     captioned(timeRow, tr("先後"), m_side, 1);
     layout->addLayout(timeRow);
 
-    layout->addWidget(plainLabel(box, tr("エンジンを選ぶと、あなたの手はエンジンが指し、そのことが相手に伝わり、対局記録（証跡）にも残ります。")));
+    layout->addWidget(DialogUtils::wrappedLabel(tr("エンジンを選ぶと、あなたの手はエンジンが指し、そのことが相手に伝わり、対局記録（証跡）にも残ります。"), box));
     EngineSelector::Options engineOptions;
     engineOptions.keys = {m_engineNameKey.constData(), nullptr, nullptr};
     engineOptions.builtinLabel = tr("人間");
@@ -248,7 +241,7 @@ QWidget* P2pWindow::createInviteOutBox(QWidget* parent)
 {
     auto* box = new QGroupBox(tr("招待する"), parent);
     auto* layout = new QVBoxLayout(box);
-    layout->addWidget(plainLabel(box, tr("上の条件で招待を作り、相手に伝えます。")));
+    layout->addWidget(DialogUtils::wrappedLabel(tr("上の条件で招待を作り、相手に伝えます。"), box));
     m_createInvite = new QPushButton(tr("招待を作る"), box);
     m_createInvite->setObjectName(QStringLiteral("p2pCreateInvite"));
     m_createInvite->setStyleSheet(ButtonStyles::primaryAction());
@@ -280,26 +273,26 @@ QWidget* P2pWindow::createInviteOutBox(QWidget* parent)
     m_codeRow->setVisible(false);
     layout->addWidget(m_codeRow);
     // 合言葉の付かない招待（協力ノードが合言葉に対応していない、など）は、理由と、招待文字列を渡すことを知らせる
-    m_noCode = plainLabel(box);
+    m_noCode = DialogUtils::wrappedLabel(QString(), box);
     m_noCode->setObjectName(QStringLiteral("p2pInviteNoCode"));
     m_noCode->setVisible(false);
     layout->addWidget(m_noCode);
 
-    layout->addWidget(plainLabel(box, tr("招待文字列（メッセージなどで送る長い形）")));
+    layout->addWidget(DialogUtils::wrappedLabel(tr("招待文字列（メッセージなどで送る長い形）"), box));
     m_inviteOut = new QPlainTextEdit(box);
     m_inviteOut->setObjectName(QStringLiteral("p2pInviteOut"));
     m_inviteOut->setReadOnly(true);
     m_inviteOut->setMaximumHeight(56);
     layout->addWidget(m_inviteOut);
     auto* outRow = new QHBoxLayout;
-    m_inviteOutInfo = plainLabel(box);
+    m_inviteOutInfo = DialogUtils::wrappedLabel(QString(), box);
     m_copyInvite = new QPushButton(tr("招待文字列をコピー"), box);
     m_copyInvite->setObjectName(QStringLiteral("p2pCopyInvite"));
     connect(m_copyInvite, &QPushButton::clicked, this, &P2pWindow::onCopyInvite);
     outRow->addWidget(m_inviteOutInfo, 1);
     outRow->addWidget(m_copyInvite, 0, Qt::AlignTop);
     layout->addLayout(outRow);
-    m_inviteNotes = plainLabel(box);
+    m_inviteNotes = DialogUtils::wrappedLabel(QString(), box);
     m_inviteNotes->setObjectName(QStringLiteral("p2pInviteNotes"));
     layout->addWidget(m_inviteNotes);
     layout->addStretch();
@@ -311,7 +304,7 @@ QWidget* P2pWindow::createInviteInBox(QWidget* parent)
     // 上から順に進める: 入力する → 確かめる → 結果を見る → 接続する
     auto* box = new QGroupBox(tr("招待を受ける"), parent);
     auto* layout = new QVBoxLayout(box);
-    layout->addWidget(plainLabel(box, tr("受け取った合言葉を入力するか、招待文字列を貼り付けてください。")));
+    layout->addWidget(DialogUtils::wrappedLabel(tr("受け取った合言葉を入力するか、招待文字列を貼り付けてください。"), box));
     m_inviteIn = new QPlainTextEdit(box);
     m_inviteIn->setObjectName(QStringLiteral("p2pInviteIn"));
     m_inviteIn->setMaximumHeight(56);
@@ -320,7 +313,7 @@ QWidget* P2pWindow::createInviteInBox(QWidget* parent)
     m_inspectInvite->setObjectName(QStringLiteral("p2pInspectInvite"));
     connect(m_inspectInvite, &QPushButton::clicked, this, &P2pWindow::onInspectInvite);
     layout->addWidget(m_inspectInvite);
-    m_inviteInInfo = plainLabel(box);
+    m_inviteInInfo = DialogUtils::wrappedLabel(QString(), box);
     m_inviteInInfo->setObjectName(QStringLiteral("p2pInviteInfo"));
     m_inviteInInfo->setTextInteractionFlags(Qt::TextSelectableByMouse);
     layout->addWidget(m_inviteInInfo);
@@ -334,7 +327,7 @@ QWidget* P2pWindow::createInviteInBox(QWidget* parent)
     m_connectInvite->setEnabled(false);
     connect(m_connectInvite, &QPushButton::clicked, this, &P2pWindow::onConnectInvite);
     layout->addWidget(m_connectInvite);
-    layout->addWidget(plainLabel(box, tr("接続しただけでは対局は始まりません。条件確認画面で相手のプレイヤーIDを確かめてから開始します。")));
+    layout->addWidget(DialogUtils::wrappedLabel(tr("接続しただけでは対局は始まりません。条件確認画面で相手のプレイヤーIDを確かめてから開始します。"), box));
     layout->addStretch();
     return box;
 }
@@ -565,9 +558,7 @@ void P2pWindow::updateInviteNotes()
                             tr("・10分で使えなくなります。合言葉と招待文字列のどちらかで、1回だけ使えます。"),
                             tr("・%1").arg(m_connection->inviteContentsText())};
     const QString text = notes.join(QLatin1Char('\n'));
-    if (m_inviteNotes->text() == text) return;
-    m_inviteNotes->setMinimumHeight(0);
-    m_inviteNotes->setText(text);
+    DialogUtils::setWrappedText(m_inviteNotes, text);
 }
 
 QString P2pWindow::routeText() const
@@ -623,7 +614,7 @@ void P2pWindow::onCreateInvite()
     m_inviteOut->clear();
     m_codeOut->clear();
     m_noCode->setVisible(false);
-    m_inviteOutInfo->clear();
+    DialogUtils::setWrappedText(m_inviteOutInfo, QString());
     emit createInviteRequested();
 }
 
@@ -637,18 +628,18 @@ void P2pWindow::onInviteCreated(const QString& invite, const QString& code, quin
     if (noCode) {
         // 協力ノードを使う招待（「インターネット」・中継だけ）は、合言葉に対応した協力ノードがあるときだけ合言葉が付く
         const bool viaNode = m_lobby && (!m_lobby->isLocalProfile() || m_lobby->relayOnly());
-        m_noCode->setMinimumHeight(0);
-        m_noCode->setText(viaNode && m_lobby->meetNodes() == 0
-                              ? tr("この招待には合言葉が付きません（登録した協力ノードが、合言葉に対応していません）。"
-                                   "下の招待文字列を、メッセージなどで相手に渡してください。")
-                              : tr("この招待には合言葉が付きません。下の招待文字列を、メッセージなどで相手に渡してください。"));
+        DialogUtils::setWrappedText(m_noCode, viaNode && m_lobby->meetNodes() == 0
+                                                  ? tr("この招待には合言葉が付きません（登録した協力ノードが、合言葉に対応していません）。"
+                                                       "下の招待文字列を、メッセージなどで相手に渡してください。")
+                                                  : tr("この招待には合言葉が付きません。下の招待文字列を、メッセージなどで相手に渡してください。"));
     }
     m_noCode->setVisible(noCode);
     m_inviteExpiresAt = expiresAt;
     // 接続先の入っていない招待文字列では、相手はつなげない
-    m_inviteOutInfo->setText(addressCount > 0 ? tr("期限: %1（到達候補 %2 件）").arg(dateText(expiresAt)).arg(addressCount)
-                                              : tr("この招待文字列には接続先が入っていないので、相手は接続できません。"
-                                                   "ウィンドウの上の「招待の経路」を確かめてください。"));
+    DialogUtils::setWrappedText(m_inviteOutInfo, addressCount > 0
+                                                     ? tr("期限: %1（到達候補 %2 件）").arg(dateText(expiresAt)).arg(addressCount)
+                                                     : tr("この招待文字列には接続先が入っていないので、相手は接続できません。"
+                                                          "ウィンドウの上の「招待の経路」を確かめてください。"));
     growToFit();
 }
 
@@ -703,7 +694,7 @@ void P2pWindow::onInspectInvite()
     if (!m_lobby) return;
     m_connectInvite->setEnabled(false);
     m_allowPrivate->setVisible(false);
-    m_inviteInInfo->setText(tr("確かめています…"));
+    DialogUtils::setWrappedText(m_inviteInInfo, tr("確かめています…"));
     const QString input = m_inviteIn->toPlainText();
     m_inviteInIsCode = !P2pWindowText::isInviteString(input);
     m_inviteInHasAddress = false;
@@ -728,7 +719,7 @@ void P2pWindow::onInviteInspected(const P2pLobbyService::InviteInfo& info)
         lines << tr("私設アドレス（同じLANの相手）:");
         lines << info.privateAddresses;
     }
-    m_inviteInInfo->setText(lines.join(QLatin1Char('\n')));
+    DialogUtils::setWrappedText(m_inviteInInfo, lines.join(QLatin1Char('\n')));
     m_allowPrivate->setChecked(false);
     m_allowPrivate->setVisible(!info.privateAddresses.isEmpty());
     m_connectInvite->setEnabled(info.usableAddressCount > 0 || !info.privateAddresses.isEmpty());
@@ -746,7 +737,7 @@ void P2pWindow::onConnectInvite()
     emit connectInviteRequested(P2pWindowText::inviteInput(input), m_allowPrivate->isChecked());
     // 招待文字列・合言葉はもう使わない（ログ・設定に残さない）
     m_inviteIn->clear();
-    m_inviteInInfo->setText(tr("接続しています…"));
+    DialogUtils::setWrappedText(m_inviteInInfo, tr("接続しています…"));
     m_connectingByInvite = true;
 }
 
@@ -785,7 +776,7 @@ void P2pWindow::onInviteRejected(PeerIpc::InviteRejection rejection)
         case PeerIpc::InviteRejection::Unreadable: text = tr("招待文字列を読めません。"); break;
         }
     }
-    m_inviteInInfo->setText(text);
+    DialogUtils::setWrappedText(m_inviteInInfo, text);
     growToFit();
 }
 
@@ -793,7 +784,7 @@ void P2pWindow::clearConnectProgress()
 {
     if (!m_connectingByInvite) return;
     m_connectingByInvite = false;
-    m_inviteInInfo->clear();
+    DialogUtils::setWrappedText(m_inviteInInfo, QString());
 }
 
 void P2pWindow::onInviteRefused()
@@ -817,7 +808,7 @@ void P2pWindow::onInviteRefused()
              "もう使われています。相手に新しい招待を作ってもらってください。")
         : tr("相手につながりましたが、招待文字列が受け付けられませんでした。もう使われたか、取り消されています。"
              "相手に新しい招待を作ってもらってください。");
-    m_inviteInInfo->setText(text);
+    DialogUtils::setWrappedText(m_inviteInInfo, text);
     growToFit();
 }
 
@@ -848,7 +839,7 @@ void P2pWindow::onConnectFailed(PeerIpc::CloseReason reason)
                           .arg(kP2pLanPort);
         }
     }
-    m_inviteInInfo->clear();
+    DialogUtils::setWrappedText(m_inviteInInfo, QString());
     // 通信プロセスの知らせの処理の中なので、閉じるのを待たない（監査 2026-11-13 P4）。続けて届いたら前の箱を閉じる
     if (m_connectFailedBox) m_connectFailedBox->close();
     m_connectFailedBox = DialogUtils::createNoticeBox(this, QMessageBox::Warning, tr("接続"), text);
