@@ -7,7 +7,6 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFileInfo>
-#include <QJsonArray>
 #include <QPointer>
 #include <QProcessEnvironment>
 #include <QTimer>
@@ -31,17 +30,14 @@ quint64 nextGeneration()
 }
 
 /// 権限の制限の結果として必須のもの（protocol/ipc.md 3章）
-bool sandboxIsApplied(const QJsonObject& sandbox)
+bool sandboxIsApplied(const PeerIpc::Sandbox& sandbox)
 {
-    if (!sandbox.value(QStringLiteral("applied")).toBool()) return false;
-    const QJsonArray mechanisms = sandbox.value(QStringLiteral("mechanisms")).toArray();
-    QStringList names;
-    for (const QJsonValue& m : mechanisms) names << m.toString();
+    if (!sandbox.applied) return false;
     // OS ごとの必須の仕組み（Linux と macOS は通信プロセスが自分で掛け、Windows は起動のときに掛けたものを通信プロセスが確かめる）
     const QStringList required = PeerConfinement::requiredMechanisms();
     if (required.isEmpty()) return false;
     for (const QString& name : required) {
-        if (!names.contains(name)) return false;
+        if (!sandbox.mechanisms.contains(name)) return false;
     }
     return true;
 }
@@ -114,7 +110,7 @@ void PeerProcess::start(PeerConfinement::Reach reach)
     m_buffer.clear();
     m_stderr.clear();
     m_pending.clear();
-    m_sandbox = QJsonObject();
+    m_sandbox = PeerIpc::Sandbox();
     m_generation = nextGeneration();
     m_nextRequestId = 1;
 
@@ -138,16 +134,14 @@ void PeerProcess::start(PeerConfinement::Reach reach)
     m_state = State::Starting;
     m_process->start(QIODevice::ReadWrite);
 
-    QJsonObject hello;
-    hello[QStringLiteral("uiVersion")] = QStringLiteral(APP_VERSION);
-    m_helloRequestId = send(QStringLiteral("hello"), hello);
+    m_helloRequestId = send(PeerIpc::Requests::hello(QStringLiteral(APP_VERSION)));
     m_stopTimer->start(kHelloTimeoutMs);
 }
 
 void PeerProcess::stop()
 {
     if (!m_process || m_state == State::Stopping) return;
-    if (m_state == State::Ready) send(QStringLiteral("shutdown"), QJsonObject());
+    if (m_state == State::Ready) send(PeerIpc::Requests::shutdown());
     m_state = State::Stopping;
     m_process->closeWriteChannel();
     m_stopTimer->start(kStopStepMs);
@@ -183,25 +177,20 @@ void PeerProcess::onStopTimeout()
     }
 }
 
-quint64 PeerProcess::request(const QString& method, const QJsonObject& params)
+quint64 PeerProcess::request(const PeerIpc::Request& request)
 {
     if (m_state != State::Ready) return 0;
-    return send(method, params);
+    return send(request);
 }
 
-quint64 PeerProcess::send(const QString& method, const QJsonObject& params)
+quint64 PeerProcess::send(const PeerIpc::Request& request)
 {
     if (!m_process) return 0;
     const quint64 id = m_nextRequestId++;
-    QJsonObject message;
-    message[QStringLiteral("protocolVersion")] = PeerIpc::kProtocolVersion;
-    message[QStringLiteral("processGeneration")] = QString::number(m_generation);
-    message[QStringLiteral("requestId")] = QString::number(id);
-    message[QStringLiteral("method")] = method;
-    message[QStringLiteral("params")] = params;
-    const QByteArray bytes = PeerIpc::frame(message);
-    if (bytes.size() - 4 > PeerIpc::kMaxMessageBytes) return 0;
-    m_pending.insert(id, method);
+    const QByteArray bytes = PeerIpc::encodeRequest(m_generation, id, request);
+    // 上限を超える要求は送らない
+    if (bytes.isEmpty()) return 0;
+    m_pending.insert(id, request.method);
     m_process->write(bytes);
     return id;
 }
@@ -213,19 +202,14 @@ void PeerProcess::onReadyReadStdout()
     // 知らせの受け手がイベントループを回すと、その間にこのオブジェクトが消えることがある（受け手は待たない知らせを
     // 使うが、念のため）。消えた後と、違反で失敗した後は、残りを読まない
     const QPointer<PeerProcess> self(this);
-    while (m_buffer.size() >= 4 && m_process && !m_failed) {
-        const quint32 length = (static_cast<quint32>(static_cast<quint8>(m_buffer.at(0))) << 24)
-            | (static_cast<quint32>(static_cast<quint8>(m_buffer.at(1))) << 16)
-            | (static_cast<quint32>(static_cast<quint8>(m_buffer.at(2))) << 8)
-            | static_cast<quint32>(static_cast<quint8>(m_buffer.at(3)));
-        // 長さを確かめてから読む
-        if (length < 2 || length > static_cast<quint32>(PeerIpc::kMaxMessageBytes)) {
+    while (m_process && !m_failed) {
+        QByteArray json;
+        const PeerIpc::Framing framing = PeerIpc::takeMessage(m_buffer, &json);
+        if (framing == PeerIpc::Framing::Incomplete) break;
+        if (framing == PeerIpc::Framing::Violation) {
             fail(Failure::ProtocolViolation, QStringLiteral("message length out of range"));
             return;
         }
-        if (m_buffer.size() < static_cast<qsizetype>(length) + 4) break;
-        const QByteArray json = m_buffer.mid(4, static_cast<qsizetype>(length));
-        m_buffer.remove(0, static_cast<qsizetype>(length) + 4);
         handleMessage(json);
         if (!self) return;
     }
@@ -248,11 +232,12 @@ void PeerProcess::handleMessage(const QByteArray& json)
             fail(Failure::ProtocolViolation, QStringLiteral("notification before hello"));
             return;
         }
-        if (!PeerIpc::checkNotification(in->name, in->body)) {
-            fail(Failure::ProtocolViolation, QStringLiteral("malformed notification %1").arg(in->name));
+        const std::optional<PeerIpc::Notification> notification = PeerIpc::readNotification(in->notification, in->body);
+        if (!notification) {
+            fail(Failure::ProtocolViolation, QStringLiteral("malformed notification %1").arg(in->notification));
             return;
         }
-        emit notified(in->name, in->body);
+        emit notified(*notification);
         return;
     }
 
@@ -263,35 +248,35 @@ void PeerProcess::handleMessage(const QByteArray& json)
     }
     const auto it = m_pending.find(in->requestId);
     if (it == m_pending.end()) return;
-    const QString method = it.value();
+    const PeerIpc::Method method = it.value();
     m_pending.erase(it);
 
     if (in->kind == PeerIpc::Incoming::Kind::Error) {
         if (in->requestId == m_helloRequestId) {
-            fail(Failure::HelloMismatch, in->body.value(QStringLiteral("code")).toString());
+            fail(Failure::HelloMismatch, in->errorCode);
             return;
         }
-        emit requestFailed(in->requestId, method, in->body.value(QStringLiteral("code")).toString());
+        emit requestFailed(in->requestId, method, in->errorCode);
         return;
     }
-    if (!PeerIpc::checkResult(method, in->body)) {
-        fail(Failure::ProtocolViolation, QStringLiteral("malformed result of %1").arg(method));
+    const std::optional<PeerIpc::Reply> reply = PeerIpc::readReply(method, in->body);
+    if (!reply) {
+        fail(Failure::ProtocolViolation, QStringLiteral("malformed result of %1").arg(PeerIpc::methodName(method)));
         return;
     }
-    if (in->requestId == m_helloRequestId) {
+    if (const auto* hello = std::get_if<PeerIpc::Hello>(&*reply)) {
         m_stopTimer->stop();
-        const QJsonObject sandbox = in->body.value(QStringLiteral("sandbox")).toObject();
-        if (!sandboxIsApplied(sandbox)) {
+        if (!sandboxIsApplied(hello->sandbox)) {
             fail(Failure::SandboxFailed, QStringLiteral("sandbox not applied"));
             return;
         }
-        m_sandbox = sandbox;
+        m_sandbox = hello->sandbox;
         m_state = State::Ready;
         qCInfo(lcGame) << "P2P peer process ready, generation" << m_generation;
         emit ready();
         return;
     }
-    emit replied(in->requestId, method, in->body);
+    emit replied(in->requestId, *reply);
 }
 
 void PeerProcess::onReadyReadStderr()

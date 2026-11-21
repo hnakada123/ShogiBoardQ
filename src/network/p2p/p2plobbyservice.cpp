@@ -5,6 +5,8 @@
 
 #include <QPointer>
 
+#include <variant>
+
 #include "logcategories.h"
 #include "p2pbuildexpiry.h"
 #include "p2pidentitystore.h"
@@ -61,6 +63,7 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
     m_localProfile = network->local;
     m_status = Status::Starting;
     m_connectedPeers = 0;
+    m_reachability = PeerIpc::Reachability::Unknown;
     m_relayReservations = 0;
     m_meetNodes = 0;
     holdConnectionActivity();
@@ -149,54 +152,89 @@ void P2pLobbyService::onPeerReady()
     m_peer->request(PeerIpc::Requests::start(m_networkName, m_bootstrap, m_relayOnly));
 }
 
-void P2pLobbyService::onPeerReplied(quint64 requestId, const QString& method, const QJsonObject& result)
+void P2pLobbyService::onPeerReplied(quint64 requestId, const PeerIpc::Reply& reply)
 {
-    const std::optional<PeerIpc::Reply> reply = PeerIpc::readReply(method, result);
-    if (!reply) return;
-    if (const auto* started = std::get_if<PeerIpc::StartResult>(&*reply)) {
-        m_peerIdBytes = started->peerIdBytes;
-        m_networkId = started->networkId;
-        // 通信プロセスが返した networkId を、こちらで計算した値と比べる
-        if (m_networkId != P2p::networkId(m_networkName.toLatin1())) {
-            // 食い違う通信プロセスは使わない（ネットワークに参加したまま残さない）
-            m_peer->stop();
-            onPeerFailed(PeerProcess::Failure::HelloMismatch, QStringLiteral("networkId mismatch"));
-            return;
-        }
-        m_status = Status::Online;
-        emit statusChanged();
-    } else if (const auto* created = std::get_if<PeerIpc::CreatedInvite>(&*reply)) {
-        m_inviteActive = true;
-        emit inviteCreated(created->invite, created->code, created->expiresAt, created->addressCount);
-    } else if (const auto* inspected = std::get_if<PeerIpc::InspectedInvite>(&*reply)) {
-        emit inviteInspected(*inspected);
-    } else if (const auto* presence = std::get_if<PeerIpc::CreatedPresence>(&*reply)) {
-        emit presenceCreated(requestId, *presence);
-    } else if (const auto* stored = std::get_if<PeerIpc::MeetStored>(&*reply)) {
-        emit meetStored(requestId, stored->stored);
-    } else if (const auto* fetched = std::get_if<PeerIpc::MeetFetched>(&*reply)) {
-        emit meetFetched(requestId, fetched->blobs);
-    } else if (const auto* connecting = std::get_if<PeerIpc::ConnectionStarted>(&*reply)) {
-        // 招待で接続を始めた（接続し直しの connectPeer は振り分けない）。開いたら交渉を始める
-        const auto it = m_connectRequests.find(requestId);
-        if (it == m_connectRequests.end()) return;
-        P2pGameCoordinator::NegotiationRequest request = it.value();
-        m_connectRequests.erase(it);
-        request.connection = connecting->connection;
-        m_pendingConnections.insert(request.connection, request);
-    }
+    std::visit([this, requestId](const auto& value) { handleReply(requestId, value); }, reply);
 }
 
-void P2pLobbyService::onPeerRequestFailed(quint64 requestId, const QString& method, const QString& code)
+void P2pLobbyService::handleReply(quint64, const PeerIpc::Hello&)
+{
+    // hello は PeerProcess が受ける（ここには届かない）
+}
+
+void P2pLobbyService::handleReply(quint64, const PeerIpc::StartResult& started)
+{
+    m_peerIdBytes = started.peerIdBytes;
+    m_networkId = started.networkId;
+    // 通信プロセスが返した networkId を、こちらで計算した値と比べる
+    if (m_networkId != P2p::networkId(m_networkName.toLatin1())) {
+        // 食い違う通信プロセスは使わない（ネットワークに参加したまま残さない）
+        m_peer->stop();
+        onPeerFailed(PeerProcess::Failure::HelloMismatch, QStringLiteral("networkId mismatch"));
+        return;
+    }
+    m_status = Status::Online;
+    emit statusChanged();
+}
+
+void P2pLobbyService::handleReply(quint64, const PeerIpc::CreatedInvite& created)
+{
+    m_inviteActive = true;
+    emit inviteCreated(created.invite, created.code, created.expiresAt, created.addressCount);
+}
+
+void P2pLobbyService::handleReply(quint64, const PeerIpc::InspectedInvite& inspected)
+{
+    emit inviteInspected(inspected);
+}
+
+void P2pLobbyService::handleReply(quint64 requestId, const PeerIpc::ConnectionStarted& connecting)
+{
+    // 招待で接続を始めた（接続し直しの connectPeer は振り分けない）。開いたら交渉を始める
+    const auto it = m_connectRequests.find(requestId);
+    if (it == m_connectRequests.end()) return;
+    P2pGameCoordinator::NegotiationRequest request = it.value();
+    m_connectRequests.erase(it);
+    request.connection = connecting.connection;
+    m_pendingConnections.insert(request.connection, request);
+}
+
+void P2pLobbyService::handleReply(quint64, const PeerIpc::Done&)
+{
+}
+
+void P2pLobbyService::handleReply(quint64 requestId, const PeerIpc::CreatedPresence& presence)
+{
+    emit presenceCreated(requestId, presence);
+}
+
+void P2pLobbyService::handleReply(quint64 requestId, const PeerIpc::MeetStored& stored)
+{
+    emit meetStored(requestId, stored.stored);
+}
+
+void P2pLobbyService::handleReply(quint64 requestId, const PeerIpc::MeetFetched& fetched)
+{
+    emit meetFetched(requestId, fetched.blobs);
+}
+
+void P2pLobbyService::onPeerRequestFailed(quint64 requestId, PeerIpc::Method method, const QString& errorCode)
 {
     m_connectRequests.remove(requestId);
-    qCInfo(lcGame) << "P2P request failed:" << method << code;
-    if (const std::optional<PeerIpc::InviteRejection> rejection = PeerIpc::inviteRejection(method, code)) {
-        if (method == QLatin1String("connectPresence")) emit friendApplyRejected(*rejection);
+    qCInfo(lcGame) << "P2P request failed:" << PeerIpc::methodName(method) << errorCode;
+    if (const std::optional<PeerIpc::InviteRejection> rejection = PeerIpc::inviteRejection(method, errorCode)) {
+        if (method == PeerIpc::Method::ConnectPresence) emit friendApplyRejected(*rejection);
         else emit inviteRejected(*rejection);
-    } else if (method == QLatin1String("createPresence") || method == QLatin1String("meetPut")
-               || method == QLatin1String("meetGet")) {
+        return;
+    }
+    switch (method) {
+    case PeerIpc::Method::CreatePresence:
+    case PeerIpc::Method::MeetPut:
+    case PeerIpc::Method::MeetGet:
         emit presenceRequestFailed(requestId);
+        return;
+    default:
+        return;
     }
 }
 
@@ -225,34 +263,42 @@ void P2pLobbyService::onPeerStopped()
     emit statusChanged();
 }
 
-void P2pLobbyService::onPeerNotified(const QString& name, const QJsonObject& params)
+void P2pLobbyService::onPeerNotified(const PeerIpc::Notification& notification)
 {
-    const std::optional<PeerIpc::Notification> notification = PeerIpc::readNotification(name, params);
-    if (!notification) return;
-    if (const auto* status = std::get_if<PeerIpc::NetworkStatus>(&*notification)) {
-        const bool changed = m_connectedPeers != status->connectedPeers || m_reachability != status->reachability
-            || m_relayReservations != status->relayReservations || m_meetNodes != status->meetNodes;
-        m_connectedPeers = status->connectedPeers;
-        m_reachability = status->reachability;
-        m_relayReservations = status->relayReservations;
-        m_meetNodes = status->meetNodes;
-        // 変わったときだけ、少しまとめてから知らせる（通信プロセスが知らせを続けて送っても、画面の負荷にしない）
-        if (changed && !m_networkStatusTimer->isActive()) m_networkStatusTimer->start();
-    } else if (const auto* opened = std::get_if<PeerIpc::ConnectionOpened>(&*notification)) {
-        handleConnectionOpened(*opened);
-    } else if (const auto* received = std::get_if<PeerIpc::FrameReceived>(&*notification)) {
-        if (m_deps.game) m_deps.game->onFrame(received->connection, received->frame);
-    } else if (const auto* closed = std::get_if<PeerIpc::ConnectionClosed>(&*notification)) {
-        if (m_pendingConnections.remove(closed->connection)) emit connectFailed(closed->reason);
-        if (m_deps.game) m_deps.game->onConnectionClosed(closed->connection);
-    } else if (const auto* route = std::get_if<PeerIpc::ConnectionRoute>(&*notification)) {
-        if (m_deps.game) m_deps.game->onRouteChanged(route->connection, route->viaRelay);
-    }
+    std::visit([this](const auto& value) { handleNotification(value); }, notification);
+}
+
+void P2pLobbyService::handleNotification(const PeerIpc::NetworkStatus& status)
+{
+    const bool changed = m_connectedPeers != status.connectedPeers || m_reachability != status.reachability
+        || m_relayReservations != status.relayReservations || m_meetNodes != status.meetNodes;
+    m_connectedPeers = status.connectedPeers;
+    m_reachability = status.reachability;
+    m_relayReservations = status.relayReservations;
+    m_meetNodes = status.meetNodes;
+    // 変わったときだけ、少しまとめてから知らせる（通信プロセスが知らせを続けて送っても、画面の負荷にしない）
+    if (changed && !m_networkStatusTimer->isActive()) m_networkStatusTimer->start();
+}
+
+void P2pLobbyService::handleNotification(const PeerIpc::ConnectionRoute& route)
+{
+    if (m_deps.game) m_deps.game->onRouteChanged(route.connection, route.viaRelay);
+}
+
+void P2pLobbyService::handleNotification(const PeerIpc::FrameReceived& received)
+{
+    if (m_deps.game) m_deps.game->onFrame(received.connection, received.frame);
+}
+
+void P2pLobbyService::handleNotification(const PeerIpc::ConnectionClosed& closed)
+{
+    if (m_pendingConnections.remove(closed.connection)) emit connectFailed(closed.reason);
+    if (m_deps.game) m_deps.game->onConnectionClosed(closed.connection);
 }
 
 // ---------------------------------------------------------------- 接続の振り分け
 
-void P2pLobbyService::handleConnectionOpened(const PeerIpc::ConnectionOpened& opened)
+void P2pLobbyService::handleNotification(const PeerIpc::ConnectionOpened& opened)
 {
     const quint64 connection = opened.connection;
     if (!m_deps.game) {
@@ -261,7 +307,7 @@ void P2pLobbyService::handleConnectionOpened(const PeerIpc::ConnectionOpened& op
     }
 
     // 対局の相手の再接続
-    if (opened.gameReconnect) {
+    if (opened.origin == PeerIpc::Origin::Game) {
         m_deps.game->onConnectionOpened(connection, opened.peerId, opened.viaRelay);
         if (!m_deps.game->ownsConnection(connection)) closeConnection(connection);
         return;
@@ -288,7 +334,7 @@ void P2pLobbyService::handleConnectionOpened(const PeerIpc::ConnectionOpened& op
         rejectConnection(connection, P2p::ErrorCode::Busy);
         return;
     }
-    if (opened.presence != 0) {
+    if (opened.origin == PeerIpc::Origin::Friend) {
         // 友だちの申し込み。だれの知らせか・自分の条件は、友だち一覧の部品が決める（受けないなら BUSY）
         std::optional<P2pGameCoordinator::NegotiationRequest> request =
             m_friendHandler ? m_friendHandler(opened.presence) : std::nullopt;

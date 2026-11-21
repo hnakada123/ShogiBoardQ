@@ -6,7 +6,6 @@
 
 #include <QByteArray>
 #include <QHash>
-#include <QJsonObject>
 #include <QObject>
 #include <QProcess>
 #include <QString>
@@ -24,6 +23,7 @@ class QTimer;
  * 配布物の中の決まった場所から絶対パスで、環境変数を引き継がず、権限を制限して起動し（PeerConfinement）、hello の
  * 応答で権限の制限を確かめてから使う。
  * 受けたメッセージは、世代・要求番号・形をすべて確かめ、合わなければ通信プロセスを終わらせて失敗として扱う。
+ * 形を確かめた応答と通知だけを、PeerIpc の型にして知らせる（JSON は外へ出さない）。
  * 通信プロセスの「成功」の応答を、署名の成立や相手の身元の根拠にしない（それは対局の司令塔が確かめる）。
  * GUI スレッドで作り、イベントループを止めない（waitFor* を使わない）。
  */
@@ -55,8 +55,8 @@ public:
     bool isReady() const { return m_state == State::Ready; }
     /// 通信プロセスを動かしている（起動中・止めている途中を含む）
     bool isRunning() const { return m_state != State::NotRunning; }
-    /// hello の応答の sandbox（権限の制限の結果）
-    QJsonObject sandbox() const { return m_sandbox; }
+    /// hello の応答の sandbox（権限の制限の結果。使えるようになる前は、何も掛かっていない値）
+    const PeerIpc::Sandbox& sandbox() const { return m_sandbox; }
 
     /// 起動して hello を送る。使えるようになれば ready、使えなければ failed。reach は通信プロセスに許す宛先の範囲
     /// （同じ LAN へ出るのは、ローカルのネットワークを使うときだけ）
@@ -68,14 +68,15 @@ public:
     void waitForExit(int msecs);
 
     /// 要求を送る（Ready のときだけ。0 は送れなかった）。結果は replied・requestFailed
-    quint64 request(const QString& method, const QJsonObject& params = QJsonObject());
-    quint64 request(const PeerIpc::Request& request) { return this->request(request.method, request.params); }
+    quint64 request(const PeerIpc::Request& request);
 
 signals:
     void ready();
-    void replied(quint64 requestId, const QString& method, const QJsonObject& result);
-    void requestFailed(quint64 requestId, const QString& method, const QString& code);
-    void notified(const QString& name, const QJsonObject& params);
+    /// 要求の応答（形を確かめて読んだもの）
+    void replied(quint64 requestId, const PeerIpc::Reply& reply);
+    /// 要求が断られた（errorCode は protocol/ipc.md のエラーの code）
+    void requestFailed(quint64 requestId, PeerIpc::Method method, const QString& errorCode);
+    void notified(const PeerIpc::Notification& notification);
     /// 使えなくなった（起動の失敗・異常終了・IPC の違反）。detail は診断用（利用者に見せるなら PlainText）
     void failed(PeerProcess::Failure failure, const QString& detail);
     /// 止まった（stop の後、またはどの理由でも、プロセスが終わった後に1回）
@@ -89,7 +90,7 @@ private slots:
     void onStopTimeout();
 
 private:
-    quint64 send(const QString& method, const QJsonObject& params);
+    quint64 send(const PeerIpc::Request& request);
     void handleMessage(const QByteArray& json);
     void fail(Failure failure, const QString& detail);
     void resetProcess();
@@ -101,10 +102,10 @@ private:
     quint64 m_generation = 0;
     quint64 m_nextRequestId = 1;
     quint64 m_helloRequestId = 0;
-    QHash<quint64, QString> m_pending;   ///< 応答を待つ要求の番号とメソッド
+    QHash<quint64, PeerIpc::Method> m_pending;   ///< 応答を待つ要求の番号とメソッド
     QByteArray m_buffer;
     QByteArray m_stderr;                 ///< 標準エラーの先頭（64 KiB まで。保存しない）
-    QJsonObject m_sandbox;
+    PeerIpc::Sandbox m_sandbox;
     bool m_failed = false;
     bool m_terminateSent = false;
 };

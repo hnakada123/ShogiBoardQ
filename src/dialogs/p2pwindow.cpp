@@ -13,7 +13,6 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
-#include <QJsonArray>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMimeData>
@@ -549,12 +548,9 @@ void P2pWindow::refresh()
         case P2pIdentityStore::Method::None: identityLines << tr("プレイヤー鍵: まだ作っていません"); break;
         }
     }
-    const QJsonObject sandbox = m_lobby->sandbox();
-    if (!sandbox.isEmpty()) {
-        QStringList mechanisms;
-        const QJsonArray array1 = sandbox.value(QStringLiteral("mechanisms")).toArray();
-        for (const auto& m : array1) mechanisms << m.toString();
-        identityLines << tr("通信プロセスの権限の制限: %1").arg(mechanisms.join(QStringLiteral(", ")));
+    const PeerIpc::Sandbox sandbox = m_lobby->sandbox();
+    if (sandbox.applied) {
+        identityLines << tr("通信プロセスの権限の制限: %1").arg(sandbox.mechanisms.join(QStringLiteral(", ")));
         identityLines << tr("loopbackとLAN内への接続は、OSの側では止められません（通信プロセス自身が断ります）。");
     }
     m_settings->setIdentityInfo(identityLines.join(QLatin1Char('\n')));
@@ -586,7 +582,7 @@ QString P2pWindow::routeText() const
         return relay ? tr("同じPC・同じLANの相手と直接つなぎます（協力ノードの中継も使えます）。")
                      : tr("同じPC・同じLANの相手と直接つなぎます。");
     }
-    const bool direct = m_lobby->reachability() == QLatin1String("public");
+    const bool direct = m_lobby->reachability() == PeerIpc::Reachability::Public;
     if (direct) return relay ? tr("直接つなぎます（協力ノードの中継も使えます）。") : tr("直接つなぎます。");
     if (relay) return tr("協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。");
     return tr("外から届く接続先がまだありません。「接続」タブで協力ノードを登録してください。");

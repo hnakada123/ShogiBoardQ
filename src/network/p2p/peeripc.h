@@ -2,11 +2,12 @@
 #define PEERIPC_H
 
 /// @file peeripc.h
-/// @brief 通信プロセスとの IPC のメッセージの形（4バイト長＋JSON）、要求の作成、受けたメッセージの検査と読み取り
+/// @brief 通信プロセスとの IPC のメッセージの形（4バイト長＋JSON）、要求の作成、受けたメッセージの読み取り
 /// （protocol/ipc.md）。メソッド・通知・フィールドの名前と値の語は、このファイルだけが知る
 
 #include <QByteArray>
 #include <QJsonObject>
+#include <QList>
 #include <QString>
 #include <QStringList>
 
@@ -19,48 +20,42 @@ namespace PeerIpc {
 inline constexpr qsizetype kMaxMessageBytes = 128 * 1024;
 inline constexpr int kProtocolVersion = 5;
 
-/// 長さの前置きを付けたメッセージ
-QByteArray frame(const QJsonObject& message);
-
-/// 受けたメッセージの種類
-struct Incoming {
-    enum class Kind { Response, Error, Notification };
-    Kind kind = Kind::Notification;
-    quint64 generation = 0;
-    quint64 requestId = 0;     ///< 応答・エラー
-    QString name;              ///< 通知の名前
-    QJsonObject body;          ///< result・error・通知の params
-};
-
-/**
- * @brief 受けた JSON を読み、外枠（版・世代・要求番号・知らないフィールド）を確かめる
- *
- * 中身（result・params）は名前ごとの検査（checkResult・checkNotification）で確かめる。
- */
-std::optional<Incoming> parse(const QByteArray& json, QString* error = nullptr);
-
-/// 10進の文字列の符号なし64ビット整数（先頭の 0・符号・空白を許さない）
-std::optional<quint64> parseU64(const QJsonValue& value);
-
-/**
- * @brief 要求 method の応答の result が、その要求の形に合うか
- *
- * 知らないフィールド・足りないフィールド・型や範囲の合わない値を拒否する（protocol/ipc.md 3章）。
- */
-bool checkResult(const QString& method, const QJsonObject& result);
-
-/// 通知の params が、その通知の形に合うか（protocol/ipc.md 4章）
-bool checkNotification(const QString& name, const QJsonObject& params);
-
 // ---------------------------------------------------------------- 要求（protocol/ipc.md 3章）
 
-/// 送る要求（hello と shutdown は PeerProcess が送る）
+/// 要求のメソッド
+enum class Method {
+    Hello,
+    Start,
+    CreateInvite,
+    CancelInvites,
+    InspectInvite,
+    ConnectInvite,
+    SetGamePeer,
+    ConnectPeer,
+    SendFrame,
+    CloseConnection,
+    CreatePresence,
+    CancelPresence,
+    ConnectPresence,
+    MeetPut,
+    MeetGet,
+    Shutdown,
+};
+
+/// メソッドの名前（IPC に書く語。ログと診断にも使う）
+QLatin1String methodName(Method method);
+
+/// 送る要求
 struct Request {
-    QString method;
+    Method method = Method::Hello;
     QJsonObject params;
 };
 
 namespace Requests {
+/// 起動の直後に送る（応答で、権限の制限の結果を確かめる）
+Request hello(const QString& uiVersion);
+/// 招待・在席の知らせを無効にして、終わらせる
+Request shutdown();
 Request start(const QString& networkName, const QStringList& bootstrap, bool relayOnly);
 Request createInvite();
 Request cancelInvites();
@@ -71,7 +66,7 @@ Request setGamePeer(const QString& peerId);
 Request connectPeer(const QString& peerId);
 Request sendFrame(quint64 connection, const QByteArray& frame);
 Request closeConnection(quint64 connection);
-// 友だち一覧（在席の知らせ。protocol/ipc.md 3章）
+// 友だち一覧（在席の知らせ）
 /// 在席の知らせを作る（自分の接続先と、友だちの申し込み用のトークン。中身は読まない）
 Request createPresence();
 /// 作った在席の知らせをすべて無効にする
@@ -84,7 +79,50 @@ Request meetPut(const QByteArray& slot, const QByteArray& blob, int ttlSeconds);
 Request meetGet(const QByteArray& slot);
 } // namespace Requests
 
-// ---------------------------------------------------------------- 応答（checkResult を通った result を読む）
+/// 要求1件を、外枠（版・世代・要求番号）に入れ、長さの前置きを付けたメッセージにする。上限を超えるなら空
+QByteArray encodeRequest(quint64 generation, quint64 requestId, const Request& request);
+
+// ---------------------------------------------------------------- 受けたメッセージの外枠
+
+/// 受信バッファの先頭にあるもの
+enum class Framing {
+    Message,     ///< 1件を取り出した
+    Incomplete,  ///< まだ届いていない
+    Violation,   ///< 長さが範囲の外（通信プロセスを使うのをやめる）
+};
+
+/// buffer の先頭から、長さの前置きの付いたメッセージを1件取り出す（取り出した分は buffer から除く）。
+/// 長さを確かめてから読む
+Framing takeMessage(QByteArray& buffer, QByteArray* json);
+
+/// 受けたメッセージの外枠を読んだもの
+struct Incoming {
+    enum class Kind { Response, Error, Notification };
+    Kind kind = Kind::Notification;
+    quint64 generation = 0;
+    quint64 requestId = 0;     ///< 応答・エラー
+    QString notification;      ///< 通知の名前
+    QString errorCode;         ///< エラーの code
+    QJsonObject body;          ///< 応答の result・通知の params（readReply・readNotification で読む）
+};
+
+/// 受けた JSON の外枠（版・世代・要求番号・知らないフィールド）を確かめて読む
+std::optional<Incoming> parse(const QByteArray& json, QString* error = nullptr);
+
+/// 10進の文字列の符号なし64ビット整数（先頭の 0・符号・空白を許さない）
+std::optional<quint64> parseU64(const QJsonValue& value);
+
+// ---------------------------------------------------------------- 応答
+
+/// 権限の制限の結果（hello の応答の sandbox）
+struct Sandbox {
+    bool applied = false;
+    QStringList mechanisms;  ///< 掛かっている仕組みの名前（PeerConfinement::requiredMechanisms と照らす）
+};
+
+struct Hello {
+    Sandbox sandbox;
+};
 
 struct StartResult {
     QByteArray peerIdBytes;  ///< バイナリ（文字列表記の peerId は形を確かめるだけで持たない）
@@ -115,12 +153,12 @@ struct InspectedInvite {
     QStringList privateAddresses;   ///< profile が internet のときの私設アドレスの到達候補（利用者に見せて許可を求める）
 };
 
-/// 接続を始めた（connectInvite・connectPeer）。番号は通信プロセスが決める
+/// 接続を始めた（connectInvite・connectPeer・connectPresence）。番号は通信プロセスが決める
 struct ConnectionStarted {
     quint64 connection = 0;
 };
 
-/// 中身のない応答（cancelInvites・setGamePeer・sendFrame・closeConnection・cancelPresence）
+/// 中身のない応答（cancelInvites・setGamePeer・sendFrame・closeConnection・cancelPresence・shutdown）
 struct Done {};
 
 /// 作った在席の知らせ（createPresence）。body は通信プロセスが作ったバイト列で、対局・UI側は読まずに暗号化する
@@ -141,25 +179,41 @@ struct MeetFetched {
     QList<QByteArray> blobs;
 };
 
-using Reply = std::variant<StartResult, CreatedInvite, InspectedInvite, ConnectionStarted, Done, CreatedPresence,
+using Reply = std::variant<Hello, StartResult, CreatedInvite, InspectedInvite, ConnectionStarted, Done, CreatedPresence,
                            MeetStored, MeetFetched>;
-/// 要求 method への応答を読む（知らないメソッドは nullopt）
-std::optional<Reply> readReply(const QString& method, const QJsonObject& result);
 
-/// 招待の要求（inspectInvite・connectInvite）が断られた理由（protocol/ipc.md のエラーの code）。NotFound は、
-/// 協力ノードにその合言葉の招待が無い（合言葉が違う・期限が過ぎた・もう引き取られた）、NoNode は、合言葉の
-/// 待ち合わせに対応した協力ノードにつながっていない
+/**
+ * @brief 要求 method の応答の result を、形を確かめながら読む
+ *
+ * 知らないフィールド・足りないフィールド・型や範囲の合わない値があれば nullopt（protocol/ipc.md 3章）。
+ * 検査と読み取りは同じ1か所で行う（確かめた値だけが、型になって外へ出る）。
+ */
+std::optional<Reply> readReply(Method method, const QJsonObject& result);
+
+/// 招待の要求（inspectInvite・connectInvite・connectPresence）が断られた理由（protocol/ipc.md のエラーの code）。
+/// NotFound は、協力ノードにその合言葉の招待が無い（合言葉が違う・期限が過ぎた・もう引き取られた）、NoNode は、
+/// 合言葉の待ち合わせに対応した協力ノードにつながっていない
 enum class InviteRejection { Unreadable, Expired, WrongNetwork, Own, NotFound, NoNode };
 /// 招待の要求への失敗なら、その理由（ほかの要求なら nullopt）
-std::optional<InviteRejection> inviteRejection(const QString& method, const QString& code);
+std::optional<InviteRejection> inviteRejection(Method method, const QString& errorCode);
 
-// ---------------------------------------------------------------- 通知（checkNotification を通った params を読む）
+// ---------------------------------------------------------------- 通知（protocol/ipc.md 4章）
+
+/// 外から届くか（AutoNAT の判定）
+enum class Reachability { Unknown, Public, Private };
 
 struct NetworkStatus {
     int connectedPeers = 0;
-    QString reachability;    ///< unknown・public・private
+    Reachability reachability = Reachability::Unknown;
     int relayReservations = 0;
     int meetNodes = 0;       ///< つながっている、合言葉の待ち合わせに対応した協力ノードの数
+};
+
+/// 開いた接続の出どころ
+enum class Origin {
+    Invite,  ///< 招待（招待文字列・合言葉）
+    Friend,  ///< 友だちの申し込み（在席の知らせのトークン）
+    Game,    ///< 対局の相手のつなぎ直し
 };
 
 struct ConnectionOpened {
@@ -168,8 +222,8 @@ struct ConnectionOpened {
     QByteArray peerIdBytes;
     bool viaRelay = false;
     bool outbound = false;       ///< 自分から開いた
-    bool gameReconnect = false;  ///< 対局の相手がつなぎ直した（origin が game。招待の接続でない）
-    quint64 presence = 0;        ///< 友だちの申し込み（origin が friend）で使われた在席の知らせの番号。ほかは 0
+    Origin origin = Origin::Invite;
+    quint64 presence = 0;        ///< 友だちの申し込みで使われた在席の知らせの番号（origin が Friend のときだけ。ほかは 0）
 };
 
 struct ConnectionRoute {
@@ -182,7 +236,7 @@ struct FrameReceived {
     QByteArray frame;
 };
 
-/// 接続が閉じた理由（protocol/ipc.md 4章）
+/// 接続が閉じた理由
 enum class CloseReason { Closed, Reset, Timeout, Unreachable, NoRelayRoute, InvalidFrame, RateLimited, Limit };
 
 struct ConnectionClosed {
@@ -191,7 +245,8 @@ struct ConnectionClosed {
 };
 
 using Notification = std::variant<NetworkStatus, ConnectionOpened, ConnectionRoute, FrameReceived, ConnectionClosed>;
-/// 通知を読む（知らない名前は nullopt）
+
+/// 通知の params を、形を確かめながら読む（知らない名前・形の合わない中身は nullopt）
 std::optional<Notification> readNotification(const QString& name, const QJsonObject& params);
 
 } // namespace PeerIpc

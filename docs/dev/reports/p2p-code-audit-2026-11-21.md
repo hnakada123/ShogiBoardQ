@@ -98,6 +98,8 @@
 
 ### R4 `PeerIpc` の検査と読み取りの二重記述（network/p2p）
 
+**状態: 済**。`readReply(Method, result)`・`readNotification(name, params)` が、フィールドを1つずつ形を確かめながら読む（読み残したフィールドがあれば断る）。`PeerProcess` は読めた型（`Reply`・`Notification`）だけを知らせ、JSON は外へ出さない。hello の応答は `Hello { Sandbox }`、メソッドは enum `Method`、到達性は enum `Reachability`、接続の出どころは enum `Origin` にした。要求の外枠と長さの前置き（`encodeRequest`・`takeMessage`）も `peeripc` に移した。検査が少し厳しくなった所が2つある: `meetGet` の `blobs` と `createPresence` の `presence` は base64 として読めること（以前は印字できる ASCII かだけを見て、読むときに読めない文字を読み飛ばした）。通信プロセスは正しい base64 しか送らないので、動きは変わらない。
+
 **今の形**
 
 - 受けたメッセージの形の検査（`checkResult`・`checkNotification`。`peeripc.cpp:280`・`346`）と、値の取り出し（`readReply`・`readNotification`。`:481`・`:547`）が、同じメソッド名・通知名の if の列で2回書かれている。フィールド名は両方に現れ、取り出す側は検査済みの値を `value_or(0)` で読み直す。語から値への対応（`kind`・`origin`・`direction`・`route`）も、検査の `oneOf` と取り出しの比較に分かれている。

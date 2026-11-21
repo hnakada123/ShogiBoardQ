@@ -5,7 +5,6 @@
 /// @brief P2P対局の通信プロセスの窓口（起動・停止・招待・接続の振り分け。実装仕様 3章・10.3節）
 
 #include <QHash>
-#include <QJsonObject>
 #include <QList>
 #include <QObject>
 #include <QPointer>
@@ -82,13 +81,14 @@ public:
     Status status() const { return m_status; }
     bool isLocalProfile() const { return m_localProfile; }
     int connectedPeers() const { return m_connectedPeers; }
-    QString reachability() const { return m_reachability; }
+    PeerIpc::Reachability reachability() const { return m_reachability; }
     /// 協力ノードに取れた中継の予約の数（0 なら、中継経由では相手から届かない）
     int relayReservations() const { return m_relayReservations; }
     /// つながっている、合言葉の待ち合わせに対応した協力ノードの数（0 なら、協力ノードを使う合言葉と友だち一覧は使えない）
     int meetNodes() const { return m_meetNodes; }
     bool relayOnly() const { return m_relayOnly; }
-    QJsonObject sandbox() const { return m_peer ? m_peer->sandbox() : QJsonObject(); }
+    /// 通信プロセスに掛かっている権限の制限（動かしていない間は、何も掛かっていない値）
+    PeerIpc::Sandbox sandbox() const { return m_peer ? m_peer->sandbox() : PeerIpc::Sandbox(); }
 
     // --- 招待（player は自分の対局者。人間が指すか、登録エンジンが指すか） ---
     void createInvite(const QString& displayName, const P2p::TimeControlTerms& terms, P2p::SidePreference side,
@@ -145,9 +145,9 @@ signals:
 
 private slots:
     void onPeerReady();
-    void onPeerReplied(quint64 requestId, const QString& method, const QJsonObject& result);
-    void onPeerRequestFailed(quint64 requestId, const QString& method, const QString& code);
-    void onPeerNotified(const QString& name, const QJsonObject& params);
+    void onPeerReplied(quint64 requestId, const PeerIpc::Reply& reply);
+    void onPeerRequestFailed(quint64 requestId, PeerIpc::Method method, const QString& errorCode);
+    void onPeerNotified(const PeerIpc::Notification& notification);
     void onPeerFailed(PeerProcess::Failure failure, const QString& detail);
     void onPeerStopped();
     void onActivityRevoked(QObject* owner);
@@ -156,7 +156,22 @@ private slots:
 private:
     /// 動作状態を「P2P接続中」にする（対局中は司令塔が持つ）
     void holdConnectionActivity();
-    void handleConnectionOpened(const PeerIpc::ConnectionOpened& opened);
+    // 応答（種類ごと。足りない種類があればコンパイルできない）
+    void handleReply(quint64 requestId, const PeerIpc::Hello& hello);
+    void handleReply(quint64 requestId, const PeerIpc::StartResult& started);
+    void handleReply(quint64 requestId, const PeerIpc::CreatedInvite& created);
+    void handleReply(quint64 requestId, const PeerIpc::InspectedInvite& inspected);
+    void handleReply(quint64 requestId, const PeerIpc::ConnectionStarted& connecting);
+    void handleReply(quint64 requestId, const PeerIpc::Done& done);
+    void handleReply(quint64 requestId, const PeerIpc::CreatedPresence& presence);
+    void handleReply(quint64 requestId, const PeerIpc::MeetStored& stored);
+    void handleReply(quint64 requestId, const PeerIpc::MeetFetched& fetched);
+    // 通知（種類ごと）
+    void handleNotification(const PeerIpc::NetworkStatus& status);
+    void handleNotification(const PeerIpc::ConnectionOpened& opened);
+    void handleNotification(const PeerIpc::ConnectionRoute& route);
+    void handleNotification(const PeerIpc::FrameReceived& received);
+    void handleNotification(const PeerIpc::ConnectionClosed& closed);
     void rejectConnection(quint64 connection, P2p::ErrorCode code);
 
     Deps m_deps;
@@ -176,7 +191,7 @@ private:
     QByteArray m_peerIdBytes;
     QByteArray m_networkId;
     int m_connectedPeers = 0;
-    QString m_reachability;
+    PeerIpc::Reachability m_reachability = PeerIpc::Reachability::Unknown;
     int m_relayReservations = 0;
     int m_meetNodes = 0;
     FriendHandler m_friendHandler;

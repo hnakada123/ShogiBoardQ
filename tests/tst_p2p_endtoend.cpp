@@ -98,7 +98,7 @@ private:
         QTRY_COMPARE_WITH_TIMEOUT(host.lobby.status(), P2pLobbyService::Status::Online, 15000);
         QTRY_COMPARE_WITH_TIMEOUT(guest.lobby.status(), P2pLobbyService::Status::Online, 15000);
         // 通信プロセスは権限の制限を掛けて動いている
-        QVERIFY(host.lobby.sandbox().value(QStringLiteral("applied")).toBool());
+        QVERIFY(host.lobby.sandbox().applied);
 
         // 招待を作り、相手が読んで接続する（招待文字列は対局・UI側では読まない）
         QSignalSpy created(&host.lobby, &P2pLobbyService::inviteCreated);

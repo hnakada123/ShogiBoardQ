@@ -173,49 +173,90 @@ private slots:
     {
         const auto object = [](const char* text) { return QJsonDocument::fromJson(QByteArray(text)).object(); };
         const PeerIpc::Request send = PeerIpc::Requests::sendFrame(5, QByteArray("ab"));
-        QCOMPARE(send.method, QStringLiteral("sendFrame"));
+        QCOMPARE(PeerIpc::methodName(send.method), QLatin1String("sendFrame"));
         QCOMPARE(send.params.value(QStringLiteral("connection")).toString(), QStringLiteral("5"));
         QCOMPARE(send.params.value(QStringLiteral("frame")).toString(), QStringLiteral("YWI="));
         const PeerIpc::Request start = PeerIpc::Requests::start(QStringLiteral("sbq-local-1"), {QStringLiteral("/ip4/x")}, true);
-        QCOMPARE(start.method, QStringLiteral("start"));
+        QCOMPARE(PeerIpc::methodName(start.method), QLatin1String("start"));
         QCOMPARE(start.params.value(QStringLiteral("relayOnly")).toBool(), true);
         QCOMPARE(start.params.value(QStringLiteral("bootstrap")).toArray().size(), 1);
 
+        // 要求は外枠（版・世代・要求番号）に入れ、長さの前置きを付けて送る。受ける側は同じ形で1件ずつ取り出す
+        QByteArray wire = PeerIpc::encodeRequest(3, 17, send);
+        const QByteArray second = PeerIpc::encodeRequest(3, 18, PeerIpc::Requests::shutdown());
+        wire.append(second.first(second.size() - 1));
+        QByteArray first;
+        QCOMPARE(PeerIpc::takeMessage(wire, &first), PeerIpc::Framing::Message);
+        const QJsonObject envelope = QJsonDocument::fromJson(first).object();
+        QCOMPARE(envelope.size(), 5);
+        QCOMPARE(envelope.value(QStringLiteral("protocolVersion")).toInt(), PeerIpc::kProtocolVersion);
+        QCOMPARE(envelope.value(QStringLiteral("processGeneration")).toString(), QStringLiteral("3"));
+        QCOMPARE(envelope.value(QStringLiteral("requestId")).toString(), QStringLiteral("17"));
+        QCOMPARE(envelope.value(QStringLiteral("method")).toString(), QStringLiteral("sendFrame"));
+        QCOMPARE(envelope.value(QStringLiteral("params")).toObject(), send.params);
+        // 2件目は最後の1バイトがまだ届いていない
+        QByteArray rest;
+        QCOMPARE(PeerIpc::takeMessage(wire, &rest), PeerIpc::Framing::Incomplete);
+        wire.append(second.last(1));
+        QCOMPARE(PeerIpc::takeMessage(wire, &rest), PeerIpc::Framing::Message);
+        QCOMPARE(QJsonDocument::fromJson(rest).object().value(QStringLiteral("method")).toString(), QStringLiteral("shutdown"));
+        QVERIFY(wire.isEmpty());
+        // 範囲の外の長さは、中身を待たずに断る
+        QByteArray oversized = QByteArray::fromHex("7fffffff");
+        QCOMPARE(PeerIpc::takeMessage(oversized, &rest), PeerIpc::Framing::Violation);
+        // 上限を超える要求は作らない
+        QVERIFY(PeerIpc::encodeRequest(3, 19, PeerIpc::Requests::inspectInvite(QString(200'000, QLatin1Char('a')))).isEmpty());
+
         // 応答
+        const QJsonObject helloResult = object(R"({"peerVersion":"1.0","ipcVersion":5,"sandbox":{"applied":true,"os":"linux",)"
+                                               R"("mechanisms":["landlock","seccomp"],"landlockAbi":4}})");
+        const std::optional<PeerIpc::Reply> hello = PeerIpc::readReply(PeerIpc::Method::Hello, helloResult);
+        QVERIFY(hello && std::holds_alternative<PeerIpc::Hello>(*hello));
+        QVERIFY(std::get<PeerIpc::Hello>(*hello).sandbox.applied);
+        QCOMPARE(std::get<PeerIpc::Hello>(*hello).sandbox.mechanisms, (QStringList{QStringLiteral("landlock"), QStringLiteral("seccomp")}));
+        // 版の違う通信プロセス・知らないフィールドのある sandbox は読まない
+        QJsonObject oldHello = helloResult;
+        oldHello.insert(QStringLiteral("ipcVersion"), 4);
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::Hello, oldHello));
+        QJsonObject extraSandbox = helloResult.value(QStringLiteral("sandbox")).toObject();
+        extraSandbox.insert(QStringLiteral("note"), QStringLiteral("x"));
+        QJsonObject strangeHello = helloResult;
+        strangeHello.insert(QStringLiteral("sandbox"), extraSandbox);
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::Hello, strangeHello));
         const QByteArray hex(64, 'b');
         const QJsonObject startResult = object((R"({"peerId":"12D3KooWabc","peerIdBytes":"AAEC","networkId":")" + hex
                                                 + R"(","profile":"local"})").constData());
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("start"), startResult));
-        const std::optional<PeerIpc::Reply> started = PeerIpc::readReply(QStringLiteral("start"), startResult);
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::Start, startResult));
+        const std::optional<PeerIpc::Reply> started = PeerIpc::readReply(PeerIpc::Method::Start, startResult);
         QVERIFY(started && std::holds_alternative<PeerIpc::StartResult>(*started));
         QCOMPARE(std::get<PeerIpc::StartResult>(*started).peerIdBytes, QByteArray::fromHex("000102"));
         QCOMPARE(std::get<PeerIpc::StartResult>(*started).networkId, QByteArray::fromHex(hex));
         const std::optional<PeerIpc::Reply> connecting =
-            PeerIpc::readReply(QStringLiteral("connectPeer"), object(R"({"connection":"9"})"));
+            PeerIpc::readReply(PeerIpc::Method::ConnectPeer, object(R"({"connection":"9"})"));
         QVERIFY(connecting && std::holds_alternative<PeerIpc::ConnectionStarted>(*connecting));
         QCOMPARE(std::get<PeerIpc::ConnectionStarted>(*connecting).connection, quint64(9));
-        QVERIFY(!PeerIpc::readReply(QStringLiteral("unknownMethod"), QJsonObject()));
 
         // 招待の要求の失敗だけを理由にする
-        QCOMPARE(PeerIpc::inviteRejection(QStringLiteral("inspectInvite"), QStringLiteral("invite_own")),
+        QCOMPARE(PeerIpc::inviteRejection(PeerIpc::Method::InspectInvite, QStringLiteral("invite_own")),
                  std::optional<PeerIpc::InviteRejection>(PeerIpc::InviteRejection::Own));
-        QCOMPARE(PeerIpc::inviteRejection(QStringLiteral("connectInvite"), QStringLiteral("invite_invalid")),
+        QCOMPARE(PeerIpc::inviteRejection(PeerIpc::Method::ConnectInvite, QStringLiteral("invite_invalid")),
                  std::optional<PeerIpc::InviteRejection>(PeerIpc::InviteRejection::Unreadable));
         // 協力ノードを使う合言葉: 招待が見つからない・問い合わせる協力ノードが無い
-        QCOMPARE(PeerIpc::inviteRejection(QStringLiteral("inspectInvite"), QStringLiteral("invite_not_found")),
+        QCOMPARE(PeerIpc::inviteRejection(PeerIpc::Method::InspectInvite, QStringLiteral("invite_not_found")),
                  std::optional<PeerIpc::InviteRejection>(PeerIpc::InviteRejection::NotFound));
-        QCOMPARE(PeerIpc::inviteRejection(QStringLiteral("connectInvite"), QStringLiteral("invite_no_node")),
+        QCOMPARE(PeerIpc::inviteRejection(PeerIpc::Method::ConnectInvite, QStringLiteral("invite_no_node")),
                  std::optional<PeerIpc::InviteRejection>(PeerIpc::InviteRejection::NoNode));
-        QVERIFY(!PeerIpc::inviteRejection(QStringLiteral("sendFrame"), QStringLiteral("unknown_connection")));
+        QVERIFY(!PeerIpc::inviteRejection(PeerIpc::Method::SendFrame, QStringLiteral("unknown_connection")));
 
         // 通知
         const QJsonObject opened = object(R"({"connection":"5","peerId":"12D3KooWabc","peerIdBytes":"AAEC",)"
                                           R"("route":"relay","direction":"outbound","origin":"game","presence":"0"})");
-        QVERIFY(PeerIpc::checkNotification(QStringLiteral("connectionOpened"), opened));
+        QVERIFY(PeerIpc::readNotification(QStringLiteral("connectionOpened"), opened));
         const std::optional<PeerIpc::Notification> openedRead = PeerIpc::readNotification(QStringLiteral("connectionOpened"), opened);
         QVERIFY(openedRead && std::holds_alternative<PeerIpc::ConnectionOpened>(*openedRead));
         const auto& o = std::get<PeerIpc::ConnectionOpened>(*openedRead);
-        QVERIFY(o.viaRelay && o.outbound && o.gameReconnect);
+        QVERIFY(o.viaRelay && o.outbound);
+        QCOMPARE(o.origin, PeerIpc::Origin::Game);
         QCOMPARE(o.connection, quint64(5));
         QCOMPARE(o.presence, quint64(0));
         // 友だちの申し込み（在席の知らせのトークンで開いた接続）は、どの知らせかが番号で分かる
@@ -223,46 +264,48 @@ private slots:
         fromFriend.insert(QStringLiteral("direction"), QStringLiteral("inbound"));
         fromFriend.insert(QStringLiteral("origin"), QStringLiteral("friend"));
         fromFriend.insert(QStringLiteral("presence"), QStringLiteral("12"));
-        QVERIFY(PeerIpc::checkNotification(QStringLiteral("connectionOpened"), fromFriend));
+        QVERIFY(PeerIpc::readNotification(QStringLiteral("connectionOpened"), fromFriend));
         const std::optional<PeerIpc::Notification> friendRead =
             PeerIpc::readNotification(QStringLiteral("connectionOpened"), fromFriend);
         QVERIFY(friendRead && std::holds_alternative<PeerIpc::ConnectionOpened>(*friendRead));
         QCOMPARE(std::get<PeerIpc::ConnectionOpened>(*friendRead).presence, quint64(12));
-        QVERIFY(!std::get<PeerIpc::ConnectionOpened>(*friendRead).gameReconnect);
+        QCOMPARE(std::get<PeerIpc::ConnectionOpened>(*friendRead).origin, PeerIpc::Origin::Friend);
         fromFriend.remove(QStringLiteral("presence"));
-        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("connectionOpened"), fromFriend));
+        QVERIFY(!PeerIpc::readNotification(QStringLiteral("connectionOpened"), fromFriend));
 
         // 友だち一覧の要求と応答
         const PeerIpc::Request put = PeerIpc::Requests::meetPut(QByteArray(32, '\xab'), QByteArray("blob"), 180);
-        QCOMPARE(put.method, QStringLiteral("meetPut"));
+        QCOMPARE(PeerIpc::methodName(put.method), QLatin1String("meetPut"));
         QCOMPARE(put.params.value(QStringLiteral("slot")).toString(), QString(64, QLatin1Char('a')).replace(QStringLiteral("aa"), QStringLiteral("ab")));
         QCOMPARE(put.params.value(QStringLiteral("blob")).toString(), QStringLiteral("YmxvYg=="));
         QCOMPARE(put.params.value(QStringLiteral("ttlSeconds")).toInt(), 180);
         QCOMPARE(PeerIpc::Requests::connectPresence(QByteArray("ab"), false).params.value(QStringLiteral("presence")).toString(),
                  QStringLiteral("YWI="));
         const QJsonObject created = object(R"({"presence":"YWI=","id":"3","expiresAt":"100","addressCount":2})");
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("createPresence"), created));
-        const std::optional<PeerIpc::Reply> createdRead = PeerIpc::readReply(QStringLiteral("createPresence"), created);
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::CreatePresence, created));
+        const std::optional<PeerIpc::Reply> createdRead = PeerIpc::readReply(PeerIpc::Method::CreatePresence, created);
         QVERIFY(createdRead && std::holds_alternative<PeerIpc::CreatedPresence>(*createdRead));
         QCOMPARE(std::get<PeerIpc::CreatedPresence>(*createdRead).body, QByteArray("ab"));
         QCOMPARE(std::get<PeerIpc::CreatedPresence>(*createdRead).id, quint64(3));
         QCOMPARE(std::get<PeerIpc::CreatedPresence>(*createdRead).addressCount, 2);
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("createPresence"),
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::CreatePresence,
                                       object(R"({"presence":"","id":"3","expiresAt":"100","addressCount":2})")));
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("meetPut"), object(R"({"stored":1})")));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("meetPut"), object(R"({"stored":17})")));
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::MeetPut, object(R"({"stored":1})")));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::MeetPut, object(R"({"stored":17})")));
         const QJsonObject fetched = object(R"({"blobs":["YWI=","Y2Q="]})");
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("meetGet"), fetched));
-        const std::optional<PeerIpc::Reply> fetchedRead = PeerIpc::readReply(QStringLiteral("meetGet"), fetched);
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::MeetGet, fetched));
+        const std::optional<PeerIpc::Reply> fetchedRead = PeerIpc::readReply(PeerIpc::Method::MeetGet, fetched);
         QVERIFY(fetchedRead && std::holds_alternative<PeerIpc::MeetFetched>(*fetchedRead));
         QCOMPARE(std::get<PeerIpc::MeetFetched>(*fetchedRead).blobs, (QList<QByteArray>{QByteArray("ab"), QByteArray("cd")}));
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("meetGet"), object(R"({"blobs":[]})")));
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("cancelPresence"), QJsonObject()));
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("connectPresence"), object(R"({"connection":"9"})")));
-        QCOMPARE(PeerIpc::inviteRejection(QStringLiteral("connectPresence"), QStringLiteral("invite_expired")),
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::MeetGet, object(R"({"blobs":[]})")));
+        // 預かったものは base64 として読めること
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::MeetGet, object(R"({"blobs":["not base64!"]})")));
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::CancelPresence, QJsonObject()));
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::ConnectPresence, object(R"({"connection":"9"})")));
+        QCOMPARE(PeerIpc::inviteRejection(PeerIpc::Method::ConnectPresence, QStringLiteral("invite_expired")),
                  std::optional<PeerIpc::InviteRejection>(PeerIpc::InviteRejection::Expired));
         const QJsonObject closed = object(R"({"connection":"7","reason":"no_relay_route"})");
-        QVERIFY(PeerIpc::checkNotification(QStringLiteral("connectionClosed"), closed));
+        QVERIFY(PeerIpc::readNotification(QStringLiteral("connectionClosed"), closed));
         const std::optional<PeerIpc::Notification> closedRead = PeerIpc::readNotification(QStringLiteral("connectionClosed"), closed);
         QVERIFY(closedRead && std::holds_alternative<PeerIpc::ConnectionClosed>(*closedRead));
         QCOMPARE(std::get<PeerIpc::ConnectionClosed>(*closedRead).reason, PeerIpc::CloseReason::NoRelayRoute);
@@ -274,13 +317,21 @@ private slots:
         // 範囲外の大きな数は、int にする前に断る（監査 2026-11-13。UBSan の float-cast-overflow）
         const QJsonObject huge = object(R"({"state":"online","connectedPeers":1e300,"reachability":"unknown",)"
                                         R"("relayReservations":0,"meetNodes":0})");
-        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("networkStatus"), huge));
+        QVERIFY(!PeerIpc::readNotification(QStringLiteral("networkStatus"), huge));
         const QJsonObject status = object(R"({"state":"online","connectedPeers":3,"reachability":"unknown",)"
                                           R"("relayReservations":0,"meetNodes":1})");
-        QVERIFY(PeerIpc::checkNotification(QStringLiteral("networkStatus"), status));
+        QVERIFY(PeerIpc::readNotification(QStringLiteral("networkStatus"), status));
         const std::optional<PeerIpc::Notification> statusRead = PeerIpc::readNotification(QStringLiteral("networkStatus"), status);
         QVERIFY(statusRead && std::holds_alternative<PeerIpc::NetworkStatus>(*statusRead));
         QCOMPARE(std::get<PeerIpc::NetworkStatus>(*statusRead).meetNodes, 1);
+        QCOMPARE(std::get<PeerIpc::NetworkStatus>(*statusRead).reachability, PeerIpc::Reachability::Unknown);
+        QJsonObject reachable = status;
+        reachable.insert(QStringLiteral("reachability"), QStringLiteral("public"));
+        const std::optional<PeerIpc::Notification> reachableRead = PeerIpc::readNotification(QStringLiteral("networkStatus"), reachable);
+        QVERIFY(reachableRead);
+        QCOMPARE(std::get<PeerIpc::NetworkStatus>(*reachableRead).reachability, PeerIpc::Reachability::Public);
+        reachable.insert(QStringLiteral("reachability"), QStringLiteral("everywhere"));
+        QVERIFY(!PeerIpc::readNotification(QStringLiteral("networkStatus"), reachable));
     }
 
     /// ビルドの使用期限は、期限の時刻を過ぎてから（監査 2026-11-12 R5。通信プロセスと同じ起点と日数）
@@ -343,87 +394,86 @@ private slots:
         const QByteArray hex(64, 'a');
         const QJsonObject start = object((R"({"peerId":"12D3KooWabc","peerIdBytes":"AAEC","networkId":")" + hex
                                           + R"(","profile":"local"})").constData());
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("start"), start));
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::Start, start));
         QJsonObject extra = start;
         extra.insert(QStringLiteral("address"), QStringLiteral("192.0.2.1"));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("start"), extra));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::Start, extra));
         QJsonObject missing = start;
         missing.remove(QStringLiteral("profile"));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("start"), missing));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::Start, missing));
         QJsonObject upper = start;
         upper.insert(QStringLiteral("networkId"), QString::fromLatin1(hex.toUpper()));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("start"), upper));
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("sendFrame"), QJsonObject()));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("sendFrame"), object(R"({"ok":true})")));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("unknownMethod"), QJsonObject()));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::Start, upper));
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::SendFrame, QJsonObject()));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::SendFrame, object(R"({"ok":true})")));
 
         // 招待の応答には合言葉の欄がある（出せないときは空）
         const QJsonObject created = object(R"({"invite":"sbqinv1.AAAA.00000000","code":"008Q-4HMA-SW95",)"
                                            R"("expiresAt":"100","addressCount":2})");
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("createInvite"), created));
-        const std::optional<PeerIpc::Reply> createdRead = PeerIpc::readReply(QStringLiteral("createInvite"), created);
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::CreateInvite, created));
+        const std::optional<PeerIpc::Reply> createdRead = PeerIpc::readReply(PeerIpc::Method::CreateInvite, created);
         QVERIFY(createdRead && std::holds_alternative<PeerIpc::CreatedInvite>(*createdRead));
         QCOMPARE(std::get<PeerIpc::CreatedInvite>(*createdRead).code, QStringLiteral("008Q-4HMA-SW95"));
         QCOMPARE(std::get<PeerIpc::CreatedInvite>(*createdRead).expiresAt, quint64(100));
         QJsonObject withoutCode = created;
         withoutCode.insert(QStringLiteral("code"), QString());
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("createInvite"), withoutCode));
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::CreateInvite, withoutCode));
         withoutCode.remove(QStringLiteral("code"));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("createInvite"), withoutCode));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::CreateInvite, withoutCode));
 
         // 確かめた結果: 招待文字列と、協力ノードを使う合言葉（引き取った招待）は PeerId を持ち、同じ LAN の合言葉は
         // PeerId も期限も持たない
         const QJsonObject asInvite = object(R"({"kind":"invite","peerId":"12D3KooWabc","expiresAt":"100",)"
                                             R"("addressCount":2,"usableAddressCount":1,"privateAddresses":[]})");
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("inspectInvite"), asInvite));
-        const std::optional<PeerIpc::Reply> inviteRead = PeerIpc::readReply(QStringLiteral("inspectInvite"), asInvite);
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::InspectInvite, asInvite));
+        const std::optional<PeerIpc::Reply> inviteRead = PeerIpc::readReply(PeerIpc::Method::InspectInvite, asInvite);
         QVERIFY(inviteRead && std::holds_alternative<PeerIpc::InspectedInvite>(*inviteRead));
         QCOMPARE(std::get<PeerIpc::InspectedInvite>(*inviteRead).kind, PeerIpc::InviteKind::Invite);
         QCOMPARE(std::get<PeerIpc::InspectedInvite>(*inviteRead).usableAddressCount, 1);
         const QJsonObject asCode = object(R"({"kind":"code","peerId":"","expiresAt":"0",)"
                                           R"("addressCount":2,"usableAddressCount":2,"privateAddresses":[]})");
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("inspectInvite"), asCode));
-        const std::optional<PeerIpc::Reply> codeRead = PeerIpc::readReply(QStringLiteral("inspectInvite"), asCode);
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::InspectInvite, asCode));
+        const std::optional<PeerIpc::Reply> codeRead = PeerIpc::readReply(PeerIpc::Method::InspectInvite, asCode);
         QVERIFY(codeRead && std::holds_alternative<PeerIpc::InspectedInvite>(*codeRead));
         QCOMPARE(std::get<PeerIpc::InspectedInvite>(*codeRead).kind, PeerIpc::InviteKind::LanCode);
         QVERIFY(std::get<PeerIpc::InspectedInvite>(*codeRead).peerId.isEmpty());
         QJsonObject asNodeCode = asInvite;
         asNodeCode.insert(QStringLiteral("kind"), QStringLiteral("meetCode"));
-        QVERIFY(PeerIpc::checkResult(QStringLiteral("inspectInvite"), asNodeCode));
-        const std::optional<PeerIpc::Reply> nodeCodeRead = PeerIpc::readReply(QStringLiteral("inspectInvite"), asNodeCode);
+        QVERIFY(PeerIpc::readReply(PeerIpc::Method::InspectInvite, asNodeCode));
+        const std::optional<PeerIpc::Reply> nodeCodeRead = PeerIpc::readReply(PeerIpc::Method::InspectInvite, asNodeCode);
         QVERIFY(nodeCodeRead && std::holds_alternative<PeerIpc::InspectedInvite>(*nodeCodeRead));
         QCOMPARE(std::get<PeerIpc::InspectedInvite>(*nodeCodeRead).kind, PeerIpc::InviteKind::NodeCode);
         QCOMPARE(std::get<PeerIpc::InspectedInvite>(*nodeCodeRead).expiresAt, quint64(100));
         asNodeCode.insert(QStringLiteral("peerId"), QString());
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("inspectInvite"), asNodeCode));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::InspectInvite, asNodeCode));
         QJsonObject badKind = asInvite;
         badKind.insert(QStringLiteral("peerId"), QString());
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("inspectInvite"), badKind));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::InspectInvite, badKind));
         badKind = asCode;
         badKind.insert(QStringLiteral("peerId"), QStringLiteral("12D3KooWabc"));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("inspectInvite"), badKind));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::InspectInvite, badKind));
         badKind = asCode;
         badKind.insert(QStringLiteral("expiresAt"), QStringLiteral("100"));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("inspectInvite"), badKind));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::InspectInvite, badKind));
         badKind = asInvite;
         badKind.insert(QStringLiteral("kind"), QStringLiteral("word"));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("inspectInvite"), badKind));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::InspectInvite, badKind));
         badKind = asInvite;
         badKind.remove(QStringLiteral("kind"));
-        QVERIFY(!PeerIpc::checkResult(QStringLiteral("inspectInvite"), badKind));
+        QVERIFY(!PeerIpc::readReply(PeerIpc::Method::InspectInvite, badKind));
 
         // 通知の中身
-        QVERIFY(PeerIpc::checkNotification(QStringLiteral("connectionClosed"),
+        QVERIFY(PeerIpc::readNotification(QStringLiteral("connectionClosed"),
                                            object(R"({"connection":"5","reason":"closed"})")));
         // 通信プロセスは shutdown の後に知らせずに終わるので、shutdown の理由は届かない（ipc.md 4章）
-        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("connectionClosed"),
+        QVERIFY(!PeerIpc::readNotification(QStringLiteral("connectionClosed"),
                                             object(R"({"connection":"5","reason":"shutdown"})")));
-        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("connectionOpened"),
+        QVERIFY(!PeerIpc::readNotification(QStringLiteral("connectionOpened"),
                                             object(R"({"connection":"5","peerId":"12D3KooWabc","peerIdBytes":"AAEC",)"
                                                    R"("route":"direct","direction":"inbound","origin":"public","presence":"0"})")));
-        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("frameReceived"),
+        QVERIFY(!PeerIpc::readNotification(QStringLiteral("frameReceived"),
                                             object(R"({"connection":"5","frame":"not base64!"})")));
-        QVERIFY(!PeerIpc::checkNotification(QStringLiteral("unknownNotification"), QJsonObject()));
+        QVERIFY(!PeerIpc::readNotification(QStringLiteral("unknownNotification"), QJsonObject()));
     }
 
     void networkSharedVectors()
