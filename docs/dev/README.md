@@ -89,6 +89,7 @@
 
 - [2026-10-16](reports/code-audit-2026-10-16.md)・[2026-10-23](reports/code-audit-2026-10-23.md)・[2026-10-29](reports/code-audit-2026-10-29.md)・[2026-11-01](reports/code-audit-2026-11-01.md)・[2026-11-07](reports/code-audit-2026-11-07.md)
 - [p2p-code-audit-2026-11-12.md](reports/p2p-code-audit-2026-11-12.md): P2P対局のコード（C++ と通信プロセスの Rust）の責務の整理
+- [p2p-code-audit-2026-11-21.md](reports/p2p-code-audit-2026-11-21.md): P2P対局のコードで、組み替える価値のある箇所（招待タブ・対局の状態機械・ラベルの高さ・IPC の読み取り・通信プロセスの接続の表）
 
 セキュリティ監査:
 
