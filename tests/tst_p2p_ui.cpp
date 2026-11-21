@@ -612,6 +612,21 @@ private slots:
         friendButton->click();
         QCOMPARE(known.friends().size(), 1);
         QCOMPARE(table->item(rowOf(a.publicKey()), kFriendColumn)->text(), QStringLiteral("友だち"));
+        // 記録はこのタブのほかでも変わる（対局の開始・結果の未確定）。タブは記録の知らせを受けて読み直す
+        // （監査 2026-11-21 S3）。友だちの組が変わったときだけ friendsChanged も出す
+        QSignalSpy friendsChanged(&known, &P2pKnownPeers::friendsChanged);
+        const SigningKey c = SigningKey::generate();
+        QVERIFY(known.recordGameStarted(c.publicKey(), QStringLiteral("C")));
+        QVERIFY(rowOf(c.publicKey()) >= 0);
+        QCOMPARE(friendsChanged.count(), 0);
+        QVERIFY(known.setFriend(c.publicKey(), true));
+        QCOMPARE(friendsChanged.count(), 1);
+        QCOMPARE(table->item(rowOf(c.publicKey()), kFriendColumn)->text(), QStringLiteral("友だち"));
+        QVERIFY(known.setBlocked(c.publicKey(), true));
+        QCOMPARE(friendsChanged.count(), 2);
+        QVERIFY(known.remove(c.publicKey()));
+        QCOMPARE(friendsChanged.count(), 2);
+        QCOMPARE(rowOf(c.publicKey()), -1);
 
         // 設定: 「友だちに在席を知らせる」は既定で無効。変えると保存する
         AppActivityState activity;

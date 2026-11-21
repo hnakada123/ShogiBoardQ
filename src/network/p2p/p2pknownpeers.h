@@ -6,6 +6,7 @@
 
 #include <QByteArray>
 #include <QList>
+#include <QObject>
 #include <QString>
 
 /// 既知の相手1人
@@ -26,14 +27,16 @@ struct P2pKnownPeer {
  * 友だちは別のファイルに持つ（友だち一覧のない版のアプリが、相手の記録をそのまま読み書きできるように）。
  * 確認済みかどうかは手元の記録だけで決め、相手の申告を使わない。相手のプレイヤーID は署名で確かめてから
  * 記録する（申告だけの ID を記録しない）。書き換えは意図ごとの関数だけで行い、どれもその場でファイルに保存する
- * （戻り値は保存できたか）。
+ * （戻り値は保存できたか）。書き換えたら changed で、友だちの組が変わったら friendsChanged でも知らせる（表示と
+ * 友だちの在席は、それを受けて読み直す）。
  */
-class P2pKnownPeers
+class P2pKnownPeers : public QObject
 {
+    Q_OBJECT
 public:
     static constexpr int kMaxPeers = 10000;
 
-    explicit P2pKnownPeers(const QString& path);
+    explicit P2pKnownPeers(const QString& path, QObject* parent = nullptr);
 
     bool load();
     bool save() const;
@@ -66,7 +69,15 @@ public:
     /// 名前を付けた相手のうち、同じ表示名（比べる形で）で別のプレイヤーID の相手
     QList<P2pKnownPeer> sameNameDifferentId(const QString& displayName, const QByteArray& playerKey) const;
 
+signals:
+    /// 記録が変わった（対局の数・名前・確認済み・ブロック・友だち・削除。保存できなかったときも）
+    void changed();
+    /// 友だちにした相手の組が変わった（友だちにした・外した・ブロックや削除で外れた。changed の後に出す）
+    void friendsChanged();
+
 private:
+    /// 書き換えを知らせて、保存できたかを返す
+    bool notify(bool saved, bool friendsChanged = false);
     /// プレイヤーID の記録（無ければ作る）
     P2pKnownPeer& entry(const QByteArray& playerKey);
     bool loadFriends();

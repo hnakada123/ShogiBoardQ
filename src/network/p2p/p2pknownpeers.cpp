@@ -21,9 +21,17 @@ constexpr qint64 kMaxFileBytes = 8LL * 1024 * 1024;
 
 } // namespace
 
-P2pKnownPeers::P2pKnownPeers(const QString& path)
-    : m_path(path)
+P2pKnownPeers::P2pKnownPeers(const QString& path, QObject* parent)
+    : QObject(parent)
+    , m_path(path)
 {
+}
+
+bool P2pKnownPeers::notify(bool saved, bool friends)
+{
+    emit changed();
+    if (friends) emit friendsChanged();
+    return saved;
 }
 
 bool P2pKnownPeers::load()
@@ -97,7 +105,7 @@ bool P2pKnownPeers::setFriend(const QByteArray& playerKey, bool isFriend)
         if (peer.isFriend == isFriend) return true;
         if (isFriend && (peer.blocked || friends().size() >= P2p::Friend::kMaxFriends)) return false;
         peer.isFriend = isFriend;
-        return saveFriends();
+        return notify(saveFriends(), true);
     }
     return false;
 }
@@ -150,25 +158,25 @@ bool P2pKnownPeers::recordGameStarted(const QByteArray& playerKey, const QString
     P2pKnownPeer& peer = entry(playerKey);
     peer.lastDisplayName = displayName;
     ++peer.games;
-    return save();
+    return notify(save());
 }
 
 bool P2pKnownPeers::recordUnconfirmed(const QByteArray& playerKey)
 {
     ++entry(playerKey).unconfirmed;
-    return save();
+    return notify(save());
 }
 
 bool P2pKnownPeers::setLocalName(const QByteArray& playerKey, const QString& name)
 {
     entry(playerKey).localName = name.trimmed().left(kMaxLocalNameLength);
-    return save();
+    return notify(save());
 }
 
 bool P2pKnownPeers::setVerified(const QByteArray& playerKey, bool verified)
 {
     entry(playerKey).verified = verified;
-    return save();
+    return notify(save());
 }
 
 bool P2pKnownPeers::setBlocked(const QByteArray& playerKey, bool blocked)
@@ -179,7 +187,7 @@ bool P2pKnownPeers::setBlocked(const QByteArray& playerKey, bool blocked)
     const bool wasFriend = blocked && peer.isFriend;
     if (wasFriend) peer.isFriend = false;
     const bool saved = save();
-    return wasFriend ? saveFriends() && saved : saved;
+    return notify(wasFriend ? saveFriends() && saved : saved, wasFriend);
 }
 
 bool P2pKnownPeers::remove(const QByteArray& playerKey)
@@ -188,7 +196,7 @@ bool P2pKnownPeers::remove(const QByteArray& playerKey)
     const bool wasFriend = peer && peer->isFriend;
     m_peers.removeIf([&playerKey](const P2pKnownPeer& known) { return known.playerKey == playerKey; });
     const bool saved = save();
-    return wasFriend ? saveFriends() && saved : saved;
+    return notify(wasFriend ? saveFriends() && saved : saved, wasFriend);
 }
 
 QList<P2pKnownPeer> P2pKnownPeers::sameNameDifferentId(const QString& displayName, const QByteArray& playerKey) const

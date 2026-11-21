@@ -36,6 +36,8 @@ P2pPeersPanel::P2pPeersPanel(P2pKnownPeers* knownPeers, P2pIdentityStore* identi
     , m_knownPeers(knownPeers)
     , m_identity(identity)
 {
+    // 記録は、このタブの操作のほかに、対局の開始・結果の未確定でも変わる
+    if (m_knownPeers) connect(m_knownPeers, &P2pKnownPeers::changed, this, &P2pPeersPanel::reload);
     auto* layout = new QVBoxLayout(this);
     auto* note = new QLabel(tr("相手が同じ人かどうかは、プレイヤーIDで確かめます。表示名は誰でも同じものを名乗れます。"
                                "電話や対面など別の経路で確認コードを見比べ、一致したら「確認済み」にしてください。"
@@ -205,10 +207,7 @@ void P2pPeersPanel::onToggleFriend()
     const bool add = !(peer && peer->isFriend);
     if (!m_knownPeers->setFriend(key, add)) {
         DialogUtils::information(this, tr("友だち"), tr("友だちにできるのは %1 人までです。").arg(P2p::Friend::kMaxFriends));
-        return;
     }
-    if (m_presence) m_presence->reloadFriends();
-    reload();
 }
 
 void P2pPeersPanel::onApply()
@@ -228,7 +227,6 @@ void P2pPeersPanel::onRename()
                                                peer ? peer->localName : QString(), &ok);
     if (!ok) return;
     m_knownPeers->setLocalName(key, name);
-    reload();
 }
 
 void P2pPeersPanel::onShowCode()
@@ -247,7 +245,6 @@ void P2pPeersPanel::onToggleVerified()
     if (key.isEmpty() || !m_knownPeers) return;
     const P2pKnownPeer* peer = m_knownPeers->find(key);
     m_knownPeers->setVerified(key, !(peer && peer->verified));
-    reload();
 }
 
 void P2pPeersPanel::onToggleBlocked()
@@ -255,10 +252,8 @@ void P2pPeersPanel::onToggleBlocked()
     const QByteArray key = selectedKey();
     if (key.isEmpty() || !m_knownPeers) return;
     const P2pKnownPeer* peer = m_knownPeers->find(key);
+    // ブロックした相手は友だちから外れる（友だちの在席は、記録の知らせを受けて預け直す）
     m_knownPeers->setBlocked(key, !(peer && peer->blocked));
-    // ブロックした相手は友だちから外れる
-    if (m_presence) m_presence->reloadFriends();
-    reload();
 }
 
 void P2pPeersPanel::onRemove()
@@ -270,6 +265,4 @@ void P2pPeersPanel::onRemove()
         return;
     }
     m_knownPeers->remove(key);
-    if (m_presence) m_presence->reloadFriends();
-    reload();
 }

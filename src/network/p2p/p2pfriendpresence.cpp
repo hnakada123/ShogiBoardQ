@@ -69,6 +69,9 @@ P2pFriendPresence::P2pFriendPresence(P2pLobbyService* lobby, P2pGameCoordinator*
         connect(m_lobby, &P2pLobbyService::presenceRequestFailed, this, &P2pFriendPresence::onRequestFailed);
         // 友だちの申し込みを受けるかは、ここで決める（コールバックの注入。connect ではない）
         m_lobby->setFriendHandler([this](quint64 presenceId) { return acceptApplication(presenceId); });
+        if (P2pKnownPeers* known = m_lobby->profile() ? m_lobby->profile()->knownPeers() : nullptr) {
+            connect(known, &P2pKnownPeers::friendsChanged, this, &P2pFriendPresence::reloadFriends);
+        }
     }
     if (m_game) {
         // 交渉・対局が終わったら、在席を預け直す（その間は預けていない）

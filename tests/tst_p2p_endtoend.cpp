@@ -569,7 +569,6 @@ private slots:
 
         // 友だちから外した相手の申し込みは受けない（預けてあった知らせのトークンを無効にする）
         QVERIFY(host.profile.knownPeers()->setFriend(guestKey, false));
-        hostPresence.reloadFriends();
         QTest::qWait(500);
         // 申し込んだ側には、友だちへの申し込みが、開いた後に何も返されずに閉じられたと届く
         QSignalSpy refused(&guest.lobby, &P2pLobbyService::connectAttemptFailed);
@@ -583,7 +582,6 @@ private slots:
 
         // 友だちに戻すと、また申し込める。双方が友だちの交渉として、条件確認まで進む
         QVERIFY(host.profile.knownPeers()->setFriend(guestKey, true));
-        hostPresence.reloadFriends();
         QTest::qWait(1500);
         guestPresence.refreshNow();
         QTest::qWait(1500);

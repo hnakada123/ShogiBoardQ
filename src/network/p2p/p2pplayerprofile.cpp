@@ -19,7 +19,7 @@ P2pPlayerProfile::P2pPlayerProfile(const QString& root, int playerNumber, QObjec
     , m_root(root)
     , m_playerNumber(playerNumber)
     , m_records(std::make_unique<P2pRecordStore>(root))
-    , m_knownPeers(std::make_unique<P2pKnownPeers>(QDir(root).filePath(QStringLiteral("peers.cbor"))))
+    , m_knownPeers(new P2pKnownPeers(QDir(root).filePath(QStringLiteral("peers.cbor")), this))
     , m_identity(new P2pIdentityStore(identityDirectory(root), this))
 {
 }

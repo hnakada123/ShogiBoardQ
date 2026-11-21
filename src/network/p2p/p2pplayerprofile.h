@@ -45,7 +45,7 @@ public:
     bool isOpen() const;
 
     P2pRecordStore* records() const { return m_records.get(); }
-    P2pKnownPeers* knownPeers() const { return m_knownPeers.get(); }
+    P2pKnownPeers* knownPeers() const { return m_knownPeers; }
     P2pIdentityStore* identity() const { return m_identity; }
 
 private:
@@ -53,7 +53,7 @@ private:
     int m_playerNumber = 1;
     std::unique_ptr<QLockFile> m_lock;
     std::unique_ptr<P2pRecordStore> m_records;
-    std::unique_ptr<P2pKnownPeers> m_knownPeers;
+    P2pKnownPeers* m_knownPeers = nullptr;   ///< 子（parent ownership）
     P2pIdentityStore* m_identity = nullptr;   ///< 子オブジェクト
 };
 

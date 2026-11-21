@@ -73,8 +73,6 @@ public:
     /// 友だちが在席を知らせているか（最後に調べたときに、期限内の知らせを読めた）
     bool isOnline(const QByteArray& playerKey) const;
 
-    /// 友だちの記録が変わった（追加・外した・ブロック・削除）。外した友だちへの知らせを無効にして、預け直す
-    void reloadFriends();
     /// 友だちに対局を申し込む（mine は「招待」タブの欄の値。持ち時間と先後は使わない）
     ApplyResult apply(const QByteArray& playerKey, const P2pGameCoordinator::Conditions& mine);
 
@@ -83,6 +81,8 @@ signals:
     void presenceChanged();
 
 private slots:
+    /// 友だちの組が変わった（P2pKnownPeers::friendsChanged）。外した友だちへの知らせを無効にして、預け直す
+    void reloadFriends();
     void onLobbyChanged();
     void startDepositRound();
     void startWatchRound();
