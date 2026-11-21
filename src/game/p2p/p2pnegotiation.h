@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "p2pframes.h"
+#include "p2pmatch.h"
 #include "p2psignature.h"
 
 namespace P2p {
@@ -105,14 +106,11 @@ public:
     /// 先後を双方の乱数で決めたか（希望で決めたなら false）
     bool sidesByCoin() const { return m_sidesByCoin; }
     QByteArray gameId() const { return m_agreement ? m_agreement->gameId() : QByteArray(); }
-    QByteArray blackStartSignature() const { return m_iAmBlack ? m_myStartSignature : m_opponentStartSignature; }
-    QByteArray whiteStartSignature() const { return m_iAmBlack ? m_opponentStartSignature : m_myStartSignature; }
+    /// 対局を始めるのに要るもの（Started の後。開始合意・条件・先後・両方の開始署名・接続の乱数・次の requestId・
+    /// 相手の表示名。一局用鍵は takeSessionKey で別に渡す）
+    MatchSetup matchSetup() const;
     /// 一局用鍵を対局へ渡す（Started の後に1回だけ）
     SigningKey takeSessionKey() { return std::move(m_sessionKey); }
-    QByteArray myConnectionRandom() const { return m_myRandom; }
-    QByteArray opponentConnectionRandom() const { return m_opponent ? m_opponentRandom : QByteArray(); }
-    /// 次に送るフレームの requestId（対局へ引き継ぐ）
-    quint64 nextRequestId() const { return m_requestId; }
 
     /// 先後の希望が両立するか（片方だけの希望、先手と後手の組）
     static bool sidesCompatible(SidePreference applicant, SidePreference host);

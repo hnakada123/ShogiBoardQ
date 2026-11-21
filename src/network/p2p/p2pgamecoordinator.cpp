@@ -181,17 +181,7 @@ void P2pGameCoordinator::endNegotiation(bool started)
 void P2pGameCoordinator::startMatch()
 {
     P2p::Negotiation& n = *m_negotiation;
-    P2p::MatchSetup setup;
-    setup.agreement = *n.agreement();
-    setup.rules = n.rules();
-    setup.terms = n.terms();
-    setup.iAmBlack = n.iAmBlack();
-    setup.blackStartSignature = n.blackStartSignature();
-    setup.whiteStartSignature = n.whiteStartSignature();
-    setup.myConnectionRandom = n.myConnectionRandom();
-    setup.opponentConnectionRandom = n.opponentConnectionRandom();
-    setup.nextRequestId = n.nextRequestId();
-    setup.opponentDisplayName = m_opponentDisplayName;
+    const P2p::MatchSetup setup = n.matchSetup();
     const QByteArray gameId = setup.agreement.gameId();
 
     // ジャーナルに書けなければ、対局の状態機械が開始の件を書くところで中断する
@@ -612,8 +602,9 @@ bool P2pGameCoordinator::isMyMoveExpected() const
 {
     if (!isInProgress()) return false;
     const P2p::Match::Phase phase = m_match->phase();
+    // 棋譜から終局（千日手など）が決まった局面では、もう指さない（結果を交わすだけ）
     return (phase == P2p::Match::Phase::Playing || phase == P2p::Match::Phase::Reconnecting) && m_match->isMyTurn()
-        && !m_match->hasPendingMove();
+        && !m_match->hasPendingMove() && !m_match->isDecidedByRecord();
 }
 
 bool P2pGameCoordinator::isHumanToMove() const

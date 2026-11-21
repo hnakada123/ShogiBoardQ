@@ -324,4 +324,20 @@ void Negotiation::cancel()
     fail(ErrorCode::Cancelled, true);
 }
 
+MatchSetup Negotiation::matchSetup() const
+{
+    MatchSetup setup;
+    if (m_agreement) setup.agreement = *m_agreement;
+    setup.rules = m_rules;
+    setup.terms = m_terms;
+    setup.iAmBlack = m_iAmBlack;
+    setup.blackStartSignature = m_iAmBlack ? m_myStartSignature : m_opponentStartSignature;
+    setup.whiteStartSignature = m_iAmBlack ? m_opponentStartSignature : m_myStartSignature;
+    setup.myConnectionRandom = m_myRandom;
+    setup.opponentConnectionRandom = m_opponent ? m_opponentRandom : QByteArray();
+    setup.nextRequestId = m_requestId;
+    if (m_opponent) setup.opponentDisplayName = m_opponent->displayName;
+    return setup;
+}
+
 } // namespace P2p

@@ -8,12 +8,14 @@
 
 #include "matchending.h"
 #include "p2p_test_util.h"
+#include "p2pcontrolchannel.h"
 #include "p2pevidenceverifier.h"
 #include "p2pgamerules.h"
 #include "p2pmatch.h"
 #include "p2pmatchtimer.h"
 #include "p2pnegotiation.h"
 #include "p2precordkinds.h"
+#include "p2psignedline.h"
 
 using namespace P2p;
 
@@ -142,17 +144,7 @@ public:
         for (Side* s : {&applicant, &host}) {
             Negotiation& n = *s->negotiation;
             QCOMPARE(n.stage(), Negotiation::Stage::Started);
-            MatchSetup setup;
-            setup.agreement = *n.agreement();
-            setup.rules = n.rules();
-            setup.terms = n.terms();
-            setup.iAmBlack = n.iAmBlack();
-            setup.blackStartSignature = n.blackStartSignature();
-            setup.whiteStartSignature = n.whiteStartSignature();
-            setup.myConnectionRandom = n.myConnectionRandom();
-            setup.opponentConnectionRandom = n.opponentConnectionRandom();
-            setup.nextRequestId = n.nextRequestId();
-            setup.opponentDisplayName = n.opponent()->displayName;
+            const MatchSetup setup = n.matchSetup();
             Side* side = s;
             s->match = std::make_unique<Match>(
                 setup, n.takeSessionKey(), &s->playerKey, [this]() { return clock.ms; },
@@ -381,7 +373,7 @@ private slots:
         pair.pump();
         QCOMPARE(pair.host.negotiation->stage(), Negotiation::Stage::AwaitingSignature);
         QVERIFY(pair.toApplicant.empty());
-        QVERIFY(pair.host.negotiation->blackStartSignature().isEmpty() || pair.host.negotiation->whiteStartSignature().isEmpty());
+        QVERIFY(pair.host.negotiation->matchSetup().blackStartSignature.isEmpty() || pair.host.negotiation->matchSetup().whiteStartSignature.isEmpty());
         pair.applicant.negotiation->confirm();
         pair.pump();
         QCOMPARE(pair.host.negotiation->stage(), Negotiation::Stage::Started);
@@ -623,8 +615,8 @@ private slots:
         QCOMPARE(pair.host.negotiation->stage(), Negotiation::Stage::Failed);
         QCOMPARE(*pair.host.negotiation->failure(), ErrorCode::InvalidSignature);
         // 自分の開始署名は送っていない
-        QVERIFY(pair.host.negotiation->blackStartSignature().isEmpty());
-        QVERIFY(pair.host.negotiation->whiteStartSignature().isEmpty());
+        QVERIFY(pair.host.negotiation->matchSetup().blackStartSignature.isEmpty());
+        QVERIFY(pair.host.negotiation->matchSetup().whiteStartSignature.isEmpty());
     }
 
     void fullGameEndsByResignWithBothSignatures()
@@ -1283,6 +1275,167 @@ private slots:
         QCOMPARE(pair.black().match->playMove(UsiMove::fromString(u"7g7e")), Match::MoveError::Illegal);
         QCOMPARE(pair.white().match->playMove(UsiMove::fromString(u"3c3d")), Match::MoveError::NotMyTurn);
         pair.play(pair.black(), "7g7f");
+    }
+
+    /// 千日手が成立した局面で、手番の側が、相手の結果の提案が届く前に次の手を指そうとし、その直後に回線が切れても、
+    /// つなぎ直した後に双方が同じ結果（千日手）で終わる。以前は手を作って送り、承認の届き方によって、双方の結果が
+    /// 食い違った（千日手を飛ばして対局が続く・一方だけが千日手で終わる。監査 2026-11-21 U1）
+    void moveAfterRepetitionAndDisconnect_data()
+    {
+        QTest::addColumn<int>("delivered");
+        // 千日手の手を受けた先手が送ったもの（承認・結果の提案）のうち、切れる前に後手に届いた数（フレームは順に届く）
+        QTest::newRow("none") << 0;
+        QTest::newRow("accept") << 1;
+        QTest::newRow("accept-and-proposal") << 2;
+    }
+
+    void moveAfterRepetitionAndDisconnect()
+    {
+        QFETCH(int, delivered);
+        Pair pair;
+        pair.negotiateAndStart();
+        Side& black = pair.black();
+        Side& white = pair.white();
+        const QStringList moves = P2pTest::repetitionMoves();
+        for (int i = 0; i + 1 < moves.size(); ++i) {
+            pair.play(i % 2 == 0 ? black : white, moves.at(i).toLatin1().constData());
+        }
+        const auto lastPly = static_cast<quint32>(moves.size());
+
+        // 後手の最後の手で千日手が成立する。先手は承認して、千日手を提案する
+        pair.clock.ms += 1000;
+        QCOMPARE(white.match->playMove(UsiMove::fromString(moves.last())), Match::MoveError::None);
+        for (const Frame& f : white.match->takeOutgoing()) black.match->receive(f);
+        QCOMPARE(black.match->lastState().ply, lastPly);
+        QVERIFY(black.match->isDecidedByRecord());
+        const std::vector<Frame> fromBlack = black.match->takeOutgoing();
+        QCOMPARE(fromBlack.size(), std::size_t(2));
+        for (int k = 0; k < delivered; ++k) white.match->receive(fromBlack[static_cast<std::size_t>(k)]);
+        white.match->takeOutgoing();   // 後手の送るものは、先手に届かない
+        QVERIFY(!black.match->agreedResult());
+
+        // 手番の先手が、千日手と決まった局面で、循環を外れる手を指そうとする。手は作らない
+        pair.clock.ms += 1000;
+        QCOMPARE(black.match->playMove(UsiMove::fromString(u"7g7f")), Match::MoveError::Finished);
+        QVERIFY(!black.match->hasPendingMove());
+        QVERIFY(black.match->takeOutgoing().empty());
+
+        // 回線が切れて、つなぎ直す
+        pair.connected = false;
+        black.match->connectionLost();
+        white.match->connectionLost();
+        pair.pump();
+        pair.clock.ms += 3000;
+        pair.connected = true;
+        black.match->connectionEstablished();
+        white.match->connectionEstablished();
+        pair.pump();
+
+        // 後手に先手の提案まで届いていたら、後手はその時点で結果が一致し、切れたので相手の署名なしで閉じている
+        // （実装仕様 8.2節）。先手はつなぎ直す相手がいないまま、待つ時間を過ぎて閉じる
+        const bool whiteAgreedBeforeLoss = delivered == 2;
+        if (whiteAgreedBeforeLoss) {
+            QCOMPARE(white.match->settlement(), Settlement::SignatureMissing);
+            pair.clock.ms += static_cast<qint64>(NetworkPolicy::v1().reconnectWaitMs) + 1000;
+            black.match->tick();
+            QCOMPARE(black.match->settlement(), Settlement::Disconnected);
+        }
+        // どの場合も、双方が千日手の成立した手数で終わり、どちらの記録も千日手を示す（対局は続かない）
+        for (Side* s : {&black, &white}) {
+            QCOMPARE(s->match->lastState().ply, lastPly);
+            const EvidenceReport report = EvidenceVerifier::verify(s->match->evidence().encode());
+            QVERIFY2(report.isValid(), qPrintable(report.error));
+            QVERIFY(report.terminal);
+            QCOMPARE(report.terminal->cause, Cause::Repetition);
+            if (whiteAgreedBeforeLoss) {
+                QCOMPARE(report.category, EvidenceReport::Category::DeterminedByRecord);
+                continue;
+            }
+            QCOMPARE(s->match->settlement(), Settlement::MutuallySigned);
+            QCOMPARE(s->match->agreedResult()->cause, Cause::Repetition);
+            QCOMPARE(s->match->agreedResult()->ply, lastPly);
+            QCOMPARE(report.category, EvidenceReport::Category::MutuallySigned);
+        }
+        if (!whiteAgreedBeforeLoss) QCOMPARE(black.match->evidence().encode(), white.match->evidence().encode());
+    }
+
+    /// 制御メッセージの番号: 接続ごとに1から数え、再送は扱わず、飛び・署名の誤り・1局の上限を見分ける
+    void controlChannelChecksSequenceAndSignature()
+    {
+        const QByteArray gameId(kHashSize, '\x11');
+        const QByteArray connection(kHashSize, '\x22');
+        const SigningKey mine = SigningKey::generate();
+        const SigningKey theirs = SigningKey::generate();
+        ControlChannel sender(gameId, connection);
+        ControlChannel receiver(gameId, connection);
+        const CborValue body = ControlBody::abort(QByteArray(kHashSize, '\x01'), ErrorCode::Cancelled);
+        const ControlPayload first = sender.make(ControlKind::Abort, body, mine);
+        QCOMPARE(first.control.sequence, quint64(1));
+        QCOMPARE(first.control.bodyHash, Cbor::hash(body));
+        QCOMPARE(receiver.receive(first, mine.publicKey()), ControlChannel::Receipt::Accepted);
+        // 同じ番号の再送は扱わない
+        QCOMPARE(receiver.receive(first, mine.publicKey()), ControlChannel::Receipt::Ignored);
+        // 別の鍵の署名
+        const ControlPayload second = sender.make(ControlKind::Abort, body, theirs);
+        QCOMPARE(receiver.receive(second, mine.publicKey()), ControlChannel::Receipt::BadSignature);
+        // 番号の飛び（署名を誤った2番は受理していない）
+        const ControlPayload third = sender.make(ControlKind::Abort, body, mine);
+        QCOMPARE(receiver.receive(third, mine.publicKey()), ControlChannel::Receipt::OutOfOrder);
+        // 新しい接続: connectionId が決まるまでは受けず、番号は1から数え直す
+        receiver.restart();
+        sender.restart();
+        QCOMPARE(receiver.receive(first, mine.publicKey()), ControlChannel::Receipt::Ignored);
+        const QByteArray next(kHashSize, '\x33');
+        receiver.setConnectionId(next);
+        sender.setConnectionId(next);
+        const ControlPayload again = sender.make(ControlKind::Abort, body, mine);
+        QCOMPARE(again.control.sequence, quint64(1));
+        QCOMPARE(receiver.receive(again, mine.publicKey()), ControlChannel::Receipt::Accepted);
+        // 1局の件数は、送ったものと受けたものを数え続け、上限を超えたら知らせる
+        for (quint64 i = 0; i < ControlChannel::kMaxMessages; ++i) sender.make(ControlKind::Abort, body, mine);
+        QVERIFY(sender.isOverLimit());
+        QVERIFY(!receiver.isOverLimit());
+    }
+
+    /// 双方が署名した手順: 終局は手を足したときに求め、結果は最新の状態と手順を指すものだけを今のものとする
+    void signedLineKeepsTheTerminalOfTheRecord()
+    {
+        Pair pair;
+        pair.negotiateAndStart();
+        const QStringList moves = P2pTest::repetitionMoves();
+        for (int i = 0; i + 1 < moves.size(); ++i) {
+            pair.play(i % 2 == 0 ? pair.black() : pair.white(), moves.at(i).toLatin1().constData());
+        }
+        const std::vector<SignedState>& states = pair.black().match->confirmedStates();
+        const QByteArray gameId = pair.black().match->gameId();
+        SignedLine line(gameId);
+        QVERIFY(line.isEmpty());
+        QCOMPARE(line.last().ply, quint32(0));
+        for (const SignedState& s : states) {
+            line.append(s);
+            QVERIFY(!line.terminal());
+        }
+        QCOMPARE(line.last(), states.back().state);
+        const FinalResult resign = line.resultFor(Outcome::WhiteWins, Cause::Resign);
+        QVERIFY(line.isCurrent(resign));
+        QCOMPARE(resign.ply, line.last().ply);
+        // 千日手の手を足すと、終局が決まり、それまでの結果は今のものでなくなる
+        SignedState repetition = states.back();
+        const std::optional<GameState> next =
+            GameRules::nextState(line.last(), UsiMove::fromString(moves.last()), 1000, pair.black().match->terms());
+        QVERIFY(next);
+        repetition.state = *next;
+        line.append(repetition);
+        QVERIFY(line.terminal());
+        QCOMPARE(line.terminal()->cause, Cause::Repetition);
+        QCOMPARE(line.terminal()->outcome, Outcome::Draw);
+        QVERIFY(!line.isCurrent(resign));
+        // 相手の提案の本体のハッシュは、結果の値から求めたもの（断るときにどちらを使っても同じ）
+        const FinalResult draw = line.resultFor(Outcome::Draw, Cause::Repetition);
+        QCOMPARE(Cbor::hash(draw.toCbor()), draw.digest());
+        const std::optional<FinalResult> reread = FinalResult::fromCbor(*Cbor::decode(Cbor::encode(draw.toCbor())));
+        QVERIFY(reread);
+        QCOMPARE(reread->digest(), draw.digest());
     }
 };
 

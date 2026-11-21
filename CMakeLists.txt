@@ -1145,6 +1145,8 @@ if(ENABLE_P2P_PLAY)
     set(SRC_P2P
         src/game/p2p/p2pcbor.cpp
         src/game/p2p/p2pcbor.h
+        src/game/p2p/p2pcontrolchannel.cpp
+        src/game/p2p/p2pcontrolchannel.h
         src/game/p2p/p2pdisplayname.cpp
         src/game/p2p/p2pdisplayname.h
         src/game/p2p/p2pevidence.cpp
@@ -1159,7 +1161,6 @@ if(ENABLE_P2P_PLAY)
         src/game/p2p/p2pgamerules.h
         src/game/p2p/p2pmatch.cpp
         src/game/p2p/p2pmatch.h
-        src/game/p2p/p2pmatch_control.cpp
         src/game/p2p/p2pmatchtimer.h
         src/game/p2p/p2pnegotiation.cpp
         src/game/p2p/p2pnegotiation.h
@@ -1170,6 +1171,8 @@ if(ENABLE_P2P_PLAY)
         src/game/p2p/p2psettlement.h
         src/game/p2p/p2psignature.cpp
         src/game/p2p/p2psignature.h
+        src/game/p2p/p2psignedline.cpp
+        src/game/p2p/p2psignedline.h
         src/headless/matchverificationservice.cpp
         src/headless/matchverificationservice.h
         src/network/p2p/p2pbuildexpiry.cpp
