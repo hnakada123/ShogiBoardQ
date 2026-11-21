@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-"""インターネット越し（ネットワーク「インターネット」）の P2P対局を、コンテナの中の仮想のネットワークで指して撮る。
+"""インターネット越し（相手のいる場所「インターネット」）の P2P対局を、コンテナの中の仮想のネットワークで指して撮る。
 
 コンテナの中で実行する（lab.sh up の後）:
     lab.sh exec python3 /repo/scripts/docs/p2p_internet/shoot.py <ja_JP|en|zh_CN|zh_TW>
 
 /work/shots/<言語>/ に次の画像を書く（P2P対局のウィンドウ）:
-    internet-no-node.png   協力ノードを入れずに「インターネット」で接続したところ（招待に宛先が入らない）
-    internet-settings.png  「設定」タブの「接続候補」に協力ノードを入れたところ（アドレスは見本。IP の前半は XXX.XXX）
+    internet-no-node.png   「接続」タブで「インターネット」を選び、協力ノードを登録していないところ（相手は接続できないと出る）
+    internet-settings.png  「接続」タブで「インターネット」を選び、協力ノードを登録したところ（接続する前）
     internet-connected.png 協力ノードにつながり、招待の経路が中継になったところ
     internet-invite.png    受け取った合言葉を確かめたところ（招待を受けた側。協力ノードは --meet つき）
     internet-relay.png     中継を通って指している「対局中」タブ（ルーターの NAT がホールパンチングを通さない）
     internet-direct.png    中継でつながった後、直接の接続に切り替わった「対局中」タブ
-    internet-relay-only.png 「直接接続を使わない」で接続したところ
+    internet-relay-only.png 「協力ノードの中継だけを使う」で接続したところ
+
+「接続」タブの協力ノードの一覧は、見本のアドレス（IP の前半は XXX.XXX）で写す。接続している間は一覧を変えられない
+ので、接続する前に見本のアドレスで撮った一覧の画像を、接続した後の画像に貼る（p2p_nodes.py）。
 """
 import os
 import subprocess
@@ -20,18 +23,19 @@ import time
 import xml.etree.ElementTree as ET
 
 sys.path.insert(0, "/repo/scripts/docs")
+import p2p_nodes  # noqa: E402
 from rpc import rpc as raw_rpc  # noqa: E402
 
 INSIDE = "/repo/scripts/docs/p2p_internet/inside.sh"
 WINDOW = "p2pWindow"
-# 「設定」タブに写す協力ノードのアドレス（見本。IP アドレスの前半は伏せる。実際の接続には /work/node.addr を使う）
+# 「接続」タブに写す協力ノードのアドレス（見本。IP アドレスの前半は伏せる。実際の接続には /work/node.addr を使う）
 SAMPLE_NODE = "/ip4/XXX.XXX.113.10/tcp/4001/p2p/12D3KooWExampleCooperatingNodePeerIdForTheGuide"
-TAB_CONNECTION, TAB_INVITE, TAB_GAME, TAB_SETTINGS = 0, 1, 2, 5
+TAB_CONNECTION, TAB_INVITE, TAB_GAME = 0, 1, 2
 NAMES = {"ja_JP": ("鈴木", "山田"), "en": ("Suzuki", "Yamada"), "zh_CN": ("铃木", "山田"), "zh_TW": ("鈴木", "山田")}
 
 
 # 協力ノードの中継の予約が取れていないときの「招待の経路」
-NO_ROUTE = "外から届く接続先がまだありません。協力ノードを「設定」の「接続候補」に入れてください。"
+NO_ROUTE = "外から届く接続先がまだありません。「接続」タブで協力ノードを登録してください。"
 
 
 def translated(language, source, context="P2pWindow"):
@@ -57,13 +61,13 @@ def sock(name):
     return f"/work/run/{name}.sock"
 
 
-def call(name, method, params=None):
+def call(name, method, params=None, wait=True):
     reply = raw_rpc(sock(name), method, params or {})
     if "error" in reply:
         raise RuntimeError(f"{name} {method} {params}: {reply['error']}")
     result = reply["result"]
-    # UI の操作は応答の後に行われる。終わるまで待つ
-    if isinstance(result, dict) and result.get("queued"):
+    # UI の操作は応答の後に行われる。終わるまで待つ（ダイアログを開いて戻らない操作は待たない）
+    if wait and isinstance(result, dict) and result.get("queued"):
         number = result["interaction"]
         for _ in range(200):
             state = raw_rpc(sock(name), "ui.interaction", {"id": number})["result"]
@@ -142,14 +146,19 @@ def _alive(name):
         return False
 
 
-def connect(name, display_name, bootstrap, relay_only=False):
-    """ネットワーク「インターネット」（sbq-limited-1）に接続する（初めてなら暗号化しないファイルでプレイヤー鍵を作る）"""
-    tab(name, TAB_SETTINGS)
-    set_value(name, "p2pBootstrap", bootstrap)
-    set_value(name, "p2pRelayOnly", relay_only)
-    tab(name, TAB_CONNECTION)
-    set_value(name, "p2pNetwork", 1)
+def setup(name, display_name, bootstrap, relay_only=False):
+    """表示名（「招待」タブ）を入れ、「接続」タブで「インターネット」・つなぎ方・協力ノードを決める
+
+    bootstrap は協力ノードのアドレス（1行に1つ。QUIC と TCP の2行）"""
+    tab(name, TAB_INVITE)
     set_value(name, "p2pDisplayName", display_name)
+    p2p_nodes.choose(call, name, lan=False, relay_only=relay_only)
+    p2p_nodes.set_nodes(call, name, bootstrap.split())
+
+
+def connect(name, display_name, bootstrap, relay_only=False):
+    """「インターネット」（sbq-limited-1）に接続する（初めてなら暗号化しないファイルでプレイヤー鍵を作る）"""
+    setup(name, display_name, bootstrap, relay_only)
     click(name, "p2pConnect")
     time.sleep(1)
     if dialog_open(name, "p2pIdentityDialog"):
@@ -172,7 +181,12 @@ def disconnect(name):
 
 
 def route(name):
-    return text_of(name, "p2pRouteInfo")
+    """接続中の「招待の経路」の文（接続していない間は、帯に今の設定が出ているので空を返す）"""
+    text = text_of(name, "p2pRouteInfo")
+    return text[len(ROUTE_PREFIX[0]):] if text.startswith(ROUTE_PREFIX[0]) else ""
+
+
+ROUTE_PREFIX = [""]
 
 
 def invite(host, guest, out_dir=None, invite_shot=None):
@@ -255,6 +269,8 @@ class Lab:
         self.a, self.b = f"{tag}A", f"{tag}B"
         self.name_a, self.name_b = NAMES[language]
         self.no_node_route = translated(language, NO_ROUTE)
+        ROUTE_PREFIX[0] = translated(language, "招待の経路: %1").split("%1")[0]
+        self.sample = None   # 見本のアドレスを入れた協力ノードの一覧の画像
 
     def start(self, nat):
         for side in ("A", "B"):
@@ -270,18 +286,31 @@ class Lab:
         for name in (self.a, self.b):
             wait_until("relay reserved", lambda n=name: route(n) not in ("", self.no_node_route), 90)
 
+    def before_connecting(self):
+        """接続する前の「接続」タブ: 協力ノードを登録していないところと、登録したところ（見本のアドレス）"""
+        a, out = self.a, self.out_dir
+        setup(a, self.name_a, "")
+        time.sleep(0.5)
+        shot(a, out, "internet-no-node.png")
+        self.sample = p2p_nodes.node_sample(call, a, out, SAMPLE_NODE)
+        p2p_nodes.set_nodes(call, a, [SAMPLE_NODE])
+        time.sleep(0.5)
+        shot(a, out, "internet-settings.png")
+
+    def connected_shot(self, name, file_name):
+        """接続中の「接続」タブを撮る（協力ノードの一覧は見本のアドレスに差し替える）"""
+        tab(name, TAB_CONNECTION)
+        time.sleep(1)
+        shot(name, self.out_dir, file_name)
+        p2p_nodes.paste_node_sample(call, name, os.path.join(self.out_dir, file_name), self.sample)
+
     def basic(self):
-        """協力ノードなし・協力ノードあり・設定・招待・中継のまま指す（NAT がホールパンチングを通さない）"""
+        """協力ノードなし・協力ノードあり・招待・中継のまま指す（NAT がホールパンチングを通さない）"""
         a, b, out = self.a, self.b, self.out_dir
         self.start("strict")
-        connect(a, self.name_a, "")
-        wait_until("no route", lambda: route(a) != "", 30)
-        time.sleep(3)
-        shot(a, out, "internet-no-node.png")
-        disconnect(a)
+        self.before_connecting()
         self.connect_both()
-        shot(a, out, "internet-connected.png")
-        self.settings_shot()
+        self.connected_shot(a, "internet-connected.png")
         invite(a, b, out, "internet-invite.png")
         black, white = black_and_white(a, b)
         play(black, white, 4)
@@ -290,33 +319,17 @@ class Lab:
         time.sleep(2)
         shot(b, out, "internet-relay.png")
 
-    def settings_shot(self):
-        """接続した後の「設定」タブ（接続候補は見本のアドレスに書き換えて写し、元に戻す）"""
-        a = self.a
-        tab(a, TAB_SETTINGS)
-        set_value(a, "p2pBootstrap", SAMPLE_NODE)
-        shot(a, self.out_dir, "internet-settings.png")
-        set_value(a, "p2pBootstrap", self.node)
-
     def connection(self):
-        """対局をせずに撮れる画像（協力ノードなし・協力ノードあり・「設定」タブ）だけを撮り直す"""
-        a, out = self.a, self.out_dir
+        """対局をせずに撮れる画像（協力ノードなし・協力ノードを登録したところ・つながったところ）だけを撮り直す"""
         self.start("strict")
-        connect(a, self.name_a, "")
-        wait_until("no route", lambda: route(a) != "", 30)
-        time.sleep(3)
-        shot(a, out, "internet-no-node.png")
-        disconnect(a)
+        self.before_connecting()
         self.connect_both()
-        shot(a, out, "internet-connected.png")
-        self.settings_shot()
+        self.connected_shot(self.a, "internet-connected.png")
 
     def settings(self):
-        """「設定」タブの画像だけを撮り直す"""
+        """接続する前の「接続」タブの画像（internet-no-node・internet-settings）だけを撮り直す"""
         self.start("easy")
-        connect(self.a, self.name_a, self.node)
-        wait_until("relay reserved", lambda: route(self.a) not in ("", self.no_node_route), 90)
-        self.settings_shot()
+        self.before_connecting()
 
     def direct(self):
         """ルーターの NAT がホールパンチングを通すと、中継でつながった後に直接の接続へ切り替わる"""
@@ -333,13 +346,14 @@ class Lab:
         shot(b, self.out_dir, "internet-direct.png")
 
     def relay_only(self):
-        """「直接接続を使わない」"""
+        """「協力ノードの中継だけを使う」"""
         a = self.a
         self.start("easy")
+        setup(a, self.name_a, "", relay_only=True)
+        self.sample = p2p_nodes.node_sample(call, a, self.out_dir, SAMPLE_NODE)
         connect(a, self.name_a, self.node, relay_only=True)
         wait_until("relay only route", lambda: route(a) not in ("", self.no_node_route), 90)
-        time.sleep(1)
-        shot(a, self.out_dir, "internet-relay-only.png")
+        self.connected_shot(a, "internet-relay-only.png")
 
     def finish(self):
         for name in (self.a, self.b):

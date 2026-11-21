@@ -23,8 +23,9 @@
 | `kwin_x_capture.sh` | `kwin_capture.sh` の Xwayland 版。アプリを xcb で起動するので `x11ctl.py move` でメインウィンドウや浮動ドックの位置を決められる（Wayland のクライアントは自分の位置を決められないため、浮動ドックを並べる `dock-04-floating` に使う）。撮影は `spectacle -b -n -f -o out.png`（全画面）で、背景は黒になるので `magick in -alpha set -fuzz 1% -fill transparent -draw 'color 1,1 floodfill' …` で透明にする（英語版のようにメインウィンドウが浮動ドックに重なると黒い部分が左右に分かれるので、右上・右下などからも `-draw 'color X,Y floodfill'` を重ねる） |
 | `shoot_tables.py` | 思考表・検討タブの表が主な題材の画像（検討ページ・ドックの既定配置・詰み探索の思考タブ・ホームのメイン画像・対局の思考タブ・多言語対応の画面）を言語ごとに撮る。`docs/images` と同じ並びで書き出す |
 | `shoot_csa.py` | ローカルの shogi-server で4言語のCSA設定・待機・対局・終局を撮影する。floodgateは設定画面だけを撮り、公開サーバーには接続しない |
-| `shoot_p2p.py` | 同じ PC の2つのアプリで P2P対局（ネットワーク「ローカル」）を操作して、ガイド `p2p-game` の画像を言語ごとに撮る（`guide`: プレイヤー鍵の準備・「接続と条件」・「設定」・招待・条件確認（人間どうし・相手がエンジン）・対局記録。`lan`: 同じ PC の協力ノードを使う2枚）。アプリは撮影用のビルド（下記）、登録エンジンは Hayanagi。出力フォルダを渡し、撮れた画像を `docs/images/…/p2p-game/` に写す |
-| `p2p_internet/` | インターネット越し（ネットワーク「インターネット」）の P2P対局の画像を撮る。`lab.sh` が Docker のコンテナ（ホストの `/usr` を読み取り専用で見せる `archlinux:latest`、外とつながらない）の中に、協力ノード・家庭のルーター2台（NAT）・その内側の2人のアプリの仮想のネットワークを作り（`inside.sh`）、`shoot.py` が自動化 API で2人を操作して招待・対局・撮影まで進める。アプリは撮影用のビルド（下記）を使う |
+| `shoot_p2p.py` | 同じ PC の2つのアプリで P2P対局（「相手のいる場所」が「同じPC・同じLAN」）を操作して、ガイド `p2p-game` の画像を言語ごとに撮る（`guide`: プレイヤー鍵の準備・「接続」・「設定」・「招待」・条件確認（人間どうし・相手がエンジン）・「対局中」・「対局記録」。`lan`: 同じ PC の協力ノードを使う2枚。`friends`: 友だちが「オンライン」と出た「相手」タブ）。アプリは撮影用のビルド（下記）、登録エンジンは Hayanagi。出力フォルダを渡し、撮れた画像を `docs/images/…/p2p-game/` に写す |
+| `p2p_nodes.py` | P2P対局のウィンドウの「接続」タブを自動化 API から操作する補助（`shoot_p2p.py` と `p2p_internet/shoot.py` で共通）。相手のいる場所とつなぎ方を選ぶ `choose`、協力ノードの一覧を決める `set_nodes`（「追加…」の入力のダイアログに書く）、実際の協力ノードのアドレスを画像に残さないための差し替え `node_sample`・`paste_node_sample`（接続している間は一覧を変えられないので、接続する前に見本のアドレスで撮った一覧の画像を、接続した後の画像の同じ場所に貼る） |
+| `p2p_internet/` | インターネット越し（「相手のいる場所」が「インターネット」）の P2P対局の画像を撮る。`lab.sh` が Docker のコンテナ（ホストの `/usr` を読み取り専用で見せる `archlinux:latest`、外とつながらない）の中に、協力ノード・家庭のルーター2台（NAT）・その内側の2人のアプリの仮想のネットワークを作り（`inside.sh`）、`shoot.py` が自動化 API で2人を操作して招待・対局・撮影まで進める。アプリは撮影用のビルド（下記）を使う |
 | `sample_kifu/` | 画像に写る見本の棋譜（▲鈴木・▽山田、105行）。`mkkif.py` が `full.usi` から言語別の KIF（`sample-<言語>.kif`・ホーム用の `main-<言語>.kif`）を書き出す。1〜50手目（`first50.usi`）は画像から読み取った手順、51手目以降は `continue_game.py` でやねうら王に指させた |
 
 ## 典型的な使い方
@@ -104,7 +105,7 @@ GEM_PATH=/tmp/sbq-gems xvfb-run -a -s '-screen 0 1920x1440x24' python3 scripts/d
   --server /path/to/shogi-server --out-dir /tmp/sbq-csa-trial
 ```
 
-## ローカルのネットワークの P2P対局の画像の撮り直し
+## 同じPC・同じLAN の P2P対局の画像の撮り直し
 
 ガイド `p2p-game` のうち、同じ PC の2つのアプリで撮れる画像は `shoot_p2p.py` で撮る（撮影用のビルドは次の節）。
 
@@ -114,10 +115,13 @@ for lang in ja_JP en zh_CN zh_TW; do
 done
 ```
 
-`p2p-identity`・`p2p-connection`・`p2p-settings`・`p2p-invite`・`p2p-confirm`・`p2p-records`・`p2p-confirm-engine` が出る
-（鈴木が招待を受けて先手、山田が招待する側。`p2p-confirm-engine` は、山田が「対局者」で Hayanagi を選んだときの鈴木の
-条件確認画面）。同じ PC の協力ノードを使う `p2p-lan-node-connected`・`p2p-internet-lan-address` は、協力ノードを起動して
-から `shoot_p2p.py lan <言語> <出力フォルダ> <協力ノードの multiaddr>` で撮る（起動のしかたはスクリプトの先頭）。
+`p2p-identity`・`p2p-connection`・`p2p-settings`・`p2p-invite`・`p2p-confirm`・`p2p-game`・`p2p-records`・`p2p-confirm-engine` が出る
+（鈴木が招待を受けて先手、山田が招待する側。`p2p-game` は4手指したところの鈴木の「対局中」タブ、`p2p-confirm-engine` は、
+山田が「対局者」で Hayanagi を選んだときの鈴木の条件確認画面）。同じ PC の協力ノードを使う `p2p-lan-node-connected`・
+`p2p-internet-lan-address` は、協力ノード（`--relay --meet`）を起動してから `shoot_p2p.py lan <言語> <出力フォルダ> <協力ノードの multiaddr>` で、
+友だちが「オンライン」と出た「相手」タブの `p2p-peers` は `shoot_p2p.py friends <言語> <出力フォルダ> <協力ノードの multiaddr>` で撮る
+（起動のしかたはスクリプトの先頭）。「接続」タブの協力ノードの一覧は、見本のアドレス（`192.168.1.23`）に差し替えて写す
+（`p2p_nodes.py`。この PC の LAN のアドレスを画像に残さない）。
 プレイヤー鍵のダイアログは言語で大きさが変わるので、撮り直したらガイドの `<img>` の `width`・`height` も合わせる。
 
 ## インターネット越しの P2P対局の画像の撮り直し
@@ -140,8 +144,10 @@ scripts/docs/p2p_internet/lab.sh down      # 作業フォルダの持ち主を�
 
 画像は作業フォルダ（既定 `/tmp/sbq-p2p-lab-<uid>`）の `shots/<言語>/internet-*.png` に出る。ガイドでは
 `docs/images/{,en/,zh-cn/,zh-tw/}p2p-game/p2p-internet-*.png` として使う。`shoot.py <言語> settings` のように
-場面（`basic`・`direct`・`relay_only`・`settings`・対局をせずに撮れる画像だけの `connection`）を選んで撮り直せる。「設定」タブの「接続候補」は、IP アドレスの前半を
-伏せた見本（`XXX.XXX.113.10`）に書き換えて写す。
+場面（`basic`・`direct`・`relay_only`・`settings`・対局をせずに撮れる画像だけの `connection`）を選んで撮り直せる。「接続」タブの協力ノードの一覧は、IP アドレスの前半を
+伏せた見本（`XXX.XXX.113.10`）に差し替えて写す（接続している間は一覧を変えられないので、接続する前に撮った一覧の画像を貼る。`p2p_nodes.py`）。
+`lab.sh up` は、前に使った作業フォルダを使い回せる（持ち主をコンテナの中の利用者に戻す）が、前の設定とプレイヤー鍵が残るので、
+画面を組み替えた後は作業フォルダを空にしてから始める。
 
 - 「インターネット」は 11.88.99.0/24（インターネット上のアドレスとして扱われる範囲）。アプリは文書用・予約済みのアドレス
   （203.0.113.0/24、廃止された 6to4 の中継の 192.88.99.0/24 など）を宛先に使わないので、この範囲を使う。コンテナの外へは出ない

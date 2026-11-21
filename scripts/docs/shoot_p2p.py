@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""同じ PC の2つのアプリで P2P対局（ネットワーク「ローカル」）を操作して、ガイドの画像を撮る。
+"""同じ PC の2つのアプリで P2P対局（「同じPC・同じLAN」）を操作して、ガイドの画像を撮る。
 
 usage:
     shoot_p2p.py guide <ja_JP|en|zh_CN|zh_TW> <出力フォルダ>
         p2p-identity.png  p2p-connection.png  p2p-settings.png  p2p-invite.png
-        p2p-confirm.png   p2p-records.png     p2p-confirm-engine.png
+        p2p-confirm.png   p2p-game.png        p2p-records.png   p2p-confirm-engine.png
     shoot_p2p.py lan <言語> <出力フォルダ> <協力ノードの multiaddr>
         p2p-lan-node-connected.png  p2p-internet-lan-address.png
         （協力ノードは先に起動しておく:
@@ -12,7 +12,10 @@ usage:
               --identity <作業フォルダ>/node.key --listen /ip4/0.0.0.0/tcp/<空きポート>
           multiaddr は /ip4/<この PC の LAN の IP>/tcp/<ポート>/p2p/<起動時に出る PeerId>）
     shoot_p2p.py friends <言語> <出力フォルダ> <協力ノードの multiaddr>
-        p2p-peers.png（友だちにした相手が「オンライン」と出た「相手の管理」タブ。協力ノードは --meet つき）
+        p2p-peers.png（友だちにした相手が「オンライン」と出た「相手」タブ。協力ノードは --meet つき）
+
+「接続」タブの協力ノードの一覧は、見本のアドレスに差し替えて写す（p2p_nodes.py。この PC の LAN のアドレスを
+画像に残さない）。
 
 アプリは撮影用のビルド（cmake -DENABLE_P2P_DOCS_AUTOMATION=ON。既定 build-p2p-docs。SBQ_APP で変えられる）を
 launch.sh で起動する（Xvfb のディスプレイは SBQ_DISPLAY、既定 97。作業フォルダは SBQ_WORK、既定 /tmp/sbq-shots-<uid>）。
@@ -28,6 +31,7 @@ import xml.etree.ElementTree as ET
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import p2p_nodes  # noqa: E402
 from rpc import rpc as raw_rpc  # noqa: E402
 
 APP = os.environ.get("SBQ_APP", os.path.join(REPO, "build-p2p-docs", "ShogiBoardQ"))
@@ -39,6 +43,8 @@ NAMES = {"ja_JP": ("鈴木", "山田"), "en": ("Suzuki", "Yamada"), "zh_CN": ("�
 TAB_CONNECTION, TAB_INVITE, TAB_GAME, TAB_RECORDS, TAB_PEERS, TAB_SETTINGS = 0, 1, 2, 3, 4, 5
 # 合言葉の見本（protocol/testvectors/code.txt の1行目。192.168.1.23 の PC の合言葉）
 SAMPLE_CODE = "008Q-4HMA-SW95"
+# 「接続」タブに写す協力ノードのアドレス（見本。同じ LAN の PC で動かしている協力ノード）
+SAMPLE_NODE = "/ip4/192.168.1.23/tcp/4001/p2p/12D3KooWExampleCooperatingNodePeerIdForTheGuide"
 PIDS = {}
 
 
@@ -66,6 +72,7 @@ def launch(name, language):
     out = subprocess.run([os.path.join(REPO, "scripts", "docs", "launch.sh"), name, language, DISPLAY],
                          env=env, capture_output=True, text=True, check=True).stdout
     PIDS[name] = int(out.split("pid")[1].split()[0])
+    ROUTE_PREFIX[name] = translated(language, "招待の経路: %1", "P2pWindow").split("%1")[0]
     call(name, "action.trigger", {"name": "actionP2pGame"})
     wait_until("P2P window", lambda: window_open(name, WINDOW))
 
@@ -146,18 +153,32 @@ def shot(name, out_dir, file_name, target=WINDOW):
 
 
 def prepare(name, display_name, side):
-    set_value(name, "p2pTabs", TAB_CONNECTION)
-    set_value(name, "p2pNetwork", 0)
+    """名乗る名前と対局の条件（「招待」タブ）を入れ、「接続」タブを「同じPC・同じLAN」で直接つなぐ設定にする"""
+    set_value(name, "p2pTabs", TAB_INVITE)
     set_value(name, "p2pDisplayName", display_name)
     set_value(name, "p2pMainMinutes", 10)
     set_value(name, "p2pByoyomi", 30)
     set_value(name, "p2pSide", side)
     set_value(name, "p2pPlayerKind", 0)
+    p2p_nodes.choose(call, name, lan=True)
+
+
+def online(name):
+    """接続しているか（帯の説明は、接続していない間は今の設定、接続中は招待の経路）"""
+    return text_of(name, "p2pRouteInfo").startswith(ROUTE_PREFIX[name])
+
+
+def route(name):
+    """接続中の「招待の経路」の文（接続していなければ空）"""
+    text = text_of(name, "p2pRouteInfo")
+    return text[len(ROUTE_PREFIX[name]):] if text.startswith(ROUTE_PREFIX[name]) else ""
+
+
+ROUTE_PREFIX = {}
 
 
 def connect_first_time(name, passphrase, out_dir=None):
     """初めて接続する（プレイヤー鍵を作る画面を撮ってから、保管の方法を選ぶ）"""
-    before = text_of(name, "p2pConnect")
     click(name, "p2pConnect")
     wait_until("identity dialog", lambda: window_open(name, "p2pIdentityDialog"), 20)
     time.sleep(0.5)
@@ -170,7 +191,7 @@ def connect_first_time(name, passphrase, out_dir=None):
     else:
         set_value(name, "p2pIdentityPlainFile", True, target="p2pIdentityDialog")
     click(name, "p2pIdentityOk", target="p2pIdentityDialog")
-    wait_until("connected", lambda: text_of(name, "p2pConnect") != before and text_of(name, "p2pRouteInfo") != "", 60)
+    wait_until("connected", lambda: online(name), 60)
 
 
 def create_invite(name):
@@ -196,7 +217,12 @@ def inspect(name, code, lines=3):
 
 
 def play(black, white, moves):
-    for i, (src, dst) in enumerate(moves):
+    play_from(black, white, 0, moves)
+
+
+def play_from(black, white, first, moves):
+    """first 手目まで指してある対局で、続きの手を指す"""
+    for i, (src, dst) in enumerate(moves, start=first):
         player = black if i % 2 == 0 else white
         for _ in range(10):
             call(player, "board.click", {"file": src[0], "rank": src[1]})
@@ -255,8 +281,12 @@ def guide(language, out_dir):
     for name in (a, b):
         wait_until("game started", lambda n=name: call(n, "app.state")["play_mode"] != "not_started", 60)
 
-    # 5手指して後手が投了する（先手の勝ち（投了））
-    play(a, b, [((7, 7), (7, 6)), ((3, 3), (3, 4)), ((2, 7), (2, 6)), ((8, 3), (8, 4)), ((2, 6), (2, 5))])
+    # 4手指したところ（先手の鈴木の手番）で「対局中」タブを撮り、もう1手指して後手が投了する（先手の勝ち（投了））
+    play(a, b, [((7, 7), (7, 6)), ((3, 3), (3, 4)), ((2, 7), (2, 6)), ((8, 3), (8, 4))])
+    set_value(a, "p2pTabs", TAB_GAME)
+    time.sleep(1.5)
+    shot(a, out_dir, "p2p-game.png")
+    play_from(a, b, 4, [((2, 6), (2, 5))])
     call(b, "action.trigger", {"name": "actionResign"}, wait=False)
     settled = translated(language, "結果が一致し、双方で確定しました。", "P2pWindowText")
     wait_until("finished", lambda: settled in text_of(a, "p2pGameStatus"), 60)
@@ -270,7 +300,7 @@ def guide(language, out_dir):
     shot(a, out_dir, "p2p-records.png")
 
     # 相手がエンジンに指させるときの条件確認画面
-    set_value(b, "p2pTabs", TAB_CONNECTION)
+    set_value(b, "p2pTabs", TAB_INVITE)
     set_value(b, "p2pPlayerKind", 1)
     code = create_invite(b)
     inspect(a, code)
@@ -286,11 +316,10 @@ def guide(language, out_dir):
 
 
 def connect_with_node(name, display_name, network, bootstrap):
-    """接続候補に協力ノードを入れて接続する（network は 0=ローカル、1=インターネット）。接続する前のボタンの文字を返す"""
-    set_value(name, "p2pTabs", TAB_SETTINGS)
-    set_value(name, "p2pBootstrap", bootstrap)
+    """協力ノードを登録して接続する（network は 0=同じPC・同じLAN、1=インターネット）。接続する前のボタンの文字を返す"""
     prepare(name, display_name, 0)
-    set_value(name, "p2pNetwork", network)
+    p2p_nodes.choose(call, name, lan=network == 0)
+    p2p_nodes.set_nodes(call, name, [bootstrap])
     before = text_of(name, "p2pConnect")
     click(name, "p2pConnect")
     end = time.time() + 40
@@ -300,13 +329,12 @@ def connect_with_node(name, display_name, network, bootstrap):
             click(name, "p2pIdentityOk", target="p2pIdentityDialog")
             time.sleep(1)
         time.sleep(0.3)
-    wait_until("connected", lambda: text_of(name, "p2pRouteInfo") != "", 30)
+    wait_until("connected", lambda: online(name), 30)
     return before
 
 
 def disconnect(name, connect_text):
-    set_value(name, "p2pTabs", TAB_CONNECTION)
-    click(name, "p2pConnect")
+    click(name, "p2pConnect")   # 帯のボタンは、どのタブからでも押せる
     wait_until("disconnected", lambda: text_of(name, "p2pConnect") == connect_text, 20)
 
 
@@ -319,12 +347,15 @@ def lan(language, out_dir, node):
     launch(a, language)
     launch(b, language)
 
-    # 「ローカル」で、同じ LAN の協力ノードにつないだところ（中継の予約が取れる）
+    # 「同じPC・同じLAN」で、同じ LAN の協力ノードにつないだところ（中継の予約が取れる）。一覧は見本のアドレスで写す
     relay = translated(language, "同じPC・同じLANの相手と直接つなぎます（協力ノードの中継も使えます）。", "P2pWindow")
+    prepare(a, name_a, 0)
+    sample = p2p_nodes.node_sample(call, a, out_dir, SAMPLE_NODE)
     connect_text = connect_with_node(a, name_a, 0, node)
-    wait_until("relay reserved", lambda: text_of(a, "p2pRouteInfo") == relay, 90)
+    wait_until("relay reserved", lambda: route(a) == relay, 90)
     time.sleep(1)
     shot(a, out_dir, "p2p-lan-node-connected.png")
+    p2p_nodes.paste_node_sample(call, a, os.path.join(out_dir, "p2p-lan-node-connected.png"), sample)
     disconnect(a, connect_text)
 
     # 「インターネット」では、LAN のアドレスの協力ノードは使われず、招待文字列に接続先が入らない
@@ -338,13 +369,13 @@ def lan(language, out_dir, node):
 
 
 def select_peer(name, row=0):
-    """「相手の管理」の表の行を選ぶ"""
+    """「相手」タブの表の行を選ぶ"""
     call(name, "widget.clickCell", {"target": WINDOW, "widget": "p2pPeerTable", "row": row, "column": 1})
     time.sleep(0.3)
 
 
 def friends(language, out_dir, node):
-    """友だち一覧の画像を撮る: 1局指して互いを「相手の管理」に並べ、友だちにして、片方が在席を知らせる"""
+    """友だち一覧の画像を撮る: 1局指して互いを「相手」タブに並べ、友だちにして、片方が在席を知らせる"""
     os.makedirs(out_dir, exist_ok=True)
     tag = language.replace("_", "").lower()
     a, b = f"{tag}A", f"{tag}B"
@@ -355,7 +386,7 @@ def friends(language, out_dir, node):
     connect_with_node(b, name_b, 0, node)
     time.sleep(3)
 
-    # 招待で1局始め、合意の引き分けで終える（対局した相手が「相手の管理」に並ぶ）
+    # 招待で1局始め、合意の引き分けで終える（対局した相手が「相手」タブに並ぶ）
     create_invite(b)
     inspect(a, invite_code(b), lines=2)
     click(a, "p2pConnectInvite")
@@ -386,7 +417,7 @@ def friends(language, out_dir, node):
         time.sleep(0.3)
     set_value(b, "p2pTabs", TAB_PEERS)
     set_value(b, "p2pSharePresence", True)
-    # a の「相手の管理」に「オンライン」と出るまで、開き直して調べ直す
+    # a の「相手」タブに「オンライン」と出るまで、開き直して調べ直す
     online = translated(language, "オンライン", "P2pPeersPanel")
     select_peer(a)
     click(a, "p2pPeerVerified")

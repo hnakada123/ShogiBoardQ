@@ -28,6 +28,9 @@ case ${1:-} in
             -v "$REPO:/repo:ro" -v "$WORK:/work" \
             -e SBQ_BUILD="${SBQ_BUILD:-build-p2p-docs}" \
             archlinux:latest sleep infinity > /dev/null
+        # 前に使った作業フォルダは、down がホストの利用者の持ち物に戻している。コンテナの中の利用者（root）の
+        # 持ち物に戻す（協力ノードは、ほかの利用者の持ち物の識別鍵を使わない）
+        docker exec "$NAME" chown -R 0:0 /work
         docker exec "$NAME" "$INSIDE" up
         ;;
     down)
