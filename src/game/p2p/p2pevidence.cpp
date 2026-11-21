@@ -21,10 +21,7 @@ CborValue Evidence::toCbor() const
 {
     std::vector<CborValue> stateItems;
     stateItems.reserve(states.size());
-    for (const SignedState& s : states) {
-        stateItems.push_back(CborValue::array(
-            {s.state.toCbor(), CborValue::bytes(s.blackApproval), CborValue::bytes(s.whiteApproval)}));
-    }
+    for (const SignedState& s : states) stateItems.push_back(s.toCbor());
     return CborValue::array({
         CborValue::text("SBQ-MATCH"),
         CborValue::uint(1),
@@ -72,14 +69,9 @@ std::optional<Evidence> Evidence::decode(QByteArrayView bytes, QString* error)
     if (!r.ok()) return fail(QStringLiteral("too many states"));
     e.states.reserve(stateItems.size());
     for (const CborValue& item : stateItems) {
-        CborReader sr(item, nullptr, 3);
-        const std::optional<GameState> state = GameState::fromCbor(sr.item(0));
-        SignedState s;
-        s.blackApproval = signatureField(sr, 1);
-        s.whiteApproval = signatureField(sr, 2);
-        if (!sr.ok() || !state) return fail(QStringLiteral("invalid state %1").arg(e.states.size()));
-        s.state = *state;
-        e.states.push_back(std::move(s));
+        std::optional<SignedState> s = SignedState::fromCbor(item, SignedState::Approvals::Optional);
+        if (!s) return fail(QStringLiteral("invalid state %1").arg(e.states.size()));
+        e.states.push_back(std::move(*s));
     }
 
     const CborValue& resultItem = r.item(9);

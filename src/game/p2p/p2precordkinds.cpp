@@ -37,8 +37,11 @@ CborValue startSignature(quint8 side, const QByteArray& signature)
 
 CborValue state(const SignedState& s)
 {
-    return CborValue::array({CborValue::text(kState), s.state.toCbor(), CborValue::bytes(s.blackApproval),
-                             CborValue::bytes(s.whiteApproval)});
+    // 件の種類の語の後に、証跡と同じ [State, blackApproval, whiteApproval] の3つの欄を並べる
+    const CborValue fields = s.toCbor();
+    std::vector<CborValue> items{CborValue::text(kState)};
+    items.insert(items.end(), fields.items().begin(), fields.items().end());
+    return CborValue::array(std::move(items));
 }
 
 CborValue resultDigest(const FinalResult& result)
@@ -93,16 +96,17 @@ std::optional<JournalReplay> replay(const std::vector<CborValue>& records)
             continue;
         } else if (kind == kStartSignature && items.size() == 3 && items[1].isUInt() && items[2].isBytes()) {
             (items[1].toUInt() == kSideBlack ? e.blackStartSignature : e.whiteStartSignature) = items[2].data();
-        } else if (kind == kState && items.size() == 4 && items[2].isBytes() && items[3].isBytes()) {
-            const std::optional<GameState> state = GameState::fromCbor(items[1]);
-            if (!state) continue;
-            const SignedState s{*state, items[2].data(), items[3].data()};
+        } else if (kind == kState && items.size() == 4) {
+            const std::optional<SignedState> s = SignedState::fromCbor(CborValue::array({items[1], items[2], items[3]}),
+                                                                       SignedState::Approvals::Optional);
+            if (!s) continue;
+            const quint32 ply = s->state.ply;
             // 同じ手数の記録は新しいもの（署名が足されたもの）で置き換える
-            if (state->ply < e.states.size()) {
-                e.states[state->ply] = s;
-                e.states.resize(state->ply + 1);
-            } else if (state->ply == e.states.size()) {
-                e.states.push_back(s);
+            if (ply < e.states.size()) {
+                e.states[ply] = *s;
+                e.states.resize(ply + 1);
+            } else if (ply == e.states.size()) {
+                e.states.push_back(*s);
             }
         } else if (kind == kResult && items.size() == 3) {
             e.result = FinalResult::fromCbor(items[2]);

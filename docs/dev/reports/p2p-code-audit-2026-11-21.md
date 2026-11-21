@@ -167,7 +167,7 @@
 | S3 | 友だちの変更の知らせ | `P2pKnownPeers` に変更の知らせがなく、「相手」タブが `reloadFriends()` を3か所で呼ぶ（`p2ppeerspanel.cpp` の `onToggleFriend`・`onToggleBlocked`・`onRemove`） | 記録の側から知らせる | 未 |
 | S4 | 先後の表し方 | 純粋層に bool（`iAmBlack`）・`quint8`（`kSideBlack`）・`Turn` の3通りがあり、`iAmBlack ?` の三項が `Match` と `Negotiation` で32行ある | `SignedState::approval(Turn)`・`GameState::mainMs(Turn)` を足し、1/2 への変換を `p2pframes` だけにする | 一部（`Match` の中の先後の取り出しを `myApproval`・`myMainMs`・`opponentMainMs`・`opponentSide` に寄せた。`SignedState`・`GameState` への補助は未） |
 | S5 | 交渉から対局への引き継ぎ | 同じ10項目を司令塔（`p2pgamecoordinator.cpp:184-194`）と試験が写している | `Negotiation` に `MatchSetup` を作る関数を置く | 済（5fa33d65。`Negotiation::matchSetup()`） |
-| S6 | 状態と両署名の組の読み書き | `p2pframes.cpp`・`p2pevidence.cpp`・`p2precordkinds.cpp` の3か所にあり、署名の長さの厳しさが3通りある | `SignedState` に読み書きを置く | 未 |
+| S6 | 状態と両署名の組の読み書き | `p2pframes.cpp`・`p2pevidence.cpp`・`p2precordkinds.cpp` の3か所にあり、署名の長さの厳しさが3通りある | `SignedState` に読み書きを置く | 済（コミットは次の項目で書き足す。`SignedState::toCbor`・`fromCbor(value, Approvals)` を `p2pprotocol` に置き、照合・証跡・ジャーナルが使う。ジャーナルの件の形は変えていない。`p2pframes.h` は証跡のヘッダーを読まなくなった） |
 | S7 | `P2pGameUiController` | 知らせの箱の `QPointer` が5つある。`#include` がファイルの途中にある（`p2pgameuicontroller.cpp:41-42`） | 申し出の箱の組を小さなクラスにする | 一部（ファイルの途中の `#include` を直した。箱の組は未） |
 | S8 | ネットワークの名前 | `sbq-local-1`・`sbq-limited-1` が `p2pprotocol.cpp:263`・`p2pconnectionpanel.cpp:29`・`networksettings.h:120` にある | 純粋層の表から引く | 未 |
 | S9 | Rust: 役割の bool | `NodeConfig` の `service`・`relay_only`・`relay_server`・`meet_server` から `!relay_only && !service` のように導いている | `enum Role` にする | 済（56b7151d。`swarm::Role`） |

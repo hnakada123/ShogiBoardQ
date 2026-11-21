@@ -137,6 +137,29 @@ std::optional<GameState> GameState::fromCbor(const CborValue& value)
     return s;
 }
 
+CborValue SignedState::toCbor() const
+{
+    return CborValue::array({state.toCbor(), b(blackApproval), b(whiteApproval)});
+}
+
+std::optional<SignedState> SignedState::fromCbor(const CborValue& value, Approvals approvals)
+{
+    CborReader r(value, nullptr, 3);
+    const std::optional<GameState> state = GameState::fromCbor(r.item(0));
+    const auto approval = [&r, approvals](std::size_t index) {
+        if (approvals == Approvals::Both) return r.bytes(index, kSignatureSize);
+        const QByteArray signature = r.bytesUpTo(index, kSignatureSize);
+        if (!signature.isEmpty() && signature.size() != kSignatureSize) r.fail();
+        return signature;
+    };
+    SignedState s;
+    s.blackApproval = approval(1);
+    s.whiteApproval = approval(2);
+    if (!r.ok() || !state) return std::nullopt;
+    s.state = *state;
+    return s;
+}
+
 QByteArray transcriptHash(const QByteArray& gameId, const std::vector<GameState>& states)
 {
     std::vector<CborValue> items;

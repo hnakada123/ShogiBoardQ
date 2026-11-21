@@ -135,6 +135,23 @@ struct GameState {
     friend bool operator!=(const GameState& a, const GameState& b) { return !(a == b); }
 };
 
+/// 状態と、両方の一局用鍵による承認の署名（まだない署名は空）
+struct SignedState {
+    GameState state;
+    QByteArray blackApproval;
+    QByteArray whiteApproval;
+
+    /// 読むときに求める承認
+    enum class Approvals {
+        Both,      ///< 両方とも 64 バイト（再接続の照合で受け取る、双方が承認した状態）
+        Optional,  ///< それぞれ 64 バイトか、まだない承認の空（証跡・ジャーナル）
+    };
+
+    /// [State, blackApproval, whiteApproval]（再接続の照合の SYNC_CHUNK と証跡で共通の形）
+    CborValue toCbor() const;
+    static std::optional<SignedState> fromCbor(const CborValue& value, Approvals approvals);
+};
+
 /// H(CBOR(Transcript))
 QByteArray transcriptHash(const QByteArray& gameId, const std::vector<GameState>& states);
 

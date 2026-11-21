@@ -14,6 +14,7 @@
 #include "p2pevidenceverifier.h"
 #include "p2pframes.h"
 #include "p2pfriend.h"
+#include "p2precordkinds.h"
 #include "matchverificationservice.h"
 #include "p2pbuildexpiry.h"
 #include "peeripc.h"
@@ -824,6 +825,34 @@ private slots:
         QVERIFY(maxPly);
         QCOMPARE(maxPly->cause, Cause::MaxPly);
         QVERIFY(!GameRules::nextState(last, UsiMove::fromString(u"7g7f"), 0, terms));
+    }
+
+    /// 状態と両署名の組は1つの形 [State, 先手の承認, 後手の承認] で読み書きする。承認の厳しさは用途で選ぶ: 再接続の
+    /// 照合は両方とも 64 バイト、証跡とジャーナルは 64 バイトか、まだない承認の空（監査 2026-11-21 S6）
+    void signedStateApprovals()
+    {
+        const P2pTest::Player black;
+        const P2pTest::Player white;
+        const std::vector<SignedState> states =
+            P2pTest::playMoves(zeroHash(), TimeControlTerms{}, {QStringLiteral("7g7f")}, black, white);
+        SignedState s = states.back();
+        for (const SignedState::Approvals approvals : {SignedState::Approvals::Both, SignedState::Approvals::Optional}) {
+            const std::optional<SignedState> read = SignedState::fromCbor(s.toCbor(), approvals);
+            QVERIFY(read);
+            QCOMPARE(read->toCbor(), s.toCbor());
+        }
+        SignedState oneSided = s;
+        oneSided.whiteApproval.clear();
+        QVERIFY(!SignedState::fromCbor(oneSided.toCbor(), SignedState::Approvals::Both));
+        QVERIFY(SignedState::fromCbor(oneSided.toCbor(), SignedState::Approvals::Optional));
+        SignedState shortSignature = s;
+        shortSignature.blackApproval.chop(1);
+        QVERIFY(!SignedState::fromCbor(shortSignature.toCbor(), SignedState::Approvals::Both));
+        QVERIFY(!SignedState::fromCbor(shortSignature.toCbor(), SignedState::Approvals::Optional));
+        // ジャーナルの件は、種類の語の後に同じ3つの欄を並べ、同じ規則で読み戻す
+        const CborValue record = RecordKinds::state(oneSided);
+        QCOMPARE(record.items().size(), std::size_t(4));
+        QCOMPARE(record.items()[1], oneSided.state.toCbor());
     }
 
     // ------------------------------------------------------------ 証跡

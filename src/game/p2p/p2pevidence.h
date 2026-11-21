@@ -15,13 +15,6 @@
 
 namespace P2p {
 
-/// 状態と、両方の一局用鍵による承認の署名（まだない署名は空）
-struct SignedState {
-    GameState state;
-    QByteArray blackApproval;
-    QByteArray whiteApproval;
-};
-
 /**
  * @brief 証跡（開始合意・条件・全状態と両署名・最終結果とその署名）
  *

@@ -11,7 +11,6 @@
 #include <optional>
 #include <vector>
 
-#include "p2pevidence.h"
 #include "p2pprotocol.h"
 
 namespace P2p {

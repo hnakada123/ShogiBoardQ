@@ -281,9 +281,7 @@ CborValue SyncChunkPayload::toCbor() const
 {
     std::vector<CborValue> items;
     items.reserve(states.size());
-    for (const SignedState& s : states) {
-        items.push_back(CborValue::array({s.state.toCbor(), b(s.blackApproval), b(s.whiteApproval)}));
-    }
+    for (const SignedState& s : states) items.push_back(s.toCbor());
     return CborValue::array({CborValue::array(std::move(items)), u(final ? 1 : 0)});
 }
 
@@ -296,14 +294,10 @@ std::optional<SyncChunkPayload> SyncChunkPayload::fromCbor(const CborValue& valu
     SyncChunkPayload p;
     p.final = final == 1;
     for (const CborValue& item : items) {
-        CborReader sr(item, nullptr, 3);
-        const std::optional<GameState> state = GameState::fromCbor(sr.item(0));
-        SignedState s;
-        s.blackApproval = sr.bytes(1, kSignatureSize);
-        s.whiteApproval = sr.bytes(2, kSignatureSize);
-        if (!sr.ok() || !state) return std::nullopt;
-        s.state = *state;
-        p.states.push_back(std::move(s));
+        // 照合で送るのは、双方が承認した状態だけ
+        std::optional<SignedState> s = SignedState::fromCbor(item, SignedState::Approvals::Both);
+        if (!s) return std::nullopt;
+        p.states.push_back(std::move(*s));
     }
     return p;
 }
