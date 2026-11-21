@@ -111,7 +111,7 @@
                     <li><strong>到達性の確認</strong>：インターネットから見たこのPCのアドレスと、外からそこへ届くかを確かめてもらいます。届くなら、そのアドレスを招待文字列に入れ、相手と直接つなぎます。</li>
                     <li><strong>中継</strong>：協力ノードに中継の席を取っておき、協力ノードを経由する宛先も招待文字列に入れます。外から直接届かないとき（家庭の回線の多くはこちらです）は、相手はこの宛先で協力ノードを通ってつながります。</li>
                 </ul>
-                <p class="guide-step-text">協力ノードを入れずに「インターネット」で接続すると、招待文字列に宛先が1つも入らず、相手は接続できません。</p>
+                <p class="guide-step-text">協力ノードを登録せずに「インターネット」で接続すると、招待文字列に宛先が1つも入らず、相手は接続できません。</p>
             </div>
 
             <div class="guide-step">
@@ -147,7 +147,7 @@
                 </div>
                 <ul class="guide-step-text">
                     <li><strong>1つで足ります</strong>：対局する2人に要る協力ノードは、合わせて1つです。2人がそれぞれ起動する必要はありません。</li>
-                    <li><strong>2人とも同じアドレスを入れる</strong>：起動した人がアドレスを教え、2人とも「設定」タブの「接続候補」に入れます。招待する人が入れていないと、招待文字列に接続先が入りません。「直接接続を使わない」にする人は、相手と同じ協力ノードを入れている必要があります。</li>
+                    <li><strong>2人とも同じアドレスを登録する</strong>：起動した人がアドレスを教え、2人とも「接続」タブの「協力ノード」に登録します。招待する人が登録していないと、招待文字列に接続先が入りません。「協力ノードの中継だけを使う」を選ぶ人は、相手と同じ協力ノードを登録している必要があります。</li>
                     <li><strong>いくつもの組で使える</strong>：1つの協力ノードを、何組もの対局者で使えます（中継の席は、同時に128人分まで）。</li>
                     <li><strong>アプリには入っていない</strong>：アプリには協力ノードのアドレスが入っていないので、対局する人たちで用意します。</li>
                 </ul>
@@ -220,7 +220,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                         <tr><td><strong><code>--service</code></strong></td><td>協力ノードとして動かします。</td></tr>
                         <tr><td><strong><code>--relay</code></strong></td><td>中継を受け持ちます。家庭の回線どうしの対局には、ほとんどの場合要ります。</td></tr>
                         <tr><td><strong><code>--meet</code></strong></td><td>合言葉の待ち合わせを受け持ちます。付けると、「インターネット」の招待でも、口頭で伝えられる10文字の合言葉ができます。協力ノードは、暗号化された招待を10分まで預かるだけで、中身は読めません。友だち一覧（在席の知らせ）にも使います。</td></tr>
-                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>インターネット越しの対局のネットワークです。アプリの「インターネット」は、この名前のネットワークに参加します。アプリの「ローカル」で使う協力ノードは、<code>sbq-local-1</code> で起動します（<a href="#lan-test">LANの中で試す</a>）。</td></tr>
+                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>インターネット越しの対局のネットワークです。アプリの「インターネット」は、この名前のネットワークに参加します。アプリの「同じPC・同じLAN」で使う協力ノードは、<code>sbq-local-1</code> で起動します（<a href="#lan-test">LANの中で試す</a>）。</td></tr>
                         <tr><td><strong><code>--identity &lt;ファイル&gt;</code></strong></td><td>協力ノードの識別鍵のファイルです。無ければ作ります（持ち主だけが読み書きできる権限）。同じファイルを使い続ければ PeerId は変わりません。消すと PeerId が変わり、アドレスを伝え直すことになります。</td></tr>
                         <tr><td><strong><code>--listen &lt;アドレス&gt;</code></strong></td><td>待ち受けるアドレスとポートです。<code>0.0.0.0</code> は、すべてのネットワークの口で待ちます。ポートは 4001 でなくてもかまいません。</td></tr>
                     </tbody>
@@ -252,7 +252,7 @@ $ sudo ufw allow 4001/tcp</code></pre></div>
                 <div class="build-steps"><pre><code>/ip4/&lt;サーバーのグローバルIPアドレス&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
                 <p class="guide-step-text">IP アドレスで書きます（ドメイン名は使えません）。このアドレスを、対局する人たちに伝えます。</p>
                 <p class="guide-step-text">「インターネット」で使えるのは、インターネット上の IP アドレス（グローバル IP アドレス）だけです。<code>192.168.…</code>・<code>10.…</code>・<code>172.16.…</code>〜<code>172.31.…</code> のようなLANの中のアドレスや <code>127.0.0.1</code> を入れても、その行は使われません（画面に知らせは出ません）。LANの中のアドレスで試す方法は、<a href="#lan-test">LANの中で試す</a>にあります。</p>
-                <p class="guide-step-text">動いているかは、アプリで確かめられます。「接続候補」に入れて「インターネット」で接続し、「つながっているピア」が 1 以上になり、「招待の経路」に「協力ノードの中継を通ります（…）。」か「直接つなぎます（協力ノードの中継も使えます）。」と出れば、協力ノードと中継を使えています。</p>
+                <p class="guide-step-text">動いているかは、アプリで確かめられます。「接続」タブの「協力ノード」に登録して「インターネット」で接続し、上の帯の「つながっているピア」が 1 以上になり、「招待の経路」に「協力ノードの中継を通ります（…）。」か「直接つなぎます（協力ノードの中継も使えます）。」と出れば、協力ノードと中継を使えています。</p>
             </div>
 
             <div class="guide-step">
@@ -287,20 +287,20 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
 <section id="prepare" class="section">
     <div class="section-inner">
         <h2 class="section-title">対局する2人の準備</h2>
-        <p class="section-desc">2人とも同じ協力ノードを入れて、「インターネット」で接続します</p>
+        <p class="section-desc">2人とも同じ協力ノードを登録して、「インターネット」で接続します</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">「接続候補」に協力ノードを入れる</span>
+                    <span class="guide-step-title">「接続」タブで協力ノードを登録する</span>
                 </div>
                 <p class="guide-step-text">初めてのときは、プレイヤー鍵を作り、表示名を入れます（<a href="p2p-game.html#prepare">準備</a>）。</p>
-                <p class="guide-step-text">「設定」タブの「接続候補」に、教えてもらった協力ノードのアドレスを1行に1つ入れます（16件まで）。いくつか入れておくと、1つが止まっていても、ほかの協力ノードを使えます。「接続候補」は、次に接続したときから使います（接続中に変えたときは、切断してから接続し直します）。</p>
+                <p class="guide-step-text">「接続」タブの「相手のいる場所」で「インターネット」を選ぶと、「協力ノード」の欄が出ます。「追加…」を押して、教えてもらった協力ノードのアドレスを入力します（コピーしてあれば、「クリップボードから貼り付け」でも足せます。16件まで）。いくつか登録しておくと、1つが止まっていても、ほかの協力ノードを使えます。協力ノードは、接続している間は変えられません（変えるときは、「切断」を押します）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-internet-settings.png"><img src="../images/p2p-game/p2p-internet-settings.png" alt="「接続候補」に協力ノードのアドレスを入れた「設定」タブ" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">「設定」タブ：「接続候補」に協力ノードを入れたところ（アドレスの一部は伏せています）</p>
+                    <a href="../images/p2p-game/p2p-internet-settings.png"><img src="../images/p2p-game/p2p-internet-settings.png" alt="「インターネット」を選び、協力ノードのアドレスを登録した「接続」タブ。下に、この設定で対局できる相手・招待の形・IPアドレスが見える人が出ている" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「接続」タブ：「インターネット」を選び、協力ノードを登録したところ（アドレスの一部は伏せています）</p>
                 </div>
             </div>
 
@@ -309,15 +309,15 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">「インターネット」で接続する</span>
                 </div>
-                <p class="guide-step-text">「接続と条件」タブで「ネットワーク」を「インターネット」にして「接続」を押します。協力ノードにつながり、中継の予約が取れると、「招待の経路」に「協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。」と出ます。予約が取れるまで、少し時間がかかることがあります。</p>
+                <p class="guide-step-text">ウィンドウの上の「接続」を押します。協力ノードにつながり、中継の予約が取れると、上の帯の「招待の経路」に「協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。」と出ます。予約が取れるまで、少し時間がかかることがあります。「協力ノード」の欄のボタンの横には、中継と、合言葉・友だち一覧を使えるかが出ます。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-internet-connected.png"><img src="../images/p2p-game/p2p-internet-connected.png" alt="「インターネット」で接続し、招待の経路に協力ノードの中継を通ると出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
+                    <a href="../images/p2p-game/p2p-internet-connected.png"><img src="../images/p2p-game/p2p-internet-connected.png" alt="「インターネット」で接続し、上の帯の招待の経路に、協力ノードの中継を通ると出た「接続」タブ" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">協力ノードにつながったところ</p>
                 </div>
-                <p class="guide-step-text">協力ノードを入れずに接続すると、どこにもつながらず（「つながっているピア: 0」）、「招待の経路」に「外から届く接続先がまだありません。…」と出ます。この状態で招待文字列を作っても接続先が入らず、「招待を作る」の下に「この招待文字列には接続先が入っていないので、相手は接続できません。…」と出ます。「接続候補」に入れたのがLANの中のアドレスだけのときも、同じ状態になります（<a href="#lan-test">LANの中で試す</a>）。</p>
+                <p class="guide-step-text">協力ノードを登録していない間は、「接続」タブの下に「このままでは、相手は接続できません」と出ます。そのまま接続しても、どこにもつながらず（「つながっているピア: 0」）、「招待の経路」に「外から届く接続先がまだありません。…」と出ます。この状態で招待文字列を作っても接続先が入らず、「この招待文字列には接続先が入っていないので、相手は接続できません。…」と出ます。登録したのがLANの中のアドレスだけのときも、接続すると同じ状態になります（<a href="#lan-test">LANの中で試す</a>）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-internet-no-node.png"><img src="../images/p2p-game/p2p-internet-no-node.png" alt="協力ノードを入れずに「インターネット」で接続し、外から届く接続先がまだないと出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">協力ノードを入れずに接続したところ</p>
+                    <a href="../images/p2p-game/p2p-internet-no-node.png"><img src="../images/p2p-game/p2p-internet-no-node.png" alt="「インターネット」を選び、協力ノードを登録していない「接続」タブ。このままでは相手は接続できないことと、直し方が出ている" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">協力ノードを登録していないとき</p>
                 </div>
             </div>
 
@@ -338,13 +338,13 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">合言葉か招待文字列で接続する</span>
                 </div>
-                <p class="guide-step-text">招待する人が「招待で接続」タブの「招待を作る」を押すと、招待文字列ができます。協力ノードを <code>--meet</code> を付けて起動していれば、10文字の合言葉（<code>J6HB7-H6NWR</code> の形）も大きな字で出ます。合言葉は口頭や電話で、招待文字列はメッセージなど相手だけに届く方法で伝えます。相手は、合言葉を入力するか招待文字列を貼り付けて、「確かめる」を押します。「到達候補: N 件（使える候補 N 件）」の使える候補が1件以上あれば、「接続する」で接続できます。使える候補が 0 件のときは、「接続する」を押せません（<a href="#trouble">つながらないとき</a>）。その後の条件確認画面と対局は、<a href="p2p-direct.html#steps">協力ノードなしの対局</a>と同じです。</p>
-                <p class="guide-step-text">この合言葉には、接続先が入っていません。招待は、暗号化して協力ノードに10分まで預けてあり、相手のアプリが合言葉で受け取ります（協力ノードには、中身が読めません）。同じLANの「ローカル」の合言葉（12文字ほど）とは形が違い、アプリが見分けます。合言葉と招待文字列は同じ1つの招待なので、使えるのはどちらか一方で1回だけです。</p>
+                <p class="guide-step-text">招待する人が「招待」タブの「招待を作る」を押すと、招待文字列ができます。協力ノードを <code>--meet</code> を付けて起動していれば、10文字の合言葉（<code>J6HB7-H6NWR</code> の形）も大きな字で出ます。合言葉は口頭や電話で、招待文字列はメッセージなど相手だけに届く方法で伝えます。相手は、合言葉を入力するか招待文字列を貼り付けて、「確かめる」を押します。「到達候補: N 件（使える候補 N 件）」の使える候補が1件以上あれば、「接続する」で接続できます。使える候補が 0 件のときは、「接続する」を押せません（<a href="#trouble">つながらないとき</a>）。その後の条件確認画面と対局は、<a href="p2p-direct.html#steps">協力ノードなしの対局</a>と同じです。</p>
+                <p class="guide-step-text">この合言葉には、接続先が入っていません。招待は、暗号化して協力ノードに10分まで預けてあり、相手のアプリが合言葉で受け取ります（協力ノードには、中身が読めません）。「同じPC・同じLAN」の合言葉（12文字ほど）とは形が違い、アプリが見分けます。合言葉と招待文字列は同じ1つの招待なので、使えるのはどちらか一方で1回だけです。</p>
                 <p class="guide-step-text">招待文字列には、協力ノードを経由する宛先が入ります（外から直接届くPCなら、そのPCの IP アドレスも入ります）。公開の場所に貼らないでください。</p>
                 <p class="guide-step-text">「到達候補」は招待文字列に入っている接続先の数（8件まで）で、「使える候補」は、そのうち、あなたのアプリの設定でつなげる接続先の数です。どちらの数も、招待した人のPCと協力ノードのアドレスの数で変わります。</p>
                 <p class="guide-step-text">1つの招待文字列でつなげるのは1人・1回だけで、10分で使えなくなります。同時に有効にできるのは4つまでで、指せるのは一度に1局です（詳しくは<a href="p2p-direct.html#invite-rules">招待できる人数と回数</a>）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-internet-invite.png"><img src="../images/p2p-game/p2p-internet-invite.png" alt="受け取った合言葉を確かめ、招待した相手の PeerId・期限・到達候補の数が出た「招待で接続」タブ" width="900" height="790" loading="lazy"></a>
+                    <a href="../images/p2p-game/p2p-internet-invite.png"><img src="../images/p2p-game/p2p-internet-invite.png" alt="受け取った合言葉を確かめ、招待した相手の PeerId・期限・到達候補の数が出た「招待」タブ" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">招待された人：受け取った合言葉を確かめたところ</p>
                 </div>
             </div>
@@ -355,7 +355,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-title">経路：中継と直接</span>
                 </div>
                 <p class="guide-step-text">相手は、まず協力ノードの中継を通ってつながります。つながるとすぐ、双方のアプリが、それぞれのルーターを通り抜けて直接つなげないかを試します（ホールパンチング）。3秒までの間に直接つなげれば、中継の接続を閉じて、条件の確認と対局を直接の接続で行います（「対局中」タブの「経路」は「直接」）。つなげなければ、中継の接続のまま進めます（「経路」は「中継」）。直接つなげるかを確かめる間、招待された人の画面は「接続しています…」のままです。</p>
-                <p class="guide-step-text">「経路」が「直接」になる場合も、協力ノードは要ります。外から直接届くPCは、招待文字列に入れるアドレスを確かめるのに協力ノードを使い、そうでないPCは、最初の接続の中継と、直接つなぐための仲立ちに使います。「直接接続を使わない」にしていなくても同じです。「直接」で指している間は、指し手は協力ノードを通りません。</p>
+                <p class="guide-step-text">「経路」が「直接」になる場合も、協力ノードは要ります。外から直接届くPCは、招待文字列に入れるアドレスを確かめるのに協力ノードを使い、そうでないPCは、最初の接続の中継と、直接つなぐための仲立ちに使います。「協力ノードの中継だけを使う」を選んでいなくても同じです。「直接」で指している間は、指し手は協力ノードを通りません。</p>
                 <p class="guide-step-text">接続ごとに送り元のポートを変えるルーターや、携帯電話の回線のように何段も変換を重ねる回線では、直接つなげず、「中継」のまま対局します。中継でも対局はできますが、指し手は協力ノードを回って届くので、少し遅れることがあります。ShogiBoardQ の協力ノードは中継1本を30分で切るので、長い対局では途中で自動のつなぎ直し（「再接続中」）が入ることがあります。つなぎ直すときにも、直接つなげないかをもう一度試します。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../images/p2p-game/p2p-internet-relay.png"><img src="../images/p2p-game/p2p-internet-relay.png" alt="経路が中継の「対局中」タブ" width="900" height="790" loading="lazy"></a>
@@ -376,7 +376,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
 <section id="relay-only" class="section">
     <div class="section-inner">
         <h2 class="section-title">相手に IP アドレスを見せずに対局する</h2>
-        <p class="section-desc">「直接接続を使わない」にすると、相手には協力ノードのアドレスだけが見えます</p>
+        <p class="section-desc">「協力ノードの中継だけを使う」を選ぶと、相手には協力ノードのアドレスだけが見えます</p>
 
         <div class="screenshot-gallery">
 
@@ -391,13 +391,13 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">「直接接続を使わない」にする</span>
+                    <span class="guide-step-title">「協力ノードの中継だけを使う」を選ぶ</span>
                 </div>
-                <p class="guide-step-text">「設定」タブで「直接接続を使わない」にチェックを付けると、相手とは必ず協力ノードの中継を通してつなぎ、招待文字列にも協力ノードを経由する宛先だけを入れます。相手に見えるのは協力ノードのアドレスだけになり、あなたの IP アドレスが見えるのは、「接続候補」に入れた協力ノードの運営者だけになります。インターネット上の、よく知らない相手と指すときに使います。</p>
-                <p class="guide-step-text">チェックの有無で変わることは、次のとおりです。</p>
+                <p class="guide-step-text">「接続」タブの「相手とのつなぎ方」で「協力ノードの中継だけを使う」を選ぶと、相手とは必ず協力ノードの中継を通してつなぎ、招待文字列にも協力ノードを経由する宛先だけを入れます。相手に見えるのは協力ノードのアドレスだけになり、あなたの IP アドレスが見えるのは、登録した協力ノードの運営者だけになります。インターネット上の、よく知らない相手と指すときに使います。</p>
+                <p class="guide-step-text">2つの選択肢の違いは、次のとおりです（画面でも、どちらの枠にも「経路」「相手に伝わる」「要るもの」が出ます）。</p>
                 <table class="info-table">
                     <thead>
-                        <tr><th scope="col">変わること</th><th scope="col">チェックなし</th><th scope="col">チェックあり</th></tr>
+                        <tr><th scope="col">変わること</th><th scope="col">直接つなぐ（既定）</th><th scope="col">協力ノードの中継だけを使う</th></tr>
                     </thead>
                     <tbody>
                         <tr><td><strong>招待文字列に入る接続先</strong></td><td>協力ノードを経由する宛先（外から直接届くPCなら、そのPCの IP アドレスも）</td><td>協力ノードを経由する宛先だけ</td></tr>
@@ -408,14 +408,14 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                 </table>
                 <p class="guide-step-text">どちらの場合も、協力ノードは要ります。この設定で変わるのは、協力ノードを使うかどうかではなく、相手と直接つなぐかどうかです。</p>
                 <ul class="guide-step-text">
-                    <li><strong>協力ノードが要ります</strong>：「接続候補」に、中継のできる協力ノードを入れてください。入っていないと、「招待の経路」に「中継を使えません。…」と出て、招待しても相手は接続できません。</li>
-                    <li><strong>相手と同じ協力ノード</strong>：この設定で、受け取った招待文字列で接続するときは、あなたが入れた協力ノードを通る宛先にしかつなぎません。招待した相手も同じ協力ノードを「接続候補」に入れている必要があります（違うと「この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。…」と出ます）。</li>
+                    <li><strong>協力ノードが要ります</strong>：中継のできる協力ノードを登録してください。登録していないと、「接続」タブに「このままでは、中継を使えません」と出ます。そのまま接続すると、「招待の経路」に「中継を使えません。…」と出て、招待しても相手は接続できません。</li>
+                    <li><strong>相手と同じ協力ノード</strong>：この設定で、受け取った招待文字列で接続するときは、あなたが登録した協力ノードを通る宛先にしかつなぎません。招待した相手も同じ協力ノードを登録している必要があります（違うと「この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。…」と出ます）。</li>
                     <li><strong>ずっと中継</strong>：直接の接続を試さないので、対局の間ずっと「経路」は「中継」です。指し手は協力ノードを回って届くので、直接つなぐより少し遅れることがあり、長い対局では途中で自動のつなぎ直し（「再接続中」）が入ることがあります。</li>
                 </ul>
-                <p class="guide-step-text">この設定は、次に接続したときから使います。接続すると、「招待の経路」に「協力ノードの中継だけを通ります（直接接続を使わない設定）。」と出ます。</p>
+                <p class="guide-step-text">つなぎ方は、接続している間は変えられません（「切断」を押してから選びます）。この設定で接続すると、「招待の経路」に「協力ノードの中継だけを通ります（直接はつなぎません）。」と出ます。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-internet-relay-only.png"><img src="../images/p2p-game/p2p-internet-relay-only.png" alt="直接接続を使わない設定で接続し、協力ノードの中継だけを通ると出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">「直接接続を使わない」で接続したところ</p>
+                    <a href="../images/p2p-game/p2p-internet-relay-only.png"><img src="../images/p2p-game/p2p-internet-relay-only.png" alt="「協力ノードの中継だけを使う」を選んで接続し、上の帯の招待の経路に、協力ノードの中継だけを通ると出た「接続」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「協力ノードの中継だけを使う」で接続したところ</p>
                 </div>
             </div>
 
@@ -436,44 +436,44 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">「インターネット」では、LANの中の協力ノードを使えない</span>
                 </div>
-                <p class="guide-step-text">「インターネット」では、アプリはインターネット上のアドレスにしかつなぎません。協力ノードを自分のPCや同じLANのPCで起動し、「接続候補」にLANの中のアドレス（<code>/ip4/192.168.10.16/tcp/4001/p2p/…</code> など）を入れても、その行は使われず、協力ノードを入れていないときと同じになります。</p>
+                <p class="guide-step-text">「インターネット」では、アプリはインターネット上のアドレスにしかつなぎません。協力ノードを自分のPCや同じLANのPCで起動し、LANの中のアドレス（<code>/ip4/192.168.10.16/tcp/4001/p2p/…</code> など）を登録しても、その行は使われず、接続すると、協力ノードを登録していないときと同じになります。</p>
                 <ul class="guide-step-text">
-                    <li><strong>招待する人</strong>：「状態」は「接続中（つながっているピア: 0）」のままで、「招待の経路」に「外から届く接続先がまだありません。…」と出ます。招待文字列を作ると、「この招待文字列には接続先が入っていないので、相手は接続できません。…」と出ます。</li>
+                    <li><strong>招待する人</strong>：上の帯は「接続中（つながっているピア: 0）」のままで、「招待の経路」に「外から届く接続先がまだありません。…」と出ます。招待文字列を作ると、「この招待文字列には接続先が入っていないので、相手は接続できません。…」と出ます。</li>
                     <li><strong>招待された人</strong>：招待文字列を貼り付けて「確かめる」を押すと「到達候補: 0 件（使える候補 0 件）」と出て、「接続する」を押せません。</li>
                 </ul>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-internet-lan-address.png"><img src="../images/p2p-game/p2p-internet-lan-address.png" alt="到達候補が 0 件と出て、「接続する」を押せない「招待で接続」タブ" width="900" height="790" loading="lazy"></a>
+                    <a href="../images/p2p-game/p2p-internet-lan-address.png"><img src="../images/p2p-game/p2p-internet-lan-address.png" alt="到達候補が 0 件と出て、「接続する」を押せない「招待」タブ" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">招待された人：接続先の入っていない招待文字列を確かめたところ（「接続する」を押せません）</p>
                 </div>
-                <p class="guide-step-text">同じLANの相手と対局するだけなら、協力ノードは要りません（<a href="p2p-direct.html">協力ノードなしで対局する</a>）。協力ノードの起動、「接続候補」の入れ方、中継を通る対局を、LANの中で試したいときは、次の方法を使います。</p>
+                <p class="guide-step-text">同じLANの相手と対局するだけなら、協力ノードは要りません（<a href="p2p-direct.html">協力ノードなしで対局する</a>）。協力ノードの起動、協力ノードの登録、中継を通る対局を、LANの中で試したいときは、次の方法を使います。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">協力ノードとアプリを「ローカル」にそろえる</span>
+                    <span class="guide-step-title">協力ノードとアプリを「同じPC・同じLAN」にそろえる</span>
                 </div>
                 <p class="guide-step-text">協力ノードを <code>--network sbq-local-1</code> で起動します。ほかのオプションは同じです。</p>
                 <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --meet --network sbq-local-1 \
       --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001</code></pre></div>
-                <p class="guide-step-text">「接続候補」に入れるアドレスは、協力ノードを動かしているPCの、LANの中の IP アドレスで書きます（同じPCで動かすアプリも、このアドレスで使えます）。識別鍵のファイルが同じなら、PeerId は <code>sbq-limited-1</code> で起動したときと同じです。</p>
+                <p class="guide-step-text">登録するアドレスは、協力ノードを動かしているPCの、LANの中の IP アドレスで書きます（同じPCで動かすアプリも、このアドレスで使えます）。識別鍵のファイルが同じなら、PeerId は <code>sbq-limited-1</code> で起動したときと同じです。</p>
                 <div class="build-steps"><pre><code>/ip4/&lt;協力ノードのPCのLANの中のIPアドレス&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
-                <p class="guide-step-text">2人とも、このアドレスを「設定」タブの「接続候補」に入れ、「接続と条件」タブの「ネットワーク」を「ローカル（同じPC・同じLAN）」にして「接続」を押します。「つながっているピア」が 1 になり、「招待の経路」に「同じPC・同じLANの相手と直接つなぎます（協力ノードの中継も使えます）。」と出れば、協力ノードにつながり、中継の予約が取れています。</p>
+                <p class="guide-step-text">2人とも、「接続」タブの「相手のいる場所」を「同じPC・同じLAN」にし、「協力ノード」の「登録する…」を押して欄を開き、このアドレスを登録して、「接続」を押します。上の帯の「つながっているピア」が 1 になり、「招待の経路」に「同じPC・同じLANの相手と直接つなぎます（協力ノードの中継も使えます）。」と出れば、協力ノードにつながり、中継の予約が取れています。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/p2p-game/p2p-lan-node-connected.png"><img src="../images/p2p-game/p2p-lan-node-connected.png" alt="「ローカル」で接続し、招待の経路に協力ノードの中継も使えると出た「接続と条件」タブ" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">「ローカル」で、LANの中の協力ノードにつながったところ</p>
+                    <a href="../images/p2p-game/p2p-lan-node-connected.png"><img src="../images/p2p-game/p2p-lan-node-connected.png" alt="「同じPC・同じLAN」で接続し、上の帯の招待の経路に、協力ノードの中継も使えると出た「接続」タブ" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「同じPC・同じLAN」で、LANの中の協力ノードにつながったところ（アドレスは見本に差し替えています）</p>
                 </div>
-                <p class="guide-step-text">協力ノードの <code>--network</code> は、アプリの「ネットワーク」に合わせます。</p>
+                <p class="guide-step-text">協力ノードの <code>--network</code> は、アプリの「相手のいる場所」に合わせます。</p>
                 <table class="info-table">
                     <thead>
-                        <tr><th scope="col">アプリの「ネットワーク」</th><th scope="col">協力ノードの <code>--network</code></th><th scope="col">「接続候補」に書けるアドレス</th></tr>
+                        <tr><th scope="col">アプリの「相手のいる場所」</th><th scope="col">協力ノードの <code>--network</code></th><th scope="col">登録できるアドレス</th></tr>
                     </thead>
                     <tbody>
                         <tr><td><strong>インターネット</strong></td><td><code>sbq-limited-1</code></td><td>インターネット上のアドレス（グローバル IP アドレス）</td></tr>
-                        <tr><td><strong>ローカル（同じPC・同じLAN）</strong></td><td><code>sbq-local-1</code></td><td>LANの中のアドレス（<code>192.168.…</code> など）</td></tr>
+                        <tr><td><strong>同じPC・同じLAN</strong></td><td><code>sbq-local-1</code></td><td>LANの中のアドレス（<code>192.168.…</code> など）</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">合っていないと、中継を使えません。<code>sbq-limited-1</code> のままの協力ノードに「ローカル」でつなぐと、「つながっているピア」は 1 になりますが、中継の予約が取れず、「招待の経路」は「同じPC・同じLANの相手と直接つなぎます。」のままです。</p>
+                <p class="guide-step-text">合っていないと、中継を使えません。<code>sbq-limited-1</code> のままの協力ノードに「同じPC・同じLAN」でつなぐと、「つながっているピア」は 1 になりますが、中継の予約が取れず、「招待の経路」は「同じPC・同じLANの相手と直接つなぎます。」のままです。</p>
                 <p class="guide-step-text">協力ノードを動かすPCのファイアウォールでは、<code>--listen</code> に書いたポート（TCP の 4001 番）への接続を許可します（<a href="#start">ポートを開ける</a>）。対局する人のPCのポートは、<a href="p2p-direct.html#lan">同じLANの別のPCと対局する</a>をご覧ください。</p>
             </div>
 
@@ -483,15 +483,15 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-title">中継を通る対局を試す</span>
                 </div>
                 <p class="guide-step-text">このまま招待すると、招待文字列にLANの中のアドレスが入り、相手とは直接つながります（「対局中」タブの「経路」は「直接」）。協力ノードの中継は使われません。協力ノードが無いときと同じで、ここまでで確かめられるのは、協力ノードにつながって中継の予約が取れることまでです。</p>
-                <p class="guide-step-text">中継を通る対局を試すには、2人のどちらか（2人ともでもかまいません）が、「設定」タブの「直接接続を使わない」にチェックを付け、切断してから接続し直します。だれも付けなければ「経路」は「直接」、1人でも付ければ「中継」になります。</p>
+                <p class="guide-step-text">中継を通る対局を試すには、2人のどちらか（2人ともでもかまいません）が、「切断」を押してから、「接続」タブの「相手とのつなぎ方」で「協力ノードの中継だけを使う」を選び、接続し直します。だれも選ばなければ「経路」は「直接」、1人でも選べば「中継」になります。</p>
                 <ul class="guide-step-text">
-                    <li>チェックを付けた人の「招待の経路」に「協力ノードの中継だけを通ります（直接接続を使わない設定）。」と出ます。</li>
-                    <li>チェックを付けた人が作る招待文字列には、協力ノードを経由する宛先だけが入ります。</li>
-                    <li>チェックを付けた人が、受け取った招待文字列を確かめると、使えるのは協力ノードを経由する宛先だけになります（招待した人がチェックを付けていなければ、「到達候補: N 件（使える候補 M 件）」の使える候補が、到達候補より少なくなります）。</li>
+                    <li>選んだ人の「招待の経路」に「協力ノードの中継だけを通ります（直接はつなぎません）。」と出ます。</li>
+                    <li>選んだ人が作る招待文字列には、協力ノードを経由する宛先だけが入ります。</li>
+                    <li>選んだ人が、受け取った招待文字列を確かめると、使えるのは協力ノードを経由する宛先だけになります（招待した人が選んでいなければ、「到達候補: N 件（使える候補 M 件）」の使える候補が、到達候補より少なくなります）。</li>
                     <li>「接続する」で接続して対局を始めると、2人とも「対局中」タブの「経路」が「中継」になります。</li>
                 </ul>
-                <p class="guide-step-text">到達候補と使える候補の数は、PCによって変わります。「ローカル」の招待文字列には、招待した人のPCのLANの中のアドレス（ネットワークの口ごとに、UDP と TCP で1つずつ。Docker などの仮想の口も含みます）、協力ノードを経由する宛先（協力ノードを <code>0.0.0.0</code> で待ち受けさせたときは、協力ノードのPCのアドレスごとに1つ）、同じPCの中だけで使えるアドレスが、この順に8件まで入ります。「直接接続を使わない」にした人が使えるのは、このうち協力ノードを経由する宛先だけです。</p>
-                <p class="guide-step-text">LANの中で確かめられるのは、協力ノードの起動、「接続候補」の入れ方、中継を通る招待と対局です。到達性の確認、ルーターを通り抜けて直接つなぐ動き（ホールパンチング）、使用期限は「インターネット」だけのものなので、LANの中では試せません。インターネット越しの対局に使うときは、協力ノードを <code>--network sbq-limited-1</code> で起動し直し、アプリの「ネットワーク」を「インターネット」に戻します。</p>
+                <p class="guide-step-text">到達候補と使える候補の数は、PCによって変わります。「同じPC・同じLAN」の招待文字列には、招待した人のPCのLANの中のアドレス（ネットワークの口ごとに、UDP と TCP で1つずつ。Docker などの仮想の口も含みます）、協力ノードを経由する宛先（協力ノードを <code>0.0.0.0</code> で待ち受けさせたときは、協力ノードのPCのアドレスごとに1つ）、同じPCの中だけで使えるアドレスが、この順に8件まで入ります。「協力ノードの中継だけを使う」を選んだ人が使えるのは、このうち協力ノードを経由する宛先だけです。</p>
+                <p class="guide-step-text">LANの中で確かめられるのは、協力ノードの起動、協力ノードの登録、中継を通る招待と対局です。到達性の確認、ルーターを通り抜けて直接つなぐ動き（ホールパンチング）、使用期限は「インターネット」だけのものなので、LANの中では試せません。インターネット越しの対局に使うときは、協力ノードを <code>--network sbq-limited-1</code> で起動し直し、アプリの「相手のいる場所」を「インターネット」に戻します。</p>
             </div>
 
         </div>
@@ -516,16 +516,16 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                         <tr><th scope="col">出る文・状態</th><th scope="col">確かめること</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>「つながっているピア: 0」のまま</strong></td><td>「接続候補」のアドレスの誤り、協力ノードが止まっている、サーバーのファイアウォールが閉じている、のどれかです。アドレスは IP アドレスで書きます（ドメイン名は使えません）。「インターネット」では、LANの中のアドレス（<code>192.168.…</code> など）を入れた行は使われません（<a href="#lan-test">LANの中で試す</a>）。</td></tr>
+                        <tr><td><strong>「つながっているピア: 0」のまま</strong></td><td>登録した協力ノードのアドレスの誤り、協力ノードが止まっている、サーバーのファイアウォールが閉じている、のどれかです。アドレスは IP アドレスで書きます（ドメイン名は使えません）。「インターネット」では、LANの中のアドレス（<code>192.168.…</code> など）を登録した行は使われません（<a href="#lan-test">LANの中で試す</a>）。</td></tr>
                         <tr><td><strong>「招待の経路」に「外から届く接続先がまだありません。…」</strong></td><td>協力ノードにまだつながっていないか、中継の予約がまだ取れていません。少し待っても変わらなければ、上の行を確かめます。</td></tr>
                         <tr><td><strong>招待文字列を確かめると「到達候補: 0 件（使える候補 0 件）」と出て、「接続する」を押せない</strong></td><td>招待文字列に接続先が入っていません。招待した人のアプリが、協力ノードにつながっていないか、中継の予約がまだ取れていないうちに作った招待文字列です。招待した人に、「招待の経路」が上の行の文のままでないかを確かめてもらい、「協力ノードの中継を通ります（…）。」などに変わってから、招待文字列を作り直してもらいます。</td></tr>
-                        <tr><td><strong>「招待の経路」に「中継を使えません。…」</strong></td><td>「直接接続を使わない」にしていて、中継のできる協力ノードが「接続候補」にありません。協力ノードを <code>--relay</code> を付けて起動しているかも確かめます。</td></tr>
-                        <tr><td><strong>「インターネット」で招待を作っても、合言葉が出ない</strong></td><td>協力ノードを <code>--meet</code> を付けて起動していないか、協力ノードにまだつながっていません。合言葉が出なくても、招待文字列は使えます。</td></tr>
-                        <tr><td><strong>「この合言葉の招待は、協力ノードから受け取ります。…」</strong></td><td>合言葉を入力した人のアプリが、合言葉に対応した協力ノードにつながっていません。招待した人と同じ協力ノードを「接続候補」に入れて、接続し直します。</td></tr>
+                        <tr><td><strong>「招待の経路」に「中継を使えません。…」</strong></td><td>「協力ノードの中継だけを使う」を選んでいて、中継のできる協力ノードを登録していません。協力ノードを <code>--relay</code> を付けて起動しているかも確かめます。</td></tr>
+                        <tr><td><strong>「インターネット」で招待を作っても、合言葉が出ない（「この招待には合言葉が付きません…」と出る）</strong></td><td>協力ノードを <code>--meet</code> を付けて起動していないか、協力ノードにまだつながっていません。合言葉が出なくても、招待文字列は使えます。</td></tr>
+                        <tr><td><strong>「この合言葉の招待は、協力ノードから受け取ります。…」</strong></td><td>合言葉を入力した人のアプリが、合言葉に対応した協力ノードにつながっていません。招待した人と同じ協力ノードを「接続」タブで登録して、接続し直します。</td></tr>
                         <tr><td><strong>「この合言葉の招待が見つかりません。…」</strong></td><td>合言葉が違うか、期限（10分）が過ぎたか、もう使われています。招待した人に、新しい招待を作ってもらいます。</td></tr>
-                        <tr><td><strong>「この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。…」</strong></td><td>「直接接続を使わない」にしていて、招待した人と協力ノードが違います。同じ協力ノードを入れます。</td></tr>
-                        <tr><td><strong>「別のネットワークの招待文字列です。」</strong></td><td>2人の「ネットワーク」が違います。2人とも「インターネット」で接続します（LANの中で試すときは、2人とも「ローカル」）。</td></tr>
-                        <tr><td><strong>「ローカル」で、「招待の経路」に「（協力ノードの中継も使えます）」が出ない</strong></td><td>協力ノードを <code>--network sbq-local-1</code> と <code>--relay</code> を付けて起動しているか、「接続候補」のアドレスがLANの中のアドレスかを確かめます（<a href="#lan-test">LANの中で試す</a>）。</td></tr>
+                        <tr><td><strong>「この招待文字列には、あなたの協力ノードの中継を通る接続先がありません。…」</strong></td><td>「協力ノードの中継だけを使う」を選んでいて、招待した人と協力ノードが違います。同じ協力ノードを登録します。</td></tr>
+                        <tr><td><strong>「別のネットワークの招待文字列です。」</strong></td><td>2人の「相手のいる場所」が違います。2人とも「インターネット」で接続します（LANの中で試すときは、2人とも「同じPC・同じLAN」）。</td></tr>
+                        <tr><td><strong>「同じPC・同じLAN」で、「招待の経路」に「（協力ノードの中継も使えます）」が出ない</strong></td><td>協力ノードを <code>--network sbq-local-1</code> と <code>--relay</code> を付けて起動しているか、登録したアドレスがLANの中のアドレスかを確かめます（<a href="#lan-test">LANの中で試す</a>）。</td></tr>
                         <tr><td><strong>「このビルドは使用期限を過ぎたので、…」</strong></td><td>使用期限を過ぎたビルドです（下の2）。</td></tr>
                     </tbody>
                 </table>
@@ -537,7 +537,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-title">使用期限</span>
                 </div>
                 <p class="guide-step-text">「インターネット」に参加できるのは、アプリをビルドした日から180日までです（「設定」タブの「このビルドの使用期限」に出ます）。P2P対局には古い版を止めるサーバーがないので、不具合や安全上の欠陥が直っていない古い版がネットワークに残り続けないようにしています。期限を過ぎたら、新しい版に更新してください（ソースからビルドしている場合は、ビルドし直します）。</p>
-                <p class="guide-step-text">期限があるのは、アプリの「インターネット」だけです。協力ノードと、「ローカル」の対局、保存した記録の確認・検証には、期限はありません。</p>
+                <p class="guide-step-text">期限があるのは、アプリの「インターネット」だけです。協力ノードと、「同じPC・同じLAN」の対局、保存した記録の確認・検証には、期限はありません。</p>
             </div>
 
         </div>
@@ -562,9 +562,9 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">協力ノードのアドレスを「接続候補」に入れたのに、招待された人が「接続する」を押せません</span>
+                    <span class="guide-step-title">協力ノードのアドレスを登録したのに、招待された人が「接続する」を押せません</span>
                 </div>
-                <p class="guide-step-text">招待文字列に接続先が入っていないときに起こります（招待された人の画面に「到達候補: 0 件（使える候補 0 件）」と出ます）。「インターネット」では、LANの中のアドレス（<code>192.168.…</code> など）の協力ノードは使われないので、招待文字列に接続先が入りません。協力ノードをLANの中で試すときは、協力ノードを <code>--network sbq-local-1</code> で起動し、アプリの「ネットワーク」を「ローカル」にします（<a href="#lan-test">LANの中で試す</a>）。ほかの原因は、<a href="#trouble">つながらないとき</a>をご覧ください。</p>
+                <p class="guide-step-text">招待文字列に接続先が入っていないときに起こります（招待された人の画面に「到達候補: 0 件（使える候補 0 件）」と出ます）。「インターネット」では、LANの中のアドレス（<code>192.168.…</code> など）の協力ノードは使われないので、招待文字列に接続先が入りません。協力ノードをLANの中で試すときは、協力ノードを <code>--network sbq-local-1</code> で起動し、アプリの「相手のいる場所」を「同じPC・同じLAN」にします（<a href="#lan-test">LANの中で試す</a>）。ほかの原因は、<a href="#trouble">つながらないとき</a>をご覧ください。</p>
             </div>
 
             <div class="guide-step">
@@ -572,7 +572,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title"><code>--network</code> に書く <code>sbq-limited-1</code> と <code>sbq-local-1</code> は何ですか</span>
                 </div>
-                <p class="guide-step-text">アプリの「ネットワーク」に対応する名前です。「インターネット」が <code>sbq-limited-1</code>、「ローカル（同じPC・同じLAN）」が <code>sbq-local-1</code> です。協力ノードは、使うアプリの「ネットワーク」に合わせて起動します。合っていないと、つながっても中継を使えません（<a href="#lan-test">LANの中で試す</a>の対応表）。</p>
+                <p class="guide-step-text">アプリの「相手のいる場所」に対応する、ネットワークの名前です。「インターネット」が <code>sbq-limited-1</code>、「同じPC・同じLAN」が <code>sbq-local-1</code> です。協力ノードは、使うアプリの「相手のいる場所」に合わせて起動します。合っていないと、つながっても中継を使えません（<a href="#lan-test">LANの中で試す</a>の対応表）。</p>
             </div>
 
             <div class="guide-step">
@@ -580,29 +580,29 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">「到達候補: 8 件（使える候補 3 件）」のような数は、どう決まるのですか</span>
                 </div>
-                <p class="guide-step-text">「到達候補」は招待文字列に入っている接続先の数（8件まで）で、「使える候補」は、そのうち、あなたのアプリの設定でつなげる接続先の数です。招待した人のPCのネットワークの口の数と、協力ノードのアドレスの数で変わるので、PCによって違います。「直接接続を使わない」にした人が使えるのは、協力ノードを経由する宛先だけなので、使える候補が少なくなります（<a href="#lan-test">LANの中で試す</a>の3）。</p>
+                <p class="guide-step-text">「到達候補」は招待文字列に入っている接続先の数（8件まで）で、「使える候補」は、そのうち、あなたのアプリの設定でつなげる接続先の数です。招待した人のPCのネットワークの口の数と、協力ノードのアドレスの数で変わるので、PCによって違います。「協力ノードの中継だけを使う」を選んだ人が使えるのは、協力ノードを経由する宛先だけなので、使える候補が少なくなります（<a href="#lan-test">LANの中で試す</a>の3）。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">「直接接続を使わない」にしなければ相手と直接つながるのなら、協力ノードは要らないのでは</span>
+                    <span class="guide-step-title">「協力ノードの中継だけを使う」を選ばなければ相手と直接つながるのなら、協力ノードは要らないのでは</span>
                 </div>
-                <p class="guide-step-text">「インターネット」では要ります。協力ノードが無いと、招待文字列に入れる接続先ができません。家庭の回線のPCどうしは、まず協力ノードの中継でつながり、直接つなげれば、直接の接続で対局します（<a href="#play">経路：中継と直接</a>）。「ローカル」では、協力ノードが無くても同じように直接つながるので、要りません（<a href="p2p-direct.html">協力ノードなしで対局する</a>）。</p>
+                <p class="guide-step-text">「インターネット」では要ります。協力ノードが無いと、招待文字列に入れる接続先ができません。家庭の回線のPCどうしは、まず協力ノードの中継でつながり、直接つなげれば、直接の接続で対局します（<a href="#play">経路：中継と直接</a>）。「同じPC・同じLAN」では、協力ノードが無くても同じように直接つながるので、要りません（<a href="p2p-direct.html">協力ノードなしで対局する</a>）。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">LANの中で試すとき、「直接接続を使わない」にチェックを付けた方がよいですか</span>
+                    <span class="guide-step-title">LANの中で試すとき、「協力ノードの中継だけを使う」を選んだ方がよいですか</span>
                 </div>
-                <p class="guide-step-text">中継を通る対局を試したいなら、2人のどちらかが付けます。付けなければ直接つながり、協力ノードは対局に使われません。協力ノードにつながって中継の予約が取れることだけを確かめるなら、付けなくてかまいません（<a href="#lan-test">LANの中で試す</a>の3）。</p>
+                <p class="guide-step-text">中継を通る対局を試したいなら、2人のどちらかが選びます。選ばなければ直接つながり、協力ノードは対局に使われません。協力ノードにつながって中継の予約が取れることだけを確かめるなら、選ばなくてかまいません（<a href="#lan-test">LANの中で試す</a>の3）。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">「直接接続を使わない」で対局しているとき、対局のデータは協力ノードを通っているのですか</span>
+                    <span class="guide-step-title">「協力ノードの中継だけを使う」で対局しているとき、対局のデータは協力ノードを通っているのですか</span>
                 </div>
                 <p class="guide-step-text">通っています。協力ノードは、つながっているアプリの数（<code>peers=</code>）と、中継している接続の数（<code>relays=</code>）を、数が変わるたびに出力します（例: <code>shogiboardq-peer: peers=2 relays=1</code>）。対局のデータが協力ノードを通っている間は、<code>relays</code> が 1 以上になります。中継した量と、接続元の IP アドレスは出力しません。相手と直接つながっている対局と、中継を通っている対局の違いは、次のとおりです。</p>
                 <table class="info-table">
@@ -610,7 +610,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                         <tr><th scope="col">比べること</th><th scope="col">相手と直接つながっている対局</th><th scope="col">中継を通っている対局</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>そうなるとき</strong></td><td>相手のPCへ直接つなげたとき（「ローカル」の対局、ルーターを通り抜けて直接つなげたインターネット越しの対局）</td><td>直接つなげなかったとき、「直接接続を使わない」にしたとき</td></tr>
+                        <tr><td><strong>そうなるとき</strong></td><td>相手のPCへ直接つなげたとき（「同じPC・同じLAN」の対局、ルーターを通り抜けて直接つなげたインターネット越しの対局）</td><td>直接つなげなかったとき、「協力ノードの中継だけを使う」を選んだとき</td></tr>
                         <tr><td><strong>指し手の通り道</strong></td><td>あなたのアプリ ⇄ 相手のアプリ</td><td>あなたのアプリ → 協力ノード → 相手のアプリ</td></tr>
                         <tr><td><strong>協力ノードの通信量</strong></td><td>接続を保つ分だけで、指しても増えない</td><td>指すたびに、片方から受け取った量とほぼ同じ量を、もう片方へ送る</td></tr>
                         <tr><td><strong>協力ノードの出力</strong></td><td><code>peers=2 relays=0</code></td><td><code>peers=2 relays=1</code></td></tr>
@@ -649,7 +649,7 @@ $ journalctl -u sbq-coop-node    # PeerId を確かめる</code></pre></div>
                 <p class="guide-step-text">切断されます。ShogiBoardQ を終了すると、P2P対局の通信を受け持つ通信プロセス（<code>shogiboardq-peer</code>）も一緒に終わり、協力ノードと相手との接続はすべて閉じます。協力ノードの出力では、<code>peers</code> がその分だけ減ります。アプリが異常終了したときも、通信プロセスだけが残って通信を続けることはありません。</p>
                 <ul class="guide-step-text">
                     <li><strong>対局中に終了したとき</strong>：対局は中断（結果未確定）になります。条件の確認の途中なら、取りやめになります。</li>
-                    <li><strong>P2P対局のウィンドウを閉じただけのとき</strong>：接続と対局は続きます。接続を切るには、「接続と条件」タブの「切断」を押すか、ShogiBoardQ を終了します（<a href="p2p-game.html#tabs">ウィンドウのタブ</a>）。</li>
+                    <li><strong>P2P対局のウィンドウを閉じただけのとき</strong>：接続と対局は続きます。接続を切るには、ウィンドウの上の「切断」を押すか、ShogiBoardQ を終了します（<a href="p2p-game.html#tabs">ウィンドウのタブ</a>）。</li>
                     <li><strong>協力ノード</strong>：ターミナルで起動した協力ノード（<code>shogiboardq-peer --service …</code>）は別のプロセスなので、ShogiBoardQ を終了しても動き続けます。止めるときは Ctrl+C を押します。</li>
                 </ul>
             </div>

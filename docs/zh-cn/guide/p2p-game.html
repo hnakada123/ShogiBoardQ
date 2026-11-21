@@ -132,7 +132,7 @@
                         <tr><th scope="col">对局所需的事项</th><th scope="col">P2P对局中的做法</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>决定对手</strong></td><td>邀请方的应用生成邀请，交给对方。交给对方的是较长的邀请字符串，或者可以口头告知的简短暗号（在与同一局域网的对手连接的“本地”中，以及使用支持暗号的协作节点时，会生成暗号）。邀请中包含邀请方应用的连接地址，收到的对方应用会连接到那里。这是与熟人下棋的功能，没有寻找不特定对手的公开招募。</td></tr>
+                        <tr><td><strong>决定对手</strong></td><td>邀请方的应用生成邀请，交给对方。交给对方的是较长的邀请字符串，或者可以口头告知的简短暗号（在与同一局域网的对手连接的“同一电脑・同一局域网”中，以及使用支持暗号的协作节点时，会生成暗号）。邀请中包含邀请方应用的连接地址，收到的对方应用会连接到那里。这是与熟人下棋的功能，没有寻找不特定对手的公开招募。</td></tr>
                         <tr><td><strong>识别对手</strong></td><td>本应用生成的玩家密钥的公钥就是您的“玩家ID”。对手是否为同一人，请用玩家ID而不是显示名确认。不使用真实姓名或外部服务的账号。</td></tr>
                         <tr><td><strong>传送着手</strong></td><td>通过在双方应用之间加密的通信，直接发送给对手的应用。通过互联网对局时，家用路由器通常不放行从外部发起的连接，因此由协作节点负责可达性确认和中继（同一台电脑、同一局域网的对手不需要）。即使中继，协作节点也只是转交保持加密状态的通信（<a href="#relay-not-server">3</a>）。</td></tr>
                         <tr><td><strong>着手是否合法</strong></td><td>由双方的应用确认。您下的着手要在对手的应用确认之后，才会下到双方的棋盘上。</td></tr>
@@ -164,7 +164,7 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">协作节点的运营者能看到的是 IP 地址，以及哪些 IP 地址之间建立了连接（<a href="#visibility">对手和网络可以看到的信息</a>）。协作节点可以中断或延迟它中继的通信，但无法改写内容（改写过的通信会在加密的检查中被发现，应用不会接受）。通信中断时，与线路断开时一样处理（<a href="#disconnect">线路断开时</a>）。</p>
-                <p class="guide-step-text">经过中继连接后，双方的应用会立即尝试直接连接。直接连接成功时，对局的通信不经过协作节点，“对局中”标签页的“路径”为“直接”。没有成功时就经过中继对局，重新连接时再尝试一次。任意一方选择了“不使用直接连接”时不会尝试，整局都经过中继。</p>
+                <p class="guide-step-text">经过中继连接后，双方的应用会立即尝试直接连接。直接连接成功时，对局的通信不经过协作节点，“对局中”标签页的“路径”为“直接”。没有成功时就经过中继对局，重新连接时再尝试一次。任意一方选择了“仅使用协作节点的中继”时不会尝试，整局都经过中继。</p>
             </div>
 
             <div class="guide-step" id="protocol">
@@ -217,9 +217,9 @@
                 <p class="guide-step-text">发布的 ShogiBoardQ（Linux、Windows、macOS）中包含P2P对局。从源代码构建时也默认启用（需要 libsodium 和 Rust，构建步骤见<a href="linux-build-and-release.html">Linux 构建与发布步骤</a>、<a href="windows-build-and-release.html">Windows 构建与发布步骤</a>、<a href="macos-build-and-release.html">macOS 构建与发布步骤</a>。在 Windows 上，用 <code>-DSODIUM_ROOT=</code> 指定解压 libsodium 官方预编译包（MSVC 用）后的文件夹。在 macOS 上，可以用 <code>brew install rust libsodium pkg-config</code> 准备。如果不含P2P对局，请在 CMake 中加上 <code>-DENABLE_P2P_PLAY=OFF</code>）。</p>
                 <ul class="guide-step-text">
                     <li><strong>支持的操作系统</strong>：Linux、Windows（10 / 11）和 macOS。通信进程（shogiboardq-peer）在由操作系统功能限制权限的状态下运行，因此在无法限制的环境中无法使用。在 Windows 上，第一次连接时会注册一次用来隔离该进程的容器（AppContainer）。在 macOS 上，该进程启动后会立即自行进入沙盒。协作节点可以在 Linux 和 macOS 上运行（在 Windows 上可以通过协作节点对局）。</li>
-                    <li><strong>网络</strong>：有“本地（同一电脑・同一局域网）”和“互联网”两种。如何选择请参阅<a href="#ways">两种对局方式</a>。</li>
+                    <li><strong>对手所在位置</strong>：有“同一电脑・同一局域网”和“互联网”两种（两者加入的网络不同，彼此无法连接）。如何选择请参阅<a href="#ways">两种对局方式</a>。</li>
                     <li><strong>协作节点</strong>：通过互联网对局（“互联网”）时，需要一个作为最初连接对象的协作节点（<a href="p2p-relay.html">使用协作节点对局</a>）。同一电脑・同一局域网的对局不需要（<a href="p2p-direct.html">不使用协作节点对局</a>）。</li>
-                    <li><strong>使用期限</strong>：自构建之日起超过 180 天后，不再加入“互联网”网络（请更新到新版本）。“本地”网络以及查看、验证已保存的记录在期限后仍可使用。</li>
+                    <li><strong>使用期限</strong>：自构建之日起超过 180 天后，不再加入“互联网”网络（请更新到新版本）。“同一电脑・同一局域网”以及查看、验证已保存的记录在期限后仍可使用。</li>
                     <li><strong>自动化 API</strong>：加上 <code>--automation</code> 启动时，无法使用P2P对局。</li>
                 </ul>
             </div>
@@ -257,7 +257,7 @@
             <a href="p2p-direct.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>不使用协作节点对局</h3>
-                    <p>与同一电脑・同一局域网的对手，只用邀请字符串连接下棋。既不需要协作节点，也不需要更改“设置”标签页。可以邀请的人数与次数、防火墙的设置也在这一页。</p>
+                    <p>与同一电脑・同一局域网的对手，只用邀请字符串连接下棋。不需要注册协作节点。可以邀请的人数与次数、防火墙的设置也在这一页。</p>
                     <span class="feature-card-more">查看详情 &rarr;</span>
                 </div>
             </a>
@@ -283,11 +283,11 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>可以对局的对手</strong></td><td>同一电脑・同一局域网的对手</td><td>互联网上的对手（另一个家庭、另一条线路）</td></tr>
-                        <tr><td><strong>“网络”</strong></td><td>本地（同一电脑・同一局域网）</td><td>互联网</td></tr>
-                        <tr><td><strong>协作节点</strong></td><td>不需要</td><td>需要一个（由某人启动，双方都填入其地址）</td></tr>
-                        <tr><td><strong>“设置”标签页</strong></td><td>无需更改</td><td>在“连接候选”中填入协作节点</td></tr>
+                        <tr><td><strong>“对手所在位置”</strong></td><td>同一电脑・同一局域网</td><td>互联网</td></tr>
+                        <tr><td><strong>协作节点</strong></td><td>不需要</td><td>需要一个（由某人启动，双方都注册其地址）</td></tr>
+                        <tr><td><strong>“连接”标签页的“协作节点”</strong></td><td>无需注册</td><td>注册协作节点的地址</td></tr>
                         <tr><td><strong>邀请字符串中的地址</strong></td><td>这台电脑在局域网内的地址（192.168.… 等）</td><td>经由协作节点的地址（如果电脑可以从外部直接到达，还有互联网上的 IP 地址）</td></tr>
-                        <tr><td><strong>对手能看到的地址</strong></td><td>只有局域网内的地址</td><td>直接连接时为互联网上的 IP 地址（可用“不使用直接连接”隐藏）</td></tr>
+                        <tr><td><strong>对手能看到的地址</strong></td><td>只有局域网内的地址</td><td>直接连接时为互联网上的 IP 地址（可用“仅使用协作节点的中继”隐藏）</td></tr>
                         <tr><td><strong>使用期限</strong></td><td>没有</td><td>构建后 180 天</td></tr>
                     </tbody>
                 </table>
@@ -331,7 +331,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">首次连接时生成玩家密钥</span>
                 </div>
-                <p class="guide-step-text">在“连接与条件”标签页中选择“网络”，然后点击“连接”。第一次连接时会打开“准备P2P对局”。阅读下方列出的无法防止的情况后，选择密钥的保存方式，点击“生成玩家密钥”。</p>
+                <p class="guide-step-text">在“连接”标签页中选择“对手所在位置”，然后点击窗口上方的“连接”。第一次连接时会打开“准备P2P对局”。阅读下方列出的无法防止的情况后，选择密钥的保存方式，点击“生成玩家密钥”。</p>
                 <ul class="guide-step-text">
                     <li><strong>操作系统的密钥库（推荐）</strong>：保存在操作系统的密钥库（Windows 为凭据管理器，macOS 为钥匙串，Linux 为 KWallet、GNOME 密钥环等）中。未使用 QtKeychain 构建的应用（2026.11.15 及之前版本的 Windows 和 macOS 发行版）无法选择此项，请更新到新版本，或选择“用密码短语加密的文件”。在 macOS 上，把应用换成新版本后第一次连接时，系统可能会要求您允许使用钥匙串中的项目（输入登录密码）。</li>
                     <li><strong>用密码短语加密的文件</strong>：保存在用由密码短语生成的密钥加密的文件中。启动应用后第一次连接时会询问密码短语。</li>
@@ -344,7 +344,7 @@
                     <li><strong>Linux</strong>：<code>~/.local/share/ShogiBoardQ/p2p/identity</code></li>
                 </ul>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-identity.png"><img src="../../images/zh-cn/p2p-game/p2p-identity.png" alt="显示玩家密钥的三种保存方式和无法防止的情况列表的“准备P2P对局”对话框" width="670" height="478" loading="lazy"></a>
+                    <a href="../../images/zh-cn/p2p-game/p2p-identity.png"><img src="../../images/zh-cn/p2p-game/p2p-identity.png" alt="显示玩家密钥的三种保存方式和无法防止的情况列表的“准备P2P对局”对话框" width="657" height="478" loading="lazy"></a>
                     <p class="screenshot-caption">首次连接时打开的“准备P2P对局”</p>
                 </div>
             </div>
@@ -354,8 +354,8 @@
                     <span class="guide-step-number">3</span>
                     <span class="guide-step-title">决定显示名与条件</span>
                 </div>
-                <p class="guide-step-text">连接后，“状态”会变为“已连接（已连接的节点：N）”，并显示“您的玩家ID”。在“显示名”中填入给对手看的名称。显示名为 1〜32 个字符，前后不能有空格，可以使用英文数字、符号、假名、汉字和全角英文数字。</p>
-                <p class="guide-step-text">“用时规则”“读秒”“先后手”会成为邀请时的对局条件。“邀请的路径”中会显示被邀请的对手通过哪条路径连接（直接连接，或经过协作节点的中继）。自己和对手的 IP 地址不会显示在画面上。</p>
+                <p class="guide-step-text">连接后，窗口上方的状态栏会变为“已连接（已连接的节点：N）”。在“邀请”标签页的“显示名”中填入给对手看的名称。显示名为 1〜32 个字符，前后不能有空格，可以使用英文数字、符号、假名、汉字和全角英文数字。</p>
+                <p class="guide-step-text">同一标签页的“用时规则”“读秒”“先后手”会成为邀请时的对局条件。连接期间，上方的状态栏会以“邀请的路径”显示被邀请的对手通过哪条路径连接（直接连接，或经过协作节点的中继）。自己和对手的 IP 地址不会显示在画面上。</p>
             </div>
 
         </div>
@@ -366,7 +366,7 @@
 <section id="tabs" class="section">
     <div class="section-inner">
         <h2 class="section-title">窗口的标签页</h2>
-        <p class="section-desc">P2P对局窗口的6个标签页、各项目的说明，以及“设置”标签页各项目的使用场合</p>
+        <p class="section-desc">P2P对局窗口上方的状态栏，以及6个标签页各项目的说明</p>
 
         <div class="screenshot-gallery">
 
@@ -375,72 +375,75 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">6个标签页</span>
                 </div>
-                <p class="guide-step-text">P2P对局窗口分为6个标签页。确定对手之前使用左边的两个，对局开始后使用“对局中”，结束后使用“对局记录”和“对手管理”。</p>
+                <p class="guide-step-text">P2P对局窗口的上方是显示连接状态的状态栏，其下分为6个标签页。标签页按使用的顺序排列：在“连接”中决定连接方式并连接，在“邀请”中确定对手，对局开始后使用“对局中”，结束后使用“对局记录”和“对手”。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">标签页</th><th scope="col">用途</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>连接与条件</strong></td><td>连接网络，并设定给对手看的显示名，邀请时的用时规则和先后手，以及由谁来走自己的着手（人类还是引擎）。</td></tr>
-                        <tr><td><strong>通过邀请连接</strong></td><td>生成邀请，把暗号或邀请字符串交给对手，或用收到的暗号、邀请字符串连接对手。</td></tr>
+                        <tr><td><strong>连接</strong></td><td>决定对手所在位置（同一电脑・同一局域网，或互联网）、与对手的连接方式和协作节点。所选的设置会带来什么结果，也显示在这个标签页中。</td></tr>
+                        <tr><td><strong>邀请</strong></td><td>设定给对手看的显示名，邀请时的用时规则和先后手，以及由谁来走自己的着手（人类还是引擎）。生成邀请，把暗号或邀请字符串交给对手，或用收到的暗号、邀请字符串连接对手。</td></tr>
                         <tr><td><strong>对局中</strong></td><td>查看对局状况，认输，或提议和棋、中断。</td></tr>
                         <tr><td><strong>对局记录</strong></td><td>查看已结束对局的记录（凭证），并进行验证、导出和删除。</td></tr>
-                        <tr><td><strong>对手管理</strong></td><td>为对局过的对手命名，用确认码确认是否为同一个人，以及屏蔽。</td></tr>
-                        <tr><td><strong>设置</strong></td><td>协作节点的地址、不让对手看到 IP 地址的设置，以及重新生成玩家密钥。同一电脑・同一局域网内的对局都不需要这些设置。</td></tr>
+                        <tr><td><strong>对手</strong></td><td>为对局过的对手命名，用确认码确认是否为同一个人，以及屏蔽。对于加为好友的对手，可以从这里申请对局。</td></tr>
+                        <tr><td><strong>设置</strong></td><td>不显示未对局过的对手的显示名的设置、自己的玩家ID、重新生成玩家密钥，以及使用期限。同一电脑・同一局域网内的对局，这些都不需要更改。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">窗口下方的“A-”“A+”用于改变文字大小（下次打开时保持相同大小）。点击“关闭”关闭窗口后，连接和对局仍会继续。要再次打开，请选择“对局”→“P2P对局…”；要断开连接，请点击“连接与条件”标签页的“断开”。退出 ShogiBoardQ 时，连接也会断开（对局中退出时，对局会中断）。</p>
+                <p class="guide-step-text">窗口下方的“A-”“A+”用于改变文字大小（下次打开时保持相同大小）。点击“关闭”关闭窗口后，连接和对局仍会继续。要再次打开，请选择“对局”→“P2P对局…”；要断开连接，请点击窗口上方的“断开”。退出 ShogiBoardQ 时，连接也会断开（对局中退出时，对局会中断）。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">“连接与条件”标签页</span>
+                    <span class="guide-step-title">上方的状态栏与“连接”标签页</span>
                 </div>
-                <p class="guide-step-text">在上方的“连接”中连接网络，在下方的“显示名与条件”中设定给对手看的名称，以及自己邀请时的对局条件。</p>
+                <p class="guide-step-text">窗口上方的状态栏中有连接的状态和“连接”“断开”按钮，无论打开哪个标签页都能看到。在“连接”标签页中决定如何与对手连接。从上到下依次选择“对手所在位置”“与对手的连接方式”“协作节点”后，最下方的“按此设置连接时”中会显示按该设置可对局的对手、邀请的形式，以及能看到您 IP 地址的人。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-connection.png"><img src="../../images/zh-cn/p2p-game/p2p-connection.png" alt="已连接状态的“连接与条件”标签页。显示网络、状态、玩家ID、邀请的路径，以及显示名、用时规则、读秒、先后手和对局者的输入栏" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">“连接与条件”标签页：连接后</p>
+                    <a href="../../images/zh-cn/p2p-game/p2p-connection.png"><img src="../../images/zh-cn/p2p-game/p2p-connection.png" alt="已连接状态的“连接”标签页。上方的状态栏显示状态和邀请的路径，其下排列着对手所在位置和与对手的连接方式的选项，以及按此设置连接时的结果" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">上方的状态栏与“连接”标签页：以“同一电脑・同一局域网”连接后</p>
                 </div>
-                <table class="info-table">
+                <table class="info-table info-table--label-wide">
                     <thead>
                         <tr><th scope="col">项目</th><th scope="col">说明</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>网络</strong></td><td>要加入的网络。“本地（同一电脑・同一局域网）”可与同一电脑和同一局域网的对手连接，“互联网”可与互联网上的对手连接（“互联网”需要协作节点）。连接期间无法更改。</td></tr>
-                        <tr><td><strong>连接／断开</strong></td><td>连接所选的网络。第一次连接时会打开生成玩家密钥的画面。连接后按钮变为“断开”，点击后会使有效的邀请失效并断开连接。确认条件期间和对局中无法点击。</td></tr>
-                        <tr><td><strong>状态</strong></td><td>显示“未连接”“正在连接…”“已连接（已连接的节点：N）”之一。N 是当前已连接的对象（协作节点和对局对手）的数量。无法启动负责通信的进程时，显示“无法使用P2P对局”。</td></tr>
-                        <tr><td><strong>您的玩家ID</strong></td><td>玩家密钥的公钥（64 位十六进制数），是对手用来识别您的值。点击“复制”可复制。生成密钥之前显示“（尚未生成）”。</td></tr>
-                        <tr><td><strong>邀请的路径</strong></td><td>连接期间，显示被邀请的对手会通过哪条路径连接过来（直接，或经协作节点中继）。尚无外部可到达的连接地址时，会显示相应提示。不会显示 IP 地址。</td></tr>
-                        <tr><td><strong>显示名</strong></td><td>给对手看的名称（1～32 个字符）。会显示在条件确认画面、对局信息和对手的“对局记录”标签页中，但不会保留在凭证里。</td></tr>
-                        <tr><td><strong>时间</strong></td><td>自己邀请时的“用时规则”（0～1440 分钟）和“读秒”（0～600 秒）。两者不能同时为 0。</td></tr>
-                        <tr><td><strong>先后手</strong></td><td>自己邀请时对先后手的希望。从“不指定（由双方的随机数决定）”“希望先手”“希望后手”中选择。</td></tr>
-                        <tr><td><strong>对局者</strong></td><td>由谁来走自己的着手。选择“人类”时由自己在棋盘上走，选择已注册的引擎时由该引擎来走（“引擎设置”可以打开所选引擎的设置）。由引擎下棋这一点会在条件确认画面告知对手，并保留在对局记录（凭证）中。邀请方和被邀请方都各自选择自己的对局者。确认条件期间和对局中不能更改。</td></tr>
+                        <tr><td><strong>状态栏的第1行（状态）</strong></td><td>显示“未连接”“正在连接…”“已连接（已连接的节点：N）”之一。N 是当前已连接的对象（协作节点和对局对手）的数量。无法启动负责通信的进程时，显示“无法使用P2P对局”。</td></tr>
+                        <tr><td><strong>状态栏的第2行</strong></td><td>未连接期间，以“当前设置”显示在“连接”标签页中选择的连接方式。连接期间，以“邀请的路径”显示被邀请的对手会通过哪条路径连接过来（直接，或经协作节点中继）。尚无外部可到达的连接地址时，会显示相应提示。不会显示 IP 地址。</td></tr>
+                        <tr><td><strong>连接／断开</strong></td><td>按“连接”标签页中选择的连接方式连接。第一次连接时会打开生成玩家密钥的画面。连接后按钮变为“断开”，点击后会使有效的邀请失效并断开连接。确认条件期间和对局中无法点击。</td></tr>
+                        <tr><td><strong>对手所在位置</strong></td><td>“同一电脑・同一局域网”可与同一电脑和同一局域网的对手连接，“互联网”可与互联网上的对手连接（两者加入的网络不同，彼此无法连接）。“互联网”需要协作节点。</td></tr>
+                        <tr><td><strong>与对手的连接方式</strong></td><td>“直接连接（默认）”是与对手直接连接（在“互联网”下，无法直接到达时会通过协作节点的中继）。“仅使用协作节点的中继”则始终通过协作节点的中继，不让对手看到 IP 地址（协作节点的运营者可以看到）。两个选项的框中都会显示选择该项时的“路径”“对手会得知”“所需条件”，因此也能了解没有选择的那一项会如何运作（<a href="p2p-relay.html#relay-only">不让对手看到 IP 地址对局</a>）。</td></tr>
+                        <tr><td><strong>协作节点</strong></td><td>协作节点地址（<code>/ip4/…/p2p/…</code> 的形式）的列表。用“添加…”逐个输入，或用“从剪贴板粘贴”添加已复制的地址。要删除时，选中该行后点击“删除”。最多可注册 16 个。在不需要协作节点的设置（以“同一电脑・同一局域网”“直接连接”）下，点击“注册…”之前不会显示此栏。连接期间，按钮旁边会显示用已注册的协作节点能否使用中继和暗号・好友列表（协作节点的准备见<a href="p2p-relay.html#who">由谁启动协作节点</a>）。</td></tr>
+                        <tr><td><strong>按此设置连接时</strong></td><td>显示所选组合下的“可对局的对手”“邀请的形式”（暗号还是邀请字符串）和“能看到您IP地址的人”。在无法连接的组合下（选择了“互联网”或“仅使用协作节点的中继”，却没有注册协作节点时），则改为显示“这样对手无法连接”之类的提示和解决方法。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">用时规则和先后手使用邀请方的条件。“对局者”由双方各自决定。双方都在条件确认画面确认后再开始。</p>
+                <p class="guide-step-text">“对手所在位置”“与对手的连接方式”“协作节点”在选择时保存。连接期间无法更改（标签页的上方会显示“连接期间无法更改连接方式。…”）。要更改时，请点击“断开”后重新选择。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">“通过邀请连接”标签页</span>
+                    <span class="guide-step-title">“邀请”标签页</span>
                 </div>
-                <p class="guide-step-text">上方的“邀请对手”供邀请方使用，下方的“通过邀请连接”供被邀请方使用。两者都只能在连接期间使用。在“本地（同一电脑・同一局域网）”中，生成邀请后，除了邀请字符串，还会得到 12 个字符左右的暗号，对同一局域网的对手只需告知暗号即可。使用支持暗号的协作节点的“互联网”邀请，也会得到 10 个字符的暗号。步骤请参阅<a href="p2p-direct.html#steps">不使用协作节点对局</a>和<a href="p2p-relay.html#play">使用协作节点对局</a>。</p>
+                <p class="guide-step-text">在上方的“您与对局的条件”中，设定给对手看的名称和对局的条件。其下左侧的“发出邀请”供邀请方使用，右侧的“接受邀请”供被邀请方使用（两者都只能在连接期间使用）。以“同一电脑・同一局域网”直接连接的邀请，除了邀请字符串，还附有 12 个字符左右的暗号，对同一局域网的对手只需告知暗号即可。使用支持暗号的协作节点的邀请，也会得到 10 个字符的暗号。用时规则和先后手使用邀请方的条件。“对局者”由双方各自决定。双方都在条件确认画面确认后再开始。步骤请参阅<a href="p2p-direct.html#steps">不使用协作节点对局</a>和<a href="p2p-relay.html#play">使用协作节点对局</a>。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-invite.png" alt="“通过邀请连接”标签页，上方生成了邀请并显示暗号和邀请字符串，下方检查了收到的暗号" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">“通过邀请连接”标签页：生成邀请（上）・用收到的暗号或邀请字符串连接（下）</p>
+                    <a href="../../images/zh-cn/p2p-game/p2p-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-invite.png" alt="“邀请”标签页，上方是显示名、对局者、用时规则、读秒、先后手的输入栏，左侧生成了邀请并显示暗号和邀请字符串，右侧检查了收到的暗号" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“邀请”标签页：您与对局的条件（上）・发出邀请（左）・接受邀请（右）</p>
                 </div>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">项目</th><th scope="col">说明</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>生成邀请</strong></td><td>生成邀请。在“本地（同一电脑・同一局域网）”中，会以大号字显示暗号，其下方的输入框中显示邀请字符串（在“互联网”和“不使用直接连接”的设置下，如果连接着支持暗号的协作节点，会显示 10 个字符的暗号；否则只有邀请字符串）。输入框下方显示期限和对手可用的连接地址数量。邀请 10 分钟后失效，暗号和邀请字符串只能用其中之一，并且只能使用一次。同时有效的最多 4 个（<a href="p2p-direct.html#invite-rules">可以邀请的人数与次数</a>）。</td></tr>
-                        <tr><td><strong>暗号</strong></td><td>可以口头或通过电话告知的简短字母和数字。“本地（同一电脑・同一局域网）”的暗号为 12 个字符左右（<code>K7MP-2QXD-9F3A</code> 的形式），其中包含这台电脑在局域网内的地址（最多 4 个）。在有 VPN、虚拟机等地址的电脑上，以及同一台电脑上的第二个应用中，会稍长一些。使用协作节点的暗号为 10 个字符（<code>J6HB7-H6NWR</code> 的形式），不包含连接地址。邀请经过加密后在协作节点上最多存放 10 分钟，由对方的应用用暗号取回。</td></tr>
+                        <tr><td><strong>显示名</strong></td><td>给对手看的名称（1～32 个字符）。会显示在条件确认画面、对局信息和对手的“对局记录”标签页中，但不会保留在凭证里。</td></tr>
+                        <tr><td><strong>用时规则・读秒</strong></td><td>自己邀请时的“用时规则”（0～1440 分钟）和“读秒”（0～600 秒）。两者不能同时为 0。</td></tr>
+                        <tr><td><strong>先后手</strong></td><td>自己邀请时对先后手的希望。从“不指定（由双方的随机数决定）”“希望先手”“希望后手”中选择。</td></tr>
+                        <tr><td><strong>对局者</strong></td><td>由谁来走自己的着手。选择“人类”时由自己在棋盘上走，选择已注册的引擎时由该引擎来走（“引擎设置”可以打开所选引擎的设置）。由引擎下棋这一点会在条件确认画面告知对手，并保留在对局记录（凭证）中。邀请方和被邀请方都各自选择自己的对局者。确认条件期间和对局中不能更改。</td></tr>
+                        <tr><td><strong>生成邀请</strong></td><td>生成邀请。附有暗号的邀请，会以大号字显示暗号，其下方的输入框中显示邀请字符串。以“同一电脑・同一局域网”直接连接的邀请，附有 12 个字符左右的暗号。“互联网”的邀请和“仅使用协作节点的中继”设置下的邀请，如果连接着支持暗号的协作节点，会附有 10 个字符的暗号。没有连接时，会显示“此邀请没有暗号…”，只有邀请字符串。输入框下方显示期限和对手可用的连接地址数量。邀请 10 分钟后失效，暗号和邀请字符串只能用其中之一，并且只能使用一次。同时有效的最多 4 个（<a href="p2p-direct.html#invite-rules">可以邀请的人数与次数</a>）。</td></tr>
+                        <tr><td><strong>暗号</strong></td><td>可以口头或通过电话告知的简短字母和数字。“同一电脑・同一局域网”的暗号为 12 个字符左右（<code>K7MP-2QXD-9F3A</code> 的形式），其中包含这台电脑在局域网内的地址（最多 4 个）。在有 VPN、虚拟机等地址的电脑上，以及同一台电脑上的第二个应用中，会稍长一些。使用协作节点的暗号为 10 个字符（<code>J6HB7-H6NWR</code> 的形式），不包含连接地址。邀请经过加密后在协作节点上最多存放 10 分钟，由对方的应用用暗号取回。</td></tr>
                         <tr><td><strong>复制暗号／复制邀请字符串</strong></td><td>复制生成的暗号、邀请字符串。请用只有对方能收到的方式交给对方。</td></tr>
-                        <tr><td><strong>通过邀请连接（输入框）</strong></td><td>输入收到的暗号，或粘贴邀请字符串。暗号可以用小写输入，也可以省略分隔符“-”（0 和 O、1 和 I・L 输入哪个都一样）。</td></tr>
-                        <tr><td><strong>检查</strong></td><td>读取输入的暗号或粘贴的邀请字符串。对于邀请字符串，在下方显示邀请方的 PeerId（开头部分）、期限和地址数量。对于“本地”的暗号，显示地址数量（暗号中不包含对方的 PeerId 和期限）。对于使用协作节点的暗号，会从协作节点取回邀请，显示与邀请字符串相同的内容。</td></tr>
+                        <tr><td><strong>邀请下方的注意事项</strong></td><td>显示以下内容：只告诉对手；10 分钟后失效，并且只能使用一次；按当前设置生成的邀请中包含什么（此电脑在局域网内的地址、您的 IP 地址、仅经由协作节点的连接地址，三者之一）。</td></tr>
+                        <tr><td><strong>接受邀请（输入框）</strong></td><td>输入收到的暗号，或粘贴邀请字符串。暗号可以用小写输入，也可以省略分隔符“-”（0 和 O、1 和 I・L 输入哪个都一样）。</td></tr>
+                        <tr><td><strong>检查</strong></td><td>读取输入的暗号或粘贴的邀请字符串。对于邀请字符串，在下方显示邀请方的 PeerId（开头部分）、期限和地址数量。对于“同一电脑・同一局域网”的暗号，显示地址数量（暗号中不包含对方的 PeerId 和期限）。对于使用协作节点的暗号，会从协作节点取回邀请，显示与邀请字符串相同的内容。</td></tr>
                         <tr><td><strong>允许连接上方的私有地址（同一局域网的对手）</strong></td><td>仅在“互联网”中，邀请字符串含有私有地址（同一局域网内的地址）时显示。允许连接这些地址时请勾选。</td></tr>
                         <tr><td><strong>连接</strong></td><td>连接已检查的邀请的对手。连接成功后，双方都会打开条件确认画面。仅连接并不会开始对局。使用已过期的暗号或已被使用的邀请时，会显示“已连接到对手，但暗号未被接受。…”之类的提示。使用协作节点的暗号，则在点击“检查”时显示“找不到此暗号的邀请。…”。</td></tr>
                     </tbody>
@@ -454,7 +457,7 @@
                 </div>
                 <p class="guide-step-text">对局开始后会自动切换到此标签页。走棋在主窗口的棋盘上进行，此标签页用于查看状况、认输和提出提议。没有对局时显示“没有进行中的对局。”</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-game.png"><img src="../../images/zh-cn/p2p-game/p2p-game.png" alt="显示对手、先后手、路径、轮到谁走、断线时间剩余，以及认输、提议和棋、提议中断、退出对局按钮的“对局中”标签页" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/zh-cn/p2p-game/p2p-game.png"><img src="../../images/zh-cn/p2p-game/p2p-game.png" alt="显示轮到谁走的标题，对手、先后手、路径、断线时间剩余，以及其下分为“认输”“与对手协议结束”“单方面退出”三组的认输、提议和棋、提议中断、退出对局按钮的“对局中”标签页" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">“对局中”标签页</p>
                 </div>
                 <table class="info-table">
@@ -462,18 +465,18 @@
                         <tr><th scope="col">显示</th><th scope="col">含义</th></tr>
                     </thead>
                     <tbody>
+                        <tr><td><strong>最上方的标题（轮到您走棋／轮到对手走棋）</strong></td><td>以大号字显示当前的阶段。平时显示轮到谁走棋。在让引擎来走自己着手的对局中，轮到自己时显示“引擎正在思考”。对手的应用确认您的着手期间显示“正在等待着手确认…”，线路中断时显示“正在重新连接（剩余 N 秒）”，终局后核对结果期间显示“正在确定结果…”。</td></tr>
                         <tr><td><strong>对手</strong></td><td>对手的显示名。对手的着手由引擎来走时，下一行会显示“对手的着手由引擎来走（对手的申报）”。</td></tr>
                         <tr><td><strong>您执先手／您执后手</strong></td><td>本局中自己的先后手。让引擎来走自己的着手时，下一行会显示“您的着手由引擎「…」来走”。</td></tr>
                         <tr><td><strong>路径</strong></td><td>“直接”表示与对手直接连接，“中继”表示经过协作节点的中继。</td></tr>
-                        <tr><td><strong>轮到您走棋／轮到对手走棋</strong></td><td>轮到谁走棋。在让引擎来走自己着手的对局中，轮到自己时显示“引擎正在思考”。对手的应用确认您的着手期间显示“正在等待着手确认…”，线路中断时显示“正在重新连接（剩余 N 秒）”，终局后核对结果期间显示“正在确定结果…”。</td></tr>
                         <tr><td><strong>断线时间剩余</strong></td><td>本局中线路还可以中断多久（从 600 秒开始减少）。变为 0 时对局中断。</td></tr>
                         <tr><td><strong>结果</strong></td><td>结果确定后，会显示“先手胜（认输）”之类的内容。</td></tr>
                     </tbody>
                 </table>
                 <ul class="guide-step-text">
-                    <li><strong>认输</strong>：只能在轮到自己走棋时点击。确认后判负。</li>
-                    <li><strong>提议和棋・提议中断</strong>：询问对手是否接受。只有对手接受时才成立。</li>
-                    <li><strong>退出对局（结果未确定）</strong>：单方面离开对局。结果不会确定。</li>
+                    <li><strong>认输</strong>（“认输”一组）：只能在轮到自己走棋时点击。确认后判负。</li>
+                    <li><strong>提议和棋・提议中断</strong>（“与对手协议结束”一组）：询问对手是否接受。只有对手接受时才成立。</li>
+                    <li><strong>退出对局（结果未确定）</strong>（“单方面退出”一组）：单方面离开对局。结果不会确定。</li>
                 </ul>
             </div>
 
@@ -484,7 +487,7 @@
                 </div>
                 <p class="guide-step-text">已结束的对局每局一行排列。选中一行后点击下方的按钮。类别的含义和验证的内容请参阅<a href="#records">对局记录与验证</a>。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-records.png"><img src="../../images/zh-cn/p2p-game/p2p-records.png" alt="显示结束时间、对手、您、结束方式、记录类别、结果各列，以及验证、导出、删除按钮的“对局记录”标签页" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/zh-cn/p2p-game/p2p-records.png"><img src="../../images/zh-cn/p2p-game/p2p-records.png" alt="显示结束时间、对手、您、您的结果、记录类别各列，以及验证、导出、删除按钮的“对局记录”标签页" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">“对局记录”标签页：双方已确定的记录</p>
                 </div>
                 <table class="info-table">
@@ -493,11 +496,10 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>结束时间</strong></td><td>对局结束的日期和时间。</td></tr>
-                        <tr><td><strong>对手（显示名）</strong></td><td>对手使用的显示名。如果在“对手管理”中命名过，还会显示本地备注名。由引擎下棋的一方，无论在本列还是在“您”一列，都会加上“（引擎）”。</td></tr>
+                        <tr><td><strong>对手（显示名）</strong></td><td>对手使用的显示名。如果在“对手”标签页中命名过，还会显示本地备注名。由引擎下棋的一方，无论在本列还是在“您”一列，都会加上“（引擎）”。</td></tr>
                         <tr><td><strong>您</strong></td><td>自己的先后手（先手・后手）。</td></tr>
-                        <tr><td><strong>结束方式</strong></td><td>在自己的应用中结束的方式（双方已确定、无对手确定、中断（结果未确定）、通信中断（结果未确定）等）。</td></tr>
+                        <tr><td><strong>您的结果</strong></td><td>从自己的角度看的结果。显示为“胜（认输）”“负（超时负）”“和棋（千日手）”“中断（协议中断）”等。结果没有决定的对局，则显示在自己的应用中结束的方式（无对手确定、中断（结果未确定）、通信中断（结果未确定）等）。把鼠标放在这一列上，任何一行都会显示结束方式。</td></tr>
                         <tr><td><strong>记录类别</strong></td><td>验证凭证的结果（双方已确定、由棋谱决定的结果、结果未确定）。凭证损坏时显示“验证失败”或“无法读取”。</td></tr>
-                        <tr><td><strong>结果</strong></td><td>“先手胜（认输）”之类的胜负和结束方式。</td></tr>
                         <tr><td><strong>验证</strong></td><td>验证所选的记录，显示玩家密钥的确定是否正确、棋谱是否符合规则等。</td></tr>
                         <tr><td><strong>导出凭证…</strong></td><td>把凭证文件（.sbqmatch）保存到任意位置。凭证中包含双方的玩家ID。</td></tr>
                         <tr><td><strong>删除记录</strong></td><td>删除所选对局的凭证和记录（无法恢复）。</td></tr>
@@ -508,21 +510,21 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">6</span>
-                    <span class="guide-step-title">“对手管理”标签页</span>
+                    <span class="guide-step-title">“对手”标签页</span>
                 </div>
                 <p class="guide-step-text">对局过的对手按玩家ID每人一行排列。任何人都可以使用相同的显示名，因此请用玩家ID判断是否为同一个人。选中一行后点击下方的按钮。加为好友的对手在连接期间会显示为“在线”，可以从这里申请对局。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-peers.png"><img src="../../images/zh-cn/p2p-game/p2p-peers.png" alt="排列着玩家ID、本地名称、最后的显示名、好友、已确认、屏蔽、对局数、未确定各列，以及命名、确认码、取消已确认、屏蔽、删除记录、移出好友、申请对局各按钮和“向好友告知在线状态”复选框的“对手管理”标签页" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">“对手管理”标签页：加为好友的对手显示为“在线”</p>
+                    <a href="../../images/zh-cn/p2p-game/p2p-peers.png"><img src="../../images/zh-cn/p2p-game/p2p-peers.png" alt="排列着本地备注名、最近的显示名、玩家ID、好友、已确认、屏蔽、对局数、未确定各列，以及命名、确认码、取消已确认、屏蔽、删除记录、移出好友、申请对局各按钮和“向好友告知在线状态”复选框的“对手”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">“对手”标签页：加为好友的对手显示为“在线”</p>
                 </div>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">列・按钮</th><th scope="col">说明</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>玩家ID</strong></td><td>对手的玩家ID。请用这个值判断是否为同一个人。</td></tr>
                         <tr><td><strong>本地备注名</strong></td><td>用“命名…”设定的名称。不会显示给对手，也不写入棋谱。</td></tr>
                         <tr><td><strong>最近的显示名</strong></td><td>对手在最近一次对局中使用的显示名。</td></tr>
+                        <tr><td><strong>玩家ID</strong></td><td>对手的玩家ID。请用这个值判断是否为同一个人。</td></tr>
                         <tr><td><strong>好友</strong></td><td>加为好友的对手显示“好友”。其中，告知了在线状态并且已连接的对手显示“在线”。</td></tr>
                         <tr><td><strong>已确认</strong></td><td>用确认码核对并点击“设为已确认”的对手会显示“已确认”。</td></tr>
                         <tr><td><strong>屏蔽</strong></td><td>已屏蔽的对手会显示“已屏蔽”。</td></tr>
@@ -532,13 +534,13 @@
                         <tr><td><strong>设为已确认／取消已确认</strong></td><td>把确认码一致的对手设为已确认。再次点击可取消。</td></tr>
                         <tr><td><strong>屏蔽／解除屏蔽</strong></td><td>即使该对手通过邀请连接也会拒绝。对方会被告知您正在与他人协商或对局。再次点击可解除。</td></tr>
                         <tr><td><strong>加为好友／移出好友</strong></td><td>把选中的对手加为好友（最多 64 人。已屏蔽的对手不能加为好友）。对于互相加为好友的对手，可以知道对方是否已连接，不需要传递邀请就能申请对局。再点一次则移出。</td></tr>
-                        <tr><td><strong>申请对局</strong></td><td>向“在线”的好友申请对局。对方会打开条件确认画面，对方点击“开始”后对局开始。条件（用时规则、先后手、对局者）使用对方“连接与条件”中的设置。</td></tr>
+                        <tr><td><strong>申请对局</strong></td><td>向“在线”的好友申请对局。对方会打开条件确认画面，对方点击“开始”后对局开始。条件（用时规则、先后手、对局者）使用对方“邀请”标签页中的设置。</td></tr>
                         <tr><td><strong>向好友告知在线状态</strong></td><td>在连接期间，只向互相加为好友的对手告知您已连接（在线），并接受他们的对局申请（默认关闭）。需要使用支持暗号的协作节点。协作节点的运营者可以知道谁和谁是好友（IP 地址的组合）。</td></tr>
                         <tr><td><strong>删除记录</strong></td><td>删除该对手的名称、已确认、屏蔽和对局数的记录。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">任何人都可以免费重新生成玩家密钥，因此屏蔽和过去的成绩可以通过重新生成来规避。</p>
-                <p class="guide-step-text">要查看好友的在线状态并申请对局，双方都要在“设置”的“连接候选”中填入支持暗号的协作节点（加上 <code>--meet</code> 启动的节点。<a href="p2p-relay.html#start">启动协作节点</a>）并连接。只有在此标签页中启用了“向好友告知在线状态”的人（默认关闭），才会在对方那里显示为“在线”。没有互相加为好友时，双方都不会显示。对局中、协商中的对手不显示为在线。打开此标签页期间，每分钟重新查询一次。</p>
+                <p class="guide-step-text">要查看好友的在线状态并申请对局，双方都要在“连接”标签页中注册支持暗号的协作节点（加上 <code>--meet</code> 启动的节点。<a href="p2p-relay.html#start">启动协作节点</a>）并连接。只有在此标签页中启用了“向好友告知在线状态”的人（默认关闭），才会在对方那里显示为“在线”。没有互相加为好友时，双方都不会显示。对局中、协商中的对手不显示为在线。打开此标签页期间，每分钟重新查询一次。</p>
             </div>
 
             <div class="guide-step">
@@ -546,10 +548,10 @@
                     <span class="guide-step-number">7</span>
                     <span class="guide-step-title">“设置”标签页</span>
                 </div>
-                <p class="guide-step-text">如果只在同一电脑・同一局域网内对局，这个标签页的项目都不需要更改。“连接候选”和“不使用直接连接”用于通过互联网对局（<a href="p2p-relay.html">使用协作节点对局</a>）。“不显示未对局过的对手的显示名”以及玩家密钥、使用期限，见下面的<a href="#settings-names">8</a>・<a href="#settings-key">9</a>。</p>
-                <p class="guide-step-text">输入框和复选框在更改时保存。“连接候选”和“不使用直接连接”从下次连接时开始生效（已连接时，请断开后重新连接）。</p>
+                <p class="guide-step-text">如果只在同一电脑・同一局域网内对局，这个标签页的项目都不需要更改。协作节点和与对手的连接方式（以前的“连接候选”和“不使用直接连接”）在“连接”标签页中设置（点击最上方的“打开「连接」标签页”即可前往）。“不显示未对局过的对手的显示名”以及玩家密钥、使用期限，见下面的<a href="#settings-names">8</a>・<a href="#settings-key">9</a>。</p>
+                <p class="guide-step-text">复选框在更改时保存。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-settings.png"><img src="../../images/zh-cn/p2p-game/p2p-settings.png" alt="显示连接候选、不使用直接连接、不显示显示名的设置，以及密钥保存方式、权限限制、使用期限和无法防止的情况的“设置”标签页" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/zh-cn/p2p-game/p2p-settings.png"><img src="../../images/zh-cn/p2p-game/p2p-settings.png" alt="排列着不显示显示名的设置，玩家ID、玩家密钥保存方式、权限限制、使用期限，以及加上标题分两列排列的无法防止的情况的“设置”标签页" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">“设置”标签页</p>
                 </div>
                 <table class="info-table">
@@ -557,15 +559,14 @@
                         <tr><th scope="col">项目</th><th scope="col">说明</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>连接候选</strong></td><td>每行填入一个协作节点地址（/ip4/…/p2p/… 形式），最多 16 个。只使用“本地”时可以留空（协作节点的准备见<a href="p2p-relay.html#who">由谁启动协作节点</a>）。</td></tr>
-                        <tr><td><strong>不使用直接连接</strong></td><td>仅通过“连接候选”中协作节点的中继，不让对手看到 IP 地址。协作节点的运营者仍可看到（<a href="p2p-relay.html#relay-only">不让对手看到 IP 地址对局</a>）。</td></tr>
                         <tr><td><strong>不显示未对局过的对手的显示名</strong></td><td>在条件确认画面和“对局记录”标签页中，把首次对局对手的显示名显示为“名称已隐藏”。</td></tr>
+                        <tr><td><strong>玩家ID</strong></td><td>玩家密钥的公钥（64 位十六进制数），是对手用来识别您的值。点击“复制”可复制。生成密钥之前显示“（尚未生成）”。</td></tr>
                         <tr><td><strong>玩家密钥保存</strong></td><td>当前玩家密钥的保存方式（操作系统的密钥库、用密码短语加密的文件、不加密的文件）。连接期间还会显示对负责通信的进程施加的权限限制。</td></tr>
                         <tr><td><strong>重新生成玩家密钥…</strong></td><td>生成新的玩家密钥。玩家ID会改变，对手会把您看作另一个人。旧密钥将被删除。请断开连接后再点击。</td></tr>
-                        <tr><td><strong>此版本的使用期限</strong></td><td>过了这个日期后，不再加入“互联网”网络。</td></tr>
+                        <tr><td><strong>此版本的使用期限</strong></td><td>过了这个日期后，不再加入“互联网”（“同一电脑・同一局域网”在期限后仍可使用）。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">最下方列出P2P对局无法防止的情况（<a href="#limits">无法防止的情况与对方可以看到的信息</a>）。</p>
+                <p class="guide-step-text">最下方加上标题逐项列出P2P对局无法防止的情况（<a href="#limits">无法防止的情况与对方可以看到的信息</a>）。</p>
             </div>
 
             <div class="guide-step" id="settings-names">
@@ -574,11 +575,11 @@
                     <span class="guide-step-title">“不显示未对局过的对手的显示名”</span>
                 </div>
                 <p class="guide-step-text">显示名是对手可以自由设定的名称。邀请字符串和暗号在 10 分钟的期限内，任何看到或听到的人都可以使用。被他人看到或听到时，可能会有陌生人连接过来。陌生人的显示名中可能含有令人不快的词语，或与画面提示容易混淆的文字。</p>
-                <p class="guide-step-text">启用此设置后，未对局过的对手（未列在“对手管理”中的对手）的显示名，在条件确认画面显示为“显示名：已隐藏”，在“对局记录”标签页显示为“名称已隐藏”。请通过玩家ID和“首次对局的对手。”的提示确认对手，如果没有印象，请点击“取消”。</p>
+                <p class="guide-step-text">启用此设置后，未对局过的对手（未列在“对手”标签页中的对手）的显示名，在条件确认画面显示为“显示名：已隐藏”，在“对局记录”标签页显示为“名称已隐藏”。请通过玩家ID和“首次对局的对手。”的提示确认对手，如果没有印象，请点击“取消”。</p>
                 <ul class="guide-step-text">
-                    <li>对局过的对手（列在“对手管理”中的对手）的显示名，在此设置下仍会显示。在“对手管理”中“删除记录”的对手，会再次被视为未对局过的对手。</li>
+                    <li>对局过的对手（列在“对手”标签页中的对手）的显示名，在此设置下仍会显示。在“对手”标签页中“删除记录”的对手，会再次被视为未对局过的对手。</li>
                     <li>对局开始后，棋盘上的对局者名、对局信息和“对局中”标签页会显示对手的显示名。此设置的作用是让您在开始前不看到陌生人的名称就能取消。</li>
-                    <li>只和熟人对局时，可以不更改。两种网络都可以使用。</li>
+                    <li>只和熟人对局时，可以不更改。“同一电脑・同一局域网”和“互联网”都可以使用。</li>
                 </ul>
             </div>
 
@@ -594,8 +595,8 @@
                     <li>想更改密钥的保存方式时（重新生成时重新选择保存方式）</li>
                     <li>想用与过去对局无关的新玩家ID对局时</li>
                 </ul>
-                <p class="guide-step-text">重新生成后玩家ID会改变，在对手的“对手管理”中您会显示为另一个人（首次对局的对手）。确认码也会改变，请让曾把您设为已确认的对手再核对一次。旧密钥会被删除，无法恢复原来的玩家ID。过去的对局记录（凭证）不会被删除，仍保留旧的玩家ID。点击前，请在“连接与条件”标签页断开连接。</p>
-                <p class="guide-step-text"><strong>此版本的使用期限</strong>是构建日起 180 天后的日期。P2P对局没有可以停止旧版本的服务器。为了不让未修复缺陷或安全漏洞的旧版本一直留在互联网上的网络中，过期的版本不再加入“互联网”。过期后，请更新到新版本（从源代码构建时，请重新构建）。“本地”的对局，以及查看和验证已保存的记录，过期后仍可使用。</p>
+                <p class="guide-step-text">重新生成后玩家ID会改变，在对手的“对手”标签页中您会显示为另一个人（首次对局的对手）。确认码也会改变，请让曾把您设为已确认的对手再核对一次。旧密钥会被删除，无法恢复原来的玩家ID。过去的对局记录（凭证）不会被删除，仍保留旧的玩家ID。点击前，请先点击窗口上方的“断开”。</p>
+                <p class="guide-step-text"><strong>此版本的使用期限</strong>是构建日起 180 天后的日期。P2P对局没有可以停止旧版本的服务器。为了不让未修复缺陷或安全漏洞的旧版本一直留在互联网上的网络中，过期的版本不再加入“互联网”。过期后，请更新到新版本（从源代码构建时，请重新构建）。“同一电脑・同一局域网”的对局，以及查看和验证已保存的记录，过期后仍可使用。</p>
             </div>
 
         </div>
@@ -623,7 +624,7 @@
                     <tbody>
                         <tr><td><strong>尚未验证对手是否为此ID的持有者。此ID只是对手的自称。</strong></td><td>开始手续尚在进行中，玩家ID只是对手报上的值。</td></tr>
                         <tr><td><strong>已验证对手持有此ID的密钥。</strong></td><td>对手的应用已用此ID的密钥确定了开始。</td></tr>
-                        <tr><td><strong>已确认的对手（已用确认码核对）。</strong></td><td>在“对手管理”中设为已确认的对手。也会显示您设定的本地备注名。</td></tr>
+                        <tr><td><strong>已确认的对手（已用确认码核对）。</strong></td><td>在“对手”标签页中设为已确认的对手。也会显示您设定的本地备注名。</td></tr>
                         <tr><td><strong>首次对局的对手。／与此对手的对局：N局</strong></td><td>以往的对局数，以及其中结果未确定的对局数。</td></tr>
                         <tr><td><strong>与您命名为「…」的对手显示名相同，但玩家ID不同。</strong></td><td>以红字显示。可能是与您命名的对手不同的人。</td></tr>
                     </tbody>
@@ -729,7 +730,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">“对局记录”标签页</span>
                 </div>
-                <p class="guide-step-text">已结束的对局会列在“对局记录”标签页中。“结束方式”是在自己的应用中结束的方式，“记录类别”是验证凭证的结果。</p>
+                <p class="guide-step-text">已结束的对局会列在“对局记录”标签页中。“您的结果”是从自己的角度看的结果（结果没有决定的对局，则是在自己的应用中结束的方式），“记录类别”是验证凭证的结果。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">记录类别</th><th scope="col">含义</th></tr>
@@ -852,11 +853,11 @@
                         <tr><th scope="col">谁</th><th scope="col">可以看到的内容</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>对局对手</strong></td><td>玩家ID、显示名、条件。直接连接时，对手查看通信还能得知 IP 地址（画面上不显示）。设置“不使用直接连接”后无法得知</td></tr>
+                        <tr><td><strong>对局对手</strong></td><td>玩家ID、显示名、条件。直接连接时，对手查看通信还能得知 IP 地址（画面上不显示）。选择“仅使用协作节点的中继”后无法得知</td></tr>
                         <tr><td><strong>加为好友的对手</strong></td><td>在启用“向好友告知在线状态”并连接期间，您已连接这件事（仅当对方也把您加为好友时）。对方申请并连接后，与对局对手相同</td></tr>
-                        <tr><td><strong>看到邀请字符串、暗号的人</strong></td><td>连接到邀请方的地址（使用直接连接的设置时包含 IP 地址。在“本地（同一电脑・同一局域网）”中，包含这台电脑在局域网内的全部地址，也包括 VPN 和虚拟设备的地址。暗号中包含其中最多 4 个。使用协作节点的暗号中不包含连接地址，但在期限内，可以用该暗号从协作节点取回邀请）</td></tr>
+                        <tr><td><strong>看到邀请字符串、暗号的人</strong></td><td>连接到邀请方的地址（使用直接连接的设置时包含 IP 地址。在“同一电脑・同一局域网”中，包含这台电脑在局域网内的全部地址，也包括 VPN 和虚拟设备的地址。暗号中包含其中最多 4 个。使用协作节点的暗号中不包含连接地址，但在期限内，可以用该暗号从协作节点取回邀请）</td></tr>
                         <tr><td><strong>协作节点的运营者</strong></td><td>IP 地址，以及哪些 IP 地址之间建立了连接。确认可达性时，只请协作节点确认它看到的你的地址，不发送局域网内的地址。支持暗号的协作节点最多存放加密的邀请 10 分钟，但无法读取其内容。看不到着手、玩家ID 和显示名对于使用“向好友告知在线状态”的人，还能知道谁和谁是好友（存放同一个编号的 IP 地址与取回它的 IP 地址的组合）。</td></tr>
-                        <tr><td><strong>同一局域网内的设备</strong></td><td>以“本地（同一电脑・同一局域网）”连接期间，能得知这台电脑正在运行 P2P 对局（连接到监听端口即可知道）。没有邀请字符串或暗号时，看不到这台电脑的地址列表，也看不到对局</td></tr>
+                        <tr><td><strong>同一局域网内的设备</strong></td><td>以“同一电脑・同一局域网”连接期间，能得知这台电脑正在运行 P2P 对局（连接到监听端口即可知道）。没有邀请字符串或暗号时，看不到这台电脑的地址列表，也看不到对局</td></tr>
                         <tr><td><strong>收到对局记录（凭证）的人</strong></td><td>双方的玩家ID、条件、对局开始的大致日期和时间、全部着手与自报用时、双方确定的结果。不保存显示名、IP 地址和本地备注名</td></tr>
                     </tbody>
                 </table>
@@ -888,7 +889,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">怎样寻找对局的对手</span>
                 </div>
-                <p class="guide-step-text">通过邀请决定。邀请方生成邀请，对同一局域网的对手口头告知 12 个字符左右的暗号，对远处的对手则通过私信等方式交给对方邀请字符串（如果使用支持暗号的协作节点，对远处的对手也只需告知 10 个字符的暗号）。这是与熟人下棋的功能，没有寻找不特定对手的公开招募（<a href="p2p-direct.html#steps">开始对局的步骤</a>）。经常对局的对手，可以在“对手管理”标签页中加为好友，这样就能知道对方是否已连接，不需要传递邀请就能从列表中申请对局（需要使用支持暗号的协作节点）。</p>
+                <p class="guide-step-text">通过邀请决定。邀请方生成邀请，对同一局域网的对手口头告知 12 个字符左右的暗号，对远处的对手则通过私信等方式交给对方邀请字符串（如果使用支持暗号的协作节点，对远处的对手也只需告知 10 个字符的暗号）。这是与熟人下棋的功能，没有寻找不特定对手的公开招募（<a href="p2p-direct.html#steps">开始对局的步骤</a>）。经常对局的对手，可以在“对手”标签页中加为好友，这样就能知道对方是否已连接，不需要传递邀请就能从列表中申请对局（需要使用支持暗号的协作节点）。</p>
             </div>
 
             <div class="guide-step">
@@ -896,7 +897,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">与远方的对手对局需要什么</span>
                 </div>
-                <p class="guide-step-text">需要一个协作节点。由能够准备互联网可以到达的服务器的人启动，两人都把它的地址填入“设置”标签页的“连接候选”，并以“互联网”连接（<a href="p2p-relay.html">使用协作节点对局</a>）。与同一电脑・同一局域网的对手对局时，不需要协作节点（<a href="p2p-direct.html">不使用协作节点对局</a>）。</p>
+                <p class="guide-step-text">需要一个协作节点。由能够准备互联网可以到达的服务器的人启动，两人都把它的地址注册到“连接”标签页的“协作节点”中，并以“互联网”连接（<a href="p2p-relay.html">使用协作节点对局</a>）。与同一电脑・同一局域网的对手对局时，不需要协作节点（<a href="p2p-direct.html">不使用协作节点对局</a>）。</p>
             </div>
 
             <div class="guide-step">
@@ -920,7 +921,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">对手能看到我的 IP 地址吗</span>
                 </div>
-                <p class="guide-step-text">在“本地”下，对手能看到的只有局域网内的地址。在“互联网”下直接连接时，对手通过检查通信可以得知您在互联网上的 IP 地址（画面上不显示）。在“设置”标签页中选择“不使用直接连接”后，对手只能看到协作节点的地址（<a href="p2p-relay.html#relay-only">不让对手看到 IP 地址对局</a>）。</p>
+                <p class="guide-step-text">在“同一电脑・同一局域网”下，对手能看到的只有局域网内的地址。在“互联网”下直接连接时，对手通过检查通信可以得知您在互联网上的 IP 地址（画面上不显示）。在“连接”标签页中选择“仅使用协作节点的中继”后，对手只能看到协作节点的地址（<a href="p2p-relay.html#relay-only">不让对手看到 IP 地址对局</a>）。</p>
             </div>
 
             <div class="guide-step">
@@ -960,7 +961,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">可以让引擎来下棋吗</span>
                 </div>
-                <p class="guide-step-text">可以。在“连接与条件”标签页的“对局者”中选择已注册的引擎，然后发出邀请或通过邀请连接。由引擎下棋这一点会在条件确认画面告知对手，并保留在对局记录中。如果对手也选择引擎，就是引擎与引擎的对局。如果对手的应用是不支持引擎对局的旧版本，开始之前会显示提示（把“对局者”设为“人类”就可以对局）。由于没有入玉宣言，如果引擎的设置中可以禁用入玉宣言，请将其禁用。</p>
+                <p class="guide-step-text">可以。在“邀请”标签页的“对局者”中选择已注册的引擎，然后发出邀请或通过邀请连接。由引擎下棋这一点会在条件确认画面告知对手，并保留在对局记录中。如果对手也选择引擎，就是引擎与引擎的对局。如果对手的应用是不支持引擎对局的旧版本，开始之前会显示提示（把“对局者”设为“人类”就可以对局）。由于没有入玉宣言，如果引擎的设置中可以禁用入玉宣言，请将其禁用。</p>
             </div>
 
             <div class="guide-step">

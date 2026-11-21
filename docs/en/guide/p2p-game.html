@@ -132,7 +132,7 @@
                         <tr><th scope="col">What a game needs</th><th scope="col">How a P2P game handles it</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Choosing an opponent</strong></td><td>The inviting player's app creates an invitation, which is given to the opponent: either a long invitation string or a short passcode that can even be told by voice (a passcode is created on Local, which connects to an opponent on the same LAN, and when you use a cooperating node that supports passcodes). The invitation contains where to reach the inviting player's app, and the opponent's app connects there. The feature is meant for playing people you know; there is no public list for finding strangers.</td></tr>
+                        <tr><td><strong>Choosing an opponent</strong></td><td>The inviting player's app creates an invitation, which is given to the opponent: either a long invitation string or a short passcode that can even be told by voice (a passcode is created with Same PC / same LAN, which connects to an opponent on the same LAN, and when you use a cooperating node that supports passcodes). The invitation contains where to reach the inviting player's app, and the opponent's app connects there. The feature is meant for playing people you know; there is no public list for finding strangers.</td></tr>
                         <tr><td><strong>Telling players apart</strong></td><td>The public key of the player key that this app creates is your player ID. Check whether an opponent is the same person by the player ID, not the display name. No real name or external account is used.</td></tr>
                         <tr><td><strong>Delivering moves</strong></td><td>Moves are sent straight to the opponent's app over a connection encrypted between the two apps. Over the internet, home routers usually block connections that start from outside, so a cooperating node checks reachability and relays the traffic (not needed for opponents on the same PC or LAN). Even when relaying, the cooperating node only passes along traffic that stays encrypted (<a href="#relay-not-server">3</a>).</td></tr>
                         <tr><td><strong>Whether a move is legal</strong></td><td>Both apps check it. A move you play appears on both boards only after the opponent's app has checked it.</td></tr>
@@ -164,7 +164,7 @@
                     </tbody>
                 </table>
                 <p class="guide-step-text">The operator of the cooperating node can see IP addresses and which IP addresses connected to each other (<a href="#visibility">What Opponents and the Network Can See</a>). The node can stop or delay the traffic it relays, but cannot alter it (altered traffic fails the encryption check, and the apps reject it). If the traffic stops, it is handled the same way as a dropped connection (<a href="#disconnect">When the Connection Drops</a>).</p>
-                <p class="guide-step-text">Right after connecting through a relay, the two apps try to connect directly. If they can, the game traffic does not go through the cooperating node, and Route on the Game tab shows direct. If they cannot, the game goes through the relay, and the apps try again when they reconnect. If either player uses Do not use direct connections, the apps do not try, and the whole game goes through the relay.</p>
+                <p class="guide-step-text">Right after connecting through a relay, the two apps try to connect directly. If they can, the game traffic does not go through the cooperating node, and Route on the Game tab shows direct. If they cannot, the game goes through the relay, and the apps try again when they reconnect. If either player uses Relay only (via a cooperating node), the apps do not try, and the whole game goes through the relay.</p>
             </div>
 
             <div class="guide-step" id="protocol">
@@ -217,9 +217,9 @@
                 <p class="guide-step-text">P2P games are included in the distributed ShogiBoardQ (Linux, Windows and macOS). They are also enabled by default when you build from source (libsodium and Rust are required; see <a href="linux-build-and-release.html">Linux Build and Release</a>, <a href="windows-build-and-release.html">Windows Build and Release</a> and <a href="macos-build-and-release.html">macOS Build and Release</a> for the build steps. On Windows, pass the folder of the official prebuilt libsodium for MSVC with <code>-DSODIUM_ROOT=</code>. On macOS, <code>brew install rust libsodium pkg-config</code> provides them. To build without P2P games, pass <code>-DENABLE_P2P_PLAY=OFF</code> to CMake).</p>
                 <ul class="guide-step-text">
                     <li><strong>Operating system</strong>: Linux, Windows (10 / 11) and macOS. The communication process (shogiboardq-peer) runs with its privileges restricted by the OS, so P2P games are not available where that is not possible. On Windows, the first connection registers, once, the container (AppContainer) that confines this process. On macOS, the process puts itself into a sandbox right after it starts. A cooperating node can be run on Linux and macOS (you can still play through one from Windows).</li>
-                    <li><strong>Networks</strong>: Local (same PC / same LAN) and Internet. For which to use, see <a href="#ways">Two Ways to Play</a>.</li>
+                    <li><strong>Where your opponent is</strong>: There are two choices, Same PC / same LAN and Internet (they join separate networks, which do not connect to each other). For which to use, see <a href="#ways">Two Ways to Play</a>.</li>
                     <li><strong>Cooperating node</strong>: Games over the Internet (the Internet network) need one cooperating node as the first peer to connect to (<a href="p2p-relay.html">Playing with a Cooperating Node</a>). Games on the same PC or LAN do not need one (<a href="p2p-direct.html">Playing Without a Cooperating Node</a>).</li>
-                    <li><strong>Expiry</strong>: 180 days after the build date, the build no longer joins the Internet network (update to a newer version). The Local network and reviewing or verifying saved records keep working.</li>
+                    <li><strong>Expiry</strong>: 180 days after the build date, the build no longer joins the Internet network (update to a newer version). Same PC / same LAN and reviewing or verifying saved records keep working.</li>
                     <li><strong>Automation API</strong>: P2P games are not available when the app is started with <code>--automation</code>.</li>
                 </ul>
             </div>
@@ -257,7 +257,7 @@
             <a href="p2p-direct.html" class="feature-card-link">
                 <div class="feature-card">
                     <h3>Playing Without a Cooperating Node</h3>
-                    <p>Play an opponent on the same PC or LAN, connected with just an invitation. You need neither a cooperating node nor any change on the Settings tab. How many people you can invite and the firewall settings are also on this page.</p>
+                    <p>Play an opponent on the same PC or LAN, connected with just an invitation. You do not need to register a cooperating node. How many people you can invite and the firewall settings are also on this page.</p>
                     <span class="feature-card-more">Learn more &rarr;</span>
                 </div>
             </a>
@@ -283,11 +283,11 @@
                     </thead>
                     <tbody>
                         <tr><td><strong>Who you can play</strong></td><td>Opponents on the same PC or LAN</td><td>Opponents on the Internet (another home, another connection)</td></tr>
-                        <tr><td><strong>Network</strong></td><td>Local (same PC / same LAN)</td><td>Internet</td></tr>
-                        <tr><td><strong>Cooperating node</strong></td><td>Not needed</td><td>One is needed (someone runs it, and both players enter its address)</td></tr>
-                        <tr><td><strong>Settings tab</strong></td><td>No changes needed</td><td>Enter the cooperating node in Bootstrap nodes</td></tr>
+                        <tr><td><strong>Where your opponent is</strong></td><td>Same PC / same LAN</td><td>Internet</td></tr>
+                        <tr><td><strong>Cooperating node</strong></td><td>Not needed</td><td>One is needed (someone runs it, and both players register its address)</td></tr>
+                        <tr><td><strong>Cooperating nodes on the Connection tab</strong></td><td>No need to register any</td><td>Register the cooperating node's address</td></tr>
                         <tr><td><strong>Addresses in the invitation</strong></td><td>This PC's address on the LAN (such as 192.168.…)</td><td>Addresses that go through the cooperating node (and, if your PC can be reached directly from outside, your IP address on the Internet)</td></tr>
-                        <tr><td><strong>Address the opponent can see</strong></td><td>Only your address on the LAN</td><td>With a direct connection, your IP address on the Internet (Do not use direct connections hides it)</td></tr>
+                        <tr><td><strong>Address the opponent can see</strong></td><td>Only your address on the LAN</td><td>With a direct connection, your IP address on the Internet (Relay only (via a cooperating node) hides it)</td></tr>
                         <tr><td><strong>Expiry</strong></td><td>None</td><td>180 days after the build</td></tr>
                     </tbody>
                 </table>
@@ -331,7 +331,7 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">Create a Player Key the First Time You Connect</span>
                 </div>
-                <p class="guide-step-text">On the Connection and Conditions tab, choose a Network and click Connect. The first time, Prepare P2P Games opens. Read the list of what cannot be prevented, choose how to store the key, and click Create Player Key.</p>
+                <p class="guide-step-text">On the Connection tab, choose an option under Where your opponent is and click Connect at the top of the window. The first time, Prepare P2P Games opens. Read the list of what cannot be prevented, choose how to store the key, and click Create Player Key.</p>
                 <ul class="guide-step-text">
                     <li><strong>OS keychain (recommended)</strong>: Stores the key in the OS keychain (Credential Manager on Windows; Keychain on macOS; KWallet, GNOME Keyring, and so on, on Linux). It cannot be selected in builds without QtKeychain (the Windows and macOS packages up to version 2026.11.15); update to a newer version, or choose "File encrypted with a passphrase" there. On macOS, the first time you connect after replacing the app with a newer version, you may be asked to allow access to the keychain item (with your login password).</li>
                     <li><strong>File encrypted with a passphrase</strong>: Stores the key in a file encrypted with a key derived from your passphrase. You are asked for the passphrase the first time you connect after starting the app.</li>
@@ -354,8 +354,8 @@
                     <span class="guide-step-number">3</span>
                     <span class="guide-step-title">Choose a Display Name and Conditions</span>
                 </div>
-                <p class="guide-step-text">Once connected, Status shows Connected (peers: N) and Your player ID appears. Enter the name your opponents will see in Display name. It must be 1 to 32 characters with no leading or trailing spaces, using letters, digits, symbols, kana, kanji, and full-width alphanumerics.</p>
-                <p class="guide-step-text">Time control, Byoyomi, and Side become the conditions of the games you invite people to. Invitation route shows how an invited opponent can reach you (directly, or through the relay of a cooperating node). Your IP address and your opponent's are never shown on screen.</p>
+                <p class="guide-step-text">Once connected, the bar at the top of the window shows Connected (peers: N). Enter the name your opponents will see in Display name on the Invitation tab. It must be 1 to 32 characters with no leading or trailing spaces, using letters, digits, symbols, kana, kanji, and full-width alphanumerics.</p>
+                <p class="guide-step-text">Time control, Byoyomi, and Side on the same tab become the conditions of the games you invite people to. While you are connected, the top bar shows, as Invitation route, how an invited opponent can reach you (directly, or through the relay of a cooperating node). Your IP address and your opponent's are never shown on screen.</p>
             </div>
 
         </div>
@@ -366,7 +366,7 @@
 <section id="tabs" class="section">
     <div class="section-inner">
         <h2 class="section-title">The Tabs of the Window</h2>
-        <p class="section-desc">The six tabs of the P2P window, what each item means, and when to use the items on the Settings tab</p>
+        <p class="section-desc">The bar at the top of the P2P window, and what each item on the six tabs means</p>
 
         <div class="screenshot-gallery">
 
@@ -375,72 +375,75 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">The Six Tabs</span>
                 </div>
-                <p class="guide-step-text">The P2P window has six tabs. Use the two on the left until you have an opponent, the Game tab once the game starts, and Game Records and Opponents after it ends.</p>
+                <p class="guide-step-text">The P2P window has a bar at the top that shows the connection status, and six tabs below it. The tabs are in the order you use them: decide how to connect and connect on the Connection tab, settle on your opponent on the Invitation tab, then use the Game tab once the game starts, and Game Records and Opponents after it ends.</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">Tab</th><th scope="col">When you use it</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Connection and Conditions</strong></td><td>Connect to a network, and set the display name shown to opponents the time control and side used when you invite, and who plays your moves (a human or an engine).</td></tr>
-                        <tr><td><strong>Connect by Invitation</strong></td><td>Create an invitation and give its passcode or invitation string to your opponent, or connect with a passcode or invitation string you received.</td></tr>
+                        <tr><td><strong>Connection</strong></td><td>Set Where your opponent is (Same PC / same LAN, or Internet), How to connect to your opponent, and Cooperating nodes. This tab also shows what happens with the settings you chose.</td></tr>
+                        <tr><td><strong>Invitation</strong></td><td>Set the display name shown to opponents, the time control and side used when you invite, and who plays your moves (a human or an engine). Create an invitation and give its passcode or invitation string to your opponent, or connect with a passcode or invitation string you received.</td></tr>
                         <tr><td><strong>Game</strong></td><td>See the state of the game, resign, or offer a draw or an abort.</td></tr>
                         <tr><td><strong>Game Records</strong></td><td>See the records (evidence) of finished games, and verify, export, or delete them.</td></tr>
-                        <tr><td><strong>Opponents</strong></td><td>Name the opponents you have played, check them with a verification code, and block them.</td></tr>
-                        <tr><td><strong>Settings</strong></td><td>Addresses of cooperating nodes, the setting that hides your IP address from opponents, and recreating the player key. None of them is needed for games on the same PC or LAN.</td></tr>
+                        <tr><td><strong>Opponents</strong></td><td>Name the opponents you have played, check them with a verification code, and block them. You can also ask an opponent you have added as a friend for a game from here.</td></tr>
+                        <tr><td><strong>Settings</strong></td><td>The setting that hides the display names of opponents you have not played, your player ID, recreating the player key, and the expiry. You do not need to change any of them for games on the same PC or LAN.</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">A- and A+ at the bottom change the text size (it is remembered the next time you open the window). Clicking Close closes the window, but the connection and the game continue. To open it again, choose Game → P2P Game…; to disconnect, click Disconnect on the Connection and Conditions tab. Quitting ShogiBoardQ also closes the connection (if you quit during a game, the game is aborted).</p>
+                <p class="guide-step-text">A- and A+ at the bottom change the text size (it is remembered the next time you open the window). Clicking Close closes the window, but the connection and the game continue. To open it again, choose Game → P2P Game…; to disconnect, click Disconnect at the top of the window. Quitting ShogiBoardQ also closes the connection (if you quit during a game, the game is aborted).</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">The Connection and Conditions Tab</span>
+                    <span class="guide-step-title">The Top Bar and the Connection Tab</span>
                 </div>
-                <p class="guide-step-text">Connect to a network under Connect at the top, and under Display name and conditions set the name shown to opponents and the conditions of the games you invite people to.</p>
+                <p class="guide-step-text">The bar at the top of the window has the connection status and the Connect / Disconnect button, and is visible whichever tab is open. On the Connection tab, you decide how to connect to your opponent. Work from the top: choose Where your opponent is, then How to connect to your opponent, then Cooperating nodes. With this setting at the bottom then shows who you can play, the form of the invitation, and who can see your IP address with those settings.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-connection.png"><img src="../../images/en/p2p-game/p2p-connection.png" alt="The Connection and Conditions tab while connected, with the network, status, player ID, and invitation route, and the display name, time control, byoyomi, side, and player fields" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">The Connection and Conditions tab: after connecting</p>
+                    <a href="../../images/en/p2p-game/p2p-connection.png"><img src="../../images/en/p2p-game/p2p-connection.png" alt="The Connection tab while connected. The top bar shows the status and the invitation route; below it are the choices for where your opponent is and how to connect to your opponent, and what happens with this setting" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">The top bar and the Connection tab: connected with Same PC / same LAN</p>
                 </div>
-                <table class="info-table">
+                <table class="info-table info-table--label-wide">
                     <thead>
                         <tr><th scope="col">Item</th><th scope="col">Description</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Network</strong></td><td>The network to join. Local (same PC / same LAN) connects to opponents on the same PC and the same LAN; Internet connects to opponents on the internet (it needs a cooperating node). It cannot be changed while connected.</td></tr>
-                        <tr><td><strong>Connect / Disconnect</strong></td><td>Connects to the selected network. The first time, the screen for creating a player key opens. Once connected, the button becomes Disconnect, which cancels your valid invitations and disconnects. It cannot be clicked while conditions are being confirmed or during a game.</td></tr>
-                        <tr><td><strong>Status</strong></td><td>Shows Disconnected, Connecting…, or Connected (peers: N). N is the number of peers you are connected to now (cooperating nodes and your opponent). If the communication process could not be started, it shows P2P games are not available.</td></tr>
-                        <tr><td><strong>Your player ID</strong></td><td>The public key of your player key (64 hexadecimal digits); it is how opponents tell you apart. Click Copy to copy it. Before a key is created it shows (not created yet).</td></tr>
-                        <tr><td><strong>Invitation route</strong></td><td>While connected, shows how an invited opponent will reach you (directly, or through the relay of a cooperating node). If nothing can reach you from outside yet, it says so. IP addresses are not shown.</td></tr>
-                        <tr><td><strong>Display name</strong></td><td>The name shown to opponents (1 to 32 characters). It appears on the confirmation screen, in the game information, and on the opponent's Game Records tab, but it is not kept in the evidence.</td></tr>
-                        <tr><td><strong>Time</strong></td><td>The Time control (0 to 1440 minutes) and Byoyomi (0 to 600 seconds) of the games you invite people to. They cannot both be 0.</td></tr>
-                        <tr><td><strong>Side</strong></td><td>The side you prefer in the games you invite people to: No preference (decided by random numbers from both), Prefer Black, or Prefer White.</td></tr>
-                        <tr><td><strong>Player</strong></td><td>Who plays your moves. With Human, you play on the board yourself; if you choose a registered engine, that engine plays (Engine Settings opens the settings of the chosen engine). That an engine plays is shown to the opponent on the confirmation screen and is also kept in the game record (evidence). Both the inviter and the invited player choose this for themselves. It cannot be changed while conditions are being confirmed or during a game.</td></tr>
+                        <tr><td><strong>First line of the bar (status)</strong></td><td>Shows Disconnected, Connecting…, or Connected (peers: N). N is the number of peers you are connected to now (cooperating nodes and your opponent). If the communication process could not be started, it shows P2P games are not available.</td></tr>
+                        <tr><td><strong>Second line of the bar</strong></td><td>While you are not connected, it shows, as Current setting, how you chose to connect on the Connection tab. While connected, it shows, as Invitation route, how an invited opponent will reach you (directly, or through the relay of a cooperating node). If nothing can reach you from outside yet, it says so. IP addresses are not shown.</td></tr>
+                        <tr><td><strong>Connect / Disconnect</strong></td><td>Connects the way you chose on the Connection tab. The first time, the screen for creating a player key opens. Once connected, the button becomes Disconnect, which cancels your valid invitations and disconnects. It cannot be clicked while conditions are being confirmed or during a game.</td></tr>
+                        <tr><td><strong>Where your opponent is</strong></td><td>Same PC / same LAN connects to opponents on the same PC and the same LAN; Internet connects to opponents on the Internet (they join separate networks, which do not connect to each other). Internet needs a cooperating node.</td></tr>
+                        <tr><td><strong>How to connect to your opponent</strong></td><td>Connect directly (default) connects to your opponent directly (on Internet, through the relay of a cooperating node when a direct connection cannot get through). Relay only (via a cooperating node) always goes through the relay of a cooperating node and does not show your IP address to your opponent (the operator of the cooperating node can still see it). Each of the two boxes shows the Route, Exposes, and Requires of that choice, so you can also read how the one you did not choose behaves (<a href="p2p-relay.html#relay-only">Play Without Showing Your IP Address</a>).</td></tr>
+                        <tr><td><strong>Cooperating nodes</strong></td><td>The list of cooperating node addresses (in the form <code>/ip4/…/p2p/…</code>). Enter them one at a time with Add…, or add addresses you have copied with Paste from Clipboard. To remove one, select its row and click Remove. Up to 16 can be registered. With a setting that needs no cooperating node (Same PC / same LAN with Connect directly), this list is hidden until you click the Register… button. While connected, the status next to the buttons shows whether the relay, and whether passcodes and the friends list, are available with the registered cooperating nodes (to arrange a cooperating node, see <a href="p2p-relay.html#who">Who Runs the Cooperating Node?</a>).</td></tr>
+                        <tr><td><strong>With this setting</strong></td><td>Shows Who you can play, Invitation form (a passcode or an invitation string), and Who can see your IP address for the combination you chose. For a combination that cannot connect (Internet or Relay only (via a cooperating node) chosen with no cooperating node registered), it shows instead a notice such as "Your opponent cannot connect with this setting" and how to fix it.</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">The time control and the side come from the inviter's conditions. Each player sets Player for themselves. Both players check everything on the confirmation screen before starting.</p>
+                <p class="guide-step-text">Where your opponent is, How to connect to your opponent, and Cooperating nodes are saved when you choose them. They cannot be changed while connected (the top of the tab shows "You cannot change how you connect while connected. …"). To change them, click Disconnect and then choose again.</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">The Connect by Invitation Tab</span>
+                    <span class="guide-step-title">The Invitation Tab</span>
                 </div>
-                <p class="guide-step-text">Invite an opponent at the top is for the inviter, and Connect by invitation at the bottom is for the invited player. Both work only while connected. On Local (same PC / same LAN), creating an invitation also gives a passcode of about 12 characters besides the invitation string, and telling the passcode is all an opponent on the same LAN needs. An invitation on Internet that uses a cooperating node supporting passcodes also gets a passcode, of 10 characters. For the steps, see <a href="p2p-direct.html#steps">Playing Without a Cooperating Node</a> and <a href="p2p-relay.html#play">Playing with a Cooperating Node</a>.</p>
+                <p class="guide-step-text">Under You and the game conditions at the top, set the name shown to opponents and the conditions of the game. Below it, Invite on the left is for the inviter, and Accept an invitation on the right is for the invited player (both work only while connected). An invitation that connects directly with Same PC / same LAN gets a passcode of about 12 characters besides the invitation string, and telling the passcode is all an opponent on the same LAN needs. An invitation that uses a cooperating node supporting passcodes also gets a passcode, of 10 characters. The time control and the side come from the inviter's conditions. Each player sets Player for themselves. Both players check everything on the confirmation screen before starting. For the steps, see <a href="p2p-direct.html#steps">Playing Without a Cooperating Node</a> and <a href="p2p-relay.html#play">Playing with a Cooperating Node</a>.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Connect by Invitation tab with an invitation created at the top, showing its passcode and invitation string, and a received passcode checked at the bottom" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Connect by Invitation tab: create an invitation (top) and connect with a passcode or invitation string you received (bottom)</p>
+                    <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Invitation tab with the Display name, Player, Time control, Byoyomi and Side fields at the top, an invitation created on the left, showing its passcode and invitation string, and a received passcode checked on the right" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Invitation tab: You and the game conditions (top), Invite (left), and Accept an invitation (right)</p>
                 </div>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">Item</th><th scope="col">Description</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Create Invitation</strong></td><td>Creates an invitation. On Local (same PC / same LAN) the passcode appears in large type, with the invitation string in the box below it (on Internet, and with Do not use direct connections, a 10-character passcode appears if you are connected to a cooperating node that supports passcodes; otherwise there is only the invitation string). Under the box are the expiry time and the number of addresses the opponent can use. An invitation expires in 10 minutes and can be used once, with either the passcode or the invitation string. Up to four can be valid at the same time (<a href="p2p-direct.html#invite-rules">How many people you can invite</a>).</td></tr>
-                        <tr><td><strong>Passcode</strong></td><td>A short series of letters and digits that can be told by voice or over the phone. A passcode on Local (same PC / same LAN) is about 12 characters (in the form <code>K7MP-2QXD-9F3A</code>) and contains this PC's LAN addresses (up to four). It is a little longer on a PC that has addresses of VPNs or virtual machines, and in the second app on the same PC. A passcode that uses a cooperating node is 10 characters (in the form <code>J6HB7-H6NWR</code>) and contains no address. The invitation is kept encrypted at the cooperating node for up to 10 minutes, and the opponent's app collects it with the passcode.</td></tr>
+                        <tr><td><strong>Display name</strong></td><td>The name shown to opponents (1 to 32 characters). It appears on the confirmation screen, in the game information, and on the opponent's Game Records tab, but it is not kept in the evidence.</td></tr>
+                        <tr><td><strong>Time control / Byoyomi</strong></td><td>The Time control (0 to 1440 minutes) and Byoyomi (0 to 600 seconds) of the games you invite people to. They cannot both be 0.</td></tr>
+                        <tr><td><strong>Side</strong></td><td>The side you prefer in the games you invite people to: No preference (decided by random numbers from both), Prefer Black, or Prefer White.</td></tr>
+                        <tr><td><strong>Player</strong></td><td>Who plays your moves. With Human, you play on the board yourself; if you choose a registered engine, that engine plays (Engine Settings opens the settings of the chosen engine). That an engine plays is shown to the opponent on the confirmation screen and is also kept in the game record (evidence). Both the inviter and the invited player choose this for themselves. It cannot be changed while conditions are being confirmed or during a game.</td></tr>
+                        <tr><td><strong>Create Invitation</strong></td><td>Creates an invitation. For an invitation that has a passcode, the passcode appears in large type, with the invitation string in the box below it. An invitation that connects directly with Same PC / same LAN gets a passcode of about 12 characters. An invitation on Internet, and one created with the Relay only (via a cooperating node) setting, gets a 10-character passcode if you are connected to a cooperating node that supports passcodes. If you are not, "This invitation has no passcode…" appears and there is only the invitation string. Under the box are the expiry time and the number of addresses the opponent can use. An invitation expires in 10 minutes and can be used once, with either the passcode or the invitation string. Up to four can be valid at the same time (<a href="p2p-direct.html#invite-rules">How many people you can invite</a>).</td></tr>
+                        <tr><td><strong>Passcode</strong></td><td>A short series of letters and digits that can be told by voice or over the phone. A Same PC / same LAN passcode is about 12 characters (in the form <code>K7MP-2QXD-9F3A</code>) and contains this PC's LAN addresses (up to four). It is a little longer on a PC that has addresses of VPNs or virtual machines, and in the second app on the same PC. A passcode that uses a cooperating node is 10 characters (in the form <code>J6HB7-H6NWR</code>) and contains no address. The invitation is kept encrypted at the cooperating node for up to 10 minutes, and the opponent's app collects it with the passcode.</td></tr>
                         <tr><td><strong>Copy Passcode / Copy Invitation String</strong></td><td>Copies the passcode or the invitation string. Send it in a way that reaches only your opponent.</td></tr>
-                        <tr><td><strong>Connect by invitation (box)</strong></td><td>Type the passcode you received, or paste the invitation string, here. A passcode can be typed in lowercase and without the “-” separators (0 and O, and 1, I and L, are read as the same).</td></tr>
-                        <tr><td><strong>Check</strong></td><td>Reads the typed passcode or the pasted invitation string. For an invitation string it shows the inviter's PeerId (the beginning of it), the expiry time, and the number of addresses below. For a passcode on Local it shows the number of addresses (the passcode contains neither the inviter's PeerId nor the expiry time). For a passcode that uses a cooperating node, it collects the invitation from the cooperating node and shows the same items as for an invitation string.</td></tr>
+                        <tr><td><strong>Notes below the invitation</strong></td><td>Say that you should give it only to your opponent, that it expires after 10 minutes and can be used once, and what an invitation created with the current setting contains (one of: this PC's addresses on the LAN, your IP address, or only addresses that go through the cooperating node).</td></tr>
+                        <tr><td><strong>Accept an invitation (box)</strong></td><td>Type the passcode you received, or paste the invitation string, here. A passcode can be typed in lowercase and without the “-” separators (0 and O, and 1, I and L, are read as the same).</td></tr>
+                        <tr><td><strong>Check</strong></td><td>Reads the typed passcode or the pasted invitation string. For an invitation string it shows the inviter's PeerId (the beginning of it), the expiry time, and the number of addresses below. For a Same PC / same LAN passcode it shows the number of addresses (the passcode contains neither the inviter's PeerId nor the expiry time). For a passcode that uses a cooperating node, it collects the invitation from the cooperating node and shows the same items as for an invitation string.</td></tr>
                         <tr><td><strong>Allow connecting to the private addresses above (opponent on the same LAN)</strong></td><td>Appears only on Internet when the invitation contains private addresses (addresses inside the same LAN). Check it if you allow connecting to them.</td></tr>
                         <tr><td><strong>Connect</strong></td><td>Connects to the inviter of the checked invitation. When the connection is made, the confirmation screen opens for both players. Connecting alone does not start a game. With a passcode that has expired, or an invitation that has already been used, a message such as "Connected to the opponent, but the passcode was not accepted. …" appears. With a passcode that uses a cooperating node, the message "No invitation was found for this passcode. …" appears when you click Check.</td></tr>
                     </tbody>
@@ -454,7 +457,7 @@
                 </div>
                 <p class="guide-step-text">The window switches to this tab when a game starts. You move on the board in the main window; this tab shows the state of the game and lets you resign or make an offer. When no game is being played it shows No game in progress.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-game.png"><img src="../../images/en/p2p-game/p2p-game.png" alt="Game tab showing the opponent, side, route, turn, and disconnection time left, with Resign, Offer Draw, Offer Abort, and Leave Game buttons" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/en/p2p-game/p2p-game.png"><img src="../../images/en/p2p-game/p2p-game.png" alt="Game tab with the turn as a heading, the opponent, side, route, and disconnection time left, and below them the Resign, Offer Draw, Offer Abort, and Leave Game buttons grouped under Concede, End by agreement, and Leave unilaterally" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">Game tab</p>
                 </div>
                 <table class="info-table">
@@ -462,18 +465,18 @@
                         <tr><th scope="col">Shown</th><th scope="col">Meaning</th></tr>
                     </thead>
                     <tbody>
+                        <tr><td><strong>Heading at the top (Your turn / Opponent's turn)</strong></td><td>Shows the current stage in large type. Usually it is whose turn it is. In a game where an engine plays your moves, your turn is shown as The engine is thinking. It shows Waiting for move confirmation… while the opponent's app checks your move, Reconnecting (N s left) when the connection is lost, and Confirming the result… while the result is being compared after the game ends.</td></tr>
                         <tr><td><strong>Opponent</strong></td><td>The opponent's display name. When an engine plays the opponent's moves, the next line shows The opponent's moves are played by an engine (as declared by the opponent).</td></tr>
                         <tr><td><strong>You play Black / You play White</strong></td><td>Your side in this game. When an engine plays your moves, the next line shows Your moves are played by the engine "…".</td></tr>
                         <tr><td><strong>Route</strong></td><td>direct means you are connected directly to the opponent; relay means the connection goes through the relay of a cooperating node.</td></tr>
-                        <tr><td><strong>Your turn / Opponent's turn</strong></td><td>Whose turn it is. In a game where an engine plays your moves, your turn is shown as The engine is thinking. It shows Waiting for move confirmation… while the opponent's app checks your move, Reconnecting (N s left) when the connection is lost, and Confirming the result… while the result is being compared after the game ends.</td></tr>
                         <tr><td><strong>Disconnection time left</strong></td><td>How much longer the connection may be lost in this game (it counts down from 600 seconds). At 0 the game is interrupted.</td></tr>
                         <tr><td><strong>Result</strong></td><td>Once the result is confirmed, it is shown like Black wins (Resign).</td></tr>
                     </tbody>
                 </table>
                 <ul class="guide-step-text">
-                    <li><strong>Resign</strong>: Available only on your turn. After a confirmation, you lose the game.</li>
-                    <li><strong>Offer Draw / Offer Abort</strong>: Asks the opponent whether they accept. It takes effect only if they accept.</li>
-                    <li><strong>Leave Game (result unconfirmed)</strong>: Leaves the game unilaterally. The result is not confirmed.</li>
+                    <li><strong>Resign</strong> (under Concede): Available only on your turn. After a confirmation, you lose the game.</li>
+                    <li><strong>Offer Draw / Offer Abort</strong> (under End by agreement): Asks the opponent whether they accept. It takes effect only if they accept.</li>
+                    <li><strong>Leave Game (result unconfirmed)</strong> (under Leave unilaterally): Leaves the game unilaterally. The result is not confirmed.</li>
                 </ul>
             </div>
 
@@ -484,7 +487,7 @@
                 </div>
                 <p class="guide-step-text">Finished games are listed one per row. Select a row and click a button below. For the meaning of the statuses and what verification checks, see <a href="#records">Game Records and Verification</a>.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-records.png"><img src="../../images/en/p2p-game/p2p-records.png" alt="Game Records tab with Ended, Opponent, You, How it ended, Record status, and Result columns and Verify, Export Evidence, and Delete Record buttons" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/en/p2p-game/p2p-records.png"><img src="../../images/en/p2p-game/p2p-records.png" alt="Game Records tab with Ended, Opponent, You, Your result, and Record status columns and Verify, Export Evidence, and Delete Record buttons" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">Game Records tab: a record confirmed by both players</p>
                 </div>
                 <table class="info-table">
@@ -495,9 +498,8 @@
                         <tr><td><strong>Ended</strong></td><td>When the game ended.</td></tr>
                         <tr><td><strong>Opponent (display name)</strong></td><td>The display name the opponent used. If you named them on the Opponents tab, the local name is shown too. The side whose moves an engine played is marked (engine), both in this column and in the You column.</td></tr>
                         <tr><td><strong>You</strong></td><td>Your side (Black or White).</td></tr>
-                        <tr><td><strong>How it ended</strong></td><td>How the game ended in your app (Confirmed by both, Without opponent's confirmation, Interrupted (unconfirmed), Communication lost (unconfirmed), and so on).</td></tr>
+                        <tr><td><strong>Your result</strong></td><td>The result from your side, shown like Win (Resign), Loss (Time loss), Draw (Sennichite), or Abort (Abort by agreement). For a game whose result was not decided, it shows how the game ended in your app (Without opponent's confirmation, Interrupted (unconfirmed), Communication lost (unconfirmed), and so on). Hover over this column on any row to see how the game ended.</td></tr>
                         <tr><td><strong>Record status</strong></td><td>The result of verifying the evidence (Confirmed by both, Determined by the moves, or Unconfirmed). If the evidence is damaged it shows Verification failed or Unreadable.</td></tr>
-                        <tr><td><strong>Result</strong></td><td>The winner and how the game ended, like Black wins (Resign).</td></tr>
                         <tr><td><strong>Verify</strong></td><td>Verifies the selected record and shows whether the confirmations by the player keys are correct, whether the moves follow the rules, and so on.</td></tr>
                         <tr><td><strong>Export Evidence…</strong></td><td>Saves the evidence file (.sbqmatch) wherever you like. The evidence contains both players' IDs.</td></tr>
                         <tr><td><strong>Delete Record</strong></td><td>Deletes the evidence and the record of the selected game (this cannot be undone).</td></tr>
@@ -512,7 +514,7 @@
                 </div>
                 <p class="guide-step-text">The opponents you have played are listed one per row by player ID. Anyone can use the same display name, so use the player ID to tell whether it is the same person. Select a row and click a button below. An opponent you have added as a friend shows as Online while connected, and you can ask them for a game from here.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-peers.png"><img src="../../images/en/p2p-game/p2p-peers.png" alt="Opponents tab with the Player ID, Local name, Last display name, Friend, Verified, Blocked, Games, and Unconfirmed columns and the Name, Verification Code, Unmark Verified, Block, Delete Record, Remove Friend, and Ask for a Game buttons and the Tell friends when I am online checkbox" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/en/p2p-game/p2p-peers.png"><img src="../../images/en/p2p-game/p2p-peers.png" alt="Opponents tab with the Local name, Last display name, Player ID, Friend, Verified, Blocked, Games, and Unconfirmed columns and the Name, Verification Code, Unmark Verified, Block, Delete Record, Remove Friend, and Ask for a Game buttons and the Tell friends when I am online checkbox" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">Opponents tab: a friend showing as Online</p>
                 </div>
                 <table class="info-table">
@@ -520,9 +522,9 @@
                         <tr><th scope="col">Column or button</th><th scope="col">Description</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Player ID</strong></td><td>The opponent's player ID. Use this value to tell whether it is the same person.</td></tr>
                         <tr><td><strong>Local name</strong></td><td>The name you gave with Name…. It is not shown to the opponent or written into game records.</td></tr>
                         <tr><td><strong>Last display name</strong></td><td>The display name the opponent used in the most recent game.</td></tr>
+                        <tr><td><strong>Player ID</strong></td><td>The opponent's player ID. Use this value to tell whether it is the same person.</td></tr>
                         <tr><td><strong>Friend</strong></td><td>Shows Friend for an opponent you have added as a friend, and Online for a friend who is connected and telling friends when they are online.</td></tr>
                         <tr><td><strong>Verified</strong></td><td>Shows Verified for opponents you checked with a verification code and marked with Mark Verified.</td></tr>
                         <tr><td><strong>Block</strong></td><td>Shows Blocked for opponents you have blocked.</td></tr>
@@ -532,13 +534,13 @@
                         <tr><td><strong>Mark Verified / Unmark Verified</strong></td><td>Marks an opponent whose verification code matched as verified. Click again to remove the mark.</td></tr>
                         <tr><td><strong>Block / Unblock</strong></td><td>Refuses that opponent even if they connect with an invitation. They are told you are busy negotiating or playing with someone else. Click again to unblock.</td></tr>
                         <tr><td><strong>Add Friend / Remove Friend</strong></td><td>Makes the selected opponent a friend (up to 64; a blocked opponent cannot be a friend). With an opponent who has also added you, you can see whether they are connected and ask for a game without passing an invitation. Click again to remove.</td></tr>
-                        <tr><td><strong>Ask for a Game</strong></td><td>Asks a friend who is Online for a game. The confirmation screen opens on their side, and the game starts when they click Start. The conditions (time control, side, and player) are those on their Connection and Conditions tab.</td></tr>
+                        <tr><td><strong>Ask for a Game</strong></td><td>Asks a friend who is Online for a game. The confirmation screen opens on their side, and the game starts when they click Start. The conditions (time control, side, and player) are those on their Invitation tab.</td></tr>
                         <tr><td><strong>Tell friends when I am online</strong></td><td>While you are connected, tells only the opponents who have added you as a friend and whom you have added that you are connected (Online), and accepts their requests for a game (off by default). It uses a cooperating node that supports passcodes. The operator of that node can tell who is friends with whom (as pairs of IP addresses).</td></tr>
                         <tr><td><strong>Delete Record</strong></td><td>Removes the opponent's name, verified mark, block, and game count.</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">Anyone can create a new player key for free, so a block or past results can be avoided by recreating the key.</p>
-                <p class="guide-step-text">To see friends online and ask them for a game, both players enter a cooperating node that supports passcodes (one started with <code>--meet</code>; see <a href="p2p-relay.html#start">Start a Cooperating Node</a>) in Bootstrap nodes on the Settings tab and connect. Only a player who has turned on Tell friends when I am online on this tab (off by default) shows as Online to the other. Unless each has added the other as a friend, neither shows. An opponent who is playing or negotiating does not show as Online. While this tab is open, it checks again every minute.</p>
+                <p class="guide-step-text">To see friends online and ask them for a game, both players register a cooperating node that supports passcodes (one started with <code>--meet</code>; see <a href="p2p-relay.html#start">Start a Cooperating Node</a>) on the Connection tab and connect. Only a player who has turned on Tell friends when I am online on this tab (off by default) shows as Online to the other. Unless each has added the other as a friend, neither shows. An opponent who is playing or negotiating does not show as Online. While this tab is open, it checks again every minute.</p>
             </div>
 
             <div class="guide-step">
@@ -546,10 +548,10 @@
                     <span class="guide-step-number">7</span>
                     <span class="guide-step-title">The Settings Tab</span>
                 </div>
-                <p class="guide-step-text">If you only play on the same PC or LAN, you do not need to change anything on this tab. Bootstrap nodes and Do not use direct connections are for playing over the Internet (<a href="p2p-relay.html">Playing with a Cooperating Node</a>). Hide display names of opponents you have not played, the player key and the expiry are explained in steps <a href="#settings-names">8</a> and <a href="#settings-key">9</a> below.</p>
-                <p class="guide-step-text">The box and the checkboxes are saved when you change them. Bootstrap nodes and Do not use direct connections take effect the next time you connect (if you are connected, disconnect and connect again).</p>
+                <p class="guide-step-text">If you only play on the same PC or LAN, you do not need to change anything on this tab. Cooperating nodes and how to connect to your opponent (formerly Bootstrap nodes and Do not use direct connections) are set on the Connection tab (the Open the "Connection" Tab button at the top takes you there). Hide display names of opponents you have not played, the player key and the expiry are explained in steps <a href="#settings-names">8</a> and <a href="#settings-key">9</a> below.</p>
+                <p class="guide-step-text">The checkbox is saved when you change it.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-settings.png"><img src="../../images/en/p2p-game/p2p-settings.png" alt="Settings tab with Bootstrap nodes and the relay-only and hide-names options, followed by key storage, restrictions, expiry, and what cannot be prevented" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/en/p2p-game/p2p-settings.png"><img src="../../images/en/p2p-game/p2p-settings.png" alt="Settings tab with the hide-names option, followed by the player ID, key storage, restrictions, and expiry, and what cannot be prevented laid out in two columns under headings" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">Settings tab</p>
                 </div>
                 <table class="info-table">
@@ -557,15 +559,14 @@
                         <tr><th scope="col">Item</th><th scope="col">Description</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Bootstrap nodes</strong></td><td>Addresses of cooperating nodes (/ip4/…/p2p/…), one per line, up to 16. If you only use Local, you can leave it empty (to arrange one, see <a href="p2p-relay.html#who">Who Runs the Cooperating Node?</a>).</td></tr>
-                        <tr><td><strong>Do not use direct connections</strong></td><td>Uses only the relay of the cooperating nodes in Bootstrap nodes, so opponents cannot see your IP address. The node operators can still see it (<a href="p2p-relay.html#relay-only">Play Without Showing Your IP Address</a>).</td></tr>
                         <tr><td><strong>Hide display names of opponents you have not played</strong></td><td>Shows Name hidden instead of the display names of new opponents on the confirmation screen and on the Game Records tab.</td></tr>
+                        <tr><td><strong>Player ID</strong></td><td>The public key of your player key (64 hexadecimal digits); it is how opponents tell you apart. Click Copy to copy it. Before a key is created it shows (not created yet).</td></tr>
                         <tr><td><strong>Player key storage</strong></td><td>How the current player key is stored (OS keychain, a passphrase-encrypted file, or an unencrypted file). While connected, the restrictions placed on the communication process are shown too.</td></tr>
                         <tr><td><strong>Recreate Player Key…</strong></td><td>Creates a new player key. Your player ID changes, so opponents see you as someone else. The old key is deleted. Disconnect before clicking it.</td></tr>
-                        <tr><td><strong>This build expires</strong></td><td>After this date, the build does not join the Internet network.</td></tr>
+                        <tr><td><strong>This build expires</strong></td><td>After this date, the build does not join Internet (Same PC / same LAN keeps working after the expiry).</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">At the bottom is the list of what P2P games cannot prevent (<a href="#limits">What Cannot Be Prevented and What Others See</a>).</p>
+                <p class="guide-step-text">At the bottom, what P2P games cannot prevent is listed under headings (<a href="#limits">What Cannot Be Prevented and What Others See</a>).</p>
             </div>
 
             <div class="guide-step" id="settings-names">
@@ -578,7 +579,7 @@
                 <ul class="guide-step-text">
                     <li>The display names of opponents you have played (listed on the Opponents tab) are still shown. An opponent whose record you deleted with Delete Record on the Opponents tab is treated as one you have not played again.</li>
                     <li>Once a game starts, the opponent's display name appears in the player names on the board, in the game information, and on the Game tab. This setting lets you cancel before starting without seeing a stranger's name.</li>
-                    <li>If you play only with people you know, you can leave it unchanged. It works on both networks.</li>
+                    <li>If you play only with people you know, you can leave it unchanged. It works with both Same PC / same LAN and Internet.</li>
                 </ul>
             </div>
 
@@ -594,8 +595,8 @@
                     <li>When you want to change how the key is stored (you choose the storage again when recreating it)</li>
                     <li>When you want to play with a new player ID that is not linked to your past games</li>
                 </ul>
-                <p class="guide-step-text">Recreating the key changes your player ID, so on your opponents' Opponents tab you appear as someone else (a new opponent). Your verification codes change too, so ask opponents who had marked you as verified to compare the code again. The old key is deleted and you cannot go back to the old player ID. Your past game records (evidence) are not deleted and keep the old player ID. Disconnect on the Connection and Conditions tab before clicking it.</p>
-                <p class="guide-step-text"><strong>This build expires</strong> shows the date 180 days after the build date. P2P games have no server that can stop old versions. So that old versions with unfixed bugs or security flaws do not stay on the network, an expired build does not join the Internet network. After it expires, update to a newer version (or rebuild, if you build from source). Local games and reviewing and verifying saved records still work after the expiry.</p>
+                <p class="guide-step-text">Recreating the key changes your player ID, so on your opponents' Opponents tab you appear as someone else (a new opponent). Your verification codes change too, so ask opponents who had marked you as verified to compare the code again. The old key is deleted and you cannot go back to the old player ID. Your past game records (evidence) are not deleted and keep the old player ID. Click Disconnect at the top of the window before clicking it.</p>
+                <p class="guide-step-text"><strong>This build expires</strong> shows the date 180 days after the build date. P2P games have no server that can stop old versions. So that old versions with unfixed bugs or security flaws do not stay on the network, an expired build does not join the Internet network. After it expires, update to a newer version (or rebuild, if you build from source). Same PC / same LAN games and reviewing and verifying saved records still work after the expiry.</p>
             </div>
 
         </div>
@@ -729,7 +730,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">The Game Records Tab</span>
                 </div>
-                <p class="guide-step-text">Finished games are listed on the Game Records tab. How it ended is how the game ended in your app; Record status is the result of verifying the evidence.</p>
+                <p class="guide-step-text">Finished games are listed on the Game Records tab. Your result is the result from your side (for a game whose result was not decided, how the game ended in your app); Record status is the result of verifying the evidence.</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">Record status</th><th scope="col">Meaning</th></tr>
@@ -852,11 +853,11 @@
                         <tr><th scope="col">Who</th><th scope="col">What they can see</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>Your opponent</strong></td><td>Your player ID, display name, and conditions. With a direct connection, they can also find your IP address by inspecting the traffic (it is not shown on screen). With Do not use direct connections, they cannot</td></tr>
+                        <tr><td><strong>Your opponent</strong></td><td>Your player ID, display name, and conditions. With a direct connection, they can also find your IP address by inspecting the traffic (it is not shown on screen). With Relay only (via a cooperating node), they cannot</td></tr>
                         <tr><td><strong>An opponent you added as a friend</strong></td><td>That you are connected, while you are connected with Tell friends when I am online turned on (only if they have also added you as a friend). Once they ask and connect, the same as an opponent</td></tr>
-                        <tr><td><strong>Anyone who sees the invitation string or passcode</strong></td><td>The addresses for reaching the inviter (including the IP address when direct connections are used. On “Local (same PC / same LAN)”, all of this PC's LAN addresses are included, also those of VPNs and virtual devices; a passcode contains up to four of them. A passcode that uses a cooperating node contains no address, but until it expires, the invitation can be collected from the cooperating node with it)</td></tr>
+                        <tr><td><strong>Anyone who sees the invitation string or passcode</strong></td><td>The addresses for reaching the inviter (including the IP address when direct connections are used. With “Same PC / same LAN”, all of this PC's LAN addresses are included, also those of VPNs and virtual devices; a passcode contains up to four of them. A passcode that uses a cooperating node contains no address, but until it expires, the invitation can be collected from the cooperating node with it)</td></tr>
                         <tr><td><strong>The operator of the cooperating node</strong></td><td>IP addresses and which IP addresses connected to each other. The reachability check only asks the node to test the address it saw; your LAN addresses are not sent. A cooperating node that supports passcodes keeps the encrypted invitation for up to 10 minutes but cannot read it. Not the moves, player IDs, or display names For users of Tell friends when I am online, also who is friends with whom (the pairs of IP addresses that deposited and collected the same number).</td></tr>
-                        <tr><td><strong>Devices on the same LAN</strong></td><td>While you are connected on “Local (same PC / same LAN)”, that this PC is running P2P play (anyone who connects to the listening port can tell). Without the invitation string or passcode, they see neither this PC's list of addresses nor the game</td></tr>
+                        <tr><td><strong>Devices on the same LAN</strong></td><td>While you are connected with “Same PC / same LAN”, that this PC is running P2P play (anyone who connects to the listening port can tell). Without the invitation string or passcode, they see neither this PC's list of addresses nor the game</td></tr>
                         <tr><td><strong>Anyone who receives the game record (evidence)</strong></td><td>Both player IDs, the conditions, the approximate date and time the game started, all moves with self-reported time, and the result confirmed by both. Display names, IP addresses, and local names are not kept</td></tr>
                     </tbody>
                 </table>
@@ -896,7 +897,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">What do I need to play someone far away?</span>
                 </div>
-                <p class="guide-step-text">One cooperating node. Someone who can provide a server reachable from the Internet runs it, and both players enter its address in Bootstrap nodes on the Settings tab and connect to Internet (<a href="p2p-relay.html">Playing with a Cooperating Node</a>). To play someone on the same PC or LAN, you do not need a cooperating node (<a href="p2p-direct.html">Playing Without a Cooperating Node</a>).</p>
+                <p class="guide-step-text">One cooperating node. Someone who can provide a server reachable from the Internet runs it, and both players register its address in Cooperating nodes on the Connection tab and connect to Internet (<a href="p2p-relay.html">Playing with a Cooperating Node</a>). To play someone on the same PC or LAN, you do not need a cooperating node (<a href="p2p-direct.html">Playing Without a Cooperating Node</a>).</p>
             </div>
 
             <div class="guide-step">
@@ -920,7 +921,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">Can my opponent see my IP address?</span>
                 </div>
-                <p class="guide-step-text">On Local, your opponent can see only your address on the LAN. With a direct connection on Internet, your opponent can find your IP address on the Internet by inspecting the traffic (it is not shown on screen). With Do not use direct connections on the Settings tab, your opponent sees only the cooperating node's address (<a href="p2p-relay.html#relay-only">Play Without Showing Your IP Address</a>).</p>
+                <p class="guide-step-text">With Same PC / same LAN, your opponent can see only your address on the LAN. With a direct connection on Internet, your opponent can find your IP address on the Internet by inspecting the traffic (it is not shown on screen). If you choose Relay only (via a cooperating node) on the Connection tab, your opponent sees only the cooperating node's address (<a href="p2p-relay.html#relay-only">Play Without Showing Your IP Address</a>).</p>
             </div>
 
             <div class="guide-step">
@@ -960,7 +961,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">Can I have an engine play the game?</span>
                 </div>
-                <p class="guide-step-text">Yes. Choose a registered engine in Player on the Connection and Conditions tab, then invite someone or connect by invitation. That an engine plays is shown to the opponent on the confirmation screen and kept in the game record. If the opponent also chooses an engine, it becomes an engine-versus-engine game. If the opponent's app is an older version that does not support games played by an engine, a notice appears before the game starts (you can still play by setting Player to Human). There is no entering-king declaration, so if your engine's settings can disable entering-king declarations, disable them.</p>
+                <p class="guide-step-text">Yes. Choose a registered engine in Player on the Invitation tab, then invite someone or connect by invitation. That an engine plays is shown to the opponent on the confirmation screen and kept in the game record. If the opponent also chooses an engine, it becomes an engine-versus-engine game. If the opponent's app is an older version that does not support games played by an engine, a notice appears before the game starts (you can still play by setting Player to Human). There is no entering-king declaration, so if your engine's settings can disable entering-king declarations, disable them.</p>
             </div>
 
             <div class="guide-step">

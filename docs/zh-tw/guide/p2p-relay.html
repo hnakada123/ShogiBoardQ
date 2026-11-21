@@ -111,7 +111,7 @@
                     <li><strong>可達性確認</strong>：請協作節點確認從網際網路看到的這台電腦的位址，以及能否從外部到達該位址。如果能到達，就把這個位址放入邀請字串，與對手直接連線。</li>
                     <li><strong>中繼</strong>：在協作節點上預約中繼的席位，並把經由協作節點的位址也放入邀請字串。無法從外部直接到達時（家用網路大多如此），對手用這個位址經由協作節點連線。</li>
                 </ul>
-                <p class="guide-step-text">不填協作節點就以「網際網路」連線時，邀請字串中一個位址也沒有，對手無法連線。</p>
+                <p class="guide-step-text">不註冊協作節點就以「網際網路」連線時，邀請字串中一個位址也沒有，對手無法連線。</p>
             </div>
 
             <div class="guide-step">
@@ -147,7 +147,7 @@
                 </div>
                 <ul class="guide-step-text">
                     <li><strong>一個就夠</strong>：對局的兩人合起來只需要一個協作節點，不需要各自啟動。</li>
-                    <li><strong>兩人填入相同的位址</strong>：啟動的人告知位址，兩人都把它填入「設定」分頁的「連線候選」。邀請方沒有填入時，邀請字串中沒有連線位址。使用「不使用直接連線」的人，必須與對手填入相同的協作節點。</li>
+                    <li><strong>兩人註冊相同的位址</strong>：啟動的人告知位址，兩人都把它註冊到「連線」分頁的「協作節點」。邀請方沒有註冊時，邀請字串中沒有連線位址。選擇「僅使用協作節點的中繼」的人，必須與對手註冊相同的協作節點。</li>
                     <li><strong>多組共用</strong>：一個協作節點可以供許多組對局者使用（中繼席位同時最多 128 人）。</li>
                     <li><strong>應用程式中沒有內建</strong>：應用程式中沒有協作節點的位址，需要由對局的人自己準備。</li>
                 </ul>
@@ -220,7 +220,7 @@ shogiboardq-peer: service started as 12D3KooW…</code></pre></div>
                         <tr><td><strong><code>--service</code></strong></td><td>作為協作節點執行。</td></tr>
                         <tr><td><strong><code>--relay</code></strong></td><td>負責中繼。家用網路之間的對局幾乎都需要。</td></tr>
                         <tr><td><strong><code>--meet</code></strong></td><td>負責暗號的會合。加上後，「網際網路」的邀請也會得到可以口頭告知的 10 個字元的暗號。協作節點只是最多存放加密的邀請 10 分鐘，無法讀取其內容。也用於好友清單（上線通知）。</td></tr>
-                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>用於透過網際網路對局的網路。應用程式的「網際網路」會加入這個名稱的網路。搭配應用程式的「本機」使用的協作節點，要用 <code>sbq-local-1</code> 啟動（<a href="#lan-test">在區域網路內試用</a>）。</td></tr>
+                        <tr><td><strong><code>--network sbq-limited-1</code></strong></td><td>用於透過網際網路對局的網路。應用程式的「網際網路」會加入這個名稱的網路。搭配應用程式的「同一電腦・同一區域網路」使用的協作節點，要用 <code>sbq-local-1</code> 啟動（<a href="#lan-test">在區域網路內試用</a>）。</td></tr>
                         <tr><td><strong><code>--identity &lt;檔案&gt;</code></strong></td><td>協作節點的識別金鑰檔案。不存在時會產生（只有擁有者可以讀寫的權限）。只要一直使用同一個檔案，PeerId 就不會變。刪除後 PeerId 會變，需要重新告知位址。</td></tr>
                         <tr><td><strong><code>--listen &lt;位址&gt;</code></strong></td><td>監聽的位址和連接埠。<code>0.0.0.0</code> 表示在所有網路介面上監聽。連接埠不一定是 4001。</td></tr>
                     </tbody>
@@ -252,7 +252,7 @@ $ sudo ufw allow 4001/tcp</code></pre></div>
                 <div class="build-steps"><pre><code>/ip4/&lt;伺服器的公用IP位址&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
                 <p class="guide-step-text">請用 IP 位址書寫（不能使用網域名稱）。把這個位址告訴對局的人。</p>
                 <p class="guide-step-text">「網際網路」只能使用網際網路上的 IP 位址（公用 IP 位址）。即使填入 <code>192.168.…</code>、<code>10.…</code>、<code>172.16.…</code>～<code>172.31.…</code> 這樣的區域網路內位址或 <code>127.0.0.1</code>，該行也不會被使用（畫面上不會有提示）。用區域網路內的位址試用的方法請參閱<a href="#lan-test">在區域網路內試用</a>。</p>
-                <p class="guide-step-text">可以在應用程式中確認它是否在執行。把位址填入「連線候選」並以「網際網路」連線，如果節點數變為 1 以上，並且「邀請的路徑」中顯示「透過協作節點的中繼（…）。」或「直接連線（也可使用協作節點的中繼）。」，就表示協作節點和中繼可以使用。</p>
+                <p class="guide-step-text">可以在應用程式中確認它是否在執行。把位址註冊到「連線」分頁的「協作節點」並以「網際網路」連線，如果上方橫條的節點數變為 1 以上，並且「邀請的路徑」中顯示「透過協作節點的中繼（…）。」或「直接連線（也可使用協作節點的中繼）。」，就表示協作節點和中繼可以使用。</p>
             </div>
 
             <div class="guide-step">
@@ -287,20 +287,20 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
 <section id="prepare" class="section">
     <div class="section-inner">
         <h2 class="section-title">對局雙方的準備</h2>
-        <p class="section-desc">雙方都填入相同的協作節點，並以「網際網路」連線</p>
+        <p class="section-desc">雙方都註冊相同的協作節點，並以「網際網路」連線</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">在「連線候選」中填入協作節點</span>
+                    <span class="guide-step-title">在「連線」分頁註冊協作節點</span>
                 </div>
                 <p class="guide-step-text">第一次使用時，產生玩家金鑰並填入顯示名稱（<a href="p2p-game.html#prepare">準備</a>）。</p>
-                <p class="guide-step-text">在「設定」分頁的「連線候選」中，每行填入一個對方告知的協作節點位址（最多 16 個）。填入多個時，即使其中一個停止，也能使用其他協作節點。「連線候選」從下次連線時起生效（連線中變更時，請中斷連線後重新連線）。</p>
+                <p class="guide-step-text">在「連線」分頁的「對手所在位置」中選擇「網際網路」後，會顯示「協作節點」輸入欄。按一下「新增…」，輸入對方告知的協作節點位址（如果已經複製，也可以用「從剪貼簿貼上」加入。最多 16 個）。註冊多個時，即使其中一個停止，也能使用其他協作節點。連線期間無法變更協作節點（要變更時，請按一下「中斷連線」）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-internet-settings.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-settings.png" alt="在「連線候選」中填入協作節點位址的「設定」分頁" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">「設定」分頁：在「連線候選」中填入協作節點後（位址的一部分已隱藏）</p>
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-settings.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-settings.png" alt="選擇「網際網路」並註冊了協作節點位址的「連線」分頁。下方顯示在此設定下可對局的對手、邀請的形式和看得到IP位址的人" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">「連線」分頁：選擇「網際網路」並註冊協作節點後（位址的一部分已隱藏）</p>
                 </div>
             </div>
 
@@ -309,15 +309,15 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">以「網際網路」連線</span>
                 </div>
-                <p class="guide-step-text">在「連線與條件」分頁中把「網路」設為「網際網路」，按一下「連線」。連線到協作節點並預約到中繼後，「邀請的路徑」中會顯示「透過協作節點的中繼（連線後可能切換為直接連線）。」。預約可能需要一點時間。</p>
+                <p class="guide-step-text">按一下視窗上方的「連線」。連線到協作節點並預約到中繼後，上方橫條的「邀請的路徑」中會顯示「透過協作節點的中繼（連線後可能切換為直接連線）。」。預約可能需要一點時間。「協作節點」輸入欄的按鈕旁邊，會顯示能否使用中繼以及暗號・好友清單。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-internet-connected.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-connected.png" alt="以「網際網路」連線，邀請的路徑顯示透過協作節點中繼的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-connected.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-connected.png" alt="以「網際網路」連線，上方橫條的邀請的路徑顯示透過協作節點中繼的「連線」分頁" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">連線到協作節點後</p>
                 </div>
-                <p class="guide-step-text">不填協作節點就連線時，不會連線到任何地方（「已連線（已連線的節點：0）」），「邀請的路徑」中顯示「尚無可從外部到達的連線位址。…」。在這種狀態下產生的邀請字串中沒有連線位址，「產生邀請」下方會顯示「此邀請字串中沒有連線位址，對手無法連線。…」。「連線候選」中只填了區域網路內的位址時，也是同樣的狀態（<a href="#lan-test">在區域網路內試用</a>）。</p>
+                <p class="guide-step-text">沒有註冊協作節點期間，「連線」分頁的下方會顯示「這樣對手無法連線」。即使就這樣連線，也不會連線到任何地方（「已連線（已連線的節點：0）」），「邀請的路徑」中顯示「尚無可從外部到達的連線位址。…」。在這種狀態下產生的邀請字串中沒有連線位址，會顯示「此邀請字串中沒有連線位址，對手無法連線。…」。註冊的只有區域網路內的位址時，連線後也是同樣的狀態（<a href="#lan-test">在區域網路內試用</a>）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-internet-no-node.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-no-node.png" alt="不填協作節點就以「網際網路」連線，顯示尚無可從外部到達的連線位址的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">不填協作節點就連線後</p>
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-no-node.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-no-node.png" alt="選擇「網際網路」但沒有註冊協作節點的「連線」分頁。顯示這樣對手無法連線，以及修正方法" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">沒有註冊協作節點時</p>
                 </div>
             </div>
 
@@ -338,13 +338,13 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">用暗號或邀請字串連線</span>
                 </div>
-                <p class="guide-step-text">邀請方在「透過邀請連線」分頁中按一下「產生邀請」，就會產生邀請字串。如果協作節點是加上 <code>--meet</code> 啟動的，還會以大字顯示 10 個字元的暗號（<code>J6HB7-H6NWR</code> 的形式）。暗號可以口頭或透過電話告知，邀請字串則透過訊息等只能送達對方的方式交給對方。對方輸入暗號或貼上邀請字串後，按一下「檢查」。「位址：N 個（可用 N 個）」中可用的位址有 1 個以上，就可以用「連線」連線。可用的位址為 0 個時，無法按「連線」（<a href="#trouble">無法連線時</a>）。之後的條件確認畫面和對局，與<a href="p2p-direct.html#steps">不使用協作節點的對局</a>相同。</p>
-                <p class="guide-step-text">這種暗號中不包含連線位址。邀請經過加密後在協作節點上最多存放 10 分鐘，由對方的應用程式以暗號取回（協作節點無法讀取其內容）。它與同一區域網路的「本機」暗號（12 個字元左右）形式不同，應用程式會自動區分。暗號和邀請字串是同一個邀請，只能擇一使用，並且只能使用一次。</p>
+                <p class="guide-step-text">邀請方在「邀請」分頁中按一下「產生邀請」，就會產生邀請字串。如果協作節點是加上 <code>--meet</code> 啟動的，還會以大字顯示 10 個字元的暗號（<code>J6HB7-H6NWR</code> 的形式）。暗號可以口頭或透過電話告知，邀請字串則透過訊息等只能送達對方的方式交給對方。對方輸入暗號或貼上邀請字串後，按一下「檢查」。「位址：N 個（可用 N 個）」中可用的位址有 1 個以上，就可以用「連線」連線。可用的位址為 0 個時，無法按「連線」（<a href="#trouble">無法連線時</a>）。之後的條件確認畫面和對局，與<a href="p2p-direct.html#steps">不使用協作節點的對局</a>相同。</p>
+                <p class="guide-step-text">這種暗號中不包含連線位址。邀請經過加密後在協作節點上最多存放 10 分鐘，由對方的應用程式以暗號取回（協作節點無法讀取其內容）。它與「同一電腦・同一區域網路」的暗號（12 個字元左右）形式不同，應用程式會自動區分。暗號和邀請字串是同一個邀請，只能擇一使用，並且只能使用一次。</p>
                 <p class="guide-step-text">邀請字串中放入經由協作節點的位址（如果邀請方的電腦可以從外部直接到達，還會放入那台電腦的 IP 位址）。請不要貼在公開的地方。</p>
                 <p class="guide-step-text">「位址：N 個（可用 N 個）」中，前一個數字是邀請字串中包含的連線位址的數量（最多 8 個），「可用」是其中依您應用程式的設定可以連線的數量。兩個數字都會隨邀請方電腦和協作節點的位址數量而變化。</p>
                 <p class="guide-step-text">一個邀請字串只能讓一個人連線一次，10 分鐘後失效。同時有效的最多 4 個，一次只能下一局（詳見<a href="p2p-direct.html#invite-rules">可以邀請的人數與次數</a>）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-internet-invite.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-invite.png" alt="檢查收到的暗號後，顯示邀請方 PeerId、期限和位址數量的「透過邀請連線」分頁" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-invite.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-invite.png" alt="檢查收到的暗號後，顯示邀請方 PeerId、期限和位址數量的「邀請」分頁" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">被邀請方：檢查收到的暗號後</p>
                 </div>
             </div>
@@ -355,7 +355,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-title">路徑：中繼與直接</span>
                 </div>
                 <p class="guide-step-text">對手首先經由協作節點的中繼連線。連線後，雙方的應用程式會立即嘗試穿過各自的路由器直接連線（打洞）。在 3 秒內直接連線成功時，會關閉經由中繼的連線，條件確認和對局都透過直接連線進行（「對局中」分頁的「路徑」為「直接」）。沒有成功時，就繼續使用經由中繼的連線（「路徑」為「中繼」）。在確認能否直接連線期間，被邀請方的畫面一直顯示「正在連線…」。</p>
-                <p class="guide-step-text">「路徑」變為「直接」時也需要協作節點。可以從外部直接到達的電腦，用它來確認放入邀請字串的位址；其他電腦用它來中繼最初的連線，並協助建立直接連線。沒有設定「不使用直接連線」時也是如此。「路徑」為「直接」期間，著手不經過協作節點。</p>
+                <p class="guide-step-text">「路徑」變為「直接」時也需要協作節點。可以從外部直接到達的電腦，用它來確認放入邀請字串的位址；其他電腦用它來中繼最初的連線，並協助建立直接連線。沒有選擇「僅使用協作節點的中繼」時也是如此。「路徑」為「直接」期間，著手不經過協作節點。</p>
                 <p class="guide-step-text">在每次連線都更換來源連接埠的路由器後面，或在行動網路這類多層位址轉換的線路上，無法直接連線，會一直以「中繼」對局。透過中繼也可以對局，但著手要繞經協作節點送達，可能會稍有延遲。ShogiBoardQ 的協作節點每條中繼 30 分鐘後會斷線，因此長時間的對局中途可能會自動重新連線（「正在重新連線」）。重新連線時，也會再次嘗試直接連線。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <a href="../../images/zh-tw/p2p-game/p2p-internet-relay.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-relay.png" alt="路徑為中繼的「對局中」分頁" width="900" height="790" loading="lazy"></a>
@@ -376,7 +376,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
 <section id="relay-only" class="section">
     <div class="section-inner">
         <h2 class="section-title">不讓對手看到 IP 位址對局</h2>
-        <p class="section-desc">使用「不使用直接連線」後，對手只能看到協作節點的位址</p>
+        <p class="section-desc">選擇「僅使用協作節點的中繼」後，對手只能看到協作節點的位址</p>
 
         <div class="screenshot-gallery">
 
@@ -391,13 +391,13 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">使用「不使用直接連線」</span>
+                    <span class="guide-step-title">選擇「僅使用協作節點的中繼」</span>
                 </div>
-                <p class="guide-step-text">在「設定」分頁中勾選「不使用直接連線」後，與對手一定經由協作節點的中繼連線，邀請字串中也只放入經由協作節點的位址。對手只能看到協作節點的位址，能看到您 IP 位址的只有您填入「連線候選」的協作節點的營運者。與網際網路上不太了解的對手下棋時使用。</p>
-                <p class="guide-step-text">勾選與否的差別如下。</p>
+                <p class="guide-step-text">在「連線」分頁的「與對手的連線方式」中選擇「僅使用協作節點的中繼」後，與對手一定經由協作節點的中繼連線，邀請字串中也只放入經由協作節點的位址。對手只能看到協作節點的位址，能看到您 IP 位址的只有您所註冊協作節點的營運者。與網際網路上不太了解的對手下棋時使用。</p>
+                <p class="guide-step-text">兩個選項的差別如下（在畫面上，兩個選項的框內也都會顯示「路徑」「對手會得知」「所需條件」）。</p>
                 <table class="info-table">
                     <thead>
-                        <tr><th scope="col">變化的內容</th><th scope="col">不勾選</th><th scope="col">勾選</th></tr>
+                        <tr><th scope="col">變化的內容</th><th scope="col">直接連線（預設）</th><th scope="col">僅使用協作節點的中繼</th></tr>
                     </thead>
                     <tbody>
                         <tr><td><strong>放入邀請字串的連線位址</strong></td><td>經由協作節點的位址（電腦可以從外部直接到達時，還有該電腦的 IP 位址）</td><td>只有經由協作節點的位址</td></tr>
@@ -408,14 +408,14 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                 </table>
                 <p class="guide-step-text">無論哪種情況都需要協作節點。這個設定改變的不是是否使用協作節點，而是是否與對手直接連線。</p>
                 <ul class="guide-step-text">
-                    <li><strong>需要協作節點</strong>：請在「連線候選」中填入可以中繼的協作節點。沒有填入時，「邀請的路徑」中顯示「無法使用中繼。…」，即使邀請，對手也無法連線。</li>
-                    <li><strong>與對手相同的協作節點</strong>：在此設定下用收到的邀請字串連線時，只連線經由您所填協作節點的位址。邀請方也必須在「連線候選」中填入相同的協作節點（不同時會顯示「此邀請字串中沒有透過您的協作節點中繼的連線位址。…」）。</li>
+                    <li><strong>需要協作節點</strong>：請註冊可以中繼的協作節點。沒有註冊時，「連線」分頁中會顯示「這樣無法使用中繼」。就這樣連線的話，「邀請的路徑」中顯示「無法使用中繼。…」，即使邀請，對手也無法連線。</li>
+                    <li><strong>與對手相同的協作節點</strong>：在此設定下用收到的邀請字串連線時，只連線經由您所註冊協作節點的位址。邀請方也必須註冊相同的協作節點（不同時會顯示「此邀請字串中沒有透過您的協作節點中繼的連線位址。…」）。</li>
                     <li><strong>一直中繼</strong>：不嘗試直接連線，因此對局期間「路徑」一直是「中繼」。著手繞經協作節點送達，可能比直接連線稍有延遲，長時間的對局中途可能會自動重新連線（「正在重新連線」）。</li>
                 </ul>
-                <p class="guide-step-text">此設定從下次連線時起生效。連線後，「邀請的路徑」中顯示「僅透過協作節點的中繼（已設定不使用直接連線）。」。</p>
+                <p class="guide-step-text">連線期間無法變更連線方式（請按一下「中斷連線」後再選擇）。以此設定連線後，「邀請的路徑」中顯示「僅透過協作節點的中繼（不直接連線）。」。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-internet-relay-only.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-relay-only.png" alt="以不使用直接連線的設定連線，顯示僅透過協作節點中繼的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">以「不使用直接連線」連線後</p>
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-relay-only.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-relay-only.png" alt="選擇「僅使用協作節點的中繼」並連線，上方橫條的邀請的路徑顯示僅透過協作節點中繼的「連線」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以「僅使用協作節點的中繼」連線後</p>
                 </div>
             </div>
 
@@ -436,44 +436,44 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">「網際網路」不能使用區域網路內的協作節點</span>
                 </div>
-                <p class="guide-step-text">在「網際網路」下，應用程式只連線到網際網路上的位址。即使在自己的電腦或同一區域網路的電腦上啟動協作節點，並在「連線候選」中填入區域網路內的位址（如 <code>/ip4/192.168.10.16/tcp/4001/p2p/…</code>），該行也不會被使用，結果與沒有填協作節點時相同。</p>
+                <p class="guide-step-text">在「網際網路」下，應用程式只連線到網際網路上的位址。即使在自己的電腦或同一區域網路的電腦上啟動協作節點，並註冊區域網路內的位址（如 <code>/ip4/192.168.10.16/tcp/4001/p2p/…</code>），該行也不會被使用，連線後的結果與沒有註冊協作節點時相同。</p>
                 <ul class="guide-step-text">
-                    <li><strong>邀請方</strong>：「狀態」一直是「已連線（已連線的節點：0）」，「邀請的路徑」中顯示「尚無可從外部到達的連線位址。…」。產生邀請字串後，會顯示「此邀請字串中沒有連線位址，對手無法連線。…」。</li>
+                    <li><strong>邀請方</strong>：上方的橫條一直是「已連線（已連線的節點：0）」，「邀請的路徑」中顯示「尚無可從外部到達的連線位址。…」。產生邀請字串後，會顯示「此邀請字串中沒有連線位址，對手無法連線。…」。</li>
                     <li><strong>被邀請方</strong>：貼上邀請字串並按一下「檢查」後顯示「位址：0 個（可用 0 個）」，無法按「連線」。</li>
                 </ul>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-internet-lan-address.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-lan-address.png" alt="顯示位址為 0 個、無法按「連線」的「透過邀請連線」分頁" width="900" height="790" loading="lazy"></a>
+                    <a href="../../images/zh-tw/p2p-game/p2p-internet-lan-address.png"><img src="../../images/zh-tw/p2p-game/p2p-internet-lan-address.png" alt="顯示位址為 0 個、無法按「連線」的「邀請」分頁" width="900" height="790" loading="lazy"></a>
                     <p class="screenshot-caption">被邀請方：檢查了沒有連線位址的邀請字串（無法按「連線」）</p>
                 </div>
-                <p class="guide-step-text">只是與同一區域網路的對手對局的話，不需要協作節點（<a href="p2p-direct.html">不使用協作節點對局</a>）。想在區域網路內試用協作節點的啟動、「連線候選」的填寫和經由中繼的對局時，請使用下面的方法。</p>
+                <p class="guide-step-text">只是與同一區域網路的對手對局的話，不需要協作節點（<a href="p2p-direct.html">不使用協作節點對局</a>）。想在區域網路內試用協作節點的啟動、協作節點的註冊和經由中繼的對局時，請使用下面的方法。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">把協作節點和應用程式都設為「本機」</span>
+                    <span class="guide-step-title">把協作節點和應用程式都設為「同一電腦・同一區域網路」</span>
                 </div>
                 <p class="guide-step-text">用 <code>--network sbq-local-1</code> 啟動協作節點。其他選項相同。</p>
                 <div class="build-steps"><pre><code>$ shogiboardq-peer --service --relay --meet --network sbq-local-1 \
       --identity ~/coop-node.key --listen /ip4/0.0.0.0/tcp/4001</code></pre></div>
-                <p class="guide-step-text">填入「連線候選」的位址，請用執行協作節點的電腦在區域網路內的 IP 位址書寫（在同一台電腦上執行的應用程式也可以用這個位址）。識別金鑰檔案相同的話，PeerId 與用 <code>sbq-limited-1</code> 啟動時相同。</p>
+                <p class="guide-step-text">要註冊的位址，請用執行協作節點的電腦在區域網路內的 IP 位址書寫（在同一台電腦上執行的應用程式也可以用這個位址）。識別金鑰檔案相同的話，PeerId 與用 <code>sbq-limited-1</code> 啟動時相同。</p>
                 <div class="build-steps"><pre><code>/ip4/&lt;協作節點所在電腦的區域網路IP位址&gt;/tcp/4001/p2p/&lt;PeerId&gt;</code></pre></div>
-                <p class="guide-step-text">兩人都把這個位址填入「設定」分頁的「連線候選」，在「連線與條件」分頁中把「網路」設為「本機（同一電腦・同一區域網路）」，按一下「連線」。節點數變為 1，並且「邀請的路徑」中顯示「與同一電腦・同一區域網路的對手直接連線（也可使用協作節點的中繼）。」，就表示已連線到協作節點並預約到中繼。</p>
+                <p class="guide-step-text">兩人都在「連線」分頁中把「對手所在位置」設為「同一電腦・同一區域網路」，按一下「協作節點」的「註冊…」開啟輸入欄，註冊這個位址，然後按一下「連線」。上方橫條的節點數變為 1，並且「邀請的路徑」中顯示「與同一電腦・同一區域網路的對手直接連線（也可使用協作節點的中繼）。」，就表示已連線到協作節點並預約到中繼。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-lan-node-connected.png"><img src="../../images/zh-tw/p2p-game/p2p-lan-node-connected.png" alt="以「本機」連線、「邀請的路徑」中顯示也可使用協作節點的中繼的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">以「本機」連線到區域網路內的協作節點</p>
+                    <a href="../../images/zh-tw/p2p-game/p2p-lan-node-connected.png"><img src="../../images/zh-tw/p2p-game/p2p-lan-node-connected.png" alt="以「同一電腦・同一區域網路」連線，上方橫條的邀請的路徑顯示也可使用協作節點的中繼的「連線」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以「同一電腦・同一區域網路」連線到區域網路內的協作節點（位址已替換為範例）</p>
                 </div>
-                <p class="guide-step-text">協作節點的 <code>--network</code> 要與應用程式的「網路」一致。</p>
+                <p class="guide-step-text">協作節點的 <code>--network</code> 要與應用程式的「對手所在位置」一致。</p>
                 <table class="info-table">
                     <thead>
-                        <tr><th scope="col">應用程式的「網路」</th><th scope="col">協作節點的 <code>--network</code></th><th scope="col">可以填入「連線候選」的位址</th></tr>
+                        <tr><th scope="col">應用程式的「對手所在位置」</th><th scope="col">協作節點的 <code>--network</code></th><th scope="col">可以註冊的位址</th></tr>
                     </thead>
                     <tbody>
                         <tr><td><strong>網際網路</strong></td><td><code>sbq-limited-1</code></td><td>網際網路上的位址（公用 IP 位址）</td></tr>
-                        <tr><td><strong>本機（同一電腦・同一區域網路）</strong></td><td><code>sbq-local-1</code></td><td>區域網路內的位址（<code>192.168.…</code> 等）</td></tr>
+                        <tr><td><strong>同一電腦・同一區域網路</strong></td><td><code>sbq-local-1</code></td><td>區域網路內的位址（<code>192.168.…</code> 等）</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">不一致時無法使用中繼。以「本機」連線到仍用 <code>sbq-limited-1</code> 執行的協作節點時，節點數會變為 1，但預約不到中繼，「邀請的路徑」一直是「與同一電腦・同一區域網路的對手直接連線。」。</p>
+                <p class="guide-step-text">不一致時無法使用中繼。以「同一電腦・同一區域網路」連線到仍用 <code>sbq-limited-1</code> 執行的協作節點時，節點數會變為 1，但預約不到中繼，「邀請的路徑」一直是「與同一電腦・同一區域網路的對手直接連線。」。</p>
                 <p class="guide-step-text">在執行協作節點的電腦的防火牆中，請允許對 <code>--listen</code> 所寫連接埠（TCP 4001）的連線（<a href="#start">開放連接埠</a>）。對局者電腦的連接埠請參閱<a href="p2p-direct.html#lan">與同一區域網路的另一台電腦對局</a>。</p>
             </div>
 
@@ -483,15 +483,15 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-title">試用經由中繼的對局</span>
                 </div>
                 <p class="guide-step-text">就這樣邀請的話，邀請字串中會放入區域網路內的位址，與對手直接連線（「對局中」分頁的「路徑」為「直接」），不會使用協作節點的中繼。這與沒有協作節點時相同，到這裡能確認的只是已連線到協作節點並預約到中繼。</p>
-                <p class="guide-step-text">要試用經由中繼的對局，兩人中的任何一人（兩人都勾選也可以）在「設定」分頁中勾選「不使用直接連線」，中斷連線後重新連線。都不勾選時「路徑」為「直接」，只要有一人勾選就是「中繼」。</p>
+                <p class="guide-step-text">要試用經由中繼的對局，兩人中的任何一人（兩人都選擇也可以）按一下「中斷連線」後，在「連線」分頁的「與對手的連線方式」中選擇「僅使用協作節點的中繼」，然後重新連線。都不選擇時「路徑」為「直接」，只要有一人選擇就是「中繼」。</p>
                 <ul class="guide-step-text">
-                    <li>勾選的人的「邀請的路徑」中顯示「僅透過協作節點的中繼（已設定不使用直接連線）。」。</li>
-                    <li>勾選的人產生的邀請字串中只放入經由協作節點的位址。</li>
-                    <li>勾選的人檢查收到的邀請字串時，可用的只有經由協作節點的位址（邀請方沒有勾選時，「位址：N 個（可用 M 個）」中可用的數量比位址的數量少）。</li>
+                    <li>選擇此項的人的「邀請的路徑」中顯示「僅透過協作節點的中繼（不直接連線）。」。</li>
+                    <li>選擇此項的人產生的邀請字串中只放入經由協作節點的位址。</li>
+                    <li>選擇此項的人檢查收到的邀請字串時，可用的只有經由協作節點的位址（邀請方沒有選擇此項時，「位址：N 個（可用 M 個）」中可用的數量比位址的數量少）。</li>
                     <li>用「連線」連線並開始對局後，兩人的「對局中」分頁的「路徑」都是「中繼」。</li>
                 </ul>
-                <p class="guide-step-text">位址的數量和可用的數量因電腦而異。「本機」的邀請字串中，依下列順序最多放入 8 個：邀請方電腦在區域網路內的位址（每個網路介面各有 UDP 和 TCP 一個，也包括 Docker 等的虛擬介面）、經由協作節點的位址（協作節點監聽 <code>0.0.0.0</code> 時，協作節點所在電腦的每個位址各一個）、只能在同一台電腦內使用的位址。設定了「不使用直接連線」的人只能使用其中經由協作節點的位址。</p>
-                <p class="guide-step-text">在區域網路內可以確認的是協作節點的啟動、「連線候選」的填寫，以及經由中繼的邀請和對局。可達性確認、穿過路由器直接連線（打洞）和使用期限只屬於「網際網路」，在區域網路內無法試用。要用於透過網際網路的對局時，請用 <code>--network sbq-limited-1</code> 重新啟動協作節點，並把應用程式的「網路」改回「網際網路」。</p>
+                <p class="guide-step-text">位址的數量和可用的數量因電腦而異。「同一電腦・同一區域網路」的邀請字串中，依下列順序最多放入 8 個：邀請方電腦在區域網路內的位址（每個網路介面各有 UDP 和 TCP 一個，也包括 Docker 等的虛擬介面）、經由協作節點的位址（協作節點監聽 <code>0.0.0.0</code> 時，協作節點所在電腦的每個位址各一個）、只能在同一台電腦內使用的位址。選擇了「僅使用協作節點的中繼」的人只能使用其中經由協作節點的位址。</p>
+                <p class="guide-step-text">在區域網路內可以確認的是協作節點的啟動、協作節點的註冊，以及經由中繼的邀請和對局。可達性確認、穿過路由器直接連線（打洞）和使用期限只屬於「網際網路」，在區域網路內無法試用。要用於透過網際網路的對局時，請用 <code>--network sbq-limited-1</code> 重新啟動協作節點，並把應用程式的「對手所在位置」改回「網際網路」。</p>
             </div>
 
         </div>
@@ -516,16 +516,16 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                         <tr><th scope="col">顯示的訊息・狀態</th><th scope="col">要檢查的內容</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>一直是「已連線（已連線的節點：0）」</strong></td><td>「連線候選」的位址有誤、協作節點已停止、伺服器的防火牆未開放，三者之一。位址請用 IP 位址書寫（不能使用網域名稱）。在「網際網路」下，填入區域網路內位址（<code>192.168.…</code> 等）的行不會被使用（<a href="#lan-test">在區域網路內試用</a>）。</td></tr>
+                        <tr><td><strong>一直是「已連線（已連線的節點：0）」</strong></td><td>已註冊的協作節點位址有誤、協作節點已停止、伺服器的防火牆未開放，三者之一。位址請用 IP 位址書寫（不能使用網域名稱）。在「網際網路」下，註冊了區域網路內位址（<code>192.168.…</code> 等）的行不會被使用（<a href="#lan-test">在區域網路內試用</a>）。</td></tr>
                         <tr><td><strong>「邀請的路徑」中顯示「尚無可從外部到達的連線位址。…」</strong></td><td>還沒有連線到協作節點，或還沒有預約到中繼。稍等後仍無變化，請檢查上一列。</td></tr>
                         <tr><td><strong>檢查邀請字串後顯示「位址：0 個（可用 0 個）」，無法按「連線」</strong></td><td>邀請字串中沒有連線位址。這是邀請方的應用程式還沒有連線到協作節點，或還沒有預約到中繼時產生的邀請字串。請邀請方確認「邀請的路徑」是否仍是上一列的訊息，等它變為「透過協作節點的中繼（…）。」等之後，重新產生邀請字串。</td></tr>
-                        <tr><td><strong>「邀請的路徑」中顯示「無法使用中繼。…」</strong></td><td>設定了「不使用直接連線」，但「連線候選」中沒有可以中繼的協作節點。還要確認協作節點是否加上 <code>--relay</code> 啟動。</td></tr>
-                        <tr><td><strong>在「網際網路」中產生邀請，但沒有顯示暗號</strong></td><td>協作節點沒有加上 <code>--meet</code> 啟動，或者還沒有連線到協作節點。即使沒有暗號，邀請字串也可以使用。</td></tr>
-                        <tr><td><strong>「此暗號的邀請需要從協作節點取得。…」</strong></td><td>輸入暗號的人的應用程式沒有連線到支援暗號的協作節點。請在「連線候選」中填入與邀請方相同的協作節點，然後重新連線。</td></tr>
+                        <tr><td><strong>「邀請的路徑」中顯示「無法使用中繼。…」</strong></td><td>選擇了「僅使用協作節點的中繼」，但沒有註冊可以中繼的協作節點。還要確認協作節點是否加上 <code>--relay</code> 啟動。</td></tr>
+                        <tr><td><strong>在「網際網路」中產生邀請，但沒有顯示暗號（顯示「此邀請沒有暗號…」）</strong></td><td>協作節點沒有加上 <code>--meet</code> 啟動，或者還沒有連線到協作節點。即使沒有暗號，邀請字串也可以使用。</td></tr>
+                        <tr><td><strong>「此暗號的邀請需要從協作節點取得。…」</strong></td><td>輸入暗號的人的應用程式沒有連線到支援暗號的協作節點。請在「連線」分頁註冊與邀請方相同的協作節點，然後重新連線。</td></tr>
                         <tr><td><strong>「找不到此暗號的邀請。…」</strong></td><td>暗號不正確、已超過期限（10 分鐘），或已被使用。請讓邀請方重新產生邀請。</td></tr>
-                        <tr><td><strong>「此邀請字串中沒有透過您的協作節點中繼的連線位址。…」</strong></td><td>設定了「不使用直接連線」，且與邀請方的協作節點不同。請填入相同的協作節點。</td></tr>
-                        <tr><td><strong>「這是其他網路的邀請字串。」</strong></td><td>兩人的「網路」不同。兩人都以「網際網路」連線（在區域網路內試用時，兩人都用「本機」）。</td></tr>
-                        <tr><td><strong>在「本機」下，「邀請的路徑」中沒有顯示「（也可使用協作節點的中繼）」</strong></td><td>請確認協作節點是否加上 <code>--network sbq-local-1</code> 和 <code>--relay</code> 啟動，以及「連線候選」的位址是否為區域網路內的位址（<a href="#lan-test">在區域網路內試用</a>）。</td></tr>
+                        <tr><td><strong>「此邀請字串中沒有透過您的協作節點中繼的連線位址。…」</strong></td><td>選擇了「僅使用協作節點的中繼」，且與邀請方的協作節點不同。請註冊相同的協作節點。</td></tr>
+                        <tr><td><strong>「這是其他網路的邀請字串。」</strong></td><td>兩人的「對手所在位置」不同。兩人都以「網際網路」連線（在區域網路內試用時，兩人都用「同一電腦・同一區域網路」）。</td></tr>
+                        <tr><td><strong>在「同一電腦・同一區域網路」下，「邀請的路徑」中沒有顯示「（也可使用協作節點的中繼）」</strong></td><td>請確認協作節點是否加上 <code>--network sbq-local-1</code> 和 <code>--relay</code> 啟動，以及已註冊的位址是否為區域網路內的位址（<a href="#lan-test">在區域網路內試用</a>）。</td></tr>
                         <tr><td><strong>「此版本已過使用期限，無法加入「網際網路」網路。…」</strong></td><td>這是已過使用期限的版本（下面的 2）。</td></tr>
                     </tbody>
                 </table>
@@ -537,7 +537,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-title">使用期限</span>
                 </div>
                 <p class="guide-step-text">可以加入「網際網路」的期限是從建置應用程式之日起 180 天（顯示在「設定」分頁的「此版本的使用期限」中）。P2P對局沒有可以停止舊版本的伺服器，因此這樣做是為了不讓未修正缺陷或安全漏洞的舊版本一直留在網路中。過期後，請更新到新版本（從原始碼建置時，請重新建置）。</p>
-                <p class="guide-step-text">只有應用程式的「網際網路」有期限。協作節點、「本機」的對局，以及查看和驗證已儲存的記錄都沒有期限。</p>
+                <p class="guide-step-text">只有應用程式的「網際網路」有期限。協作節點、「同一電腦・同一區域網路」的對局，以及查看和驗證已儲存的記錄都沒有期限。</p>
             </div>
 
         </div>
@@ -562,9 +562,9 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">已把協作節點的位址填入「連線候選」，但被邀請方無法按「連線」</span>
+                    <span class="guide-step-title">已註冊協作節點的位址，但被邀請方無法按「連線」</span>
                 </div>
-                <p class="guide-step-text">邀請字串中沒有連線位址時會出現這種情況（被邀請方的畫面上顯示「位址：0 個（可用 0 個）」）。在「網際網路」下，區域網路內位址（<code>192.168.…</code> 等）的協作節點不會被使用，因此邀請字串中不會放入連線位址。要在區域網路內試用協作節點，請用 <code>--network sbq-local-1</code> 啟動協作節點，並把應用程式的「網路」設為「本機」（<a href="#lan-test">在區域網路內試用</a>）。其他原因請參閱<a href="#trouble">無法連線時</a>。</p>
+                <p class="guide-step-text">邀請字串中沒有連線位址時會出現這種情況（被邀請方的畫面上顯示「位址：0 個（可用 0 個）」）。在「網際網路」下，區域網路內位址（<code>192.168.…</code> 等）的協作節點不會被使用，因此邀請字串中不會放入連線位址。要在區域網路內試用協作節點，請用 <code>--network sbq-local-1</code> 啟動協作節點，並把應用程式的「對手所在位置」設為「同一電腦・同一區域網路」（<a href="#lan-test">在區域網路內試用</a>）。其他原因請參閱<a href="#trouble">無法連線時</a>。</p>
             </div>
 
             <div class="guide-step">
@@ -572,7 +572,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title"><code>--network</code> 中的 <code>sbq-limited-1</code> 和 <code>sbq-local-1</code> 是什麼</span>
                 </div>
-                <p class="guide-step-text">它們是與應用程式的「網路」對應的名稱。「網際網路」是 <code>sbq-limited-1</code>，「本機（同一電腦・同一區域網路）」是 <code>sbq-local-1</code>。協作節點要依使用它的應用程式的「網路」來啟動。不一致時，即使連線上也無法使用中繼（<a href="#lan-test">在區域網路內試用</a>中的對應表）。</p>
+                <p class="guide-step-text">它們是與應用程式的「對手所在位置」對應的網路名稱。「網際網路」是 <code>sbq-limited-1</code>，「同一電腦・同一區域網路」是 <code>sbq-local-1</code>。協作節點要依使用它的應用程式的「對手所在位置」來啟動。不一致時，即使連線上也無法使用中繼（<a href="#lan-test">在區域網路內試用</a>中的對應表）。</p>
             </div>
 
             <div class="guide-step">
@@ -580,29 +580,29 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">「位址：8 個（可用 3 個）」這樣的數字是怎麼決定的</span>
                 </div>
-                <p class="guide-step-text">前一個數字是邀請字串中包含的連線位址的數量（最多 8 個），「可用」是其中依您應用程式的設定可以連線的數量。它們隨邀請方電腦的網路介面數量和協作節點的位址數量而變化，因此每台電腦都不同。設定了「不使用直接連線」的人只能使用經由協作節點的位址，所以可用的數量會變少（<a href="#lan-test">在區域網路內試用</a>的 3）。</p>
+                <p class="guide-step-text">前一個數字是邀請字串中包含的連線位址的數量（最多 8 個），「可用」是其中依您應用程式的設定可以連線的數量。它們隨邀請方電腦的網路介面數量和協作節點的位址數量而變化，因此每台電腦都不同。選擇了「僅使用協作節點的中繼」的人只能使用經由協作節點的位址，所以可用的數量會變少（<a href="#lan-test">在區域網路內試用</a>的 3）。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">不設定「不使用直接連線」就會與對手直接連線，那還需要協作節點嗎</span>
+                    <span class="guide-step-title">不選擇「僅使用協作節點的中繼」就會與對手直接連線，那還需要協作節點嗎</span>
                 </div>
-                <p class="guide-step-text">在「網際網路」下需要。沒有協作節點，就沒有可以放入邀請字串的連線位址。家用網路的電腦之間，首先經由協作節點的中繼連線，能夠直接連線時就透過直接連線對局（<a href="#play">路徑：中繼與直接</a>）。在「本機」下，沒有協作節點也同樣會直接連線，因此不需要（<a href="p2p-direct.html">不使用協作節點對局</a>）。</p>
+                <p class="guide-step-text">在「網際網路」下需要。沒有協作節點，就沒有可以放入邀請字串的連線位址。家用網路的電腦之間，首先經由協作節點的中繼連線，能夠直接連線時就透過直接連線對局（<a href="#play">路徑：中繼與直接</a>）。在「同一電腦・同一區域網路」下，沒有協作節點也同樣會直接連線，因此不需要（<a href="p2p-direct.html">不使用協作節點對局</a>）。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">在區域網路內試用時，應該勾選「不使用直接連線」嗎</span>
+                    <span class="guide-step-title">在區域網路內試用時，應該選擇「僅使用協作節點的中繼」嗎</span>
                 </div>
-                <p class="guide-step-text">想試用經由中繼的對局時，兩人中的任何一人勾選即可。不勾選就會直接連線，協作節點不會用於對局。如果只想確認能連線到協作節點並預約到中繼，可以不勾選（<a href="#lan-test">在區域網路內試用</a>的 3）。</p>
+                <p class="guide-step-text">想試用經由中繼的對局時，兩人中的任何一人選擇即可。不選擇就會直接連線，協作節點不會用於對局。如果只想確認能連線到協作節點並預約到中繼，可以不選擇（<a href="#lan-test">在區域網路內試用</a>的 3）。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">設定「不使用直接連線」對局時，對局的資料真的經過協作節點嗎</span>
+                    <span class="guide-step-title">以「僅使用協作節點的中繼」對局時，對局的資料真的經過協作節點嗎</span>
                 </div>
                 <p class="guide-step-text">經過。協作節點在數量變化時輸出已連線的應用程式數量（<code>peers=</code>）和正在中繼的連線數量（<code>relays=</code>）（例如 <code>shogiboardq-peer: peers=2 relays=1</code>）。對局的資料經過協作節點期間，<code>relays</code> 為 1 以上。不輸出中繼的資料量和連線來源的 IP 位址。與對手直接連線的對局和經由中繼的對局，差別如下。</p>
                 <table class="info-table">
@@ -610,7 +610,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                         <tr><th scope="col">比較的內容</th><th scope="col">與對手直接連線的對局</th><th scope="col">經由中繼的對局</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>出現的情況</strong></td><td>能夠直接連線到對手的電腦時（「本機」的對局、穿過路由器直接連線成功的網際網路對局）</td><td>無法直接連線時，或設定了「不使用直接連線」時</td></tr>
+                        <tr><td><strong>出現的情況</strong></td><td>能夠直接連線到對手的電腦時（「同一電腦・同一區域網路」的對局、穿過路由器直接連線成功的網際網路對局）</td><td>無法直接連線時，或選擇了「僅使用協作節點的中繼」時</td></tr>
                         <tr><td><strong>著手的傳送路徑</strong></td><td>您的應用程式 ⇄ 對手的應用程式</td><td>您的應用程式 → 協作節點 → 對手的應用程式</td></tr>
                         <tr><td><strong>協作節點的通訊量</strong></td><td>只有保持連線所需的量，下棋時不會增加</td><td>每下一手，把從一方收到的資料以大致相同的量傳送給另一方</td></tr>
                         <tr><td><strong>協作節點的輸出</strong></td><td><code>peers=2 relays=0</code></td><td><code>peers=2 relays=1</code></td></tr>
@@ -649,7 +649,7 @@ $ journalctl -u sbq-coop-node    # 確認 PeerId</code></pre></div>
                 <p class="guide-step-text">會中斷。結束 ShogiBoardQ 時，負責 P2P對局通訊的通訊程序（<code>shogiboardq-peer</code>）也會一起結束，與協作節點和對手的連線全部關閉。在協作節點的輸出中，<code>peers</code> 會相應減少。即使應用程式異常結束，通訊程序也不會單獨留下來繼續通訊。</p>
                 <ul class="guide-step-text">
                     <li><strong>對局中結束時</strong>：對局會中斷（結果未確定）。如果是在條件確認的途中，則會取消。</li>
-                    <li><strong>只關閉 P2P對局的視窗時</strong>：連線和對局都會繼續。要中斷連線，請按一下「連線與條件」分頁的「中斷連線」，或結束 ShogiBoardQ（<a href="p2p-game.html#tabs">視窗的分頁</a>）。</li>
+                    <li><strong>只關閉 P2P對局的視窗時</strong>：連線和對局都會繼續。要中斷連線，請按一下視窗上方的「中斷連線」，或結束 ShogiBoardQ（<a href="p2p-game.html#tabs">視窗的分頁</a>）。</li>
                     <li><strong>協作節點</strong>：在終端機中啟動的協作節點（<code>shogiboardq-peer --service …</code>）是另一個程序，結束 ShogiBoardQ 後仍會繼續執行。要停止時按 Ctrl+C。</li>
                 </ul>
             </div>

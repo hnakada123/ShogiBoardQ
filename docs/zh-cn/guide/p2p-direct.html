@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>不使用协作节点对局（P2P对局） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ 的P2P对局中，不使用协作节点、与同一电脑・同一局域网的对手下棋的方法：以“本地”连接、交换邀请字符串、可以邀请的人数与次数、防火墙，以及无法连接时的检查方法。">
+    <meta name="description" content="ShogiBoardQ 的P2P对局中，不使用协作节点、与同一电脑・同一局域网的对手下棋的方法：以“同一电脑・同一局域网”连接、交换邀请字符串、可以邀请的人数与次数、防火墙，以及无法连接时的检查方法。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/p2p-direct.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -93,7 +93,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">不用协作节点可以对局的对手</h2>
-        <p class="section-desc">在“本地（同一电脑・同一局域网）”网络中，既不需要协作节点，也不需要更改“设置”标签页</p>
+        <p class="section-desc">选择“同一电脑・同一局域网”后，不需要注册协作节点</p>
 
         <div class="screenshot-gallery">
 
@@ -102,7 +102,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">与同一电脑・同一局域网的对手连接</span>
                 </div>
-                <p class="guide-step-text">把“网络”设为“本地（同一电脑・同一局域网）”并连接后，邀请字符串中会放入这台电脑在局域网内的地址（192.168.… 等）和只在同一台电脑内使用的地址。对手的电脑可以直接到达这些地址，因此不需要居中协调的协作节点。</p>
+                <p class="guide-step-text">把“连接”标签页的“对手所在位置”设为“同一电脑・同一局域网”并连接后，邀请字符串中会放入这台电脑在局域网内的地址（192.168.… 等）和只在同一台电脑内使用的地址。对手的电脑可以直接到达这些地址，因此不需要居中协调的协作节点。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">对手</th><th scope="col">能否连接</th></tr>
@@ -119,11 +119,11 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">无需更改“设置”标签页</span>
+                    <span class="guide-step-title">“连接”标签页保持初始状态即可</span>
                 </div>
                 <ul class="guide-step-text">
-                    <li><strong>“连接候选”</strong>：保持为空即可。</li>
-                    <li><strong>“不使用直接连接”</strong>：请取消勾选。勾选后，局域网内的直接连接也不再使用，因此无法连接（“邀请的路径”中显示“无法使用中继。…”）。</li>
+                    <li><strong>“协作节点”</strong>：无需注册。以“同一电脑・同一局域网”选择“直接连接（默认）”期间，输入栏也不会显示（显示“此设置下不需要。…”）。</li>
+                    <li><strong>“与对手的连接方式”</strong>：保持“直接连接（默认）”不变。选择“仅使用协作节点的中继”后，局域网内的直接连接也不再使用，没有注册协作节点就无法连接（显示“这样无法使用中继”）。</li>
                     <li><strong>对手能看到的地址</strong>：只有局域网内的地址。互联网上的 IP 地址不会交给对手。邀请字符串中包含这台电脑在局域网内的全部地址（也包括 VPN 和虚拟设备的地址），暗号中也包含局域网内的地址，请只告诉对手。</li>
                     <li><strong>使用期限</strong>：没有。构建后超过 180 天仍可使用（只有“互联网”有期限）。</li>
                 </ul>
@@ -137,20 +137,20 @@
 <section id="steps" class="section">
     <div class="section-inner">
         <h2 class="section-title">开始对局的步骤</h2>
-        <p class="section-desc">双方都以“本地”连接，一方输入另一方生成的暗号</p>
+        <p class="section-desc">双方都以“同一电脑・同一局域网”连接，一方输入另一方生成的暗号</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">双方都以“本地”连接</span>
+                    <span class="guide-step-title">双方都以“同一电脑・同一局域网”连接</span>
                 </div>
                 <p class="guide-step-text">用“对局”→“P2P对局…”打开窗口。第一次使用时，生成玩家密钥并填入显示名（<a href="p2p-game.html#prepare">准备</a>）。</p>
-                <p class="guide-step-text">在“连接与条件”标签页中把“网络”设为“本地（同一电脑・同一局域网）”，点击“连接”。“状态”变为“已连接（已连接的节点：0）”，“邀请的路径”中显示“与同一电脑・同一局域网的对手直接连接。”即准备完毕（在与对手连接之前，节点数一直是 0）。</p>
+                <p class="guide-step-text">在“连接”标签页中，确认“对手所在位置”为“同一电脑・同一局域网”，“与对手的连接方式”为“直接连接（默认）”（第一次打开时就是这样），然后点击窗口上方的“连接”。上方的状态栏变为“已连接（已连接的节点：0）”，其下显示“邀请的路径：与同一电脑・同一局域网的对手直接连接。”即准备完毕（在与对手连接之前，节点数一直是 0）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-connection.png"><img src="../../images/zh-cn/p2p-game/p2p-connection.png" alt="以“本地”连接，邀请的路径显示与同一电脑・同一局域网的对手直接连接的“连接与条件”标签页" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">以“本地（同一电脑・同一局域网）”连接后</p>
+                    <a href="../../images/zh-cn/p2p-game/p2p-connection.png"><img src="../../images/zh-cn/p2p-game/p2p-connection.png" alt="以“同一电脑・同一局域网”连接，上方状态栏的邀请的路径显示与同一电脑・同一局域网的对手直接连接的“连接”标签页" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以“同一电脑・同一局域网”连接后</p>
                 </div>
             </div>
 
@@ -159,8 +159,8 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">邀请方：生成邀请并告知暗号</span>
                 </div>
-                <p class="guide-step-text">邀请方先在“连接与条件”标签页中设定“用时规则”“读秒”“先后手”。对局按这些条件进行。</p>
-                <p class="guide-step-text">在“通过邀请连接”标签页的“邀请对手”中点击“生成邀请”，就会以大号字显示 12 个字符左右的暗号（<code>K7MP-2QXD-9F3A</code> 的形式）。请只把这个暗号告诉对方：在同一个房间里可以口头告知，不在一起时可以通过电话或消息告知（可以用“复制暗号”复制）。邀请 10 分钟后失效，生成后请立即告知对方。</p>
+                <p class="guide-step-text">邀请方先在“邀请”标签页中设定“用时规则”“读秒”“先后手”。对局按这些条件进行。</p>
+                <p class="guide-step-text">在同一标签页的“发出邀请”中点击“生成邀请”，就会以大号字显示 12 个字符左右的暗号（<code>K7MP-2QXD-9F3A</code> 的形式）。请只把这个暗号告诉对方：在同一个房间里可以口头告知，不在一起时可以通过电话或消息告知（可以用“复制暗号”复制）。邀请 10 分钟后失效，生成后请立即告知对方。</p>
                 <p class="guide-step-text">暗号下方的输入框中，还会显示同一邀请的邀请字符串（较长的字符串）。直接发送文字更方便时，或用暗号无法连接时，请用“复制邀请字符串”复制，通过私信等只能送达对方的方式交给对方。暗号和邀请字符串是同一个邀请，只能用其中之一，并且只能使用一次。输入框下方会显示期限和地址数量。</p>
             </div>
 
@@ -169,11 +169,11 @@
                     <span class="guide-step-number">3</span>
                     <span class="guide-step-title">被邀请方：输入暗号并连接</span>
                 </div>
-                <p class="guide-step-text">被邀请方在“通过邀请连接”标签页的“通过邀请连接”栏中输入暗号（收到的是邀请字符串时则粘贴），点击“检查”。暗号可以用小写输入，也可以省略分隔符“-”。显示“已读取暗号（同一局域网的对手的邀请）。”和地址数量后（邀请字符串则显示邀请方的 PeerId、期限和地址数量），点击“连接”。</p>
+                <p class="guide-step-text">被邀请方在“邀请”标签页的“接受邀请”栏中输入暗号（收到的是邀请字符串时则粘贴），点击“检查”。暗号可以用小写输入，也可以省略分隔符“-”。显示“已读取暗号（同一局域网的对手的邀请）。”和地址数量后（邀请字符串则显示邀请方的 PeerId、期限和地址数量），点击“连接”。</p>
                 <p class="guide-step-text">被邀请方无需设定用时规则等条件（按邀请方的条件对局）。只需填好“显示名”。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-cn/p2p-game/p2p-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-invite.png" alt="“通过邀请连接”标签页。上方生成了邀请并显示暗号和邀请字符串，下方检查了收到的暗号" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">上：邀请方生成了邀请（暗号和邀请字符串）　下：被邀请方检查暗号后</p>
+                    <a href="../../images/zh-cn/p2p-game/p2p-invite.png"><img src="../../images/zh-cn/p2p-game/p2p-invite.png" alt="“邀请”标签页。上方是显示名、对局者、用时规则、读秒、先后手的输入栏，左侧生成了邀请并显示暗号和邀请字符串，右侧检查了收到的暗号" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">左：邀请方生成了邀请（暗号和邀请字符串）　右：被邀请方检查暗号后</p>
                 </div>
             </div>
 
@@ -222,7 +222,7 @@
                     <li><strong>一个应用一次只能下一局</strong>：会与最先连接的人进入条件确认。在此期间和对局中，其他人无法连接（条件确认期间，对方会看到“对手正在与他人协商或对局。”）。对于没能连接的人，请在对局结束后交给他们新的邀请字符串。8 人同时下 4 局时，每组由一方邀请另一方（<a href="p2p-game.html#one-game">一对一对局，一个应用一次一局</a>）。</li>
                     <li><strong>对局后仍可使用</strong>：对局结束后，仍在期限内且尚未使用的邀请字符串依然有效。</li>
                     <li><strong>条件以最后一次生成时为准</strong>：所有有效的邀请字符串，都按最后一次点击“生成邀请”时的显示名、用时规则、读秒、先后手和对局者（人类还是引擎）对局。要更改条件时，请先更改再重新生成。</li>
-                    <li><strong>全部取消</strong>：在“连接与条件”标签页中点击“断开”，所有有效的邀请字符串都会失效。</li>
+                    <li><strong>全部取消</strong>：点击窗口上方的“断开”，所有有效的邀请字符串都会失效。</li>
                 </ul>
             </div>
 
@@ -270,10 +270,10 @@
                         <tr><th scope="col">显示的消息・状态</th><th scope="col">要检查的内容</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>“这是其他网络的邀请字符串。”</strong></td><td>两人的“网络”不同。两人都重新以“本地（同一电脑・同一局域网）”连接，并重新生成邀请字符串。</td></tr>
+                        <tr><td><strong>“这是其他网络的邀请字符串。”</strong></td><td>两人的“对手所在位置”不同。两人都重新以“同一电脑・同一局域网”连接，并重新生成邀请字符串。</td></tr>
                         <tr><td><strong>“邀请字符串已过期。”</strong></td><td>生成后已超过 10 分钟。请重新生成邀请字符串。</td></tr>
                         <tr><td><strong>“无法连接到对手。”</strong></td><td>检查邀请方电脑的防火墙（上面的 1）。交换邀请方后也可能连接成功。</td></tr>
-                        <tr><td><strong>“邀请的路径”中显示“无法使用中继。…”</strong></td><td>取消勾选“设置”标签页的“不使用直接连接”，断开后重新连接。</td></tr>
+                        <tr><td><strong>“邀请的路径”中显示“无法使用中继。…”</strong></td><td>选择了“仅使用协作节点的中继”。请点击“断开”后，把“连接”标签页的“与对手的连接方式”改回“直接连接（默认）”，然后重新连接。</td></tr>
                         <tr><td><strong>“对手正在与他人协商或对局。”</strong></td><td>对手正在与他人确认条件或对局。结束后请向对方要新的邀请字符串。</td></tr>
                         <tr><td><strong>访客 Wi-Fi 等</strong></td><td>在阻止已连接设备之间通信的网络中，即使在同一局域网也无法连接。</td></tr>
                     </tbody>
@@ -298,7 +298,7 @@
                     <span class="guide-step-title">以第2位、第3位玩家打开</span>
                 </div>
                 <p class="guide-step-text">在同一台电脑上多次启动本应用，并分别打开“P2P对局”，第二个会自动以“第2位玩家”的身份打开，第三个为“第3位玩家”（最多同时8个）。窗口标题和顶部的说明会显示是第几位玩家。只启动一个应用时，始终是第1位玩家。</p>
-                <p class="guide-step-text">玩家密钥（玩家ID）、显示名、对局记录和对手列表会按玩家分别保存。两边都以“本地（同一电脑・同一局域网）”连接，然后把其中一个生成的暗号输入到另一个（粘贴邀请字符串也可以），无需协作节点即可对局。由于是同一台电脑内的连接，通常也不需要设置防火墙。</p>
+                <p class="guide-step-text">玩家密钥（玩家ID）、显示名、对局记录和对手列表会按玩家分别保存。两边都以“同一电脑・同一局域网”连接，然后把其中一个生成的暗号输入到另一个（粘贴邀请字符串也可以），无需协作节点即可对局。由于是同一台电脑内的连接，通常也不需要设置防火墙。</p>
             </div>
 
         </div>
@@ -318,7 +318,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">真的不需要协作节点吗</span>
                 </div>
-                <p class="guide-step-text">不需要。在“本地（同一电脑・同一局域网）”下，邀请字符串中包含这台电脑在局域网内的地址，对手的电脑可以直接到达。用这种方式无法连接互联网上的对手（<a href="p2p-relay.html">使用协作节点对局</a>）。</p>
+                <p class="guide-step-text">不需要。在“同一电脑・同一局域网”下，邀请字符串中包含这台电脑在局域网内的地址，对手的电脑可以直接到达。用这种方式无法连接互联网上的对手（<a href="p2p-relay.html">使用协作节点对局</a>）。</p>
             </div>
 
             <div class="guide-step">
@@ -358,15 +358,15 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">“地址”的数量是什么的数量</span>
                 </div>
-                <p class="guide-step-text">是邀请字符串中包含的连接地址的数量（最多 8 个）。在“本地”下，其中包含这台电脑在局域网内的地址（每个网络接口各有 UDP 和 TCP 一个，也包括 VPN 和虚拟设备的地址）和只在同一台电脑内使用的地址，因此数量因电脑而异。</p>
+                <p class="guide-step-text">是邀请字符串中包含的连接地址的数量（最多 8 个）。在“同一电脑・同一局域网”下，其中包含这台电脑在局域网内的地址（每个网络接口各有 UDP 和 TCP 一个，也包括 VPN 和虚拟设备的地址）和只在同一台电脑内使用的地址，因此数量因电脑而异。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">应该勾选“不使用直接连接”吗</span>
+                    <span class="guide-step-title">应该选择“仅使用协作节点的中继”吗</span>
                 </div>
-                <p class="guide-step-text">不要勾选。勾选后，局域网内的直接连接也不再使用，因此无法连接（“邀请的路径”中显示“无法使用中继。…”）。在“本地”下，对手能看到的只有局域网内的地址。这个设置用于在通过互联网对局时不让对手看到 IP 地址（<a href="p2p-relay.html#relay-only">不让对手看到 IP 地址对局</a>）。</p>
+                <p class="guide-step-text">不要选择。选择后，局域网内的直接连接也不再使用，没有注册协作节点就无法连接（“连接”标签页中显示“这样无法使用中继”）。在“同一电脑・同一局域网”下，对手能看到的只有局域网内的地址。这个设置用于在通过互联网对局时不让对手看到 IP 地址（<a href="p2p-relay.html#relay-only">不让对手看到 IP 地址对局</a>）。</p>
             </div>
 
             <div class="guide-step">

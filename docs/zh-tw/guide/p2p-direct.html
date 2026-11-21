@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>不使用協作節點對局（P2P對局） - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ 的P2P對局中，不使用協作節點、與同一電腦・同一區域網路的對手下棋的方法：以「本機」連線、交換邀請字串、可以邀請的人數與次數、防火牆，以及無法連線時的檢查方法。">
+    <meta name="description" content="ShogiBoardQ 的P2P對局中，不使用協作節點、與同一電腦・同一區域網路的對手下棋的方法：以「同一電腦・同一區域網路」連線、交換邀請字串、可以邀請的人數與次數、防火牆，以及無法連線時的檢查方法。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/p2p-direct.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -93,7 +93,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">不用協作節點可以對局的對手</h2>
-        <p class="section-desc">在「本機（同一電腦・同一區域網路）」網路中，既不需要協作節點，也不需要變更「設定」分頁</p>
+        <p class="section-desc">選擇「同一電腦・同一區域網路」，就不需要註冊協作節點</p>
 
         <div class="screenshot-gallery">
 
@@ -102,7 +102,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">與同一電腦・同一區域網路的對手連線</span>
                 </div>
-                <p class="guide-step-text">把「網路」設為「本機（同一電腦・同一區域網路）」並連線後，邀請字串中會放入這台電腦在區域網路內的位址（192.168.… 等）和只在同一台電腦內使用的位址。對手的電腦可以直接到達這些位址，因此不需要居中協調的協作節點。</p>
+                <p class="guide-step-text">把「連線」分頁的「對手所在位置」設為「同一電腦・同一區域網路」並連線後，邀請字串中會放入這台電腦在區域網路內的位址（192.168.… 等）和只在同一台電腦內使用的位址。對手的電腦可以直接到達這些位址，因此不需要居中協調的協作節點。</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">對手</th><th scope="col">能否連線</th></tr>
@@ -119,11 +119,11 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">無需變更「設定」分頁</span>
+                    <span class="guide-step-title">「連線」分頁保持初始狀態即可</span>
                 </div>
                 <ul class="guide-step-text">
-                    <li><strong>「連線候選」</strong>：保持空白即可。</li>
-                    <li><strong>「不使用直接連線」</strong>：請取消勾選。勾選後，區域網路內的直接連線也不再使用，因此無法連線（「邀請的路徑」中顯示「無法使用中繼。…」）。</li>
+                    <li><strong>「協作節點」</strong>：不需要註冊。在「同一電腦・同一區域網路」下選擇「直接連線（預設）」期間，連輸入欄也不會顯示（顯示「此設定下不需要。…」）。</li>
+                    <li><strong>「與對手的連線方式」</strong>：保持「直接連線（預設）」。選擇「僅使用協作節點的中繼」後，區域網路內的直接連線也不再使用，沒有註冊協作節點就無法連線（顯示「這樣無法使用中繼」）。</li>
                     <li><strong>對手能看到的位址</strong>：只有區域網路內的位址。網際網路上的 IP 位址不會交給對手。邀請字串中包含這台電腦在區域網路內的全部位址（也包括 VPN 和虛擬裝置的位址），暗號中也包含區域網路內的位址，請只告訴對手。</li>
                     <li><strong>使用期限</strong>：沒有。建置後超過 180 天仍可使用（只有「網際網路」有期限）。</li>
                 </ul>
@@ -137,20 +137,20 @@
 <section id="steps" class="section">
     <div class="section-inner">
         <h2 class="section-title">開始對局的步驟</h2>
-        <p class="section-desc">雙方都以「本機」連線，一方輸入另一方產生的暗號</p>
+        <p class="section-desc">雙方都以「同一電腦・同一區域網路」連線，一方輸入另一方產生的暗號</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">雙方都以「本機」連線</span>
+                    <span class="guide-step-title">雙方都以「同一電腦・同一區域網路」連線</span>
                 </div>
                 <p class="guide-step-text">用「對局」→「P2P對局…」開啟視窗。第一次使用時，產生玩家金鑰並填入顯示名稱（<a href="p2p-game.html#prepare">準備</a>）。</p>
-                <p class="guide-step-text">在「連線與條件」分頁中把「網路」設為「本機（同一電腦・同一區域網路）」，按一下「連線」。「狀態」變為「已連線（已連線的節點：0）」，「邀請的路徑」中顯示「與同一電腦・同一區域網路的對手直接連線。」即準備完成（在與對手連線之前，節點數一直是 0）。</p>
+                <p class="guide-step-text">在「連線」分頁中，確認「對手所在位置」為「同一電腦・同一區域網路」、「與對手的連線方式」為「直接連線（預設）」（第一次開啟時就是這樣），然後按一下視窗上方的「連線」。上方的橫條變為「已連線（已連線的節點：0）」，並在其下方顯示「邀請的路徑：與同一電腦・同一區域網路的對手直接連線。」即準備完成（在與對手連線之前，節點數一直是 0）。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-connection.png"><img src="../../images/zh-tw/p2p-game/p2p-connection.png" alt="以「本機」連線，邀請的路徑顯示與同一電腦・同一區域網路的對手直接連線的「連線與條件」分頁" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">以「本機（同一電腦・同一區域網路）」連線後</p>
+                    <a href="../../images/zh-tw/p2p-game/p2p-connection.png"><img src="../../images/zh-tw/p2p-game/p2p-connection.png" alt="以「同一電腦・同一區域網路」連線，上方橫條的邀請的路徑顯示與同一電腦・同一區域網路的對手直接連線的「連線」分頁" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">以「同一電腦・同一區域網路」連線後</p>
                 </div>
             </div>
 
@@ -159,8 +159,8 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">邀請方：產生邀請並告知暗號</span>
                 </div>
-                <p class="guide-step-text">邀請方先在「連線與條件」分頁中設定「用時規則」「讀秒」「先後手」。對局依這些條件進行。</p>
-                <p class="guide-step-text">在「透過邀請連線」分頁的「邀請對手」中按一下「產生邀請」，就會以大字顯示 12 個字元左右的暗號（<code>K7MP-2QXD-9F3A</code> 的形式）。請只把這個暗號告訴對方：在同一個房間裡可以口頭告知，不在一起時可以透過電話或訊息告知（可以用「複製暗號」複製）。邀請 10 分鐘後失效，產生後請立即告知對方。</p>
+                <p class="guide-step-text">邀請方先在「邀請」分頁中設定「用時規則」「讀秒」「先後手」。對局依這些條件進行。</p>
+                <p class="guide-step-text">在同一分頁的「發出邀請」中按一下「產生邀請」，就會以大字顯示 12 個字元左右的暗號（<code>K7MP-2QXD-9F3A</code> 的形式）。請只把這個暗號告訴對方：在同一個房間裡可以口頭告知，不在一起時可以透過電話或訊息告知（可以用「複製暗號」複製）。邀請 10 分鐘後失效，產生後請立即告知對方。</p>
                 <p class="guide-step-text">暗號下方的輸入框中，還會顯示同一邀請的邀請字串（較長的字串）。直接傳送文字比較方便時，或用暗號無法連線時，請用「複製邀請字串」複製，透過私訊等只能送達對方的方式交給對方。暗號和邀請字串是同一個邀請，只能擇一使用，並且只能使用一次。輸入框下方會顯示期限和位址數量。</p>
             </div>
 
@@ -169,11 +169,11 @@
                     <span class="guide-step-number">3</span>
                     <span class="guide-step-title">被邀請方：輸入暗號並連線</span>
                 </div>
-                <p class="guide-step-text">被邀請方在「透過邀請連線」分頁的「透過邀請連線」欄中輸入暗號（收到的是邀請字串時則貼上），按一下「檢查」。暗號可以用小寫輸入，也可以省略分隔符號「-」。顯示「已讀取暗號（同一區域網路的對手的邀請）。」和位址數量後（邀請字串則顯示邀請方的 PeerId、期限和位址數量），按一下「連線」。</p>
+                <p class="guide-step-text">被邀請方在「邀請」分頁的「接受邀請」欄中輸入暗號（收到的是邀請字串時則貼上），按一下「檢查」。暗號可以用小寫輸入，也可以省略分隔符號「-」。顯示「已讀取暗號（同一區域網路的對手的邀請）。」和位址數量後（邀請字串則顯示邀請方的 PeerId、期限和位址數量），按一下「連線」。</p>
                 <p class="guide-step-text">被邀請方無需設定用時規則等條件（依邀請方的條件對局）。只需填好「顯示名稱」。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/zh-tw/p2p-game/p2p-invite.png"><img src="../../images/zh-tw/p2p-game/p2p-invite.png" alt="「透過邀請連線」分頁。上方產生了邀請並顯示暗號和邀請字串，下方檢查了收到的暗號" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">上：邀請方產生了邀請（暗號和邀請字串）　下：被邀請方檢查暗號後</p>
+                    <a href="../../images/zh-tw/p2p-game/p2p-invite.png"><img src="../../images/zh-tw/p2p-game/p2p-invite.png" alt="「邀請」分頁。上方有顯示名稱、對局者、用時規則、讀秒、先後手的輸入欄，左側產生了邀請並顯示暗號和邀請字串，右側檢查了收到的暗號" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">左：邀請方產生了邀請（暗號和邀請字串）　右：被邀請方檢查暗號後</p>
                 </div>
             </div>
 
@@ -222,7 +222,7 @@
                     <li><strong>一個應用程式一次只能下一局</strong>：會與最先連線的人進入條件確認。在此期間和對局中，其他人無法連線（條件確認期間，對方會看到「對手正在與他人協商或對局。」）。對於沒能連線的人，請在對局結束後交給他們新的邀請字串。8 人同時下 4 局時，每組由一方邀請另一方（<a href="p2p-game.html#one-game">一對一對局，一個應用程式一次一局</a>）。</li>
                     <li><strong>對局後仍可使用</strong>：對局結束後，仍在期限內且尚未使用的邀請字串依然有效。</li>
                     <li><strong>條件以最後一次產生時為準</strong>：所有有效的邀請字串，都依最後一次按下「產生邀請」時的顯示名稱、用時規則、讀秒、先後手和對局者（人類還是引擎）對局。要變更條件時，請先變更再重新產生。</li>
-                    <li><strong>全部取消</strong>：在「連線與條件」分頁中按一下「中斷連線」，所有有效的邀請字串都會失效。</li>
+                    <li><strong>全部取消</strong>：按一下視窗上方的「中斷連線」，所有有效的邀請字串都會失效。</li>
                 </ul>
             </div>
 
@@ -270,10 +270,10 @@
                         <tr><th scope="col">顯示的訊息・狀態</th><th scope="col">要檢查的內容</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>「這是其他網路的邀請字串。」</strong></td><td>兩人的「網路」不同。兩人都重新以「本機（同一電腦・同一區域網路）」連線，並重新產生邀請字串。</td></tr>
+                        <tr><td><strong>「這是其他網路的邀請字串。」</strong></td><td>兩人的「對手所在位置」不同。兩人都重新以「同一電腦・同一區域網路」連線，並重新產生邀請字串。</td></tr>
                         <tr><td><strong>「邀請字串已過期。」</strong></td><td>產生後已超過 10 分鐘。請重新產生邀請字串。</td></tr>
                         <tr><td><strong>「無法連線到對手。」</strong></td><td>檢查邀請方電腦的防火牆（上面的 1）。交換邀請方後也可能連線成功。</td></tr>
-                        <tr><td><strong>「邀請的路徑」中顯示「無法使用中繼。…」</strong></td><td>取消勾選「設定」分頁的「不使用直接連線」，中斷連線後重新連線。</td></tr>
+                        <tr><td><strong>「邀請的路徑」中顯示「無法使用中繼。…」</strong></td><td>選擇了「僅使用協作節點的中繼」。按一下「中斷連線」後，把「連線」分頁的「與對手的連線方式」改回「直接連線（預設）」，再重新連線。</td></tr>
                         <tr><td><strong>「對手正在與他人協商或對局。」</strong></td><td>對手正在與他人確認條件或對局。結束後請向對方要新的邀請字串。</td></tr>
                         <tr><td><strong>訪客 Wi-Fi 等</strong></td><td>在阻擋已連線裝置之間通訊的網路中，即使在同一區域網路也無法連線。</td></tr>
                     </tbody>
@@ -298,7 +298,7 @@
                     <span class="guide-step-title">以第2位、第3位玩家開啟</span>
                 </div>
                 <p class="guide-step-text">在同一台電腦上多次啟動本應用程式，並分別開啟「P2P對局」，第二個會自動以「第2位玩家」的身分開啟，第三個為「第3位玩家」（最多同時8個）。視窗標題和頂端的說明會顯示是第幾位玩家。只啟動一個應用程式時，一律是第1位玩家。</p>
-                <p class="guide-step-text">玩家金鑰（玩家ID）、顯示名稱、對局記錄和對手清單會依玩家分別儲存。兩邊都以「本機（同一電腦・同一區域網路）」連線，然後把其中一個產生的暗號輸入到另一個（貼上邀請字串也可以），無需協作節點即可對局。由於是同一台電腦內的連線，通常也不需要設定防火牆。</p>
+                <p class="guide-step-text">玩家金鑰（玩家ID）、顯示名稱、對局記錄和對手清單會依玩家分別儲存。兩邊都以「同一電腦・同一區域網路」連線，然後把其中一個產生的暗號輸入到另一個（貼上邀請字串也可以），無需協作節點即可對局。由於是同一台電腦內的連線，通常也不需要設定防火牆。</p>
             </div>
 
         </div>
@@ -318,7 +318,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">真的不需要協作節點嗎</span>
                 </div>
-                <p class="guide-step-text">不需要。在「本機（同一電腦・同一區域網路）」下，邀請字串中包含這台電腦在區域網路內的位址，對手的電腦可以直接到達。用這種方式無法連線到網際網路上的對手（<a href="p2p-relay.html">使用協作節點對局</a>）。</p>
+                <p class="guide-step-text">不需要。在「同一電腦・同一區域網路」下，邀請字串中包含這台電腦在區域網路內的位址，對手的電腦可以直接到達。用這種方式無法連線到網際網路上的對手（<a href="p2p-relay.html">使用協作節點對局</a>）。</p>
             </div>
 
             <div class="guide-step">
@@ -358,15 +358,15 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">「位址」的數量是什麼的數量</span>
                 </div>
-                <p class="guide-step-text">是邀請字串中包含的連線位址的數量（最多 8 個）。在「本機」下，其中包含這台電腦在區域網路內的位址（每個網路介面各有 UDP 和 TCP 一個，也包括 VPN 和虛擬裝置的位址）和只在同一台電腦內使用的位址，因此數量因電腦而異。</p>
+                <p class="guide-step-text">是邀請字串中包含的連線位址的數量（最多 8 個）。在「同一電腦・同一區域網路」下，其中包含這台電腦在區域網路內的位址（每個網路介面各有 UDP 和 TCP 一個，也包括 VPN 和虛擬裝置的位址）和只在同一台電腦內使用的位址，因此數量因電腦而異。</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">應該勾選「不使用直接連線」嗎</span>
+                    <span class="guide-step-title">應該選擇「僅使用協作節點的中繼」嗎</span>
                 </div>
-                <p class="guide-step-text">不要勾選。勾選後，區域網路內的直接連線也不再使用，因此無法連線（「邀請的路徑」中顯示「無法使用中繼。…」）。在「本機」下，對手能看到的只有區域網路內的位址。這個設定用於在透過網際網路對局時不讓對手看到 IP 位址（<a href="p2p-relay.html#relay-only">不讓對手看到 IP 位址對局</a>）。</p>
+                <p class="guide-step-text">不要選擇。選擇後，區域網路內的直接連線不再使用，沒有註冊協作節點就無法連線（「連線」分頁中顯示「這樣無法使用中繼」）。在「同一電腦・同一區域網路」下，對手能看到的只有區域網路內的位址。這個設定用於在透過網際網路對局時不讓對手看到 IP 位址（<a href="p2p-relay.html#relay-only">不讓對手看到 IP 位址對局</a>）。</p>
             </div>
 
             <div class="guide-step">

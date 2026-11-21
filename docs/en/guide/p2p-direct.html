@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Playing Without a Cooperating Node (P2P Games) - ShogiBoardQ</title>
-    <meta name="description" content="How to play P2P games in ShogiBoardQ with an opponent on the same PC or LAN, without a cooperating node: connecting to Local, exchanging invitations, how many people you can invite and how often, the firewall, and what to check when you cannot connect.">
+    <meta name="description" content="How to play P2P games in ShogiBoardQ with an opponent on the same PC or LAN, without a cooperating node: connecting with Same PC / same LAN, exchanging invitations, how many people you can invite and how often, the firewall, and what to check when you cannot connect.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/p2p-direct.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -93,7 +93,7 @@
 <section id="about" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">Who You Can Play Without a Cooperating Node</h2>
-        <p class="section-desc">On the Local (same PC / same LAN) network, you need neither a cooperating node nor any change on the Settings tab</p>
+        <p class="section-desc">If you choose Same PC / same LAN, you do not need to register a cooperating node</p>
 
         <div class="screenshot-gallery">
 
@@ -102,7 +102,7 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">Connect to Opponents on the Same PC or LAN</span>
                 </div>
-                <p class="guide-step-text">When you connect with Network set to Local (same PC / same LAN), the invitation contains this PC's address on the LAN (such as 192.168.…) and an address used only within the same PC. The opponent's PC can reach these addresses directly, so no cooperating node is needed in between.</p>
+                <p class="guide-step-text">When you connect with Where your opponent is set to Same PC / same LAN on the Connection tab, the invitation contains this PC's address on the LAN (such as 192.168.…) and an address used only within the same PC. The opponent's PC can reach these addresses directly, so no cooperating node is needed in between.</p>
                 <table class="info-table">
                     <thead>
                         <tr><th scope="col">Opponent</th><th scope="col">Can you connect?</th></tr>
@@ -119,11 +119,11 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">No Need to Change the Settings Tab</span>
+                    <span class="guide-step-title">Leave the Connection Tab at Its Initial Settings</span>
                 </div>
                 <ul class="guide-step-text">
-                    <li><strong>Bootstrap nodes</strong>: You can leave it empty.</li>
-                    <li><strong>Do not use direct connections</strong>: Leave it unchecked. When checked, the app stops using direct connections within the LAN as well, so you cannot connect (Invitation route shows "No relay is available. …").</li>
+                    <li><strong>Cooperating nodes</strong>: You do not need to register any. While Same PC / same LAN and Connect directly (default) are selected, the list is not even shown (you see "Not needed with this setting. …").</li>
+                    <li><strong>How to connect to your opponent</strong>: Leave it at Connect directly (default). If you choose Relay only (via a cooperating node), the app stops using direct connections within the LAN as well, and you cannot connect unless you have registered a cooperating node (you see "No relay is available with this setting").</li>
                     <li><strong>Address your opponent can see</strong>: Only your address on the LAN. Your IP address on the Internet is not given to the opponent. The invitation string contains all of this PC's LAN addresses (including those of VPNs and virtual devices), and the passcode contains LAN addresses too, so give them only to your opponent.</li>
                     <li><strong>Expiry</strong>: None. It keeps working more than 180 days after the build (only the Internet network expires).</li>
                 </ul>
@@ -137,20 +137,20 @@
 <section id="steps" class="section">
     <div class="section-inner">
         <h2 class="section-title">Steps to Start a Game</h2>
-        <p class="section-desc">Both players connect to Local, and one types the passcode the other created</p>
+        <p class="section-desc">Both players connect with Same PC / same LAN, and one types the passcode the other created</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">Both Players Connect to Local</span>
+                    <span class="guide-step-title">Both Players Connect with Same PC / Same LAN</span>
                 </div>
                 <p class="guide-step-text">Open the window with Game → P2P Game…. The first time, create a player key and enter a display name (<a href="p2p-game.html#prepare">Setup</a>).</p>
-                <p class="guide-step-text">On the Connection and Conditions tab, set Network to Local (same PC / same LAN) and click Connect. You are ready when Status shows Connected (peers: 0) and Invitation route shows "Direct connection to an opponent on the same PC or LAN." (the peer count stays 0 until your opponent connects).</p>
+                <p class="guide-step-text">On the Connection tab, check that Same PC / same LAN is selected under Where your opponent is and Connect directly (default) under How to connect to your opponent (this is how they are set the first time you open the window), then click Connect at the top of the window. You are ready when the top bar shows Connected (peers: 0) with "Invitation route: Direct connection to an opponent on the same PC or LAN." below it (the peer count stays 0 until your opponent connects).</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-connection.png"><img src="../../images/en/p2p-game/p2p-connection.png" alt="Connection and Conditions tab connected to Local, with Invitation route showing a direct connection to an opponent on the same PC or LAN" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Connected to Local (same PC / same LAN)</p>
+                    <a href="../../images/en/p2p-game/p2p-connection.png"><img src="../../images/en/p2p-game/p2p-connection.png" alt="Connection tab connected with Same PC / same LAN, with Invitation route in the top bar showing a direct connection to an opponent on the same PC or LAN" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Connected with Same PC / same LAN</p>
                 </div>
             </div>
 
@@ -159,8 +159,8 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">The Inviter: Create an Invitation and Tell the Passcode</span>
                 </div>
-                <p class="guide-step-text">The inviter first sets Time control, Byoyomi and Side on the Connection and Conditions tab. The game is played with these conditions.</p>
-                <p class="guide-step-text">Under Invite an opponent on the Connect by Invitation tab, click Create Invitation, and a passcode of about 12 characters (in the form <code>K7MP-2QXD-9F3A</code>) appears in large type. Tell this passcode only to your opponent: by voice if you are in the same room, or by phone or message if not (Copy Passcode copies it). An invitation stops working after 10 minutes, so tell it right after creating it.</p>
+                <p class="guide-step-text">The inviter first sets Time control, Byoyomi and Side on the Invitation tab. The game is played with these conditions.</p>
+                <p class="guide-step-text">Under Invite on the same tab, click Create Invitation, and a passcode of about 12 characters (in the form <code>K7MP-2QXD-9F3A</code>) appears in large type. Tell this passcode only to your opponent: by voice if you are in the same room, or by phone or message if not (Copy Passcode copies it). An invitation stops working after 10 minutes, so tell it right after creating it.</p>
                 <p class="guide-step-text">The box below the passcode shows the invitation string (a long string) of the same invitation. When sending text is easier, or when the passcode does not connect, click Copy Invitation String and send it by a channel that reaches only your opponent, such as a private message. The passcode and the invitation string are one and the same invitation, so only one of them can be used, once. The expiry and the number of addresses appear below the box.</p>
             </div>
 
@@ -169,11 +169,11 @@
                     <span class="guide-step-number">3</span>
                     <span class="guide-step-title">The Invited Player: Type the Passcode and Connect</span>
                 </div>
-                <p class="guide-step-text">The invited player types the passcode into the Connect by invitation box on the Connect by Invitation tab (or pastes the invitation string, if that is what was sent) and clicks Check. A passcode can be typed in lowercase and without the “-” separators. When "Passcode read (an invitation from an opponent on the same LAN)." and the number of addresses appear (for an invitation string: the inviter's PeerId, the expiry and the number of addresses), click Connect.</p>
+                <p class="guide-step-text">The invited player types the passcode into the Accept an invitation box on the Invitation tab (or pastes the invitation string, if that is what was sent) and clicks Check. A passcode can be typed in lowercase and without the “-” separators. When "Passcode read (an invitation from an opponent on the same LAN)." and the number of addresses appear (for an invitation string: the inviter's PeerId, the expiry and the number of addresses), click Connect.</p>
                 <p class="guide-step-text">The invited player does not need to set the time control or other conditions (the inviter's conditions are used). Just enter a Display name.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Connect by Invitation tab, with an invitation created at the top, showing its passcode and invitation string, and a received passcode checked at the bottom" width="900" height="790" loading="lazy"></a>
-                    <p class="screenshot-caption">Top: the inviter has created an invitation (passcode and invitation string). Bottom: the invited player has checked a passcode</p>
+                    <a href="../../images/en/p2p-game/p2p-invite.png"><img src="../../images/en/p2p-game/p2p-invite.png" alt="Invitation tab, with the Display name, Player, Time control, Byoyomi and Side fields at the top, an invitation created on the left, showing its passcode and invitation string, and a received passcode checked on the right" width="900" height="790" loading="lazy"></a>
+                    <p class="screenshot-caption">Left: the inviter has created an invitation (passcode and invitation string). Right: the invited player has checked a passcode</p>
                 </div>
             </div>
 
@@ -222,7 +222,7 @@
                     <li><strong>One game per app at a time</strong>: You move on to confirming conditions with whoever connects first. During that time and during the game, no one else can connect (while conditions are being confirmed, the other person sees "The opponent is busy negotiating or playing with someone else."). Give anyone who could not connect a new invitation after the game. For eight people to play four games at once, one player in each pair invites the other (<a href="p2p-game.html#one-game">One-on-One Games, One Game per App at a Time</a>).</li>
                     <li><strong>Still usable after a game</strong>: Invitations that are still within their 10 minutes and unused remain valid after a game ends.</li>
                     <li><strong>The latest conditions apply</strong>: Every valid invitation plays with the display name, time control, byoyomi, side and player (human or engine) that were set when you last clicked Create Invitation. To change the conditions, change them and create the invitation again.</li>
-                    <li><strong>Cancel them all</strong>: Clicking Disconnect on the Connection and Conditions tab makes all valid invitations stop working.</li>
+                    <li><strong>Cancel them all</strong>: Clicking Disconnect at the top of the window makes all valid invitations stop working.</li>
                 </ul>
             </div>
 
@@ -270,10 +270,10 @@
                         <tr><th scope="col">Message or state</th><th scope="col">What to check</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><strong>"The invitation is for another network."</strong></td><td>The two players chose different networks. Both reconnect to Local (same PC / same LAN), and the inviter creates a new invitation.</td></tr>
+                        <tr><td><strong>"The invitation is for another network."</strong></td><td>The two players chose different settings for Where your opponent is. Both reconnect with Same PC / same LAN, and the inviter creates a new invitation.</td></tr>
                         <tr><td><strong>"The invitation has expired."</strong></td><td>Ten minutes have passed since it was created. Create a new invitation.</td></tr>
                         <tr><td><strong>"Could not connect to the opponent."</strong></td><td>Check the firewall on the inviter's PC (step 1 above). Swapping who creates the invitation may also help.</td></tr>
-                        <tr><td><strong>Invitation route shows "No relay is available. …"</strong></td><td>Uncheck Do not use direct connections on the Settings tab, then disconnect and connect again.</td></tr>
+                        <tr><td><strong>Invitation route shows "No relay is available. …"</strong></td><td>Relay only (via a cooperating node) is selected. Click Disconnect, set How to connect to your opponent on the Connection tab back to Connect directly (default), and connect again.</td></tr>
                         <tr><td><strong>"The opponent is busy negotiating or playing with someone else."</strong></td><td>The opponent is confirming conditions or playing with someone else. Get a new invitation after they finish.</td></tr>
                         <tr><td><strong>Guest Wi-Fi and similar networks</strong></td><td>On a network that blocks traffic between connected devices, you cannot connect even on the same LAN.</td></tr>
                     </tbody>
@@ -298,7 +298,7 @@
                     <span class="guide-step-title">Open as Player 2, Player 3, …</span>
                 </div>
                 <p class="guide-step-text">If you start this app several times on the same PC and open P2P Game in each, the second one opens automatically as Player 2, the third as Player 3, and so on (up to eight at a time). The window title and the note at the top show which player it is. When only one app is running, it is always Player 1.</p>
-                <p class="guide-step-text">The player key (player ID), display name, game records and opponent list are saved separately for each player. Connect both to Local (same PC / same LAN), then type the passcode created in one into the other (pasting the invitation string works too) to play without a cooperating node. Since the connection stays within the same PC, you usually do not need to change the firewall either.</p>
+                <p class="guide-step-text">The player key (player ID), display name, game records and opponent list are saved separately for each player. Connect both with Same PC / same LAN, then type the passcode created in one into the other (pasting the invitation string works too) to play without a cooperating node. Since the connection stays within the same PC, you usually do not need to change the firewall either.</p>
             </div>
 
         </div>
@@ -318,7 +318,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">Do I really not need a cooperating node?</span>
                 </div>
-                <p class="guide-step-text">No, you do not. On Local (same PC / same LAN), the invitation contains this PC's address on the LAN, and the opponent's PC can reach it directly. You cannot connect to an opponent on the Internet this way (<a href="p2p-relay.html">Playing with a Cooperating Node</a>).</p>
+                <p class="guide-step-text">No, you do not. With Same PC / same LAN, the invitation contains this PC's address on the LAN, and the opponent's PC can reach it directly. You cannot connect to an opponent on the Internet this way (<a href="p2p-relay.html">Playing with a Cooperating Node</a>).</p>
             </div>
 
             <div class="guide-step">
@@ -358,15 +358,15 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">What does the number of addresses mean?</span>
                 </div>
-                <p class="guide-step-text">It is the number of addresses the invitation contains (up to 8). On Local, the invitation contains this PC's addresses on the LAN (one each for UDP and TCP per network interface, including those of VPNs and virtual devices) and addresses used only within the same PC, so the number differs from PC to PC.</p>
+                <p class="guide-step-text">It is the number of addresses the invitation contains (up to 8). With Same PC / same LAN, the invitation contains this PC's addresses on the LAN (one each for UDP and TCP per network interface, including those of VPNs and virtual devices) and addresses used only within the same PC, so the number differs from PC to PC.</p>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">Q</span>
-                    <span class="guide-step-title">Should I check Do not use direct connections?</span>
+                    <span class="guide-step-title">Should I choose Relay only (via a cooperating node)?</span>
                 </div>
-                <p class="guide-step-text">No. When checked, the app stops using direct connections within the LAN, so you cannot connect (Invitation route shows "No relay is available. …"). On Local, your opponent can see only your address on the LAN. This setting is for hiding your IP address from your opponent in games over the Internet (<a href="p2p-relay.html#relay-only">Play Without Showing Your IP Address</a>).</p>
+                <p class="guide-step-text">No. If you choose it, the app stops using direct connections within the LAN, so you cannot connect unless you have registered a cooperating node (the Connection tab shows "No relay is available with this setting"). With Same PC / same LAN, your opponent can see only your address on the LAN. This setting is for hiding your IP address from your opponent in games over the Internet (<a href="p2p-relay.html#relay-only">Play Without Showing Your IP Address</a>).</p>
             </div>
 
             <div class="guide-step">
