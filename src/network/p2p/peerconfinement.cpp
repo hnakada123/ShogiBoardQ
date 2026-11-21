@@ -3,6 +3,7 @@
 
 #include "peerconfinement.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QProcess>
 #include <QProcessEnvironment>
@@ -36,18 +37,22 @@ bool PeerConfinement::isSupported()
     return true;
 }
 
-QStringList PeerConfinement::requiredMechanisms()
+QStringList PeerConfinement::requiredMechanisms(Reach reach)
 {
 #if defined(Q_OS_LINUX)
+    Q_UNUSED(reach)
     return {QStringLiteral("no_new_privs"), QStringLiteral("landlock_fs"), QStringLiteral("seccomp"),
             QStringLiteral("parent_death_signal"), QStringLiteral("no_core_dump")};
 #else
-    return {QStringLiteral("seatbelt"), QStringLiteral("parent_death_watch"), QStringLiteral("no_core_dump"),
-            QStringLiteral("deny_attach")};
+    QStringList names{QStringLiteral("seatbelt"), QStringLiteral("parent_death_watch"), QStringLiteral("no_core_dump"),
+                      QStringLiteral("deny_attach")};
+    // loopback への発信を止める規則も掛かっていること
+    if (reach == Reach::Internet) names << QStringLiteral("seatbelt_no_loopback");
+    return names;
 #endif
 }
 
-std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const QString&, Reach reach, QString*)
+std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const QString&, Reach reach, int, QString*)
 {
 #if defined(Q_OS_MACOS)
     // ローカルのネットワークを使わないときは、loopback への発信をサンドボックスでも止めさせる（protocol/ipc.md 6.3節）
@@ -55,6 +60,10 @@ std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const
 #else
     Q_UNUSED(reach)
 #endif
+    // 起動した側のプロセス ID を渡す。通信プロセスは、最初に読んだ親がこれと違えば（起動の直後に親が終わり、ほかの
+    // プロセスの子になった）、親の終了を見張れないので動かない（監査 2026-11-21 I-15）
+    process->setArguments(process->arguments()
+                          << QStringLiteral("--parent-pid") << QString::number(QCoreApplication::applicationPid()));
     // 環境変数は渡さない。標準入出力以外の記述子を引き継がない
     process->setProcessEnvironment(QProcessEnvironment());
     QProcess::UnixProcessParameters params;
@@ -68,9 +77,15 @@ std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const
 
 namespace {
 
-/// AppContainer の名前（SID はこの名前から決まる）。プロファイルは利用者ごとに1回だけ登録する（利用者のレジストリと
-/// %LOCALAPPDATA%\Packages の下の空のフォルダ。通信プロセスはそこに何も書かない）
-const wchar_t kContainerName[] = L"io.github.hnakada123.ShogiBoardQ.peer";
+/// AppContainer の名前（SID はこの名前から決まる）。この PC のプレイヤーごとに分ける（1人目は以前と同じ名前。2人目からは
+/// 番号を付ける）。同じ AppContainer のプロセスは互いのプロセスとスレッドを開けるので、2人のプレイヤーの通信プロセスを
+/// 同じ AppContainer に入れない（監査 2026-11-21 S13）
+std::wstring containerName(int player)
+{
+    std::wstring name = L"io.github.hnakada123.ShogiBoardQ.peer";
+    if (player > 1) name += L"-" + std::to_wstring(player);
+    return name;
+}
 const wchar_t kContainerDisplayName[] = L"ShogiBoardQ P2P communication process";
 
 QString winError(const char* what, DWORD code = GetLastError())
@@ -144,16 +159,23 @@ public:
         // ジョブを閉じると、まだ動いている通信プロセスは終わる（JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE）
         if (m_job) CloseHandle(m_job);
         if (m_containerSid) FreeSid(m_containerSid);
+        // AppContainer のプロファイル（利用者のレジストリと %LOCALAPPDATA%\Packages の下のフォルダ。AppContainer の
+        // プロセスが書き込める）を消す。乗っ取られた通信プロセスが、次の起動まで残るものを置けないようにする（監査
+        // 2026-11-21 S13）。消せなければ（まだ使われている）、次に起動するときに消し直す
+        if (!m_containerName.empty()) DeleteAppContainerProfile(m_containerName.c_str());
     }
 
-    bool prepare(const QString& executable, Reach reach, QString* error)
+    bool prepare(const QString& executable, Reach reach, int player, QString* error)
     {
         // プロファイルを登録していない AppContainer ではプロセスを作れない（「ファイルが見つかりません」で失敗する）。
-        // 最初の1回だけ登録し、次からは名前から SID を求める
-        HRESULT result = CreateAppContainerProfile(kContainerName, kContainerDisplayName, kContainerDisplayName, nullptr,
-                                                   0, &m_containerSid);
+        // 前の起動が残したプロファイル（異常終了で消せなかったもの）は消してから、起動ごとに登録し直す。まだ使われて
+        // いて消せなければ、名前から SID を求める
+        m_containerName = containerName(player);
+        DeleteAppContainerProfile(m_containerName.c_str());
+        HRESULT result = CreateAppContainerProfile(m_containerName.c_str(), kContainerDisplayName, kContainerDisplayName,
+                                                   nullptr, 0, &m_containerSid);
         if (result == HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)) {
-            result = DeriveAppContainerSidFromAppContainerName(kContainerName, &m_containerSid);
+            result = DeriveAppContainerSidFromAppContainerName(m_containerName.c_str(), &m_containerSid);
         }
         if (FAILED(result) || !m_containerSid) {
             *error = winError("creating the AppContainer profile", static_cast<DWORD>(result));
@@ -174,7 +196,8 @@ public:
         if (!createJob(error)) return false;
 
         // 緩和ポリシー: ウィンドウとフォントの系統のシステムコール・拡張の読み込み・実行時のコード生成・
-        // ネットワーク上と低い整合性の場所からの DLL の読み込みを使えなくする
+        // ネットワーク上と低い整合性の場所からの DLL の読み込みを使えなくする。OS の DLL は、アプリのフォルダより先に
+        // System32 から読む（監査 2026-11-21 I-14）
         m_mitigation = PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON
             | PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON
             | PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON
@@ -184,7 +207,8 @@ public:
             | PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON
             | PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON
             | PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON
-            | PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON;
+            | PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
+            | PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON;
         m_childPolicy = PROCESS_CREATION_CHILD_PROCESS_RESTRICTED;
 
         // 属性: AppContainer・ジョブ・緩和ポリシー・子プロセスの禁止・引き継ぐハンドル（最後のものは起動の直前に入れる）
@@ -317,6 +341,7 @@ private:
         return true;
     }
 
+    std::wstring m_containerName;
     PSID m_containerSid = nullptr;
     std::array<std::array<BYTE, SECURITY_MAX_SID_SIZE>, 3> m_capabilitySids{};
     std::array<SID_AND_ATTRIBUTES, 3> m_capabilities{};
@@ -341,17 +366,25 @@ bool PeerConfinement::isSupported()
     return true;
 }
 
-QStringList PeerConfinement::requiredMechanisms()
+QStringList PeerConfinement::requiredMechanisms(Reach reach)
 {
-    return {QStringLiteral("appcontainer"), QStringLiteral("job_kill_on_close"), QStringLiteral("job_single_process"),
-            QStringLiteral("no_child_process"), QStringLiteral("no_error_dialog")};
+    // 起動のときに掛けた緩和ポリシー（WindowsConfinement::prepare）も、掛かっていることを通信プロセスに確かめさせる
+    QStringList names{QStringLiteral("appcontainer"),          QStringLiteral("job_kill_on_close"),
+                      QStringLiteral("job_single_process"),    QStringLiteral("no_child_process"),
+                      QStringLiteral("no_error_dialog"),       QStringLiteral("no_dynamic_code"),
+                      QStringLiteral("no_win32k"),             QStringLiteral("no_untrusted_images"),
+                      QStringLiteral("prefer_system32_images"), QStringLiteral("no_extension_points"),
+                      QStringLiteral("no_non_system_fonts")};
+    // 同じ LAN へ出る能力は、ローカルのネットワークを使うときだけ渡す（渡していないこと）
+    if (reach == Reach::Internet) names << QStringLiteral("no_private_network");
+    return names;
 }
 
 std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const QString& executable, Reach reach,
-                                                        QString* error)
+                                                        int player, QString* error)
 {
     auto confinement = std::make_unique<WindowsConfinement>();
-    if (!confinement->prepare(executable, reach, error)) return nullptr;
+    if (!confinement->prepare(executable, reach, player, error)) return nullptr;
     WindowsConfinement* raw = confinement.get();
     // 呼ばれるのは process->start() の中だけ。返したものは、呼び出し側がプロセスの終わりまで持つ
     process->setCreateProcessArgumentsModifier(
@@ -366,12 +399,12 @@ bool PeerConfinement::isSupported()
     return false;
 }
 
-QStringList PeerConfinement::requiredMechanisms()
+QStringList PeerConfinement::requiredMechanisms(Reach)
 {
     return {};
 }
 
-std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess*, const QString&, Reach, QString* error)
+std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess*, const QString&, Reach, int, QString* error)
 {
     *error = QStringLiteral("the sandbox is not implemented for this operating system");
     return nullptr;

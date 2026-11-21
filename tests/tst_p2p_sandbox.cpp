@@ -29,7 +29,7 @@ private:
         process.setArguments(QStringList{QStringLiteral("--sandbox-self-test")} + targets);
         QString error;
         const std::unique_ptr<PeerConfinement> confinement =
-            PeerConfinement::apply(&process, QStringLiteral(PEER_EXECUTABLE), reach, &error);
+            PeerConfinement::apply(&process, QStringLiteral(PEER_EXECUTABLE), reach, 1, &error);
         if (!confinement) {
             qWarning() << "confinement:" << error;
             return {};
@@ -118,6 +118,19 @@ private slots:
         QCOMPARE(results.value(QStringLiteral("listen_tcp")).toString(), QStringLiteral("allowed"));
         const QStringList mechanisms = report.value(QStringLiteral("mechanisms")).toVariant().toStringList();
         QCOMPARE(mechanisms.contains(QStringLiteral("seatbelt_no_loopback")), !localNetwork);
+        // sysctl は許可した名前だけ読める（インターフェースの一覧と CPU の数は読め、ほかのプロセスの引数・環境変数、
+        // プロセスの一覧、コンピュータ名は読めない。監査 2026-11-21 S12）
+        QCOMPARE(results.value(QStringLiteral("list_interfaces")).toString(), QStringLiteral("allowed"));
+        QCOMPARE(results.value(QStringLiteral("sysctl_hw_ncpu")).toString(), QStringLiteral("allowed"));
+        for (const char* name : {"sysctl_procargs_parent", "sysctl_proc_all", "sysctl_hostname"}) {
+            QVERIFY2(results.value(QLatin1String(name)).toString() == QStringLiteral("denied"), name);
+        }
+        // loopback を止める規則が、ほかの宛先（0.0.0.0・IPv4 射影・127.0.0.2・自分のアドレス）にも効くかは、結果を
+        // 残すだけにする（OS が止めると確かめているのは 127.0.0.1 と ::1 だけ。protocol/ipc.md 6.3節。S14）
+        for (const char* name : {"connect_unspecified_v4", "connect_unspecified_v6", "connect_mapped_loopback",
+                                 "connect_loopback_other", "connect_own_address"}) {
+            qInfo().noquote() << name << results.value(QLatin1String(name)).toString();
+        }
 #endif
         // 禁止した操作は、実際に何も残していない
         QVERIFY(!QFileInfo::exists(filePath + QStringLiteral(".created")));
@@ -146,7 +159,7 @@ private slots:
         process.setProgram(QStringLiteral(PEER_EXECUTABLE));
         QString error;
         std::unique_ptr<PeerConfinement> confinement = PeerConfinement::apply(
-            &process, QStringLiteral(PEER_EXECUTABLE), PeerConfinement::Reach::Internet, &error);
+            &process, QStringLiteral(PEER_EXECUTABLE), PeerConfinement::Reach::Internet, 1, &error);
         QVERIFY2(confinement, qPrintable(error));
         process.start();
         QVERIFY(process.waitForStarted(10000));

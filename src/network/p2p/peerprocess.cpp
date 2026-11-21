@@ -30,11 +30,12 @@ quint64 nextGeneration()
 }
 
 /// 権限の制限の結果として必須のもの（protocol/ipc.md 3章）
-bool sandboxIsApplied(const PeerIpc::Sandbox& sandbox)
+bool sandboxIsApplied(const PeerIpc::Sandbox& sandbox, PeerConfinement::Reach reach)
 {
     if (!sandbox.applied) return false;
-    // OS ごとの必須の仕組み（Linux と macOS は通信プロセスが自分で掛け、Windows は起動のときに掛けたものを通信プロセスが確かめる）
-    const QStringList required = PeerConfinement::requiredMechanisms();
+    // OS ごとの必須の仕組み（Linux と macOS は通信プロセスが自分で掛け、Windows は起動のときに掛けたものを通信プロセスが確かめる）。
+    // 起動の条件で決まるもの（loopback・同じ LAN へ出られないこと）も照らす
+    const QStringList required = PeerConfinement::requiredMechanisms(reach);
     if (required.isEmpty()) return false;
     for (const QString& name : required) {
         if (!sandbox.mechanisms.contains(name)) return false;
@@ -88,7 +89,7 @@ QString PeerProcess::executablePath()
     return QDir(QCoreApplication::applicationDirPath()).filePath(name);
 }
 
-void PeerProcess::start(PeerConfinement::Reach reach)
+void PeerProcess::start(PeerConfinement::Reach reach, int player)
 {
     if (m_state != State::NotRunning) return;
     if (!PeerConfinement::isSupported()) {
@@ -119,7 +120,8 @@ void PeerProcess::start(PeerConfinement::Reach reach)
     m_process->setArguments({});
     // 環境変数と標準入出力以外のハンドル・記述子を引き継がず、OS ごとの権限の制限を掛けて起動する
     QString confinementError;
-    m_confinement = PeerConfinement::apply(m_process, path, reach, &confinementError);
+    m_reach = reach;
+    m_confinement = PeerConfinement::apply(m_process, path, reach, player, &confinementError);
     if (!m_confinement) {
         // 制限なしでは起動しない
         resetProcess();
@@ -170,8 +172,13 @@ void PeerProcess::onStopTimeout()
     }
     if (!m_terminateSent) {
         m_terminateSent = true;
+#ifdef Q_OS_WIN
+        // Windows の terminate はウィンドウへの WM_CLOSE で、ウィンドウを持たない通信プロセスには効かない。待たずに止める
+        m_process->kill();
+#else
         m_process->terminate();
         m_stopTimer->start(kStopStepMs);
+#endif
     } else {
         m_process->kill();
     }
@@ -266,7 +273,7 @@ void PeerProcess::handleMessage(const QByteArray& json)
     }
     if (const auto* hello = std::get_if<PeerIpc::Hello>(&*reply)) {
         m_stopTimer->stop();
-        if (!sandboxIsApplied(hello->sandbox)) {
+        if (!sandboxIsApplied(hello->sandbox, m_reach)) {
             fail(Failure::SandboxFailed, QStringLiteral("sandbox not applied"));
             return;
         }

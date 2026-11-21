@@ -35,10 +35,13 @@ public:
 
     /// この OS で通信プロセスの権限を制限できる
     static bool isSupported();
-    /// hello の応答の mechanisms に必ず入っているはずの名前
-    static QStringList requiredMechanisms();
-    /// 起動の前に process へ設定する（プログラムと引数を入れた後に呼ぶ。macOS では引数を足すことがある）。できなければ nullptr を返し、error に診断用の理由（ASCII）を入れる
-    static std::unique_ptr<PeerConfinement> apply(QProcess* process, const QString& executable, Reach reach,
+    /// reach で起動した通信プロセスが、hello の応答の mechanisms に必ず入れているはずの名前（起動の条件で決まる
+    /// 制限も含む。起動の処理が退行して制限が欠けたら、つながずに止める。監査 2026-11-21 I-13）
+    static QStringList requiredMechanisms(Reach reach);
+    /// 起動の前に process へ設定する（プログラムと引数を入れた後に呼ぶ。引数を足すことがある）。player は、この PC の
+    /// 何人目のプレイヤーの通信プロセスか（Windows の AppContainer をプレイヤーごとに分ける）。できなければ nullptr を
+    /// 返し、error に診断用の理由（ASCII）を入れる
+    static std::unique_ptr<PeerConfinement> apply(QProcess* process, const QString& executable, Reach reach, int player,
                                                   QString* error);
 
 protected:

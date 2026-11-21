@@ -94,7 +94,8 @@ P2pLobbyService::StartFailure P2pLobbyService::begin(const QString& networkName,
     }
     emit statusChanged();
     // 同じ LAN へ出られるのは、ローカルのネットワークだけ（Windows では OS が止める。実装仕様 10.4節）
-    m_peer->start(network->local ? PeerConfinement::Reach::LocalNetwork : PeerConfinement::Reach::Internet);
+    m_peer->start(network->local ? PeerConfinement::Reach::LocalNetwork : PeerConfinement::Reach::Internet,
+                  m_profile ? m_profile->playerNumber() : 1);
     return StartFailure::None;
 }
 
