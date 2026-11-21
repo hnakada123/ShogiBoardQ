@@ -169,7 +169,7 @@
 | S5 | 交渉から対局への引き継ぎ | 同じ10項目を司令塔（`p2pgamecoordinator.cpp:184-194`）と試験が写している | `Negotiation` に `MatchSetup` を作る関数を置く | 済（5fa33d65。`Negotiation::matchSetup()`） |
 | S6 | 状態と両署名の組の読み書き | `p2pframes.cpp`・`p2pevidence.cpp`・`p2precordkinds.cpp` の3か所にあり、署名の長さの厳しさが3通りある | `SignedState` に読み書きを置く | 済（95ed3b89。`SignedState::toCbor`・`fromCbor(value, Approvals)` を `p2pprotocol` に置き、照合・証跡・ジャーナルが使う。ジャーナルの件の形は変えていない。`p2pframes.h` は証跡のヘッダーを読まなくなった） |
 | S7 | `P2pGameUiController` | 知らせの箱の `QPointer` が5つある。`#include` がファイルの途中にある（`p2pgameuicontroller.cpp:41-42`） | 申し出の箱の組を小さなクラスにする | 済（327ea03b。申し出の3つの箱（尋ねる・答えを待つ・断られた）と答えの扱いを `P2pOfferController` に移した。画面の司令役に残る箱は、エンジンと通信プロセスの知らせの2つ。ファイルの途中の `#include` も直した） |
-| S8 | ネットワークの名前 | `sbq-local-1`・`sbq-limited-1` が `p2pprotocol.cpp:263`・`p2pconnectionpanel.cpp:29`・`networksettings.h:120` にある | 純粋層の表から引く | 済（`P2p::kLocalNetworkName`・`kInternetNetworkName` を純粋層に置き、参加できるネットワークの表と「接続」タブが引く。設定は services の層にあって純粋層を読めないので、既定値を空にして、読む側が `valueOr` でローカルにする。試験の中の名前は、回線に流す名前を確かめるためにそのまま書いている） |
+| S8 | ネットワークの名前 | `sbq-local-1`・`sbq-limited-1` が `p2pprotocol.cpp:263`・`p2pconnectionpanel.cpp:29`・`networksettings.h:120` にある | 純粋層の表から引く | 済（cb8c7711。`P2p::kLocalNetworkName`・`kInternetNetworkName` を純粋層に置き、参加できるネットワークの表と「接続」タブが引く。設定は services の層にあって純粋層を読めないので、既定値を空にして、読む側が `valueOr` でローカルにする。試験の中の名前は、回線に流す名前を確かめるためにそのまま書いている） |
 | S9 | Rust: 役割の bool | `NodeConfig` の `service`・`relay_only`・`relay_server`・`meet_server` から `!relay_only && !service` のように導いている | `enum Role` にする | 済（56b7151d。`swarm::Role`） |
 | S10 | Rust: `sandbox.rs`（787行） | OS ごとの `apply` と自己試験が1ファイルに離れて並ぶ | `sandbox/{linux,macos,windows}.rs` に分ける | 未（macOS・Windows の側をここでビルドして確かめられないので見送った） |
 | S11 | Rust: 小部品の重複 | 相手ごとの枠の数え方（`streams.rs`・`meet.rs`）、トークンバケット（`game.rs`・`meetstore.rs`）、長さ付きの読み書き（`game.rs`・`meet.rs`） | 1つにする | 済（56b7151d。`limits.rs`・`wire.rs`） |
@@ -214,6 +214,8 @@
 ## 6. 修正の結果（2026-11-21）
 
 5章の 1〜5 を直した（R4 05a5e72b、R3 4f594a99、R1 b1b24687、R2 5fa33d65、R5 56b7151d）。プロトコルのバイト列・IPC の形・保存形式・共通の試験入力は変えていない。不具合の疑いは U1・U2・U3 を試験で確かめて直し、U4 は下の決めたことのとおりにした。2章は S5・S9・S11 を直し、残りは状態の列のとおり。
+
+2章の小さな整理は、S10（`sandbox.rs` を OS ごとに分ける。macOS・Windows の側をここでビルドして確かめられない）を除いて直した（S6 95ed3b89、S1 0b84d4c3、S2 03ba4b33、S3 6756c2aa、S4 02ad6e98、S7 327ea03b、S8 cb8c7711）。
 
 決めたこと（2026-11-21。どちらも 5292fc73 で直した）:
 
