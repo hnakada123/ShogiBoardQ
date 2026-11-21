@@ -95,6 +95,7 @@
 
 - [2026-10-23](reports/security-audit-2026-10-23.md)・[2026-11-07](reports/security-audit-2026-11-07.md)
 - [security-audit-p2p-2026-11-13.md](reports/security-audit-p2p-2026-11-13.md): P2P対局（監査の時点では実験版）のセキュリティ監査（Winny のような情報漏えいにならないかの確認を含む）と修正の記録
+- [security-audit-p2p-2026-11-21.md](reports/security-audit-p2p-2026-11-21.md): P2P対局の2回目のセキュリティ監査（合言葉・協力ノードの待ち合わせ・友だちの在席・エンジンで指す対局・Windows と macOS の権限の制限）と修正の記録
 
 性能:
 
