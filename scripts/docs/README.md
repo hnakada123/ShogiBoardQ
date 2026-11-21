@@ -24,6 +24,7 @@
 | `shoot_tables.py` | 思考表・検討タブの表が主な題材の画像（検討ページ・ドックの既定配置・詰み探索の思考タブ・ホームのメイン画像・対局の思考タブ・多言語対応の画面）を言語ごとに撮る。`docs/images` と同じ並びで書き出す |
 | `shoot_csa.py` | ローカルの shogi-server で4言語のCSA設定・待機・対局・終局を撮影する。floodgateは設定画面だけを撮り、公開サーバーには接続しない |
 | `shoot_p2p.py` | 同じ PC の2つのアプリで P2P対局（「相手のいる場所」が「同じPC・同じLAN」）を操作して、ガイド `p2p-game` の画像を言語ごとに撮る（`guide`: プレイヤー鍵の準備・「接続」・「設定」・「招待」・条件確認（人間どうし・相手がエンジン）・「対局中」・「対局記録」。`lan`: 同じ PC の協力ノードを使う2枚。`friends`: 友だちが「オンライン」と出た「相手」タブ）。アプリは撮影用のビルド（下記）、登録エンジンは Hayanagi。出力フォルダを渡し、撮れた画像を `docs/images/…/p2p-game/` に写す |
+| `p2p_netns.sh` | `shoot_p2p.py` の `guide`・`friends` を、見本の LAN のアドレス（`192.168.1.40`）だけを持つネットワーク名前空間（`unshare -rn`）の中で動かす。招待文字列・合言葉に、この PC の実際のアドレスを写さない。`friends` の協力ノードも中で動かし、終わったら中で起動した Xvfb を止める |
 | `p2p_nodes.py` | P2P対局のウィンドウの「接続」タブを自動化 API から操作する補助（`shoot_p2p.py` と `p2p_internet/shoot.py` で共通）。相手のいる場所とつなぎ方を選ぶ `choose`、協力ノードの一覧を決める `set_nodes`（「追加…」の入力のダイアログに書く）、実際の協力ノードのアドレスを画像に残さないための差し替え `node_sample`・`paste_node_sample`（接続している間は一覧を変えられないので、接続する前に見本のアドレスで撮った一覧の画像を、接続した後の画像の同じ場所に貼る） |
 | `p2p_internet/` | インターネット越し（「相手のいる場所」が「インターネット」）の P2P対局の画像を撮る。`lab.sh` が Docker のコンテナ（ホストの `/usr` を読み取り専用で見せる `archlinux:latest`、外とつながらない）の中に、協力ノード・家庭のルーター2台（NAT）・その内側の2人のアプリの仮想のネットワークを作り（`inside.sh`）、`shoot.py` が自動化 API で2人を操作して招待・対局・撮影まで進める。アプリは撮影用のビルド（下記）を使う |
 | `sample_kifu/` | 画像に写る見本の棋譜（▲鈴木・▽山田、105行）。`mkkif.py` が `full.usi` から言語別の KIF（`sample-<言語>.kif`・ホーム用の `main-<言語>.kif`）を書き出す。1〜50手目（`first50.usi`）は画像から読み取った手順、51手目以降は `continue_game.py` でやねうら王に指させた |
@@ -108,18 +109,23 @@ GEM_PATH=/tmp/sbq-gems xvfb-run -a -s '-screen 0 1920x1440x24' python3 scripts/d
 ## 同じPC・同じLAN の P2P対局の画像の撮り直し
 
 ガイド `p2p-game` のうち、同じ PC の2つのアプリで撮れる画像は `shoot_p2p.py` で撮る（撮影用のビルドは次の節）。
+招待文字列と合言葉にはこの PC の LAN のアドレスが入るので、`p2p_netns.sh` で、見本のアドレス（`192.168.1.40`）だけを
+持つネットワーク名前空間の中で撮る（`unshare -rn`。外へはつながらない。2026-11-20〜21 に撮った `p2p-invite` には、
+撮影した PC のアドレスと docker のアドレスが写っていた。監査 2026-11-21 S15）。
 
 ```bash
-for lang in ja_JP en zh_CN zh_TW; do
-  SBQ_WORK=$PWD/build/docwork/p2pshoot python3 scripts/docs/shoot_p2p.py guide $lang build/docwork/p2pshoot/out/$lang
-done
+scripts/docs/p2p_netns.sh guide ja_JP en zh_CN zh_TW      # → build/docwork/p2pshoot-ns/out-guide/<言語>/
+scripts/docs/p2p_netns.sh friends ja_JP en zh_CN zh_TW    # → build/docwork/p2pshoot-ns/out-friends/<言語>/（協力ノードも中で動かす）
 ```
+
+プレイヤーID とビルドの使用期限の時刻は毎回変わるので、画面を変えていない画像は差し替えない
+（`magick compare -metric AE -fuzz 2%` と `ImageChops.difference().getbbox()` で違う所を見て決める）。
 
 `p2p-identity`・`p2p-connection`・`p2p-settings`・`p2p-invite`・`p2p-confirm`・`p2p-game`・`p2p-records`・`p2p-confirm-engine` が出る
 （鈴木が招待を受けて先手、山田が招待する側。`p2p-game` は4手指したところの鈴木の「対局中」タブ、`p2p-confirm-engine` は、
 山田が「対局者」で Hayanagi を選んだときの鈴木の条件確認画面）。同じ PC の協力ノードを使う `p2p-lan-node-connected`・
 `p2p-internet-lan-address` は、協力ノード（`--relay --meet`）を起動してから `shoot_p2p.py lan <言語> <出力フォルダ> <協力ノードの multiaddr>` で、
-友だちが「オンライン」と出た「相手」タブの `p2p-peers` は `shoot_p2p.py friends <言語> <出力フォルダ> <協力ノードの multiaddr>` で撮る
+友だちが「オンライン」と出た「相手」タブの `p2p-peers` は `shoot_p2p.py friends <言語> <出力フォルダ> <協力ノードの multiaddr>`（上の `p2p_netns.sh friends`）で撮る（双方が在席を知らせる。自分も知らせている間だけ友だちの在席を調べるため）
 （起動のしかたはスクリプトの先頭）。「接続」タブの協力ノードの一覧は、見本のアドレス（`192.168.1.23`）に差し替えて写す
 （`p2p_nodes.py`。この PC の LAN のアドレスを画像に残さない）。
 プレイヤー鍵のダイアログは言語で大きさが変わるので、撮り直したらガイドの `<img>` の `width`・`height` も合わせる。

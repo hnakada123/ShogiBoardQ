@@ -124,7 +124,7 @@
                 <ul class="guide-step-text">
                     <li><strong>Cooperating nodes</strong>: You do not need to register any. While Same PC / same LAN and Connect directly (default) are selected, the list is not even shown (you see "Not needed with this setting. …").</li>
                     <li><strong>How to connect to your opponent</strong>: Leave it at Connect directly (default). If you choose Relay only (via a cooperating node), the app stops using direct connections within the LAN as well, and you cannot connect unless you have registered a cooperating node (you see "No relay is available with this setting").</li>
-                    <li><strong>Address your opponent can see</strong>: Only your address on the LAN. Your IP address on the Internet is not given to the opponent. The invitation string contains all of this PC's LAN addresses (including those of VPNs and virtual devices), and the passcode contains LAN addresses too, so give them only to your opponent.</li>
+                    <li><strong>Address your opponent can see</strong>: Only your address on the LAN. Your IP address on the Internet is not given to the opponent. The invitation string contains this PC's LAN addresses (including those of network interfaces in use, such as VPNs, but, on Linux, not those of virtual devices whose link is down), and the passcode contains LAN addresses too, so give them only to your opponent.</li>
                     <li><strong>Expiry</strong>: None. It keeps working more than 180 days after the build (only the Internet network expires).</li>
                 </ul>
             </div>
@@ -358,7 +358,7 @@
                     <span class="guide-step-number">Q</span>
                     <span class="guide-step-title">What does the number of addresses mean?</span>
                 </div>
-                <p class="guide-step-text">It is the number of addresses the invitation contains (up to 8). With Same PC / same LAN, the invitation contains this PC's addresses on the LAN (one each for UDP and TCP per network interface, including those of VPNs and virtual devices) and addresses used only within the same PC, so the number differs from PC to PC.</p>
+                <p class="guide-step-text">It is the number of addresses the invitation contains (up to 8). With Same PC / same LAN, the invitation contains this PC's addresses on the LAN (one each for UDP and TCP per network interface, including those of interfaces in use, such as VPNs, but, on Linux, not those of virtual devices whose link is down), so the number differs from PC to PC. On a PC with no LAN address, it contains addresses used only within the same PC instead.</p>
             </div>
 
             <div class="guide-step">

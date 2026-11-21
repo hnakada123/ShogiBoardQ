@@ -375,7 +375,7 @@ def select_peer(name, row=0):
 
 
 def friends(language, out_dir, node):
-    """友だち一覧の画像を撮る: 1局指して互いを「相手」タブに並べ、友だちにして、片方が在席を知らせる"""
+    """友だち一覧の画像を撮る: 1局指して互いを「相手」タブに並べ、友だちにして、双方が在席を知らせる"""
     os.makedirs(out_dir, exist_ok=True)
     tag = language.replace("_", "").lower()
     a, b = f"{tag}A", f"{tag}B"
@@ -408,15 +408,16 @@ def friends(language, out_dir, node):
     for name in (a, b):
         close_boxes(name)
 
-    # 互いを友だちにし、相手（b）が在席を知らせる
+    # 互いを友だちにし、双方が在席を知らせる（自分も知らせている間だけ、友だちの在席を調べる。監査 2026-11-21 S10）
     for name in (a, b):
         set_value(name, "p2pTabs", TAB_PEERS)
         time.sleep(0.5)
         select_peer(name)
         click(name, "p2pPeerFriend")
         time.sleep(0.3)
-    set_value(b, "p2pTabs", TAB_PEERS)
-    set_value(b, "p2pSharePresence", True)
+    for name in (b, a):
+        set_value(name, "p2pTabs", TAB_PEERS)
+        set_value(name, "p2pSharePresence", True)
     # a の「相手」タブに「オンライン」と出るまで、開き直して調べ直す
     online = translated(language, "オンライン", "P2pPeersPanel")
     select_peer(a)
