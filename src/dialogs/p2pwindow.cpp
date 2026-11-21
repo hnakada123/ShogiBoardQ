@@ -144,7 +144,7 @@ void P2pWindow::connectSources()
 void P2pWindow::loadSettings()
 {
     m_invite->loadSettings();
-    m_connection->setNetworkName(NetworkSettings::p2pNetworkName());
+    m_connection->setNetworkName(NetworkSettings::p2pNetworkName.valueOr(QString::fromLatin1(P2p::kLocalNetworkName)));
     m_connection->setBootstrap(NetworkSettings::p2pBootstrap());
     m_connection->setRelayOnly(NetworkSettings::p2pRelayOnly());
     m_settings->setHideUnknownNames(NetworkSettings::p2pHideUnknownNames());

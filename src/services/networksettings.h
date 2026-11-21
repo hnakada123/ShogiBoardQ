@@ -116,8 +116,9 @@ inline constexpr int kCsaServerHistoryLimit = 10;
 
 // --- P2P対局（実装仕様 11章）。プレイヤー鍵・パスフレーズ・招待文字列は保存しない ---
 
-/// 参加するネットワーク（このビルドが参加できる名前のどれか。既定はローカル）
-inline const Setting<QString> p2pNetworkName{"P2p/networkName", QStringLiteral("sbq-local-1")};
+/// 参加するネットワーク（このビルドが参加できる名前のどれか）。名前の表は P2P対局の層（P2p::allowedNetworks）に
+/// あるので既定値は空にし、読む側が valueOr でローカルのネットワークにする
+inline const Setting<QString> p2pNetworkName{"P2p/networkName", QString()};
 /// 名乗る表示名（相手に見える。既定は空で、初めて使うときに入れてもらう）。この PC の何人目のプレイヤーか（1〜）ごとに
 /// 覚える（同じ PC でいくつものアプリを動かして対局するとき、同じ名前にならないように。1人目は P2p/displayName、
 /// 2人目からは P2p/displayName2・P2p/displayName3…）

@@ -22,12 +22,13 @@
 
 #include "dialogutils.h"
 #include "p2pchoicecard.h"
+#include "p2pprotocol.h"
 #include "plaintooltip.h"
 
 namespace {
 
-const QLatin1String kLocalNetwork("sbq-local-1");
-const QLatin1String kInternetNetwork("sbq-limited-1");
+const QLatin1String kLocalNetwork(P2p::kLocalNetworkName);
+const QLatin1String kInternetNetwork(P2p::kInternetNetworkName);
 
 /// 協力ノードのアドレスの形（/…/p2p/<PeerId>）をしているか。中身を解釈するのは通信プロセスで、ここでは、
 /// アドレスでない文字列（説明の文や合言葉）を入れたことに気づけるだけの確かめをする

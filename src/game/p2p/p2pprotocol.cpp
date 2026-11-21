@@ -283,8 +283,8 @@ std::optional<FinalResult> FinalResult::fromCbor(const CborValue& value)
 const std::vector<NetworkInfo>& allowedNetworks()
 {
     static const std::vector<NetworkInfo> networks = {
-        {"sbq-local-1", true},
-        {"sbq-limited-1", false},
+        {kLocalNetworkName, true},
+        {kInternetNetworkName, false},
     };
     return networks;
 }

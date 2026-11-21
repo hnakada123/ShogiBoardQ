@@ -255,6 +255,11 @@ struct FinalResult {
 
 // ---------------------------------------------------------------- 識別子
 
+/// ローカルのネットワーク（同じ PC・同じ LAN）の名前（protocol/README.md 1.1節）
+inline constexpr char kLocalNetworkName[] = "sbq-local-1";
+/// インターネットのネットワークの名前
+inline constexpr char kInternetNetworkName[] = "sbq-limited-1";
+
 /// このビルドが参加できるネットワーク（protocol/README.md 1.1節）
 struct NetworkInfo {
     const char* name;
