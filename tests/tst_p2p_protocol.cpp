@@ -797,7 +797,7 @@ private slots:
         GameState mated;
         mated.ply = 3;
         mated.sfen = "4k4/4G4/4S4/9/9/9/9/9/4K4 w - 4";
-        const std::optional<GameRules::Terminal> mate = GameRules::judge({mated});
+        const std::optional<GameRules::Terminal> mate = GameRules::TerminalJudge().append(mated);
         QVERIFY(mate);
         QCOMPARE(mate->cause, Cause::Checkmate);
         QCOMPARE(mate->outcome, Outcome::BlackWins);
@@ -808,18 +808,19 @@ private slots:
         const std::vector<SignedState> signedStates =
             P2pTest::playMoves(zeroHash(), terms, P2pTest::repetitionMoves(), black, white);
         QCOMPARE(signedStates.size(), std::size_t(13));
-        std::vector<GameState> states;
-        for (const SignedState& s : signedStates) states.push_back(s.state);
-        const std::optional<GameRules::Terminal> repetition = GameRules::judge(states);
-        QVERIFY(repetition);
+        // 1手ずつ足すと、千日手になる最後の手でだけ終局になる
+        GameRules::TerminalJudge judge;
+        std::optional<GameRules::Terminal> repetition;
+        for (std::size_t i = 0; i < signedStates.size(); ++i) {
+            repetition = judge.append(signedStates[i].state);
+            QCOMPARE(repetition.has_value(), i + 1 == signedStates.size());
+        }
         QCOMPARE(repetition->cause, Cause::Repetition);
-        states.pop_back();
-        QVERIFY(!GameRules::judge(states));
 
         GameState last;
         last.ply = kMaxPly;
         last.sfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 513";
-        const std::optional<GameRules::Terminal> maxPly = GameRules::judge({last});
+        const std::optional<GameRules::Terminal> maxPly = GameRules::TerminalJudge().append(last);
         QVERIFY(maxPly);
         QCOMPARE(maxPly->cause, Cause::MaxPly);
         QVERIFY(!GameRules::nextState(last, UsiMove::fromString(u"7g7f"), 0, terms));
@@ -880,6 +881,17 @@ private slots:
         QVERIFY(!report.isValid());
         // 双方の署名がそろっていても「双方が確定した記録」とは区分しない（棋譜から決まる記録として示す）
         QCOMPARE(report.category, EvidenceReport::Category::DeterminedByRecord);
+
+        // 千日手の局面の後に手が続く記録は、規則に合わない（双方が承認していても、片方の承認だけでも。監査 2026-11-21 U1）
+        Evidence continued = P2pTest::makeEvidence(black, white, TimeControlTerms{},
+                                                   P2pTest::repetitionMoves() << QStringLiteral("7g7f"));
+        QCOMPARE(continued.states.size(), std::size_t(14));
+        report = EvidenceVerifier::verify(continued.encode());
+        QVERIFY(!report.recordLegal);
+        QVERIFY(!report.isValid());
+        QVERIFY2(report.error.contains(QStringLiteral("game has ended")), qPrintable(report.error));
+        continued.states.back().whiteApproval.clear();
+        QVERIFY(!EvidenceVerifier::verify(continued.encode()).recordLegal);
     }
 
     /// 知らないネットワークの証跡は、このビルドではその規則を確かめられないので有効と言わない（監査 2026-11-13 I-u）

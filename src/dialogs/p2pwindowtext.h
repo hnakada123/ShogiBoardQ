@@ -61,6 +61,9 @@ public:
     /// 招待・友だちへの申し込みでつなぐ試みが、交渉を始める前に終わった理由。localNetwork は「同じPC・同じLAN」で
     /// 接続しているか（同じ LAN の別の PC とつながらないときの案内を足す）
     static QString connectFailureText(const P2pLobbyService::ConnectFailure& failure, bool localNetwork);
+    /// 確かめた招待・合言葉に、今の設定でつなげる接続先が1つもないときの理由と直し方（kind は確かめた結果の種類、
+    /// relayOnly は「協力ノードの中継だけを使う」で接続しているか）
+    static QString unusableInviteText(PeerIpc::InviteKind kind, bool relayOnly);
     /// 日時（UNIX 秒。招待の期限・ビルドの使用期限）
     static QString dateTimeText(quint64 seconds);
 };

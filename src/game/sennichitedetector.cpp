@@ -10,7 +10,7 @@
 
 SennichiteDetector::Result SennichiteDetector::check(const QStringList& sfenRecord)
 {
-    if (sfenRecord.size() < 4) return Result::None;
+    if (sfenRecord.size() < kRepetitions) return Result::None;
 
     // 手数を除いた "board turn hand"（持ち駒は標準の並び）
     const QString currentKey = SfenUtils::normalizeSfenKey(sfenRecord.last());
@@ -24,7 +24,7 @@ SennichiteDetector::Result SennichiteDetector::check(const QStringList& sfenReco
         }
     }
 
-    if (occurrences.size() < 4) return Result::None;
+    if (occurrences.size() < kRepetitions) return Result::None;
 
     // 4回以上出現 → 連続王手判定
     const int thirdIdx  = occurrences.at(occurrences.size() - 2);  // 3回目

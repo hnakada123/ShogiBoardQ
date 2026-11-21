@@ -304,6 +304,9 @@ void Match::handleStatePropose(const StateProposePayload& payload)
     if (state.ply != lastState().ply + 1 || isMyTurn() || m_pending) {
         return failWithError(ErrorCode::StateConflict, state.ply);
     }
+    // 棋譜から終局が決まった局面の後の手は承認しない（承認すると、千日手・連続王手の千日手で決まった結果を、
+    // 相手が次の手で消せる。手順は終局の局面で終わり、証跡は棋譜から決まる結果を示す）
+    if (isDecidedByRecord()) return failWithError(ErrorCode::InvalidMove, state.ply);
     if (!verifyApproval(state, payload.signature, opponentIsBlack)) {
         return failWithError(ErrorCode::InvalidSignature, state.ply);
     }
@@ -844,6 +847,8 @@ void Match::handleSyncChunk(const SyncChunkPayload& chunk)
         return failWithError(ErrorCode::StateConflict, 0);
     }
     for (const SignedState& s : chunk.states) {
+        // 棋譜から終局が決まった局面の後の状態は取り込まない（着手の提案と同じ）
+        if (isDecidedByRecord()) return failWithError(ErrorCode::StateConflict, s.state.ply);
         if (s.state.ply != lastState().ply + 1 || !verifyApproval(s.state, s.blackApproval, true)
             || !verifyApproval(s.state, s.whiteApproval, false)
             || GameRules::checkNext(lastState(), s.state, m_setup.terms) != GameRules::StateCheck::Ok) {

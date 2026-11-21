@@ -1055,6 +1055,49 @@ private slots:
         QVERIFY(lone.declinedWithoutSigning());
     }
 
+    /// 棋譜から終局（千日手）が決まった局面の後に、相手（改造したクライアント）が結果の提案に答えずに次の手を提案しても、
+    /// 承認しない。以前は承認して対局が続き、連続王手の千日手で負けた側が、次の手で負けを消すこともできた。対局は
+    /// 不正な手として止め、自分の証跡は千日手の局面で終わって「棋譜から決まる結果」を示す（監査 2026-11-21 U1）
+    void moveAfterTheRecordEndedIsRefused()
+    {
+        LoneMatch lone(false);   // 自分は後手、相手（改造したクライアント）は先手
+        Match& match = *lone.match;
+        lone.clockMs = 1'000'000;
+        match.begin();
+        GameState state = GameRules::initialState(lone.gameId, lone.terms);
+        lone.propose(state);
+        const QStringList moves = P2pTest::repetitionMoves();
+        for (int i = 0; i < moves.size(); ++i) {
+            lone.clockMs += 1000;
+            const UsiMove move = UsiMove::fromString(moves.at(i));
+            const bool myMove = i % 2 == 1;
+            if (myMove) QCOMPARE(match.playMove(move), Match::MoveError::None);
+            const std::optional<GameState> next = GameRules::nextState(state, move, 1000, lone.terms);
+            QVERIFY(next);
+            state = *next;
+            if (myMove) lone.accept(state);
+            else lone.propose(state);
+        }
+        QVERIFY(match.isDecidedByRecord());
+        (void)match.takeOutgoing();
+        (void)match.takeEvents();
+
+        // 相手が、千日手の後に循環を外れる手を提案する
+        lone.clockMs += 1000;
+        const std::optional<GameState> after = GameRules::nextState(state, UsiMove::fromString(u"7g7f"), 1000, lone.terms);
+        QVERIFY(after);
+        lone.propose(*after);
+        QCOMPARE(match.lastState().ply, static_cast<quint32>(moves.size()));
+        QCOMPARE(match.phase(), Match::Phase::Finished);
+        QCOMPARE(match.endingError(), std::optional<ErrorCode>(ErrorCode::InvalidMove));
+        for (const Frame& f : match.takeOutgoing()) QVERIFY(f.type != FrameType::StateAccept);
+        const EvidenceReport report = EvidenceVerifier::verify(match.evidence().encode());
+        QVERIFY2(report.isValid(), qPrintable(report.error));
+        QCOMPARE(report.category, EvidenceReport::Category::DeterminedByRecord);
+        QVERIFY(report.terminal);
+        QCOMPARE(report.terminal->cause, Cause::Repetition);
+    }
+
     /// 形の合わない制御メッセージはジャーナルに書かない。bodyHash が合えば body は任意の配列なので、大きな body で
     /// ジャーナルの上限を使わせない（監査 2026-11-13 P18）
     void malformedControlIsNotJournaled()

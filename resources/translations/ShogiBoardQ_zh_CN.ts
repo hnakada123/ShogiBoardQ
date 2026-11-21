@@ -11395,27 +11395,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>P2pGameCoordinator</name>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="747"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="738"/>
         <source>エンジンを使えないので、対局の開始を取りやめました。</source>
         <translation>无法使用引擎，已取消开始对局。</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="757"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="748"/>
         <source>エンジンが持ち時間の間に指し手を返しませんでした。</source>
         <translation>引擎未在用时内返回着手。</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="764"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="755"/>
         <source>エンジンが止まったので、対局を中断しました（結果未確定）。</source>
         <translation>引擎已停止，对局已中断（结果未确定）。</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="780"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="771"/>
         <source>エンジンが指せない手（%1）を返したので、投了しました。</source>
         <translation>引擎返回了无法走的着手（%1），因此已认输。</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="802"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="793"/>
         <source>エンジンが入玉宣言勝ちを選びましたが、P2P対局は入玉宣言を扱いません。相手に引き分けを申し出ました。相手が断ったときは、投了するか、対局をやめてください。</source>
         <translation>引擎选择了入玉宣言获胜，但P2P对局不处理入玉宣言。已向对手提议和棋。如果对手拒绝，请认输或退出对局。</translation>
     </message>
@@ -12556,7 +12556,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>私有地址（同一局域网的对手）：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pinvitepanel.cpp" line="489"/>
+        <location filename="../../src/dialogs/p2pinvitepanel.cpp" line="492"/>
         <source>接続しています…</source>
         <translation>正在连接…</translation>
     </message>
@@ -13929,6 +13929,21 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <location filename="../../src/dialogs/p2pwindowtext.cpp" line="300"/>
         <source>同じLANの別のPCとつなぐときは、招待した側のPCのファイアウォールで、TCP と UDP の %1 番ポートへの接続が許可されているか確かめてください。招待する側を入れ替えると、つながることがあります。</source>
         <translation>与同一局域网的另一台电脑连接时，请确认邀请方电脑的防火墙允许对 TCP 和 UDP 的 %1 端口的连接。交换邀请方后也可能连接成功。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="310"/>
+        <source>この招待には、今の設定でつなげる接続先がありません。招待した相手に、ウィンドウの上の「招待の経路」を確かめてもらってください。</source>
+        <translation>此邀请中没有以您当前的设置可以连接的连接地址。请让邀请您的对手查看窗口上方的「邀请的路径」。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="315"/>
+        <source>この合言葉は、同じLANの相手と直接つなぐ招待のものです。「協力ノードの中継だけを使う」ではつなげません。「接続」タブで「直接つなぐ」に切り替えるか、相手に協力ノードの中継を通る招待を作ってもらってください。</source>
+        <translation>此暗号属于与同一局域网的对手直接连接的邀请。使用「仅使用协作节点的中继」时无法连接。请在「连接」标签页切换为「直接连接」，或请对手建立经由协作节点中继的邀请。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="318"/>
+        <source>この招待には、あなたの協力ノードの中継を通る接続先がありません。「協力ノードの中継だけを使う」では、相手と同じ協力ノードを「接続」タブで登録する必要があります。</source>
+        <translation>此邀请中没有通过您的协作节点中继的连接地址。使用「仅使用协作节点的中继」时，需要在「连接」标签页注册与对手相同的协作节点。</translation>
     </message>
     <message>
         <source>このビルドは使用期限を過ぎたので、限定試験用のネットワークに参加できません。新しい版に更新してください。保存した記録の確認と、ローカル検証用のネットワークは使えます。</source>

@@ -5,7 +5,9 @@
 /// @brief P2P対局の将棋の規則（次の状態の作成と検証・時計の算術・棋譜から決まる終局。実装仕様 7.1節・8章）
 
 #include <QByteArray>
+#include <QHash>
 #include <QString>
+#include <QStringList>
 
 #include <optional>
 #include <vector>
@@ -62,12 +64,23 @@ struct Terminal {
 };
 
 /**
- * @brief 手順の最後の状態が規則上の終局か
+ * @brief 手順を State0 から1つずつ足しながら、最後の状態が規則上の終局かを求める
  *
- * 詰み（合法手のない手番側の負け）、連続王手の千日手、千日手、512手到達の順で判定する（実装仕様 8章）。
- * states は State0 から連続していること（検査済み）。
+ * 詰み（合法手のない手番側の負け）、連続王手の千日手、千日手、512手到達の順で判定する（実装仕様 8章、互換実装の
+ * 仕様書 10.3節）。局面（手数を除く）ごとの出現の数を覚えておき、千日手の手順は、最後の局面が千日手になる回数に
+ * 達したときだけ調べる（足すたびに手順の全部を読み直さない）。足す状態は、前の状態から規則どおりに作られていること
+ * （検査済み）。対局（SignedLine）と証跡の検証が同じ判定を使う。
  */
-std::optional<Terminal> judge(const std::vector<GameState>& states);
+class TerminalJudge
+{
+public:
+    /// 状態を足し、その状態で終局か
+    std::optional<Terminal> append(const GameState& state);
+
+private:
+    QStringList m_sfens;
+    QHash<QString, int> m_occurrences;
+};
 
 /// 勝った側の outcome
 inline Outcome winnerOutcome(Turn winner) { return winner == Turn::Black ? Outcome::BlackWins : Outcome::WhiteWins; }

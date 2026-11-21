@@ -15,6 +15,9 @@
  */
 class SennichiteDetector {
 public:
+    /// 千日手になる同じ局面の出現の数（最新の局面を含めて）
+    static constexpr int kRepetitions = 4;
+
     /// 千日手判定の結果
     enum class Result {
         None,                 ///< 千日手ではない
@@ -24,7 +27,7 @@ public:
     };
 
     /**
-     * @brief sfenRecord の最新局面が4回目の出現かチェックし、結果を返す
+     * @brief sfenRecord の最新局面が kRepetitions 回目以降の出現かチェックし、結果を返す
      * @param sfenRecord SFEN履歴（各要素: "board turn hand moveNum"）
      * @return 千日手判定結果
      */

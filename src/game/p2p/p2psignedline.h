@@ -18,7 +18,8 @@ namespace P2p {
 /**
  * @brief 両方の署名がそろった状態の列（開始局面 State0 から最新まで）
  *
- * 状態を足すたびに、棋譜から決まる終局（詰み・合法手なし・千日手・連続王手の千日手・512手到達）を1度だけ求めて持つ。
+ * 状態を足すたびに、棋譜から決まる終局（詰み・合法手なし・千日手・連続王手の千日手・512手到達）を
+ * GameRules::TerminalJudge で1度だけ求めて持つ。
  * 結果の提案が今の手数を指しているかも、この列で決める。状態が規則どおりかは、足す前に呼ぶ側が確かめる。
  */
 class SignedLine
@@ -53,7 +54,8 @@ public:
 private:
     QByteArray m_gameId;
     std::vector<SignedState> m_states;
-    std::vector<GameState> m_gameStates;   ///< m_states の状態だけ（終局と手順の要約を求めるのに使う）
+    std::vector<GameState> m_gameStates;   ///< m_states の状態だけ（手順の要約を求めるのに使う）
+    GameRules::TerminalJudge m_judge;
     std::optional<GameRules::Terminal> m_terminal;
 };
 

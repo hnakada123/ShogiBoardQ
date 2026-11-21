@@ -13229,27 +13229,27 @@ Are you sure you want to declare?</translation>
 <context>
     <name>P2pGameCoordinator</name>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="747"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="738"/>
         <source>エンジンを使えないので、対局の開始を取りやめました。</source>
         <translation>The engine cannot be used, so the game start was cancelled.</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="757"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="748"/>
         <source>エンジンが持ち時間の間に指し手を返しませんでした。</source>
         <translation>The engine did not return a move within its time.</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="764"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="755"/>
         <source>エンジンが止まったので、対局を中断しました（結果未確定）。</source>
         <translation>The engine stopped, so the game was interrupted (result unconfirmed).</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="780"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="771"/>
         <source>エンジンが指せない手（%1）を返したので、投了しました。</source>
         <translation>The engine returned a move that cannot be played (%1), so the game was resigned.</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="802"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="793"/>
         <source>エンジンが入玉宣言勝ちを選びましたが、P2P対局は入玉宣言を扱いません。相手に引き分けを申し出ました。相手が断ったときは、投了するか、対局をやめてください。</source>
         <translation>The engine chose to declare an entering-king win, but P2P games do not handle entering-king declarations. A draw was offered to the opponent. If the opponent declines, resign or leave the game.</translation>
     </message>
@@ -14390,7 +14390,7 @@ Are you sure you want to declare?</translation>
         <translation>Private addresses (opponent on the same LAN):</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pinvitepanel.cpp" line="489"/>
+        <location filename="../../src/dialogs/p2pinvitepanel.cpp" line="492"/>
         <source>接続しています…</source>
         <translation>Connecting…</translation>
     </message>
@@ -15763,6 +15763,21 @@ Are you sure you want to declare?</translation>
         <location filename="../../src/dialogs/p2pwindowtext.cpp" line="300"/>
         <source>同じLANの別のPCとつなぐときは、招待した側のPCのファイアウォールで、TCP と UDP の %1 番ポートへの接続が許可されているか確かめてください。招待する側を入れ替えると、つながることがあります。</source>
         <translation>When connecting to another PC on the same LAN, check that the firewall on the inviter&apos;s PC allows connections to TCP and UDP port %1. Swapping who creates the invitation may also work.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="310"/>
+        <source>この招待には、今の設定でつなげる接続先がありません。招待した相手に、ウィンドウの上の「招待の経路」を確かめてもらってください。</source>
+        <translation>This invitation has no address you can connect to with your current settings. Ask the person who invited you to check &quot;Invitation route&quot; at the top of their window.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="315"/>
+        <source>この合言葉は、同じLANの相手と直接つなぐ招待のものです。「協力ノードの中継だけを使う」ではつなげません。「接続」タブで「直接つなぐ」に切り替えるか、相手に協力ノードの中継を通る招待を作ってもらってください。</source>
+        <translation>This passcode is for an invitation that connects directly to an opponent on the same LAN, so you cannot connect with &quot;Relay only (via a cooperating node)&quot;. Switch to &quot;Connect directly&quot; on the &quot;Connection&quot; tab, or ask your opponent to create an invitation that goes through the relay of a cooperating node.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindowtext.cpp" line="318"/>
+        <source>この招待には、あなたの協力ノードの中継を通る接続先がありません。「協力ノードの中継だけを使う」では、相手と同じ協力ノードを「接続」タブで登録する必要があります。</source>
+        <translation>This invitation has no address that goes through the relay of your cooperating nodes. With &quot;Relay only (via a cooperating node)&quot;, you need to register the same cooperating node as your opponent on the &quot;Connection&quot; tab.</translation>
     </message>
     <message>
         <source>このビルドは使用期限を過ぎたので、限定試験用のネットワークに参加できません。新しい版に更新してください。保存した記録の確認と、ローカル検証用のネットワークは使えます。</source>

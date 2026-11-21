@@ -459,10 +459,13 @@ void P2pInvitePanel::onInviteInspected(const P2pLobbyService::InviteInfo& info)
         lines << tr("私設アドレス（同じLANの相手）:");
         lines << info.privateAddresses;
     }
+    // つなげる接続先が無ければ「接続する」を押せない。その理由と直し方を添える
+    const bool connectable = info.usableAddressCount > 0 || !info.privateAddresses.isEmpty();
+    if (!connectable) lines << P2pWindowText::unusableInviteText(info.kind, m_lobby && m_lobby->relayOnly());
     setInviteInText(lines.join(QLatin1Char('\n')));
     m_allowPrivate->setChecked(false);
     m_allowPrivate->setVisible(!info.privateAddresses.isEmpty());
-    m_connectInvite->setEnabled(info.usableAddressCount > 0 || !info.privateAddresses.isEmpty());
+    m_connectInvite->setEnabled(connectable);
     emit contentResized();
 }
 

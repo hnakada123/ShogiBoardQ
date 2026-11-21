@@ -22,14 +22,17 @@ void setError(EvidenceReport& report, const QString& text)
     if (report.error.isEmpty()) report.error = text;
 }
 
-/// 状態の承認の署名を確かめ、両署名付きの手順（State0 から連続）と時計・合法性を確かめる
-void verifyStates(const Evidence& e, EvidenceReport& report, std::vector<GameState>& mutual)
+/// 状態の承認の署名を確かめ、両署名付きの手順（State0 から連続）と時計・合法性を確かめる。terminal は、両署名付きの
+/// 手順の最後の状態で棋譜から決まる終局
+void verifyStates(const Evidence& e, EvidenceReport& report, std::vector<GameState>& mutual,
+                  std::optional<GameRules::Terminal>& terminal)
 {
     report.signaturesValid = true;
     report.recordLegal = true;
     report.clockArithmeticValid = true;
     const QByteArray gameId = report.gameId;
     bool chainEnded = false;  // 片方の承認しかない状態の後に、ほかの状態を置かない
+    GameRules::TerminalJudge judge;
     for (std::size_t i = 0; i < e.states.size(); ++i) {
         const SignedState& s = e.states[i];
         const int ply = static_cast<int>(i);
@@ -51,6 +54,13 @@ void verifyStates(const Evidence& e, EvidenceReport& report, std::vector<GameSta
         if (chainEnded || (!blackOk && !whiteOk)) {
             report.recordLegal = false;
             setError(report, QStringLiteral("state %1 follows an unconfirmed state or has no approval").arg(ply));
+            return;
+        }
+        // 棋譜から終局が決まった状態の後には、どの状態も置けない（片方の承認だけの状態も。終局の後の手は指さず、
+        // 受けた側も承認しない）
+        if (terminal) {
+            report.recordLegal = false;
+            setError(report, QStringLiteral("state %1 follows a position where the game has ended").arg(ply));
             return;
         }
 
@@ -78,6 +88,7 @@ void verifyStates(const Evidence& e, EvidenceReport& report, std::vector<GameSta
 
         if (blackOk && whiteOk) {
             mutual.push_back(s.state);
+            terminal = judge.append(s.state);
             report.lastMutualPly = ply;
         } else {
             chainEnded = true;
@@ -129,9 +140,10 @@ EvidenceReport verify(const Evidence& e)
     if (!report.blackStartSigned || !report.whiteStartSigned) setError(report, QStringLiteral("missing or invalid start signature"));
 
     std::vector<GameState> mutual;
-    verifyStates(e, report, mutual);
+    std::optional<GameRules::Terminal> terminal;
+    verifyStates(e, report, mutual, terminal);
     const bool recordOk = report.signaturesValid && report.recordLegal && report.clockArithmeticValid;
-    if (recordOk && !mutual.empty()) report.terminal = GameRules::judge(mutual);
+    if (recordOk && !mutual.empty()) report.terminal = terminal;
 
     report.result = e.result;
     if (e.result) {

@@ -15,7 +15,7 @@ void SignedLine::append(const SignedState& state)
 {
     m_states.push_back(state);
     m_gameStates.push_back(state.state);
-    m_terminal = GameRules::judge(m_gameStates);
+    m_terminal = m_judge.append(state.state);
 }
 
 FinalResult SignedLine::resultFor(Outcome outcome, Cause cause) const

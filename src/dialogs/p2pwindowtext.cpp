@@ -304,6 +304,21 @@ QString P2pWindowText::connectFailureText(const P2pLobbyService::ConnectFailure&
     return text;
 }
 
+QString P2pWindowText::unusableInviteText(PeerIpc::InviteKind kind, bool relayOnly)
+{
+    if (!relayOnly) {
+        return tr("この招待には、今の設定でつなげる接続先がありません。招待した相手に、ウィンドウの上の「招待の経路」を"
+                  "確かめてもらってください。");
+    }
+    // 中継だけでは、協力ノード以外へ直接つながない（通信プロセスが「使える候補」から外す）
+    if (kind == PeerIpc::InviteKind::LanCode) {
+        return tr("この合言葉は、同じLANの相手と直接つなぐ招待のものです。「協力ノードの中継だけを使う」ではつなげません。"
+                  "「接続」タブで「直接つなぐ」に切り替えるか、相手に協力ノードの中継を通る招待を作ってもらってください。");
+    }
+    return tr("この招待には、あなたの協力ノードの中継を通る接続先がありません。「協力ノードの中継だけを使う」では、"
+              "相手と同じ協力ノードを「接続」タブで登録する必要があります。");
+}
+
 QString P2pWindowText::dateTimeText(quint64 seconds)
 {
     return QDateTime::fromSecsSinceEpoch(static_cast<qint64>(seconds)).toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));

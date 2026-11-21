@@ -411,6 +411,20 @@ private slots:
         QVERIFY(result->text().contains(QStringLiteral("合言葉")));
         QVERIFY(!result->text().contains(QStringLiteral("PeerId")));
         QCOMPARE(result->text().count(QLatin1Char('\n')), 1);
+        QVERIFY(connectButton->isEnabled());
+
+        // つなげる接続先が1つもなければ「接続する」を押せない。そのときは、理由と直し方を添える（中継だけの設定で
+        // 同じ LAN の合言葉を確かめたときなど。監査 2026-11-21 U4）
+        P2pLobbyService::InviteInfo unusable = info;
+        unusable.usableAddressCount = 0;
+        emit lobby.inviteInspected(unusable);
+        QVERIFY(!connectButton->isEnabled());
+        QVERIFY2(result->text().endsWith(P2pWindowText::unusableInviteText(PeerIpc::InviteKind::LanCode, false)),
+                 qPrintable(result->text()));
+        QVERIFY(P2pWindowText::unusableInviteText(PeerIpc::InviteKind::LanCode, true).contains(QStringLiteral("直接つなぐ")));
+        QVERIFY(P2pWindowText::unusableInviteText(PeerIpc::InviteKind::Invite, true).contains(QStringLiteral("同じ協力ノード")));
+        QVERIFY(P2pWindowText::unusableInviteText(PeerIpc::InviteKind::NodeCode, true).contains(QStringLiteral("同じ協力ノード")));
+        emit lobby.inviteInspected(info);
 
         // 断られた理由は、合言葉の文で出す
         emit lobby.inspectRejected(PeerIpc::InviteRejection::Unreadable);

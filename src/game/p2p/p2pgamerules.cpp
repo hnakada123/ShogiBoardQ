@@ -8,6 +8,7 @@
 #include "enginemovevalidator.h"
 #include "matchending.h"
 #include "sennichitedetector.h"
+#include "sfenutils.h"
 #include "shogiposition.h"
 
 namespace P2p {
@@ -109,23 +110,23 @@ StateCheck checkNext(const GameState& previous, const GameState& next, const Tim
     return StateCheck::Ok;
 }
 
-std::optional<Terminal> judge(const std::vector<GameState>& states)
+std::optional<Terminal> TerminalJudge::append(const GameState& state)
 {
-    if (states.empty()) return std::nullopt;
-    const GameState& last = states.back();
-    const std::optional<Position> position = positionOf(last);
+    const QString sfen = QString::fromLatin1(state.sfen);
+    m_sfens.append(sfen);
+    const int occurrences = ++m_occurrences[SfenUtils::normalizeSfenKey(sfen)];
+    const std::optional<Position> position = positionOf(state);
     if (!position) return std::nullopt;
 
     // 合法手のない手番側の負け（王手がかかっていなくても詰みとして扱う）
     const EngineMoveValidator::Context ctx = EngineMoveValidator::load(*position);
-    if (last.ply > 0 && EngineMoveValidator::legalMoveCount(ctx) == 0) {
+    if (state.ply > 0 && EngineMoveValidator::legalMoveCount(ctx) == 0) {
         return Terminal{winnerOutcome(opponent(position->sideToMove())), Cause::Checkmate};
     }
 
-    QStringList sfens;
-    sfens.reserve(static_cast<qsizetype>(states.size()));
-    for (const GameState& s : states) sfens.append(QString::fromLatin1(s.sfen));
-    switch (SennichiteDetector::check(sfens)) {
+    const SennichiteDetector::Result repetition =
+        occurrences >= SennichiteDetector::kRepetitions ? SennichiteDetector::check(m_sfens) : SennichiteDetector::Result::None;
+    switch (repetition) {
     case SennichiteDetector::Result::ContinuousCheckByBlack:
         return Terminal{Outcome::WhiteWins, Cause::PerpetualCheck};
     case SennichiteDetector::Result::ContinuousCheckByWhite:
@@ -136,7 +137,7 @@ std::optional<Terminal> judge(const std::vector<GameState>& states)
         break;
     }
 
-    if (last.ply >= kMaxPly) return Terminal{Outcome::Draw, Cause::MaxPly};
+    if (state.ply >= kMaxPly) return Terminal{Outcome::Draw, Cause::MaxPly};
     return std::nullopt;
 }
 
