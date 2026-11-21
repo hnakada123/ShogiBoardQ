@@ -322,9 +322,15 @@ void P2pGameUiController::onNegotiationChanged()
     m_confirm = new P2pConfirmDialog(m_deps.game, m_profile->knownPeers(), NetworkSettings::p2pHideUnknownNames(),
                                      noticeParent());
     m_confirm->setAttribute(Qt::WA_DeleteOnClose);
+    // 友だちからの申し込みは、利用者が待っていないときに届く。出してもフォーカスを取らない（使っているウィンドウの
+    // 操作を条件確認画面へ移さない。監査 2026-11-21 S9）。自分で始めた接続のときは前面に出す
+    const bool unsolicited = m_deps.game->isFriendNegotiation() && m_deps.game->isHost();
+    if (unsolicited) m_confirm->setAttribute(Qt::WA_ShowWithoutActivating);
     m_confirm->show();
-    m_confirm->raise();
-    m_confirm->activateWindow();
+    if (!unsolicited) {
+        m_confirm->raise();
+        m_confirm->activateWindow();
+    }
 }
 
 void P2pGameUiController::onNegotiationEnded(bool started, std::optional<P2p::ErrorCode> code, bool byPeer)

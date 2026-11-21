@@ -21,9 +21,10 @@ QByteArray labeled(const char* label, const QByteArray& networkId, const QByteAr
                    const QByteArray& depositor, quint64 epoch)
 {
     if (networkId.size() != kHashSize || pairSecret.size() != kSecretSize || depositor.size() != kPublicKeySize) return {};
-    return Cbor::hash(CborValue::array({CborValue::text(label), CborValue::uint(1), CborValue::bytes(networkId),
-                                        CborValue::bytes(pairSecret), CborValue::bytes(depositor),
-                                        CborValue::uint(epoch)}));
+    // 2人だけの秘密を含む（符号化した写しを残さない）
+    return Cbor::hashSecret(CborValue::array({CborValue::text(label), CborValue::uint(1), CborValue::bytes(networkId),
+                                              CborValue::bytes(pairSecret), CborValue::bytes(depositor),
+                                              CborValue::uint(epoch)}));
 }
 
 /// 暗号化で一緒に認証する値（ネットワーク・預ける側・期間。別の期間・別の人の知らせを読まない）
@@ -48,9 +49,10 @@ QByteArray pairSecretFromShared(const QByteArray& shared, const QByteArray& play
         return {};
     }
     const bool aFirst = playerKeyA < playerKeyB;
-    return Cbor::hash(CborValue::array({CborValue::text("SBQ-FRIEND-PAIR"), CborValue::uint(1), CborValue::bytes(shared),
-                                        CborValue::bytes(aFirst ? playerKeyA : playerKeyB),
-                                        CborValue::bytes(aFirst ? playerKeyB : playerKeyA)}));
+    // 鍵交換の値を含む（符号化した写しを残さない）
+    return Cbor::hashSecret(CborValue::array({CborValue::text("SBQ-FRIEND-PAIR"), CborValue::uint(1),
+                                              CborValue::bytes(shared), CborValue::bytes(aFirst ? playerKeyA : playerKeyB),
+                                              CborValue::bytes(aFirst ? playerKeyB : playerKeyA)}));
 }
 
 QByteArray pairSecret(const SigningKey& mine, const QByteArray& theirPlayerKey)

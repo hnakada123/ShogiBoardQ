@@ -10885,43 +10885,43 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>P2pConfirmDialog</name>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="44"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="47"/>
         <source>P2P対局の条件の確認</source>
         <translation>确认P2P对局条件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="57"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="60"/>
         <source>相手</source>
         <translation>对手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="67"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="70"/>
         <source>相手のプレイヤーID</source>
         <translation>对手的玩家ID</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="73"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="76"/>
         <source>対局の条件と記録</source>
         <translation>对局条件与记录</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="92"/>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="191"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="95"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="204"/>
         <source>開始</source>
         <translation>开始</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="94"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="97"/>
         <source>取りやめる</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="125"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="136"/>
         <source>表示名: 名前は非表示</source>
         <translation>显示名：已隐藏</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="125"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="136"/>
         <source>表示名（自己申告）: 「%1」</source>
         <translation>显示名（自称）：「%1」</translation>
     </message>
@@ -10934,22 +10934,22 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">已验证对手的开始签名。对手持有此ID的密钥。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="135"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="147"/>
         <source>相手がこのIDの持ち主かは、まだ確かめていません。このIDは相手の申告です。</source>
         <translation>尚未验证对手是否为此ID的持有者。此ID只是对手的自称。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="137"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="149"/>
         <source>相手がこのIDの鍵の持ち主であることを確かめました。</source>
         <translation>已验证对手持有此ID的密钥。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="140"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="152"/>
         <source>手元の記録（付けた名前・確認済みか・対局数）は、相手がこのIDの持ち主だと確かめてから表示します。</source>
         <translation>本地记录（备注名、是否已确认、对局数）在确认对手是这个ID的持有者之后才显示。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="142"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="154"/>
         <source>手元で付けた名前: %1</source>
         <translation>本地备注名：%1</translation>
     </message>
@@ -10958,7 +10958,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">为所称ID设定的本地备注名：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="143"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="155"/>
         <source>確認済みの相手です（確認コードで照合済み）。</source>
         <translation>已确认的对手（已用确认码核对）。</translation>
     </message>
@@ -10967,103 +10967,103 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">所称ID已记录为已确认。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="131"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="143"/>
         <source>友だちからの対局の申し込みです。受けるときは「開始」を押します。</source>
         <translation>这是好友发来的对局申请。接受时请点击「开始」。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="132"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="144"/>
         <source>友だちへの対局の申し込みです。</source>
         <translation>这是向好友发出的对局申请。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="143"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="155"/>
         <source>確認コードでは照合していません。</source>
         <translation>尚未用确认码核对。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="144"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="156"/>
         <source>この相手との対局: %1局（結果が確定しなかった対局: %2局）</source>
         <translation>与此对手的对局：%1局（结果未确定：%2局）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="146"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="158"/>
         <source>初めての相手です。</source>
         <translation>首次对局的对手。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="155"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="167"/>
         <source>「%1」と名付けた相手と同じ表示名ですが、プレイヤーIDが違います。別人の可能性があります。</source>
         <translation>与您命名为「%1」的对手显示名相同，但玩家ID不同。可能是另一个人。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="165"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="177"/>
         <source>あなたの手は、エンジン「%1」が指します。</source>
         <translation>您的着手由引擎「%1」来走。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="166"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="178"/>
         <source>あなたの手は、あなた（人間）が盤で指します。</source>
         <translation>您的着手由您本人（人类）在棋盘上走。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="168"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="180"/>
         <source>相手の手は、エンジンが指します（相手の申告）。</source>
         <translation>对手的着手由引擎来走（对手的申报）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="169"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="181"/>
         <source>相手の手は、人間が指します（相手の申告）。</source>
         <translation>对手的着手由人类来走（对手的申报）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="176"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="188"/>
         <source>%1%2</source>
         <comment>side sentence followed by how the sides were decided</comment>
         <translation>%1%2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="177"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="189"/>
         <source>あなたは先手です。</source>
         <translation>您执先手。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="177"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="189"/>
         <source>あなたは後手です。</source>
         <translation>您执后手。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="178"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="190"/>
         <source>先後は双方の乱数で決めました。</source>
         <translation>先后手由双方的随机数决定。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="178"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="190"/>
         <source>先後は希望どおりです。</source>
         <translation>先后手按希望决定。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="180"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="192"/>
         <source>先後を決めています…</source>
         <translation>正在决定先后手…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="182"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="194"/>
         <source>持ち時間: %1</source>
         <translation>用时规则：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="191"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="204"/>
         <source>相手を待っています…</source>
         <translation>正在等待对手…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="191"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="204"/>
         <source>エンジンを起動しています…</source>
         <translation>正在启动引擎…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="208"/>
+        <location filename="../../src/dialogs/p2pconfirmdialog.cpp" line="227"/>
         <source>あと %1 秒で取り消されます。</source>
         <translation>%1 秒后取消。</translation>
     </message>
@@ -11071,323 +11071,323 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>P2pConnectionPanel</name>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="51"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="52"/>
         <source>接続している間は、つなぎ方を変えられません。変えるときは「切断」を押してください。</source>
         <translation>连接期间无法更改连接方式。要更改时，请按「断开」。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="57"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="58"/>
         <source>相手のいる場所</source>
         <translation>对手所在位置</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="58"/>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="259"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="59"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="260"/>
         <source>同じPC・同じLAN</source>
         <translation>同一电脑・同一局域网</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="60"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="61"/>
         <source>協力ノードなしで、招待だけでつながります。</source>
         <translation>无需协作节点，仅凭邀请即可连接。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="61"/>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="259"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="62"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="260"/>
         <source>インターネット</source>
         <translation>互联网</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="63"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="64"/>
         <source>離れた相手とつなぎます。協力ノードが要ります。</source>
         <translation>与远处的对手连接。需要协作节点。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="73"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="74"/>
         <source>相手とのつなぎ方</source>
         <translation>与对手的连接方式</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="74"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="75"/>
         <source>直接つなぐ（既定）</source>
         <translation>直接连接（默认）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="76"/>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="260"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="77"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="261"/>
         <source>協力ノードの中継だけを使う</source>
         <translation>仅使用协作节点的中继</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="110"/>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="150"/>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="444"/>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="454"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="111"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="151"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="445"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="455"/>
         <source>協力ノード</source>
         <translation>协作节点</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="122"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="123"/>
         <source>追加…</source>
         <translation>添加…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="124"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="125"/>
         <source>クリップボードから貼り付け</source>
         <translation>从剪贴板粘贴</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="126"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="127"/>
         <source>削除</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="152"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="153"/>
         <source>この設定では要りません。協力ノードの中継や友だち一覧を使うときだけ登録します。</source>
         <translation>此设置下不需要。仅在使用协作节点的中继或好友列表时才注册。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="153"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="154"/>
         <source>登録する…</source>
         <translation>注册…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="170"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="171"/>
         <source>この設定でつなぐと</source>
         <translation>按此设置连接时</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="171"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="172"/>
         <source>対局できる相手</source>
         <translation>可对局的对手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="171"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="172"/>
         <source>招待の形</source>
         <translation>邀请的形式</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="171"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="172"/>
         <source>あなたのIPアドレスが見える人</source>
         <translation>能看到您IP地址的人</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="258"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="259"/>
         <source>%1・%2（%3）</source>
         <translation>%1・%2（%3）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="260"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="261"/>
         <source>直接つなぐ</source>
         <translation>直接连接</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="261"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="262"/>
         <source>協力ノード %1件</source>
         <translation>协作节点 %1 个</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="261"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="262"/>
         <source>協力ノードなし</source>
         <translation>无协作节点</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="266"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="267"/>
         <source>招待には、協力ノードを通る接続先だけが入ります（あなたのIPアドレスは入りません）。</source>
         <translation>邀请中只包含经由协作节点的连接地址（不包含您的IP地址）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="267"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="268"/>
         <source>招待には、このPCのLANの中のアドレスが入ります。</source>
         <translation>邀请中包含此电脑在局域网内的地址。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="268"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="269"/>
         <source>招待には、あなたのIPアドレスが入ります（今の設定は「直接つなぐ」）。</source>
         <translation>邀请中包含您的IP地址（当前设置为「直接连接」）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="298"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="299"/>
         <source>経路</source>
         <translation>路径</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="299"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="300"/>
         <source>相手に伝わる</source>
         <translation>对手会得知</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="300"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="301"/>
         <source>要るもの</source>
         <translation>所需条件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="303"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="304"/>
         <source>同じPC・同じLANの相手と直接つなぎます。</source>
         <translation>与同一电脑・同一局域网的对手直接连接。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="304"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="305"/>
         <source>LANの中のアドレスだけ</source>
         <translation>仅局域网内的地址</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="305"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="306"/>
         <source>なし</source>
         <translation>无</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="307"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="308"/>
         <source>相手と直接つなぎます。届かないときは、協力ノードの中継を通ります。</source>
         <translation>与对手直接连接。无法到达时，通过协作节点的中继。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="308"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="309"/>
         <source>あなたのIPアドレス</source>
         <translation>您的IP地址</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="309"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="310"/>
         <source>協力ノード（アドレスの確認と中継に使います）</source>
         <translation>协作节点（用于确认地址和中继）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="311"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="312"/>
         <source>いつも協力ノードの中継を通ります。直接はつなぎません。</source>
         <translation>始终通过协作节点的中继，不直接连接。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="312"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="313"/>
         <source>IPアドレスは伝わりません</source>
         <translation>不会得知IP地址</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="313"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="314"/>
         <source>中継のできる協力ノード（相手も同じものを登録）</source>
         <translation>可提供中继的协作节点（对手也注册同一节点）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="322"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="323"/>
         <source>この設定では要ります。対局の通信をすべて中継します。相手も同じ協力ノードを登録します。</source>
         <translation>此设置下需要。对局的通信全部经由它中继。对手也要注册同一协作节点。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="324"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="325"/>
         <source>この設定では要ります。あなたのアドレスの確認と、直接届かないときの中継に使います。2人とも同じアドレスを登録します。</source>
         <translation>此设置下需要。用于确认您的地址，以及在无法直接到达时中继。双方都注册同一地址。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="327"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="328"/>
         <source>この設定では要りません（任意）。登録すると、協力ノードの中継と友だち一覧を使えます。</source>
         <translation>此设置下不需要（可选）。注册后可使用协作节点的中继和好友列表。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="332"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="333"/>
         <source>中継: 使えます</source>
         <translation>中继：可用</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="332"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="333"/>
         <source>中継: 使えません</source>
         <translation>中继：不可用</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="333"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="334"/>
         <source>合言葉・友だち一覧: 使えます</source>
         <translation>暗号・好友列表：可用</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="334"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="335"/>
         <source>合言葉・友だち一覧: 対応した協力ノードがありません</source>
         <translation>暗号・好友列表：没有支持的协作节点</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="345"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="346"/>
         <source>このままでは、中継を使えません</source>
         <translation>这样无法使用中继</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="346"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="347"/>
         <source>「協力ノードの中継だけを使う」には、中継のできる協力ノードが要ります。「追加…」で登録するか、「直接つなぐ」を選んでください。</source>
         <translation>「仅使用协作节点的中继」需要可提供中继的协作节点。请用「添加…」注册，或选择「直接连接」。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="349"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="350"/>
         <source>このままでは、相手は接続できません</source>
         <translation>这样对手无法连接</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="351"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="352"/>
         <source>「インターネット」では、協力ノードがないと招待に接続先が入りません。「追加…」で協力ノードを登録してください。同じPC・同じLANの相手とは、「同じPC・同じLAN」を選べば協力ノードなしでつながります。</source>
         <translation>在「互联网」下，没有协作节点时邀请中不会包含连接地址。请用「添加…」注册协作节点。若对手在同一电脑・同一局域网，选择「同一电脑・同一局域网」即可无需协作节点连接。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="356"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="357"/>
         <source>招待文字列。協力ノードが合言葉に対応していれば、10文字の合言葉も</source>
         <translation>邀请字符串。若协作节点支持暗号，还有10个字符的暗号</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="361"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="362"/>
         <source>同じPC・同じLANの相手（協力ノード経由）</source>
         <translation>同一电脑・同一局域网的对手（经由协作节点）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="361"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="362"/>
         <source>インターネット上の相手（同じ協力ノードを登録した人）</source>
         <translation>互联网上的对手（注册了同一协作节点的人）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="363"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="364"/>
         <source>協力ノードの運営者だけ（相手には見えません）</source>
         <translation>仅协作节点的运营者（对手看不到）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="365"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="366"/>
         <source>同じPC・同じLANの相手</source>
         <translation>同一电脑・同一局域网的对手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="366"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="367"/>
         <source>12文字ほどの合言葉か、招待文字列</source>
         <translation>约12个字符的暗号，或邀请字符串</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="367"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="368"/>
         <source>相手（LANの中のアドレスだけ）と、協力ノードの運営者</source>
         <translation>对手（仅局域网内的地址）和协作节点的运营者</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="367"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="368"/>
         <source>相手（LANの中のアドレスだけ）</source>
         <translation>对手（仅局域网内的地址）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="369"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="370"/>
         <source>インターネット上の相手</source>
         <translation>互联网上的对手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="371"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="372"/>
         <source>相手と、協力ノードの運営者</source>
         <translation>对手和协作节点的运营者</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="438"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="439"/>
         <source>協力ノードを追加</source>
         <translation>添加协作节点</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="439"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="440"/>
         <source>協力ノードのアドレス（/ip4/…/tcp/…/p2p/… の形）</source>
         <translation>协作节点的地址（/ip4/…/tcp/…/p2p/… 的形式）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="445"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="446"/>
         <source>追加できませんでした。アドレスは /ip4/…/tcp/…/p2p/… の形で、同じアドレスは1つだけ、%1件まで登録できます。</source>
         <translation>无法添加。地址为 /ip4/…/tcp/…/p2p/… 的形式，同一地址只能注册一次，最多可注册 %1 个。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="455"/>
+        <location filename="../../src/dialogs/p2pconnectionpanel.cpp" line="456"/>
         <source>クリップボードに、追加できる協力ノードのアドレス（/ip4/…/tcp/…/p2p/… の形）がありません。</source>
         <translation>剪贴板中没有可添加的协作节点地址（/ip4/…/tcp/…/p2p/… 的形式）。</translation>
     </message>
@@ -11395,27 +11395,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>P2pGameCoordinator</name>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="669"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="692"/>
         <source>エンジンを使えないので、対局の開始を取りやめました。</source>
         <translation>无法使用引擎，已取消开始对局。</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="675"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="698"/>
         <source>エンジンが持ち時間の間に指し手を返しませんでした。</source>
         <translation>引擎未在用时内返回着手。</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="681"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="704"/>
         <source>エンジンが止まったので、対局を中断しました（結果未確定）。</source>
         <translation>引擎已停止，对局已中断（结果未确定）。</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="697"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="720"/>
         <source>エンジンが指せない手（%1）を返したので、投了しました。</source>
         <translation>引擎返回了无法走的着手（%1），因此已认输。</translation>
     </message>
     <message>
-        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="719"/>
+        <location filename="../../src/network/p2p/p2pgamecoordinator.cpp" line="742"/>
         <source>エンジンが入玉宣言勝ちを選びましたが、P2P対局は入玉宣言を扱いません。相手に引き分けを申し出ました。相手が断ったときは、投了するか、対局をやめてください。</source>
         <translation>引擎选择了入玉宣言获胜，但P2P对局不处理入玉宣言。已向对手提议和棋。如果对手拒绝，请认输或退出对局。</translation>
     </message>
@@ -11591,16 +11591,16 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>P2pGameUiController</name>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="108"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="126"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="136"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="207"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="219"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="227"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="345"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="374"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="383"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="393"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="106"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="124"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="134"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="205"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="217"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="225"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="349"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="378"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="387"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="397"/>
         <source>P2P対局</source>
         <translation>P2P对局</translation>
     </message>
@@ -11613,7 +11613,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">这台电脑上最多可同时有 %1 个 ShogiBoardQ-P2P 使用 P2P对局。请关闭其他 ShogiBoardQ-P2P 后再打开。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="127"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="125"/>
         <source>P2P対局の記録が 1 GiB を超えています。「対局記録」で古い記録を削除してください。</source>
         <translation>P2P对局记录超过 1 GiB。请在「对局记录」中删除旧记录。</translation>
     </message>
@@ -11622,7 +11622,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">启用自动化 API 启动时，无法使用P2P对局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="208"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="206"/>
         <source>プレイヤー鍵を読み込めませんでした。「設定」でプレイヤー鍵を作り直せます。</source>
         <translation>无法读取玩家密钥。可在「设置」中重新生成。</translation>
     </message>
@@ -11631,7 +11631,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">另一个 ShogiBoardQ-P2P 正在使用P2P对局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="109"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="107"/>
         <source>このPCで同時に P2P対局を使える ShogiBoardQ は %1 個までです。ほかの ShogiBoardQ を閉じてから開いてください。</source>
         <translation>这台电脑上最多可同时有 %1 个 ShogiBoardQ 使用 P2P对局。请关闭其他 ShogiBoardQ 后再打开。</translation>
     </message>
@@ -11652,57 +11652,57 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">尚未读取玩家密钥。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="228"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="226"/>
         <source>対局中です。切断すると対局は中断され、結果は確定しません。切断しますか？</source>
         <translation>正在对局。断开连接将中断对局，结果不会确定。要断开吗？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="229"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="227"/>
         <source>切断</source>
         <translation>断开</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="240"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="238"/>
         <source>プレイヤー鍵</source>
         <translation>玩家密钥</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="240"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="238"/>
         <source>切断してから作り直してください。</source>
         <translation>请先断开连接再重新生成。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="243"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="241"/>
         <source>プレイヤー鍵を作り直す</source>
         <translation>重新生成玩家密钥</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="244"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="242"/>
         <source>プレイヤー鍵を作り直すとプレイヤーIDが変わり、相手からは別人に見えます。古い鍵は消します。作り直しますか？</source>
         <translation>重新生成玩家密钥会改变您的玩家ID，对手会把您看作另一个人。旧密钥将被删除。要重新生成吗？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="246"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="244"/>
         <source>作り直す</source>
         <translation>重新生成</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="285"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="283"/>
         <source>この友だちは、今は在席を知らせていません。</source>
         <translation>这位好友现在没有告知在线状态。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="288"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="286"/>
         <source>交渉中・対局中は、対局を申し込めません。</source>
         <translation>协商中或对局中无法申请对局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="291"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="289"/>
         <source>接続していないか、合言葉に対応した協力ノードにつながっていません。</source>
         <translation>尚未连接，或者没有连接到支持暗号的协作节点。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="294"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="292"/>
         <source>対局の申し込み</source>
         <translation>对局申请</translation>
     </message>
@@ -11711,33 +11711,33 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">无法使用对方的在线通知（已过期）。请稍等片刻后再试。</translation>
     </message>
     <message>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="303"/>
         <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="305"/>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="307"/>
         <source>対局をやめる</source>
         <translation>退出对局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="306"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="304"/>
         <source>対局をやめますか？ 結果は確定せず、相手には中断が伝わります。</source>
         <translation>要退出对局吗？结果不会确定，对手会收到中断通知。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="338"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="342"/>
         <source>相手が対局を始めませんでした。</source>
         <translation>对手没有开始对局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="338"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="342"/>
         <source>対局を始められませんでした。</source>
         <translation>无法开始对局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="339"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="343"/>
         <source>相手が取りやめました。</source>
         <translation>对手已取消。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="342"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="346"/>
         <source>相手のアプリは、エンジンが指す対局に対応していない版です。相手のアプリを新しい版にするか、「対局者」を「人間」にしてください。</source>
         <translation>对手的应用版本不支持由引擎下棋的对局。请让对手更新应用，或将「对局者」设为「人类」。</translation>
     </message>
@@ -11774,12 +11774,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">对手拒绝了提议。对局继续。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="370"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="374"/>
         <source>終局: %1</source>
         <translation>终局：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="373"/>
+        <location filename="../../src/ui/controllers/p2pgameuicontroller.cpp" line="377"/>
         <source>対局の記録（証跡）を保存できませんでした。</source>
         <translation>无法保存对局记录（凭证）。</translation>
     </message>
@@ -12552,50 +12552,50 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>P2pOfferController</name>
     <message>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="45"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="48"/>
         <source>相手が引き分けを申し出ました。承諾しますか？</source>
         <translation>对手提议和棋。接受吗？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="46"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="49"/>
         <source>相手が対局の中断を申し出ました。承諾しますか？</source>
         <translation>对手提议中断对局。接受吗？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="47"/>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="95"/>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="103"/>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="113"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="50"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="101"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="109"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="119"/>
         <source>P2P対局</source>
         <translation>P2P对局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="47"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="50"/>
         <source>承諾</source>
         <translation>接受</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="92"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="98"/>
         <source>相手に引き分けを申し出ました。相手の返事を待っています。</source>
         <translation>已向对手提议和棋。正在等待对手答复。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="93"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="99"/>
         <source>相手に対局の中断を申し出ました。相手の返事を待っています。</source>
         <translation>已向对手提议中断对局。正在等待对手答复。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="96"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="102"/>
         <source>返事の前に手が進むと、申し出は取り消しになります。</source>
         <translation>如果在答复之前有新的着手，提议将被取消。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="104"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="110"/>
         <source>今は申し出を送れません（開始の手続き中・再接続中・指した手の確認待ち）。少し待ってから、もう一度操作してください。</source>
         <translation>现在无法发送提议（正在进行开始手续、正在重新连接或正在等待着手确认）。请稍候再操作一次。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="114"/>
+        <location filename="../../src/ui/controllers/p2poffercontroller.cpp" line="120"/>
         <source>相手が申し出を断りました。対局を続けます。</source>
         <translation>对手拒绝了提议。对局继续。</translation>
     </message>
@@ -12632,7 +12632,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="50"/>
         <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="90"/>
         <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="164"/>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="209"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="211"/>
         <source>友だち</source>
         <translation>好友</translation>
     </message>
@@ -12669,7 +12669,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
     <message>
         <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="76"/>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="263"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="265"/>
         <source>記録を削除</source>
         <translation>删除记录</translation>
     </message>
@@ -12714,12 +12714,16 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>加为好友</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="194"/>
-        <source>「友だちに在席を知らせる」を有効にすると、接続している間、互いに友だちに追加した相手にだけ、接続していること（オンライン）が伝わり、対局の申し込みを受けます。合言葉に対応した協力ノードを使い、その運営者には、だれとだれが友だちか（IPアドレスの組）が分かります。</source>
-        <translation>启用「向好友告知在线状态」后，在连接期间，只有互相加为好友的对手会知道您已连接（在线），并且您会接受他们的对局申请。需要使用支持暗号的协作节点，该节点的运营者可以知道谁和谁是好友（IP地址的组合）。</translation>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="195"/>
+        <source>「友だちに在席を知らせる」を有効にすると、接続している間、互いに友だちに追加した相手と、接続していること（オンライン）を知らせ合い、対局の申し込みを受けます。友だちに追加した相手には、あなたへの接続先（直接つなぐ設定では IP アドレス）も伝わります。無効の間は、友だちの在席も調べません。合言葉に対応した協力ノードを使い、その運営者には、だれとだれが友だちか（IPアドレスの組）が分かります。</source>
+        <translation>启用「向好友告知在线状态」后，在连接期间，您与互相加为好友的对手互相告知已连接（在线），并且您会接受他们的对局申请。您加为好友的对手还会收到连接到您的地址（选择“直接连接”时包含 IP 地址）。关闭期间，也不查询好友的在线状态。需要使用支持暗号的协作节点，该节点的运营者可以知道谁和谁是好友（IP地址的组合）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="197"/>
+        <source>「友だちに在席を知らせる」を有効にすると、接続している間、互いに友だちに追加した相手にだけ、接続していること（オンライン）が伝わり、対局の申し込みを受けます。合言葉に対応した協力ノードを使い、その運営者には、だれとだれが友だちか（IPアドレスの組）が分かります。</source>
+        <translation type="vanished">启用「向好友告知在线状态」后，在连接期间，只有互相加为好友的对手会知道您已连接（在线），并且您会接受他们的对局申请。需要使用支持暗号的协作节点，该节点的运营者可以知道谁和谁是好友（IP地址的组合）。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="199"/>
         <source>友だちの在席を調べたり、友だちに対局を申し込んだりするには、合言葉に対応した協力ノードを「接続」タブで登録して接続します。</source>
         <translation>要查看好友是否在线或向好友申请对局，请在「连接」标签页注册支持暗号的协作节点后连接。</translation>
     </message>
@@ -12728,27 +12732,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">要查看好友是否在线或向好友申请对局，请在「设置」的「连接候选」中填入支持暗号的协作节点后连接。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="209"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="211"/>
         <source>友だちにできるのは %1 人までです。</source>
         <translation>最多可以添加 %1 位好友。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="225"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="227"/>
         <source>名前を付ける</source>
         <translation>命名</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="226"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="228"/>
         <source>この相手に手元で付ける名前（相手と棋譜には出ません）</source>
         <translation>为此对手设定的本地备注名（不会显示给对手，也不写入棋谱）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="237"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="239"/>
         <source>確認コード</source>
         <translation>确认码</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="238"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="240"/>
         <source>相手と別の経路（電話や対面など）で、次の数字を見比べてください。一致したら「確認済みにする」を押してください。
 
 %1</source>
@@ -12757,12 +12761,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="263"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="265"/>
         <source>この相手の記録（名前・確認済み・ブロック・対局数）を削除しますか？</source>
         <translation>要删除此对手的记录（名称、已确认、屏蔽、对局数）吗？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="264"/>
+        <location filename="../../src/dialogs/p2ppeerspanel.cpp" line="266"/>
         <source>削除</source>
         <translation>删除</translation>
     </message>

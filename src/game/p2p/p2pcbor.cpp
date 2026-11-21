@@ -5,6 +5,8 @@
 
 #include <QCryptographicHash>
 
+#include <sodium.h>
+
 #include <algorithm>
 
 namespace P2p {
@@ -221,6 +223,49 @@ QByteArray sha256(QByteArrayView bytes)
 QByteArray hash(const CborValue& value)
 {
     return sha256(encode(value));
+}
+
+namespace {
+
+/// 決定的CBORに符号化したときの大きさ
+qsizetype encodedSize(const CborValue& value)
+{
+    const auto headSize = [](quint64 argument) -> qsizetype {
+        if (argument < 24) return 1;
+        if (argument <= 0xFFu) return 2;
+        if (argument <= 0xFFFFu) return 3;
+        if (argument <= 0xFFFFFFFFu) return 5;
+        return 9;
+    };
+    switch (value.type()) {
+    case CborValue::Type::Unsigned:
+        return headSize(value.toUInt());
+    case CborValue::Type::Bytes:
+    case CborValue::Type::Text:
+        return headSize(static_cast<quint64>(value.data().size())) + value.data().size();
+    case CborValue::Type::Array: {
+        qsizetype size = headSize(static_cast<quint64>(value.items().size()));
+        for (const CborValue& item : value.items()) size += encodedSize(item);
+        return size;
+    }
+    }
+    return 0;
+}
+
+} // namespace
+
+QByteArray hashSecret(const CborValue& value)
+{
+    QByteArray encoded;
+    encoded.reserve(encodedSize(value));
+    encodeInto(encoded, value);
+    QByteArray digest(crypto_hash_sha256_BYTES, '\0');
+    // libsodium の SHA-256 は、計算を終えると途中の状態を消す
+    crypto_hash_sha256(reinterpret_cast<unsigned char*>(digest.data()),
+                       reinterpret_cast<const unsigned char*>(encoded.constData()),
+                       static_cast<unsigned long long>(encoded.size()));
+    sodium_memzero(encoded.data(), static_cast<std::size_t>(encoded.size()));
+    return digest;
 }
 
 std::optional<CborValue> decode(QByteArrayView bytes, QString* error)

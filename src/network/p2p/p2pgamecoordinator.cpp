@@ -50,8 +50,23 @@ void P2pGameCoordinator::setEnvironment(P2pTransport* transport, P2pRecordStore*
 {
     m_transport = transport;
     m_store = store;
+    if (m_knownPeers != knownPeers) {
+        if (m_knownPeers) disconnect(m_knownPeers, &P2pKnownPeers::changed, this, &P2pGameCoordinator::onKnownPeersChanged);
+        if (knownPeers) connect(knownPeers, &P2pKnownPeers::changed, this, &P2pGameCoordinator::onKnownPeersChanged);
+    }
     m_knownPeers = knownPeers;
     m_playerKey = playerKey;
+}
+
+void P2pGameCoordinator::onKnownPeersChanged()
+{
+    // 交渉の途中（条件確認画面が出ている間）に相手をブロックした・友だちの申し込みの相手を友だちから外したら、
+    // 交渉をやめる（ブロックは相手の HELLO のときにしか見ないので。監査 2026-11-21 I-9）
+    if (m_phase != Phase::Negotiating || !m_negotiation || !m_negotiation->opponent() || !m_knownPeers) return;
+    const P2pKnownPeer* peer = m_knownPeers->find(m_negotiation->opponent()->playerKey);
+    const bool blocked = peer && peer->blocked;
+    const bool noLongerFriend = m_friendNegotiation && !(peer && peer->isFriend);
+    if (blocked || noLongerFriend) cancelNegotiation();
 }
 
 bool P2pGameCoordinator::Conditions::isValid() const
@@ -103,23 +118,30 @@ bool P2pGameCoordinator::startNegotiation(const NegotiationRequest& request)
     m_player = player;
     m_confirmationDeadline = now() + kConfirmationMs;
     m_phase = Phase::Negotiating;
+    m_engineLaunched = false;
     m_ticker->start();
-    // エンジンは、利用者が条件を確かめている間に起動しておく（readyok まで開始署名を送らない。起動の失敗は戻った後に届く）
-    if (m_player.isEngine()) {
-        if (!m_engine) {
-            m_engine = new P2pEnginePlayer(m_deps.engines, this);
-            connect(m_engine, &P2pEnginePlayer::initialized, this, &P2pGameCoordinator::onEngineInitialized);
-            connect(m_engine, &P2pEnginePlayer::errorOccurred, this, &P2pGameCoordinator::onEngineError);
-            connect(m_engine, &P2pEnginePlayer::moveReady, this, &P2pGameCoordinator::onEngineMoveReady);
-            connect(m_engine, &P2pEnginePlayer::resigned, this, &P2pGameCoordinator::onEngineResigned);
-            connect(m_engine, &P2pEnginePlayer::declaredWin, this, &P2pGameCoordinator::onEngineDeclaredWin);
-        }
-        emit engineStarting();
-        m_engine->start(m_player.enginePath, m_player.engineName);
-    }
     m_negotiation->begin();
     flushNegotiation();
     return true;
+}
+
+void P2pGameCoordinator::launchEngine()
+{
+    // エンジンは、相手の HELLO を受け入れてから（名乗った ID・ブロック・友だちの照合の後）起動し、利用者が条件を
+    // 確かめている間に初期化を済ませる（readyok まで開始署名を送らない。起動の失敗は戻った後に届く）。接続を開いた
+    // だけの相手に、エンジンを起動させない（監査 2026-11-21 S9）
+    if (!m_player.isEngine() || m_engineLaunched || !m_negotiation || !m_negotiation->opponent()) return;
+    m_engineLaunched = true;
+    if (!m_engine) {
+        m_engine = new P2pEnginePlayer(m_deps.engines, this);
+        connect(m_engine, &P2pEnginePlayer::initialized, this, &P2pGameCoordinator::onEngineInitialized);
+        connect(m_engine, &P2pEnginePlayer::errorOccurred, this, &P2pGameCoordinator::onEngineError);
+        connect(m_engine, &P2pEnginePlayer::moveReady, this, &P2pGameCoordinator::onEngineMoveReady);
+        connect(m_engine, &P2pEnginePlayer::resigned, this, &P2pGameCoordinator::onEngineResigned);
+        connect(m_engine, &P2pEnginePlayer::declaredWin, this, &P2pGameCoordinator::onEngineDeclaredWin);
+    }
+    emit engineStarting();
+    m_engine->start(m_player.enginePath, m_player.engineName);
 }
 
 void P2pGameCoordinator::flushNegotiation()
@@ -135,6 +157,7 @@ void P2pGameCoordinator::flushNegotiation()
         endNegotiation(false);
         return;
     default:
+        launchEngine();
         emit negotiationChanged();
         return;
     }

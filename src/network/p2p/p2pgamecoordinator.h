@@ -208,6 +208,8 @@ signals:
     void gameFinished(P2p::Settlement ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
 
 private slots:
+    /// 既知の相手の記録が変わった（交渉の相手をブロックした・友だちから外したら、交渉をやめる）
+    void onKnownPeersChanged();
     void onTick();
     void onEngineInitialized();
     void onEngineError(const QString& message);
@@ -220,6 +222,8 @@ private:
     /// 合意引き分け・合意中断を申し出て、申し出た側に結果（答えを待っている・送れなかった）を知らせる
     void offer(P2p::Cause cause);
     void flushNegotiation();
+    /// 相手の HELLO を受け入れたら、自分の手を指すエンジンを起動する（エンジンで指す交渉だけ。1回だけ）
+    void launchEngine();
     void flushMatch();
     void sendFrames(const std::vector<P2p::Frame>& frames);
     void endNegotiation(bool started);
@@ -252,6 +256,7 @@ private:
     P2pKnownPeers* m_knownPeers = nullptr;
     const P2p::SigningKey* m_playerKey = nullptr;
     P2pEnginePlayer* m_engine = nullptr;   ///< 自分の手を指すエンジン（枠 E1。エンジンで指すときに作る）
+    bool m_engineLaunched = false;          ///< 今の交渉でエンジンを起動したか
     PlayerSetup m_player;                  ///< 今の交渉・対局の自分の対局者
 
     Phase m_phase = Phase::Idle;

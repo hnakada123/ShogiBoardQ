@@ -71,6 +71,10 @@ QByteArray encode(const CborValue& value);
 /// SHA-256(encode(value))（32バイト）
 QByteArray hash(const CborValue& value);
 
+/// 秘密を含む値の hash（値は同じ）。符号化した写しは、伸ばして作り直さない大きさで1度に作り、ハッシュの計算の
+/// 途中の状態とともに、使い終えたら消す（古い領域に秘密を残さない。監査 2026-11-21 I-7）
+QByteArray hashSecret(const CborValue& value);
+
 /// SHA-256（32バイト）
 QByteArray sha256(QByteArrayView bytes);
 

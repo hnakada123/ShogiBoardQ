@@ -22,6 +22,9 @@
 
 namespace {
 
+/// 友だちからの申し込みで、条件確認画面を出してから「開始」を押せるまでの時間
+constexpr int kFriendStartDelayMs = 2000;
+
 /// 選んでコピーできる文（相手のプレイヤーID や条件を、別の経路で見比べるときに写せる）
 QLabel* selectableLabel(QWidget* parent)
 {
@@ -96,6 +99,14 @@ P2pConfirmDialog::P2pConfirmDialog(P2pGameCoordinator* game, P2pKnownPeers* know
     connect(m_start, &QPushButton::clicked, this, &P2pConfirmDialog::onStart);
     connect(m_cancel, &QPushButton::clicked, this, &P2pConfirmDialog::onCancel);
     layout->addWidget(buttons);
+    // 友だちからの申し込みは、利用者が待っていないときに届く。別の作業で押した Enter やクリックで始めないよう、
+    // 「開始」を既定のボタンにせず、出してから少し待ってから押せるようにする（監査 2026-11-21 S9）
+    if (m_game && m_game->isFriendNegotiation() && m_game->isHost()) {
+        m_start->setAutoDefault(false);
+        m_cancel->setDefault(true);
+        m_startArmed = false;
+        QTimer::singleShot(kFriendStartDelayMs, this, &P2pConfirmDialog::armStart);
+    }
 
     DialogFontScale::Options options;
     options.size = &NetworkSettings::p2pConfirmDialogSize;
@@ -126,8 +137,9 @@ void P2pConfirmDialog::refresh()
     m_playerId->setText(P2pWindowText::playerIdText(opponent.playerKey));
 
     QStringList identity;
-    // 友だち一覧からの申し込み（招待と違い、受ける側は前もって招待を作っていない）
-    if (m_game->isFriendNegotiation()) {
+    // 友だち一覧からの申し込み（招待と違い、受ける側は前もって招待を作っていない）。手元の記録から作る表示なので、
+    // 相手がその友だちだと確かめてから出す（監査 2026-11-13 P14 と同じ）
+    if (m_game->isFriendNegotiation() && verified) {
         identity << (m_game->isHost() ? tr("友だちからの対局の申し込みです。受けるときは「開始」を押します。")
                                       : tr("友だちへの対局の申し込みです。"));
     }
@@ -186,9 +198,16 @@ void P2pConfirmDialog::refresh()
 
     // エンジンで指すときは、エンジンの初期化が済むまで開始を押せない（対局が始まるとすぐ時計が動く）
     const bool engineStarting = m_game->isEngineStarting();
-    const bool canStart = n->stage() == P2p::Negotiation::Stage::Confirming && !n->confirmed() && !engineStarting;
+    const bool canStart =
+        n->stage() == P2p::Negotiation::Stage::Confirming && !n->confirmed() && !engineStarting && m_startArmed;
     m_start->setEnabled(canStart);
     m_start->setText(n->confirmed() ? tr("相手を待っています…") : engineStarting ? tr("エンジンを起動しています…") : tr("開始"));
+}
+
+void P2pConfirmDialog::armStart()
+{
+    m_startArmed = true;
+    refresh();
 }
 
 void P2pConfirmDialog::onTick()

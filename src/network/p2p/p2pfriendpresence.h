@@ -53,6 +53,13 @@ public:
     static constexpr int kDepositIntervalSeconds = 75;
     static constexpr int kWatchIntervalSeconds = 60;
     static constexpr int kDepositTtlSeconds = 180;
+    /// 友だちの在席の知らせの期限の上限（秒。通信プロセスの知らせのトークンの期限と同じ。友だちが書いた期限を
+    /// そのまま信じて、いつまでもオンラインと出さない）
+    static constexpr int kPresenceLifetimeSeconds = 300;
+    /// 同じ友だちの申し込みを、続けて受けるまでの間隔（秒）
+    static constexpr int kApplicationIntervalSeconds = 20;
+    /// 答えを待っている通信プロセスへの要求の上限（通信プロセスが答えなくても、待ちを増やし続けない）
+    static constexpr int kMaxPendingRequests = 256;
 
     /// lobby・game は非所有（この部品より長く生きること）
     P2pFriendPresence(P2pLobbyService* lobby, P2pGameCoordinator* game, QObject* parent = nullptr);
@@ -63,7 +70,8 @@ public:
     /// 「友だちに在席を知らせる」（無効にすると、作った知らせを無効にする）
     void setSharing(bool sharing);
     bool isSharing() const { return m_sharing; }
-    /// 友だちの在席を調べる（友だちの一覧を表示している間だけ）
+    /// 友だちの在席を調べる（友だちの一覧を表示している間だけ。自分も在席を知らせているときだけ調べる。知らせて
+    /// いない人の照会でも、協力ノードの運営者には、だれとだれが友だちかが分かるため。監査 2026-11-21 S10）
     void setWatching(bool watching);
     /// 友だちの在席を、今すぐ調べ直す（一覧を表示し直したとき。調べていない間は何もしない）
     void refreshNow() { startWatchRound(); }
@@ -112,6 +120,8 @@ private:
     bool canDeposit() const;
     bool canWatch() const;
     void fetch(const PendingGet& get);
+    /// 答えを待っている要求が上限に達したか
+    bool tooManyPending() const;
     void setOnline(const QByteArray& playerKey, const std::optional<P2p::Friend::Presence>& presence);
     void clearState();
     /// 友だちの申し込み（在席の知らせの番号）を受けるときの交渉の条件。受けなければ nullopt
@@ -137,6 +147,7 @@ private:
     QList<quint64> m_pendingPuts;                      ///< 結果を待っている meetPut の要求
     QHash<quint64, Created> m_created;                 ///< 在席の知らせの番号 → 預けた友だちと期限
     QHash<QByteArray, Online> m_online;                ///< 在席を知らせている友だち
+    QHash<QByteArray, quint64> m_lastApplication;      ///< 友だち → 最後に申し込みを受けた時刻（秒）
 };
 
 #endif // P2PFRIENDPRESENCE_H

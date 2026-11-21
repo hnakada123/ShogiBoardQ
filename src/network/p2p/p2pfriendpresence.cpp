@@ -118,7 +118,12 @@ bool P2pFriendPresence::canDeposit() const
 
 bool P2pFriendPresence::canWatch() const
 {
-    return m_watching && isAvailable();
+    return m_watching && m_sharing && isAvailable();
+}
+
+bool P2pFriendPresence::tooManyPending() const
+{
+    return m_pendingCreates.size() + m_pendingGets.size() + m_pendingPuts.size() >= kMaxPendingRequests;
 }
 
 bool P2pFriendPresence::isOnline(const QByteArray& playerKey) const
@@ -133,6 +138,7 @@ void P2pFriendPresence::setSharing(bool sharing)
     m_sharing = sharing;
     if (sharing) {
         startDepositRound();
+        startWatchRound();
     } else {
         // 作った知らせを無効にする（協力ノードに残った分は、3分で消える。そのトークンでは、もうつなげない）
         m_depositTimer->stop();
@@ -140,6 +146,12 @@ void P2pFriendPresence::setSharing(bool sharing)
         m_pendingCreates.clear();
         m_created.clear();
         if (m_lobby) m_lobby->cancelPresence();
+        // 自分が知らせていない間は、友だちの在席も調べない（調べた結果も消す）
+        m_watchTimer->stop();
+        m_watchQueue.clear();
+        const bool hadOnline = !m_online.isEmpty();
+        m_online.clear();
+        if (hadOnline) emit presenceChanged();
     }
 }
 
@@ -220,6 +232,7 @@ void P2pFriendPresence::clearState()
     m_pendingPuts.clear();
     m_created.clear();
     m_online.clear();
+    m_lastApplication.clear();
     // プレイヤー鍵は接続を終えるとメモリから消える。秘密も持ち続けない
     for (QByteArray& secret : m_pairSecrets) secret.fill('\0');
     m_pairSecrets.clear();
@@ -255,6 +268,8 @@ void P2pFriendPresence::step()
         m_stepTimer->stop();
         return;
     }
+    // 通信プロセスが答えないまま待ちが増えたら、答えが届くまで送らない
+    if (tooManyPending()) return;
     // 1回に1つだけ送る。預けるのを先にする（知らせを作らせ、応答が届いたら暗号化して預ける）
     if (!m_depositQueue.isEmpty()) {
         const QByteArray playerKey = m_depositQueue.takeFirst();
@@ -276,7 +291,7 @@ void P2pFriendPresence::fetch(const PendingGet& get)
         return;
     }
     const QByteArray secret = pairSecretFor(get.playerKey);
-    if (secret.isEmpty()) return;
+    if (secret.isEmpty() || tooManyPending()) return;
     // 友だちが預けた知らせの番号（預ける側は友だち）
     const QByteArray slot = P2p::Friend::slot(m_lobby->networkId(), secret, get.playerKey, get.epochs.first());
     const quint64 request = m_lobby->meetGet(slot);
@@ -341,15 +356,27 @@ void P2pFriendPresence::onMeetFetched(quint64 requestId, const QList<QByteArray>
 void P2pFriendPresence::onRequestFailed(quint64 requestId)
 {
     m_pendingCreates.remove(requestId);
-    m_pendingGets.remove(requestId);
+    // 調べられなかった友だちは、前に読めた知らせのままオンラインと出さない（監査 2026-11-21 I-8）
+    const auto get = m_pendingGets.constFind(requestId);
+    if (get != m_pendingGets.constEnd()) {
+        const QByteArray playerKey = get->playerKey;
+        m_pendingGets.erase(get);
+        setOnline(playerKey, std::nullopt);
+    }
     if (m_pendingPuts.removeOne(requestId) && canDeposit() && !m_retryTimer->isActive()) m_retryTimer->start();
 }
 
 void P2pFriendPresence::setOnline(const QByteArray& playerKey, const std::optional<P2p::Friend::Presence>& presence)
 {
     const bool was = isOnline(playerKey);
-    if (presence) m_online.insert(playerKey, Online{*presence});
-    else m_online.remove(playerKey);
+    if (presence) {
+        // 期限は友だちが書いた値。通信プロセスの知らせのトークンより長くは信じない（監査 2026-11-21 I-8）
+        P2p::Friend::Presence capped = *presence;
+        capped.expiresAt = qMin(capped.expiresAt, nowSeconds() + static_cast<quint64>(kPresenceLifetimeSeconds));
+        m_online.insert(playerKey, Online{capped});
+    } else {
+        m_online.remove(playerKey);
+    }
     if (was != isOnline(playerKey)) emit presenceChanged();
 }
 
@@ -395,8 +422,15 @@ std::optional<P2pGameCoordinator::NegotiationRequest> P2pFriendPresence::acceptA
     const P2pKnownPeers* known = m_lobby && m_lobby->profile() ? m_lobby->profile()->knownPeers() : nullptr;
     const P2pKnownPeer* peer = known ? known->find(playerKey) : nullptr;
     if (!peer || !peer->isFriend || peer->blocked) return std::nullopt;
+    // 同じ友だちの申し込みは、続けて受けない（申し込みのたびに条件確認画面が出るので。監査 2026-11-21 S9）
+    const quint64 now = nowSeconds();
+    const auto last = m_lastApplication.constFind(playerKey);
+    if (last != m_lastApplication.constEnd() && now < last.value() + static_cast<quint64>(kApplicationIntervalSeconds)) {
+        return std::nullopt;
+    }
     const std::optional<P2pGameCoordinator::Conditions> mine = m_conditions ? m_conditions() : std::nullopt;
     if (!mine) return std::nullopt;
+    m_lastApplication.insert(playerKey, now);
     P2pGameCoordinator::NegotiationRequest request;
     request.mine = *mine;
     request.friendPlayerKey = playerKey;

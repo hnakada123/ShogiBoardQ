@@ -554,19 +554,23 @@ private slots:
         };
 
         // 在席を知らせていない友だちは、オンラインに見えない。申し込めない
+        guestPresence.setSharing(true);
         guestPresence.setWatching(true);
         QTest::qWait(1500);
         QVERIFY(!guestPresence.isOnline(hostKey));
         QCOMPARE(guestPresence.apply(hostKey, conditions(QStringLiteral("申し込む側"))), P2pFriendPresence::ApplyResult::NotOnline);
+        // 自分が知らせていなければ、友だちの在席を調べない（知らせている友だちも、オンラインに見えない。調べるだけでも、
+        // 協力ノードの運営者に、だれとだれが友だちかが分かるため。監査 2026-11-21 S10）
+        hostPresence.setWatching(true);
+        QTest::qWait(1500);
+        QVERIFY(!hostPresence.isOnline(guestKey));
 
-        // 知らせると、友だちにだけオンラインに見える（知らせていない側は、相手から見えない）
+        // 知らせると、互いに友だちにした相手にオンラインに見え、自分も友だちの在席を調べる
         QSignalSpy changed(&guestPresence, &P2pFriendPresence::presenceChanged);
         hostPresence.setSharing(true);
         QVERIFY(waitOnline(guestPresence, hostKey));
         QVERIFY(changed.count() >= 1);
-        hostPresence.setWatching(true);
-        QTest::qWait(1500);
-        QVERIFY(!hostPresence.isOnline(guestKey));
+        QVERIFY(waitOnline(hostPresence, guestKey));
 
         // 友だちから外した相手の申し込みは受けない（預けてあった知らせのトークンを無効にする）
         QVERIFY(host.profile.knownPeers()->setFriend(guestKey, false));

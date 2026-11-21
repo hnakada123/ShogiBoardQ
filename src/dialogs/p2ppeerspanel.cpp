@@ -191,9 +191,11 @@ void P2pPeersPanel::onSelectionChanged()
     m_apply->setEnabled(peer != nullptr && peer->isFriend && m_presence && m_presence->isOnline(key));
     const bool available = m_presence && m_presence->isAvailable();
     // 在席を知らせると何が起きるか・だれに何が分かるかは、チェックのそばにいつも出す
-    const QString sharing = tr("「友だちに在席を知らせる」を有効にすると、接続している間、互いに友だちに追加した相手にだけ、"
-                               "接続していること（オンライン）が伝わり、対局の申し込みを受けます。合言葉に対応した協力ノードを使い、"
-                               "その運営者には、だれとだれが友だちか（IPアドレスの組）が分かります。");
+    // 友だちに渡るもの（接続先）と、調べる側も運営者に見えることも書く（監査 2026-11-21 S10・S11）
+    const QString sharing = tr("「友だちに在席を知らせる」を有効にすると、接続している間、互いに友だちに追加した相手と、"
+                               "接続していること（オンライン）を知らせ合い、対局の申し込みを受けます。友だちに追加した相手には、"
+                               "あなたへの接続先（直接つなぐ設定では IP アドレス）も伝わります。無効の間は、友だちの在席も調べません。"
+                               "合言葉に対応した協力ノードを使い、その運営者には、だれとだれが友だちか（IPアドレスの組）が分かります。");
     const QString howToUse = tr("友だちの在席を調べたり、友だちに対局を申し込んだりするには、合言葉に対応した協力ノードを"
                                 "「接続」タブで登録して接続します。");
     DialogUtils::setWrappedText(m_friendNote, available ? sharing : howToUse + QLatin1Char('\n') + sharing);

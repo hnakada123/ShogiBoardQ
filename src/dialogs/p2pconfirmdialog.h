@@ -38,6 +38,8 @@ private slots:
     void onStart();
     void onCancel();
     void onTick();
+    /// 友だちからの申し込みで、出してから少し待った後に「開始」を押せるようにする
+    void armStart();
 
 private:
     /// 取り消されるまでの残りを出す
@@ -55,6 +57,8 @@ private:
     QPushButton* m_start = nullptr;
     QPushButton* m_cancel = nullptr;
     QTimer* m_timer = nullptr;
+    /// 「開始」を押せる時間になったか（友だちからの申し込みだけ、出してから少し待つ）
+    bool m_startArmed = true;
 };
 
 #endif // P2PCONFIRMDIALOG_H
