@@ -29,7 +29,7 @@ constexpr qint64 kConfirmationMs = 60'000;
 constexpr qint64 kReconnectIntervalMs = 5'000;
 constexpr int kTickMs = 250;
 
-Turn turnOf(bool black) { return black ? Turn::Black : Turn::White; }
+using P2p::turnOf;
 
 } // namespace
 
@@ -468,7 +468,7 @@ void P2pGameCoordinator::saveEvidence()
 {
     if (!m_match || !m_store) return;
     P2pHistoryInfo info;
-    info.mySide = m_match->iAmBlack() ? P2p::kSideBlack : P2p::kSideWhite;
+    info.mySide = P2p::sideCode(mySide());
     info.opponentDisplayName = m_opponentDisplayName;
     info.settlement = m_match->settlement();
     info.endedAt = static_cast<quint64>(QDateTime::currentSecsSinceEpoch());

@@ -190,15 +190,17 @@ private:
     bool persist(const CborValue& record);
     void finish(Settlement ending, std::optional<ErrorCode> error);
     void failWithError(ErrorCode code, quint32 relatedPly);
-    quint8 mySide() const { return m_setup.iAmBlack ? kSideBlack : kSideWhite; }
-    quint8 opponentSide() const { return m_setup.iAmBlack ? kSideWhite : kSideBlack; }
+    /// 自分の側と相手の側
+    Turn me() const { return turnOf(m_setup.iAmBlack); }
+    Turn them() const { return opponent(me()); }
     QByteArray opponentSessionKey() const { return m_setup.agreement.sessionKey(!m_setup.iAmBlack); }
     QByteArray opponentPlayerKey() const { return m_setup.agreement.playerKey(!m_setup.iAmBlack); }
     /// 自分の承認だけを付けた状態
     SignedState signedByMe(const GameState& state) const;
     /// 自分の承認（先後に合わせて、両署名の組から取り出す）
     const QByteArray& myApproval(const SignedState& state) const;
-    bool verifyApproval(const GameState& state, const QByteArray& signature, bool black) const;
+    /// side の一局用鍵による、state の承認か
+    bool verifyApproval(const GameState& state, const QByteArray& signature, Turn side) const;
     /// 自分の手番の基本の持ち時間の残り（最新の状態の）
     quint64 myMainMs() const;
     quint64 opponentMainMs() const;

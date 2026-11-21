@@ -89,13 +89,14 @@ std::optional<JournalReplay> replay(const std::vector<CborValue>& records)
             e.agreement = *agreement;
             e.rules = *rules;
             e.timeControl = *terms;
-            out.mySide = items[3].isUInt() && items[3].toUInt() == kSideWhite ? kSideWhite : kSideBlack;
+            const std::optional<Turn> mine = items[3].isUInt() ? sideOfCode(items[3].toUInt()) : std::nullopt;
+            out.mySide = sideCode(mine.value_or(Turn::Black));
             out.opponentDisplayName = items[4].isText() ? items[4].toText() : QString();
             started = true;
         } else if (!started) {
             continue;
         } else if (kind == kStartSignature && items.size() == 3 && items[1].isUInt() && items[2].isBytes()) {
-            (items[1].toUInt() == kSideBlack ? e.blackStartSignature : e.whiteStartSignature) = items[2].data();
+            if (const std::optional<Turn> side = sideOfCode(items[1].toUInt())) e.startSignature(*side) = items[2].data();
         } else if (kind == kState && items.size() == 4) {
             const std::optional<SignedState> s = SignedState::fromCbor(CborValue::array({items[1], items[2], items[3]}),
                                                                        SignedState::Approvals::Optional);
@@ -111,7 +112,7 @@ std::optional<JournalReplay> replay(const std::vector<CborValue>& records)
         } else if (kind == kResult && items.size() == 3) {
             e.result = FinalResult::fromCbor(items[2]);
         } else if (kind == kResultSignature && items.size() == 3 && items[1].isUInt() && items[2].isBytes()) {
-            (items[1].toUInt() == kSideBlack ? e.blackResultSignature : e.whiteResultSignature) = items[2].data();
+            if (const std::optional<Turn> side = sideOfCode(items[1].toUInt())) e.resultSignature(*side) = items[2].data();
         } else if (kind == kConflict) {
             out.hasConflictProof = true;
         } else if (kind == kEnding && items.size() == 2 && items[1].isText()) {

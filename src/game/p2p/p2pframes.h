@@ -38,6 +38,16 @@ inline constexpr quint8 kMaxErrorCode = 15;
 /// 先後（フレームの side。1=先手、2=後手）
 inline constexpr quint8 kSideBlack = 1;
 inline constexpr quint8 kSideWhite = 2;
+
+/// 手番の側を、フレーム・記録に書く数（kSideBlack・kSideWhite）にする
+inline quint8 sideCode(Turn side) { return side == Turn::Black ? kSideBlack : kSideWhite; }
+/// フレーム・記録の数を手番の側にする（どちらでもなければ nullopt）
+inline std::optional<Turn> sideOfCode(quint64 code)
+{
+    if (code == kSideBlack) return Turn::Black;
+    if (code == kSideWhite) return Turn::White;
+    return std::nullopt;
+}
 /// 申込側・募集側（HELLO の role）
 inline constexpr quint8 kRoleApplicant = 1;
 inline constexpr quint8 kRoleHost = 2;

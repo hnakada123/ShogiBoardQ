@@ -38,6 +38,10 @@ struct Evidence {
     QByteArray blackResultSignature;
     QByteArray whiteResultSignature;
 
+    /// side の開始署名・結果への署名
+    QByteArray& startSignature(Turn side) { return side == Turn::Black ? blackStartSignature : whiteStartSignature; }
+    QByteArray& resultSignature(Turn side) { return side == Turn::Black ? blackResultSignature : whiteResultSignature; }
+
     QByteArray gameId() const { return agreement.gameId(); }
 
     CborValue toCbor() const;

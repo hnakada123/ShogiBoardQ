@@ -14,6 +14,14 @@ constexpr qint64 kOpeningTimeoutMs = 30'000;
 /// 相手の最終結果への署名を待つ時間（実装仕様 8.2節）
 constexpr qint64 kResultSignatureWaitMs = 30'000;
 
+/// 接続ID（双方の乱数を先手・後手の順に並べて作る。実装仕様 8.3節）
+QByteArray connectionIdOf(const QByteArray& gameId, Turn me, const QByteArray& myRandom,
+                          const QByteArray& opponentRandom)
+{
+    const auto [black, white] = inSideOrder(me, myRandom, opponentRandom);
+    return connectionId(gameId, black, white);
+}
+
 } // namespace
 
 void Match::ResultExchange::clearProposals()
@@ -32,9 +40,7 @@ Match::Match(MatchSetup setup, SigningKey sessionKey, const SigningKey* playerKe
     , m_persist(std::move(persist))
     , m_gameId(m_setup.agreement.gameId())
     , m_line(m_gameId)
-    , m_control(m_gameId, connectionId(m_gameId,
-                                       m_setup.iAmBlack ? m_setup.myConnectionRandom : m_setup.opponentConnectionRandom,
-                                       m_setup.iAmBlack ? m_setup.opponentConnectionRandom : m_setup.myConnectionRandom))
+    , m_control(m_gameId, connectionIdOf(m_gameId, me(), m_setup.myConnectionRandom, m_setup.opponentConnectionRandom))
 {
     m_requestId = qMax<quint64>(1, m_setup.nextRequestId);
 }
@@ -80,29 +86,29 @@ SignedState Match::signedByMe(const GameState& state) const
     SignedState s;
     s.state = state;
     const QByteArray signature = m_sessionKey.sign(stateApproval(m_gameId, state.ply, state.hash()));
-    (m_setup.iAmBlack ? s.blackApproval : s.whiteApproval) = signature;
+    s.approval(me()) = signature;
     return s;
 }
 
 const QByteArray& Match::myApproval(const SignedState& state) const
 {
-    return m_setup.iAmBlack ? state.blackApproval : state.whiteApproval;
+    return state.approval(me());
 }
 
-bool Match::verifyApproval(const GameState& state, const QByteArray& signature, bool black) const
+bool Match::verifyApproval(const GameState& state, const QByteArray& signature, Turn side) const
 {
-    return Crypto::verify(m_setup.agreement.sessionKey(black), stateApproval(m_gameId, state.ply, state.hash()),
+    return Crypto::verify(m_setup.agreement.sessionKey(side == Turn::Black), stateApproval(m_gameId, state.ply, state.hash()),
                           signature);
 }
 
 quint64 Match::myMainMs() const
 {
-    return m_setup.iAmBlack ? lastState().blackMainMs : lastState().whiteMainMs;
+    return lastState().mainMs(me());
 }
 
 quint64 Match::opponentMainMs() const
 {
-    return m_setup.iAmBlack ? lastState().whiteMainMs : lastState().blackMainMs;
+    return lastState().mainMs(them());
 }
 
 void Match::finish(Settlement ending, std::optional<ErrorCode> error)
@@ -136,8 +142,8 @@ Evidence Match::evidence() const
     if (m_pending) e.states.push_back(m_pending->state);
     if (m_result.agreed) {
         e.result = m_result.agreed;
-        (m_setup.iAmBlack ? e.blackResultSignature : e.whiteResultSignature) = m_result.mySignature;
-        (m_setup.iAmBlack ? e.whiteResultSignature : e.blackResultSignature) = m_result.opponentSignature;
+        e.resultSignature(me()) = m_result.mySignature;
+        e.resultSignature(them()) = m_result.opponentSignature;
     }
     return e;
 }
@@ -145,7 +151,7 @@ Evidence Match::evidence() const
 bool Match::isMyTurn() const
 {
     if (m_line.isEmpty()) return false;
-    return (m_line.sideToMove() == Turn::Black) == m_setup.iAmBlack;
+    return m_line.sideToMove() == me();
 }
 
 qint64 Match::reconnectTotalMs() const
@@ -167,7 +173,7 @@ void Match::begin()
     m_startedAt = now();
     m_openingDeadline = m_startedAt + kOpeningTimeoutMs;
     // 開始合意と両方の開始署名をジャーナルに書いてから始める（書けなければ何も送らずに中断する）
-    if (!persist(RecordKinds::start(m_setup.agreement, m_setup.rules, m_setup.terms, mySide(),
+    if (!persist(RecordKinds::start(m_setup.agreement, m_setup.rules, m_setup.terms, sideCode(me()),
                                     m_setup.opponentDisplayName))
         || !persist(RecordKinds::startSignature(kSideBlack, m_setup.blackStartSignature))
         || !persist(RecordKinds::startSignature(kSideWhite, m_setup.whiteStartSignature))) {
@@ -258,7 +264,6 @@ void Match::receive(const Frame& frame)
 void Match::handleStatePropose(const StateProposePayload& payload)
 {
     const GameState& state = payload.state;
-    const bool opponentIsBlack = !m_setup.iAmBlack;
     if (state.gameId != m_gameId) return failWithError(ErrorCode::ConditionMismatch, state.ply);
 
     // State0（先手が提案し、後手が受ける）
@@ -270,7 +275,7 @@ void Match::handleStatePropose(const StateProposePayload& payload)
             return;
         }
         if (m_setup.iAmBlack || state != GameRules::initialState(m_gameId, m_setup.terms)
-            || !verifyApproval(state, payload.signature, true)) {
+            || !verifyApproval(state, payload.signature, Turn::Black)) {
             return failWithError(ErrorCode::InvalidSignature, 0);
         }
         SignedState both = signedByMe(state);
@@ -295,9 +300,9 @@ void Match::handleStatePropose(const StateProposePayload& payload)
             return;
         }
         // 同じ手数の異なる状態: 相手の2つの署名を証明として残して止める
-        if (verifyApproval(state, payload.signature, opponentIsBlack)) {
-            m_conflictProof = persist(RecordKinds::conflict(
-                known.state, opponentIsBlack ? known.blackApproval : known.whiteApproval, state, payload.signature));
+        if (verifyApproval(state, payload.signature, them())) {
+            m_conflictProof =
+                persist(RecordKinds::conflict(known.state, known.approval(them()), state, payload.signature));
         }
         return failWithError(ErrorCode::StateConflict, state.ply);
     }
@@ -307,7 +312,7 @@ void Match::handleStatePropose(const StateProposePayload& payload)
     // 棋譜から終局が決まった局面の後の手は承認しない（承認すると、千日手・連続王手の千日手で決まった結果を、
     // 相手が次の手で消せる。手順は終局の局面で終わり、証跡は棋譜から決まる結果を示す）
     if (isDecidedByRecord()) return failWithError(ErrorCode::InvalidMove, state.ply);
-    if (!verifyApproval(state, payload.signature, opponentIsBlack)) {
+    if (!verifyApproval(state, payload.signature, them())) {
         return failWithError(ErrorCode::InvalidSignature, state.ply);
     }
     switch (GameRules::checkNext(lastState(), state, m_setup.terms)) {
@@ -326,7 +331,7 @@ void Match::handleStatePropose(const StateProposePayload& payload)
         return failWithError(ErrorCode::ClockMismatch, state.ply);
     }
     SignedState both = signedByMe(state);
-    (opponentIsBlack ? both.blackApproval : both.whiteApproval) = payload.signature;
+    both.approval(them()) = payload.signature;
     if (!persist(RecordKinds::state(both))) return failWithError(ErrorCode::StorageError, state.ply);
     send(FrameType::StateAccept, StateAcceptPayload{state.ply, state.hash(), myApproval(both)}.toCbor());
     // 自分の手番は、相手の着手を確かめて STATE_ACCEPT を送った時点から
@@ -346,11 +351,11 @@ void Match::handleStateAccept(const StateAcceptPayload& payload)
     if (payload.ply != state.ply || payload.stateHash != state.hash()) {
         return failWithError(ErrorCode::StateConflict, payload.ply);
     }
-    if (!verifyApproval(state, payload.signature, !m_setup.iAmBlack)) {
+    if (!verifyApproval(state, payload.signature, them())) {
         return failWithError(ErrorCode::InvalidSignature, payload.ply);
     }
     SignedState both = m_pending->state;
-    (m_setup.iAmBlack ? both.whiteApproval : both.blackApproval) = payload.signature;
+    both.approval(them()) = payload.signature;
     if (!persist(RecordKinds::state(both))) return failWithError(ErrorCode::StorageError, payload.ply);
     m_pending.reset();
     // State0 は READY を待つ
@@ -462,14 +467,14 @@ void Match::tick()
         // 自分の時計が切れたら、負けを申告する
         if (!m_myTimeoutDeclared && !GameRules::canMoveWithin(myMainMs(), byoyomi, static_cast<quint64>(m_timer.mySpentMs(t)))) {
             m_myTimeoutDeclared = true;
-            proposeResult(GameRules::winnerOutcome(m_setup.iAmBlack ? Turn::White : Turn::Black), Cause::Timeout);
+            proposeResult(GameRules::winnerOutcome(them()), Cause::Timeout);
         }
     } else if (!isMyTurn() && m_claimedTimeoutPly != lastState().ply) {
         // 相手の着手が届かないまま、相手の R + B に許容差を足した時間を超えたら、時間切れの勝ちを主張できる
         const qint64 observed = m_timer.observedMs(t) - m_timer.disconnectedSinceObservingMs(t);
         if (observed > static_cast<qint64>(opponentMainMs() + byoyomi + policy.toleranceMs)) {
             m_claimedTimeoutPly = lastState().ply;
-            proposeResult(GameRules::winnerOutcome(m_setup.iAmBlack ? Turn::Black : Turn::White), Cause::Timeout);
+            proposeResult(GameRules::winnerOutcome(me()), Cause::Timeout);
         }
     }
 }
@@ -607,7 +612,7 @@ bool Match::resign()
 {
     // 投了は負ける側だけ、自分の手番に限る
     if (!isMyTurn() || m_pending) return false;
-    return proposeResult(GameRules::winnerOutcome(m_setup.iAmBlack ? Turn::White : Turn::Black), Cause::Resign);
+    return proposeResult(GameRules::winnerOutcome(them()), Cause::Resign);
 }
 
 Match::OfferResult Match::offer(Cause cause)
@@ -660,7 +665,7 @@ void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHas
     if (m_result.myProposal && *m_result.myProposal == *result) return agree(*result);
 
     const bool opponentToMove = !isMyTurn();
-    const Outcome iWin = GameRules::winnerOutcome(m_setup.iAmBlack ? Turn::Black : Turn::White);
+    const Outcome iWin = GameRules::winnerOutcome(me());
     // 棋譜から終局（詰み・千日手・512手など）が決まった局面では、投了・時間切れ・合意の申し出に同意しない（利用者にも
     // 尋ねない）。同意すると、署名した結果が棋譜と食い違い、証跡の検証に通らなくなる（監査 2026-11-13 P7）
     const std::optional<GameRules::Terminal>& terminal = m_line.terminal();
@@ -716,10 +721,10 @@ void Match::agree(const FinalResult& result)
     emitEvent(MatchEvent{MatchEvent::Type::ResultAgreed, {}, 0, result});
     // 2. プレイヤー鍵で FinalResult に署名し、RESULT_SIGNATURE を送る
     m_result.mySignature = m_playerKey ? m_playerKey->sign(result.toCbor()) : QByteArray();
-    persist(RecordKinds::resultSignature(mySide(), m_result.mySignature));
+    persist(RecordKinds::resultSignature(sideCode(me()), m_result.mySignature));
     ResultSignaturePayload payload;
     payload.result = result;
-    payload.signature.side = mySide();
+    payload.signature.side = sideCode(me());
     payload.signature.signature = m_result.mySignature;
     send(FrameType::ResultSignature, payload.toCbor());
     // 相手の署名が先に届いていれば、ここでそろう
@@ -728,7 +733,7 @@ void Match::agree(const FinalResult& result)
 
 void Match::handleResultSignature(const ResultSignaturePayload& payload)
 {
-    if (payload.signature.side != opponentSide()) return failWithError(ErrorCode::InvalidSignature, 0);
+    if (payload.signature.side != sideCode(them())) return failWithError(ErrorCode::InvalidSignature, 0);
     if (!Crypto::verify(opponentPlayerKey(), payload.result.toCbor(), payload.signature.signature)) {
         return failWithError(ErrorCode::InvalidSignature, 0);
     }
@@ -738,7 +743,7 @@ void Match::handleResultSignature(const ResultSignaturePayload& payload)
     // 相手の提案より先に署名は届かない（フレームは順に届く）。合わない順序は受け付けない
     if (!m_result.agreed) return;
     m_result.opponentSignature = payload.signature.signature;
-    persist(RecordKinds::resultSignature(opponentSide(), m_result.opponentSignature));
+    persist(RecordKinds::resultSignature(sideCode(them()), m_result.opponentSignature));
     finish(Settlement::MutuallySigned, std::nullopt);
 }
 
@@ -783,17 +788,16 @@ void Match::connectionEstablished()
     m_myRandom = Crypto::randomBytes(kNonceSize);
     m_control.restart();
     m_resync = Resync::AwaitingHello;
-    send(FrameType::Hello, ReconnectHello{mySide(), m_myRandom}.toCbor());
+    send(FrameType::Hello, ReconnectHello{sideCode(me()), m_myRandom}.toCbor());
 }
 
 void Match::handleReconnectHello(const ReconnectHello& hello)
 {
-    if (m_phase != Phase::Reconnecting || m_resync != Resync::AwaitingHello || hello.side != opponentSide()
+    if (m_phase != Phase::Reconnecting || m_resync != Resync::AwaitingHello || hello.side != sideCode(them())
         || hello.connectionRandom == m_myRandom) {
         return;
     }
-    m_control.setConnectionId(connectionId(m_gameId, m_setup.iAmBlack ? m_myRandom : hello.connectionRandom,
-                                           m_setup.iAmBlack ? hello.connectionRandom : m_myRandom));
+    m_control.setConnectionId(connectionIdOf(m_gameId, me(), m_myRandom, hello.connectionRandom));
     // 新しい connectionId に対する RESUME の一局用鍵の署名で、相手を確かめ直す
     m_resync = Resync::AwaitingResume;
     sendControl(ControlKind::Resume, ControlBody::resume(lastState().ply, lastState().hash()));
@@ -849,8 +853,8 @@ void Match::handleSyncChunk(const SyncChunkPayload& chunk)
     for (const SignedState& s : chunk.states) {
         // 棋譜から終局が決まった局面の後の状態は取り込まない（着手の提案と同じ）
         if (isDecidedByRecord()) return failWithError(ErrorCode::StateConflict, s.state.ply);
-        if (s.state.ply != lastState().ply + 1 || !verifyApproval(s.state, s.blackApproval, true)
-            || !verifyApproval(s.state, s.whiteApproval, false)
+        if (s.state.ply != lastState().ply + 1 || !verifyApproval(s.state, s.blackApproval, Turn::Black)
+            || !verifyApproval(s.state, s.whiteApproval, Turn::White)
             || GameRules::checkNext(lastState(), s.state, m_setup.terms) != GameRules::StateCheck::Ok) {
             return failWithError(ErrorCode::StateConflict, s.state.ply);
         }

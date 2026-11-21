@@ -67,7 +67,7 @@ std::optional<GameState> nextState(const GameState& previous, const UsiMove& mov
         return std::nullopt;
     }
     const Turn mover = sideToMove(previous.ply);
-    const quint64 remaining = mover == Turn::Black ? previous.blackMainMs : previous.whiteMainMs;
+    const quint64 remaining = previous.mainMs(mover);
     if (!canMoveWithin(remaining, terms.byoyomiMs, spentMs)) {
         setError(error, QStringLiteral("time is up"));
         return std::nullopt;
@@ -86,7 +86,7 @@ std::optional<GameState> nextState(const GameState& previous, const UsiMove& mov
     next.blackMainMs = previous.blackMainMs;
     next.whiteMainMs = previous.whiteMainMs;
     const quint64 left = remaining > spentMs ? remaining - spentMs : 0;
-    (mover == Turn::Black ? next.blackMainMs : next.whiteMainMs) = left;
+    next.mainMs(mover) = left;
     return next;
 }
 
@@ -99,7 +99,7 @@ StateCheck checkNext(const GameState& previous, const GameState& next, const Tim
     // 読めた手を書き直して元の文字列と一致すること（前後の空白・小文字の駒打ちを通さない）
     if (!move || move->toString().toLatin1() != next.moveUsi) return StateCheck::IllegalMove;
     const Turn mover = sideToMove(previous.ply);
-    const quint64 remaining = mover == Turn::Black ? previous.blackMainMs : previous.whiteMainMs;
+    const quint64 remaining = previous.mainMs(mover);
     if (!canMoveWithin(remaining, terms.byoyomiMs, next.spentMs)) return StateCheck::ClockMismatch;
     QString error;
     const std::optional<GameState> expected = nextState(previous, *move, next.spentMs, terms, &error);

@@ -9,9 +9,11 @@
 #include <QStringList>
 
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "p2pcbor.h"
+#include "shogitypes.h"
 
 namespace P2p {
 
@@ -26,6 +28,17 @@ inline constexpr quint64 kMaxByoyomiMs = 600'000;
 inline constexpr int kMaxSfenBytes = 256;
 /// 開始合意の期限（作成から）
 inline constexpr quint64 kStartWindowSeconds = 180;
+
+/// 先手か（black）を手番の側にする
+inline Turn turnOf(bool black) { return black ? Turn::Black : Turn::White; }
+
+/// 自分（me の側）の値と相手の値を、先手・後手の順の組にする
+template <typename T>
+std::pair<T, T> inSideOrder(Turn me, T mine, T theirs)
+{
+    return me == Turn::Black ? std::pair<T, T>{std::move(mine), std::move(theirs)}
+                             : std::pair<T, T>{std::move(theirs), std::move(mine)};
+}
 
 /// ゼロ32バイト（対局ID が決まる前の gameId・State0 の前状態ハッシュ）
 QByteArray zeroHash();
@@ -127,6 +140,10 @@ struct GameState {
     quint64 blackMainMs = 0;
     quint64 whiteMainMs = 0;
 
+    /// side の残りの持ち時間
+    quint64 mainMs(Turn side) const { return side == Turn::Black ? blackMainMs : whiteMainMs; }
+    quint64& mainMs(Turn side) { return side == Turn::Black ? blackMainMs : whiteMainMs; }
+
     CborValue toCbor() const;
     QByteArray hash() const { return Cbor::hash(toCbor()); }
     static std::optional<GameState> fromCbor(const CborValue& value);
@@ -140,6 +157,10 @@ struct SignedState {
     GameState state;
     QByteArray blackApproval;
     QByteArray whiteApproval;
+
+    /// side の一局用鍵による承認
+    const QByteArray& approval(Turn side) const { return side == Turn::Black ? blackApproval : whiteApproval; }
+    QByteArray& approval(Turn side) { return side == Turn::Black ? blackApproval : whiteApproval; }
 
     /// 読むときに求める承認
     enum class Approvals {

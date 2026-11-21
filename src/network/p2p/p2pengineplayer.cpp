@@ -93,8 +93,8 @@ bool P2pEnginePlayer::hasRunOutOfTime() const
 {
     if (!m_match || !m_match->isMyTurn() || m_match->hasPendingMove()) return false;
     const P2p::GameState& state = m_match->lastState();
-    const qint64 budget = static_cast<qint64>(m_match->iAmBlack() ? state.blackMainMs : state.whiteMainMs)
-        + static_cast<qint64>(m_match->terms().byoyomiMs);
+    const qint64 budget =
+        static_cast<qint64>(state.mainMs(mySide())) + static_cast<qint64>(m_match->terms().byoyomiMs);
     return m_match->myTurnSpentMs() + kTimeoutSlackMs >= budget;
 }
 
@@ -128,7 +128,7 @@ MatchSearchTiming P2pEnginePlayer::snapshot(Turn side, bool pondering) const
     // 引いた残りが、次の自分の手番の持ち時間になる）。相手の手番の経過時間は、相手の申告が届くまで分からない
     const qint64 unsettled = !pending && m_match->isMyTurn() ? m_match->myTurnSpentMs() : 0;
     const auto remainingOf = [&state](Turn player) {
-        return static_cast<qint64>(player == Turn::Black ? state.blackMainMs : state.whiteMainMs);
+        return static_cast<qint64>(state.mainMs(player));
     };
     const auto clockSide = [&](Turn player) {
         return UsiClockSide{remainingOf(player), false, player == mine ? unsettled : 0};
@@ -155,5 +155,5 @@ void P2pEnginePlayer::onDeclaredWin(Turn /*side*/)
 
 Turn P2pEnginePlayer::mySide() const
 {
-    return m_match && !m_match->iAmBlack() ? Turn::White : Turn::Black;
+    return P2p::turnOf(!m_match || m_match->iAmBlack());
 }

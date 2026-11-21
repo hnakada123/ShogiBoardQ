@@ -3,6 +3,8 @@
 
 #include "p2pnegotiation.h"
 
+#include <tuple>
+
 namespace P2p {
 
 namespace {
@@ -204,16 +206,15 @@ void Negotiation::handleHelloAsApplicant(const HelloPayload& hello)
     m_iAmBlack = *applicantBlack;
     m_sidesByCoin = m_config.mySide == SidePreference::None && hello.sidePreference == SidePreference::None;
 
+    // 自分と相手の値を、決まった先後の順に入れる
+    const Turn me = turnOf(m_iAmBlack);
     StartAgreement a;
     a.networkId = m_config.networkId;
-    a.blackNonce = m_iAmBlack ? m_myNonce : hello.coin;
-    a.whiteNonce = m_iAmBlack ? hello.coin : m_myNonce;
-    a.blackPlayerKey = m_iAmBlack ? m_playerKey->publicKey() : hello.playerKey;
-    a.whitePlayerKey = m_iAmBlack ? hello.playerKey : m_playerKey->publicKey();
-    a.blackSessionKey = m_iAmBlack ? m_sessionKey.publicKey() : hello.sessionKey;
-    a.whiteSessionKey = m_iAmBlack ? hello.sessionKey : m_sessionKey.publicKey();
-    a.blackPeerIdHash = Cbor::sha256(m_iAmBlack ? m_config.myPeerId : hello.peerId);
-    a.whitePeerIdHash = Cbor::sha256(m_iAmBlack ? hello.peerId : m_config.myPeerId);
+    std::tie(a.blackNonce, a.whiteNonce) = inSideOrder(me, m_myNonce, hello.coin);
+    std::tie(a.blackPlayerKey, a.whitePlayerKey) = inSideOrder(me, m_playerKey->publicKey(), hello.playerKey);
+    std::tie(a.blackSessionKey, a.whiteSessionKey) = inSideOrder(me, m_sessionKey.publicKey(), hello.sessionKey);
+    std::tie(a.blackPeerIdHash, a.whitePeerIdHash) =
+        inSideOrder(me, Cbor::sha256(m_config.myPeerId), Cbor::sha256(hello.peerId));
     // 対局者の種別は、決まった先後に従って Rules に入れる（双方人間なら版 1 と同じ値）
     m_rules = RulesTerms::forSides(m_iAmBlack, m_config.myKind, hello.playerKind);
     a.rulesHash = m_rules.hash();
@@ -293,15 +294,14 @@ void Negotiation::sendMyStartSignature()
 {
     m_myStartSignature = m_playerKey->sign(m_agreement->toCbor());
     SideSignature s;
-    s.side = m_iAmBlack ? kSideBlack : kSideWhite;
+    s.side = sideCode(turnOf(m_iAmBlack));
     s.signature = m_myStartSignature;
     send(FrameType::StartSignature, startSignaturePayload(s), gameId());
 }
 
 void Negotiation::handleStartSignature(const SideSignature& signature)
 {
-    const quint8 opponentSide = m_iAmBlack ? kSideWhite : kSideBlack;
-    if (signature.side != opponentSide || opponentVerified()) return fail(ErrorCode::InvalidSignature, true);
+    if (signature.side != sideCode(turnOf(!m_iAmBlack)) || opponentVerified()) return fail(ErrorCode::InvalidSignature, true);
     if (!Crypto::verify(m_agreement->playerKey(!m_iAmBlack), m_agreement->toCbor(), signature.signature)) {
         return fail(ErrorCode::InvalidSignature, true);
     }
@@ -331,8 +331,8 @@ MatchSetup Negotiation::matchSetup() const
     setup.rules = m_rules;
     setup.terms = m_terms;
     setup.iAmBlack = m_iAmBlack;
-    setup.blackStartSignature = m_iAmBlack ? m_myStartSignature : m_opponentStartSignature;
-    setup.whiteStartSignature = m_iAmBlack ? m_opponentStartSignature : m_myStartSignature;
+    std::tie(setup.blackStartSignature, setup.whiteStartSignature) =
+        inSideOrder(turnOf(m_iAmBlack), m_myStartSignature, m_opponentStartSignature);
     setup.myConnectionRandom = m_myRandom;
     setup.opponentConnectionRandom = m_opponent ? m_opponentRandom : QByteArray();
     setup.nextRequestId = m_requestId;
