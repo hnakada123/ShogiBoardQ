@@ -403,7 +403,7 @@ def friends(language, out_dir, node):
     click(a, "p2pOfferDraw")
     wait_until("offer box", lambda: window_open(b, "p2pOfferBox"), 30)
     time.sleep(1.2)
-    call(b, "dialog.clickButton", {"target": "p2pOfferBox", "text": translated(language, "承諾", "P2pGameUiController")})
+    call(b, "dialog.clickButton", {"target": "p2pOfferBox", "text": translated(language, "承諾", "P2pOfferController")})
     time.sleep(3)
     for name in (a, b):
         close_boxes(name)

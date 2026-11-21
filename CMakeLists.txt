@@ -1231,6 +1231,8 @@ if(ENABLE_P2P_PLAY)
         src/dialogs/p2pwindowtext.h
         src/ui/controllers/p2pgameuicontroller.cpp
         src/ui/controllers/p2pgameuicontroller.h
+        src/ui/controllers/p2poffercontroller.cpp
+        src/ui/controllers/p2poffercontroller.h
     )
 endif()
 

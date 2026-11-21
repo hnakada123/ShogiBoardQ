@@ -23,6 +23,7 @@ class P2pConfirmDialog;
 class P2pFriendPresence;
 class P2pGameCoordinator;
 class P2pLobbyService;
+class P2pOfferController;
 class P2pPlayerProfile;
 class P2pWindow;
 class QAction;
@@ -80,19 +81,6 @@ private slots:
     void onNegotiationChanged();
     void onNegotiationEnded(bool started, std::optional<P2p::ErrorCode> code, bool byPeer);
     void onGameStarted();
-    void onOfferReceived(P2p::Cause cause);
-    /// 相手の申し出に答えた（result は QMessageBox::Yes なら承諾）
-    void onOfferAnswered(int result);
-    /// 申し出の箱の「承諾」を押せるようにする（出してから少し待つ）
-    void enableOfferAccept();
-    /// 申し出が無効になった（手数が進んだ・結果が決まった・対局が終わった）なら、相手の申し出を尋ねる箱と、
-    /// 自分の申し出の答えを待つ知らせを閉じる
-    void closeStaleOffer();
-    /// 自分の申し出を相手へ送り、答えを待っている（申し出た側にも知らせる）
-    void onOfferPending(P2p::Cause cause);
-    /// 自分の申し出を送れなかった
-    void onOfferNotSent();
-    void onProposalDeclined();
     void onGameFinished(P2p::Settlement ending, std::optional<P2p::ErrorCode> error, const QString& evidencePath);
     /// 自分のエンジンについての知らせ（起動の失敗・異常終了・指せない手・入玉宣言）
     void onEngineNotice(const QString& message);
@@ -108,8 +96,6 @@ private:
     QWidget* dialogParent() const;
     /// 相手・通信プロセスから届いた知らせの親（利用者が使っている側。P2P対局のウィンドウは本体の後ろにも回せる）
     QWidget* noticeParent() const;
-    /// 尋ねる箱を、答えとして扱わずに閉じる
-    void closeOfferBox();
 
     Deps m_deps;
     P2pPlayerProfile* m_profile = nullptr;      ///< 子オブジェクト（開いたときに、空いている番号のプレイヤーで作る）
@@ -117,10 +103,8 @@ private:
     P2pFriendPresence* m_presence = nullptr;     ///< 子オブジェクト（友だちの在席。ロビーと一緒に作る）
     QPointer<P2pWindow> m_window;
     QPointer<P2pConfirmDialog> m_confirm;
-    QPointer<QMessageBox> m_offerBox;   ///< 相手の申し出を尋ねる箱（モードレス。閉じたら消える）
+    P2pOfferController* m_offers = nullptr;  ///< 子オブジェクト（合意引き分け・合意中断の申し出の箱）
     QPointer<QMessageBox> m_failureBox; ///< 通信プロセスの失敗の知らせ（モードレス。閉じたら消える）
-    QPointer<QMessageBox> m_waitingBox;  ///< 自分の申し出の答えを待つ知らせ（モードレス。待つものがなくなったら閉じる）
-    QPointer<QMessageBox> m_offerNoticeBox; ///< 自分の申し出を断られた・送れなかった知らせ（モードレス。次の知らせで入れ替える）
     QPointer<QMessageBox> m_engineBox;   ///< エンジンについての知らせ（モードレス。続けて届いたら入れ替える）
     bool m_automationDisabled = false;
     bool m_startAfterUnlock = false;   ///< 鍵を読み込んだら参加する
