@@ -1466,11 +1466,16 @@ private slots:
         QSignalSpy declined(&black.game, &P2pGameCoordinator::proposalDeclined);
         black.game.offerDraw();
         QTRY_VERIFY(visibleBox(white, QStringLiteral("引き分け")));
+        // 引き分けの箱の待ち時間が終わる直前に、中断を申し出る
+        QTest::qWait(900);
         black.game.offerAbort();
         QTRY_VERIFY(visibleBox(white, QStringLiteral("中断")));
         QTRY_VERIFY(!visibleBox(white, QStringLiteral("引き分け")));
-        // 出してすぐは「承諾」を押せない（箱が入れ替わった瞬間のクリックで、別の申し出を承諾しない。監査 2026-11-13）
+        // 出してすぐは「承諾」を押せない（箱が入れ替わった瞬間のクリックで、別の申し出を承諾しない。監査 2026-11-13）。
+        // 待つ時間は、前の箱からではなく、この箱を出したときから測る（監査 2026-11-21 S6）
         QAbstractButton* acceptAbort = visibleBox(white, QStringLiteral("中断"))->button(QMessageBox::Yes);
+        QVERIFY(!acceptAbort->isEnabled());
+        QTest::qWait(300);
         QVERIFY(!acceptAbort->isEnabled());
         QTRY_VERIFY(acceptAbort->isEnabled());
         acceptAbort->click();

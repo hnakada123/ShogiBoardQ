@@ -21,7 +21,10 @@ P2pOfferController::P2pOfferController(P2pGameCoordinator* game, Hooks hooks, QO
     : QObject(parent)
     , m_game(game)
     , m_hooks(std::move(hooks))
+    , m_acceptTimer(new QTimer(this))
 {
+    m_acceptTimer->setSingleShot(true);
+    connect(m_acceptTimer, &QTimer::timeout, this, &P2pOfferController::enableAccept);
     if (!m_game) return;
     connect(m_game, &P2pGameCoordinator::offerReceived, this, &P2pOfferController::onOfferReceived);
     connect(m_game, &P2pGameCoordinator::offerPending, this, &P2pOfferController::onOfferPending);
@@ -48,9 +51,11 @@ void P2pOfferController::onOfferReceived(P2p::Cause cause)
     m_offerBox->setObjectName(QStringLiteral("p2pOfferBox"));
     connect(m_offerBox, &QMessageBox::finished, this, &P2pOfferController::onOfferAnswered);
     // 出してすぐは「承諾」を押せない。相手が引き分けと中断の申し出を続けて送ると箱が入れ替わり、前の申し出に向けた
-    // クリックで、別の申し出を承諾しうる（ボタンの文字は同じ）
+    // クリックで、別の申し出を承諾しうる（ボタンの文字は同じ）。待つ時間は箱ごとに測る（start は測り直す）
     if (QAbstractButton* accept = m_offerBox->button(QMessageBox::Yes)) accept->setEnabled(false);
-    QTimer::singleShot(kAcceptDelayMs, this, &P2pOfferController::enableAccept);
+    m_acceptTimer->start(kAcceptDelayMs);
+    // 盤を操作している最中に出ても、フォーカスを取らない（指している手のドラッグやキーの操作を箱へ移さない）
+    m_offerBox->setAttribute(Qt::WA_ShowWithoutActivating);
     m_offerBox->show();
 }
 
@@ -76,6 +81,7 @@ void P2pOfferController::closeStale()
 
 void P2pOfferController::closeOfferBox()
 {
+    m_acceptTimer->stop();
     if (!m_offerBox) return;
     // 閉じると finished が出るので、先に外す（古い箱を閉じたことを、次の申し出への答えにしない）
     disconnect(m_offerBox, &QMessageBox::finished, this, &P2pOfferController::onOfferAnswered);

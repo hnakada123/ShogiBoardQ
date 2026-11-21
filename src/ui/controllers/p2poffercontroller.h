@@ -13,6 +13,7 @@
 
 class P2pGameCoordinator;
 class QMessageBox;
+class QTimer;
 class QWidget;
 
 /**
@@ -60,6 +61,9 @@ private:
     QPointer<QMessageBox> m_offerBox;    ///< 相手の申し出を尋ねる箱（閉じたら消える）
     QPointer<QMessageBox> m_waitingBox;  ///< 自分の申し出の答えを待つ知らせ（待つものがなくなったら閉じる）
     QPointer<QMessageBox> m_noticeBox;   ///< 自分の申し出を断られた・送れなかった知らせ（次の知らせで入れ替える）
+    /// 尋ねる箱の「承諾」を押せるようにするまでの時間（箱を出すたびに測り直す。前の箱の時間で、後から出た箱の
+    /// 「承諾」を押せるようにしない。監査 2026-11-21 S6）
+    QTimer* m_acceptTimer = nullptr;
 };
 
 #endif // P2POFFERCONTROLLER_H
