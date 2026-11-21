@@ -131,7 +131,7 @@
 
 ### R5 Rust: つなぐ途中の接続が5つの表に分かれている（peer）
 
-**状態: 済（コミットは次の項目の修正で書き足す）**。
+**状態: 済（56b7151d）**。
 - 番号1つに段階1つの表 `Conns`（`peer/src/node/conns.rs`。引き取り中・合言葉の宛先へダイヤル中・開く接続を待つ・開いている途中・開いた・閉じる）にし、`conns`・`opening`・`code_connects`・`code_dials`・`meets.connects` をなくした。Swarm と IPC に触れず、段階の進み方の単体試験を付けた。
 - 「応答の後で失敗を知らせる」3通りは、段階を「閉じる」にするだけの1通りにした。主ループが出来事を1つ処理するたびに、閉じた接続の connectionClosed をまとめて出す（応答より前には出ない）。
 - IPC のエラーの語は `ipc::ErrorCode`（`words!`）、エラーは `IpcError`、要求の処理は `Result<Reply, IpcError>` の1行ずつの表にした。語の文字列は変えていない。
@@ -160,19 +160,19 @@
 
 ## 2. 小さな整理で足りる箇所
 
-| # | 箇所 | 今の形 | 直し方 |
-|---|---|---|---|
-| S1 | `P2pGameCoordinator`（810行） | 自分のエンジンの起動・指し手の依頼・持ち時間・異常の処理（約170行。`p2pgamecoordinator.cpp:637-804`）が司令塔の中にある | エンジンの部分を別のクラスにする |
-| S2 | 招待する側の条件 | 表示名・持ち時間・先後・対局者の4つ組が、`createInvite` の引数・ロビーのメンバ4つ・`P2pFriendPresence::HostSetup`・`NegotiationRequest`・ウィンドウの getter の5通りで表されている | 値の型1つにする |
-| S3 | 友だちの変更の知らせ | `P2pKnownPeers` に変更の知らせがなく、「相手」タブが `reloadFriends()` を3か所で呼ぶ（`p2ppeerspanel.cpp` の `onToggleFriend`・`onToggleBlocked`・`onRemove`） | 記録の側から知らせる |
-| S4 | 先後の表し方 | 純粋層に bool（`iAmBlack`）・`quint8`（`kSideBlack`）・`Turn` の3通りがあり、`iAmBlack ?` の三項が `Match` と `Negotiation` で32行ある | `SignedState::approval(Turn)`・`GameState::mainMs(Turn)` を足し、1/2 への変換を `p2pframes` だけにする |
-| S5 | 交渉から対局への引き継ぎ | 同じ10項目を司令塔（`p2pgamecoordinator.cpp:184-194`）と試験が写している | `Negotiation` に `MatchSetup` を作る関数を置く |
-| S6 | 状態と両署名の組の読み書き | `p2pframes.cpp`・`p2pevidence.cpp`・`p2precordkinds.cpp` の3か所にあり、署名の長さの厳しさが3通りある | `SignedState` に読み書きを置く |
-| S7 | `P2pGameUiController` | 知らせの箱の `QPointer` が5つある。`#include` がファイルの途中にある（`p2pgameuicontroller.cpp:41-42`） | 申し出の箱の組を小さなクラスにする |
-| S8 | ネットワークの名前 | `sbq-local-1`・`sbq-limited-1` が `p2pprotocol.cpp:263`・`p2pconnectionpanel.cpp:29`・`networksettings.h:120` にある | 純粋層の表から引く |
-| S9 | Rust: 役割の bool | `NodeConfig` の `service`・`relay_only`・`relay_server`・`meet_server` から `!relay_only && !service` のように導いている | `enum Role` にする |
-| S10 | Rust: `sandbox.rs`（787行） | OS ごとの `apply` と自己試験が1ファイルに離れて並ぶ | `sandbox/{linux,macos,windows}.rs` に分ける |
-| S11 | Rust: 小部品の重複 | 相手ごとの枠の数え方（`streams.rs`・`meet.rs`）、トークンバケット（`game.rs`・`meetstore.rs`）、長さ付きの読み書き（`game.rs`・`meet.rs`） | 1つにする |
+| # | 箇所 | 今の形 | 直し方 | 状態 |
+|---|---|---|---|---|
+| S1 | `P2pGameCoordinator`（810行） | 自分のエンジンの起動・指し手の依頼・持ち時間・異常の処理（約170行。`p2pgamecoordinator.cpp:637-804`）が司令塔の中にある | エンジンの部分を別のクラスにする | 未 |
+| S2 | 招待する側の条件 | 表示名・持ち時間・先後・対局者の4つ組が、`createInvite` の引数・ロビーのメンバ4つ・`P2pFriendPresence::HostSetup`・`NegotiationRequest`・ウィンドウの getter の5通りで表されている | 値の型1つにする | 未 |
+| S3 | 友だちの変更の知らせ | `P2pKnownPeers` に変更の知らせがなく、「相手」タブが `reloadFriends()` を3か所で呼ぶ（`p2ppeerspanel.cpp` の `onToggleFriend`・`onToggleBlocked`・`onRemove`） | 記録の側から知らせる | 未 |
+| S4 | 先後の表し方 | 純粋層に bool（`iAmBlack`）・`quint8`（`kSideBlack`）・`Turn` の3通りがあり、`iAmBlack ?` の三項が `Match` と `Negotiation` で32行ある | `SignedState::approval(Turn)`・`GameState::mainMs(Turn)` を足し、1/2 への変換を `p2pframes` だけにする | 一部（`Match` の中の先後の取り出しを `myApproval`・`myMainMs`・`opponentMainMs`・`opponentSide` に寄せた。`SignedState`・`GameState` への補助は未） |
+| S5 | 交渉から対局への引き継ぎ | 同じ10項目を司令塔（`p2pgamecoordinator.cpp:184-194`）と試験が写している | `Negotiation` に `MatchSetup` を作る関数を置く | 済（5fa33d65。`Negotiation::matchSetup()`） |
+| S6 | 状態と両署名の組の読み書き | `p2pframes.cpp`・`p2pevidence.cpp`・`p2precordkinds.cpp` の3か所にあり、署名の長さの厳しさが3通りある | `SignedState` に読み書きを置く | 未 |
+| S7 | `P2pGameUiController` | 知らせの箱の `QPointer` が5つある。`#include` がファイルの途中にある（`p2pgameuicontroller.cpp:41-42`） | 申し出の箱の組を小さなクラスにする | 一部（ファイルの途中の `#include` を直した。箱の組は未） |
+| S8 | ネットワークの名前 | `sbq-local-1`・`sbq-limited-1` が `p2pprotocol.cpp:263`・`p2pconnectionpanel.cpp:29`・`networksettings.h:120` にある | 純粋層の表から引く | 未 |
+| S9 | Rust: 役割の bool | `NodeConfig` の `service`・`relay_only`・`relay_server`・`meet_server` から `!relay_only && !service` のように導いている | `enum Role` にする | 済（56b7151d。`swarm::Role`） |
+| S10 | Rust: `sandbox.rs`（787行） | OS ごとの `apply` と自己試験が1ファイルに離れて並ぶ | `sandbox/{linux,macos,windows}.rs` に分ける | 未（macOS・Windows の側をここでビルドして確かめられないので見送った） |
+| S11 | Rust: 小部品の重複 | 相手ごとの枠の数え方（`streams.rs`・`meet.rs`）、トークンバケット（`game.rs`・`meetstore.rs`）、長さ付きの読み書き（`game.rs`・`meet.rs`） | 1つにする | 済（56b7151d。`limits.rs`・`wire.rs`） |
 
 ---
 
@@ -193,9 +193,9 @@
 
 | # | 疑い | 根拠 |
 |---|---|---|
-| U1 | 千日手などで棋譜から終局が決まった直後に、次の手を指せる。その直後に回線が切れると、双方の記録が食い違う恐れがある。**確認・修正済み（R2 と同じコミット）**: 試験で再現した。千日手の手を受けた側が送った承認・結果の提案が切断の前にどこまで届いたかで、千日手を飛ばして対局が続く・一方だけが千日手で終わる、のどれかになった。`Match::playMove` が、棋譜から終局が決まった局面では手を作らない（`MoveError::Finished`）ようにし、司令塔も手を求めない（`isMyMoveExpected`）。試験は `tst_p2p_match` の `moveAfterRepetitionAndDisconnect`。受ける側は変えていない: 終局の後の手を、以前の版の相手が送ってくれば、今も承認する。断るかどうかはプロトコルの決まり（互換実装の仕様書）を変えることになるので、別に決める | `Match::playMove`（`p2pmatch.cpp:380-392`）と司令塔の `isMyMoveExpected` は、棋譜から決まった終局を見ない。切断がなければ、相手は先に届いた結果の提案で一致し、後から届いた手を取り込まない（`p2pmatch.cpp:200`）ので無害である。切断があると、指した側は確認待ちの手があるために結果の提案を送り直せない（`p2pmatch_control.cpp:148`・`484-488`）。この先の経路は確かめていない |
-| U2 | Rust: 確立の直後に閉じた接続の知らせで、同じ相手へ開く途中の接続が `unreachable` で失敗しうる。**修正済み（R5 と同じコミット）**: 受け付けずに閉じた接続（数に入れていない接続）の知らせでは、相手との接続がなくなったとみなさない（`PeerLinks::closed`）。試験 `closing_an_untracked_connection_does_not_drop_the_peer` は、以前の判断に戻すと落ちることを確かめた | `peer/src/node/events.rs:51-62`・`77-98`。`peer_conns` に入れずに閉じた接続にも ConnectionClosed が届き、その相手のほかの接続が無ければ `fail_openings_of` が走る |
-| U3 | Rust: 協力ノードが預けものを置き換えるとき、古いものを消してから件数の上限を調べる。**確認・修正済み（R5 と同じコミット）**: 試験 `refused_replacement_keeps_the_old_deposit` で再現した。上限を先に調べ、断るときは前の預けものを残す | `peer/src/meetstore.rs:133-143`。接続元が変わっていて新しい接続元が上限なら、古いものを失ったうえで断られる |
+| U1 | 千日手などで棋譜から終局が決まった直後に、次の手を指せる。その直後に回線が切れると、双方の記録が食い違う恐れがある。**確認・修正済み（5fa33d65）**: 試験で再現した。千日手の手を受けた側が送った承認・結果の提案が切断の前にどこまで届いたかで、千日手を飛ばして対局が続く・一方だけが千日手で終わる、のどれかになった。`Match::playMove` が、棋譜から終局が決まった局面では手を作らない（`MoveError::Finished`）ようにし、司令塔も手を求めない（`isMyMoveExpected`）。試験は `tst_p2p_match` の `moveAfterRepetitionAndDisconnect`。受ける側は変えていない: 終局の後の手を、以前の版の相手が送ってくれば、今も承認する。断るかどうかはプロトコルの決まり（互換実装の仕様書）を変えることになるので、別に決める | `Match::playMove`（`p2pmatch.cpp:380-392`）と司令塔の `isMyMoveExpected` は、棋譜から決まった終局を見ない。切断がなければ、相手は先に届いた結果の提案で一致し、後から届いた手を取り込まない（`p2pmatch.cpp:200`）ので無害である。切断があると、指した側は確認待ちの手があるために結果の提案を送り直せない（`p2pmatch_control.cpp:148`・`484-488`）。この先の経路は確かめていない |
+| U2 | Rust: 確立の直後に閉じた接続の知らせで、同じ相手へ開く途中の接続が `unreachable` で失敗しうる。**修正済み（56b7151d）**: 受け付けずに閉じた接続（数に入れていない接続）の知らせでは、相手との接続がなくなったとみなさない（`PeerLinks::closed`）。試験 `closing_an_untracked_connection_does_not_drop_the_peer` は、以前の判断に戻すと落ちることを確かめた | `peer/src/node/events.rs:51-62`・`77-98`。`peer_conns` に入れずに閉じた接続にも ConnectionClosed が届き、その相手のほかの接続が無ければ `fail_openings_of` が走る |
+| U3 | Rust: 協力ノードが預けものを置き換えるとき、古いものを消してから件数の上限を調べる。**確認・修正済み（56b7151d）**: 試験 `refused_replacement_keeps_the_old_deposit` で再現した。上限を先に調べ、断るときは前の預けものを残す | `peer/src/meetstore.rs:133-143`。接続元が変わっていて新しい接続元が上限なら、古いものを失ったうえで断られる |
 | U4 | Rust: 「協力ノードの中継だけを使う」で同じ LAN の合言葉につなぐと、理由が `no_relay_route` でなく `unreachable` になる。**変えていない**: アプリの `no_relay_route` の文（「この招待文字列には…協力ノードを登録」）が同じ LAN の合言葉に当てはまらないので、直すなら画面の文と一緒に直す（画面は使える候補が0件なら「接続する」を押せないので、通常は届かない） | `peer/src/node/requests.rs:344-349` → `codes.rs:182-190`。画面は使える候補が0件なら接続ボタンを押せなくするので、通常は届かない |
 
 ---
@@ -208,3 +208,15 @@
 4. R2（`Match` の値の部品への切り出し。U1 を試験で確かめ、起きるなら一緒に直す）
 5. R5（Rust の `Conns` と IPC のエラーの型）
 6. 2章の小さな整理（触った部品に関わるものから）
+
+---
+
+## 6. 修正の結果（2026-11-21）
+
+5章の 1〜5 を直した（R4 05a5e72b、R3 4f594a99、R1 b1b24687、R2 5fa33d65、R5 56b7151d）。プロトコルのバイト列・IPC の形・保存形式・共通の試験入力は変えていない。不具合の疑いは U1・U2・U3 を試験で確かめて直し、U4 は画面の文と一緒に直すものとして残した。2章は S5・S9・S11 を直し、残りは状態の列のとおり。
+
+決めてほしいこと:
+
+- **棋譜から終局が決まった後の手を、受ける側が断るか（U1 の残り）**: 今回は指す側が手を作らないようにした。以前の版の相手が終局の後に手を送ってくれば、受ける側は今も承認する（そうすると双方の結果が食い違いうる）。断る・証跡の検証で不正として示す、とするなら、互換実装の仕様書（4言語）の手順の変更になる。
+- **U4 の理由の語**: 「協力ノードの中継だけを使う」で同じ LAN の合言葉につなぐときの理由を `no_relay_route` にするか。そうするなら、画面の文を招待文字列と合言葉で分ける。
+
