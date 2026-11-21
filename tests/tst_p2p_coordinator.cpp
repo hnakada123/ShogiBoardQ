@@ -615,11 +615,14 @@ private slots:
         QCOMPARE(history.first().info.settlement, Settlement::Interrupted);
         QCOMPARE(history.first().gameId, a.gameId());
         // 同じ保存先を使えるアプリは1つ（2つ目のアプリは開けない）
-        P2pPlayerProfile first(root);
-        QVERIFY(first.open());
+        auto first = std::make_unique<P2pPlayerProfile>(root);
+        QVERIFY(first->open());
         P2pPlayerProfile second(root);
         QVERIFY(!second.open());
-        first.close();
+        // 切断（close）しても手放さない。手放すのは、1つ目のアプリが保存先を使い終えたとき（監査 2026-11-21 S8）
+        first->close();
+        QVERIFY(!second.open());
+        first.reset();
         QVERIFY(second.open());
     }
 };

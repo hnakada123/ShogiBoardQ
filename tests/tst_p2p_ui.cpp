@@ -823,6 +823,16 @@ private slots:
         QCOMPARE(P2pPlayerProfile::identityDirectory(third->root()), data + QStringLiteral("/p2p-3/identity"));
         QVERIFY(first->isOpen() && second->isOpen() && third->isOpen());
 
+        // 切断（close）しても保存先は手放さない。ほかのアプリが同じプレイヤーにならない（監査 2026-11-21 S8）
+        first->close();
+        QVERIFY(first->isOpen());
+        QVERIFY(first->open());
+        {
+            std::unique_ptr<P2pPlayerProfile> other(P2pPlayerProfile::acquire(data));
+            QVERIFY(other);
+            QCOMPARE(other->playerNumber(), 4);
+        }
+
         // 2人目のアプリを閉じると、次に開いたアプリが2人目になる（3人目は動いたまま）
         second.reset();
         std::unique_ptr<P2pPlayerProfile> again(P2pPlayerProfile::acquire(data));

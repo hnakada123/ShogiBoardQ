@@ -73,9 +73,8 @@ bool P2pPlayerProfile::open()
 
 void P2pPlayerProfile::close()
 {
+    // 保存先のロックは手放さない（この部品を使い続けるので。手放すのはデストラクタ）
     m_identity->lock();
-    if (m_lock) m_lock->unlock();
-    m_lock.reset();
 }
 
 bool P2pPlayerProfile::isOpen() const
