@@ -106,6 +106,8 @@ bool P2pJournal::append(const CborValue& record)
     bytes.append(checksumOf(payload));
     bytes.append(payload);
     if (m_file.write(bytes) != bytes.size()) return false;
+    // 相手から受けた制御メッセージは、OS へ渡すだけにして、次に同期する件と一緒に同期する（同期はファイル全体に効く）
+    if (!P2p::RecordKinds::needsImmediateSync(record)) return m_file.flush();
     return syncToDisk(m_file);
 }
 

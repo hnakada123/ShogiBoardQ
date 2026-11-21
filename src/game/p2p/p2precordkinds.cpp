@@ -71,6 +71,14 @@ CborValue ending(Settlement settlement)
     return CborValue::array({CborValue::text(kEnding), CborValue::text(settlementName(settlement).toLatin1())});
 }
 
+bool needsImmediateSync(const CborValue& record)
+{
+    const std::vector<CborValue>& items = record.items();
+    const bool receivedControl = record.isArray() && items.size() == 3 && items.at(0).isText()
+                                 && items.at(0).data() == kControl && items.at(1).isUInt() && items.at(1).toUInt() == 0;
+    return !receivedControl;
+}
+
 std::optional<JournalReplay> replay(const std::vector<CborValue>& records)
 {
     JournalReplay out;

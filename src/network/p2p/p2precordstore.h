@@ -21,7 +21,8 @@
  * @brief 1局の対局ジャーナル（追記型。1件ごとに長さとチェックサムを付け、ストレージへの同期まで済ませる）
  *
  * 送る前の提案と ACK の前の受理証明は、ここへ書き終えてから外へ送る（実装仕様 9章）。書けなければ false を返し、
- * 呼ぶ側は署名・着手を進めずに中断する。
+ * 呼ぶ側は署名・着手を進めずに中断する。相手から受けた制御メッセージだけは、同期を次の件にまとめる
+ * （`P2p::RecordKinds::needsImmediateSync`）。
  */
 class P2pJournal
 {
@@ -30,7 +31,7 @@ public:
     static constexpr qint64 kMaxBytes = 16LL * 1024 * 1024;
 
     bool open(const QString& path);
-    /// 1件を追記する（上限を超える・書けない・同期できないときは false）
+    /// 1件を追記する（上限を超える・書けない・同期できないときは false。同期をまとめる件は OS へ渡すまで）
     bool append(const P2p::CborValue& record);
     void close() { m_file.close(); }
     QString path() const { return m_file.fileName(); }

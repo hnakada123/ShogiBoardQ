@@ -44,6 +44,11 @@ CborValue conflict(const GameState& first, const QByteArray& firstSignature, con
 CborValue control(bool sent, const CborValue& controlPayload);
 CborValue ending(Settlement settlement);
 
+/// 書いた後すぐにストレージへ同期する件か。相手から受けた制御メッセージは、相手の振る舞いの記録で、自分の署名や
+/// 送る前の約束を含まないので、次に同期する件と一緒に同期すればよい（1件ごとに同期すると、相手が制御メッセージを
+/// 続けて送るだけで、GUI のスレッドを同期の待ちで止められる。監査 2026-11-21 S7）
+bool needsImmediateSync(const CborValue& record);
+
 /// ジャーナルの件を書いた順に読み、証跡を組み立てる（形の合わない件は飛ばす。開始の件が無ければ nullopt）。
 /// 同じ手数の状態は後の件（署名が足されたもの）で置き換える
 std::optional<JournalReplay> replay(const std::vector<CborValue>& records);

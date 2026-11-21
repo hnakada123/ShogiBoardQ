@@ -13,6 +13,11 @@ namespace {
 constexpr qint64 kOpeningTimeoutMs = 30'000;
 /// 相手の最終結果への署名を待つ時間（実装仕様 8.2節）
 constexpr qint64 kResultSignatureWaitMs = 30'000;
+/// 相手の引き分け・中断の申し出を利用者に尋ねる数の上限。利用者が答えるまでの間は2件まで（正しい相手は、答えを
+/// 待つ間に引き分けと中断を1回ずつしか送らない）、1つの手数で8件まで（断られた後の申し出し直しは数回まで許す）。
+/// 超えた申し出は尋ねずに断る。続けて送って、盤の上に確認の箱を出し直し続けられないようにする（監査 2026-11-21 S7）
+constexpr int kMaxOffersBeforeAnswer = 2;
+constexpr int kMaxOffersAskedPerPly = 8;
 
 /// 接続ID（双方の乱数を先手・後手の順に並べて作る。実装仕様 8.3節）
 QByteArray connectionIdOf(const QByteArray& gameId, Turn me, const QByteArray& myRandom,
@@ -30,6 +35,19 @@ void Match::ResultExchange::clearProposals()
     opponentOffer.reset();
     drawOfferAwaitingAnswer = false;
     abortOfferAwaitingAnswer = false;
+}
+
+bool Match::ResultExchange::countOfferAsked(quint32 ply)
+{
+    if (ply != offersAskedPly) {
+        offersAskedPly = ply;
+        offersAsked = 0;
+        offersBeforeAnswer = 0;
+    }
+    if (offersAsked >= kMaxOffersAskedPerPly || offersBeforeAnswer >= kMaxOffersBeforeAnswer) return false;
+    ++offersAsked;
+    ++offersBeforeAnswer;
+    return true;
 }
 
 Match::Match(MatchSetup setup, SigningKey sessionKey, const SigningKey* playerKey, MonotonicClock clock, Persist persist)
@@ -525,11 +543,17 @@ void Match::handleControl(const ControlPayload& payload)
         handleResultPropose(payload.body, payload.control.bodyHash);
         return;
     case ControlKind::Abort:
-        // ABORT は一方的な離脱の通知で、合意中断ではない。対局を止め、結果未確定として閉じる
-        finish(Settlement::Aborted, ControlBody::parseAbort(payload.body).value_or(ErrorCode::Cancelled));
-        return;
     case ControlKind::Error:
-        finish(Settlement::Error, ControlBody::parseError(payload.body).value_or(ErrorCode::ConditionMismatch));
+        // 結果が一致して自分が署名した後の離脱は、相手の署名のない結果として閉じる（終わり方を中断・エラーに変えない。
+        // 証跡は同じで、手元の表示だけが変わっていた。監査 2026-11-21 I-17）
+        if (m_phase == Phase::Finishing) {
+            finish(Settlement::SignatureMissing, std::nullopt);
+        } else if (kind == ControlKind::Abort) {
+            // ABORT は一方的な離脱の通知で、合意中断ではない。対局を止め、結果未確定として閉じる
+            finish(Settlement::Aborted, ControlBody::parseAbort(payload.body).value_or(ErrorCode::Cancelled));
+        } else {
+            finish(Settlement::Error, ControlBody::parseError(payload.body).value_or(ErrorCode::ConditionMismatch));
+        }
         return;
     case ControlKind::ResultDecline: {
         const std::optional<QByteArray> declined = ControlBody::parseDecline(payload.body);
@@ -644,6 +668,7 @@ void Match::answerOffer(bool accept)
     if (!m_result.opponentOffer) return;
     const FinalResult offered = *m_result.opponentOffer;
     m_result.opponentOffer.reset();
+    m_result.offersBeforeAnswer = 0;
     // 回線が切れている間は承諾を送れないので、一致させない（つなぎ直した後に相手が申し出を送り直し、もう一度尋ねる）
     if (accept && m_phase == Phase::Playing && m_line.isCurrent(offered) && !m_pending) {
         acceptProposal(offered);
@@ -702,6 +727,10 @@ void Match::handleResultPropose(const CborValue& body, const QByteArray& bodyHas
     case Cause::AgreedDraw:
     case Cause::AgreedAbort:
         if (terminal) return decline(bodyHash);
+        // 尋ねている申し出と同じ申し出の送り直しは、尋ね直さない（今の答えが両方への答えになる）
+        if (m_result.opponentOffer && *m_result.opponentOffer == *result) return;
+        // 尋ねる数を超えた申し出は、尋ねずに断る
+        if (!m_result.countOfferAsked(result->ply)) return decline(bodyHash);
         // 利用者に尋ねる（答えるまでに手数が進めば無効）
         m_result.opponentOffer = result;
         emitEvent(MatchEvent{MatchEvent::Type::OfferReceived, {}, 0, *result});
@@ -734,14 +763,16 @@ void Match::agree(const FinalResult& result)
 void Match::handleResultSignature(const ResultSignaturePayload& payload)
 {
     if (payload.signature.side != sideCode(them())) return failWithError(ErrorCode::InvalidSignature, 0);
+    // 相手の提案より先に署名は届かない（フレームは順に届く）。結果が一致する前の署名は、確かめずに捨てる（件数に
+    // 数えないので、確かめると相手が署名の検証を何度でもさせられる。監査 2026-11-21 I-18）
+    if (!m_result.agreed) return;
+    // 同じ内容の署名の再送は許す（確かめ直さない）
+    if (!m_result.opponentSignature.isEmpty() && payload.signature.signature == m_result.opponentSignature) return;
     if (!Crypto::verify(opponentPlayerKey(), payload.result.toCbor(), payload.signature.signature)) {
         return failWithError(ErrorCode::InvalidSignature, 0);
     }
-    if (m_result.agreed && payload.result != *m_result.agreed) return failWithError(ErrorCode::StateConflict, 0);
-    // 同じ内容の署名の再送は許す
+    if (payload.result != *m_result.agreed) return failWithError(ErrorCode::StateConflict, 0);
     if (!m_result.opponentSignature.isEmpty()) return;
-    // 相手の提案より先に署名は届かない（フレームは順に届く）。合わない順序は受け付けない
-    if (!m_result.agreed) return;
     m_result.opponentSignature = payload.signature.signature;
     persist(RecordKinds::resultSignature(sideCode(them()), m_result.opponentSignature));
     finish(Settlement::MutuallySigned, std::nullopt);
@@ -774,6 +805,11 @@ void Match::connectionLost()
     case Phase::Playing:
         break;
     }
+    // 承認のない自分の手を送ってから待っていた時間（切れていた時間を除く）。相手が受け取って考えていたのか、届いて
+    // いなかったのかは区別できない。照合の後に送り直すときに、切断の時間として数える（finishResume）
+    m_unacknowledgedMs = m_pending && m_pending->sent
+                             ? m_timer.observedMs(now()) - m_timer.disconnectedSinceObservingMs(now())
+                             : 0;
     m_phase = Phase::Reconnecting;
     m_resync = Resync::AwaitingConnection;
     m_myRandom.clear();
@@ -876,9 +912,18 @@ void Match::finishResume()
 {
     if (m_phase != Phase::Reconnecting) return;
     m_timer.reconnected(now());
+    // 相手の承認のない自分の手は、同じバイト列で送り直し、相手の手番の観測をそこから数え直す（届いていなかった手の
+    // 相手の考慮を、届く前から数えないため）。数え直す前に承認を待った時間は、切断の時間として1局の切断の上限に
+    // 数える。数えないと、相手は承認を返さずに再接続を繰り返すだけで、1手に何分でも考えられる（監査 2026-11-21 S1）
+    if (m_pending) m_timer.addDisconnected(m_unacknowledgedMs);
+    m_unacknowledgedMs = 0;
+    if (m_timer.disconnectedTotalMs(now()) > static_cast<qint64>(NetworkPolicy::v1().disconnectTotalMs)) {
+        m_phase = Phase::Playing;
+        abort(ErrorCode::DisconnectLimit);
+        return;
+    }
     m_phase = Phase::Playing;
     emitEvent(MatchEvent{MatchEvent::Type::Resumed, {}, 0, std::nullopt});
-    // 相手の承認のない自分の手は、同じバイト列で送り直す
     if (m_pending) {
         m_pending->sent = false;
         resendPending();

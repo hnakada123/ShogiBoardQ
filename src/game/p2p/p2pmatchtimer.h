@@ -53,6 +53,8 @@ public:
         m_disconnectedTotal += now - m_disconnectStart;
         m_disconnectStart = -1;
     }
+    /// 切れていたとみなす時間を合計に足す（承認を待つ間の時間を、1局の切断の上限に数えるとき。負は足さない）
+    void addDisconnected(qint64 ms) { m_disconnectedTotal += qMax<qint64>(0, ms); }
     /// 今の切断の時間（切れていなければ -1）
     qint64 currentDisconnectMs(qint64 now) const { return m_disconnectStart >= 0 ? now - m_disconnectStart : -1; }
     /// 1局で回線が切れていた時間の合計（今の切断を含む）

@@ -179,9 +179,15 @@ private:
         QByteArray mySignature;
         QByteArray opponentSignature;
         qint64 agreedAt = 0;
+        /// 利用者に尋ねた相手の申し出の数（その手数で・利用者が最後に答えてから）と、その手数
+        quint32 offersAskedPly = 0;
+        int offersAsked = 0;
+        int offersBeforeAnswer = 0;
 
         /// 手数が進んだ・相手が断った（それまでの提案と申し出は無効）
         void clearProposals();
+        /// ply の手数で相手の申し出を利用者に尋ねてよいか（よければ数える）
+        bool countOfferAsked(quint32 ply);
     };
 
     // --- 共通 ---
@@ -264,6 +270,8 @@ private:
     qint64 m_startedAt = 0;          ///< 対局の開始（1局の実時間の上限）
     qint64 m_openingDeadline = 0;
     MatchTimer m_timer;              ///< 自分の消費時間・相手の手番の観測・切断の時間
+    /// 回線が切れたときに、承認のない自分の手を送ってから待っていた時間（照合の後に送り直すときに、切断の時間に数える）
+    qint64 m_unacknowledgedMs = 0;
     quint32 m_claimedTimeoutPly = 0xFFFFFFFFu;
     bool m_myTimeoutDeclared = false;
 

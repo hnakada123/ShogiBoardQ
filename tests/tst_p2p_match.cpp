@@ -53,6 +53,9 @@ public:
     /// 相手へ渡す直前のフレームを書き換える（版 1 だけの実装・条件を偽る相手を試す）
     std::function<void(Frame&)> rewriteToHost;
     std::function<void(Frame&)> rewriteToApplicant;
+    /// 相手へ渡さずに捨てるフレーム（受け取ったフレームを自分の状態機械へ渡さない改造したクライアントに見立てる）
+    std::function<bool(const Frame&)> dropToHost;
+    std::function<bool(const Frame&)> dropToApplicant;
 
     Pair(SidePreference applicantSide = SidePreference::None, SidePreference hostSide = SidePreference::None)
     {
@@ -119,13 +122,13 @@ public:
                 Frame f = toHost.front();
                 toHost.pop_front();
                 if (rewriteToHost) rewriteToHost(f);
-                deliver(host, f);
+                if (!dropToHost || !dropToHost(f)) deliver(host, f);
             }
             if (!toApplicant.empty()) {
                 Frame f = toApplicant.front();
                 toApplicant.pop_front();
                 if (rewriteToApplicant) rewriteToApplicant(f);
-                deliver(applicant, f);
+                if (!dropToApplicant || !dropToApplicant(f)) deliver(applicant, f);
             }
         }
         QFAIL("frames did not settle");
@@ -831,6 +834,100 @@ private slots:
         }
     }
 
+    /// 相手（改造したクライアント）が申し出を続けて送っても、利用者に尋ねるのは、答えるまでに2件・1つの手数で8件まで。
+    /// 尋ねている申し出の送り直しは尋ね直さない。以前は届くたびに尋ね直し、盤の上に確認の箱を出し直し続けられた
+    /// （監査 2026-11-21 S7）
+    void repeatedOffersAreAskedAFewTimesOnly()
+    {
+        LoneMatch lone(true);
+        Match& match = *lone.match;
+        match.begin();
+        const GameState state0 = GameRules::initialState(lone.gameId, lone.terms);
+        lone.accept(state0);
+        lone.control(ControlKind::Ready, ControlBody::ready(state0.hash()));
+        QCOMPARE(match.phase(), Match::Phase::Playing);
+        (void)match.takeOutgoing();
+        (void)match.takeEvents();
+        const auto asked = [&match]() {
+            const std::vector<MatchEvent> events = match.takeEvents();
+            return std::count_if(events.begin(), events.end(),
+                                 [](const MatchEvent& e) { return e.type == MatchEvent::Type::OfferReceived; });
+        };
+        const CborValue draw = lone.resultFor(Outcome::Draw, Cause::AgreedDraw).toCbor();
+        const CborValue abort = lone.resultFor(Outcome::Aborted, Cause::AgreedAbort).toCbor();
+
+        // 同じ申し出の送り直しは、尋ね直さない
+        lone.control(ControlKind::ResultPropose, draw);
+        lone.control(ControlKind::ResultPropose, draw);
+        QCOMPARE(asked(), 1);
+        // 答える前に、別の申し出への替えは1回まで（正しい相手と同じ）。それを超える申し出は尋ねずに断る
+        lone.control(ControlKind::ResultPropose, abort);
+        QCOMPARE(asked(), 1);
+        lone.control(ControlKind::ResultPropose, draw);
+        QCOMPARE(asked(), 0);
+        QVERIFY(lone.declinedWithoutSigning());
+        lone.control(ControlKind::ResultPropose, abort);   // 尋ねている申し出と同じ
+        QCOMPARE(asked(), 0);
+        QVERIFY(match.hasPendingOffer());
+
+        // 答えるたびにもう一度尋ねるが、1つの手数で8件まで
+        int total = 2;
+        for (int i = 0; i < 10; ++i) {
+            match.answerOffer(false);
+            lone.control(ControlKind::ResultPropose, i % 2 == 0 ? draw : abort);
+            total += static_cast<int>(asked());
+        }
+        QCOMPARE(total, 8);
+        QCOMPARE(match.phase(), Match::Phase::Playing);
+    }
+
+    /// 結果が一致して自分が署名した後に相手が離脱しても、終わり方は「相手の署名がない」のまま（中断・エラーにしない。
+    /// 監査 2026-11-21 I-17）。結果が一致する前に届いた結果への署名は、確かめずに捨てる（I-18）
+    void abortAfterAgreementKeepsTheMissingSignature()
+    {
+        LoneMatch lone(true);
+        Match& match = *lone.match;
+        match.begin();
+        GameState state = GameRules::initialState(lone.gameId, lone.terms);
+        lone.accept(state);
+        lone.control(ControlKind::Ready, ControlBody::ready(state.hash()));
+        QCOMPARE(match.phase(), Match::Phase::Playing);
+        // 自分（先手）が指し、相手が承認する
+        lone.clockMs += 1000;
+        QCOMPARE(match.playMove(UsiMove::fromString(u"7g7f")), Match::MoveError::None);
+        const std::optional<GameState> next = GameRules::nextState(state, UsiMove::fromString(u"7g7f"), 1000, lone.terms);
+        QVERIFY(next);
+        lone.accept(*next);
+        QCOMPARE(match.lastState().ply, quint32(1));
+
+        // 結果が一致する前の、形の合う署名（中身は正しくない）は捨て、対局は続く
+        ResultSignaturePayload early;
+        early.result = lone.resultFor(Outcome::BlackWins, Cause::Resign);
+        early.signature.side = kSideWhite;
+        early.signature.signature = QByteArray(64, 'x');
+        lone.deliver(FrameType::ResultSignature, early.toCbor());
+        QCOMPARE(match.phase(), Match::Phase::Playing);
+
+        // 相手（後手）が投了し、自分が同意して署名する
+        lone.control(ControlKind::ResultPropose, lone.resultFor(Outcome::BlackWins, Cause::Resign).toCbor());
+        QCOMPARE(match.phase(), Match::Phase::Finishing);
+        // 相手は署名を返さずに離脱する
+        lone.control(ControlKind::Abort, ControlBody::abort(match.lastState().hash(), ErrorCode::Cancelled));
+        QCOMPARE(match.phase(), Match::Phase::Finished);
+        QCOMPARE(match.settlement(), Settlement::SignatureMissing);
+    }
+
+    /// 相手から受けた制御メッセージだけは、ジャーナルの同期を次の件にまとめる（自分の署名・送る前の約束はすぐ同期する。
+    /// 監査 2026-11-21 S7）
+    void receivedControlIsSyncedWithTheNextRecord()
+    {
+        const CborValue body = ControlBody::decline(QByteArray(32, 'h'));
+        QVERIFY(!RecordKinds::needsImmediateSync(RecordKinds::control(false, body)));
+        QVERIFY(RecordKinds::needsImmediateSync(RecordKinds::control(true, body)));
+        QVERIFY(RecordKinds::needsImmediateSync(RecordKinds::resultSignature(kSideBlack, QByteArray(64, 's'))));
+        QVERIFY(RecordKinds::needsImmediateSync(RecordKinds::ending(Settlement::Aborted)));
+    }
+
     /// 届くのが許容差より遅れた手（観測 − 申告 > 10秒）は承認せずに中断する
     void clockMismatchStopsTheGame()
     {
@@ -904,6 +1001,74 @@ private slots:
         QCOMPARE(white.match->lastState().ply, quint32(1));
         QCOMPARE(black.match->lastState().ply, quint32(1));
         QVERIFY(pair.hasEvent(black, MatchEvent::Type::Resumed));
+    }
+
+    /// 相手（改造したクライアント）が自分の手の承認を返さずに、再接続を繰り返す。承認を待った時間は1局の切断の上限に
+    /// 数えるので、上限を超えたところで中断する。以前は再接続のたびに相手の手番の観測を数え直し、相手は1手に何分でも
+    /// 考えられた（持ち時間1分の対局で603秒。監査 2026-11-21 S1）
+    void withheldAcceptanceCountsTowardTheDisconnectLimit()
+    {
+        Pair pair;
+        pair.negotiateAndStart();
+        Side& black = pair.black();
+        Side& white = pair.white();
+        // 後手は先手の提案を読むだけで、自分の状態機械へ渡さない（承認を返さない）
+        const auto withhold = [](const Frame& f) { return f.type == FrameType::StatePropose; };
+        if (&white == &pair.host) pair.dropToHost = withhold;
+        else pair.dropToApplicant = withhold;
+        pair.clock.ms += 1000;
+        QCOMPARE(black.match->playMove(UsiMove::fromString(u"7g7f")), Match::MoveError::None);
+        pair.pump();
+        const qint64 sentAt = pair.clock.ms;
+        const auto limit = static_cast<qint64>(NetworkPolicy::v1().disconnectTotalMs);
+        for (int cycle = 0; cycle < 40 && black.match->phase() != Match::Phase::Finished; ++cycle) {
+            // 先手が切れたと気づく（30秒）前に、後手が新しい接続を開いて照合をやり直させる
+            pair.clock.ms += 29'900;
+            black.match->tick();
+            for (Side* s : {&pair.applicant, &pair.host}) s->match->connectionLost();
+            pair.pump();
+            for (Side* s : {&pair.applicant, &pair.host}) s->match->connectionEstablished();
+            pair.pump();
+        }
+        QCOMPARE(black.match->phase(), Match::Phase::Finished);
+        QCOMPARE(black.match->settlement(), Settlement::Aborted);
+        QCOMPARE(black.match->endingError(), std::optional<ErrorCode>(ErrorCode::DisconnectLimit));
+        QCOMPARE(black.match->lastState().ply, quint32(0));
+        // 後手が承認を待たせられたのは、1局の切断の上限と、照合1回分まで
+        QVERIFY(pair.clock.ms - sentAt <= limit + 30'000);
+        // 後手にも中断が伝わる
+        QCOMPARE(white.match->phase(), Match::Phase::Finished);
+    }
+
+    /// 承認を待つ間に本当に回線が切れた手は、送り直してそのまま続く（待った時間は切断の上限に数えるだけ）
+    void lostMoveIsResentAndChargedOnce()
+    {
+        Pair pair;
+        pair.negotiateAndStart();
+        Side& black = pair.black();
+        Side& white = pair.white();
+        pair.connected = false;
+        pair.clock.ms += 1000;
+        QCOMPARE(black.match->playMove(UsiMove::fromString(u"7g7f")), Match::MoveError::None);
+        pair.pump();
+        // 後手は接続が切れたことに気づき、先手は承認が30秒来ないことで気づく
+        white.match->connectionLost();
+        pair.clock.ms += 30'001;
+        black.match->tick();
+        QCOMPARE(black.match->phase(), Match::Phase::Reconnecting);
+        pair.clock.ms += 2000;
+        pair.connected = true;
+        black.match->connectionEstablished();
+        white.match->connectionEstablished();
+        pair.pump();
+        QCOMPARE(black.match->phase(), Match::Phase::Playing);
+        QCOMPARE(white.match->lastState().ply, quint32(1));
+        // 待った30秒と切れていた2秒を、切断の時間に数える
+        QVERIFY(black.match->reconnectTotalMs() >= 32'000);
+        // 後手は届いた時点から考えた時間を申告して指せる
+        pair.play(white, "3c3d", 5000);
+        QCOMPARE(black.match->lastState().ply, quint32(2));
+        QCOMPARE(black.match->phase(), Match::Phase::Playing);
     }
 
     void reconnectSyncsAMissingAcceptance()
