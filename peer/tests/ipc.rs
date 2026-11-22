@@ -858,6 +858,43 @@ fn spawn_service_with(options: &[&str]) -> Service {
     }
 }
 
+/// 協力ノードは、--listen のうち開けなかったアドレスを標準エラーに書き、開けたもので動く
+/// （以前は黙って飛ばし、そのアドレスでつなぐ利用者のアプリがつながらない理由が分からなかった）
+#[test]
+fn service_reports_a_listen_address_it_could_not_open() {
+    let busy = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let busy_addr = format!("/ip4/127.0.0.1/tcp/{}", busy.local_addr().unwrap().port());
+    let free_port = std::net::TcpListener::bind("127.0.0.1:0")
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port();
+    let free_addr = format!("/ip4/127.0.0.1/tcp/{free_port}");
+    let dir = std::env::temp_dir().join(format!("sbq-peer-test-{}-{}", std::process::id(), free_port));
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut child = Command::new(BIN)
+        .args(["--service", "--network", "sbq-local-1", "--identity"])
+        .arg(dir.join("identity.key"))
+        .args(["--listen", &busy_addr, "--listen", &free_addr])
+        .env_clear()
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut stderr = BufReader::new(child.stderr.take().unwrap());
+    let mut first = String::new();
+    stderr.read_line(&mut first).unwrap();
+    let mut second = String::new();
+    stderr.read_line(&mut second).unwrap();
+    let _ = child.kill();
+    let _ = child.wait();
+    let _ = std::fs::remove_dir_all(&dir);
+    drop(busy);
+    assert_eq!(first.trim(), format!("shogiboardq-peer: could not listen on {busy_addr}"));
+    assert!(second.contains("service started"), "{second}");
+}
+
 /// 招待の到達候補を、中継経由かどうかに分けて数える
 fn invite_routes(text: &str) -> (usize, usize) {
     let invite = Invite::decode(text).unwrap();

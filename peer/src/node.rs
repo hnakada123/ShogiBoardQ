@@ -256,7 +256,21 @@ impl Node {
             meet: meet_service.clone(),
         })?;
 
-        if listen::open(&mut swarm, config.listen) == 0 {
+        // 協力ノードの --listen は運用する人が指定したアドレスなので、そのまま試し、開けなかったものを標準エラーに
+        // 書く（一部だけ開けないと、そのアドレスでつなぐ利用者のアプリが黙ってつながらない）。書くのは自分の待受の
+        // アドレスだけで、接続元の IP ではない
+        let source = if role.is_service() {
+            listen::Source::Specified
+        } else {
+            listen::Source::Candidates
+        };
+        let opened = listen::open(&mut swarm, config.listen, source);
+        if role.is_service() {
+            for addr in &opened.failed {
+                eprintln!("shogiboardq-peer: could not listen on {addr}");
+            }
+        }
+        if opened.listening == 0 {
             return Err("could not listen".into());
         }
 
