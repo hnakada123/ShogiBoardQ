@@ -20,7 +20,28 @@
 #include <QFile>
 #include <QTemporaryDir>
 
+#ifdef Q_OS_WIN
+#include <filesystem>
+#include <system_error>
+#endif
+
 using namespace ParamSpecs;
+
+namespace {
+/// シンボリックリンク link を作る（target は無くてもよい）。作れなければ false
+/// （Windows の QFile::link はショートカット（.lnk の中身を持つ通常のファイル）を作るので使わない。
+/// Windows のシンボリックリンクは開発者モードか管理者の権限が要り、無ければ作れない）
+bool makeSymbolicLink(const QString& target, const QString& link)
+{
+#ifdef Q_OS_WIN
+    std::error_code error;
+    std::filesystem::create_symlink(std::filesystem::path(target.toStdWString()), std::filesystem::path(link.toStdWString()), error);
+    return !error;
+#else
+    return QFile::link(target, link);
+#endif
+}
+} // namespace
 
 class TestParamSpecs : public QObject
 {
@@ -206,7 +227,7 @@ private slots:
         QVERIFY(!OutputPath::check(dir.filePath(QStringLiteral("new.kif")), false, QStringLiteral("--overwrite")));
         // シンボリックリンクには書かない。リンク先がまだ無くても、上書きを許しても（セキュリティ監査 S15）
         const QString dangling = dir.filePath(QStringLiteral("link.kif"));
-        if (QFile::link(dir.filePath(QStringLiteral("other/created.kif")), dangling)) {
+        if (makeSymbolicLink(dir.filePath(QStringLiteral("other/created.kif")), dangling)) {
             QCOMPARE(OutputPath::check(dangling, false, QStringLiteral("--overwrite"))->kind, ErrorKind::InvalidArgument);
             QCOMPARE(OutputPath::check(dangling, true, QStringLiteral("--overwrite"))->kind, ErrorKind::InvalidArgument);
         }
@@ -276,7 +297,7 @@ private slots:
         // リンクはたどって確かめる（ファイルへのリンクは読める。リンク先がなければ無いファイル）
         const QString link = dir.filePath(QStringLiteral("link.kif"));
         const QString dangling = dir.filePath(QStringLiteral("dangling.kif"));
-        if (QFile::link(existing, link) && QFile::link(dir.filePath(QStringLiteral("gone.kif")), dangling)) {
+        if (makeSymbolicLink(existing, link) && makeSymbolicLink(dir.filePath(QStringLiteral("gone.kif")), dangling)) {
             QVERIFY(!InputPath::check(link));
             QCOMPARE(InputPath::check(dangling)->kind, ErrorKind::NotFound);
         }

@@ -3,9 +3,11 @@
 
 #include "timecontrol_test_helper.h"
 #include <QTemporaryDir>
+#include <QFontDatabase>
 #include <QFrame>
 
 #include "elidelabel.h"
+#include "applicationfonts.h"
 #include "boardappearance.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
@@ -257,6 +259,54 @@ private slots:
         QVERIFY(qAbs(blended.red() - (255 + custom.cardBackground.red()) / 2) <= 1);
         QVERIFY(qAbs(blended.green() - (255 + custom.cardBackground.green()) / 2) <= 1);
         QVERIFY(qAbs(blended.blue() - (255 + custom.cardBackground.blue()) / 2) <= 1);
+    }
+
+    /// 書体の設定で書体を変えたら（ApplicationFonts::applyFamily）、対局者カードと盤の位置を、
+    /// 新しい書体で作った盤と同じに置き直す（カードの高さは名前と時計の書体の行の高さで決まる）
+    void fontChangeRelayoutsPlayerCards()
+    {
+        struct RestoreFont {
+            QFont font = QApplication::font();
+            ~RestoreFont()
+            {
+                ApplicationFonts::applyFamily(QString());
+                QApplication::setFont(font);
+            }
+        } restore;
+        // 起動時と同じく、盤を作る前に標準の書体を決める
+        ApplicationFonts::initialize();
+        GameBoard gc;
+        gc.newGame(SfenUtils::hirateSfen());
+        ShogiView view;
+        view.setBoard(gc.board());
+        view.resize(view.sizeHint());
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        // 大きさは盤のマスから決まるので、名前と同じ大きさで行の高さが違う書体を探す
+        QFont current = view.chrome()->card(Turn::Black)->nameLabel()->font();
+        QString other;
+        const QStringList families = QFontDatabase::families();
+        for (const QString& family : families) {
+            QFont candidate = current;
+            candidate.setFamilies({family});
+            if (QFontMetrics(candidate).height() == QFontMetrics(current).height()) continue;
+            other = family;
+            break;
+        }
+        if (other.isEmpty()) QSKIP("No installed font family with a different line height");
+
+        ApplicationFonts::applyFamily(other);
+        ShogiView fresh;
+        fresh.setBoard(gc.board());
+        fresh.resize(view.size());
+        fresh.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&fresh));
+        QCOMPARE(view.chrome()->cardHeight(), fresh.chrome()->cardHeight());
+        for (const Turn side : {Turn::Black, Turn::White}) {
+            QCOMPARE(view.chrome()->card(side)->geometry(), fresh.chrome()->card(side)->geometry());
+            QCOMPARE(view.chrome()->card(side)->nameLabel()->geometry(), fresh.chrome()->card(side)->nameLabel()->geometry());
+        }
+        QCOMPARE(view.sizeHint(), fresh.sizeHint());
     }
 
     // 対局者の名前・時計・枠のスタイルシートは色の組ごとに覚えて使い回す。手番・緊急度・

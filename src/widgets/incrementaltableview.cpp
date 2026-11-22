@@ -306,9 +306,15 @@ void IncrementalTableView::doItemsLayout()
     updateGeometries();
     if (!verticalHeader()->updatesEnabled()) verticalHeader()->setUpdatesEnabled(true);
 
-    // すべての行を消した後は、行を描いていた範囲が空になるだけ（残る行が無いので、画面のずらしは要らない）
+    // すべての行を消した後は、行を描いていた範囲が空になるだけ（残る行が無いので、画面のずらしは要らない）。
+    // 縦のスクロールバーが消えるなら、表示領域の幅が変わって全体を描き直すので、行の範囲は頼まない
+    // （QAbstractScrollArea はスクロールバーを後から（キューで）隠すので、間に描画が入ると、空の表を2回描く。
+    // Windows ではその順になる）
     if (change == Change::RemoveAll) {
-        if (!m_removedRowsRect.isEmpty()) viewport()->update(m_removedRowsRect);
+        const QScrollBar* bar = verticalScrollBar();
+        const bool scrollBarHides = verticalScrollBarPolicy() == Qt::ScrollBarAsNeeded && bar->isVisible()
+            && bar->minimum() == bar->maximum();
+        if (!m_removedRowsRect.isEmpty() && !scrollBarHides) viewport()->update(m_removedRowsRect);
         return;
     }
 

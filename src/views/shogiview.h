@@ -159,6 +159,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent* event) override;
     void resizeEvent(QResizeEvent* e) override;
     void wheelEvent(QWheelEvent* e) override;  // Ctrl+ホイールで拡大縮小
+    void changeEvent(QEvent* event) override;   // 書体が変わったら盤の位置とカードを置き直す
 
 private:
     // ───────────────────────────── 描画ヘルパ（盤/駒/ラベル） ────────────────

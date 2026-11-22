@@ -4,5 +4,8 @@
 # 問題集は SHA-256 で検証レポートと照合するため、Windows でも改行を LF のまま保つ
 data/tsumeshogi/*.txt text eol=lf
 
+# アプリに内蔵するライセンス文書は、収録した原文のまま表示するため、Windows でも改行を LF のまま保つ
+resources/licenses/* text eol=lf
+
 # コメント付き棋譜は Shift_JIS・CRLF の読込を検証する
 tests/fixtures/test_synthetic_comments.kif text eol=crlf

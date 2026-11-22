@@ -44,6 +44,8 @@ QString after(const QString& sfen, const QString& moves)
 }
 
 // 深さ制限はUnknown。有限探索のLimitを不詰証明へ変換しない。
+// 探索は深さ5手までなので時間は限らない（時間で打ち切ると、Debug ビルドなど遅い環境だけ答えが Unknown に変わる）
+constexpr int kNoTimeLimit = 0;
 Reply solve(const QString& sfen, QStringList& pv)
 {
     shogi::Position position;
@@ -51,7 +53,7 @@ Reply solve(const QString& sfen, QStringList& pv)
     const auto attacker = position.side_to_move();
     std::atomic_bool stop{false};
     shogi::TsumeSearch search;
-    auto result = search.solve(position, attacker, 5, 100, stop);
+    auto result = search.solve(position, attacker, 5, kNoTimeLimit, stop);
     if (result.status == shogi::TsumeStatus::NoMate) return Reply::NoMate;
     if (result.status != shogi::TsumeStatus::Mate) return Reply::Unknown;
     int remaining = result.plies;
@@ -60,7 +62,7 @@ Reply solve(const QString& sfen, QStringList& pv)
         pv.append(QString::fromStdString(position.move_to_usi(result.move)));
         position.do_move(result.move);
         --remaining;
-        result = search.solve(position, attacker, remaining, 100, stop);
+        result = search.solve(position, attacker, remaining, kNoTimeLimit, stop);
         if (result.status != shogi::TsumeStatus::Mate) return Reply::Unknown;
     }
     return Reply::Mate;

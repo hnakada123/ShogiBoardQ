@@ -5,6 +5,7 @@
 /// MCP サーバー（mcp/shogiboardq_mcp）から呼ばれることを想定し、標準出力は JSON 専用とする。
 
 #include "appidentity.h"
+#include "applicationfonts.h"
 #include "clicommands.h"
 #include "clicommandspecs.h"
 #include "clioutput.h"
@@ -79,7 +80,10 @@ int main(int argc, char* argv[])
     if (!qEnvironmentVariableIsSet("QT_QPA_PLATFORM")) {
         qputenv("QT_QPA_PLATFORM", QByteArrayLiteral("offscreen"));
     }
+    // Windows の offscreen でも、盤面画像の文字（筋・段・対局者名）を OS の書体で描く
+    ApplicationFonts::prepareOffscreenFonts();
     QApplication app(argc, argv);
+    ApplicationFonts::useOffscreenSystemFont();
     // 設定ファイル（登録エンジン・盤面配色・駒画像）の場所を GUI と揃える
     app.setApplicationName(QString::fromLatin1(AppIdentity::kApplicationName));
     app.setApplicationVersion(QStringLiteral(APP_VERSION));

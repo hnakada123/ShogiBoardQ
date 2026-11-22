@@ -1,6 +1,7 @@
 #include "applicationfonts.h"
 
 #include <QApplication>
+#include <QDir>
 #include <QFontDatabase>
 #include <QEvent>
 #include <QLocale>
@@ -119,6 +120,33 @@ protected:
 };
 
 } // namespace
+
+void ApplicationFonts::prepareOffscreenFonts()
+{
+#ifdef Q_OS_WIN
+    if (!qEnvironmentVariable("QT_QPA_PLATFORM").startsWith(QLatin1String("offscreen"))
+        || qEnvironmentVariableIsSet("QT_QPA_FONTDIR"))
+        return;
+    const QString windows = qEnvironmentVariable("WINDIR", QStringLiteral("C:\\Windows"));
+    qputenv("QT_QPA_FONTDIR", QDir::toNativeSeparators(QDir(windows).filePath(QStringLiteral("Fonts"))).toLocal8Bit());
+#endif
+}
+
+void ApplicationFonts::useOffscreenSystemFont()
+{
+#ifdef Q_OS_WIN
+    if (!qobject_cast<QGuiApplication*>(QCoreApplication::instance())
+        || QGuiApplication::platformName() != QLatin1String("offscreen"))
+        return;
+    const QStringList families{QStringLiteral("Segoe UI"), QStringLiteral("Yu Gothic UI"),
+                               QStringLiteral("Microsoft YaHei UI"), QStringLiteral("Microsoft JhengHei UI")};
+    // 既に決めてあれば（試験は起動時に決める）、同じ書体をもう一度渡して書体の変更を知らせない
+    if (QGuiApplication::font().families() == families) return;
+    QFont font(families.first(), 9);
+    font.setFamilies(families);
+    QGuiApplication::setFont(font);
+#endif
+}
 
 void ApplicationFonts::initialize(const QString& selected, const QString& language)
 {

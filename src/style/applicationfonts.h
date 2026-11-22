@@ -8,6 +8,18 @@ class QWidget;
 /// 表示言語に応じたGUI共通の書体と、日本語棋譜の字形。
 namespace ApplicationFonts {
 
+/// 画面を出さずに描く（offscreen。CLI の盤面画像・自動化 API・試験）ときにも、OS の書体で描けるようにする。
+/// QApplication を作る前に呼ぶ。Windows の offscreen は書体を QT_QPA_FONTDIR（無ければ Qt の lib/fonts）からしか
+/// 読まず、書体が1つも無いまま文字を描く（すべて四角になる）ので、Windows の書体のフォルダを渡す。
+/// Windows の offscreen でなければ何もしない。
+void prepareOffscreenFonts();
+
+/// Windows の offscreen の既定の書体を、Windows の UI の書体（Segoe UI 9 ポイント。日本語・中国語は各言語の
+/// UI の書体で補う）にする。offscreen は書体の名前の置き換えを持たず、既定の書体（"Sans Serif"）が名前の順で
+/// 最初の書体（Agency FB など）になるため。QApplication を作った後、書体を決める（initialize）前に呼ぶ。
+/// Windows の offscreen でなければ何もしない。
+void useOffscreenSystemFont();
+
 /// QApplication の生成・スタイル設定後、ウィジェット生成前に呼ぶ。
 void initialize(const QString& family = {}, const QString& language = QStringLiteral("ja_JP"));
 

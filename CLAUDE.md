@@ -169,7 +169,7 @@ cmake --build build --target translations
   - 試験: `tst_p2p_protocol`（形式と記録。対局者の種別の4通りの Rules は `protocol/testvectors/rules.txt`）・`tst_p2p_match`（状態機械。版 1 だけの相手は、HELLO の一覧から版 2 を外して作る）・`tst_p2p_coordinator`（司令塔の結合。エンジンで指す対局は `mock_usi_match`）・`tst_p2p_endtoend`（本物の通信プロセス2つ）・`tst_p2p_sandbox`（アプリと同じ起動のしかたで通信プロセスの自己試験を動かし、禁止した操作の拒否を確かめる）。`cargo test`
 
 - **style/**: ウィジェットの書体と見た目（QWidget に依存する。analysis・network の上、models の下の層。`engine`〜`network`・`models` を参照しない）
-  - `applicationfonts` - 表示言語に応じた書体 `ApplicationFonts`
+  - `applicationfonts` - 表示言語に応じた書体 `ApplicationFonts`（Windows の offscreen（CLI の盤面画像・自動化 API・試験）は書体を読めないまま描くので、QApplication の前に `prepareOffscreenFonts` で Windows の書体のフォルダを渡し、作った直後に `useOffscreenSystemFont` で既定の書体を UI の書体にする。試験は `tests/CMakeLists.txt` の `SHOGI_TEST_OFFSCREEN_ENV` と `tests/offscreen_test_font.cpp`）
   - `applicationstyle`・`applicationrendering` - アプリ全体のスタイルと描画の設定（`ApplicationRendering::useActiveColorsWhenInactive` は、後ろに回ったウィンドウも前面と同じ色で描かせる。Qt は前面・後ろでパレットの違う部品を、切り替えのたびにすべて描き直すため）
   - `buttonstyles.h`・`tablestyles.h` - ボタン・表のスタイルシート（`ButtonStyles`・`TableStyles`）
   - `plaintooltip` - 外から来た文字列（棋譜のコメント・独自の終局語・対局情報・定跡ファイルのコメント・読み筋・エンジン名・対局者名・ファイルの場所）を、HTML として読ませずに文字のまま出すツールチップ `plainToolTip`（エスケープし、空白と改行もそのまま。区切り線で分ける段は `QStringList`）。`setToolTip`・`Qt::ToolTipRole` に外から来た文字列を入れるときはこれで包む（models・widgets で共通。自前のポップアップ `GlobalToolTip` は PlainText のラベルなので包まない）。利用者に見える文字に戻すのは `shownToolTipText`（自動化 API の部品の一覧の `tooltip`）

@@ -108,9 +108,21 @@ add_library(applicationfonts_test STATIC ${SRC}/style/applicationfonts.cpp)
 target_include_directories(applicationfonts_test PRIVATE ${TEST_INCLUDES})
 target_link_libraries(applicationfonts_test PRIVATE Qt6::Widgets)
 
+# 画面を出さずに試験する（offscreen）ときの環境変数。Windows の offscreen は書体を Qt の lib/fonts からしか
+# 探さず、書体が1つも無いまま文字の幅を測るので、Windows の書体のフォルダを渡す（既定の書体は offscreen_test_font.cpp）
+set(SHOGI_TEST_OFFSCREEN_ENV "QT_QPA_PLATFORM=offscreen")
+if(WIN32)
+    if(DEFINED ENV{WINDIR})
+        file(TO_CMAKE_PATH "$ENV{WINDIR}/Fonts" _shogi_windows_font_dir)
+    else()
+        set(_shogi_windows_font_dir "C:/Windows/Fonts")
+    endif()
+    string(APPEND SHOGI_TEST_OFFSCREEN_ENV ";QT_QPA_FONTDIR=${_shogi_windows_font_dir}")
+endif()
+
 # ---- Helper macro to add a test ----
 macro(add_shogi_test NAME)
-    add_executable(${NAME} ${ARGN})
+    add_executable(${NAME} ${ARGN} ${CMAKE_CURRENT_SOURCE_DIR}/offscreen_test_font.cpp)
     target_include_directories(${NAME} PRIVATE ${TEST_INCLUDES})
     target_compile_definitions(${NAME} PRIVATE SHOGIBOARDQ_TESTING=1)
     target_link_libraries(${NAME} PRIVATE ${TEST_LIBS} kifupresentation_test applicationfonts_test position_test)
@@ -118,7 +130,7 @@ macro(add_shogi_test NAME)
     add_test(NAME ${NAME} COMMAND ${NAME})
     # ヘッドレスCI環境でもWidgetsテストを実行できるようにする
     set_tests_properties(${NAME} PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;SHOGIBOARDQ_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/${NAME};XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/${NAME}"
+        ENVIRONMENT "${SHOGI_TEST_OFFSCREEN_ENV};SHOGIBOARDQ_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/${NAME};XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/${NAME}"
     )
 endmacro()
 
@@ -997,7 +1009,10 @@ add_executable(bench_movevalidator
 )
 target_include_directories(bench_movevalidator PRIVATE ${TEST_INCLUDES})
 target_link_libraries(bench_movevalidator PRIVATE ${TEST_LIBS} position_test)
-target_compile_options(bench_movevalidator PRIVATE -O2)
+# 最適化して測る。MSVC の Debug は /RTC1 と /O2 を同時に指定できないので、MSVC はビルド型の最適化に任せる
+if(NOT MSVC)
+    target_compile_options(bench_movevalidator PRIVATE -O2)
+endif()
 
 # Hayanagiの詰将棋探索・局面集・非同期対局フロー
 add_executable(mock_tsume_engine mock_tsume_engine.cpp)
@@ -1164,7 +1179,7 @@ if(Python3_Interpreter_FOUND)
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/mcp
         )
         set_tests_properties(tst_mcp_python PROPERTIES
-            ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1;QT_QPA_PLATFORM=offscreen;SHOGIBOARDQ_CLI=$<TARGET_FILE:shogiboardq-cli>;SHOGIBOARDQ_EXECUTABLE=$<TARGET_FILE:ShogiBoardQ>;SHOGIBOARDQ_TEST_USI_ENGINE=$<TARGET_FILE:hayanagi>;SHOGIBOARDQ_TEST_MATE_ENGINE=$<TARGET_FILE:mock_mate_engine>"
+            ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1;${SHOGI_TEST_OFFSCREEN_ENV};SHOGIBOARDQ_CLI=$<TARGET_FILE:shogiboardq-cli>;SHOGIBOARDQ_EXECUTABLE=$<TARGET_FILE:ShogiBoardQ>;SHOGIBOARDQ_TEST_USI_ENGINE=$<TARGET_FILE:hayanagi>;SHOGIBOARDQ_TEST_MATE_ENGINE=$<TARGET_FILE:mock_mate_engine>"
             TIMEOUT 600
         )
     else()
@@ -1261,10 +1276,10 @@ target_link_libraries(tst_thinking_display_updates PRIVATE shogiboardq_static)
 # 読み筋の列は文字を自分で描く。小数倍率でも Qt が描いた場合と同じ画素になることを確かめる
 add_test(NAME tst_thinking_display_updates_scaled COMMAND tst_thinking_display_updates)
 set_tests_properties(tst_thinking_display_updates_scaled PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=1.25")
+    ENVIRONMENT "${SHOGI_TEST_OFFSCREEN_ENV};QT_SCALE_FACTOR=1.25")
 add_test(NAME tst_thinking_display_updates_scaled15 COMMAND tst_thinking_display_updates)
 set_tests_properties(tst_thinking_display_updates_scaled15 PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=1.5")
+    ENVIRONMENT "${SHOGI_TEST_OFFSCREEN_ENV};QT_SCALE_FACTOR=1.5")
 add_shogi_test(tst_application_style tst_application_style.cpp)
 target_link_libraries(tst_application_style PRIVATE shogiboardq_static)
 add_shogi_test(tst_application_rendering tst_application_rendering.cpp)
@@ -1281,7 +1296,7 @@ target_link_libraries(tst_incremental_table_view PRIVATE shogiboardq_static)
 # 小数倍率では表示領域を不透明にせず、全体を描き直す経路を使う。その場合も画面が正しいことを確かめる
 add_test(NAME tst_incremental_table_view_scaled COMMAND tst_incremental_table_view)
 set_tests_properties(tst_incremental_table_view_scaled PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=1.25")
+    ENVIRONMENT "${SHOGI_TEST_OFFSCREEN_ENV};QT_SCALE_FACTOR=1.25")
 add_shogi_test(tst_candidate_arrows tst_candidate_arrows.cpp)
 target_link_libraries(tst_candidate_arrows PRIVATE shogiboardq_static)
 add_shogi_test(tst_plain_tooltip tst_plain_tooltip.cpp)
@@ -1372,7 +1387,7 @@ if(ENABLE_P2P_PLAY)
             $<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME} $<TARGET_FILE_DIR:tst_p2p_endtoend>/${SBQ_PEER_NAME}
         VERBATIM)
     set_tests_properties(tst_p2p_endtoend PROPERTIES TIMEOUT 180
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;SHOGIBOARDQ_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/tst_p2p_endtoend")
+        ENVIRONMENT "${SHOGI_TEST_OFFSCREEN_ENV};SHOGIBOARDQ_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/tst_p2p_endtoend")
 endif()
 if(ENABLE_P2P_PLAY)
     # 通信プロセスの権限の制限（アプリと同じ起動のしかたで起動し、禁止した操作が拒否される。Linux と Windows）

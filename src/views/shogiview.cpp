@@ -344,6 +344,15 @@ void ShogiView::resizeEvent(QResizeEvent* e)
     relayoutChrome();
 }
 
+void ShogiView::changeEvent(QEvent* event)
+{
+    QWidget::changeEvent(event);
+    // 書体が変わると（書体の設定・表示言語の切り替え）、段の文字の幅で決まる盤と駒台の間と、名前と時計の
+    // 書体で決まる対局者カードの高さが変わる。Qt は子（カードの層）へ先に新しい書体を渡しているので、
+    // 盤の位置を計算し直して、カードを置き直す
+    if (event->type() == QEvent::FontChange) applyBoardScaleChange(squareSize());
+}
+
 void ShogiView::wheelEvent(QWheelEvent* e)
 {
     if (e->modifiers() & Qt::ControlModifier) {

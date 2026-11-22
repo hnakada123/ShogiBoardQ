@@ -64,11 +64,14 @@ int main(int argc, char *argv[])
 {
     // 塗りを別のスレッドに分けさせない。Qt が初めて描くより前に設定する。
     ApplicationRendering::paintOnGuiThreadOnly();
+    // 画面を出さずに動かす（QT_QPA_PLATFORM=offscreen。自動化 API の試験など）ときも OS の書体で描く
+    ApplicationFonts::prepareOffscreenFonts();
 
     // QApplication の破棄時にもログを出せるよう先に生成する。
     const ApplicationLogging logging;
 
     QApplication a(argc, argv);
+    ApplicationFonts::useOffscreenSystemFont();
     a.setApplicationName(QString::fromLatin1(AppIdentity::kApplicationName));
     a.setApplicationVersion(QStringLiteral(APP_VERSION));
     // 以前の版の設定ファイルにあるエンジンごとの設定を、今の保存先へ移す

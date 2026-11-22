@@ -647,8 +647,8 @@ private slots:
         QVERIFY(qAbs((rect(buttons.first()).left() + rect(buttons.last()).right()) / 2 - widget.width() / 2) <= 2);
         QVERIFY(rect(widget.chartViewWidget()).top() > rect(buttons.first()).bottom());
         widget.resize(1000, 400);
-        QTest::qWait(30);
-        QCOMPARE(rect(widget.chartViewWidget()).top(), wideChartTop);
+        // 1行目に戻すと、ツールバーと全体の配置が順に直る（配置の知らせが何回か回る）ので、落ち着くまで待つ
+        QTRY_COMPARE(rect(widget.chartViewWidget()).top(), wideChartTop);
     }
 
     void analysisNavigationKeepsSourceLineUntilCleared()

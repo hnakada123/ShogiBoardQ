@@ -62,8 +62,10 @@ int main()
             const bool predict = ponderEnabled && mode != "no-prediction";
             stopRequested = false;
             worker = std::thread([delay, turn, predict, &stopRequested] {
-                for (int waited = 0; waited < delay && !stopRequested; waited += 5)
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                // 待つ時間は時刻で測る（短い sleep を数えると、Windows では1回が約15.6ミリ秒に丸められ、何倍も待ってしまう）
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(delay);
+                while (!stopRequested && std::chrono::steady_clock::now() < deadline)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 std::cout << (turn == 1 ? "bestmove 8c8d" : "bestmove 3c3d");
                 if (predict) std::cout << (turn == 1 ? " ponder 2g2f" : " ponder 2f2e");
                 std::cout << std::endl;

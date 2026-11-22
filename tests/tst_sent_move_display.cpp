@@ -13,6 +13,7 @@
 #include <optional>
 
 #include "appactivitystate.h"
+#include "applicationfonts.h"
 #include "boardinteractioncontroller.h"
 #include "boardmovecontroller.h"
 #include "branchtreeeditcontroller.h"
@@ -195,6 +196,9 @@ private slots:
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+        // アプリと同じく盤を作る前に書体を決める（後から指し手の書体を使うときに決まると、試験の途中で
+        // アプリの書体が変わり、変わる前に描いた絵と比べることになる）
+        ApplicationFonts::initialize();
     }
 
     void sentMoveStaysAtDestinationUntilConfirmed_data()

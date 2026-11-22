@@ -11,6 +11,35 @@
 namespace {
 /// 駒のセットを保存するキー
 constexpr char kPieceStyleKey[] = "UI/pieceStyle";
+
+/// SVG を size の大きさで描いた画像（画素を行ごとに読むので、透過のある32ビットの形にそろえる）
+QImage renderPiece(const QString& path, int size)
+{
+    return QIcon(path).pixmap(size, size).toImage().convertToFormat(QImage::Format_ARGB32_Premultiplied);
+}
+
+/// 駒の画像が標準の駒の輪郭からはみ出していないか。matchOutline なら透過の範囲も一致させる
+/// （境界の合成による1段階の丸め差は許容する）。問題があれば最初の画素の説明を返す
+QString outlineProblem(const QImage& image, const QImage& silhouette, bool matchOutline)
+{
+    if (image.size() != silhouette.size())
+        return QStringLiteral("size %1x%2 differs from %3x%4")
+            .arg(image.width()).arg(image.height()).arg(silhouette.width()).arg(silhouette.height());
+    for (int y = 0; y < image.height(); ++y) {
+        const auto* pixels = reinterpret_cast<const QRgb*>(image.constScanLine(y));
+        const auto* outline = reinterpret_cast<const QRgb*>(silhouette.constScanLine(y));
+        for (int x = 0; x < image.width(); ++x) {
+            const int alpha = qAlpha(pixels[x]);
+            const int standardAlpha = qAlpha(outline[x]);
+            if (matchOutline && ((alpha == 0) != (standardAlpha == 0) || qAbs(alpha - standardAlpha) > 1))
+                return QStringLiteral("alpha %1 differs from the standard %2 at (%3,%4)")
+                    .arg(alpha).arg(standardAlpha).arg(x).arg(y);
+            if (standardAlpha == 0 && alpha != 0)
+                return QStringLiteral("outside (%1,%2)").arg(x).arg(y);
+        }
+    }
+    return {};
+}
 }
 
 class TestPieceImages : public QObject
@@ -136,36 +165,29 @@ private slots:
     {
         const QStringList names = {"fu", "kyou", "kei", "gin", "kin", "kaku", "hi", "ou",
                                    "gyoku", "to", "narikyou", "narikei", "narigin", "uma", "ryuu"};
+        // 標準の駒の輪郭は駒のセットによらないので、1度だけ描く
+        // （画素ごとに QCOMPARE で比べると、Debug ビルドでは試験の制限時間を超える）
+        QHash<QString, QImage> silhouettes;
         for (const auto& style : PieceStyleCatalog::ids()) {
             const QString prefix = style == QStringLiteral("standard")
                 ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(style);
+            // 境界の合成による1段階の丸め差は許容し、透過領域は完全一致させる。
+            const bool matchOutline = style == QStringLiteral("sengoku") || style.startsWith(QLatin1String("chess_"))
+                || style.startsWith(QLatin1String("alphabet_"));
             for (const QString& side : {QStringLiteral("Sente_"), QStringLiteral("Gote_")}) {
                 for (const auto& name : names) {
                     const QString path = prefix + side + name + QStringLiteral("45.svg");
                     QVERIFY2(QFile::exists(path), qPrintable(path));
                     for (const int size : {20, 45, 128}) {
-                        const auto image = QIcon(path).pixmap(size, size).toImage();
+                        const QImage image = renderPiece(path, size);
                         QVERIFY2(!image.isNull(), qPrintable(path));
                         QVERIFY2(image.pixelColor(size / 2, size / 2).alpha() > 0, qPrintable(path));
-                        const auto silhouette = QIcon(QStringLiteral(":/pieces/") + side + name
-                                                      + QStringLiteral("45.svg")).pixmap(size, size).toImage();
-                        for (int y = 0; y < size; ++y) {
-                            for (int x = 0; x < size; ++x) {
-                                if (style == QStringLiteral("sengoku") || style.startsWith(QLatin1String("chess_"))
-                                    || style.startsWith(QLatin1String("alphabet_"))) {
-                                    // 境界の合成による1段階の丸め差は許容し、透過領域は完全一致させる。
-                                    const int alpha = image.pixelColor(x, y).alpha();
-                                    const int standardAlpha = silhouette.pixelColor(x, y).alpha();
-                                    QCOMPARE(alpha == 0, standardAlpha == 0);
-                                    QVERIFY(qAbs(alpha - standardAlpha) <= 1);
-                                }
-                                if (silhouette.pixelColor(x, y).alpha() == 0) {
-                                    QVERIFY2(image.pixelColor(x, y).alpha() == 0,
-                                             qPrintable(QStringLiteral("%1 size=%2 outside (%3,%4)")
-                                                            .arg(path).arg(size).arg(x).arg(y)));
-                                }
-                            }
-                        }
+                        const QString standardPath = QStringLiteral(":/pieces/") + side + name + QStringLiteral("45.svg");
+                        const QString key = standardPath + QLatin1Char('@') + QString::number(size);
+                        if (!silhouettes.contains(key)) silhouettes.insert(key, renderPiece(standardPath, size));
+                        const QString problem = outlineProblem(image, silhouettes.value(key), matchOutline);
+                        QVERIFY2(problem.isEmpty(),
+                                 qPrintable(QStringLiteral("%1 size=%2 %3").arg(path).arg(size).arg(problem)));
                     }
                 }
             }
