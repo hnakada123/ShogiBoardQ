@@ -548,7 +548,7 @@ fn apply_without_options(initial_ppid: Option<i32>) -> Result<SandboxReport, Str
 }
 
 /// 制限を掛けた後に、禁止した操作を試す（--sandbox-self-test）。targets は試す相手（Windows は
-/// `file=<パス>`・`pipe=<名前>`・`pid=<プロセス>`・`port=<loopback のポート>`。渡されなかったものは試さない。
+/// `file=<パス>`・`pipe=<名前>`・`pid=<プロセス>`・`tid=<スレッド,…>`・`port=<loopback のポート>`。渡されなかったものは試さない。
 /// macOS は `file=<パス>`・`pipe=<Unix ドメインのソケットのパス>`・`connect=<アドレス:ポート>`。file は渡されなければ
 /// 決まった相手で試し、pipe と connect は渡されたときだけ試す。Linux は使わない）
 pub fn self_test(report: &SandboxReport, targets: &[String]) -> Value {
@@ -633,9 +633,18 @@ mod windows_probe {
             results.insert("connect_named_pipe".into(), verdict(pipe.is_ok()));
         }
 
-        // ほかのプロセス（起動した側）を開く
+        // ほかのプロセス（起動した側か、同じ AppContainer のほかの通信プロセス）を開く
         if let Some(pid) = target(targets, "pid").and_then(|t| t.parse::<u32>().ok()) {
             results.insert("open_process".into(), verdict(sbq_peer_win32::can_open_process(pid)));
+        }
+
+        // ほかのプロセスのスレッド（コンマ区切りの番号）を開く。どれか1つでも開けたら allowed
+        if let Some(list) = target(targets, "tid") {
+            let tids: Vec<u32> = list.split(',').filter_map(|t| t.parse::<u32>().ok()).collect();
+            if !tids.is_empty() {
+                let opened = tids.iter().any(|&tid| sbq_peer_win32::can_open_thread(tid));
+                results.insert("open_thread".into(), verdict(opened));
+            }
         }
 
         // loopback で待ち受けているポート。つながるか、相手に拒まれた（OS の側では止めていない）なら allowed

@@ -24,9 +24,10 @@ use windows_sys::Win32::System::JobObjects::{
     JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
 };
 use windows_sys::Win32::System::Threading::{
-    GetCurrentProcess, GetProcessMitigationPolicy, OpenProcess, OpenProcessToken, ProcessChildProcessPolicy,
+    GetCurrentProcess, GetProcessMitigationPolicy, OpenProcess, OpenProcessToken, OpenThread, ProcessChildProcessPolicy,
     ProcessDynamicCodePolicy, ProcessExtensionPointDisablePolicy, ProcessFontDisablePolicy, ProcessImageLoadPolicy,
-    ProcessSystemCallDisablePolicy, PROCESS_MITIGATION_POLICY, PROCESS_QUERY_LIMITED_INFORMATION,
+    ProcessSystemCallDisablePolicy, PROCESS_MITIGATION_POLICY, PROCESS_QUERY_LIMITED_INFORMATION, THREAD_SET_CONTEXT,
+    THREAD_SUSPEND_RESUME,
 };
 
 /// 緩和ポリシーの値（PROCESS_MITIGATION_*_POLICY。どれも 32 ビットのフラグ1つ）
@@ -233,6 +234,19 @@ pub fn confinement() -> Result<Confinement, String> {
 pub fn can_open_process(pid: u32) -> bool {
     // SAFETY: 引数は整数だけ。戻り値が null でなければ、ここで閉じる
     let handle = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
+    if handle.is_null() {
+        return false;
+    }
+    // SAFETY: handle は上で開いたハンドルで、ここで1回だけ閉じる
+    unsafe { CloseHandle(handle) };
+    true
+}
+
+/// ほかのプロセスのスレッドを、乗っ取りに使える権利（実行の文脈の書き換えと、止めて再開すること）で開けるか
+/// （--sandbox-self-test。同じ AppContainer のほかの通信プロセスのスレッドを開けないことを確かめる）
+pub fn can_open_thread(tid: u32) -> bool {
+    // SAFETY: 引数は整数だけ。戻り値が null でなければ、ここで閉じる
+    let handle = unsafe { OpenThread(THREAD_SET_CONTEXT | THREAD_SUSPEND_RESUME, 0, tid) };
     if handle.is_null() {
         return false;
     }

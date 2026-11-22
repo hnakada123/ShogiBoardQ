@@ -16,6 +16,12 @@
 
 #include "peerconfinement.h"
 
+#ifdef Q_OS_WIN
+#include <qt_windows.h>
+
+#include <tlhelp32.h>
+#endif
+
 class TestP2pSandbox : public QObject
 {
     Q_OBJECT
@@ -29,7 +35,7 @@ private:
         process.setArguments(QStringList{QStringLiteral("--sandbox-self-test")} + targets);
         QString error;
         const std::unique_ptr<PeerConfinement> confinement =
-            PeerConfinement::apply(&process, QStringLiteral(PEER_EXECUTABLE), reach, 1, &error);
+            PeerConfinement::apply(&process, QStringLiteral(PEER_EXECUTABLE), reach, &error);
         if (!confinement) {
             qWarning() << "confinement:" << error;
             return {};
@@ -159,7 +165,7 @@ private slots:
         process.setProgram(QStringLiteral(PEER_EXECUTABLE));
         QString error;
         std::unique_ptr<PeerConfinement> confinement = PeerConfinement::apply(
-            &process, QStringLiteral(PEER_EXECUTABLE), PeerConfinement::Reach::Internet, 1, &error);
+            &process, QStringLiteral(PEER_EXECUTABLE), PeerConfinement::Reach::Internet, &error);
         QVERIFY2(confinement, qPrintable(error));
         process.start();
         QVERIFY(process.waitForStarted(10000));
@@ -167,6 +173,46 @@ private slots:
         QVERIFY(!process.waitForFinished(1000));
         confinement.reset();
         QVERIFY(process.waitForFinished(10000));
+    }
+
+    /// 同じ PC のどのプレイヤーの通信プロセスも同じ AppContainer に入る（別々だと同じ PC の中でつながらない）が、
+    /// ほかの通信プロセスのプロセスとスレッドは開けない（監査 2026-11-21 S13）
+    void peersCannotOpenEachOther()
+    {
+        QProcess first;
+        first.setProgram(QStringLiteral(PEER_EXECUTABLE));
+        QString error;
+        const std::unique_ptr<PeerConfinement> firstConfinement = PeerConfinement::apply(
+            &first, QStringLiteral(PEER_EXECUTABLE), PeerConfinement::Reach::LocalNetwork, &error);
+        QVERIFY2(firstConfinement, qPrintable(error));
+        first.start();
+        QVERIFY(first.waitForStarted(10000));
+        // 起動の直後に作られるスレッドも含めて調べる
+        QVERIFY(!first.waitForFinished(1000));
+        const DWORD pid = static_cast<DWORD>(first.processId());
+
+        // 1つ目の通信プロセスのスレッドの番号
+        QStringList threads;
+        const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+        QVERIFY(snapshot != INVALID_HANDLE_VALUE);
+        THREADENTRY32 entry{};
+        entry.dwSize = sizeof(entry);
+        for (BOOL more = Thread32First(snapshot, &entry); more; more = Thread32Next(snapshot, &entry)) {
+            if (entry.th32OwnerProcessID == pid) threads << QString::number(entry.th32ThreadID);
+        }
+        CloseHandle(snapshot);
+        QVERIFY(!threads.isEmpty());
+
+        int exitCode = -1;
+        const QJsonObject report = runSelfTest(
+            PeerConfinement::Reach::LocalNetwork,
+            {QStringLiteral("pid=%1").arg(pid), QStringLiteral("tid=") + threads.join(QLatin1Char(','))}, &exitCode);
+        QCOMPARE(exitCode, 0);
+        const QJsonObject results = report.value(QStringLiteral("results")).toObject();
+        QCOMPARE(results.value(QStringLiteral("open_process")).toString(), QStringLiteral("denied"));
+        QCOMPARE(results.value(QStringLiteral("open_thread")).toString(), QStringLiteral("denied"));
+        // 1つ目は動き続けている（2つ目の起動で、AppContainer のプロファイルを登録し直しても）
+        QCOMPARE(first.state(), QProcess::Running);
     }
 #endif
 };

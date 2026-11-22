@@ -38,10 +38,10 @@ public:
     /// reach で起動した通信プロセスが、hello の応答の mechanisms に必ず入れているはずの名前（起動の条件で決まる
     /// 制限も含む。起動の処理が退行して制限が欠けたら、つながずに止める。監査 2026-11-21 I-13）
     static QStringList requiredMechanisms(Reach reach);
-    /// 起動の前に process へ設定する（プログラムと引数を入れた後に呼ぶ。引数を足すことがある）。player は、この PC の
-    /// 何人目のプレイヤーの通信プロセスか（Windows の AppContainer をプレイヤーごとに分ける）。できなければ nullptr を
-    /// 返し、error に診断用の理由（ASCII）を入れる
-    static std::unique_ptr<PeerConfinement> apply(QProcess* process, const QString& executable, Reach reach, int player,
+    /// 起動の前に process へ設定する（プログラムと引数を入れた後に呼ぶ。引数を足すことがある）。できなければ nullptr を
+    /// 返し、error に診断用の理由（ASCII）を入れる。Windows では、この PC のどのプレイヤーの通信プロセスも同じ
+    /// AppContainer に入れ（同じ PC の2人が対局できるように）、互いのプロセスとスレッドは DACL で開けなくする
+    static std::unique_ptr<PeerConfinement> apply(QProcess* process, const QString& executable, Reach reach,
                                                   QString* error);
 
 protected:

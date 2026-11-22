@@ -89,7 +89,7 @@ QString PeerProcess::executablePath()
     return QDir(QCoreApplication::applicationDirPath()).filePath(name);
 }
 
-void PeerProcess::start(PeerConfinement::Reach reach, int player)
+void PeerProcess::start(PeerConfinement::Reach reach)
 {
     if (m_state != State::NotRunning) return;
     if (!PeerConfinement::isSupported()) {
@@ -121,7 +121,7 @@ void PeerProcess::start(PeerConfinement::Reach reach, int player)
     // 環境変数と標準入出力以外のハンドル・記述子を引き継がず、OS ごとの権限の制限を掛けて起動する
     QString confinementError;
     m_reach = reach;
-    m_confinement = PeerConfinement::apply(m_process, path, reach, player, &confinementError);
+    m_confinement = PeerConfinement::apply(m_process, path, reach, &confinementError);
     if (!m_confinement) {
         // 制限なしでは起動しない
         resetProcess();

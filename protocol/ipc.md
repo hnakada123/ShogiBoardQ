@@ -347,12 +347,17 @@ Windows では、プロセスを作る時点でしか掛けられない制限を
 
 起動する側が掛けるもの:
 
-1. AppContainer（`PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES`）。名前は `io.github.hnakada123.ShogiBoardQ.peer`。
-   プロファイルを登録していない AppContainer ではプロセスを作れないので、最初の1回だけ `CreateAppContainerProfile` で
-   登録する（利用者のレジストリと、`%LOCALAPPDATA%` の `Packages` の下の空のフォルダ。通信プロセスは何も書かない）。
-   能力は `internetClient`・`internetClientServer` だけで、ローカルのネットワーク（`sbq-local-1`）を使うときだけ
-   `privateNetworkClientServer` を足す。AppContainer の中からは、利用者のファイルの読み書き、ほかのプロセスを開くこと、
-   名前付きパイプ（自動化 API など）への接続、loopback への接続ができない。
+1. AppContainer（`PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES`）。名前は `io.github.hnakada123.ShogiBoardQ.peer`
+   （この PC のどのプレイヤーも同じ。別々の AppContainer どうしは同じ PC の中でつながらない）。
+   プロファイルを登録していない AppContainer ではプロセスを作れないので、起動ごとに `CreateAppContainerProfile` で
+   登録し、通信プロセスが終わったら消す（利用者のレジストリと、`%LOCALAPPDATA%` の `Packages` の下の空のフォルダ。通信プロセスは何も書かない）。
+   能力は `internetClient`・`internetClientServer` と、起動のたびの能力（`S-1-15-3-1024-` に乱数6つ。下の DACL に使う）で、
+   ローカルのネットワーク（`sbq-local-1`）を使うときだけ `privateNetworkClientServer` を足す。AppContainer の中からは、
+   利用者のファイルの読み書き、ほかのプロセスを開くこと、名前付きパイプ（自動化 API など）への接続、loopback への接続ができない。
+   プロセスと最初のスレッドの DACL と、トークンの既定の DACL（後から作るスレッドなどに付く）は、利用者・SYSTEM・起動のたびの
+   能力だけを許す（AppContainer の SID を入れない）。同じ AppContainer のほかの通信プロセス（同じ PC のほかのプレイヤー）が、
+   このプロセスとスレッドを開けないようにするため（監査 2026-11-21 S13）。トークンの既定の DACL を決めるまで動かさない
+   よう、止めたまま作り（`CREATE_SUSPENDED`）、決めてから動かす。
 2. ジョブ（`PROC_THREAD_ATTRIBUTE_JOB_LIST`）: ハンドルが閉じたら終わる（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`。
    起動した側の終了で終わる）、プロセスは1つだけ（`ActiveProcessLimit` 1）、処理されない例外でエラーの報告の画面を
    出さずに終わる（`JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION`）、UI の制限（クリップボード・デスクトップ・
@@ -390,9 +395,11 @@ Windows では、プロセスを作る時点でしか掛けられない制限を
 `<関数> failed (os error <番号>)` の形で番号だけを書く（対局・UI側は、診断の行を印字できる ASCII に絞る）。
 
 Windows の `--sandbox-self-test` は、起動する側が渡した相手（`file=<パス>`・`pipe=<名前付きパイプの名前>`・
-`pid=<プロセス>`・`port=<loopback で待ち受けているポート>`）に次を試す: `read_file`・`write_file`（`<パス>.created` を作る）、
-`exec`（cmd.exe を起動）、`connect_named_pipe`、`open_process`、`connect_loopback_tcp`。Windows ではどれも `denied` になる
-（loopback への接続も OS が止める。`tests/tst_p2p_sandbox.cpp` が、アプリと同じ起動のしかたで確かめる）。
+`pid=<プロセス>`・`tid=<スレッド,…>`・`port=<loopback で待ち受けているポート>`）に次を試す: `read_file`・`write_file`
+（`<パス>.created` を作る）、`exec`（cmd.exe を起動）、`connect_named_pipe`、`open_process`、`open_thread`（コンマ区切りの
+スレッドのどれかを、文脈の書き換えと停止・再開の権利で開けたら allowed）、`connect_loopback_tcp`。Windows ではどれも
+`denied` になる（loopback への接続も OS が止める。`tests/tst_p2p_sandbox.cpp` が、アプリと同じ起動のしかたで、起動した側と、
+動いているほかの通信プロセスのプロセスとすべてのスレッドを相手に確かめる）。
 同じ AppContainer の通信プロセスどうしは、同じ PC でもつながる（`tst_p2p_endtoend` の同じ PC の対局）。待受を始めても、
 Windows のファイアウォールは利用者に許可を求めない。
 

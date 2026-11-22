@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QProcess>
 #include <QProcessEnvironment>
+#include <QRandomGenerator>
 
 #ifdef Q_OS_WIN
 #include <qt_windows.h>
@@ -16,6 +17,7 @@
 
 #include <array>
 #include <string>
+#include <utility>
 #include <vector>
 #endif
 
@@ -52,7 +54,7 @@ QStringList PeerConfinement::requiredMechanisms(Reach reach)
 #endif
 }
 
-std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const QString&, Reach reach, int, QString*)
+std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const QString&, Reach reach, QString*)
 {
 #if defined(Q_OS_MACOS)
     // ローカルのネットワークを使わないときは、loopback への発信をサンドボックスでも止めさせる（protocol/ipc.md 6.3節）
@@ -77,15 +79,12 @@ std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const
 
 namespace {
 
-/// AppContainer の名前（SID はこの名前から決まる）。この PC のプレイヤーごとに分ける（1人目は以前と同じ名前。2人目からは
-/// 番号を付ける）。同じ AppContainer のプロセスは互いのプロセスとスレッドを開けるので、2人のプレイヤーの通信プロセスを
-/// 同じ AppContainer に入れない（監査 2026-11-21 S13）
-std::wstring containerName(int player)
-{
-    std::wstring name = L"io.github.hnakada123.ShogiBoardQ.peer";
-    if (player > 1) name += L"-" + std::to_wstring(player);
-    return name;
-}
+/// AppContainer の名前（SID はこの名前から決まる）。この PC のどのプレイヤーの通信プロセスも同じ AppContainer に入れる。
+/// Windows は、別々の AppContainer どうしの同じ PC の中での接続（loopback と、自分の LAN のアドレスへの接続）を止めるので、
+/// 分けると、同じ PC の2人（2つ目のアプリ）がローカルのネットワークで対局できない。同じ AppContainer のほかの通信プロセスが
+/// 互いのプロセスとスレッドを開けないことは、利用者と SYSTEM だけを許す DACL で守る（監査 2026-11-21 S13。
+/// WindowsConfinement::prepareSecurity）
+const wchar_t kContainerName[] = L"io.github.hnakada123.ShogiBoardQ.peer";
 const wchar_t kContainerDisplayName[] = L"ShogiBoardQ P2P communication process";
 
 QString winError(const char* what, DWORD code = GetLastError())
@@ -150,6 +149,22 @@ bool allowExecution(const QString& executable, PSID containerSid, QString* error
     return ok;
 }
 
+class WindowsConfinement;
+
+/// 通信プロセスが作られた直後（止めたまま）に、残りの制限を掛けて動かし始める（QProcess::started を受ける）
+class SuspendedStart final : public QObject
+{
+public:
+    explicit SuspendedStart(WindowsConfinement* confinement)
+        : m_confinement(confinement)
+    {
+    }
+    void onStarted();
+
+private:
+    WindowsConfinement* m_confinement;
+};
+
 class WindowsConfinement final : public PeerConfinement
 {
 public:
@@ -162,20 +177,19 @@ public:
         // AppContainer のプロファイル（利用者のレジストリと %LOCALAPPDATA%\Packages の下のフォルダ。AppContainer の
         // プロセスが書き込める）を消す。乗っ取られた通信プロセスが、次の起動まで残るものを置けないようにする（監査
         // 2026-11-21 S13）。消せなければ（まだ使われている）、次に起動するときに消し直す
-        if (!m_containerName.empty()) DeleteAppContainerProfile(m_containerName.c_str());
+        if (m_containerSid) DeleteAppContainerProfile(kContainerName);
     }
 
-    bool prepare(const QString& executable, Reach reach, int player, QString* error)
+    bool prepare(const QString& executable, Reach reach, QString* error)
     {
         // プロファイルを登録していない AppContainer ではプロセスを作れない（「ファイルが見つかりません」で失敗する）。
         // 前の起動が残したプロファイル（異常終了で消せなかったもの）は消してから、起動ごとに登録し直す。まだ使われて
-        // いて消せなければ、名前から SID を求める
-        m_containerName = containerName(player);
-        DeleteAppContainerProfile(m_containerName.c_str());
-        HRESULT result = CreateAppContainerProfile(m_containerName.c_str(), kContainerDisplayName, kContainerDisplayName,
+        // いて消せなければ（同じ PC のほかのプレイヤーの通信プロセスが動いている）、名前から SID を求める
+        DeleteAppContainerProfile(kContainerName);
+        HRESULT result = CreateAppContainerProfile(kContainerName, kContainerDisplayName, kContainerDisplayName,
                                                    nullptr, 0, &m_containerSid);
         if (result == HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)) {
-            result = DeriveAppContainerSidFromAppContainerName(m_containerName.c_str(), &m_containerSid);
+            result = DeriveAppContainerSidFromAppContainerName(kContainerName, &m_containerSid);
         }
         if (FAILED(result) || !m_containerSid) {
             *error = winError("creating the AppContainer profile", static_cast<DWORD>(result));
@@ -188,12 +202,18 @@ public:
             *error = winError("CreateWellKnownSid");
             return false;
         }
+        // この起動だけの能力（prepareSecurity の DACL で、この通信プロセスだけを許すために使う）
+        if (!addInstanceCapability()) {
+            *error = winError("creating the instance capability");
+            return false;
+        }
         m_security.AppContainerSid = m_containerSid;
         m_security.Capabilities = m_capabilities.data();
         m_security.CapabilityCount = m_capabilityCount;
 
         if (!allowExecution(executable, m_containerSid, error)) return false;
         if (!createJob(error)) return false;
+        if (!prepareSecurity(error)) return false;
 
         // 緩和ポリシー: ウィンドウとフォントの系統のシステムコール・拡張の読み込み・実行時のコード生成・
         // ネットワーク上と低い整合性の場所からの DLL の読み込みを使えなくする。OS の DLL は、アプリのフォルダより先に
@@ -272,7 +292,75 @@ public:
         }
     }
 
+    /// 止めたまま作った通信プロセスの、この後に作るもの（スレッドなど）の DACL を利用者と SYSTEM だけにしてから動かす。
+    /// できなければ動かさずに終わらせる（hello が届かないので、起動した側は失敗として扱う）
+    void resume()
+    {
+        const PROCESS_INFORMATION* info = std::exchange(m_processInformation, nullptr);
+        if (!info || !info->hProcess || !info->hThread) return;
+        HANDLE token = nullptr;
+        bool ok = OpenProcessToken(info->hProcess, TOKEN_ADJUST_DEFAULT, &token) != 0;
+        if (ok) {
+            TOKEN_DEFAULT_DACL dacl{};
+            dacl.DefaultDacl = reinterpret_cast<PACL>(m_acl.data());
+            ok = SetTokenInformation(token, TokenDefaultDacl, &dacl, sizeof(dacl)) != 0;
+            CloseHandle(token);
+        }
+        if (!ok || ResumeThread(info->hThread) == static_cast<DWORD>(-1)) TerminateProcess(info->hProcess, 1);
+    }
+
 private:
+    /// 通信プロセスのプロセスとスレッドに付ける DACL（利用者・SYSTEM と、この起動だけの能力）。AppContainer のトークンの
+    /// 既定の DACL には AppContainer の SID が入るので、そのままでは同じ AppContainer のほかの通信プロセス（同じ PC の
+    /// ほかのプレイヤー）が、このプロセスとスレッドを開ける（監査 2026-11-21 S13）。AppContainer のプロセスが開けるのは、
+    /// DACL が自分の AppContainer の SID・「すべてのアプリケーション パッケージ」・自分の持つ能力のどれかを許すものだけ
+    /// なので、AppContainer の SID の代わりに、この通信プロセスだけが持つ能力を許す（通信プロセスは自分のプロセスを開ける
+    /// （Windows の IP のインターフェースの見張りが使う）が、ほかの通信プロセスは開けない）。起動した側（利用者）は開ける
+    bool prepareSecurity(QString* error)
+    {
+        HANDLE token = nullptr;
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+            *error = winError("OpenProcessToken");
+            return false;
+        }
+        DWORD size = 0;
+        GetTokenInformation(token, TokenUser, nullptr, 0, &size);
+        m_tokenUser.resize(size);
+        const bool haveUser = size > 0 && GetTokenInformation(token, TokenUser, m_tokenUser.data(), size, &size);
+        CloseHandle(token);
+        if (!haveUser) {
+            *error = winError("GetTokenInformation");
+            return false;
+        }
+        const PSID user = reinterpret_cast<const TOKEN_USER*>(m_tokenUser.data())->User.Sid;
+        DWORD systemSize = static_cast<DWORD>(m_systemSid.size());
+        if (!CreateWellKnownSid(WinLocalSystemSid, nullptr, m_systemSid.data(), &systemSize)) {
+            *error = winError("CreateWellKnownSid");
+            return false;
+        }
+        const PSID instance = m_instanceSid.data();
+        const DWORD aclSize = sizeof(ACL) + 3 * (sizeof(ACCESS_ALLOWED_ACE) - sizeof(DWORD))
+            + GetLengthSid(user) + GetLengthSid(m_systemSid.data()) + GetLengthSid(instance);
+        // ACL の先頭は DWORD の境界にそろえる
+        m_acl.assign((aclSize + sizeof(DWORD) - 1) / sizeof(DWORD), 0);
+        auto* acl = reinterpret_cast<PACL>(m_acl.data());
+        if (!InitializeAcl(acl, static_cast<DWORD>(m_acl.size() * sizeof(DWORD)), ACL_REVISION)
+            || !AddAccessAllowedAce(acl, ACL_REVISION, GENERIC_ALL, user)
+            || !AddAccessAllowedAce(acl, ACL_REVISION, GENERIC_ALL, m_systemSid.data())
+            || !AddAccessAllowedAce(acl, ACL_REVISION, GENERIC_ALL, instance)
+            || !InitializeSecurityDescriptor(&m_descriptor, SECURITY_DESCRIPTOR_REVISION)
+            || !SetSecurityDescriptorDacl(&m_descriptor, TRUE, acl, FALSE)) {
+            *error = winError("building the process DACL");
+            return false;
+        }
+        for (SECURITY_ATTRIBUTES* attributes : {&m_processSecurity, &m_threadSecurity}) {
+            attributes->nLength = sizeof(SECURITY_ATTRIBUTES);
+            attributes->lpSecurityDescriptor = &m_descriptor;
+            attributes->bInheritHandle = FALSE;
+        }
+        return true;
+    }
+
     bool addCapability(WELL_KNOWN_SID_TYPE type)
     {
         if (m_capabilityCount >= m_capabilities.size()) return false;
@@ -280,6 +368,26 @@ private:
         DWORD size = static_cast<DWORD>(bytes.size());
         if (!CreateWellKnownSid(type, nullptr, bytes.data(), &size)) return false;
         m_capabilities[m_capabilityCount].Sid = bytes.data();
+        m_capabilities[m_capabilityCount].Attributes = SE_GROUP_ENABLED;
+        ++m_capabilityCount;
+        return true;
+    }
+
+    /// この起動だけの能力の SID（S-1-15-3-1024- に続く6つの乱数。名前から作る能力と同じ形）を作って渡す
+    bool addInstanceCapability()
+    {
+        if (m_capabilityCount >= m_capabilities.size()) return false;
+        SID_IDENTIFIER_AUTHORITY authority = SECURITY_APP_PACKAGE_AUTHORITY;
+        constexpr BYTE kSubAuthorities = 8;
+        PSID sid = m_instanceSid.data();
+        if (GetSidLengthRequired(kSubAuthorities) > m_instanceSid.size() || !InitializeSid(sid, &authority, kSubAuthorities)) {
+            return false;
+        }
+        *GetSidSubAuthority(sid, 0) = SECURITY_CAPABILITY_BASE_RID;
+        *GetSidSubAuthority(sid, 1) = SECURITY_CAPABILITY_APP_RID;
+        for (DWORD i = 2; i < kSubAuthorities; ++i) *GetSidSubAuthority(sid, i) = QRandomGenerator::system()->generate();
+        if (!IsValidSid(sid)) return false;
+        m_capabilities[m_capabilityCount].Sid = sid;
         m_capabilities[m_capabilityCount].Attributes = SE_GROUP_ENABLED;
         ++m_capabilityCount;
         return true;
@@ -334,17 +442,22 @@ private:
         // コンソールを持たせない。コンソールを作ると OS がそのためのプロセス（conhost）を起動しようとし、
         // 子プロセスの禁止に当たって通信プロセスが初期化に失敗する
         args->flags &= ~static_cast<DWORD>(CREATE_NO_WINDOW | CREATE_NEW_CONSOLE);
-        args->flags |= EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS;
+        // 止めたまま作り、スレッドの DACL を決めてから動かす（resume。QProcess::started のとき）
+        args->flags |= EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS | CREATE_SUSPENDED;
         args->inheritHandles = TRUE;
         args->environment = m_environment.data();
         args->currentDirectory = m_directory.c_str();
+        args->processAttributes = &m_processSecurity;
+        args->threadAttributes = &m_threadSecurity;
+        // QProcess が持つプロセスとスレッドのハンドル（プロセスが終わるまで QProcess が持ち続ける）
+        m_processInformation = args->processInformation;
         return true;
     }
 
-    std::wstring m_containerName;
     PSID m_containerSid = nullptr;
     std::array<std::array<BYTE, SECURITY_MAX_SID_SIZE>, 3> m_capabilitySids{};
-    std::array<SID_AND_ATTRIBUTES, 3> m_capabilities{};
+    std::array<BYTE, SECURITY_MAX_SID_SIZE> m_instanceSid{};
+    std::array<SID_AND_ATTRIBUTES, 4> m_capabilities{};
     DWORD m_capabilityCount = 0;
     SECURITY_CAPABILITIES m_security{};
     HANDLE m_job = nullptr;
@@ -357,7 +470,24 @@ private:
     STARTUPINFOEXW m_startup{};
     std::wstring m_environment;
     std::wstring m_directory;
+    std::vector<BYTE> m_tokenUser;
+    std::array<BYTE, SECURITY_MAX_SID_SIZE> m_systemSid{};
+    std::vector<DWORD> m_acl;
+    SECURITY_DESCRIPTOR m_descriptor{};
+    SECURITY_ATTRIBUTES m_processSecurity{};
+    SECURITY_ATTRIBUTES m_threadSecurity{};
+    PROCESS_INFORMATION* m_processInformation = nullptr;
+    SuspendedStart m_started{this};
+
+public:
+    /// QProcess::started を受けて、止めたまま作った通信プロセスを動かす
+    SuspendedStart* startReceiver() { return &m_started; }
 };
+
+void SuspendedStart::onStarted()
+{
+    m_confinement->resume();
+}
 
 } // namespace
 
@@ -381,14 +511,16 @@ QStringList PeerConfinement::requiredMechanisms(Reach reach)
 }
 
 std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess* process, const QString& executable, Reach reach,
-                                                        int player, QString* error)
+                                                        QString* error)
 {
     auto confinement = std::make_unique<WindowsConfinement>();
-    if (!confinement->prepare(executable, reach, player, error)) return nullptr;
+    if (!confinement->prepare(executable, reach, error)) return nullptr;
     WindowsConfinement* raw = confinement.get();
     // 呼ばれるのは process->start() の中だけ。返したものは、呼び出し側がプロセスの終わりまで持つ
     process->setCreateProcessArgumentsModifier(
         [raw](QProcess::CreateProcessArguments* args) { raw->modify(args); });
+    // started は start() の中で（CreateProcess の直後に）出る。止めたまま作った通信プロセスを、ここで動かす
+    QObject::connect(process, &QProcess::started, raw->startReceiver(), &SuspendedStart::onStarted);
     return confinement;
 }
 
@@ -404,7 +536,7 @@ QStringList PeerConfinement::requiredMechanisms(Reach)
     return {};
 }
 
-std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess*, const QString&, Reach, int, QString* error)
+std::unique_ptr<PeerConfinement> PeerConfinement::apply(QProcess*, const QString&, Reach, QString* error)
 {
     *error = QStringLiteral("the sandbox is not implemented for this operating system");
     return nullptr;

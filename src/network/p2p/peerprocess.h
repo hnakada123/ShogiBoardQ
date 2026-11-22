@@ -59,8 +59,8 @@ public:
     const PeerIpc::Sandbox& sandbox() const { return m_sandbox; }
 
     /// 起動して hello を送る。使えるようになれば ready、使えなければ failed。reach は通信プロセスに許す宛先の範囲
-    /// （同じ LAN へ出るのは、ローカルのネットワークを使うときだけ）、player はこの PC の何人目のプレイヤーか
-    void start(PeerConfinement::Reach reach, int player = 1);
+    /// （同じ LAN へ出るのは、ローカルのネットワークを使うときだけ）
+    void start(PeerConfinement::Reach reach);
     /// shutdown を頼み、2秒で終わらなければ terminate（Windows では効かないので kill）、さらに2秒で kill する（すべて非同期）
     void stop();
     /// アプリの終了のときだけ使う。送った要求（中断の知らせ・shutdown）を書き終え、通信プロセスが終わるのを msecs まで
