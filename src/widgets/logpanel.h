@@ -85,6 +85,8 @@ private:
     void buildToolbar(const Names& names);
     void buildCommandBar(const Names& names);
     void applyFontSize();
+    /// 最新の行（末尾）を見ていて、追記・折り返しの切り替えで末尾に付いていく（選んでいる文字があれば付いていかない）
+    bool followsLatest() const;
     /// 同じ文字の大きさ・折り返しの設定を使う、ほかの生きているパネル
     QList<LogPanel*> panelsSharingFontSize() const;
     QList<LogPanel*> panelsSharingWrapLines() const;

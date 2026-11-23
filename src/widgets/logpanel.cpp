@@ -297,11 +297,10 @@ void LogPanel::appendLine(const QString& rawLine, const QColor& color)
     // 表示用カーソルを動かさず追記する。過去ログの閲覧位置と選択範囲を保つ。
     auto* vertical = m_logView->verticalScrollBar();
     auto* horizontal = m_logView->horizontalScrollBar();
-    const int oldVertical = vertical->value();
     const int oldHorizontal = horizontal->value();
     QTextDocument* document = m_logView->document();
     const QTextCursor original = m_logView->textCursor();
-    const bool follow = oldVertical == vertical->maximum() && !original.hasSelection();
+    const bool follow = followsLatest();
     // 末尾への追記で動くのは、末尾にある表示用カーソルの端だけ。先頭ログの削除には
     // 表示用カーソル自身が追従するので、末尾にないときは戻す処理を省く
     // （カーソルの位置決めは行の文字配置を毎回計算し直すため重い）。
@@ -396,12 +395,28 @@ void LogPanel::updateSendButton()
 void LogPanel::onWrapToggled(bool checked)
 {
     auto* scroll = m_logView->verticalScrollBar();
-    const bool follow = scroll->value() == scroll->maximum() && !m_logView->textCursor().hasSelection();
+    const bool follow = followsLatest();
     m_logView->setLineWrapMode(checked ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
     if (follow) scroll->setValue(scroll->maximum());
     m_wrapLines.set(checked);
     // 同じ設定のパネルも合わせる（同じ状態なら toggled が出ないので、伝え返しは止まる）
     for (LogPanel* panel : panelsSharingWrapLines()) panel->m_wrapAction->setChecked(checked);
+}
+
+bool LogPanel::followsLatest() const
+{
+    if (m_logView->textCursor().hasSelection()) return false;
+    const QScrollBar* vertical = m_logView->verticalScrollBar();
+    const int linesBelow = vertical->maximum() - vertical->value();
+    if (linesBelow <= 0) return true;
+    // QPlainTextEdit は、Ctrl+End などで末尾へ移ると、末尾の行が見えた所でスクロールを止める。スクロールバーの最大は
+    // 表示領域に収まりきる行の数から決まるので、表示領域の高さが行の高さで割り切れないと、止まった所が最大より1行
+    // 手前になる。そこでも末尾の行は見えているので、付いていく。末尾の行の位置を求めるのは1行手前のときだけにする
+    // （離れた行の位置は、間の行をたどって求めるので重い）
+    if (linesBelow > 1) return false;
+    QTextCursor end(m_logView->document());
+    end.movePosition(QTextCursor::End);
+    return m_logView->cursorRect(end).bottom() < m_logView->viewport()->height();
 }
 
 void LogPanel::scrollToLatest()
