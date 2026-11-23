@@ -62,6 +62,22 @@ public:
     /// 本体と前後を入れ替えられる、独立したウィンドウとして出す（対局中も開いたまま、本体の盤と行き来して使う）
     void setVisible(bool visible) override;
 
+    /// 接続中の「招待の経路」の文を決める状態（自分や相手のアドレスは含まない）
+    struct RouteState
+    {
+        bool relayOnly = false;
+        bool localProfile = false;
+        /// 到達性の確認で、インターネットから直接届くと分かった
+        bool publicReachability = false;
+        /// 利用者が協力ノードを登録した
+        bool hasNodes = false;
+        int connectedPeers = 0;
+        int relayReservations = 0;
+    };
+    /// 招待がどの経路で届くか（接続中の表示）。協力ノードを登録したのに、まだつながっていない・中継の予約が取れて
+    /// いない間は、登録を促さずに、待っていることと、変わらないときに確かめることを出す
+    static QString routeText(const RouteState& state);
+
 signals:
     /// 接続（通信プロセスの起動）・切断
     void startRequested();
@@ -107,8 +123,8 @@ private slots:
 private:
     /// ロビー（通信プロセスの窓口）と司令塔の知らせを、表示の出し直しにつなぐ
     void connectSources();
-    /// 招待がどの経路で届くか（接続中の表示）
-    QString routeText() const;
+    /// 「招待の経路」の文を決める、ロビーの今の状態
+    RouteState routeState() const;
     void loadSettings();
 
     QPointer<P2pLobbyService> m_lobby;

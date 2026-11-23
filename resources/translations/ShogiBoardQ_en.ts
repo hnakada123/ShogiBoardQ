@@ -14687,8 +14687,8 @@ Are you sure you want to declare?</translation>
         <translation>Settings</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="248"/>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="362"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="249"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="389"/>
         <source>接続</source>
         <translation>Connect</translation>
     </message>
@@ -14913,12 +14913,12 @@ Are you sure you want to declare?</translation>
         <translation>P2P games are not available</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="248"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="249"/>
         <source>切断</source>
         <translation>Disconnect</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="266"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="267"/>
         <source>（まだ作っていません）</source>
         <translation>(not created yet)</translation>
     </message>
@@ -15025,44 +15025,54 @@ Are you sure you want to declare?</translation>
         <translation>Invitation route: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="246"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="247"/>
         <source>今の設定: %1</source>
         <translation>Current setting: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="271"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="272"/>
         <source>プレイヤー鍵の保管: OSの鍵の保管庫</source>
         <translation>Player key storage: OS keychain</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="272"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="273"/>
         <source>プレイヤー鍵の保管: パスフレーズで暗号化したファイル</source>
         <translation>Player key storage: passphrase-encrypted file</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="273"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="274"/>
         <source>プレイヤー鍵の保管: 暗号化しないファイル</source>
         <translation>Player key storage: unencrypted file</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="274"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="275"/>
         <source>プレイヤー鍵: まだ作っていません</source>
         <translation>Player key: not created yet</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="279"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="280"/>
         <source>通信プロセスの権限の制限: %1</source>
         <translation>Communication process restrictions: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="280"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="281"/>
         <source>loopbackとLAN内への接続は、OSの側では止められません（通信プロセス自身が断ります）。</source>
         <translation>Connections to loopback and the LAN are not blocked by the OS (the communication process itself refuses them).</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="283"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="284"/>
         <source>このビルドの使用期限: %1（期限後は「インターネット」に参加しません。「同じPC・同じLAN」は期限後も使えます）</source>
         <translation>This build expires: %1 (after that it will not join &quot;Internet&quot;; &quot;Same PC / same LAN&quot; keeps working)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="309"/>
+        <source>協力ノードにまだつながっていません。しばらく待っても変わらないときは、登録したアドレスと、協力ノードが動いているかを確かめてください。</source>
+        <translation>Not connected to a cooperating node yet. If this does not change after a while, check the registered address and that the cooperating node is running.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="329"/>
+        <source>外から届く接続先を、協力ノードで確かめています。しばらく待っても変わらないときは、協力ノードを --relay と、この「相手のいる場所」に合う --network を付けて起動しているかを確かめてください。</source>
+        <translation>Checking with your cooperating node for an address that can be reached from outside. If this does not change after a while, check that the cooperating node was started with --relay and with the --network that matches &quot;Where your opponent is&quot;.</translation>
     </message>
     <message>
         <source>・相手だけに伝え、公開の場所には貼らないでください。</source>
@@ -15077,17 +15087,22 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">- %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="293"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="313"/>
         <source>協力ノードの中継だけを通ります（直接はつなぎません）。</source>
         <translation>Only through the relay of your cooperating node (no direct connection).</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="294"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="315"/>
         <source>中継を使えません。「協力ノードの中継だけを使う」には、中継のできる協力ノードを「接続」タブで登録してください。</source>
         <translation>No relay is available. To use &quot;Relay only (via a cooperating node)&quot;, register a cooperating node that provides a relay on the &quot;Connection&quot; tab.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="303"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="318"/>
+        <source>協力ノードに中継を予約しています。しばらく待っても変わらないときは、協力ノードを --relay と、この「相手のいる場所」に合う --network を付けて起動しているかを確かめてください。</source>
+        <translation>Reserving a relay on your cooperating node. If this does not change after a while, check that the cooperating node was started with --relay and with the --network that matches &quot;Where your opponent is&quot;.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="327"/>
         <source>外から届く接続先がまだありません。「接続」タブで協力ノードを登録してください。</source>
         <translation>There is no address yet that can be reached from outside. Register a cooperating node on the &quot;Connection&quot; tab.</translation>
     </message>
@@ -15178,27 +15193,27 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">No relay is available. To use &quot;Do not use direct connections&quot;, enter a cooperating node that provides a relay in &quot;Bootstrap nodes&quot; in Settings.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="297"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="322"/>
         <source>同じPC・同じLANの相手と直接つなぎます（協力ノードの中継も使えます）。</source>
         <translation>Direct connection to an opponent on the same PC or LAN (the relay of your cooperating node is also available).</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="298"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="323"/>
         <source>同じPC・同じLANの相手と直接つなぎます。</source>
         <translation>Direct connection to an opponent on the same PC or LAN.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="301"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="325"/>
         <source>直接つなぎます（協力ノードの中継も使えます）。</source>
         <translation>Direct connection (the relay of your cooperating node is also available).</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="301"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="325"/>
         <source>直接つなぎます。</source>
         <translation>Direct connection.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="302"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="326"/>
         <source>協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。</source>
         <translation>Through the relay of your cooperating node (it may switch to a direct connection after connecting).</translation>
     </message>
@@ -15295,7 +15310,7 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">The invitation for this passcode is received from a cooperating node. Enter the same cooperating node as the inviter (one that supports passcodes) in &quot;Bootstrap nodes&quot; in Settings, and connect again.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="362"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="389"/>
         <source>対局の申し込み</source>
         <translation>Game Request</translation>
     </message>
@@ -17781,7 +17796,7 @@ Choose a file with one SFEN position per line.</translation>
         <translation type="vanished">Place white pieces (does not change the side to move)</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="713"/>
+        <location filename="../../src/views/shogiview.cpp" line="722"/>
         <source>駒箱</source>
         <translation>Piece Box</translation>
     </message>

@@ -243,7 +243,8 @@ void P2pWindow::refresh()
     }
     // 接続中は、招待がどの経路で届くか。接続していない間は、「接続」タブで選んだつなぎ方
     m_strip->setStatus(state, statusText,
-                       online ? tr("招待の経路: %1").arg(routeText()) : tr("今の設定: %1").arg(m_connection->settingSummary()));
+                       online ? tr("招待の経路: %1").arg(routeText(routeState()))
+                              : tr("今の設定: %1").arg(m_connection->settingSummary()));
     QPushButton* connectButton = m_strip->button();
     const QString connectText = running ? tr("切断") : tr("接続");
     if (connectButton->text() != connectText) {
@@ -285,22 +286,48 @@ void P2pWindow::refresh()
     m_gamePanel->refresh();
 }
 
-QString P2pWindow::routeText() const
+P2pWindow::RouteState P2pWindow::routeState() const
+{
+    RouteState state;
+    state.relayOnly = m_lobby->relayOnly();
+    state.localProfile = m_lobby->isLocalProfile();
+    state.publicReachability = m_lobby->reachability() == PeerIpc::Reachability::Public;
+    state.hasNodes = m_lobby->hasNodes();
+    state.connectedPeers = m_lobby->connectedPeers();
+    state.relayReservations = m_lobby->relayReservations();
+    return state;
+}
+
+QString P2pWindow::routeText(const RouteState& state)
 {
     // 招待した相手が、どの経路でここへつなげるか（自分や相手のアドレスは出さない）
-    const bool relay = m_lobby->relayReservations() > 0;
-    if (m_lobby->relayOnly()) {
-        return relay ? tr("協力ノードの中継だけを通ります（直接はつなぎません）。")
-                     : tr("中継を使えません。「協力ノードの中継だけを使う」には、中継のできる協力ノードを「接続」タブで登録してください。");
+    const bool relay = state.relayReservations > 0;
+    // 協力ノードを登録したのに中継の予約がまだない間は、登録を促さない。つないでいる・予約している途中か、登録した
+    // 協力ノードに届かない・中継に対応していないかで、どれなのかは通信プロセスも知らせないので、待っても変わらない
+    // ときに確かめることを出す（以前は、予約を待つ間も「登録してください」と出た）
+    const auto unreached = [] {
+        return tr("協力ノードにまだつながっていません。しばらく待っても変わらないときは、登録したアドレスと、"
+                  "協力ノードが動いているかを確かめてください。");
+    };
+    if (state.relayOnly) {
+        if (relay) return tr("協力ノードの中継だけを通ります（直接はつなぎません）。");
+        if (!state.hasNodes) {
+            return tr("中継を使えません。「協力ノードの中継だけを使う」には、中継のできる協力ノードを「接続」タブで登録してください。");
+        }
+        if (state.connectedPeers == 0) return unreached();
+        return tr("協力ノードに中継を予約しています。しばらく待っても変わらないときは、協力ノードを --relay と、"
+                  "この「相手のいる場所」に合う --network を付けて起動しているかを確かめてください。");
     }
-    if (m_lobby->isLocalProfile()) {
+    if (state.localProfile) {
         return relay ? tr("同じPC・同じLANの相手と直接つなぎます（協力ノードの中継も使えます）。")
                      : tr("同じPC・同じLANの相手と直接つなぎます。");
     }
-    const bool direct = m_lobby->reachability() == PeerIpc::Reachability::Public;
-    if (direct) return relay ? tr("直接つなぎます（協力ノードの中継も使えます）。") : tr("直接つなぎます。");
+    if (state.publicReachability) return relay ? tr("直接つなぎます（協力ノードの中継も使えます）。") : tr("直接つなぎます。");
     if (relay) return tr("協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。");
-    return tr("外から届く接続先がまだありません。「接続」タブで協力ノードを登録してください。");
+    if (!state.hasNodes) return tr("外から届く接続先がまだありません。「接続」タブで協力ノードを登録してください。");
+    if (state.connectedPeers == 0) return unreached();
+    return tr("外から届く接続先を、協力ノードで確かめています。しばらく待っても変わらないときは、協力ノードを --relay と、"
+              "この「相手のいる場所」に合う --network を付けて起動しているかを確かめてください。");
 }
 
 void P2pWindow::reloadRecords()

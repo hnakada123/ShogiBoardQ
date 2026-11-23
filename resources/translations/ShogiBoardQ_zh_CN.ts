@@ -12853,8 +12853,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="248"/>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="362"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="249"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="389"/>
         <source>接続</source>
         <translation>连接</translation>
     </message>
@@ -13079,12 +13079,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>无法使用P2P对局</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="248"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="249"/>
         <source>切断</source>
         <translation>断开</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="266"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="267"/>
         <source>（まだ作っていません）</source>
         <translation>（尚未生成）</translation>
     </message>
@@ -13191,44 +13191,54 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>邀请的路径：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="246"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="247"/>
         <source>今の設定: %1</source>
         <translation>当前设置：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="271"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="272"/>
         <source>プレイヤー鍵の保管: OSの鍵の保管庫</source>
         <translation>玩家密钥保存：操作系统的密钥库</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="272"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="273"/>
         <source>プレイヤー鍵の保管: パスフレーズで暗号化したファイル</source>
         <translation>玩家密钥保存：用密码短语加密的文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="273"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="274"/>
         <source>プレイヤー鍵の保管: 暗号化しないファイル</source>
         <translation>玩家密钥保存：不加密的文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="274"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="275"/>
         <source>プレイヤー鍵: まだ作っていません</source>
         <translation>玩家密钥：尚未生成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="279"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="280"/>
         <source>通信プロセスの権限の制限: %1</source>
         <translation>通信进程的权限限制：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="280"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="281"/>
         <source>loopbackとLAN内への接続は、OSの側では止められません（通信プロセス自身が断ります）。</source>
         <translation>操作系统无法阻止连接到回环地址和局域网（由通信进程自身拒绝）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="283"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="284"/>
         <source>このビルドの使用期限: %1（期限後は「インターネット」に参加しません。「同じPC・同じLAN」は期限後も使えます）</source>
         <translation>此版本的使用期限：%1（期限后不加入「互联网」。「同一电脑・同一局域网」在期限后仍可使用）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="309"/>
+        <source>協力ノードにまだつながっていません。しばらく待っても変わらないときは、登録したアドレスと、協力ノードが動いているかを確かめてください。</source>
+        <translation>尚未连接到协作节点。如果等待一段时间后仍无变化，请检查注册的地址以及协作节点是否正在运行。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="329"/>
+        <source>外から届く接続先を、協力ノードで確かめています。しばらく待っても変わらないときは、協力ノードを --relay と、この「相手のいる場所」に合う --network を付けて起動しているかを確かめてください。</source>
+        <translation>正在通过协作节点确认可从外部到达的连接地址。如果等待一段时间后仍无变化，请检查协作节点是否使用 --relay 以及与此「对手所在位置」相符的 --network 启动。</translation>
     </message>
     <message>
         <source>・相手だけに伝え、公開の場所には貼らないでください。</source>
@@ -13243,17 +13253,22 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">・%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="293"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="313"/>
         <source>協力ノードの中継だけを通ります（直接はつなぎません）。</source>
         <translation>仅通过协作节点的中继（不直接连接）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="294"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="315"/>
         <source>中継を使えません。「協力ノードの中継だけを使う」には、中継のできる協力ノードを「接続」タブで登録してください。</source>
         <translation>无法使用中继。要使用「仅使用协作节点的中继」，请在「连接」标签页注册可提供中继的协作节点。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="303"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="318"/>
+        <source>協力ノードに中継を予約しています。しばらく待っても変わらないときは、協力ノードを --relay と、この「相手のいる場所」に合う --network を付けて起動しているかを確かめてください。</source>
+        <translation>正在向协作节点预约中继。如果等待一段时间后仍无变化，请检查协作节点是否使用 --relay 以及与此「对手所在位置」相符的 --network 启动。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="327"/>
         <source>外から届く接続先がまだありません。「接続」タブで協力ノードを登録してください。</source>
         <translation>尚无可从外部到达的连接地址。请在「连接」标签页注册协作节点。</translation>
     </message>
@@ -13344,27 +13359,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">无法使用中继。要使用「不使用直接连接」，请在「设置」的「连接候选」中填入可提供中继的协作节点。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="297"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="322"/>
         <source>同じPC・同じLANの相手と直接つなぎます（協力ノードの中継も使えます）。</source>
         <translation>与同一电脑・同一局域网的对手直接连接（也可使用协作节点的中继）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="298"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="323"/>
         <source>同じPC・同じLANの相手と直接つなぎます。</source>
         <translation>与同一电脑・同一局域网的对手直接连接。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="301"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="325"/>
         <source>直接つなぎます（協力ノードの中継も使えます）。</source>
         <translation>直接连接（也可使用协作节点的中继）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="301"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="325"/>
         <source>直接つなぎます。</source>
         <translation>直接连接。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="302"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="326"/>
         <source>協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。</source>
         <translation>通过协作节点的中继（连接后可能切换为直接连接）。</translation>
     </message>
@@ -13461,7 +13476,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">此暗号的邀请需要从协作节点取得。请在「设置」的「连接候选」中填入与邀请方相同的协作节点（支持暗号的节点），然后重新连接。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="362"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="389"/>
         <source>対局の申し込み</source>
         <translation>对局申请</translation>
     </message>
@@ -15710,7 +15725,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">放置后手棋子（不改变行棋方）</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="713"/>
+        <location filename="../../src/views/shogiview.cpp" line="722"/>
         <source>駒箱</source>
         <translation>棋子盒</translation>
     </message>

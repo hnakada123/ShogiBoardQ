@@ -1084,6 +1084,49 @@ private slots:
         saveShot(&panel, QStringLiteral("p2p-connection-panel"));
     }
 
+    /// 接続中の「招待の経路」。協力ノードを登録したのに、まだつながっていない・中継の予約が取れていない間は、登録を
+    /// 促さずに、待っていることと、変わらないときに確かめることを出す（以前は、予約を待つ間も「登録してください」と
+    /// 出た。2台の Mac と Linux の試験で見つけた）
+    void routeTextWhileWaitingForTheNode()
+    {
+        const auto text = [](bool relayOnly, bool localProfile, bool hasNodes, int peers, int reservations) {
+            P2pWindow::RouteState state;
+            state.relayOnly = relayOnly;
+            state.localProfile = localProfile;
+            state.hasNodes = hasNodes;
+            state.connectedPeers = peers;
+            state.relayReservations = reservations;
+            return P2pWindow::routeText(state);
+        };
+        const QString registerNode = QStringLiteral("登録してください");
+        for (const bool local : {true, false}) {
+            // 「協力ノードの中継だけを使う」: 登録していないときだけ、登録を促す
+            QVERIFY(text(true, local, false, 0, 0).startsWith(QStringLiteral("中継を使えません。")));
+            QVERIFY(text(true, local, false, 0, 0).contains(registerNode));
+            QVERIFY(text(true, local, true, 0, 0).startsWith(QStringLiteral("協力ノードにまだつながっていません。")));
+            QVERIFY(!text(true, local, true, 0, 0).contains(registerNode));
+            const QString reserving = text(true, local, true, 1, 0);
+            QVERIFY2(reserving.startsWith(QStringLiteral("協力ノードに中継を予約しています。"))
+                         && reserving.contains(QStringLiteral("--relay")) && reserving.contains(QStringLiteral("--network"))
+                         && !reserving.contains(registerNode),
+                     qPrintable(reserving));
+            QCOMPARE(text(true, local, true, 1, 1), QStringLiteral("協力ノードの中継だけを通ります（直接はつなぎません）。"));
+        }
+        // 「インターネット」で直接届かない: 同じく、登録していないときだけ登録を促す
+        QVERIFY(text(false, false, false, 0, 0).startsWith(QStringLiteral("外から届く接続先がまだありません。")));
+        QVERIFY(text(false, false, true, 0, 0).startsWith(QStringLiteral("協力ノードにまだつながっていません。")));
+        const QString checking = text(false, false, true, 1, 0);
+        QVERIFY2(checking.startsWith(QStringLiteral("外から届く接続先を、協力ノードで確かめています。"))
+                     && !checking.contains(registerNode),
+                 qPrintable(checking));
+        QVERIFY(text(false, false, true, 1, 1).startsWith(QStringLiteral("協力ノードの中継を通ります")));
+        P2pWindow::RouteState reachable;
+        reachable.publicReachability = true;
+        QCOMPARE(P2pWindow::routeText(reachable), QStringLiteral("直接つなぎます。"));
+        // 「同じPC・同じLAN」で直接つなぐ: 協力ノードは要らないので、つながっていなくても直接つなぐと出す
+        QCOMPARE(text(false, true, true, 0, 0), QStringLiteral("同じPC・同じLANの相手と直接つなぎます。"));
+    }
+
     /// 「接続」タブの選択は、変えたときに保存し、開き直すと戻る。接続していない間は、状態の帯に今の設定を出す。
     /// 「招待」タブの注意は、今の設定で作る招待に何が入るかを出す
     void connectionChoicesAreSavedAndRestored()

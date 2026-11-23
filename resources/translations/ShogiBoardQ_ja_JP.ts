@@ -13174,8 +13174,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="248"/>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="362"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="249"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="389"/>
         <source>接続</source>
         <translation>接続</translation>
     </message>
@@ -13400,12 +13400,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>P2P対局を使えません</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="248"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="249"/>
         <source>切断</source>
         <translation>切断</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="266"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="267"/>
         <source>（まだ作っていません）</source>
         <translation>（まだ作っていません）</translation>
     </message>
@@ -13512,44 +13512,54 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>招待の経路: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="246"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="247"/>
         <source>今の設定: %1</source>
         <translation>今の設定: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="271"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="272"/>
         <source>プレイヤー鍵の保管: OSの鍵の保管庫</source>
         <translation>プレイヤー鍵の保管: OSの鍵の保管庫</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="272"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="273"/>
         <source>プレイヤー鍵の保管: パスフレーズで暗号化したファイル</source>
         <translation>プレイヤー鍵の保管: パスフレーズで暗号化したファイル</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="273"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="274"/>
         <source>プレイヤー鍵の保管: 暗号化しないファイル</source>
         <translation>プレイヤー鍵の保管: 暗号化しないファイル</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="274"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="275"/>
         <source>プレイヤー鍵: まだ作っていません</source>
         <translation>プレイヤー鍵: まだ作っていません</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="279"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="280"/>
         <source>通信プロセスの権限の制限: %1</source>
         <translation>通信プロセスの権限の制限: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="280"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="281"/>
         <source>loopbackとLAN内への接続は、OSの側では止められません（通信プロセス自身が断ります）。</source>
         <translation>loopbackとLAN内への接続は、OSの側では止められません（通信プロセス自身が断ります）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="283"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="284"/>
         <source>このビルドの使用期限: %1（期限後は「インターネット」に参加しません。「同じPC・同じLAN」は期限後も使えます）</source>
         <translation>このビルドの使用期限: %1（期限後は「インターネット」に参加しません。「同じPC・同じLAN」は期限後も使えます）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="309"/>
+        <source>協力ノードにまだつながっていません。しばらく待っても変わらないときは、登録したアドレスと、協力ノードが動いているかを確かめてください。</source>
+        <translation>協力ノードにまだつながっていません。しばらく待っても変わらないときは、登録したアドレスと、協力ノードが動いているかを確かめてください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="329"/>
+        <source>外から届く接続先を、協力ノードで確かめています。しばらく待っても変わらないときは、協力ノードを --relay と、この「相手のいる場所」に合う --network を付けて起動しているかを確かめてください。</source>
+        <translation>外から届く接続先を、協力ノードで確かめています。しばらく待っても変わらないときは、協力ノードを --relay と、この「相手のいる場所」に合う --network を付けて起動しているかを確かめてください。</translation>
     </message>
     <message>
         <source>・相手だけに伝え、公開の場所には貼らないでください。</source>
@@ -13564,17 +13574,22 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">・%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="293"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="313"/>
         <source>協力ノードの中継だけを通ります（直接はつなぎません）。</source>
         <translation>協力ノードの中継だけを通ります（直接はつなぎません）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="294"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="315"/>
         <source>中継を使えません。「協力ノードの中継だけを使う」には、中継のできる協力ノードを「接続」タブで登録してください。</source>
         <translation>中継を使えません。「協力ノードの中継だけを使う」には、中継のできる協力ノードを「接続」タブで登録してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="303"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="318"/>
+        <source>協力ノードに中継を予約しています。しばらく待っても変わらないときは、協力ノードを --relay と、この「相手のいる場所」に合う --network を付けて起動しているかを確かめてください。</source>
+        <translation>協力ノードに中継を予約しています。しばらく待っても変わらないときは、協力ノードを --relay と、この「相手のいる場所」に合う --network を付けて起動しているかを確かめてください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="327"/>
         <source>外から届く接続先がまだありません。「接続」タブで協力ノードを登録してください。</source>
         <translation>外から届く接続先がまだありません。「接続」タブで協力ノードを登録してください。</translation>
     </message>
@@ -13665,27 +13680,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">中継を使えません。「直接接続を使わない」には、中継のできる協力ノードを「設定」の「接続候補」に入れてください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="297"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="322"/>
         <source>同じPC・同じLANの相手と直接つなぎます（協力ノードの中継も使えます）。</source>
         <translation>同じPC・同じLANの相手と直接つなぎます（協力ノードの中継も使えます）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="298"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="323"/>
         <source>同じPC・同じLANの相手と直接つなぎます。</source>
         <translation>同じPC・同じLANの相手と直接つなぎます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="301"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="325"/>
         <source>直接つなぎます（協力ノードの中継も使えます）。</source>
         <translation>直接つなぎます（協力ノードの中継も使えます）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="301"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="325"/>
         <source>直接つなぎます。</source>
         <translation>直接つなぎます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="302"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="326"/>
         <source>協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。</source>
         <translation>協力ノードの中継を通ります（つながった後、直接の接続に切り替わることがあります）。</translation>
     </message>
@@ -13782,7 +13797,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">この合言葉の招待は、協力ノードから受け取ります。招待した人と同じ協力ノード（合言葉に対応したもの）を「設定」の「接続候補」に入れて、接続し直してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/p2pwindow.cpp" line="362"/>
+        <location filename="../../src/dialogs/p2pwindow.cpp" line="389"/>
         <source>対局の申し込み</source>
         <translation>対局の申し込み</translation>
     </message>
@@ -16063,7 +16078,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">後手の駒を配置（手番は変更しません）</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="713"/>
+        <location filename="../../src/views/shogiview.cpp" line="722"/>
         <source>駒箱</source>
         <translation>駒箱</translation>
     </message>

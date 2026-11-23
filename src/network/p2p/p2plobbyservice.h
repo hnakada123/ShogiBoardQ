@@ -109,6 +109,9 @@ public:
     /// つながっている、合言葉の待ち合わせに対応した協力ノードの数（0 なら、協力ノードを使う合言葉と友だち一覧は使えない）
     int meetNodes() const { return m_meetNodes; }
     bool relayOnly() const { return m_relayOnly; }
+    /// 利用者が協力ノードを登録して接続を始めたか（今の profile で使えない宛先も数える。通信プロセスが捨てた宛先は
+    /// 知らせないので、つながったかは connectedPeers で見る）
+    bool hasNodes() const { return !m_bootstrap.isEmpty(); }
     /// 通信プロセスに掛かっている権限の制限（動かしていない間は、何も掛かっていない値）
     PeerIpc::Sandbox sandbox() const { return m_peer ? m_peer->sandbox() : PeerIpc::Sandbox(); }
 
