@@ -95,6 +95,6 @@ makepkg -sif
 
 ## ソースコードとライセンス
 
-ShogiBoardQ は GPL-3.0 で配布しています（`LICENSE`）。このパッケージはリリースタグ `2026.11.09` のソースからビルドしました。
+ShogiBoardQ は GPL-3.0 で配布しています（`LICENSE`）。このパッケージはリリースタグ `2026.11.23` のソースからビルドしました。
 
-<https://github.com/hnakada123/ShogiBoardQ/tree/2026.11.09>
+<https://github.com/hnakada123/ShogiBoardQ/tree/2026.11.23>

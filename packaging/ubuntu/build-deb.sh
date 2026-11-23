@@ -20,7 +20,7 @@
 set -euo pipefail
 
 pkgname=shogiboardq
-pkgver=2026.11.09
+pkgver=2026.11.23
 pkgrel=1
 maintainer='hnakada123 <hnakada123@gmail.com>'
 
