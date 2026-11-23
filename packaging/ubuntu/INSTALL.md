@@ -89,6 +89,6 @@ Ubuntu の Qt がこのパッケージより古いときのエラーです。Ubu
 
 ## ソースコードとライセンス
 
-ShogiBoardQ は GPL-3.0 で配布しています（`LICENSE`）。このパッケージはリリースタグ `2026.11.23` のソースから、同じフォルダの `build-deb.sh` でビルドしました。
+ShogiBoardQ は GPL-3.0 で配布しています（`LICENSE`）。このパッケージはリリースタグ `2026.11.24` のソースから、同じフォルダの `build-deb.sh` でビルドしました。
 
-<https://github.com/hnakada123/ShogiBoardQ/tree/2026.11.23>
+<https://github.com/hnakada123/ShogiBoardQ/tree/2026.11.24>
