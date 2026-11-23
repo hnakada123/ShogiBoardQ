@@ -762,8 +762,21 @@ fn sandbox_self_test_denies_forbidden_operations() {
         "unix_connect_abstract",
         "signal_parent",
     ];
+    // macOS: ほかのプロセスの引数と環境変数・プロセスの一覧・実行ファイルの場所（サンドボックスの process-info）と、
+    // 許可の一覧にない sysctl も読めない（監査 2026-11-21 S12）
     #[cfg(target_os = "macos")]
-    let denied = ["read_file", "write_file", "exec", "fork", "signal_parent"];
+    let denied = [
+        "read_file",
+        "write_file",
+        "exec",
+        "fork",
+        "signal_parent",
+        "sysctl_procargs_parent",
+        "sysctl_proc_all",
+        "sysctl_hostname",
+        "proc_list_pids",
+        "proc_pidpath_parent",
+    ];
     for name in denied {
         assert_eq!(v["results"][name], "denied", "{name}: {v}");
     }

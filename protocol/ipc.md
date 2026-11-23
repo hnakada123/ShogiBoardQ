@@ -432,12 +432,16 @@ Linux と同じく、通信プロセスが自分で掛ける。標準入力を�
      ライブラリと tokio が読む）、`kern.os`（`kern.ostype`・`kern.osrelease`・`kern.osversion`・`kern.osproductversion`・
      `kern.osvariant_status` など OS の版）、`kern.version`、`kern.maxfilesperproc`、`kern.maxfiles`、`kern.usrstack64`、
      `sysctl.proc_cputype`
+   - 自分のプロセスの情報（`process-info*`。`(deny default)` だけでは拒否されないので、明示して拒否したうえで、
+     自分のプロセスだけを許す。sysctl の名前の許可の一覧では、ほかのプロセスの引数と環境変数を読む `kern.procargs2`
+     は止まらない）
    - アドレスの変化の知らせを受ける configd（Mach のサービス `com.apple.SystemConfiguration.configd`）
 
    許していないので、ファイルの読み書き（開いてある標準入出力は使える）、プログラムの起動、プロセスの複製、
    ほかのプロセスへのシグナル、Unix ドメインのソケットへの接続（自動化 API など）、ほかの Mach のサービス
-   （キーチェーン・クリップボードなど）、一覧にない sysctl（ほかのプロセスの引数と環境変数を読む `kern.procargs2`・
-   `kern.procargs`、プロセスの一覧 `kern.proc`、コンピュータ名 `kern.hostname` など）は拒否される。インターフェースの
+   （キーチェーン・クリップボードなど）、一覧にない sysctl（プロセスの一覧 `kern.proc.all`、コンピュータ名
+   `kern.hostname` など）、ほかのプロセスの情報（引数と環境変数を読む sysctl の `kern.procargs2`・`kern.procargs`、
+   `kern.proc.pid`、libproc のプロセスの一覧・実行ファイルの場所など）は拒否される。インターフェースの
    物理アドレス（MAC アドレス）の読み取りも拒否する（一覧を読むたびに OS が確かめるので、この拒否だけはログに残さない）。
 5. `--no-loopback` を付けて起動されたときは、規則の `localhost` を宛先とする発信も拒否する（`seatbelt_no_loopback`）。
    Seatbelt の宛先の規則は「すべて」か `localhost` でしか書けず、OS が止めることを自己試験で確かめているのは
@@ -457,7 +461,9 @@ macOS の `--sandbox-self-test` は、上の制限を掛けた後に次を試す
 （127.0.0.1 と ::1 の閉じたポートへ接続。`--no-loopback` を付けたときは `denied`、付けないときは `allowed`）、
 `list_interfaces`（getifaddrs。`allowed` が出る）、`sysctl_hw_ncpu`（`hw.ncpu`。`allowed` が出る）、`sysctl_procargs_parent`
 （起動した側の `kern.procargs2`。`denied` が出る）、`sysctl_proc_all`（`kern.proc.all`。`denied` が出る）、`sysctl_hostname`
-（`kern.hostname`。`denied` が出る）。sysctl は、サンドボックスが拒否した（EPERM・EACCES）ときだけ `denied`。
+（`kern.hostname`。`denied` が出る）、`proc_list_pids`（libproc の `proc_listallpids`。`denied` が出る）、
+`proc_pidpath_parent`（起動した側の実行ファイルの場所。libproc の `proc_pidpath`。`denied` が出る）。sysctl と libproc は、
+サンドボックスが拒否した（EPERM・EACCES）ときだけ `denied`。
 続けて、`--no-loopback` の規則がどこまで止めるかを書く（試験はこれらを確かめない。実機で動かしたときに、OS が止めるかが
 分かる）: `connect_unspecified_v4`（0.0.0.0:9）、`connect_unspecified_v6`（[::]:9）、`connect_mapped_loopback`
 （[::ffff:127.0.0.1]:9）、`connect_loopback_other`（127.0.0.2:9）、`connect_own_address`（動いているインターフェースの

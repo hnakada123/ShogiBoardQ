@@ -2,7 +2,7 @@
 //!
 //! macOS では、通信プロセスが起動の直後に自分でサンドボックス（Seatbelt）を掛ける。掛ける規則（プロファイル）は
 //! 通信プロセスの側（peer/src/sandbox.rs）が決め、ここは libSystem の関数を呼ぶだけ（自己試験で、禁止した操作
-//! （プロセスの複製・sysctl の読み取り）が拒否されるかを試す関数も置く）。
+//! （プロセスの複製・sysctl の読み取り・ほかのプロセスの情報の読み取り）が拒否されるかを試す関数も置く）。
 //! unsafe を書くのはこのクレートだけで、外へは安全な関数だけを出す。macOS 以外では空。
 
 #![cfg(target_os = "macos")]
@@ -14,6 +14,10 @@ use std::ptr::null_mut;
 const PT_DENY_ATTACH: c_int = 31;
 /// sysctl の値を読む領域の大きさ（自己試験用。ほかのプロセスの引数（kern.argmax は既定で 1 MiB）が入る大きさ）
 const SYSCTL_BUFFER_BYTES: usize = 2 * 1024 * 1024;
+/// プロセスの一覧を読む領域の PID の数（自己試験用。読めたかだけを見るので、全部が入らなくてもよい）
+const PID_LIST_CAPACITY: usize = 4096;
+/// 実行ファイルの場所を読む領域の大きさ（libproc.h の PROC_PIDPATHINFO_MAXSIZE）
+const PID_PATH_BYTES: usize = 4 * 1024;
 
 extern "C" {
     /// sandbox.h。flags が 0 なら profile をプロファイルの本文（SBPL）として読む。掛けた制限は外せない
@@ -42,6 +46,10 @@ extern "C" {
         newp: *mut c_void,
         newlen: usize,
     ) -> c_int;
+    /// libproc.h。動いているプロセスの PID の一覧を buffer に書き、PID の数を返す。読めなければ 0 以下で errno
+    fn proc_listallpids(buffer: *mut c_void, buffersize: c_int) -> c_int;
+    /// libproc.h。プロセスの実行ファイルの場所を buffer に書き、バイト数を返す。読めなければ 0 で errno
+    fn proc_pidpath(pid: c_int, buffer: *mut c_void, buffersize: u32) -> c_int;
 }
 
 /// 直前の呼び出しの errno
@@ -155,4 +163,30 @@ pub fn can_fork() -> bool {
     // SAFETY: child は今作った子。状態は要らないので NULL を渡す
     unsafe { waitpid(child, null_mut(), 0) };
     true
+}
+
+/// 動いているプロセスの一覧を libproc（proc_listallpids）で読めるか（自己試験用。一覧そのものは返さない）。読めれば
+/// Ok(PID の数)、読めなければ Err(errno。サンドボックスが拒否したときは EPERM)
+pub fn list_all_pids() -> Result<usize, i32> {
+    let mut buffer = vec![c_int::default(); PID_LIST_CAPACITY];
+    let bytes = c_int::try_from(std::mem::size_of_val(buffer.as_slice())).map_err(|_| 0)?;
+    // SAFETY: buffer は bytes バイトの書き込める領域で、呼び出しの間生きている
+    let count = unsafe { proc_listallpids(buffer.as_mut_ptr().cast::<c_void>(), bytes) };
+    match usize::try_from(count) {
+        Ok(count) if count > 0 => Ok(count),
+        _ => Err(last_errno()),
+    }
+}
+
+/// プロセス（pid）の実行ファイルの場所を libproc（proc_pidpath）で読めるか（自己試験用。場所そのものは返さない）。
+/// 読めれば Ok(バイト数)、読めなければ Err(errno。サンドボックスが拒否したときは EPERM)
+pub fn pid_path(pid: i32) -> Result<usize, i32> {
+    let mut buffer = vec![0u8; PID_PATH_BYTES];
+    let size = u32::try_from(buffer.len()).map_err(|_| 0)?;
+    // SAFETY: buffer は size バイトの書き込める領域で、呼び出しの間生きている
+    let length = unsafe { proc_pidpath(pid, buffer.as_mut_ptr().cast::<c_void>(), size) };
+    match usize::try_from(length) {
+        Ok(length) if length > 0 => Ok(length),
+        _ => Err(last_errno()),
+    }
 }

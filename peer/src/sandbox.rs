@@ -370,9 +370,13 @@ mod macos {
 
     /// サンドボックスの規則（SBPL）。既定ですべて拒否し、通信プロセスが使うものだけを許す:
     /// TCP と UDP の待受・着信・発信（IPv4・IPv6。Unix ドメインのソケットは許さない）、自分へのシグナル、
-    /// 決めた名前の sysctl の読み取り、アドレスの変化の知らせを受ける configd。
-    /// sysctl は名前を許可の一覧にする（監査 2026-11-21 S12。すべてを許すと、`kern.procargs2` で同じ利用者のほかの
-    /// プロセスの引数と環境変数を、`kern.proc.all` でプロセスの一覧を、`kern.hostname` でコンピュータ名を読めた）:
+    /// 決めた名前の sysctl の読み取り、自分のプロセスの情報、アドレスの変化の知らせを受ける configd。
+    /// プロセスの情報（`process-info*`。sysctl の `kern.procargs2`・`kern.procargs`・`kern.proc.pid` と、libproc の
+    /// プロセスの一覧・実行ファイルの場所など）は、`(deny default)` だけでは拒否されないので、明示して拒否し、自分の
+    /// プロセスだけを許す（macOS 27.2 で確かめた。sysctl の名前の許可の一覧では `kern.procargs2` が止まらず、同じ利用者の
+    /// ほかのプロセスの引数と環境変数を読めた。監査 2026-11-21 S12 の残り）。
+    /// sysctl は名前を許可の一覧にする（監査 2026-11-21 S12。すべてを許すと、`kern.proc.all` でプロセスの一覧を、
+    /// `kern.hostname` でコンピュータ名を読めた）:
     /// インターフェースのアドレスの一覧（getifaddrs が読む `net.routetable`）、CPU の数など Rust の標準ライブラリと
     /// tokio が読む `hw.` の値、OS の版（`kern.os` で始まるもの・`kern.version`）、ファイルの数の上限
     /// （`kern.maxfilesperproc`・`kern.maxfiles`）、スタックの位置（`kern.usrstack64`）、CPU の種類
@@ -393,6 +397,8 @@ mod macos {
   (sysctl-name "kern.maxfiles")
   (sysctl-name "kern.usrstack64")
   (sysctl-name "sysctl.proc_cputype"))
+(deny process-info*)
+(allow process-info* (target self))
 (allow mach-lookup (global-name "com.apple.SystemConfiguration.configd"))
 (allow network-bind (local tcp "*:*") (local udp "*:*"))
 (allow network-inbound (local tcp "*:*") (local udp "*:*"))
@@ -684,9 +690,9 @@ mod macos_probe {
         targets.iter().find_map(|t| t.strip_prefix(name)?.strip_prefix('='))
     }
 
-    /// sysctl の読み取りの結果。サンドボックスが拒否した（EPERM・EACCES）なら denied、読めた・ほかの理由で
+    /// 読み取り（sysctl・libproc）の結果。サンドボックスが拒否した（EPERM・EACCES）なら denied、読めた・ほかの理由で
     /// 読めなかったなら allowed（サンドボックスでは止まっていない）
-    fn sysctl_verdict(result: Result<usize, i32>) -> Value {
+    fn read_verdict(result: Result<usize, i32>) -> Value {
         let denied = matches!(result, Err(e) if e == Errno::EPERM as i32 || e == Errno::EACCES as i32);
         verdict(!denied)
     }
@@ -800,24 +806,32 @@ mod macos_probe {
             );
         }
 
-        // sysctl: 許した名前は読め、ほかのプロセスの引数と環境変数（起動した側の kern.procargs2）・プロセスの一覧・
-        // コンピュータ名は読めない（監査 2026-11-21 S12）
+        // sysctl: 許した名前は読め、ほかのプロセスの引数と環境変数（起動した側の kern.procargs2。process-info で止める）・
+        // プロセスの一覧・コンピュータ名は読めない（監査 2026-11-21 S12）
         results.insert(
             "sysctl_hw_ncpu".into(),
-            sysctl_verdict(sbq_peer_macos::sysctl_by_name("hw.ncpu")),
+            read_verdict(sbq_peer_macos::sysctl_by_name("hw.ncpu")),
         );
         let parent = nix::unistd::getppid().as_raw();
         results.insert(
             "sysctl_procargs_parent".into(),
-            sysctl_verdict(sbq_peer_macos::sysctl_mib(&[CTL_KERN, KERN_PROCARGS2, parent])),
+            read_verdict(sbq_peer_macos::sysctl_mib(&[CTL_KERN, KERN_PROCARGS2, parent])),
         );
         results.insert(
             "sysctl_proc_all".into(),
-            sysctl_verdict(sbq_peer_macos::sysctl_mib(&[CTL_KERN, KERN_PROC, KERN_PROC_ALL])),
+            read_verdict(sbq_peer_macos::sysctl_mib(&[CTL_KERN, KERN_PROC, KERN_PROC_ALL])),
         );
         results.insert(
             "sysctl_hostname".into(),
-            sysctl_verdict(sbq_peer_macos::sysctl_by_name("kern.hostname")),
+            read_verdict(sbq_peer_macos::sysctl_by_name("kern.hostname")),
+        );
+
+        // libproc: プロセスの一覧と、起動した側の実行ファイルの場所は読めない（プロセスの情報は自分のものだけ。
+        // sysctl の kern.procargs2 と同じく、サンドボックスの process-info で止める）
+        results.insert("proc_list_pids".into(), read_verdict(sbq_peer_macos::list_all_pids()));
+        results.insert(
+            "proc_pidpath_parent".into(),
+            read_verdict(sbq_peer_macos::pid_path(parent)),
         );
 
         Value::Object(results)

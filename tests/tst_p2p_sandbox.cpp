@@ -125,10 +125,12 @@ private slots:
         const QStringList mechanisms = report.value(QStringLiteral("mechanisms")).toVariant().toStringList();
         QCOMPARE(mechanisms.contains(QStringLiteral("seatbelt_no_loopback")), !localNetwork);
         // sysctl は許可した名前だけ読める（インターフェースの一覧と CPU の数は読め、ほかのプロセスの引数・環境変数、
-        // プロセスの一覧、コンピュータ名は読めない。監査 2026-11-21 S12）
+        // プロセスの一覧、コンピュータ名は読めない。監査 2026-11-21 S12）。プロセスの情報は自分のものだけで、libproc でも
+        // プロセスの一覧と起動した側の実行ファイルの場所は読めない（kern.procargs2 と同じくサンドボックスの process-info）
         QCOMPARE(results.value(QStringLiteral("list_interfaces")).toString(), QStringLiteral("allowed"));
         QCOMPARE(results.value(QStringLiteral("sysctl_hw_ncpu")).toString(), QStringLiteral("allowed"));
-        for (const char* name : {"sysctl_procargs_parent", "sysctl_proc_all", "sysctl_hostname"}) {
+        for (const char* name : {"sysctl_procargs_parent", "sysctl_proc_all", "sysctl_hostname", "proc_list_pids",
+                                 "proc_pidpath_parent"}) {
             QVERIFY2(results.value(QLatin1String(name)).toString() == QStringLiteral("denied"), name);
         }
         // loopback を止める規則が、ほかの宛先（0.0.0.0・IPv4 射影・127.0.0.2・自分のアドレス）にも効くかは、結果を
