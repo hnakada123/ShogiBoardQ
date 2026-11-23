@@ -7,7 +7,8 @@
 #   docker run --rm -v "$PWD:/packaging:ro" -v "$PWD/out:/out" ubuntu:26.04 bash /packaging/build-deb.sh
 #
 # 26.04 でビルドしたパッケージは 26.04.1 LTS と 26.10 の両方に入る。新しい Qt でビルドしたものは古い Qt では
-# 動かないので、必ず古い方の 26.04 でビルドする。
+# 動かないので、必ず古い方の 26.04 でビルドする。P2P対局の libsodium は、共有ライブラリの名前が 26.04（libsodium23）と
+# 26.10（libsodium26）で違うので、静的にリンクする（パッケージは libsodium に依存しない）。
 #
 # 配置:
 #   /usr/lib/shogiboardq/          ShogiBoardQ・shogiboardq-cli の本体と翻訳（.qm）、P2P対局の通信プロセス
@@ -43,6 +44,10 @@ apt-get install -y -qq --no-install-recommends \
   cargo rustc libsodium-dev pkg-config qtkeychain-qt6-dev
 # cargo・rustc・libsodium-dev・qtkeychain-qt6-dev は P2P対局に使う（通信プロセス shogiboardq-peer は Rust。依存の
 # クレートは cargo がビルド中に crates.io から取得する。版とハッシュは Cargo.lock で固定）
+
+# libsodium は静的にリンクする（ファイルの先頭の説明）。このコンテナの中だけで共有ライブラリへのリンク libsodium.so を
+# 消すと、CMake（pkg-config の IMPORTED_TARGET）は同じフォルダの libsodium.a を見つける
+rm "$(pkg-config --variable=libdir libsodium)/libsodium.so"
 
 git clone --depth 1 --branch "$pkgver" --recurse-submodules --shallow-submodules \
   https://github.com/hnakada123/ShogiBoardQ.git "$srcdir"
@@ -86,6 +91,11 @@ if objdump -T "$libdir/ShogiBoardQ" "$libdir/shogiboardq-cli" | grep -q 'PRIVATE
   echo 'Qt の非公開 API のシンボルを使っています' >&2
   exit 1
 fi
+# libsodium の共有ライブラリに依存すると 26.10 に入れられない
+if objdump -p "$libdir/ShogiBoardQ" "$libdir/shogiboardq-cli" "$libdir/shogiboardq-peer" | grep -q 'NEEDED.*libsodium'; then
+  echo 'libsodium の共有ライブラリにリンクしています' >&2
+  exit 1
+fi
 
 docdir="$pkgdir/usr/share/doc/$pkgname"
 install -d "$docdir"
@@ -103,7 +113,12 @@ License version 3 is in /usr/share/common-licenses/GPL-3.
 
 The license documents shown in the About dialog are in
 /usr/share/licenses/$pkgname/.
+
+This package statically links libsodium for P2P games. The copyright file of
+libsodium in Ubuntu follows.
+
 EOF
+cat /usr/share/doc/libsodium-dev/copyright >> "$docdir/copyright"
 
 released=$(date -R -d "@$(git -C "$srcdir" log -1 --format=%ct)")
 gzip -9n > "$docdir/changelog.Debian.gz" <<EOF

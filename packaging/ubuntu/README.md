@@ -18,6 +18,8 @@ docker run --rm -v "$PWD:/packaging:ro" -v "$PWD/out:/out" ubuntu:26.04 bash /pa
 
 必ず Ubuntu 26.04 でビルドします（スクリプトはほかの版では止まります）。新しい Qt でビルドしたものは古い Qt では動かないので、26.10 でビルドすると 26.04.1 LTS には入れられません。
 
+P2P対局の署名に使う libsodium は静的にリンクします。共有ライブラリの名前が 26.04（`libsodium23`）と 26.10（`libsodium26`）で違い、共有ライブラリにリンクすると 26.10 に入れられないためです。libsodium の著作権表示は、パッケージの `/usr/share/doc/shogiboardq/copyright` に入れます。
+
 ## 配布する ZIP
 
 `ShogiBoardQ-ubuntu/` フォルダに次のファイルを入れて、`ShogiBoardQ-ubuntu.zip` にします。
