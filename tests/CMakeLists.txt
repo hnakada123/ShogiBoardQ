@@ -149,6 +149,14 @@ add_shogi_test(tst_errorbus
 )
 
 # ============================================================
+# Unit 1c: ExecutableDirectory（リンクから起動したときの実行ファイルのフォルダ）
+# ============================================================
+add_shogi_test(tst_executabledirectory
+    tst_executabledirectory.cpp
+    ${SRC}/common/executabledirectory.cpp
+)
+
+# ============================================================
 # Unit 2: ShogiBoard
 # ============================================================
 add_shogi_test(tst_shogiboard

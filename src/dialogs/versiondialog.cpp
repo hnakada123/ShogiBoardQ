@@ -2,7 +2,6 @@
 /// @brief バージョンダイアログクラスの実装
 
 #include <QPixmap>
-#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -12,13 +11,14 @@
 #include <QLabel>
 #include "appsettings.h"
 #include "dialogfontscale.h"
+#include "executabledirectory.h"
 #include "versiondialog.h"
 #include "ui_versiondialog.h"
 
 namespace {
 QString licenseDirectory()
 {
-    const QString appDir = QCoreApplication::applicationDirPath();
+    const QString appDir = ExecutableDirectory::path();
     const QStringList directories{appDir + QStringLiteral("/../Resources/licenses"),
                                  appDir + QStringLiteral("/licenses"),
                                  appDir + QStringLiteral("/../share/licenses/ShogiBoardQ")};

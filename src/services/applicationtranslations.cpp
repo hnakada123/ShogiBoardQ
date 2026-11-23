@@ -3,6 +3,7 @@
 
 #include "applicationtranslations.h"
 #include "appsettings.h"
+#include "executabledirectory.h"
 #include "notationstyle.h"
 #include "logcategories.h"
 
@@ -23,7 +24,7 @@ ApplicationTranslations::ApplicationTranslations(const QString& translationsDire
         QCoreApplication::installTranslator(&m_qtTranslator);
 
     const QDir directory(translationsDirectory.isEmpty()
-        ? QCoreApplication::applicationDirPath() : translationsDirectory);
+        ? ExecutableDirectory::path() : translationsDirectory);
     if (m_appTranslator.load(directory.filePath(QStringLiteral("ShogiBoardQ_") + m_language + QStringLiteral(".qm"))))
         QCoreApplication::installTranslator(&m_appTranslator);
     else

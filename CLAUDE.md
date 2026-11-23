@@ -259,7 +259,7 @@ cmake --build build --target translations
   - `engineprofilestore.cpp/.h` - 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（ほかの部品は設定ファイルを開かずにこの関数を使う）
   - `registeredengines.cpp/.h` - 登録エンジン1つ `EngineEntry` と一覧 `RegisteredEngines`（`load()`・名前とパスでの検索・登録名の規則 `uniqueName`・比べるときのパス `canonicalPath`。GUI・CLI と、エンジンの登録 `EngineRegistrationHandler`（一覧をこの値で持つ）で共通）。機能ごとに選んだエンジンの保存は `engineselectionsettings`（`EngineSelectionSettings::SelectionKeys`）。オプションの型は `EngineOption` 1つ（`UsiLineParser::parseOption` が返す）
   - `notationstyle.cpp/.h` - 表示言語と棋譜の表記の設定 `NotationStyle`（`Notation`・`Options`・`resolveLanguage`・`configure`・`options`・`revision`）。起動時に `ApplicationTranslations` が設定し、kifu の `KifuPresentation` が読む
-- **common/**: 共有の土台（`appactivitystate`（動作状態 `AppActivityState` と持ち主のリース `ActivityLease`）・`branchtreeitemroles.h`・`errorbus`・`logcategories`・`threadtypes.h`・`boundedfile.h`（利用者が選んだ棋譜・局面集を、通常のファイルだけ上限つきで読む `BoundedFile::read`）・`recentfilelist`（新しい順・重複なし・上限つきの一覧 `RecentList<T>` と、最近使ったファイルの一覧 `RecentFileList`。定跡の `JosekiBookSession` と局面集ビューアが使い、通信対局の接続先の履歴も `RecentList` を使う））
+- **common/**: 共有の土台（`appactivitystate`（動作状態 `AppActivityState` と持ち主のリース `ActivityLease`）・`branchtreeitemroles.h`・`errorbus`・`logcategories`・`threadtypes.h`・`boundedfile.h`（利用者が選んだ棋譜・局面集を、通常のファイルだけ上限つきで読む `BoundedFile::read`）・`executabledirectory`（実行ファイルの実体のフォルダ `ExecutableDirectory::path`。翻訳の .qm・ライセンス文書・P2P対局の通信プロセスはここから探す。`QCoreApplication::applicationDirPath()` はシンボリックリンク（Arch Linux・Ubuntu のパッケージの `/usr/bin/ShogiBoardQ`）から起動するとリンクのフォルダを返すので使わない）・`recentfilelist`（新しい順・重複なし・上限つきの一覧 `RecentList<T>` と、最近使ったファイルの一覧 `RecentFileList`。定跡の `JosekiBookSession` と局面集ビューアが使い、通信対局の接続先の履歴も `RecentList` を使う））
 
 ### UI Files
 

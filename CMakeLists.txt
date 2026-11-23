@@ -956,6 +956,8 @@ set(SRC_COMMON
     src/style/buttonstyles.h
     src/common/errorbus.cpp
     src/common/errorbus.h
+    src/common/executabledirectory.cpp
+    src/common/executabledirectory.h
     src/core/jishogicalculator.cpp
     src/core/jishogicalculator.h
     src/common/recentfilelist.h

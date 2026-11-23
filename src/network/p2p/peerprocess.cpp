@@ -3,7 +3,6 @@
 
 #include "peerprocess.h"
 
-#include <QCoreApplication>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFileInfo>
@@ -11,6 +10,7 @@
 #include <QProcessEnvironment>
 #include <QTimer>
 
+#include "executabledirectory.h"
 #include "logcategories.h"
 #include "peerconfinement.h"
 #include "peeripc.h"
@@ -86,7 +86,8 @@ QString PeerProcess::executablePath()
 #else
     const QString name = QStringLiteral("shogiboardq-peer");
 #endif
-    return QDir(QCoreApplication::applicationDirPath()).filePath(name);
+    // パッケージの /usr/bin/ShogiBoardQ のようなリンクから起動しても、本体の横の通信プロセスを使う
+    return QDir(ExecutableDirectory::path()).filePath(name);
 }
 
 void PeerProcess::start(PeerConfinement::Reach reach)
