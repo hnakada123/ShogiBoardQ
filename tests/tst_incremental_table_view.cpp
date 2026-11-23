@@ -149,6 +149,17 @@ class TestIncrementalTableView : public QObject
         QVERIFY2(stalePixels(view) == 0, qPrintable(label));
     }
 
+    /// 縦のスクロールバーが出るまで行を足す。スクロールバーが出たときは表示領域の幅が変わって全体を描き直すので、
+    /// 描き直しの範囲を測る前に出しておく。行の高さは書体で変わる（macOS では低い）ので、行の数を決め打ちにしない
+    static void showVerticalScrollBar(QTableView& view, const std::function<void()>& addRow)
+    {
+        for (int i = 0; i < 200 && !view.verticalScrollBar()->isVisible(); ++i) {
+            addRow();
+            settle();
+        }
+        QVERIFY(view.verticalScrollBar()->isVisible());
+    }
+
     /// 思考表と同じ設定にする
     static void setUpThinkingView(QTableView& view, QAbstractItemModel* model)
     {
@@ -286,6 +297,8 @@ private slots:
         view.show();
         QVERIFY(QTest::qWaitForWindowExposed(&view));
         settle();
+        showVerticalScrollBar(view, [&] { model.prependRow(thinkingRecord(next++), kUnlimitedRows); });
+        if (QTest::currentTestFailed()) return;
         QCOMPARE(view.viewport()->autoFillBackground(), integralScale(view));
 
         for (int step = 0; step < 30; ++step) {
@@ -721,14 +734,16 @@ private slots:
         for (int ply = 1; ply <= 12; ++ply) rows.append(QStringLiteral("▲２六歩(27)"));
         view.show();
         QVERIFY(QTest::qWaitForWindowExposed(&view));
+        showVerticalScrollBar(view, [&] { rows.append(QStringLiteral("▲２六歩(27)")); });
+        if (QTest::currentTestFailed()) return;
         view.scrollToBottom();
         settle();
-        for (int ply = 13; ply <= 30; ++ply) {
+        for (int step = 0; step < 18; ++step) {
             verifyStep(view, [&] {
                 rows.append(QStringLiteral("▲７六歩(77)"));
-                view.setCurrentIndex(rows.model.index(ply, 0));
+                view.setCurrentIndex(rows.model.index(rows.model.rowCount() - 1, 0));
                 view.scrollToBottom();
-            }, 0.5, QStringLiteral("append ply %1").arg(ply));
+            }, 0.5, QStringLiteral("append step %1").arg(step));
             if (QTest::currentTestFailed()) return;
         }
     }

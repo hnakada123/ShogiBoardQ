@@ -51,6 +51,14 @@
 #include "checkable_action.h"
 
 namespace {
+/// メッセージボックスが題名を持つか（macOS の QMessageBox は、macOS の決まりに従って題名を付けない。Qt が
+/// setWindowTitle を無視する）。題名はほかの OS でだけ確かめ、本文はどの OS でも確かめる
+#ifdef Q_OS_MACOS
+constexpr bool kMessageHasTitle = false;
+#else
+constexpr bool kMessageHasTitle = true;
+#endif
+
 /// 定跡ウィンドウに渡す切り替え（アプリでは JosekiWindowController が作る。定跡は表に出し、
 /// 盤の手の登録と盤の矢印はオフ）。ウィンドウより先に作る
 struct WindowActions {
@@ -203,7 +211,8 @@ private:
     void acceptExpandDialog();
     QMessageBox::ButtonRole m_responseRole = QMessageBox::AcceptRole;
     bool m_messageSeen = false;
-    QString m_lastMessageTitle;        ///< 最後に答えたメッセージボックスの題名
+    QString m_lastMessageTitle;        ///< 最後に答えたメッセージボックスの題名（macOS では空。下の kMessageHasTitle）
+    QString m_lastMessageText;         ///< その本文
     QString m_lastMessageInformative;  ///< その補足の文
     QMessageBox::Icon m_lastMessageIcon = QMessageBox::NoIcon;
     /// 非同期の保存が終わってから出るメッセージボックスに答える（答えたら止まる）
@@ -523,6 +532,7 @@ void TestJosekiWindow::respondToMessageBox()
     if (!box) return;
     m_messageSeen = true;
     m_lastMessageTitle = box->windowTitle();
+    m_lastMessageText = box->text();
     m_lastMessageInformative = box->informativeText();
     m_lastMessageIcon = box->icon();
     m_responder.stop();
@@ -673,7 +683,8 @@ void TestJosekiWindow::testMergeRegisterAllSkipsRegistered()
     m_responder.start();
     QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
     QVERIFY(m_messageSeen);
-    QCOMPARE(m_lastMessageTitle, QStringLiteral("一括登録完了"));
+    if (kMessageHasTitle) QCOMPARE(m_lastMessageTitle, QStringLiteral("一括登録完了"));
+    QCOMPARE(m_lastMessageText, QStringLiteral("2件の指し手を定跡に登録しました。"));
     for (int row = 0; row < table->rowCount(); ++row) QVERIFY(!table->cellWidget(row, 2)->isEnabled());
     QVERIFY(!all->isEnabled());
     QCOMPARE(session.movesAt(initialSfen()).constFirst().frequency, 1);  // 登録済みの手は数えない
@@ -889,7 +900,8 @@ void TestJosekiWindow::testConfirmClose()
     QCOMPARE(panel.controller.confirmClose(), accepted);
     QVERIFY(m_messageSeen);
     // 棋譜の未保存の警告と同じ見た目で、どの定跡ファイルかを添える
-    QCOMPARE(m_lastMessageTitle, QStringLiteral("未保存の定跡"));
+    if (kMessageHasTitle) QCOMPARE(m_lastMessageTitle, QStringLiteral("未保存の定跡"));
+    QCOMPARE(m_lastMessageText, QStringLiteral("定跡に未保存の変更があります。保存しますか？"));
     QCOMPARE(m_lastMessageIcon, QMessageBox::Warning);
     QCOMPARE(m_lastMessageInformative, QStringLiteral("定跡ファイル: close.db"));
     const auto disk = JosekiBookFile::load(path);

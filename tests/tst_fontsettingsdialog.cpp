@@ -2,7 +2,6 @@
 #include <QCheckBox>
 #include <QDialogButtonBox>
 #include <QFontComboBox>
-#include <QFontDatabase>
 #include <QLabel>
 #include <QPushButton>
 #include <QSettings>
@@ -47,10 +46,14 @@ private slots:
     {
         QFETCH(QString, language);
         ApplicationFonts::initialize({}, language);
-        QStringList families = QFontDatabase::families();
-        families.removeAll(ApplicationFonts::defaultFamily());
-        if (families.isEmpty()) QSKIP("An alternative font is required.");
-        const QString chosen = families.first();
+        // ダイアログの一覧（QFontComboBox）から選ぶ。QFontDatabase::families() の先頭は、一覧に出ない非公開の書体の
+        // ことがある（macOS の ".AppleSystemUIFont" など）
+        QString chosen;
+        const QFontComboBox listed;
+        for (int i = 0; i < listed.count() && chosen.isEmpty(); ++i) {
+            if (listed.itemText(i) != ApplicationFonts::defaultFamily()) chosen = listed.itemText(i);
+        }
+        if (chosen.isEmpty()) QSKIP("An alternative font is required.");
         const QString original = QApplication::font().family();
         FontSettingsDialog dialog;
         dialog.show();

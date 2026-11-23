@@ -253,7 +253,8 @@ void TestMenuWindow::fullLabelAndActionState()
     auto* button = card->findChild<QPushButton*>();
     auto* label = card->findChild<QLabel*>(QStringLiteral("menuActionText"));
     QCOMPARE(label->text(), QStringLiteral("USI形式（現局面まで）"));
-    QVERIFY(button->toolTip().contains(QStringLiteral("Ctrl+U")));
+    // ショートカットは OS の表記で添える（macOS では ⌘U）
+    QVERIFY(button->toolTip().contains(action.shortcut().toString(QKeySequence::NativeText)));
     QSignalSpy triggered(&action, &QAction::triggered);
     QTest::mouseClick(button, Qt::LeftButton);
     QCOMPARE(triggered.count(), 1);

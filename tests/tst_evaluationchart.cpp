@@ -392,7 +392,10 @@ private slots:
             for (const QRect& rect : region) total += qint64(rect.width()) * rect.height();
             return total;
         };
-        // 画面に出ている絵（部分描画の結果）と、全体を描き直した絵で、違う画素の数（合成の丸めの ±1 は数えない）
+        // 画面に出ている絵（部分描画の結果）と、全体を描き直した絵で、違う画素の数（合成の丸めの ±2 は数えない。
+        // 線の縁の半透明の画素は、部分描画と全体の描画で丸めが違い、macOS では 2 違うことがある。描き残しなら
+        // 線と背景ほど違う）
+        constexpr int kRounding = 2;
         const auto stalePixels = [&widget, area]() {
             const auto grab = [&widget] {
                 return widget.windowHandle()->screen()->grabWindow(widget.winId()).toImage()
@@ -408,8 +411,8 @@ private slots:
                 const auto* a = reinterpret_cast<const QRgb*>(partial.constScanLine(y));
                 const auto* b = reinterpret_cast<const QRgb*>(full.constScanLine(y));
                 for (int x = 0; x < full.width(); ++x) {
-                    if (qAbs(qRed(a[x]) - qRed(b[x])) > 1 || qAbs(qGreen(a[x]) - qGreen(b[x])) > 1
-                        || qAbs(qBlue(a[x]) - qBlue(b[x])) > 1)
+                    if (qAbs(qRed(a[x]) - qRed(b[x])) > kRounding || qAbs(qGreen(a[x]) - qGreen(b[x])) > kRounding
+                        || qAbs(qBlue(a[x]) - qBlue(b[x])) > kRounding)
                         ++stale;
                 }
             }
