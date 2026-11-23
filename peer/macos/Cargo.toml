@@ -9,7 +9,7 @@ publish.workspace = true
 
 # ワークスペースの lints（unsafe の禁止）を継がない。サンドボックスを掛ける libSystem の関数の呼び出しは unsafe なので、
 # macOS の通信プロセスの自前のコードのうち unsafe を書いてよいのはこのクレートだけにする（実装仕様 10.4節）。
-# ほかの禁止は同じにする。依存するクレートはない（libSystem の関数を直接宣言する）
+# ほかの禁止は同じにする。依存するクレートはない（libSystem と CoreFoundation の関数を直接宣言する）
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 

@@ -133,6 +133,9 @@ private slots:
                                  "proc_pidpath_parent"}) {
             QVERIFY2(results.value(QLatin1String(name)).toString() == QStringLiteral("denied"), name);
         }
+        // CoreFoundation の主バンドルは掛ける前に作ってあり、掛けた後に実行ファイルのあるディレクトリを読まない（読むと
+        // 拒否され、起動のたびにログに残る。アプリのバンドルの中の通信プロセスでも同じ）
+        QCOMPARE(results.value(QStringLiteral("main_bundle")).toString(), QStringLiteral("allowed"));
         // loopback を止める規則が、ほかの宛先（0.0.0.0・IPv4 射影・127.0.0.2・自分のアドレス）にも効くかは、結果を
         // 残すだけにする（OS が止めると確かめているのは 127.0.0.1 と ::1 だけ。protocol/ipc.md 6.3節。S14）
         for (const char* name : {"connect_unspecified_v4", "connect_unspecified_v6", "connect_mapped_loopback",

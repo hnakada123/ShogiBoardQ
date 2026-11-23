@@ -780,6 +780,10 @@ fn sandbox_self_test_denies_forbidden_operations() {
     for name in denied {
         assert_eq!(v["results"][name], "denied", "{name}: {v}");
     }
+    // macOS: CoreFoundation の主バンドルは掛ける前に作ってあり、掛けた後に実行ファイルのあるディレクトリを読まない
+    // （読むと拒否され、起動のたびにログに残る）
+    #[cfg(target_os = "macos")]
+    assert_eq!(v["results"]["main_bundle"], "allowed", "{v}");
 }
 
 /// 協力ノード（--service）を起動し、PeerId と待受のアドレスを返す

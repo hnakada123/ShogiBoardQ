@@ -423,6 +423,10 @@ Linux と同じく、通信プロセスが自分で掛ける。標準入力を�
    サンドボックスを掛けた後に見張りのスレッドを作り、親が終わったら自分に SIGKILL を送る（`parent_death_watch`）。
 2. コアダンプを残さない（`RLIMIT_CORE` を0。`no_core_dump`）。
 3. デバッガなどの接続を断る（`ptrace` の `PT_DENY_ATTACH`。`deny_attach`）。
+   続けて、CoreFoundation の主バンドルを作っておく（`CFBundleGetMainBundle` と、その識別子。制限ではないので
+   `mechanisms` には入れない）。アドレスの変化の知らせを受ける configd の接続（SystemConfiguration）は、自分の識別子を
+   主バンドルから読むので、サンドボックスを掛けた後に初めて作ると、実行ファイルのあるディレクトリの読み取りが拒否され、
+   起動のたびにログに残る（読めなくても動作は変わらない）。
 4. サンドボックス（Seatbelt。`sandbox_init` にプロファイルの本文を渡す。プロセス全体に効き、外せない。`seatbelt`）。
    既定ですべて拒否し（`(deny default)`）、次だけを許す。
    - TCP と UDP の待受・着信・発信（IPv4・IPv6）
@@ -462,8 +466,9 @@ macOS の `--sandbox-self-test` は、上の制限を掛けた後に次を試す
 `list_interfaces`（getifaddrs。`allowed` が出る）、`sysctl_hw_ncpu`（`hw.ncpu`。`allowed` が出る）、`sysctl_procargs_parent`
 （起動した側の `kern.procargs2`。`denied` が出る）、`sysctl_proc_all`（`kern.proc.all`。`denied` が出る）、`sysctl_hostname`
 （`kern.hostname`。`denied` が出る）、`proc_list_pids`（libproc の `proc_listallpids`。`denied` が出る）、
-`proc_pidpath_parent`（起動した側の実行ファイルの場所。libproc の `proc_pidpath`。`denied` が出る）。sysctl と libproc は、
-サンドボックスが拒否した（EPERM・EACCES）ときだけ `denied`。
+`proc_pidpath_parent`（起動した側の実行ファイルの場所。libproc の `proc_pidpath`。`denied` が出る）、`main_bundle`
+（CoreFoundation の主バンドル。掛ける前に作ってあるので、ファイルを読まずに得られて `allowed` が出る。作っていなければ
+`denied`）。sysctl と libproc は、サンドボックスが拒否した（EPERM・EACCES）ときだけ `denied`。
 続けて、`--no-loopback` の規則がどこまで止めるかを書く（試験はこれらを確かめない。実機で動かしたときに、OS が止めるかが
 分かる）: `connect_unspecified_v4`（0.0.0.0:9）、`connect_unspecified_v6`（[::]:9）、`connect_mapped_loopback`
 （[::ffff:127.0.0.1]:9）、`connect_loopback_other`（127.0.0.2:9）、`connect_own_address`（動いているインターフェースの

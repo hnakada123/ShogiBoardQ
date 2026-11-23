@@ -466,6 +466,11 @@ mod macos {
         sbq_peer_macos::deny_attach().map_err(|e| format!("PT_DENY_ATTACH: {e}"))?;
         mechanisms.push("deny_attach");
 
+        // CoreFoundation の主バンドルを、掛ける前に作っておく。アドレスの変化を受ける SystemConfiguration が、掛けた後に
+        // 別のスレッドで主バンドルを作ろうとして、実行ファイルのあるディレクトリの読み取りを拒否され、起動のたびに
+        // ログに残っていた（読めなくても動作は変わらない。作れなかったときも、ログに残るだけなので続ける）
+        let _ = sbq_peer_macos::resolve_main_bundle();
+
         let profile = if no_loopback {
             [PROFILE, NO_LOOPBACK].concat()
         } else {
@@ -833,6 +838,11 @@ mod macos_probe {
             "proc_pidpath_parent".into(),
             read_verdict(sbq_peer_macos::pid_path(parent)),
         );
+
+        // CoreFoundation の主バンドルは、掛ける前に作ってあるので、掛けた後もファイルを読まずに得られる（allowed）。
+        // 作っていなければ、実行ファイルのあるディレクトリを読めずに作れない（denied）。そのときは、アドレスの変化を受ける
+        // SystemConfiguration の読み取りが拒否され、起動のたびにログに残る
+        results.insert("main_bundle".into(), verdict(sbq_peer_macos::resolve_main_bundle()));
 
         Value::Object(results)
     }

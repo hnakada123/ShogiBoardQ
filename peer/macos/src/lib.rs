@@ -3,6 +3,7 @@
 //! macOS では、通信プロセスが起動の直後に自分でサンドボックス（Seatbelt）を掛ける。掛ける規則（プロファイル）は
 //! 通信プロセスの側（peer/src/sandbox.rs）が決め、ここは libSystem の関数を呼ぶだけ（自己試験で、禁止した操作
 //! （プロセスの複製・sysctl の読み取り・ほかのプロセスの情報の読み取り）が拒否されるかを試す関数も置く）。
+//! 掛ける前に作っておく CoreFoundation の主バンドル（resolve_main_bundle）の呼び出しもここに置く。
 //! unsafe を書くのはこのクレートだけで、外へは安全な関数だけを出す。macOS 以外では空。
 
 #![cfg(target_os = "macos")]
@@ -52,6 +53,16 @@ extern "C" {
     fn proc_pidpath(pid: c_int, buffer: *mut c_void, buffersize: u32) -> c_int;
 }
 
+// CoreFoundation（通信プロセスは、アドレスの変化を受ける if-watch の SystemConfiguration を通して、もうリンクしている）
+#[link(name = "CoreFoundation", kind = "framework")]
+extern "C" {
+    /// CFBundle.h。このプロセスの主バンドル。初めて呼んだときに、実行ファイルのあるディレクトリを読んで作り、以後は
+    /// 作ったものを返す（作れなければ NULL）。返る参照は CoreFoundation が持つ（解放しない）
+    fn CFBundleGetMainBundle() -> *const c_void;
+    /// CFBundle.h。バンドルの識別子（Info.plist を読んで作る。無ければ NULL）。返る参照はバンドルが持つ
+    fn CFBundleGetIdentifier(bundle: *const c_void) -> *const c_void;
+}
+
 /// 直前の呼び出しの errno
 fn last_errno() -> i32 {
     std::io::Error::last_os_error().raw_os_error().unwrap_or(0)
@@ -80,6 +91,24 @@ pub fn apply_profile(profile: &str) -> Result<(), String> {
         text
     };
     Err(message)
+}
+
+/// このプロセスの主バンドル（CoreFoundation）を作っておく。作れれば true。
+/// アドレスの変化を受ける SystemConfiguration（SCDynamicStoreCreateWithOptions）は、自分の識別子を主バンドルから
+/// 読むので、サンドボックスを掛けた後に初めて主バンドルを作ると、実行ファイルのあるディレクトリの読み取りが
+/// 拒否され、起動のたびにログ（送信元 Sandbox）に残る。掛ける前に作っておけば、後は作ったものを使い、ファイルを
+/// 読まない。掛けた後に呼ぶと、作ってあるかを確かめられる（作っていなければ読めずに false）
+pub fn resolve_main_bundle() -> bool {
+    // SAFETY: 引数を取らない。返る参照は CoreFoundation が持ち、解放しない
+    let bundle = unsafe { CFBundleGetMainBundle() };
+    if bundle.is_null() {
+        return false;
+    }
+    // SAFETY: bundle は CFBundleGetMainBundle が返した、NULL でない、プロセスの終わりまで有効なバンドル。
+    // 識別子は SystemConfiguration が読む Info.plist（実行ファイルに埋め込まれたものを含む）を、ここで読んでおくために
+    // 求めるだけで、使わない
+    unsafe { CFBundleGetIdentifier(bundle) };
+    true
 }
 
 /// このプロセスにサンドボックスが掛かっている
