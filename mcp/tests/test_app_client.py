@@ -7,6 +7,7 @@ import sys
 
 import pytest
 
+from conftest import write_python_program
 from shogiboardq_mcp import app_client
 
 pytestmark = pytest.mark.anyio
@@ -29,7 +30,8 @@ async def test_shutdown_reaps_unresponsive_owned_process(monkeypatch, ignore_ter
         pytest.fail("Shutdown must not reconnect or launch another app")
     monkeypatch.setattr(client, "connect", unexpected_connect)
     try:
-        assert await asyncio.to_thread(process.stdout.readline) == b"ready\n"
+        # Windows text-mode stdout ends the line with \r\n
+        assert (await asyncio.to_thread(process.stdout.readline)).rstrip(b"\r\n") == b"ready"
         await client.shutdown()
         assert process.poll() is not None
         assert client._launched is None
@@ -137,12 +139,9 @@ async def test_launch_rejects_a_socket_path_the_app_cannot_listen_on(monkeypatch
     assert app_client.socket_path_problem(fits + "x") is not None
 
 
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="the fake app is a shell script")
 async def test_launch_timeout_stops_the_launched_app(monkeypatch, tmp_path):
     # An app that never opens the socket is unreachable; it must not keep running after the error.
-    fake = tmp_path / "fake-app"
-    fake.write_text("#!/bin/sh\nexec sleep 60\n", encoding="utf-8")
-    fake.chmod(0o755)
+    fake = write_python_program(tmp_path / "fake-app", "import time\ntime.sleep(60)\n")
     monkeypatch.setenv("SHOGIBOARDQ_EXECUTABLE", str(fake))
     monkeypatch.setenv("SHOGIBOARDQ_AUTOMATION_SOCKET", str(tmp_path / "app.sock"))
     monkeypatch.setattr(app_client, "LAUNCH_TIMEOUT", 0.5)

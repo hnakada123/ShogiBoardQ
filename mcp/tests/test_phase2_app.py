@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import FIXTURES, mcp_session, message_box, result_data
+from conftest import FIXTURES, ini_path, mcp_session, message_box, result_data
 
 pytestmark = pytest.mark.anyio
 
@@ -223,7 +223,7 @@ async def test_tsume_board_clicks(app_env, tmp_path):
     config.mkdir(parents=True)
     (config / "ShogiBoardQ.ini").write_text(
         "[TsumeCollection]\n"
-        f"file={FIXTURES / 'tsume_positions_with_moves.sfen'}\nengine=@hayanagi\n"
+        f"file={ini_path(FIXTURES / 'tsume_positions_with_moves.sfen')}\nengine=@hayanagi\n"
         "[TsumePlay]\nsize=@Size(950 1180)\nsquareSize=65\n", encoding="utf-8")
     env["XDG_CONFIG_HOME"] = str(config.parent)
     env["SHOGIBOARDQ_CONFIG_HOME"] = str(config.parent)

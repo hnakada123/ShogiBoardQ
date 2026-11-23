@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import FIXTURES, mcp_session, result_data
+from conftest import FIXTURES, ini_path, mcp_session, result_data
 
 pytestmark = pytest.mark.anyio
 
@@ -21,8 +21,8 @@ def consideration_env(server_env, app_path, tmp_path):
     config = tmp_path / "config" / "ShogiBoardQ"
     config.mkdir(parents=True)
     (config / "ShogiBoardQ.ini").write_text(
-        "[Engines]\nsize=2\n1\\name=TestUsi\n1\\path=" + engine
-        + "\n2\\name=SecondUsi\n2\\path=" + engine
+        "[Engines]\nsize=2\n1\\name=TestUsi\n1\\path=" + ini_path(engine)
+        + "\n2\\name=SecondUsi\n2\\path=" + ini_path(engine)
         + "\n[Consideration]\nengineIndex=1\nunlimitedTime=true\nbyoyomiSec=7\nmultiPV=3\n"
         + "[General]\nmainWindowSize=@Size(1400 1000)\n", encoding="utf-8")
     env.update(SHOGIBOARDQ_EXECUTABLE=str(app_path), SHOGIBOARDQ_QUIT_APP_ON_EXIT="1",
@@ -348,7 +348,8 @@ async def test_unavailable_engine_recovers(consideration_env, missing_executable
     config = Path(consideration_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
     if missing_executable:
         engine = os.environ["SHOGIBOARDQ_TEST_USI_ENGINE"]
-        config.write_text(config.read_text().replace(engine, str(config.parent / "missing-engine")))
+        config.write_text(config.read_text(encoding="utf-8").replace(
+            ini_path(engine), ini_path(config.parent / "missing-engine")), encoding="utf-8")
     else:
         config.write_text("[Engines]\nsize=0\n")
     async with mcp_session(consideration_env) as session:

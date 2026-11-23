@@ -16,7 +16,7 @@ import time
 
 import pytest
 
-from conftest import FIXTURES, mcp_session, result_data
+from conftest import FIXTURES, WINDOWS, ini_path, mcp_session, result_data, write_python_program
 
 pytestmark = pytest.mark.anyio
 
@@ -61,11 +61,15 @@ def csa_env(server_env, app_path, tmp_path):
     engine = os.environ.get("SHOGIBOARDQ_TEST_USI_ENGINE", "")
     (config / "ShogiBoardQ.ini").write_text(
         "[General]\nmainWindowSize=@Size(1400 1000)\n"
-        f"[Engines]\nsize={int(bool(engine))}\n1\\name=TestUsi\n1\\path={engine}\n",
+        f"[Engines]\nsize={int(bool(engine))}\n1\\name=TestUsi\n1\\path={ini_path(engine) if engine else ''}\n",
         encoding="utf-8")
-    launcher = tmp_path / "launch-app"
-    launcher.write_text(f'#!/bin/sh\nexec {shlex.quote(str(app_path))} "$@" >{shlex.quote(str(tmp_path / "app.log"))} 2>&1\n')
-    launcher.chmod(0o700)
+    # The app's output goes to app.log. Windows cannot start a shell script, so the app is started
+    # directly there (without the log)
+    launcher = app_path
+    if not WINDOWS:
+        launcher = tmp_path / "launch-app"
+        launcher.write_text(f'#!/bin/sh\nexec {shlex.quote(str(app_path))} "$@" >{shlex.quote(str(tmp_path / "app.log"))} 2>&1\n')
+        launcher.chmod(0o700)
     env.update(SHOGIBOARDQ_EXECUTABLE=str(launcher), SHOGIBOARDQ_QUIT_APP_ON_EXIT="1",
                XDG_CONFIG_HOME=str(config.parent), SHOGIBOARDQ_CONFIG_HOME=str(config.parent),
                SHOGIBOARDQ_AUTOMATION_SOCKET=str(tmp_path / "app.sock"))
@@ -266,8 +270,8 @@ async def test_waiting_log_and_mcp_enter(csa_env, csa_server):
 @pytest.mark.parametrize("language,font_size", [("ja_JP", 10), ("ja_JP", 18), ("en", 18)])
 async def test_connection_form_feedback(csa_env, tmp_path, language, font_size):
     config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
-    config.write_text(config.read_text() + f"\n[%General]\nlanguage={language}\n"
-                      + f"\n[FontSize]\ncsaGameDialog={font_size}\n")
+    config.write_text(config.read_text(encoding="utf-8") + f"\n[%General]\nlanguage={language}\n"
+                      + f"\n[FontSize]\ncsaGameDialog={font_size}\n", encoding="utf-8")
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
         await ui.call("trigger_action", name="actionCSA")
@@ -451,9 +455,7 @@ async def test_real_usi_engine(csa_env, csa_server, side):
 
 async def test_engine_initialization_before_agree(csa_env, csa_server, tmp_path):
     # Deterministically deliver Game_Summary while USI is waiting for readyok.
-    engine = tmp_path / "slow-engine"
-    engine.write_text("""#!/usr/bin/env python3
-import sys, time
+    engine = write_python_program(tmp_path / "slow-engine", """import sys, time
 for command in sys.stdin:
     command = command.strip()
     if command == 'usi':
@@ -466,9 +468,8 @@ for command in sys.stdin:
     elif command == 'quit':
         break
 """)
-    engine.chmod(0o700)
     config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
-    config.write_text(f"[Engines]\nsize=1\n1\\name=SlowReady\n1\\path={engine}\n")
+    config.write_text(f"[Engines]\nsize=1\n1\\name=SlowReady\n1\\path={ini_path(engine)}\n", encoding="utf-8")
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
         await ui.connect(csa_server[0], engine=True)
@@ -486,9 +487,7 @@ for command in sys.stdin:
 
 def write_fake_engine(tmp_path, csa_env, mode):
     """Register a USI engine that answers `go` according to mode (win / stop / invalid)."""
-    engine = tmp_path / f"fake-{mode}"
-    engine.write_text(f"""#!/usr/bin/env python3
-import sys
+    engine = write_python_program(tmp_path / f"fake-{mode}", f"""import sys
 for command in sys.stdin:
     command = command.strip()
     if command == 'usi':
@@ -504,9 +503,8 @@ for command in sys.stdin:
     elif command == 'quit':
         break
 """)
-    engine.chmod(0o700)
     config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
-    config.write_text(f"[Engines]\nsize=1\n1\\name=Fake\n1\\path={engine}\n")
+    config.write_text(f"[Engines]\nsize=1\n1\\name=Fake\n1\\path={ini_path(engine)}\n", encoding="utf-8")
 
 
 async def test_engine_declares_entering_king(csa_env, csa_server, tmp_path):
@@ -1114,15 +1112,15 @@ async def test_games_continue_on_the_same_connection(csa_env, tmp_path):
 
 async def test_cancel_before_agree_sends_reject_then_logout(csa_env, tmp_path):
     """3.3: declining a proposal is REJECT, and leaving the server is LOGOUT."""
-    engine = tmp_path / "slow-engine"
-    engine.write_text("#!/usr/bin/env python3\nimport sys, time\nfor command in sys.stdin:\n"
-                      "    command = command.strip()\n"
-                      "    if command == 'usi':\n        print('id name Slow\\nusiok', flush=True)\n"
-                      "    elif command == 'isready':\n        time.sleep(6)\n        print('readyok', flush=True)\n"
-                      "    elif command == 'quit':\n        break\n")
-    engine.chmod(0o700)
+    engine = write_python_program(
+        tmp_path / "slow-engine",
+        "import sys, time\nfor command in sys.stdin:\n"
+        "    command = command.strip()\n"
+        "    if command == 'usi':\n        print('id name Slow\\nusiok', flush=True)\n"
+        "    elif command == 'isready':\n        time.sleep(6)\n        print('readyok', flush=True)\n"
+        "    elif command == 'quit':\n        break\n")
     config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
-    config.write_text(f"[Engines]\nsize=1\n1\\name=Slow\n1\\path={engine}\n")
+    config.write_text(f"[Engines]\nsize=1\n1\\name=Slow\n1\\path={ini_path(engine)}\n", encoding="utf-8")
     async with FakeServer() as server, mcp_session(csa_env) as session:
         ui = CsaUI(session)
         dialog = await ui.connect(server.port, engine=True)
@@ -1311,10 +1309,8 @@ async def test_game_name_and_turn_preference_in_login(csa_env):
 
 async def test_thinking_margin_reduces_engine_budget(csa_env, tmp_path):
     """思考時間の余裕: the margin is subtracted from the byoyomi handed to the engine."""
-    engine = tmp_path / "logging-engine"
     log = tmp_path / "go.log"
-    engine.write_text(f"""#!/usr/bin/env python3
-import sys
+    engine = write_python_program(tmp_path / "logging-engine", f"""import sys
 for command in sys.stdin:
     command = command.strip()
     if command == 'usi':
@@ -1327,9 +1323,8 @@ for command in sys.stdin:
     elif command == 'quit':
         break
 """)
-    engine.chmod(0o700)
     config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
-    config.write_text(f"[Engines]\nsize=1\n1\\name=Logger\n1\\path={engine}\n")
+    config.write_text(f"[Engines]\nsize=1\n1\\name=Logger\n1\\path={ini_path(engine)}\n", encoding="utf-8")
     async with FakeServer() as server, mcp_session(csa_env) as session:
         ui = CsaUI(session)
         budgets = []

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import FIXTURES, mcp_session, message_box, result_data
+from conftest import FIXTURES, ini_path, mcp_session, message_box, result_data
 
 pytestmark = pytest.mark.anyio
 MOVES = ["7g7f", "3c3d", "2g2f", "8c8d", "2f2e", "8d8e", "6i7h"]
@@ -216,7 +216,7 @@ async def test_file_dialog_filters_and_save(kifu_env, tmp_path):
         button = next(w["text"] for w in widgets["widgets"] if w["class"] == "QPushButton" and ("保存" in w.get("text", "") or "Save" in w.get("text", "")))
         await ui.call("click_dialog_button", target="名前を付けて保存", text=button)
         await ui.wait("get_app_state", lambda d: d["kifu_file"].endswith("拡張子なし.jkf"))
-        assert json.loads((tmp_path / "拡張子なし.jkf").read_text())["moves"]
+        assert json.loads((tmp_path / "拡張子なし.jkf").read_text(encoding="utf-8"))["moves"]
 
 
 async def test_branch_current_usi(kifu_env, tmp_path):
@@ -424,14 +424,15 @@ async def test_save_filter_warning_and_explicit_extension(kifu_env, tmp_path):
                 await ui.call("close_dialog", target=await ui.message_box("KI2形式は次の情報に対応していない"))
                 assert not path.exists() and (await ui.call("get_app_state"))["dirty"]
             else:
-                await ui.wait("get_app_state", lambda d: d["kifu_file"] == str(path))
+                # Compared as paths: Qt reports C:/... on Windows
+                await ui.wait("get_app_state", lambda d: d["kifu_file"] and Path(d["kifu_file"]) == path)
                 assert "+7776FU" in path.read_text(encoding="utf-8")
 
 
 async def test_game_end_auto_save(kifu_env, tmp_path):
     config = Path(kifu_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
     with config.open("a", encoding="utf-8") as ini:
-        ini.write(f"[GameSettings]\nkifuSaveDir={tmp_path}\n")
+        ini.write(f"[GameSettings]\nkifuSaveDir={ini_path(tmp_path)}\n")
     async with mcp_session(kifu_env) as session:
         ui = KifuUi(session, tmp_path)
         await ui.call("trigger_action", name="actionStartGame")
@@ -441,7 +442,7 @@ async def test_game_end_auto_save(kifu_env, tmp_path):
         await ui.call("set_widget_value", target="StartGameDialog", widget="checkBoxAutoSaveKifu", value=True)
         # The path field is read-only; its persisted value is visible in the real dialog.
         field = (await ui.call("get_widget_text", target="StartGameDialog", widget="lineEditKifuSaveDir"))["widgets"][0]
-        assert field["text"] == str(tmp_path)
+        assert Path(field["text"]) == tmp_path
         _, _, error = result_data(await session.call_tool("set_widget_value", dict(target="StartGameDialog", widget="lineEditKifuSaveDir", value="/invalid")))
         assert error
         await ui.call("click_dialog_button", target="StartGameDialog", text="対局開始")

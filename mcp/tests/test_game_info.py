@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import FIXTURES, mcp_session, result_data
+from conftest import FIXTURES, ini_path, mcp_session, result_data
 from test_kifu_management import KifuUi, kifu_env
 
 pytestmark = pytest.mark.anyio
@@ -232,7 +232,7 @@ async def test_floating_dock_edits_survive_hide(kifu_env, tmp_path):
 async def test_game_end_preserves_active_metadata(kifu_env, tmp_path):
     config = Path(kifu_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
     with config.open("a", encoding="utf-8") as ini:
-        ini.write(f"[GameSettings]\nkifuSaveDir={tmp_path}\n")
+        ini.write(f"[GameSettings]\nkifuSaveDir={ini_path(tmp_path)}\n")
     async with mcp_session(kifu_env) as session:
         ui = GameInfoUi(session, tmp_path)
         await ui.call("trigger_action", name="actionStartGame")

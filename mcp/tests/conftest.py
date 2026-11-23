@@ -29,6 +29,37 @@ sys.path.insert(0, str(PACKAGE_DIR))
 # The short temporary directory made by pytest_configure (removed when every test passed).
 _SHORT_BASETEMP = pytest.StashKey[Path]()
 
+WINDOWS = sys.platform.startswith("win")
+
+
+def ini_path(path: str | Path) -> str:
+    """A path as written into ShogiBoardQ.ini. QSettings reads a backslash as an escape, so a Windows
+    path keeps only forward slashes (which Qt accepts on Windows too)."""
+    return Path(path).as_posix()
+
+
+def write_python_program(path: Path, source: str) -> Path:
+    """Make a Python program (a fake USI engine or app) that ShogiBoardQ starts by its path alone, and
+    return the path to register. POSIX runs the script itself; Windows cannot start a script by its
+    path, so it is wrapped in the launcher exe that pip uses for console scripts (distlib). The
+    launcher ends the Python process when it is killed."""
+    if not WINDOWS:
+        path.write_text("#!/usr/bin/env python3\n" + source, encoding="utf-8")
+        path.chmod(0o700)
+        return path
+    try:
+        from pip._vendor.distlib.scripts import ScriptMaker
+    except ImportError:
+        pytest.skip("pip (its distlib script launcher) is required for fake programs on Windows")
+    source_dir = path.parent / f"{path.name}.source"
+    source_dir.mkdir()
+    (source_dir / path.name).write_text("#!python\n" + source, encoding="utf-8")
+    maker = ScriptMaker(str(source_dir), str(path.parent), add_launchers=True)
+    maker.executable = sys.executable
+    made = maker.make(path.name)
+    assert len(made) == 1 and made[0].endswith(".exe"), made
+    return Path(made[0])
+
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
@@ -93,11 +124,13 @@ def test_config(tmp_path_factory) -> Path:
         engines.append(("TestMate", mate))
     # A program that is not a USI engine and exits at once
     broken = shutil.which("false")
+    if WINDOWS:
+        broken = write_python_program(root / "broken-engine", "raise SystemExit(1)\n")
     if broken:
         engines.append(("TestBroken", broken))
     lines = ["[Engines]", f"size={len(engines)}"]
     for i, (name, path) in enumerate(engines, start=1):
-        lines += [f"{i}\\name={name}", f"{i}\\path={path}", f"{i}\\author=test"]
+        lines += [f"{i}\\name={name}", f"{i}\\path={ini_path(path)}", f"{i}\\author=test"]
     lines += ["", "[General]", "mainWindowSize=@Size(1280 800)", ""]
     (cfg / "ShogiBoardQ.ini").write_text("\n".join(lines), encoding="utf-8")
     return root
