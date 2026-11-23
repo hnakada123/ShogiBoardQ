@@ -823,8 +823,23 @@ fn spawn_service() -> Service {
     spawn_service_with(&["--relay"])
 }
 
+/// 協力ノードを空いているポートで起動する回数の上限
+const SERVICE_ATTEMPTS: usize = 5;
+
 /// options: 協力ノードが受け持つもの（--relay・--meet）
 fn spawn_service_with(options: &[&str]) -> Service {
+    // 空いているポートを確かめてから協力ノードが開くまでの間に、並行して動くほかの試験の通信プロセスが同じポートを
+    // 取ることがある（macOS で、開けずに失敗した）。開けなかったら、別のポートでやり直す
+    for _ in 0..SERVICE_ATTEMPTS {
+        if let Some(service) = try_spawn_service(options) {
+            return service;
+        }
+    }
+    panic!("the cooperating node could not listen on a free port in {SERVICE_ATTEMPTS} attempts");
+}
+
+/// 空いているポートで協力ノードを起動する。そのポートを開けなかった（ほかのプロセスが先に取った）なら None
+fn try_spawn_service(options: &[&str]) -> Option<Service> {
     let port = std::net::TcpListener::bind("127.0.0.1:0")
         .unwrap()
         .local_addr()
@@ -848,6 +863,12 @@ fn spawn_service_with(options: &[&str]) -> Service {
     let mut stderr = BufReader::new(child.stderr.take().unwrap());
     let mut line = String::new();
     stderr.read_line(&mut line).unwrap();
+    if line.trim() == format!("shogiboardq-peer: could not listen on {listen}") {
+        let _ = child.kill();
+        let _ = child.wait();
+        let _ = std::fs::remove_dir_all(&dir);
+        return None;
+    }
     let peer = line.trim().rsplit(' ').next().unwrap().to_owned();
     assert!(line.contains("service started"), "{line}");
     let (log_tx, log) = mpsc::channel();
@@ -863,12 +884,12 @@ fn spawn_service_with(options: &[&str]) -> Service {
         let mode = std::fs::metadata(&identity).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o600);
     }
-    Service {
+    Some(Service {
         child,
         addr: format!("{listen}/p2p/{peer}"),
         dir,
         log,
-    }
+    })
 }
 
 /// 協力ノードは、--listen のうち開けなかったアドレスを標準エラーに書き、開けたもので動く
@@ -876,19 +897,17 @@ fn spawn_service_with(options: &[&str]) -> Service {
 #[test]
 fn service_reports_a_listen_address_it_could_not_open() {
     let busy = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let busy_addr = format!("/ip4/127.0.0.1/tcp/{}", busy.local_addr().unwrap().port());
-    let free_port = std::net::TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port();
-    let free_addr = format!("/ip4/127.0.0.1/tcp/{free_port}");
-    let dir = std::env::temp_dir().join(format!("sbq-peer-test-{}-{}", std::process::id(), free_port));
+    let busy_port = busy.local_addr().unwrap().port();
+    let busy_addr = format!("/ip4/127.0.0.1/tcp/{busy_port}");
+    // 開けるアドレスは、ポートを OS に選ばせる（空いているポートを確かめて閉じると、開くまでの間に、並行して動く
+    // ほかの試験の通信プロセスが取ることがある）
+    let free_addr = "/ip4/127.0.0.1/tcp/0";
+    let dir = std::env::temp_dir().join(format!("sbq-peer-test-{}-{}", std::process::id(), busy_port));
     std::fs::create_dir_all(&dir).unwrap();
     let mut child = Command::new(BIN)
         .args(["--service", "--network", "sbq-local-1", "--identity"])
         .arg(dir.join("identity.key"))
-        .args(["--listen", &busy_addr, "--listen", &free_addr])
+        .args(["--listen", &busy_addr, "--listen", free_addr])
         .env_clear()
         .stdin(Stdio::null())
         .stdout(Stdio::null())

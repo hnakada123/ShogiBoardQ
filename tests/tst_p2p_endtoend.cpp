@@ -6,6 +6,7 @@
 
 #include <QtTest>
 
+#include <QDeadlineTimer>
 #include <QProcess>
 #include <QRegularExpression>
 #include <QSignalSpy>
@@ -72,6 +73,66 @@ struct App {
     P2pGameCoordinator game;
     P2pPlayerProfile profile;
     P2pLobbyService lobby;
+};
+
+/// 協力ノード（--service）。空いているポートで起動し、標準エラーの最初の行から PeerId を読む
+class ServiceNode
+{
+public:
+    ~ServiceNode() { stop(); }
+
+    /// 起動して、利用者のアプリが接続する宛先（/ip4/127.0.0.1/tcp/<port>/p2p/<PeerId>）を返す。
+    /// 起動できなければ空で、理由を error に書く。
+    /// 空いているポートを確かめてから協力ノードが開くまでの間に、並行して動くほかの試験の通信プロセスが同じポートを
+    /// 取ることがある（macOS の cargo test で、開けずに失敗した）。開けなかったら、別のポートでやり直す
+    QString start(const QString& identity, const QStringList& options, QString* error)
+    {
+        constexpr int kAttempts = 5;
+        for (int attempt = 0; attempt < kAttempts; ++attempt) {
+            stop();
+            QTcpServer probe;
+            if (!probe.listen(QHostAddress::LocalHost)) {
+                *error = probe.errorString();
+                return {};
+            }
+            const QString listen = QStringLiteral("/ip4/127.0.0.1/tcp/%1").arg(probe.serverPort());
+            probe.close();
+            m_process = std::make_unique<QProcess>();
+            m_process->setProcessEnvironment(QProcessEnvironment());
+            m_process->setReadChannel(QProcess::StandardError);
+            m_process->start(QStringLiteral(PEER_EXECUTABLE),
+                             QStringList{QStringLiteral("--service"), QStringLiteral("--network"),
+                                         QStringLiteral("sbq-local-1"), QStringLiteral("--identity"), identity,
+                                         QStringLiteral("--listen"), listen}
+                                 + options);
+            if (!m_process->waitForStarted(5000)) {
+                *error = m_process->errorString();
+                return {};
+            }
+            const QDeadlineTimer deadline(10000);
+            while (!m_process->canReadLine() && !deadline.hasExpired()) m_process->waitForReadyRead(100);
+            const QString line = QString::fromUtf8(m_process->readLine()).trimmed();
+            if (line == QStringLiteral("shogiboardq-peer: could not listen on ") + listen) continue;
+            if (!line.contains(QStringLiteral("service started"))) {
+                *error = line;
+                return {};
+            }
+            return listen + QStringLiteral("/p2p/") + line.section(QLatin1Char(' '), -1);
+        }
+        *error = QStringLiteral("the cooperating node could not listen on a free port");
+        return {};
+    }
+
+    void stop()
+    {
+        if (!m_process) return;
+        m_process->kill();
+        m_process->waitForFinished(3000);
+        m_process.reset();
+    }
+
+private:
+    std::unique_ptr<QProcess> m_process;
 };
 
 /// 自分の条件（表示名・持ち時間・先後の希望。対局者は人間）
@@ -319,24 +380,11 @@ private slots:
 #if !defined(Q_OS_LINUX) && !defined(Q_OS_MACOS)
         QSKIP("the cooperating node (--service) runs only on Linux and macOS");
 #endif
-        // 協力ノードを固定のポートで起動し、標準エラーの最初の行から PeerId を読む
-        QTcpServer probe;
-        QVERIFY(probe.listen(QHostAddress::LocalHost));
-        const quint16 port = probe.serverPort();
-        probe.close();
-        const QString listen = QStringLiteral("/ip4/127.0.0.1/tcp/%1").arg(port);
-        QProcess service;
-        service.setProcessEnvironment(QProcessEnvironment());
-        service.start(QStringLiteral(PEER_EXECUTABLE),
-                      {QStringLiteral("--service"), QStringLiteral("--network"), QStringLiteral("sbq-local-1"),
-                       QStringLiteral("--identity"), m_dir.filePath(QStringLiteral("service.key")), QStringLiteral("--listen"),
-                       listen, QStringLiteral("--relay")});
-        service.setReadChannel(QProcess::StandardError);
-        QVERIFY(service.waitForStarted(5000));
-        QTRY_VERIFY_WITH_TIMEOUT((service.waitForReadyRead(100), service.canReadLine()), 10000);
-        const QString line = QString::fromUtf8(service.readLine()).trimmed();
-        QVERIFY2(line.contains(QStringLiteral("service started")), qPrintable(line));
-        const QString bootstrap = listen + QStringLiteral("/p2p/") + line.section(QLatin1Char(' '), -1);
+        ServiceNode service;
+        QString serviceError;
+        const QString bootstrap =
+            service.start(m_dir.filePath(QStringLiteral("service.key")), {QStringLiteral("--relay")}, &serviceError);
+        QVERIFY2(!bootstrap.isEmpty(), qPrintable(serviceError));
 
         App host(m_dir.filePath(QStringLiteral("relay-host")));
         App guest(m_dir.filePath(QStringLiteral("relay-guest")));
@@ -395,8 +443,7 @@ private slots:
         guest.lobby.end();
         QTRY_VERIFY_WITH_TIMEOUT(host.lobby.status() == P2pLobbyService::Status::Off
                                      && guest.lobby.status() == P2pLobbyService::Status::Off, 10000);
-        service.kill();
-        service.waitForFinished(3000);
+        service.stop();
     }
 
     /// 協力ノードを使う合言葉で、招待から対局の開始まで進む。合言葉には接続先が入らず、招待は、合言葉に対応した
@@ -406,23 +453,11 @@ private slots:
 #if !defined(Q_OS_LINUX) && !defined(Q_OS_MACOS)
         QSKIP("the cooperating node (--service) runs only on Linux and macOS");
 #endif
-        QTcpServer probe;
-        QVERIFY(probe.listen(QHostAddress::LocalHost));
-        const quint16 port = probe.serverPort();
-        probe.close();
-        const QString listen = QStringLiteral("/ip4/127.0.0.1/tcp/%1").arg(port);
-        QProcess service;
-        service.setProcessEnvironment(QProcessEnvironment());
-        service.start(QStringLiteral(PEER_EXECUTABLE),
-                      {QStringLiteral("--service"), QStringLiteral("--network"), QStringLiteral("sbq-local-1"),
-                       QStringLiteral("--identity"), m_dir.filePath(QStringLiteral("meet-service.key")),
-                       QStringLiteral("--listen"), listen, QStringLiteral("--relay"), QStringLiteral("--meet")});
-        service.setReadChannel(QProcess::StandardError);
-        QVERIFY(service.waitForStarted(5000));
-        QTRY_VERIFY_WITH_TIMEOUT((service.waitForReadyRead(100), service.canReadLine()), 10000);
-        const QString line = QString::fromUtf8(service.readLine()).trimmed();
-        QVERIFY2(line.contains(QStringLiteral("service started")), qPrintable(line));
-        const QString bootstrap = listen + QStringLiteral("/p2p/") + line.section(QLatin1Char(' '), -1);
+        ServiceNode service;
+        QString serviceError;
+        const QString bootstrap = service.start(m_dir.filePath(QStringLiteral("meet-service.key")),
+                                                {QStringLiteral("--relay"), QStringLiteral("--meet")}, &serviceError);
+        QVERIFY2(!bootstrap.isEmpty(), qPrintable(serviceError));
 
         App host(m_dir.filePath(QStringLiteral("meet-host")));
         App guest(m_dir.filePath(QStringLiteral("meet-guest")));
@@ -489,8 +524,7 @@ private slots:
         guest.lobby.end();
         QTRY_VERIFY_WITH_TIMEOUT(host.lobby.status() == P2pLobbyService::Status::Off
                                      && guest.lobby.status() == P2pLobbyService::Status::Off, 10000);
-        service.kill();
-        service.waitForFinished(3000);
+        service.stop();
     }
 
     /// 友だち一覧: 互いを友だちにした2人のうち、在席を知らせている側が、もう片方に「オンライン」と見える。
@@ -501,23 +535,11 @@ private slots:
 #if !defined(Q_OS_LINUX) && !defined(Q_OS_MACOS)
         QSKIP("the cooperating node (--service) runs only on Linux and macOS");
 #endif
-        QTcpServer probe;
-        QVERIFY(probe.listen(QHostAddress::LocalHost));
-        const quint16 port = probe.serverPort();
-        probe.close();
-        const QString listen = QStringLiteral("/ip4/127.0.0.1/tcp/%1").arg(port);
-        QProcess service;
-        service.setProcessEnvironment(QProcessEnvironment());
-        service.start(QStringLiteral(PEER_EXECUTABLE),
-                      {QStringLiteral("--service"), QStringLiteral("--network"), QStringLiteral("sbq-local-1"),
-                       QStringLiteral("--identity"), m_dir.filePath(QStringLiteral("friend-service.key")),
-                       QStringLiteral("--listen"), listen, QStringLiteral("--relay"), QStringLiteral("--meet")});
-        service.setReadChannel(QProcess::StandardError);
-        QVERIFY(service.waitForStarted(5000));
-        QTRY_VERIFY_WITH_TIMEOUT((service.waitForReadyRead(100), service.canReadLine()), 10000);
-        const QString line = QString::fromUtf8(service.readLine()).trimmed();
-        QVERIFY2(line.contains(QStringLiteral("service started")), qPrintable(line));
-        const QString bootstrap = listen + QStringLiteral("/p2p/") + line.section(QLatin1Char(' '), -1);
+        ServiceNode service;
+        QString serviceError;
+        const QString bootstrap = service.start(m_dir.filePath(QStringLiteral("friend-service.key")),
+                                                {QStringLiteral("--relay"), QStringLiteral("--meet")}, &serviceError);
+        QVERIFY2(!bootstrap.isEmpty(), qPrintable(serviceError));
 
         App host(m_dir.filePath(QStringLiteral("friend-host")));
         App guest(m_dir.filePath(QStringLiteral("friend-guest")));
@@ -623,8 +645,7 @@ private slots:
         // 接続を終えると、在席は分からなくなる
         QVERIFY(!guestPresence.isOnline(hostKey));
         QVERIFY(!guestPresence.isAvailable());
-        service.kill();
-        service.waitForFinished(3000);
+        service.stop();
     }
 
     /// 合言葉（同じ LAN の招待の短い形）で、招待から対局の開始まで進む。合言葉は招待と一緒にでき、相手は
