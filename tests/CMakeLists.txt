@@ -1381,11 +1381,14 @@ if(ENABLE_P2P_PLAY)
     target_compile_definitions(tst_p2p_endtoend PRIVATE
         PEER_EXECUTABLE="$<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME}")
     add_dependencies(tst_p2p_endtoend shogiboardq_peer)
-    # 通信プロセスはアプリと同じフォルダから起動するので、試験の実行ファイルの隣にも置く（リリースビルドは差し替えを読まない）
-    add_custom_command(TARGET tst_p2p_endtoend POST_BUILD
+    # 通信プロセスはアプリと同じフォルダから起動するので、試験の実行ファイルの隣にも置く（リリースビルドは差し替えを読まない）。
+    # cargo は通信プロセスをビルドのたびに作り直すので、写しもビルドのたびに合わせる（試験の実行ファイルを作り直したときだけ
+    # 写すと、Rust だけを変えたときに、tst_p2p_endtoend と tst_p2p_sandbox が古い通信プロセスで試験していた）
+    add_custom_target(tst_p2p_peer_copy ALL
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_FILE_DIR:ShogiBoardQ>/${SBQ_PEER_NAME} $<TARGET_FILE_DIR:tst_p2p_endtoend>/${SBQ_PEER_NAME}
         VERBATIM)
+    add_dependencies(tst_p2p_peer_copy shogiboardq_peer tst_p2p_endtoend)
     set_tests_properties(tst_p2p_endtoend PROPERTIES TIMEOUT 180
         ENVIRONMENT "${SHOGI_TEST_OFFSCREEN_ENV};SHOGIBOARDQ_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config/tst_p2p_endtoend")
 endif()
@@ -1395,7 +1398,7 @@ if(ENABLE_P2P_PLAY)
     target_link_libraries(tst_p2p_sandbox PRIVATE shogiboardq_static)
     target_compile_definitions(tst_p2p_sandbox PRIVATE
         PEER_EXECUTABLE="$<TARGET_FILE_DIR:tst_p2p_endtoend>/${SBQ_PEER_NAME}")
-    add_dependencies(tst_p2p_sandbox tst_p2p_endtoend)
+    add_dependencies(tst_p2p_sandbox tst_p2p_peer_copy)
     set_tests_properties(tst_p2p_sandbox PROPERTIES TIMEOUT 120)
 endif()
 if(ENABLE_P2P_PLAY)
