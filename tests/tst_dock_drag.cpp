@@ -18,6 +18,7 @@
 #include <QWindow>
 
 #include "appsettings.h"
+#include "drag_event_helper.h"
 #include "dockregistry.h"
 #include "mainwindowappearancecontroller.h"
 #include "sfenutils.h"
@@ -283,7 +284,8 @@ private slots:
         QMimeData mime;
         mime.setText(QStringLiteral("dock"));
         const auto enter = [&mime, target] {
-            QDragEnterEvent event(QPointF(5, 5), Qt::MoveAction, &mime, Qt::LeftButton, Qt::NoModifier);
+            QDragEnterEvent event =
+                DragEvents::enter(QPointF(5, 5), Qt::MoveAction, &mime, Qt::LeftButton, Qt::NoModifier);
             QApplication::sendEvent(target, &event);
             return event.isAccepted();
         };

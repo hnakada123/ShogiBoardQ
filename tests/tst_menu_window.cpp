@@ -14,6 +14,7 @@
 #include <QDropEvent>
 #include <QDragEnterEvent>
 
+#include "drag_event_helper.h"
 #include "menubuttonwidget.h"
 #include "appsettings.h"
 
@@ -349,7 +350,7 @@ void TestMenuWindow::favoritesEditingAndDrop()
     QCOMPARE(favorites.size(), 2);
     QMimeData mime;
     mime.setData("application/x-shogiboardq-menu-action", actions[0]->objectName().toUtf8());
-    QDragEnterEvent enter(QPoint(10, 10), Qt::MoveAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QDragEnterEvent enter = DragEvents::enter(QPointF(10, 10), Qt::MoveAction, &mime, Qt::LeftButton, Qt::NoModifier);
     QApplication::sendEvent(favorites[1], &enter);
     QVERIFY(enter.isAccepted());
     QDropEvent drop(QPointF(10, 10), Qt::MoveAction, &mime, Qt::LeftButton, Qt::NoModifier);
