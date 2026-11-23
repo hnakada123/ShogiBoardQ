@@ -22,6 +22,7 @@ Usi::Usi(QObject* parent)
     connect(handler, &UsiProtocolHandler::positionChanged, m_formatter, &ThinkingInfoFormatter::setSearchPosition);
     connect(handler, &UsiProtocolHandler::searchStarted, m_formatter, &ThinkingInfoFormatter::requestClearThinkingInfo);
     connect(handler, &UsiProtocolHandler::infoReceived, m_formatter, &ThinkingInfoFormatter::onInfoReceived);
+    connect(handler, &UsiProtocolHandler::searchResultsDiscarded, m_formatter, &ThinkingInfoFormatter::discardPendingInfo);
     connect(handler, &UsiProtocolHandler::checkmateReceived, m_formatter, &ThinkingInfoFormatter::presentCheckmate);
     // bestmove の直前に届いた info を、bestmove を受け取る側より先に表示の行にしておく
     connect(handler, &UsiProtocolHandler::bestMoveReceived, m_formatter, &ThinkingInfoFormatter::flushInfoBuffer);

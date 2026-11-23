@@ -86,6 +86,20 @@ class UI:
             assert asyncio.get_running_loop().time() < deadline, arrows
             await asyncio.sleep(0.05)
 
+    async def wait_search_finished(self, timeout=8):
+        # A timed search stops its elapsed-time label when the time is up, and its lines no longer
+        # change. While searching, the label ticks every second, so two equal reads 1.1 s apart
+        # mean the search has finished.
+        deadline = asyncio.get_running_loop().time() + timeout
+        previous = None
+        while True:
+            text = (await self.widget("considerationElapsed"))["text"]
+            if text == previous:
+                return
+            assert asyncio.get_running_loop().time() < deadline, text
+            previous = text
+            await asyncio.sleep(1.1)
+
     async def open_pv(self):
         # Navigation replaces the model asynchronously. A queued click is discarded
         # if its persistent index is invalidated; reacquire the rows before retrying.
@@ -197,6 +211,8 @@ async def test_navigation_pv_board_and_display(consideration_env, tmp_path):
                 await ui.call("click_dialog_button", target=pv, text="|◀")
                 assert (await ui.board(target=pv))["board_sfen"] == board["board_sfen"]
                 await ui.call("close_dialog", target=pv)
+            # Compare the arrows before and after the flip once the search of the last position ends
+            await ui.wait_search_finished()
             await ui.set("considerationArrows", False)
             await ui.arrows(lambda arrows: arrows == [])
             await ui.set("considerationArrows", True)

@@ -81,6 +81,11 @@ void ThinkingInfoFormatter::requestClearThinkingInfo()
     emit clearThinkingInfoRequested();
 }
 
+void ThinkingInfoFormatter::discardPendingInfo()
+{
+    m_infoBuffer.clear();
+}
+
 void ThinkingInfoFormatter::presentBookMove(const QString& label)
 {
     requestClearThinkingInfo();

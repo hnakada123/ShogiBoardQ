@@ -164,6 +164,7 @@ void UsiProtocolHandler::abandonSearch()
         setState(State::Stopping);
         sendCommand(QStringLiteral("stop"));
     }
+    emit searchResultsDiscarded();
 }
 
 void UsiProtocolHandler::sendPonderHit()
@@ -231,6 +232,7 @@ void UsiProtocolHandler::cancelCurrentOperation()
         m_initializationTimer.stop();
         setState(State::NotStarted);
     }
+    emit searchResultsDiscarded();
 }
 
 // ============================================================

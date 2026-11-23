@@ -142,6 +142,9 @@ signals:
     /// 結果の知らせ（bestMoveReceived・checkmateReceived）の後に届く
     void searchEnded();
     void infoReceived(const UsiInfo& info);
+    /// 今の探索の結果を取り消した（abandonSearch・cancelCurrentOperation）。これまでに知らせた info で、
+    /// まだ表示していないものも捨てる（局面を替えた検討で、前の局面の読み筋を表に戻さない）
+    void searchResultsDiscarded();
     void errorOccurred(const QString& message);
 
 public slots:

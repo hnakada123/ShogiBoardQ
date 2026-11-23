@@ -43,6 +43,8 @@ public slots:
     void onInfoReceived(const UsiInfo& info);
     /// 探索を始めた。溜めている info を捨て、思考情報を消すよう知らせる
     void requestClearThinkingInfo();
+    /// 探索の結果を取り消した。溜めている info を捨てる（取り消す前に届いた分を、後で表に出さない）
+    void discardPendingInfo();
     /// 詰み探索の結果。info を省くエンジンでも詰み手順を思考の表に残す
     void presentCheckmate(const UsiCheckmate& result);
     /// 対局で定跡手を指す。前の思考情報を消し、情報欄の探索手に label（表示する側が作った表記）を出す

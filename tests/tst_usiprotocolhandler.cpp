@@ -12,6 +12,7 @@
 #include "usimessages.h"
 #include "kifupresentation.h"
 #include "thinkinginfoformatter.h"
+#include "usi.h"
 #include "usiinfo.h"
 #include "usienginesession.h"
 #include "usilineparser.h"
@@ -445,6 +446,26 @@ private slots:
         QCOMPARE(info.count(), 0);
         QCOMPARE(ended.count(), 1);
         QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
+    }
+
+    /// 取り消す前に届き、まだ表示していない info も表に出さない（検討で局面を替えたとき、
+    /// 前の局面の読み筋が、消した表に戻っていた）
+    void abandonedSearchDropsBufferedInfo()
+    {
+        Usi engine;
+        UsiProtocolHandler* handler = engine.session()->handler();
+        QSignalSpy rows(engine.thinking(), &ThinkingInfoFormatter::thinkingInfoUpdated);
+        handler->startSearch(usiPosition("position startpos"), UsiGo::infinite());
+        handler->onDataReceived(QStringLiteral("info depth 3 multipv 1 score cp 10 pv 7g7f"));
+        handler->abandonSearch();
+        QTest::qWait(200); // info は 50ms ごとにまとめて表示の行にする
+        QCOMPARE(rows.count(), 0);
+
+        // 次の探索の info は表示する
+        handler->onDataReceived(QStringLiteral("bestmove 7g7f"));
+        handler->startSearch(usiPosition("position startpos moves 7g7f"), UsiGo::infinite());
+        handler->onDataReceived(QStringLiteral("info depth 3 multipv 1 score cp 10 pv 3c3d"));
+        QTRY_COMPARE(rows.count(), 1);
     }
 
     // ================================================================
