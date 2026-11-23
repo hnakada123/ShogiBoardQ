@@ -154,8 +154,11 @@ def test_socket_and_endpoint_locations(monkeypatch, tmp_path, cli_path):
     assert paths.default_socket_path() == "/tmp/custom.sock"
     monkeypatch.delenv("SHOGIBOARDQ_AUTOMATION_SOCKET")
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
-    if not os.name == "nt":
+    if sys.platform.startswith("linux"):
         assert paths.default_socket_path() == str(tmp_path / "shogiboardq" / "automation.sock")
+    elif os.name != "nt":
+        # Qt reads XDG_RUNTIME_DIR only on Linux; the macOS runtime location is ~/Library/Application Support.
+        assert paths.default_socket_path().endswith("/shogiboardq/automation.sock")
     monkeypatch.delenv("SHOGIBOARDQ_CONFIG_HOME", raising=False)
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     if sys.platform.startswith("linux"):

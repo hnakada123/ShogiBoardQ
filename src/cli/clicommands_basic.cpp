@@ -76,6 +76,8 @@ int CliCommands::environment(const QJsonObject& /*params*/)
     obj[QStringLiteral("endpoint_file")] = AutomationEndpoint::endpointFilePath();
     obj[QStringLiteral("settings_file")] = SettingsCommon::settingsFilePath();
     obj[QStringLiteral("max_message_bytes")] = static_cast<double>(AutomationEndpoint::kMaxMessageBytes);
+    // ソケットのパスの上限（UTF-8 のバイト数。Windows の名前付きパイプは 0 で、確かめない）
+    obj[QStringLiteral("max_socket_path_bytes")] = AutomationEndpoint::kMaxSocketPathBytes;
     obj[QStringLiteral("error_kinds")] = ErrorKinds::toJson();
     // MCP サーバーが読み書きを許すファイルの拡張子
     obj[QStringLiteral("kifu_read_suffixes")] = QJsonArray::fromStringList(KifuFormats::readableSuffixes());

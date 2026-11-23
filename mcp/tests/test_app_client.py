@@ -109,3 +109,63 @@ def test_windows_pipe_address_has_the_pipe_prefix():
     # A bare QLocalServer name would open a file in the current directory instead of the named pipe.
     assert app_client.AppClient.pipe_address("shogiboardq-automation-user") == "\\\\.\\pipe\\shogiboardq-automation-user"
     assert app_client.AppClient.pipe_address("\\\\.\\pipe\\custom") == "\\\\.\\pipe\\custom"
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Windows uses named pipes")
+async def test_launch_rejects_a_socket_path_the_app_cannot_listen_on(monkeypatch, tmp_path, cli_path):
+    # An over-long path used to cost LAUNCH_TIMEOUT and leave the app running without the API.
+    # The limit is the application's (shogiboardq-cli environment), not one copied into Python.
+    monkeypatch.setenv("SHOGIBOARDQ_CLI", str(cli_path))
+    monkeypatch.setenv("SHOGIBOARDQ_EXECUTABLE", sys.executable)
+    limit = app_client.environment()["max_socket_path_bytes"]
+    long_path = "/" + "x" * limit + "/app.sock"
+    monkeypatch.setenv("SHOGIBOARDQ_AUTOMATION_SOCKET", long_path)
+    real_popen = subprocess.Popen
+    def no_app_launch(args, *rest, **kwargs):
+        # shogiboardq-cli environment may run (the socket variable changed); the app must not.
+        if isinstance(args, list) and "--automation" in args:
+            pytest.fail("The app must not be launched on a socket path it cannot listen on")
+        return real_popen(args, *rest, **kwargs)
+    monkeypatch.setattr(app_client.subprocess, "Popen", no_app_launch)
+    with pytest.raises(app_client.ToolError) as raised:
+        await app_client.AppClient()._launch_and_connect([])
+    assert raised.value.code == "app_unavailable"
+    assert f"at most {limit}" in raised.value.message
+    fits = "/" + "x" * (limit - 1 - len("/app.sock")) + "/app.sock"
+    assert len(fits) == limit
+    assert app_client.socket_path_problem(fits) is None
+    assert app_client.socket_path_problem(fits + "x") is not None
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="the fake app is a shell script")
+async def test_launch_timeout_stops_the_launched_app(monkeypatch, tmp_path):
+    # An app that never opens the socket is unreachable; it must not keep running after the error.
+    fake = tmp_path / "fake-app"
+    fake.write_text("#!/bin/sh\nexec sleep 60\n", encoding="utf-8")
+    fake.chmod(0o755)
+    monkeypatch.setenv("SHOGIBOARDQ_EXECUTABLE", str(fake))
+    monkeypatch.setenv("SHOGIBOARDQ_AUTOMATION_SOCKET", str(tmp_path / "app.sock"))
+    monkeypatch.setattr(app_client, "LAUNCH_TIMEOUT", 0.5)
+    monkeypatch.setattr(app_client, "EXIT_TIMEOUT", 1.0)
+    launched: list[subprocess.Popen] = []
+    real_popen = subprocess.Popen
+    def recording_popen(args, *rest, **kwargs):
+        # Only the app; the socket path check may also run shogiboardq-cli environment.
+        process = real_popen(args, *rest, **kwargs)
+        if isinstance(args, list) and args and args[0] == str(fake):
+            launched.append(process)
+        return process
+    monkeypatch.setattr(app_client.subprocess, "Popen", recording_popen)
+    client = app_client.AppClient()
+    try:
+        with pytest.raises(app_client.ToolError) as raised:
+            await client._launch_and_connect([])
+        assert raised.value.code == "app_unavailable"
+        assert len(launched) == 1
+        assert launched[0].poll() is not None
+        assert client._launched is None
+    finally:
+        for process in launched:
+            if process.poll() is None:
+                process.kill()
+            process.wait(timeout=5)

@@ -14,6 +14,7 @@ import shutil
 import asyncio
 import os
 import sys
+import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -24,6 +25,28 @@ FIXTURES = REPO_ROOT / "tests" / "fixtures"
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
 
 sys.path.insert(0, str(PACKAGE_DIR))
+
+# The short temporary directory made by pytest_configure (removed when every test passed).
+_SHORT_BASETEMP = pytest.StashKey[Path]()
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_configure(config):
+    # The tests put the app's automation socket in tmp_path. Under the macOS temporary directory
+    # (/var/folders/...) that path is longer than the app can listen on (max_socket_path_bytes, 95 on
+    # macOS), so every GUI test timed out. Use a short private directory there instead, unless
+    # --basetemp was given. This runs before pytest reads --basetemp for tmp_path_factory.
+    if sys.platform != "darwin" or config.option.basetemp:
+        return
+    short = Path(tempfile.mkdtemp(prefix="sbq-", dir="/tmp"))
+    config.stash[_SHORT_BASETEMP] = short
+    config.option.basetemp = str(short / "t")
+
+
+def pytest_sessionfinish(session, exitstatus):
+    short = session.config.stash.get(_SHORT_BASETEMP, None)
+    if short is not None and exitstatus == 0:
+        shutil.rmtree(short, ignore_errors=True)
 
 
 @pytest.fixture(scope="session")

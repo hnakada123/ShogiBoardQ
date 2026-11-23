@@ -29,6 +29,23 @@ LAUNCH_TIMEOUT = 30.0
 EXIT_TIMEOUT = 3.0
 
 
+def socket_path_problem(path: str) -> str | None:
+    """Why the application would refuse to listen on the socket ``path`` (None when it would not).
+
+    The limit comes from ``shogiboardq-cli environment`` (0 for Windows named pipes). Without the CLI
+    the check is skipped and the application reports the problem itself.
+    """
+    try:
+        limit = int(environment().get("max_socket_path_bytes") or 0)
+    except ToolError:
+        return None
+    size = len(path.encode("utf-8", "surrogateescape"))
+    if not limit or size <= limit:
+        return None
+    return (f"The automation socket path is {size} bytes, but ShogiBoardQ accepts at most {limit}: {path}. "
+            "Set SHOGIBOARDQ_AUTOMATION_SOCKET to a shorter path.")
+
+
 class AppError(ToolError):
     """A JSON-RPC error returned by the application."""
 
@@ -116,10 +133,15 @@ class AppClient:
         exe_path = Path(exe)
         if not exe_path.exists():
             raise ToolError("app_unavailable", f"SHOGIBOARDQ_EXECUTABLE does not exist: {exe}")
+        launched_now = False
         if self._launched is not None and self._launched.poll() is None:
             socket_path = self._socket_path or paths.default_socket_path()
         else:
             socket_path = os.environ.get("SHOGIBOARDQ_AUTOMATION_SOCKET") or paths.default_socket_path()
+            # Fail now instead of waiting LAUNCH_TIMEOUT for an app that cannot listen there.
+            problem = socket_path_problem(socket_path)
+            if problem:
+                raise ToolError("app_unavailable", problem)
             cmd = [str(exe_path), "--automation", "--automation-socket", socket_path]
             log.info("launching %s", " ".join(cmd))
             try:
@@ -131,6 +153,7 @@ class AppClient:
                     start_new_session=not sys.platform.startswith("win"),
                 )
                 self._launched_socket_path = socket_path
+                launched_now = True
             except OSError as exc:
                 raise ToolError("app_unavailable", f"Could not start ShogiBoardQ: {exc}") from exc
         deadline = time.monotonic() + LAUNCH_TIMEOUT
@@ -150,6 +173,14 @@ class AppClient:
             except (OSError, asyncio.TimeoutError) as exc:
                 last_error = str(exc)
                 await asyncio.sleep(0.3)
+        if launched_now:
+            # Nobody can reach the app we just started, so it would keep running without the automation API
+            # (it is in its own session and outlives this server). Stop exactly that child.
+            process = self._launched
+            self._launched = None
+            self._launched_socket_path = None
+            if process is not None:
+                await asyncio.to_thread(self._terminate, process)
         raise ToolError("app_unavailable", f"ShogiBoardQ did not open {socket_path} within {LAUNCH_TIMEOUT:.0f} s: {last_error}")
 
     async def close(self) -> None:
@@ -192,6 +223,12 @@ class AppClient:
             return
         except subprocess.TimeoutExpired:
             log.warning("Launched ShogiBoardQ did not quit; terminating PID %s", process.pid)
+        AppClient._terminate(process)
+
+    @staticmethod
+    def _terminate(process: subprocess.Popen) -> None:
+        if process.poll() is not None:
+            return
         try:
             process.terminate()
             process.wait(timeout=EXIT_TIMEOUT)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -25,6 +26,9 @@ def test_environment_describes_the_application(env):
     assert env["max_message_bytes"] >= 1024 * 1024
     assert env["endpoint_file"].endswith("automation-endpoint.json")
     assert env["socket_path"]
+    # The longest socket path the application listens on (Qt binds in a temporary folder beside it)
+    expected = {"darwin": 95, "win32": 0}.get(sys.platform, 99)
+    assert env["max_socket_path_bytes"] == expected
     slugs = [k["slug"] for k in env["error_kinds"]]
     assert len(slugs) == len(set(slugs))
     assert {"invalid_argument", "file_exists", "not_found", "parse_error", "unsaved_changes"} <= set(slugs)

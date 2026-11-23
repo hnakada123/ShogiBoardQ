@@ -89,13 +89,8 @@ bool AutomationServer::listen(const QString& socketPath, QString* error)
         if (error) *error = QStringLiteral("Socket path must be absolute: %1").arg(path);
         return false;
     }
-    // Unix ドメインソケットのパス長には上限（sun_path。終端を含めて Linux は 108、macOS は 104 バイト）がある。
-    // Qt は同じフォルダに一時フォルダ（"/.XXXXXX" の8バイト）を作ってその中で bind するので、その分も引く
-#ifdef Q_OS_MACOS
-    constexpr int kMaxSocketPathBytes = 95;
-#else
-    constexpr int kMaxSocketPathBytes = 99;
-#endif
+    // Unix ドメインソケットのパス長には上限がある（Qt が bind に使う一時フォルダの分を引いた値。AutomationEndpoint）
+    constexpr int kMaxSocketPathBytes = AutomationEndpoint::kMaxSocketPathBytes;
     if (path.toUtf8().size() > kMaxSocketPathBytes) {
         if (error) {
             *error = QStringLiteral("Socket path is too long (%1 bytes, max %2): %3. Pass a shorter --automation-socket")
