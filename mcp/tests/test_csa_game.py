@@ -178,7 +178,12 @@ class Peer:
 
     async def close(self):
         self.writer.close()
-        await self.writer.wait_closed()
+        try:
+            await self.writer.wait_closed()
+        except ConnectionError:
+            # The server already closed the connection. Windows reports a killed server as a reset
+            # (WinError 64), not as the end of the stream
+            pass
 
 
 @pytest.mark.parametrize("side", ["b", "w"])
