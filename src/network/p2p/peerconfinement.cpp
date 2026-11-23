@@ -87,10 +87,51 @@ namespace {
 const wchar_t kContainerName[] = L"io.github.hnakada123.ShogiBoardQ.peer";
 const wchar_t kContainerDisplayName[] = L"ShogiBoardQ P2P communication process";
 
+/// AppContainer のプロファイルの登録と削除を、同じ PC（ログオンのセッション）で動いているアプリの間で1つずつ行うための
+/// ミューテックスと、プロファイルを使っている通信プロセスの数を数えるセマフォ。プロファイルは1つの名前を共有するので、
+/// ほかのアプリの通信プロセスが終わって消したり、起動の前に消し直したりすると、登録してからプロセスを作るまでの間に
+/// プロファイルが無くなり、プロセスを作れない（同じ PC の2人が同時に「接続」したとき）。数が 0 になったときだけ消す。
+/// 名前付きのオブジェクトの既定の DACL は利用者と SYSTEM だけを許すので、AppContainer の通信プロセスからは開けない
+const wchar_t kProfileLockName[] = L"Local\\io.github.hnakada123.ShogiBoardQ.peer.profile-lock";
+const wchar_t kProfileUsersName[] = L"Local\\io.github.hnakada123.ShogiBoardQ.peer.profile-users";
+/// プロファイルの登録・削除は短い。ほかのアプリが持ったまま止まっていても、アプリを止めない
+constexpr DWORD kProfileLockTimeoutMs = 10000;
+
+/// SID を入れる領域。SID の中の DWORD のために DWORD の境界にそろえる（BYTE の配列のままだと、メンバの並びによっては
+/// 境界からずれ、CreateProcess が ERROR_NOACCESS で失敗する）
+struct alignas(DWORD) SidBuffer : std::array<BYTE, SECURITY_MAX_SID_SIZE> {
+};
+
 QString winError(const char* what, DWORD code = GetLastError())
 {
     return QStringLiteral("%1 failed (%2)").arg(QLatin1String(what)).arg(code);
 }
+
+/// kProfileLockName のミューテックスを、作ってから壊すまで持つ（持てなければ locked() が false）
+class ProfileLock
+{
+public:
+    ProfileLock()
+        : m_mutex(CreateMutexW(nullptr, FALSE, kProfileLockName))
+    {
+        if (!m_mutex) return;
+        // 持ったまま終わったアプリのもの（WAIT_ABANDONED）も持てたとみなす。守る中身はプロファイルと数だけで、
+        // 数の食い違いは、すべてのアプリが終わるとセマフォごと消える
+        const DWORD result = WaitForSingleObject(m_mutex, kProfileLockTimeoutMs);
+        m_locked = result == WAIT_OBJECT_0 || result == WAIT_ABANDONED;
+    }
+    ~ProfileLock()
+    {
+        if (m_locked) ReleaseMutex(m_mutex);
+        if (m_mutex) CloseHandle(m_mutex);
+    }
+    bool locked() const { return m_locked; }
+
+private:
+    Q_DISABLE_COPY_MOVE(ProfileLock)
+    HANDLE m_mutex;
+    bool m_locked = false;
+};
 
 /// 通信プロセスの実行ファイルを、AppContainer の中から読んで実行できるようにする。利用者のフォルダに置いたアプリ
 /// （ZIP の展開先・ビルドのフォルダ）のファイルは AppContainer から読めないので、この AppContainer にだけ許す。
@@ -107,7 +148,7 @@ bool allowExecution(const QString& executable, PSID containerSid, QString* error
         return false;
     }
     // この AppContainer か、すべてのアプリケーション パッケージに読み取りと実行を許す項目があれば足さない
-    std::array<BYTE, SECURITY_MAX_SID_SIZE> allPackages{};
+    SidBuffer allPackages{};
     DWORD sidSize = static_cast<DWORD>(allPackages.size());
     const bool haveAllPackages =
         CreateWellKnownSid(WinBuiltinAnyPackageSid, nullptr, allPackages.data(), &sidSize) != 0;
@@ -174,27 +215,12 @@ public:
         // ジョブを閉じると、まだ動いている通信プロセスは終わる（JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE）
         if (m_job) CloseHandle(m_job);
         if (m_containerSid) FreeSid(m_containerSid);
-        // AppContainer のプロファイル（利用者のレジストリと %LOCALAPPDATA%\Packages の下のフォルダ。AppContainer の
-        // プロセスが書き込める）を消す。乗っ取られた通信プロセスが、次の起動まで残るものを置けないようにする（監査
-        // 2026-11-21 S13）。消せなければ（まだ使われている）、次に起動するときに消し直す
-        if (m_containerSid) DeleteAppContainerProfile(kContainerName);
+        releaseProfile();
     }
 
     bool prepare(const QString& executable, Reach reach, QString* error)
     {
-        // プロファイルを登録していない AppContainer ではプロセスを作れない（「ファイルが見つかりません」で失敗する）。
-        // 前の起動が残したプロファイル（異常終了で消せなかったもの）は消してから、起動ごとに登録し直す。まだ使われて
-        // いて消せなければ（同じ PC のほかのプレイヤーの通信プロセスが動いている）、名前から SID を求める
-        DeleteAppContainerProfile(kContainerName);
-        HRESULT result = CreateAppContainerProfile(kContainerName, kContainerDisplayName, kContainerDisplayName,
-                                                   nullptr, 0, &m_containerSid);
-        if (result == HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)) {
-            result = DeriveAppContainerSidFromAppContainerName(kContainerName, &m_containerSid);
-        }
-        if (FAILED(result) || !m_containerSid) {
-            *error = winError("creating the AppContainer profile", static_cast<DWORD>(result));
-            return false;
-        }
+        if (!acquireProfile(error)) return false;
         // 能力: インターネットへの送受信と待受。同じ LAN は、ローカルのネットワークを使うときだけ。
         // loopback は能力では開かない（AppContainer からは OS が止める）
         if (!addCapability(WinCapabilityInternetClientSid) || !addCapability(WinCapabilityInternetClientServerSid)
@@ -310,6 +336,59 @@ public:
     }
 
 private:
+    /// AppContainer のプロファイルを登録し、使っている通信プロセスの数に自分を足す。プロファイルを登録していない
+    /// AppContainer ではプロセスを作れない（「ファイルが見つかりません」で失敗する）。ほかに使っている通信プロセスが
+    /// なければ、前の起動が残したプロファイル（異常終了で消せなかったもの）を消してから登録し直す。使っているものが
+    /// あれば（同じ PC のほかのプレイヤーの通信プロセスが動いているか、起動の途中）、消さずに名前から SID を求める
+    bool acquireProfile(QString* error)
+    {
+        const ProfileLock lock;
+        if (!lock.locked()) {
+            *error = winError("locking the AppContainer profile");
+            return false;
+        }
+        m_profileUsers = CreateSemaphoreW(nullptr, 0, LONG_MAX, kProfileUsersName);
+        LONG previous = 0;
+        if (!m_profileUsers || !ReleaseSemaphore(m_profileUsers, 1, &previous)) {
+            *error = winError("counting the AppContainer profile users");
+            return false;
+        }
+        m_profileCounted = true;
+        if (previous == 0) DeleteAppContainerProfile(kContainerName);
+        HRESULT result = CreateAppContainerProfile(kContainerName, kContainerDisplayName, kContainerDisplayName,
+                                                   nullptr, 0, &m_containerSid);
+        if (result == HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS)) {
+            result = DeriveAppContainerSidFromAppContainerName(kContainerName, &m_containerSid);
+        }
+        if (FAILED(result) || !m_containerSid) {
+            *error = winError("creating the AppContainer profile", static_cast<DWORD>(result));
+            return false;
+        }
+        return true;
+    }
+
+    /// 使っている通信プロセスの数から自分を引き、最後の1つなら AppContainer のプロファイル（利用者のレジストリと
+    /// %LOCALAPPDATA%\Packages の下のフォルダ。AppContainer のプロセスが書き込める）を消す。乗っ取られた通信プロセスが、
+    /// 次の起動まで残るものを置けないようにする（監査 2026-11-21 S13）。消せなければ（まだ使われている・ほかのアプリが
+    /// ロックを持ったまま）、次に最初の通信プロセスを起動するときに消し直す
+    void releaseProfile()
+    {
+        if (!m_profileUsers) return;
+        if (m_profileCounted) {
+            const ProfileLock lock;
+            WaitForSingleObject(m_profileUsers, 0);
+            if (lock.locked()) {
+                // 数を読む関数はないので、もう1つ引けるか（ほかに使っているものがあるか）を試して戻す
+                if (WaitForSingleObject(m_profileUsers, 0) == WAIT_OBJECT_0) {
+                    ReleaseSemaphore(m_profileUsers, 1, nullptr);
+                } else {
+                    DeleteAppContainerProfile(kContainerName);
+                }
+            }
+        }
+        CloseHandle(m_profileUsers);
+    }
+
     /// 通信プロセスのプロセスとスレッドに付ける DACL（利用者・SYSTEM と、この起動だけの能力）。AppContainer のトークンの
     /// 既定の DACL には AppContainer の SID が入るので、そのままでは同じ AppContainer のほかの通信プロセス（同じ PC の
     /// ほかのプレイヤー）が、このプロセスとスレッドを開ける（監査 2026-11-21 S13）。AppContainer のプロセスが開けるのは、
@@ -455,8 +534,12 @@ private:
     }
 
     PSID m_containerSid = nullptr;
-    std::array<std::array<BYTE, SECURITY_MAX_SID_SIZE>, 3> m_capabilitySids{};
-    std::array<BYTE, SECURITY_MAX_SID_SIZE> m_instanceSid{};
+    /// kProfileUsersName のセマフォ（数は、プロファイルを使っている通信プロセスの数）
+    HANDLE m_profileUsers = nullptr;
+    /// セマフォの数に自分を足した（releaseProfile で引く）
+    bool m_profileCounted = false;
+    std::array<SidBuffer, 3> m_capabilitySids{};
+    SidBuffer m_instanceSid{};
     std::array<SID_AND_ATTRIBUTES, 4> m_capabilities{};
     DWORD m_capabilityCount = 0;
     SECURITY_CAPABILITIES m_security{};
@@ -471,7 +554,7 @@ private:
     std::wstring m_environment;
     std::wstring m_directory;
     std::vector<BYTE> m_tokenUser;
-    std::array<BYTE, SECURITY_MAX_SID_SIZE> m_systemSid{};
+    SidBuffer m_systemSid{};
     std::vector<DWORD> m_acl;
     SECURITY_DESCRIPTOR m_descriptor{};
     SECURITY_ATTRIBUTES m_processSecurity{};

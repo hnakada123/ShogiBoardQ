@@ -219,6 +219,36 @@ private slots:
         // 1つ目は動き続けている（2つ目の起動で、AppContainer のプロファイルを登録し直しても）
         QCOMPARE(first.state(), QProcess::Running);
     }
+
+    /// ほかの通信プロセスが終わっても、起動の途中の通信プロセスの AppContainer のプロファイルは消えない（同じ PC の
+    /// 2人の一方が対局を終えたのと同時に、もう一方が「接続」しても起動できる）
+    void profileSurvivesWhileAnotherPeerStarts()
+    {
+        QProcess first;
+        first.setProgram(QStringLiteral(PEER_EXECUTABLE));
+        QString error;
+        std::unique_ptr<PeerConfinement> firstConfinement = PeerConfinement::apply(
+            &first, QStringLiteral(PEER_EXECUTABLE), PeerConfinement::Reach::Internet, &error);
+        QVERIFY2(firstConfinement, qPrintable(error));
+        first.start();
+        QVERIFY(first.waitForStarted(10000));
+
+        // 2つ目はプロファイルを登録したところで、まだプロセスを作っていない
+        QProcess second;
+        second.setProgram(QStringLiteral(PEER_EXECUTABLE));
+        const std::unique_ptr<PeerConfinement> secondConfinement = PeerConfinement::apply(
+            &second, QStringLiteral(PEER_EXECUTABLE), PeerConfinement::Reach::Internet, &error);
+        QVERIFY2(secondConfinement, qPrintable(error));
+
+        // 1つ目が終わる（プロファイルを使っている最後の通信プロセスなら、ここで消す）
+        firstConfinement.reset();
+        QVERIFY(first.waitForFinished(10000));
+
+        second.start();
+        QVERIFY2(second.waitForStarted(10000), qPrintable(second.errorString()));
+        // 標準入力を開けたままなので、自分からは終わらない（制限を確かめて動き続けている）
+        QVERIFY(!second.waitForFinished(1000));
+    }
 #endif
 };
 

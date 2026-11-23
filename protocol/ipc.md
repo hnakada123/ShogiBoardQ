@@ -352,7 +352,10 @@ Windows では、プロセスを作る時点でしか掛けられない制限を
 1. AppContainer（`PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES`）。名前は `io.github.hnakada123.ShogiBoardQ.peer`
    （この PC のどのプレイヤーも同じ。別々の AppContainer どうしは同じ PC の中でつながらない）。
    プロファイルを登録していない AppContainer ではプロセスを作れないので、起動ごとに `CreateAppContainerProfile` で
-   登録し、通信プロセスが終わったら消す（利用者のレジストリと、`%LOCALAPPDATA%` の `Packages` の下の空のフォルダ。通信プロセスは何も書かない）。
+   登録し、この利用者の通信プロセスが1つも動いていなくなったら消す（利用者のレジストリと、`%LOCALAPPDATA%` の `Packages` の下の空のフォルダ。通信プロセスは何も書かない）。
+   プロファイルは同じ PC のアプリで共有するので、登録と削除は名前付きのミューテックスで1つずつ行い、使っている通信プロセスの数を
+   名前付きのセマフォで数える（起動の途中のものも数える。ほかのアプリの通信プロセスが終わったときに、登録してからプロセスを作るまでの
+   間のプロファイルを消さない）。
    能力は `internetClient`・`internetClientServer` と、起動のたびの能力（`S-1-15-3-1024-` に乱数6つ。下の DACL に使う）で、
    ローカルのネットワーク（`sbq-local-1`）を使うときだけ `privateNetworkClientServer` を足す。AppContainer の中からは、
    利用者のファイルの読み書き、ほかのプロセスを開くこと、名前付きパイプ（自動化 API など）への接続、loopback への接続ができない。
