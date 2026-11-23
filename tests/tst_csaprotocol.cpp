@@ -1164,10 +1164,13 @@ private slots:
         QFETCH(bool, wrongHostname);
         // テスト専用の自己署名の証明書（127.0.0.1）。macOS は 2019-07-01 以降に発行された TLS サーバーの証明書の有効期間を
         // 825 日までに限る（超えると「この用途には信頼されていない」になる）。期限切れで試験が止まらないよう、発行日を
-        // その前にして長い期間にしてある。作り直すとき（tests/fixtures/tls で）:
-        //   openssl req -x509 -key server-key.pem -sha256 -subj "/CN=ShogiBoardQ test only" \
-        //     -not_before 20190601000000Z -not_after 20991231235959Z \
-        //     -addext "basicConstraints=critical,CA:TRUE" -addext "subjectAltName=IP:127.0.0.1" -out server-cert.pem
+        // その前にして長い期間にしてある。作り直すとき（tests/fixtures/tls で。行末の \ を // のコメントに書くと
+        // 次の行までコメントになる警告 -Wcomment が出るので、コマンドは /* */ で囲む）:
+        /*
+            openssl req -x509 -key server-key.pem -sha256 -subj "/CN=ShogiBoardQ test only" \
+              -not_before 20190601000000Z -not_after 20991231235959Z \
+              -addext "basicConstraints=critical,CA:TRUE" -addext "subjectAltName=IP:127.0.0.1" -out server-cert.pem
+        */
         QFile certFile(QStringLiteral(SOURCE_DIR "/tests/fixtures/tls/server-cert.pem"));
         QFile keyFile(QStringLiteral(SOURCE_DIR "/tests/fixtures/tls/server-key.pem"));
         QVERIFY(certFile.open(QIODevice::ReadOnly));
