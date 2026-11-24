@@ -25,6 +25,8 @@ inline const Setting<int> dockLayoutNameDialogFontSize{"DialogAppearance/dockLay
 inline const Setting<QSize> dockLayoutNameDialogSize{"DialogAppearance/dockLayoutName/size", QSize()};
 inline const Setting<int> pieceSoundDialogFontSize{"DialogAppearance/pieceSound/fontSize", 0};
 inline const Setting<QSize> pieceSoundDialogSize{"DialogAppearance/pieceSound/size", QSize()};
+inline const Setting<int> byoyomiSoundDialogFontSize{"DialogAppearance/byoyomiSound/fontSize", 0};
+inline const Setting<QSize> byoyomiSoundDialogSize{"DialogAppearance/byoyomiSound/size", QSize()};
 inline const Setting<int> promotionDialogFontSize{"DialogAppearance/promotion/fontSize", 0};
 inline const Setting<QSize> promotionDialogSize{"DialogAppearance/promotion/size", QSize()};
 inline const Setting<int> pvBoardDialogFontSize{"DialogAppearance/pvBoard/fontSize", 0};
@@ -72,6 +74,15 @@ inline const StructSetting<PieceSoundTone> pieceSoundTone{
      SettingField<PieceSoundTone>::of("Sound/pieceSoundEqMid", &PieceSoundTone::midDb),
      SettingField<PieceSoundTone>::of("Sound/pieceSoundEqHigh", &PieceSoundTone::highDb)},
     &PieceSoundTone::clamped};
+
+/// 秒読み音声の有効/無効（デフォルト: true）
+inline const Setting<bool> byoyomiSoundEnabled{"Sound/byoyomiSoundEnabled", true};
+
+/// 秒読み音声の音量 0〜100 %（デフォルト: 50）
+inline const BoundedSetting<int> byoyomiSoundVolume{"Sound/byoyomiSoundVolume", 50, 0, 100};
+
+/// 秒読み音声のカスタム WAV フォルダ（空なら内蔵の対局時計音を使用）
+inline const Setting<QString> byoyomiSoundVoiceDir{"Sound/byoyomiSoundVoiceDir", QString()};
 
 // --- メニューウィンドウ ---
 

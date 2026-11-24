@@ -153,6 +153,8 @@
     <addaction name="actionEngineSettings"/>
     <addaction name="actionPieceSound"/>
     <addaction name="actionPieceSoundSettings"/>
+    <addaction name="actionByoyomiSound"/>
+    <addaction name="actionByoyomiSoundSettings"/>
     <addaction name="menuLanguage"/>
     <addaction name="menuNotation"/>
     <addaction name="separator"/>
@@ -841,6 +843,36 @@
    </property>
    <property name="toolTip">
     <string>駒音の音量・音の高さ・音質を調整する</string>
+   </property>
+  </action>
+  <action name="actionByoyomiSound">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionPieceSound.svg</normaloff>:/images/actions/actionPieceSound.svg</iconset>
+   </property>
+   <property name="text">
+    <string>秒読み音声</string>
+   </property>
+   <property name="toolTip">
+    <string>対局中の秒読みや残り時間のカウントダウン音声を鳴らす</string>
+   </property>
+  </action>
+  <action name="actionByoyomiSoundSettings">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionPieceSound.svg</normaloff>:/images/actions/actionPieceSound.svg</iconset>
+   </property>
+   <property name="text">
+    <string>秒読み音声の設定…</string>
+   </property>
+   <property name="toolTip">
+    <string>秒読み音声の音量やカスタム音声フォルダを設定する</string>
    </property>
   </action>
   <action name="actionSavedLayoutsPlaceholder">

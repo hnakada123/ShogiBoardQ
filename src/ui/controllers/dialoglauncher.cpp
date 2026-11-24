@@ -6,6 +6,8 @@
 #include "notificationpresenter.h"
 #include "piecesoundplayer.h"
 #include "piecesoundsettingsdialog.h"
+#include "byoyomisoundplayer.h"
+#include "byoyomisoundsettingsdialog.h"
 
 #include <QDesktopServices>
 #include <QUrl>
@@ -84,6 +86,18 @@ void DialogLauncher::displayPieceSoundSettingsDialog()
     connect(&dialog, &PieceSoundSettingsDialog::volumeChanged, player, &PieceSoundPlayer::setVolume);
     connect(&dialog, &PieceSoundSettingsDialog::toneChanged, player, &PieceSoundPlayer::setTone);
     connect(&dialog, &PieceSoundSettingsDialog::previewRequested, player, &PieceSoundPlayer::preview);
+    dialog.exec();
+}
+
+void DialogLauncher::displayByoyomiSoundSettingsDialog()
+{
+    auto* player = m_deps.byoyomiSoundPlayer;
+    if (!player) return;
+
+    ByoyomiSoundSettingsDialog dialog(player->volume(), player->voiceDirectory(), m_deps.parentWidget);
+    connect(&dialog, &ByoyomiSoundSettingsDialog::volumeChanged, player, &ByoyomiSoundPlayer::setVolume);
+    connect(&dialog, &ByoyomiSoundSettingsDialog::voiceDirectoryChanged, player, &ByoyomiSoundPlayer::setVoiceDirectory);
+    connect(&dialog, &ByoyomiSoundSettingsDialog::previewRequested, player, &ByoyomiSoundPlayer::preview);
     dialog.exec();
 }
 

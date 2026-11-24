@@ -67,6 +67,7 @@
 #include "menuwindowcontroller.h"
 #include "nyugyokudeclarationhandler.h"
 #include "piecesoundplayer.h"
+#include "byoyomisoundplayer.h"
 #include "playerinfopresenter.h"
 #include "positioneditsession.h"
 #include "pvboardcontroller.h"
@@ -426,6 +427,7 @@ void MainWindowComposer::createSessions()
     m_c.uiStatePolicy = new UiStatePolicyManager(ud, &m_window);
     m_c.notifications = new NotificationPresenter({&m_window}, &m_window);
     m_c.pieceSoundPlayer = new PieceSoundPlayer(&m_window);
+    m_c.byoyomiSoundPlayer = new ByoyomiSoundPlayer(m_c.clock, &m_window);
 
     // 棋譜の読み込み・保存
     m_c.kifuLoader = new KifuLoader(m_c.document, &m_window);
@@ -557,6 +559,7 @@ void MainWindowComposer::createControllers()
     dl.parentWidget = &m_window;
     dl.shogiView = m_c.shogiView;
     dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
+    dl.byoyomiSoundPlayer = m_c.byoyomiSoundPlayer;
     dl.evalChart = m_c.evalChart;
     m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
 

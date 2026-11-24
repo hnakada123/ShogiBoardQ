@@ -90,6 +90,7 @@ class MainWindowActions;
 class MenuWindowController;
 class NyugyokuDeclarationHandler;
 class PieceSoundPlayer;
+class ByoyomiSoundPlayer;
 class PvBoardController;
 class SettingsResetController;
 class TsumeSearchController;
@@ -202,6 +203,7 @@ struct MainWindowComponents {
     LanguageController* languageController = nullptr;
     NyugyokuDeclarationHandler* nyugyokuHandler = nullptr;
     PieceSoundPlayer* pieceSoundPlayer = nullptr;
+    ByoyomiSoundPlayer* byoyomiSoundPlayer = nullptr;
     ImageExportController* images = nullptr;
     SettingsResetController* settingsReset = nullptr;
 

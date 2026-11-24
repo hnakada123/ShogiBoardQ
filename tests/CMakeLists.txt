@@ -1001,6 +1001,9 @@ add_shogi_test(tst_piece_sound_processor
     ${SRC}/ui/presenters/piecesoundprocessor.cpp
 )
 
+add_shogi_test(tst_byoyomi_sound tst_byoyomi_sound.cpp)
+target_link_libraries(tst_byoyomi_sound PRIVATE shogiboardq_static)
+
 # 終局後の棋譜閲覧における手番ラベル・背景色の連動を実際のビューで検証する
 add_shogi_test(tst_board_turn_display tst_board_turn_display.cpp)
 target_link_libraries(tst_board_turn_display PRIVATE shogiboardq_static)

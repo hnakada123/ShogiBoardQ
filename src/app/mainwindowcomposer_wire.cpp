@@ -251,6 +251,7 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.images = m_c.images;
     md.boardController = m_c.boardController;
     md.pieceSound = m_c.pieceSoundPlayer;
+    md.byoyomiSound = m_c.byoyomiSoundPlayer;
     md.settingsReset = m_c.settingsReset;
     md.dockLayout = m_c.dockLayoutManager;
     md.docks = m_c.dockRegistry;

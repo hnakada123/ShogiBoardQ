@@ -13,6 +13,7 @@ class QWidget;
 class ShogiView;
 class BoardAppearanceDialog;
 class PieceSoundPlayer;
+class ByoyomiSoundPlayer;
 class EvaluationChartWidget;
 
 /**
@@ -36,6 +37,7 @@ public:
         QWidget* parentWidget = nullptr;
         ShogiView* shogiView = nullptr;
         PieceSoundPlayer* pieceSoundPlayer = nullptr;
+        ByoyomiSoundPlayer* byoyomiSoundPlayer = nullptr;
         EvaluationChartWidget* evalChart = nullptr;        ///< 表示設定を変える評価値グラフ
     };
 
@@ -50,6 +52,7 @@ public slots:
     void displayTsumeshogiGeneratorDialog();
     void displayTsumePlayDialog();
     void displayPieceSoundSettingsDialog();
+    void displayByoyomiSoundSettingsDialog();
     void displayBoardAppearanceDialog();
     void displayFontSettingsDialog();
     /// 評価値グラフの「表示設定…」（決めた設定をグラフに渡す）

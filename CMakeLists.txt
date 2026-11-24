@@ -641,6 +641,8 @@ set(SRC_UI
     src/ui/presenters/notificationpresenter.h
     src/ui/presenters/piecesoundplayer.cpp
     src/ui/presenters/piecesoundplayer.h
+    src/ui/presenters/byoyomisoundplayer.cpp
+    src/ui/presenters/byoyomisoundplayer.h
     src/ui/presenters/piecesoundprocessor.cpp
     src/ui/presenters/piecesoundprocessor.h
     src/ui/presenters/playerinfopresenter.cpp
@@ -852,6 +854,8 @@ set(SRC_DIALOGS
     src/dialogs/kifusavedialogs.h
     src/dialogs/piecesoundsettingsdialog.cpp
     src/dialogs/piecesoundsettingsdialog.h
+    src/dialogs/byoyomisoundsettingsdialog.cpp
+    src/dialogs/byoyomisoundsettingsdialog.h
     src/dialogs/promotedialog.cpp
     src/dialogs/promotedialog.h
     src/dialogs/pvline.cpp

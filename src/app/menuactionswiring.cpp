@@ -23,6 +23,7 @@
 #include "mainwindowappearancecontroller.h"
 #include "menuwindowcontroller.h"
 #include "piecesoundplayer.h"
+#include "byoyomisoundplayer.h"
 #include "positioneditsession.h"
 #include "settingsresetcontroller.h"
 #include "tsumesearchcontroller.h"
@@ -135,6 +136,8 @@ void wireSettingsMenu(const Deps& d)
     QObject::connect(ui->actionEngineSettings, &QAction::triggered, d.dialogs, &DialogLauncher::displayEngineSettingsDialog);
     bindCheck(ui->actionPieceSound, d.pieceSound->isEnabled(), d.pieceSound, &PieceSoundPlayer::setEnabled);
     QObject::connect(ui->actionPieceSoundSettings, &QAction::triggered, d.dialogs, &DialogLauncher::displayPieceSoundSettingsDialog);
+    bindCheck(ui->actionByoyomiSound, d.byoyomiSound->isEnabled(), d.byoyomiSound, &ByoyomiSoundPlayer::setEnabled);
+    QObject::connect(ui->actionByoyomiSoundSettings, &QAction::triggered, d.dialogs, &DialogLauncher::displayByoyomiSoundSettingsDialog);
     QObject::connect(ui->actionResetSettings, &QAction::triggered, d.settingsReset, &SettingsResetController::confirmAndQuit);
     // 指し手の表記（言語に合わせる・日本式・英語式の組は LanguageController がつなぐ）
     bindCheck(ui->actionNotationOrigin, d.language->notationOrigin(), d.language, &LanguageController::onOriginTriggered);
@@ -155,7 +158,7 @@ void wire(const Deps& d)
 {
     Q_ASSERT(d.ui && d.actions && d.dialogs && d.kifuFiles && d.clipboard && d.session && d.csaUi && d.menuWindow && d.analysis
              && d.positionEdit && d.kifuAnalysis && d.tsumeSearch && d.appearance && d.images
-             && d.boardController && d.pieceSound && d.settingsReset && d.dockLayout && d.language);
+             && d.boardController && d.pieceSound && d.byoyomiSound && d.settingsReset && d.dockLayout && d.language);
     wireFileMenu(d);
     wireEditMenu(d);
     wireDisplayMenu(d);

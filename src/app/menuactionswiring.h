@@ -22,6 +22,7 @@ class MainWindowActions;
 class MainWindowAppearanceController;
 class MenuWindowController;
 class PieceSoundPlayer;
+class ByoyomiSoundPlayer;
 class PositionEditSession;
 class SettingsResetController;
 class TsumeSearchController;
@@ -57,6 +58,7 @@ struct Deps {
     ImageExportController* images = nullptr;           ///< 盤・評価値グラフの画像
     BoardInteractionController* boardController = nullptr; ///< 合法手の表示
     PieceSoundPlayer* pieceSound = nullptr;            ///< 駒音
+    ByoyomiSoundPlayer* byoyomiSound = nullptr;        ///< 秒読み音声
     SettingsResetController* settingsReset = nullptr;  ///< 設定の初期化
     DockLayoutManager* dockLayout = nullptr;           ///< 名前を付けたドックの配置の保存・ドックの固定
     DockRegistry* docks = nullptr;                     ///< ドック（規定の配置に戻す）

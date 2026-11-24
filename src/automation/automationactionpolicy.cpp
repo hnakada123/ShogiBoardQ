@@ -66,6 +66,8 @@ const QStringList& AutomationActionPolicy::allowedActions()
         QStringLiteral("actionBoardAppearance"),
         QStringLiteral("actionPieceSound"),
         QStringLiteral("actionPieceSoundSettings"),
+        QStringLiteral("actionByoyomiSound"),
+        QStringLiteral("actionByoyomiSoundSettings"),
         // 設定・情報
         QStringLiteral("actionEngineSettings"),
         QStringLiteral("actionLanguageSystem"),
