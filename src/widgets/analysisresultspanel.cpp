@@ -25,6 +25,28 @@
 namespace {
 /// 幅を内容に合わせ、利用者が変えた幅を保存する列（読み筋より前の列）
 constexpr int kSizedColumns = KifuAnalysisListModel::PvColumn;
+static_assert(kSizedColumns == AnalysisSettings::kKifuAnalysisSizedColumns);
+static_assert(KifuAnalysisListModel::QualityColumn == AnalysisSettings::kKifuAnalysisQualityColumn);
+
+QString formatSideSummary(const QString& sideLabel, const KifuAnalysisListModel::SideSummary& side)
+{
+    if (!side.hasAny()) return QString();
+    QStringList parts;
+    if (side.hasMatchRate()) {
+        parts.append(AnalysisResultsPanel::tr("一致率 %1% (%2/%3)")
+                         .arg(side.matchRatePercent(), 0, 'f', 1)
+                         .arg(side.matchCount)
+                         .arg(side.matchTotal));
+    }
+    if (side.hasAcpl()) {
+        parts.append(AnalysisResultsPanel::tr("平均損失 %1").arg(qRound(side.averageCentipawnLoss())));
+    }
+    parts.append(AnalysisResultsPanel::tr("悪手 %1・疑問 %2・緩手 %3")
+                     .arg(side.blunderCount)
+                     .arg(side.mistakeCount)
+                     .arg(side.inaccuracyCount));
+    return AnalysisResultsPanel::tr("%1：%2").arg(sideLabel, parts.join(QStringLiteral(" / ")));
+}
 } // namespace
 
 AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
@@ -106,6 +128,15 @@ AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     progressLayout->addWidget(m_statusLabel, 1);
     progressLayout->addWidget(m_progressBar);
 
+    m_summaryLabel = new QLabel(this);
+    OpaqueBackground::keep(m_summaryLabel);
+    m_summaryLabel->setObjectName(QStringLiteral("analysisSummaryLabel"));
+    m_summaryLabel->setWordWrap(true);
+    m_summaryLabel->setToolTip(
+        tr("一致率：候補手と一致した手の割合\n平均損失：1手あたりの平均評価値損失（ACPL）\n"
+           "悪手（??）：損失500以上または詰み逃し／疑問（?）：損失300〜499／緩手（?!）：損失150〜299"));
+    m_summaryLabel->setVisible(false);
+
     auto* hint = new QLabel(tr("評価値は先手視点（＋: 先手有利／−: 後手有利）。行を選択すると局面へ移動し、「表示」で読み筋を確認できます。"), this);
     hint->setWordWrap(true);
     auto* lay = new QVBoxLayout(this);
@@ -113,6 +144,7 @@ AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     lay->setSpacing(8);
     lay->addLayout(buttonLayout);
     lay->addLayout(progressLayout);
+    lay->addWidget(m_summaryLabel);
     lay->addWidget(m_view, 1);
     lay->addWidget(hint);
 
@@ -131,6 +163,7 @@ void AnalysisResultsPanel::setModel(KifuAnalysisListModel* model)
     setupHeaderConfiguration();
     connect(m_view->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &AnalysisResultsPanel::onTableSelectionChanged);
+    updateSummary();
     m_reflowAllRows = true;
     m_reflowTimer->start();
 }
@@ -171,7 +204,7 @@ void AnalysisResultsPanel::reflowNow()
 {
     // ユーザーが調整した列幅を保ち、自動列だけを内容に合わせる。
     // 読み筋より前の列の最小幅（読み筋の列は残りの幅に伸ばす）
-    static constexpr int minWidths[kSizedColumns] = {140, 120, 50, 85, 110, 85, 60};
+    static constexpr int minWidths[kSizedColumns] = {140, 120, 50, 85, 110, 85, 52, 60};
     QAbstractItemModel* model = m_view->model();
     const int rowCount = model ? model->rowCount() : 0;
     // 全行を測り直す（文字の大きさ・結果の置き換え・並べ替え）と、内容に合わせて縮みもする。
@@ -206,6 +239,7 @@ void AnalysisResultsPanel::onModelReset()
     // 結果を消した（別の棋譜を開いた）ら、解析中でなければ初めの案内に戻す
     if (m_runState != RunState::Running && m_view->model()->rowCount() == 0) m_runState = RunState::Idle;
     updateProgress();
+    updateSummary();
 }
 
 void AnalysisResultsPanel::onRowsInserted(const QModelIndex&, int first, int)
@@ -214,6 +248,7 @@ void AnalysisResultsPanel::onRowsInserted(const QModelIndex&, int first, int)
     m_reflowTimer->start();
 
     updateProgress();
+    updateSummary();
 
     // 解析中は最後に確定した行を選んで見せる（解析中の選択の通知は onTableSelectionChanged が無視する）
     if (m_runState == RunState::Running) {
@@ -231,6 +266,7 @@ void AnalysisResultsPanel::onDataChanged(const QModelIndex& topLeft, const QMode
     if (topLeft.isValid()) m_reflowFromRow = m_reflowFromRow < 0 ? topLeft.row() : qMin(m_reflowFromRow, topLeft.row());
     else m_reflowAllRows = true;
     m_reflowTimer->start();
+    updateSummary();
 }
 void AnalysisResultsPanel::onLayoutChanged()
 {
@@ -299,6 +335,28 @@ void AnalysisResultsPanel::updateProgress()
         m_engineLabel->setFullText(QString());
         break;
     }
+}
+
+void AnalysisResultsPanel::updateSummary()
+{
+    auto* model = qobject_cast<KifuAnalysisListModel*>(m_view->model());
+    if (!model) {
+        m_summaryLabel->setVisible(false);
+        return;
+    }
+    const KifuAnalysisListModel::Summary stats = model->summary();
+    if (stats.isEmpty()) {
+        m_summaryLabel->setVisible(false);
+        m_summaryLabel->clear();
+        return;
+    }
+    QStringList sides;
+    const QString blackText = formatSideSummary(tr("先手"), stats.black);
+    const QString whiteText = formatSideSummary(tr("後手"), stats.white);
+    if (!blackText.isEmpty()) sides.append(blackText);
+    if (!whiteText.isEmpty()) sides.append(whiteText);
+    m_summaryLabel->setText(sides.join(QStringLiteral("   ｜   ")));
+    m_summaryLabel->setVisible(true);
 }
 
 void AnalysisResultsPanel::applyFontSize(int size)

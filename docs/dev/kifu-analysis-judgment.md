@@ -33,3 +33,21 @@
 - **関数**: `KifuAnalysisListModel::judgementText()` (`src/models/kifuanalysislistmodel.cpp`)
 - **表示**: `KifuAnalysisListModel::data()` の `JudgementColumn`（「形勢」列）で呼び出される
 - **テスト**: `tests/tst_analysis_results.cpp` の `mateJudgement`（符号の反転は `mateScoresKeepTheirSide`）
+
+## 指し手の判定（悪手・疑問手・緩手）
+
+`KifuAnalysisRow::moveQuality()` で手番側から見た評価値損失（先手なら `-evaluationDifference`、後手なら `+evaluationDifference`）から指し手を分類し、`QualityColumn`（「判定」列）にマークを表示する。開始局面・定跡・候補手と一致した手は対象外とする。
+
+| 分類 | マーク | 基準 |
+|---|---|---|
+| 緩手 | `?!` | 評価値損失 150〜299 |
+| 疑問手 | `?` | 評価値損失 300〜499 |
+| 悪手 | `??` | 評価値損失 500 以上、または詰み逃し・被詰み転落 |
+
+## 一致率・平均評価値損失（ACPL）の集計
+
+`KifuAnalysisListModel::summary()` で先手・後手別に以下を集計し、`AnalysisResultsPanel` のサマリー欄に表示する。
+
+- **一致率**: 候補手と比較できた手数に対する、候補手と一致した手数の割合（%）
+- **平均損失（ACPL）**: 評価値損失を計算できた手の平均（各手の損失は 0 以上に丸め、候補手一致は 0 とする）
+- **悪手・疑問・緩手数**: 各分類に該当した手数

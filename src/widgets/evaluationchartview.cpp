@@ -37,7 +37,7 @@ void EvaluationChartView::setOverlay(Overlay overlay)
     const Overlay previous = std::exchange(m_overlay, std::move(overlay));
     if (m_overlay.summary != previous.summary) setAccessibleName(m_overlay.summary);
     const Placement now = placement();
-    if (!(now == m_placement) || m_overlay.xLimit != previous.xLimit) {
+    if (!(now == m_placement) || m_overlay.xLimit != previous.xLimit || m_overlay.centerY != previous.centerY) {
         m_placement = now;
         viewport()->update();
         return;
@@ -162,7 +162,7 @@ void EvaluationChartView::drawMarkers(QPainter* painter, const QRectF& area)
         painter->setPen(QPen(marker.color, marker.selected ? 2 : 1));
         painter->setBrush(marker.selected ? QColor(Qt::white) : marker.color);
         if (marker.edge) {
-            const qreal direction = marker.value.y() >= 0 ? 1 : -1;
+            const qreal direction = marker.value.y() >= m_overlay.centerY ? 1 : -1;
             const qreal size = marker.selected ? 6 : 4;
             painter->drawPolygon(QPolygonF{p, p + QPointF(-size, direction * size * 1.6),
                                             p + QPointF(size, direction * size * 1.6)});

@@ -30,9 +30,37 @@ public:
         EvaluationColumn,
         JudgementColumn,
         DifferenceColumn,
+        QualityColumn,
         BoardColumn,
         PvColumn,
         ColumnCount
+    };
+
+    /// 手番ごとの集計（一致率・平均評価値損失・悪手数）
+    struct SideSummary {
+        int matchCount = 0;       ///< 候補手と一致した手数
+        int matchTotal = 0;       ///< 候補手と比較できた手数
+        qint64 lossSum = 0;       ///< 評価値損失の合計（各手は 0 以上に丸める）
+        int lossCount = 0;        ///< 評価値損失を計算できた手数
+        int blunderCount = 0;     ///< 悪手（??）の数
+        int mistakeCount = 0;     ///< 疑問手（?）の数
+        int inaccuracyCount = 0;  ///< 緩手（?!）の数
+
+        bool hasMatchRate() const { return matchTotal > 0; }
+        double matchRatePercent() const { return matchTotal > 0 ? 100.0 * matchCount / matchTotal : 0.0; }
+        bool hasAcpl() const { return lossCount > 0; }
+        double averageCentipawnLoss() const { return lossCount > 0 ? static_cast<double>(lossSum) / lossCount : 0.0; }
+        bool hasAny() const
+        {
+            return hasMatchRate() || hasAcpl() || blunderCount > 0 || mistakeCount > 0 || inaccuracyCount > 0;
+        }
+    };
+
+    /// 先手・後手別の解析サマリー
+    struct Summary {
+        SideSummary black;
+        SideSummary white;
+        bool isEmpty() const { return !black.hasAny() && !white.hasAny(); }
     };
 
     explicit KifuAnalysisListModel(QObject *parent = nullptr);
@@ -46,6 +74,13 @@ public:
     static QVariant evaluationText(const UsiScore& score);
     /// 先手から見た評価値から判定した形勢（互角・先手：有利 など。評価値がなければ空）
     static QString judgementText(const UsiScore& score);
+    /// 指し手の判定マーク（?? / ? / ?!。通常の手は空）
+    static QString qualityMark(KifuAnalysisRow::MoveQuality quality);
+    /// 指し手の判定の説明（ツールチップ用）
+    static QString qualityDescription(KifuAnalysisRow::MoveQuality quality);
+
+    /// 現在の行から先手・後手別の統計（一致率・平均評価値損失・悪手数）を集計する
+    Summary summary() const;
 
     /// 指定行の解析結果（範囲外なら nullptr。行を足す・消すまで有効）
     const KifuAnalysisRow* row(int row) const;

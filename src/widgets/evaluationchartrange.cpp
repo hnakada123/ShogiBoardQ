@@ -29,20 +29,35 @@ int interval(int minimum, int requested)
 }
 } // namespace
 
+double EvaluationChartRange::winRatePercent(const UsiScore& score)
+{
+    if (score.isMate()) return score.mateSign() > 0 ? 100.0 : 0.0;
+    if (!score.isCp()) return 50.0;
+    // 将棋の標準的なロジスティック変換（600cp で勝率約 73.1%）
+    constexpr double kWinRateScale = 600.0;
+    const double exponent = qBound(-60.0, -static_cast<double>(score.value) / kWinRateScale, 60.0);
+    return 100.0 / (1.0 + std::exp(exponent));
+}
+
 EvaluationChartAxes EvaluationChartRange::compute(const EvaluationChartSettings& settings, int maxCp, int maxPly,
                                                   const QSizeF& plotSize)
 {
     EvaluationChartAxes axes;
-    axes.yLimit = settings.automatic ? niceCeiling(qMax(1000, maxCp)) : settings.yLimit;
     axes.xLimit = settings.automatic ? qMax(20, ((maxPly + 9) / 10) * 10) : settings.xLimit;
     QFont labelFont;
     labelFont.setPointSize(settings.labelFontSize);
     const QFontMetrics fm(labelFont);
     const int xSlots = qMax(1, static_cast<int>(plotSize.width()
                                                 / qMax(64, fm.horizontalAdvance(QString::number(axes.xLimit)) + 28)));
-    // 正負対称の目盛りを保ち、文字サイズに応じて縦方向も間引く。
-    const int halfYSlots = qBound(1, static_cast<int>(plotSize.height() / (fm.height() * 3.0)), 2);
-    axes.yInterval = interval(qMax(1, axes.yLimit / halfYSlots), settings.yInterval);
+    if (settings.winRateMode) {
+        axes.yLimit = 100;
+        axes.yInterval = plotSize.height() >= fm.height() * 6.0 ? 25 : 50;
+    } else {
+        axes.yLimit = settings.automatic ? niceCeiling(qMax(1000, maxCp)) : settings.yLimit;
+        // 正負対称の目盛りを保ち、文字サイズに応じて縦方向も間引く。
+        const int halfYSlots = qBound(1, static_cast<int>(plotSize.height() / (fm.height() * 3.0)), 2);
+        axes.yInterval = interval(qMax(1, axes.yLimit / halfYSlots), settings.yInterval);
+    }
     axes.xInterval = interval(niceCeiling(double(axes.xLimit) / xSlots), settings.xInterval);
     return axes;
 }

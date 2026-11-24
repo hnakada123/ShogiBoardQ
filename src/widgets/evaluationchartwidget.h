@@ -62,6 +62,7 @@ protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
 private slots:
+    void onDisplayModeChanged(int index);
     void onRangeModeChanged(int index);
     void applyFontSize();
     void onPlotAreaChanged();
@@ -73,8 +74,8 @@ private:
     using Score = UsiScore;
     int yAxisLimit() const { return m_axes.yLimit; }
     int xAxisLimit() const { return m_axes.xLimit; }
-    /// 軸を決め直し、変わった軸を描き直す
-    void updateAxes();
+    /// 軸を決め直し、変わった軸を描き直す（forceY は表示形式の切替時に縦軸を必ず更新する）
+    void updateAxes(bool forceY = false);
     void applyYAxis();
     void applyXAxis();
     /// X 軸の範囲と間隔を、途中で目盛りが増えない順に変える
@@ -113,6 +114,7 @@ private:
     QSizeF m_plotSize{800, 240};          ///< 描く場所の大きさ（目盛りの間引きに使う）
     QGridLayout* m_toolbarLayout = nullptr;
     QWidget* m_rangeSelector = nullptr;
+    QComboBox* m_displayMode = nullptr;
     QComboBox* m_rangeMode = nullptr;
     QPushButton* m_settingsButton = nullptr;
     StepButtons* m_navBar = nullptr;   ///< 局面送りのボタン（横）

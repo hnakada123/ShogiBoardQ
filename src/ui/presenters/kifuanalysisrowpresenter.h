@@ -40,6 +40,7 @@ public:
 private:
     Refs m_refs;
     std::optional<int> m_previousCp;   ///< 直前の結果の評価値（増減の計算。比べられなければ nullopt）
+    UsiScore m_previousEvaluation;     ///< 直前の結果の評価値（詰み逃し判定に使う）
 };
 
 #endif // KIFUANALYSISROWPRESENTER_H

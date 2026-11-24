@@ -23,6 +23,8 @@ UsiScore KifuAnalysisRowPresenter::append(const PlyAnalysis& result)
 
     // 先手から見た値は解析した局面の手番で直してある（PlyAnalysisCollector。CLI の analyze-kifu と同じ値）
     const UsiScore blackScore = result.book ? UsiScore{} : result.blackScore;
+    const UsiScore previousEvaluation = m_previousEvaluation;
+    m_previousEvaluation = blackScore;
     std::optional<int> difference;
     if (blackScore.isCp()) {
         if (m_previousCp) difference = blackScore.value - *m_previousCp;
@@ -39,6 +41,7 @@ UsiScore KifuAnalysisRowPresenter::append(const PlyAnalysis& result)
     resultRow.branch = m_refs.branchPlies.contains(ply);
     resultRow.book = result.book;
     resultRow.evaluation = blackScore;
+    resultRow.previousEvaluation = previousEvaluation;
     resultRow.evaluationDifference = difference;
     if (!result.book) resultRow.pv = result.pv;
     resultRow.depth = result.book ? -1 : result.depth;

@@ -30,8 +30,12 @@ public:
     /// ダイアログで選んだ設定
     EvaluationChartSettings settings() const;
 
+private slots:
+    void updateFieldStates();
+
 private:
     QComboBox* m_automatic = nullptr;
+    QComboBox* m_displayMode = nullptr;
     QSpinBox* m_yLimit = nullptr;
     QSpinBox* m_xLimit = nullptr;
     QSpinBox* m_yInterval = nullptr;

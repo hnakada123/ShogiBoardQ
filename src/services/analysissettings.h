@@ -25,12 +25,13 @@ struct EvaluationChartSettings {
     static constexpr int kMinFontSize = 8;
     static constexpr int kMaxFontSize = 18;
 
-    bool automatic = true;   ///< 表示範囲を点に合わせる（false なら yLimit・xLimit で固定）
-    int yLimit = 2000;       ///< 固定の評価値の範囲（±）
-    int xLimit = 500;        ///< 固定の手数の上限
-    int yInterval = 0;       ///< 評価値の目盛り間隔の希望（0 は自動）
-    int xInterval = 0;       ///< 手数の目盛り間隔の希望（0 は自動）
-    int labelFontSize = 10;  ///< 軸の文字の大きさ
+    bool automatic = true;    ///< 表示範囲を点に合わせる（false なら yLimit・xLimit で固定）
+    bool winRateMode = false; ///< 縦軸を先手勝率（0〜100%）で表示する（false なら評価値）
+    int yLimit = 2000;        ///< 固定の評価値の範囲（±）
+    int xLimit = 500;         ///< 固定の手数の上限
+    int yInterval = 0;        ///< 評価値の目盛り間隔の希望（0 は自動）
+    int xInterval = 0;        ///< 手数の目盛り間隔の希望（0 は自動）
+    int labelFontSize = 10;   ///< 軸の文字の大きさ
 
     /// 範囲に収めた値
     EvaluationChartSettings normalized() const
@@ -47,7 +48,8 @@ struct EvaluationChartSettings {
 
     friend bool operator==(const EvaluationChartSettings& a, const EvaluationChartSettings& b)
     {
-        return a.automatic == b.automatic && a.yLimit == b.yLimit && a.xLimit == b.xLimit && a.yInterval == b.yInterval
+        return a.automatic == b.automatic && a.winRateMode == b.winRateMode && a.yLimit == b.yLimit
+            && a.xLimit == b.xLimit && a.yInterval == b.yInterval
             && a.xInterval == b.xInterval && a.labelFontSize == b.labelFontSize;
     }
     friend bool operator!=(const EvaluationChartSettings& a, const EvaluationChartSettings& b) { return !(a == b); }
@@ -103,6 +105,7 @@ inline const Setting<bool> branchTreeCompactLayout{"BranchTree/compactLayout", t
 /// 評価値グラフの表示の設定（キーは以前の版と同じ。範囲は EvaluationChartSettings で決める）
 inline const StructSetting<EvaluationChartSettings> evalChart{
     {SettingField<EvaluationChartSettings>::of("EvalChart/automaticRange", &EvaluationChartSettings::automatic),
+     SettingField<EvaluationChartSettings>::of("EvalChart/winRateMode", &EvaluationChartSettings::winRateMode),
      SettingField<EvaluationChartSettings>::of("EvalChart/yLimit", &EvaluationChartSettings::yLimit),
      SettingField<EvaluationChartSettings>::of("EvalChart/xLimit", &EvaluationChartSettings::xLimit),
      SettingField<EvaluationChartSettings>::of("EvalChart/yInterval", &EvaluationChartSettings::yInterval),
@@ -150,8 +153,14 @@ inline const Setting<int> kifuAnalysisDialogFontSize{"KifuAnalysis/dialogFontSiz
 /// いたので、保存してある値は結果ドックが引き継ぐ（ダイアログは kifuAnalysisDialogFontSize から始め直す）
 inline const BoundedSetting<int> kifuAnalysisResultsFontSize{"KifuAnalysis/fontSize", 10, 8, 24};
 
+/// 解析結果の表の読み筋より前の列数と、判定列の位置（models の KifuAnalysisListModel::Column と同じ番号。
+/// services は models を include できないので、ここに番号を書き、表の部品が static_assert で照らす）
+inline constexpr int kKifuAnalysisSizedColumns = 8;
+inline constexpr int kKifuAnalysisQualityColumn = 6;
+
 /// 解析結果の表の読み筋より前の列の幅（列ごと。0 は内容に合わせる）。
-/// 以前の版が1つの値（QVariantList）で保存していれば、初めて読むときに配列に移す
+/// 以前の版が1つの値（QVariantList）で保存していれば、初めて読むときに配列に移す。
+/// 判定列を足す前の保存（列が1つ少ない）は、判定列に 0 を入れて引き継ぐ
 ListSetting<int> kifuAnalysisColumnWidths();
 
 /// 1手あたりの思考時間・秒（デフォルト: 3）

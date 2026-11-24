@@ -62,7 +62,7 @@
 <context>
     <name>AnalysisResultsPanel</name>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="55"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="77"/>
         <source>棋譜解析結果</source>
         <translation>Analysis Results</translation>
     </message>
@@ -83,40 +83,79 @@
         <translation type="vanished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="77"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="99"/>
         <source>解析中止</source>
         <translation>Stop analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="93"/>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="297"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="115"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="333"/>
         <source>解析条件を設定して、棋譜解析を開始してください。</source>
         <translation>Choose analysis settings to start analyzing the game.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="100"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="122"/>
         <source>解析の進捗</source>
         <translation>Analysis progress</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="109"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="140"/>
         <source>評価値は先手視点（＋: 先手有利／−: 後手有利）。行を選択すると局面へ移動し、「表示」で読み筋を確認できます。</source>
         <translation>Scores are from Black’s perspective (+ favors Black / − favors White). Select a row to navigate; choose Show to view the continuation.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="290"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="326"/>
         <source>解析中止 · %1 / %2局面を解析済み</source>
         <translation>Stopped · %1 / %2 positions analyzed</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="287"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="323"/>
         <source>解析中 · %1 / %2局面を解析済み</source>
         <translation>Analyzing · %1 / %2 positions analyzed</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="294"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="36"/>
+        <source>一致率 %1% (%2/%3)</source>
+        <translation>Match %1% (%2/%3)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="42"/>
+        <source>平均損失 %1</source>
+        <translation>ACPL %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="44"/>
+        <source>悪手 %1・疑問 %2・緩手 %3</source>
+        <translation>Blunder %1 · Mistake %2 · Inaccuracy %3</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="48"/>
+        <source>%1：%2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="136"/>
+        <source>一致率：候補手と一致した手の割合
+平均損失：1手あたりの平均評価値損失（ACPL）
+悪手（??）：損失500以上または詰み逃し／疑問（?）：損失300〜499／緩手（?!）：損失150〜299</source>
+        <translation>Match rate: Percentage of moves matching the engine's best move
+ACPL: Average centipawn loss per move
+Blunder (??): Loss &gt;= 500 or missed/allowed mate / Mistake (?): Loss 300-499 / Inaccuracy (?!): Loss 150-299</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="330"/>
         <source>解析完了 · %1局面</source>
         <translation>Analysis complete · %1 positions</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="354"/>
+        <source>先手</source>
+        <translation>Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="355"/>
+        <source>後手</source>
+        <translation>White</translation>
     </message>
 </context>
 <context>
@@ -5648,44 +5687,68 @@ Discard changes and move?</translation>
         <translation>Fixed</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="54"/>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="43"/>
+        <source>評価値</source>
+        <translation>Score</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="43"/>
+        <source>勝率 (%)</source>
+        <translation>Win rate (%)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="57"/>
+        <source>表示形式:</source>
+        <translation>Display mode:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="58"/>
         <source>表示範囲:</source>
         <translation>Range:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="55"/>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="59"/>
         <source>評価値の範囲（手動）:</source>
         <translation>Score range (fixed):</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="56"/>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="60"/>
         <source>手数の上限（手動）:</source>
         <translation>Move limit (fixed):</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="57"/>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="61"/>
         <source>評価値の目盛り間隔:</source>
         <translation>Score tick interval:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="58"/>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="62"/>
         <source>手数の目盛り間隔:</source>
         <translation>Move tick interval:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="59"/>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="63"/>
         <source>文字サイズ:</source>
         <translation>Font size:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="61"/>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="65"/>
         <source>目盛りは文字が重ならないように間引きます。詰みはグラフの端に表示します。</source>
         <translation>Ticks are spaced to keep labels readable. Mate scores appear at the edge of the graph.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="64"/>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="68"/>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/evaluationchartsettingsdialog.cpp" line="69"/>
+        <source>現在の目盛り間隔：縦軸 %1 ／ 手数 %2</source>
+        <translation>Current tick spacing: Y-axis %1 / moves %2</translation>
+    </message>
+    <message>
         <source>現在の目盛り間隔：評価値 %1 ／ 手数 %2</source>
-        <translation>Current tick spacing: score %1 / moves %2</translation>
+        <translation type="vanished">Current tick spacing: score %1 / moves %2</translation>
     </message>
 </context>
 <context>
@@ -5697,12 +5760,12 @@ Move %3: %4</source>
 Move %3: %4</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="414"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="439"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="414"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="439"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -5715,34 +5778,93 @@ Move %3: %4</translation>
         <translation type="vanished">%1 wins · mate</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="419"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="167"/>
+        <source>グラフの表示形式</source>
+        <translation>Chart display mode</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="168"/>
+        <source>縦軸を評価値または先手勝率（%）で表示します。</source>
+        <translation>Display the vertical axis as evaluation score or Black win rate (%).</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="169"/>
+        <source>評価値</source>
+        <translation>Score</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="169"/>
+        <source>勝率</source>
+        <translation>Win rate</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="174"/>
+        <source>表示範囲</source>
+        <translation>Range</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="175"/>
+        <source>グラフの表示範囲（自動／手動固定）を切り替えます。</source>
+        <translation>Switch chart range mode (Automatic / Manual fixed).</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="442"/>
+        <source>%1（%2%）</source>
+        <translation>%1 (%2%)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="448"/>
+        <source>%1%（%2）</source>
+        <translation>%1% (%2)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="450"/>
         <source>%1（表示範囲外）</source>
         <translation>%1 (outside range)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="426"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="457"/>
         <source>先手エンジン</source>
         <translation>Black engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="426"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="457"/>
         <source>後手エンジン</source>
         <translation>White engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="480"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="511"/>
         <source>%1：%2</source>
         <translation>%1: %2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="489"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="522"/>
         <source>%1手目  |  %2</source>
         <translation>Move %1  |  %2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="490"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="523"/>
         <source>評価値なし</source>
         <translation>No evaluation</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="595"/>
+        <source>先手勝率（元の評価値）</source>
+        <translation>Black win rate (raw score)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="595"/>
+        <source>先手視点の評価値</source>
+        <translation>Score from Black's perspective</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="596"/>
+        <source>%1
+%2手目：%3
+%4</source>
+        <translation>%1
+Move %2: %3
+%4</translation>
     </message>
     <message>
         <source>本譜</source>
@@ -5798,13 +5920,13 @@ Move %3: %4</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="140"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="277"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="298"/>
         <source>先手有利</source>
         <translation>Black advantage</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="143"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="277"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="298"/>
         <source>後手有利</source>
         <translation>White advantage</translation>
     </message>
@@ -5815,11 +5937,10 @@ Move %3: %4</translation>
         <translation>Move %1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="561"/>
         <source>%1
 %2手目：%3
 先手視点の評価値</source>
-        <translation>%1
+        <translation type="vanished">%1
 Move %2: %3
 Score from Black’s perspective</translation>
     </message>
@@ -5828,22 +5949,21 @@ Score from Black’s perspective</translation>
         <translation type="vanished">Go to Start</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="164"/>
         <source>表示範囲:</source>
-        <translation>Range:</translation>
+        <translation type="vanished">Range:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="167"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="176"/>
         <source>自動</source>
         <translation>Automatic</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="167"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="176"/>
         <source>手動固定</source>
         <translation>Fixed</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="173"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="181"/>
         <source>表示設定…</source>
         <translation>Display settings…</translation>
     </message>
@@ -5868,7 +5988,7 @@ Score from Black’s perspective</translation>
         <translation type="vanished">Go to End</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="416"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="441"/>
         <source>%1勝ち・%2</source>
         <translation>%1 wins · %2</translation>
     </message>
@@ -9034,22 +9154,22 @@ There may be an error in the opening book data.</translation>
 <context>
     <name>KifuAnalysisListModel</name>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="106"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="181"/>
         <source>この局面からの読み筋を盤面で表示します。</source>
         <translation>Show the continuation from this position on a board.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="115"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="191"/>
         <source>表示</source>
         <translation>Show</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="162"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="239"/>
         <source>棋譜で実際に指された手。この手を指した後の局面を評価します。</source>
         <translation>The move played in the game. The score evaluates the position after this move.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="163"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="240"/>
         <source>直前の局面でエンジンが推奨した手。解析範囲の先頭では空欄になります。</source>
         <translation>The engine’s recommended move from the preceding position. Blank for the first position analyzed.</translation>
     </message>
@@ -9058,131 +9178,156 @@ There may be an error in the opening book data.</translation>
         <translation type="vanished">A circle indicates that the played move matches the recommended move.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="55"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="57"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="76"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="78"/>
         <source>先手勝ち</source>
         <translation>Black wins</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="76"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="78"/>
         <source>後手勝ち</source>
         <translation>White wins</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="81"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="83"/>
         <source>互角</source>
         <translation>Even</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="83"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="85"/>
         <source>やや有利</source>
         <translation>Slight</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="84"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="86"/>
         <source>有利</source>
         <translation>Better</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="85"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="87"/>
         <source>優勢</source>
         <translation>Superior</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="86"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="88"/>
         <source>勝勢</source>
         <translation>Winning</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="87"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="89"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="87"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="89"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="88"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="90"/>
         <source>%1：%2</source>
         <translation>%1: %2</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="164"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="108"/>
+        <source>悪手（評価値損失 %1 以上、または詰み逃し・被詰み転落）</source>
+        <translation>Blunder (loss &gt;= %1, or missed/allowed mate)</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="110"/>
+        <source>疑問手（評価値損失 %1〜%2）</source>
+        <translation>Mistake (loss %1-%2)</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="112"/>
+        <source>緩手（評価値損失 %1〜%2）</source>
+        <translation>Inaccuracy (loss %1-%2)</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="241"/>
         <source>実際の指し手と候補手が一致すると◯を表示します。</source>
         <translation>A circle indicates that the played move matches the recommended move.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="165"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="242"/>
         <source>先手視点の評価値。正は先手有利、負は後手有利です。未取得は「-」で表示します。</source>
         <translation>Score from Black’s perspective. Positive favors Black; negative favors White. A dash means no score is available.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="166"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="243"/>
         <source>評価値から判定した形勢です。</source>
         <translation>Position assessment based on the score.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="167"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="244"/>
         <source>直前の解析局面からの評価値の増減（先手視点）。比較できない場合は「-」で表示します。</source>
         <translation>Score change since the preceding position, from Black’s perspective. A dash means the scores cannot be compared.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="168"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="245"/>
+        <source>手番側から見た評価値損失による指し手の判定です（?!: 緩手 150〜、?: 疑問手 300〜、??: 悪手 500〜または詰み逃し）。</source>
+        <translation>Move quality based on centipawn loss from the mover's perspective (?!: Inaccuracy 150+, ?: Mistake 300+, ??: Blunder 500+ or missed/allowed mate).</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="246"/>
         <source>クリックまたはEnterキーで読み筋を盤面に表示します。</source>
         <translation>Click or press Enter to show the continuation on a board.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="169"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="247"/>
         <source>この手を指した後の局面からの読み筋です。</source>
         <translation>The continuation from the position after this move.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="179"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="257"/>
         <source>指し手</source>
         <translation>Move</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="180"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="258"/>
         <source>候補手</source>
         <translation>Best Move</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="181"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="259"/>
         <source>一致</source>
         <translation>Match</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="182"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="260"/>
         <source>評価値</source>
         <translation>Score</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="183"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="261"/>
         <source>形勢</source>
         <translation>Position</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="184"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="262"/>
         <source>評価値差</source>
         <translation>Score change</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="263"/>
+        <source>判定</source>
+        <translation>Quality</translation>
     </message>
     <message>
         <source>差</source>
         <translation type="vanished">Diff</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="185"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="264"/>
         <source>盤面</source>
         <translation>Board</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="186"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="265"/>
         <source>読み筋</source>
         <translation>PV</translation>
     </message>
@@ -19764,7 +19909,7 @@ Check the settings and press Start.</translation>
         <translation type="vanished">USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="92"/>
+        <location filename="../../src/engine/usi.cpp" line="93"/>
         <location filename="../../src/engine/usienginesession.cpp" line="252"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
@@ -19893,7 +20038,7 @@ Check the settings and press Start.</translation>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="295"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="297"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>

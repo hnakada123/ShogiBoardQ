@@ -7,6 +7,8 @@
 #include "movefont.h"
 #include "applicationfonts.h"
 #include "kifupresentation.h"
+#include <QColor>
+#include <QFont>
 #include <cmath>
 
 KifuAnalysisListModel::KifuAnalysisListModel(QObject *parent) : QAbstractTableModel(parent)
@@ -88,6 +90,60 @@ QString KifuAnalysisListModel::judgementText(const UsiScore& score)
     return tr("%1：%2").arg(side, advantage);
 }
 
+QString KifuAnalysisListModel::qualityMark(KifuAnalysisRow::MoveQuality quality)
+{
+    switch (quality) {
+    case KifuAnalysisRow::MoveQuality::Blunder: return QStringLiteral("??");
+    case KifuAnalysisRow::MoveQuality::Mistake: return QStringLiteral("?");
+    case KifuAnalysisRow::MoveQuality::Inaccuracy: return QStringLiteral("?!");
+    case KifuAnalysisRow::MoveQuality::None: return QString();
+    }
+    return QString();
+}
+
+QString KifuAnalysisListModel::qualityDescription(KifuAnalysisRow::MoveQuality quality)
+{
+    switch (quality) {
+    case KifuAnalysisRow::MoveQuality::Blunder:
+        return tr("悪手（評価値損失 %1 以上、または詰み逃し・被詰み転落）").arg(KifuAnalysisRow::kBlunderLoss);
+    case KifuAnalysisRow::MoveQuality::Mistake:
+        return tr("疑問手（評価値損失 %1〜%2）").arg(KifuAnalysisRow::kMistakeLoss).arg(KifuAnalysisRow::kBlunderLoss - 1);
+    case KifuAnalysisRow::MoveQuality::Inaccuracy:
+        return tr("緩手（評価値損失 %1〜%2）").arg(KifuAnalysisRow::kInaccuracyLoss).arg(KifuAnalysisRow::kMistakeLoss - 1);
+    case KifuAnalysisRow::MoveQuality::None:
+        return QString();
+    }
+    return QString();
+}
+
+KifuAnalysisListModel::Summary KifuAnalysisListModel::summary() const
+{
+    Summary result;
+    for (const Entry& entry : m_rows) {
+        const KifuAnalysisRow& r = entry.row;
+        const std::optional<Turn> mover = r.mover();
+        if (!mover || r.book) continue;
+        SideSummary& side = (*mover == Turn::Black) ? result.black : result.white;
+
+        if (r.hasComparableCandidate()) {
+            ++side.matchTotal;
+            if (r.matchesCandidate()) ++side.matchCount;
+        }
+        if (const std::optional<int> loss = r.centipawnLoss()) {
+            const int effectiveLoss = r.matchesCandidate() ? 0 : qMax(0, *loss);
+            side.lossSum += effectiveLoss;
+            ++side.lossCount;
+        }
+        switch (r.moveQuality()) {
+        case KifuAnalysisRow::MoveQuality::Blunder: ++side.blunderCount; break;
+        case KifuAnalysisRow::MoveQuality::Mistake: ++side.mistakeCount; break;
+        case KifuAnalysisRow::MoveQuality::Inaccuracy: ++side.inaccuracyCount; break;
+        case KifuAnalysisRow::MoveQuality::None: break;
+        }
+    }
+    return result;
+}
+
 QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid() || index.row() < 0 || index.row() >= m_rows.size()
@@ -96,16 +152,36 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
 
     const int column = index.column();
     const Entry& entry = m_rows.at(index.row());
-    if (role == Qt::FontRole && (column == MoveColumn || column == CandidateColumn || column == PvColumn))
-        return MoveFont::role();
+    const KifuAnalysisRow& r = entry.row;
+    if (role == Qt::FontRole) {
+        if (column == MoveColumn || column == CandidateColumn || column == PvColumn) return MoveFont::role();
+        if (column == QualityColumn && r.moveQuality() == KifuAnalysisRow::MoveQuality::Blunder) {
+            QFont bold;
+            bold.setBold(true);
+            return bold;
+        }
+        return QVariant();
+    }
+
+    if (role == Qt::ForegroundRole && (column == QualityColumn || column == DifferenceColumn)) {
+        switch (r.moveQuality()) {
+        case KifuAnalysisRow::MoveQuality::Blunder: return QColor(QStringLiteral("#DC2626"));
+        case KifuAnalysisRow::MoveQuality::Mistake: return QColor(QStringLiteral("#D97706"));
+        case KifuAnalysisRow::MoveQuality::Inaccuracy: return QColor(QStringLiteral("#64748B"));
+        case KifuAnalysisRow::MoveQuality::None: return QVariant();
+        }
+    }
 
     if (role == Qt::ToolTipRole || role == Qt::AccessibleTextRole) {
         const QString value = column == MoveColumn ? display(entry, MoveDisplay, true)
             : column == CandidateColumn ? display(entry, CandidateDisplay, true)
-            : column == PvColumn ? display(entry, PvDisplay, true) : data(index, Qt::DisplayRole).toString();
+            : column == PvColumn ? display(entry, PvDisplay, true)
+            : column == QualityColumn ? qualityDescription(r.moveQuality())
+            : data(index, Qt::DisplayRole).toString();
         if (column == BoardColumn) return tr("この局面からの読み筋を盤面で表示します。");
         const QString description = headerData(index.column(), Qt::Horizontal, Qt::ToolTipRole).toString();
-        const QString text = description.isEmpty() ? value : value + QLatin1Char('\n') + description;
+        const QString text = value.isEmpty() ? description
+            : description.isEmpty() ? value : value + QLatin1Char('\n') + description;
         return role == Qt::ToolTipRole ? plainToolTip(text) : text;
     }
 
@@ -120,12 +196,12 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    // 評価値と差は右寄せ、一致は中央寄せ
+    // 評価値と差は右寄せ、一致と判定は中央寄せ
     if (role == Qt::TextAlignmentRole) {
         if (column == EvaluationColumn || column == DifferenceColumn) {
             return QVariant::fromValue<int>(Qt::AlignRight | Qt::AlignVCenter);
         }
-        if (column == MatchColumn) {
+        if (column == MatchColumn || column == QualityColumn) {
             return QVariant::fromValue<int>(Qt::AlignHCenter | Qt::AlignVCenter);
         }
         return QVariant();
@@ -134,7 +210,6 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
     if (role != Qt::DisplayRole)
         return QVariant();
 
-    const KifuAnalysisRow& r = entry.row;
     switch (column) {
     case MoveColumn:
         return display(entry, MoveDisplay);
@@ -148,6 +223,8 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
         return judgementText(r.evaluation);
     case DifferenceColumn:
         return r.evaluationDifference ? QVariant(*r.evaluationDifference) : QVariant(QStringLiteral("-"));
+    case QualityColumn:
+        return qualityMark(r.moveQuality());
     case PvColumn:
         return display(entry, PvDisplay);
     default:
@@ -165,6 +242,7 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
         case EvaluationColumn: return tr("先手視点の評価値。正は先手有利、負は後手有利です。未取得は「-」で表示します。");
         case JudgementColumn: return tr("評価値から判定した形勢です。");
         case DifferenceColumn: return tr("直前の解析局面からの評価値の増減（先手視点）。比較できない場合は「-」で表示します。");
+        case QualityColumn: return tr("手番側から見た評価値損失による指し手の判定です（?!: 緩手 150〜、?: 疑問手 300〜、??: 悪手 500〜または詰み逃し）。");
         case BoardColumn: return tr("クリックまたはEnterキーで読み筋を盤面に表示します。");
         case PvColumn: return tr("この手を指した後の局面からの読み筋です。");
         default: return QVariant();
@@ -182,6 +260,7 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
         case EvaluationColumn: return tr("評価値");
         case JudgementColumn: return tr("形勢");
         case DifferenceColumn: return tr("評価値差");
+        case QualityColumn: return tr("判定");
         case BoardColumn: return tr("盤面");
         case PvColumn: return tr("読み筋");
         default: return QVariant();

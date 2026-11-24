@@ -31,6 +31,7 @@ public:
         QList<Marker> markers;           ///< 点の印
         int currentPly = 0;              ///< 表示中の手数（線を引く）
         int xLimit = 20;                 ///< 横軸の最大の手数（これより右は描かない）
+        qreal centerY = 0.0;             ///< 縦軸の中央値（評価値モードは 0、勝率モードは 50）
     };
 
     explicit EvaluationChartView(QChart* chart, QWidget* parent = nullptr);

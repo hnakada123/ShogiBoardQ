@@ -63,6 +63,11 @@ ListSetting<int> kifuAnalysisColumnWidths()
         s.remove(key);
         widths.set(values);
     }
+    // 判定列を足す前の保存（列が1つ少ない）は、盤面列の位置をずらして引き継ぐ
+    if (QList<int> saved = widths(); saved.size() == kKifuAnalysisSizedColumns - 1) {
+        saved.insert(kKifuAnalysisQualityColumn, 0);
+        widths.set(saved);
+    }
     return widths;
 }
 

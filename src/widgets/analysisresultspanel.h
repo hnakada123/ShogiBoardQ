@@ -99,6 +99,7 @@ private:
     /// 表の文字の大きさを変える（A-/A+）
     void applyFontSize(int size);
     void updateProgress();
+    void updateSummary();
 
     PvTableView* m_view = nullptr;          ///< 解析結果テーブル（読み筋の表）
     QHeaderView* m_header = nullptr;        ///< テーブルヘッダー
@@ -106,6 +107,7 @@ private:
     QPushButton* m_fontDecrease = nullptr;
     QPushButton* m_fontIncrease = nullptr;
     QLabel* m_statusLabel = nullptr;
+    QLabel* m_summaryLabel = nullptr;       ///< 先手・後手別の一致率・平均損失・悪手数のサマリー
     ElideLabel* m_engineLabel = nullptr;
     QProgressBar* m_progressBar = nullptr;
     QTimer* m_reflowTimer;              ///< 再レイアウト遅延実行タイマー（thisが所有）

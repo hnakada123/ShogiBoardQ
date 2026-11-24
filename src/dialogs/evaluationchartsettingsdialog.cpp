@@ -38,19 +38,23 @@ EvaluationChartSettingsDialog::EvaluationChartSettingsDialog(const EvaluationCha
     m_automatic->setObjectName(QStringLiteral("evalAutomaticRange"));
     m_automatic->addItems({tr("自動"), tr("手動固定")});
     m_automatic->setCurrentIndex(current.automatic ? 0 : 1);
+    m_displayMode = new QComboBox(this);
+    m_displayMode->setObjectName(QStringLiteral("evalDisplayMode"));
+    m_displayMode->addItems({tr("評価値"), tr("勝率 (%)")});
+    m_displayMode->setCurrentIndex(current.winRateMode ? 1 : 0);
     m_yLimit = spinBox(this, "evalYLimit", S::kMinYLimit, S::kMaxYLimit, current.yLimit);
     m_yLimit->setPrefix(QStringLiteral("±"));
-    m_yLimit->setEnabled(!current.automatic);
     m_xLimit = spinBox(this, "evalXLimit", S::kMinXLimit, S::kMaxXLimit, current.xLimit);
-    m_xLimit->setEnabled(!current.automatic);
-    connect(m_automatic, &QComboBox::currentIndexChanged, m_yLimit, &QWidget::setEnabled);
-    connect(m_automatic, &QComboBox::currentIndexChanged, m_xLimit, &QWidget::setEnabled);
     m_yInterval = spinBox(this, "evalYInterval", 0, S::kMaxYInterval, current.yInterval);
     m_xInterval = spinBox(this, "evalXInterval", 0, S::kMaxXInterval, current.xInterval);
     m_yInterval->setSpecialValueText(tr("自動"));
     m_xInterval->setSpecialValueText(tr("自動"));
     m_fontSize = spinBox(this, "evalFontSize", S::kMinFontSize, S::kMaxFontSize, current.labelFontSize);
     m_fontSize->setSuffix(QStringLiteral(" pt"));
+    connect(m_automatic, &QComboBox::currentIndexChanged, this, &EvaluationChartSettingsDialog::updateFieldStates);
+    connect(m_displayMode, &QComboBox::currentIndexChanged, this, &EvaluationChartSettingsDialog::updateFieldStates);
+    updateFieldStates();
+    form->addRow(tr("表示形式:"), m_displayMode);
     form->addRow(tr("表示範囲:"), m_automatic);
     form->addRow(tr("評価値の範囲（手動）:"), m_yLimit);
     form->addRow(tr("手数の上限（手動）:"), m_xLimit);
@@ -61,7 +65,8 @@ EvaluationChartSettingsDialog::EvaluationChartSettingsDialog(const EvaluationCha
     auto* note = new QLabel(tr("目盛りは文字が重ならないように間引きます。詰みはグラフの端に表示します。"), this);
     note->setWordWrap(true);
     layout->addWidget(note);
-    layout->addWidget(new QLabel(tr("現在の目盛り間隔：評価値 %1 ／ 手数 %2").arg(axes.yInterval).arg(axes.xInterval), this));
+    const QString yIntervalText = current.winRateMode ? tr("%1%").arg(axes.yInterval) : QString::number(axes.yInterval);
+    layout->addWidget(new QLabel(tr("現在の目盛り間隔：縦軸 %1 ／ 手数 %2").arg(yIntervalText).arg(axes.xInterval), this));
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     layout->addWidget(buttons);
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
@@ -74,10 +79,20 @@ EvaluationChartSettingsDialog::EvaluationChartSettingsDialog(const EvaluationCha
 
 EvaluationChartSettingsDialog::~EvaluationChartSettingsDialog() = default;
 
+void EvaluationChartSettingsDialog::updateFieldStates()
+{
+    const bool manual = m_automatic->currentIndex() == 1;
+    const bool winRate = m_displayMode->currentIndex() == 1;
+    m_yLimit->setEnabled(manual && !winRate);
+    m_yInterval->setEnabled(!winRate);
+    m_xLimit->setEnabled(manual);
+}
+
 EvaluationChartSettings EvaluationChartSettingsDialog::settings() const
 {
     EvaluationChartSettings result;
     result.automatic = m_automatic->currentIndex() == 0;
+    result.winRateMode = m_displayMode->currentIndex() == 1;
     result.yLimit = m_yLimit->value();
     result.xLimit = m_xLimit->value();
     result.yInterval = m_yInterval->value();

@@ -303,6 +303,87 @@ private slots:
         QCOMPARE(model.index(0, 3).data().toString(), display);
         QCOMPARE(model.index(0, 4).data().toString(), judgement);
     }
+
+    void moveQualityAndSummary()
+    {
+        const QString hirate = SfenUtils::hirateSfen();
+        const QStringList moves{
+            QStringLiteral("7g7f"), QStringLiteral("3c3d"),
+            QStringLiteral("2g2f"), QStringLiteral("8c8d"),
+            QStringLiteral("2f2e"), QStringLiteral("8d8e"),
+        };
+        const RecordLine line = TestReplay::recordLine(TestReplay::buildSfenRecord(hirate, moves, false),
+                                                       TestReplay::buildGameMoves(hirate, moves));
+        KifuAnalysisListModel model;
+        KifuAnalysisRowPresenter::Refs refs;
+        refs.analysisModel = &model;
+        refs.line = &line;
+        KifuAnalysisRowPresenter presenter(refs);
+
+        const auto analyzed = [&line](int ply, const UsiScore& score, const QString& pv) {
+            PlyAnalysis analysis;
+            analysis.ply = ply;
+            analysis.blackScore = score;
+            if (!pv.isEmpty()) analysis.pv = PvText::play(line.sfenAt(ply), QStringList{pv});
+            return analysis;
+        };
+
+        // 0手目（開始局面）：+100、候補手 7g7f
+        presenter.append(analyzed(0, UsiScore::cp(100), QStringLiteral("7g7f")));
+        // 1手目（先手 7g7f）：候補手と一致 → 評価が下がっても悪手にならない・損失 0 扱い
+        presenter.append(analyzed(1, UsiScore::cp(-100), QStringLiteral("8c8d")));
+        // 2手目（後手 3c3d）：候補手 8c8d と不一致、先手視点 +100（後手損失 200）→ 緩手 (?!)
+        presenter.append(analyzed(2, UsiScore::cp(100), QStringLiteral("5g5f")));
+        // 3手目（先手 2g2f）：候補手 5g5f と不一致、先手視点 -250（先手損失 350）→ 疑問手 (?)
+        presenter.append(analyzed(3, UsiScore::cp(-250), QStringLiteral("4c4d")));
+        // 4手目（後手 8c8d）：候補手 4c4d と不一致、先手視点 +300（後手損失 550）→ 悪手 (??)
+        presenter.append(analyzed(4, UsiScore::cp(300), QStringLiteral("2f2e")));
+        // 5手目（先手 2f2e）：候補手と一致、先手勝ちの詰みを見つけた
+        presenter.append(analyzed(5, UsiScore::mate(5), QStringLiteral("4c4d")));
+        // 6手目（後手 8d8e）：候補手不一致、先手視点は詰みのまま（既に相手勝ちの詰みだった）→ 悪手扱いしない
+        presenter.append(analyzed(6, UsiScore::mate(3), QStringLiteral("2e2d")));
+
+        QCOMPARE(model.index(0, KifuAnalysisListModel::QualityColumn).data().toString(), QString());
+        QCOMPARE(model.index(1, KifuAnalysisListModel::QualityColumn).data().toString(), QString());
+        QCOMPARE(model.index(2, KifuAnalysisListModel::QualityColumn).data().toString(), QStringLiteral("?!"));
+        QCOMPARE(model.index(3, KifuAnalysisListModel::QualityColumn).data().toString(), QStringLiteral("?"));
+        QCOMPARE(model.index(4, KifuAnalysisListModel::QualityColumn).data().toString(), QStringLiteral("??"));
+        QCOMPARE(model.index(5, KifuAnalysisListModel::QualityColumn).data().toString(), QString());
+        QCOMPARE(model.index(6, KifuAnalysisListModel::QualityColumn).data().toString(), QString());
+
+        const KifuAnalysisListModel::Summary stats = model.summary();
+        // 先手：1手目一致、3手目不一致、5手目一致 → 2/3 (66.7%)、損失は 0 と 350 → ACPL 175
+        QCOMPARE(stats.black.matchCount, 2);
+        QCOMPARE(stats.black.matchTotal, 3);
+        QCOMPARE(stats.black.lossCount, 2);
+        QCOMPARE(stats.black.lossSum, 350);
+        QCOMPARE(stats.black.blunderCount, 0);
+        QCOMPARE(stats.black.mistakeCount, 1);
+        QCOMPARE(stats.black.inaccuracyCount, 0);
+
+        // 後手：2・4・6手目すべて不一致 → 0/3、損失は 200 と 550 → ACPL 375
+        QCOMPARE(stats.white.matchCount, 0);
+        QCOMPARE(stats.white.matchTotal, 3);
+        QCOMPARE(stats.white.lossCount, 2);
+        QCOMPARE(stats.white.lossSum, 750);
+        QCOMPARE(stats.white.blunderCount, 1);
+        QCOMPARE(stats.white.mistakeCount, 0);
+        QCOMPARE(stats.white.inaccuracyCount, 1);
+
+        // 詰み逃し（先手勝ちの詰みから通常評価値に落ちた）→ 悪手
+        KifuAnalysisRow missedMate;
+        missedMate.ply = 7;
+        missedMate.previousEvaluation = UsiScore::mate(5);
+        missedMate.evaluation = UsiScore::cp(200);
+        QCOMPARE(missedMate.moveQuality(), KifuAnalysisRow::MoveQuality::Blunder);
+
+        // 被詰み転落（通常評価値から相手勝ちの詰みになった）→ 悪手
+        KifuAnalysisRow allowedMate;
+        allowedMate.ply = 8; // 後手番
+        allowedMate.previousEvaluation = UsiScore::cp(100);
+        allowedMate.evaluation = UsiScore::mate(3); // 先手勝ち
+        QCOMPARE(allowedMate.moveQuality(), KifuAnalysisRow::MoveQuality::Blunder);
+    }
 };
 
 QTEST_MAIN(TestAnalysisResults)

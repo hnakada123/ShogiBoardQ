@@ -680,6 +680,55 @@ private slots:
         QCOMPARE(analysis.count(), 1);
     }
 
+    void winRateModeConvertsScoresAndPersists()
+    {
+        QVERIFY(qAbs(EvaluationChartRange::winRatePercent(UsiScore::cp(0)) - 50.0) < 0.01);
+        QVERIFY(qAbs(EvaluationChartRange::winRatePercent(UsiScore::cp(600)) - 73.1058) < 0.05);
+        QVERIFY(qAbs(EvaluationChartRange::winRatePercent(UsiScore::cp(-600)) - 26.8941) < 0.05);
+        QCOMPARE(EvaluationChartRange::winRatePercent(UsiScore::mate(5)), 100.0);
+        QCOMPARE(EvaluationChartRange::winRatePercent(UsiScore::mate(-5)), 0.0);
+
+        {
+            TestChart widget;
+            widget.resize(1000, 400);
+            widget.appendScoreP1(1, UsiScore::cp(0));
+            widget.appendScoreP1(2, UsiScore::cp(600));
+            widget.appendScoreP1(3, UsiScore::mate(5));
+            widget.appendScoreP1(4, UsiScore::mate(-3));
+            widget.show();
+            QTest::qWait(30);
+
+            auto* displayMode = widget.findChild<QComboBox*>(QStringLiteral("evalDisplayMode"));
+            QVERIFY(displayMode);
+            QCOMPARE(displayMode->currentIndex(), 0);
+            displayMode->setCurrentIndex(1);
+
+            QVERIFY(widget.chartSettings().winRateMode);
+            QVERIFY(AnalysisSettings::evalChart().winRateMode);
+            QCOMPARE(widget.axes().yLimit, 100);
+            QVERIFY(qAbs(series(widget)->at(0).y() - 50.0) < 0.01);
+            QVERIFY(qAbs(series(widget)->at(1).y() - 73.1058) < 0.05);
+            QCOMPARE(series(widget)->at(2).y(), 100.0);
+            QCOMPARE(series(widget)->at(3).y(), 0.0);
+
+            widget.setCurrentPly(2);
+            QVERIFY2(view(widget)->overlay().summary.contains(QStringLiteral("73.1%")),
+                     qPrintable(view(widget)->overlay().summary));
+            QVERIFY2(view(widget)->overlay().summary.contains(QStringLiteral("+600")),
+                     qPrintable(view(widget)->overlay().summary));
+            widget.setCurrentPly(3);
+            QVERIFY2(view(widget)->overlay().summary.contains(QStringLiteral("100%")),
+                     qPrintable(view(widget)->overlay().summary));
+        }
+
+        EvaluationChartWidget restored;
+        QVERIFY(restored.chartSettings().winRateMode);
+        QCOMPARE(restored.axes().yLimit, 100);
+        auto* displayMode = restored.findChild<QComboBox*>(QStringLiteral("evalDisplayMode"));
+        QVERIFY(displayMode);
+        QCOMPARE(displayMode->currentIndex(), 1);
+    }
+
     void renderExamples()
     {
         const QString directory = qEnvironmentVariable("EVAL_CHART_SCREENSHOTS");

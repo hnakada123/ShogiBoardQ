@@ -93,7 +93,8 @@ void EvaluationChartWidget::setupAxes()
         axis->setLineVisible(false);
     }
     setXAxisScale(m_axes.xLimit, m_axes.xInterval);
-    m_axY->setRange(-m_axes.yLimit, m_axes.yLimit);
+    m_axY->setLabelFormat(m_settings.winRateMode ? QStringLiteral("%i%%") : QStringLiteral("%i"));
+    m_axY->setRange(m_settings.winRateMode ? 0 : -m_axes.yLimit, m_axes.yLimit);
     m_axY->setTickInterval(m_axes.yInterval);
 }
 
@@ -156,18 +157,25 @@ QWidget* EvaluationChartWidget::createToolbar()
     // 左右の列を同じ幅にして、ナビゲーションボタンを中央に置く。
     m_toolbarLayout->setColumnStretch(0, 1);
     m_toolbarLayout->setColumnStretch(2, 1);
-    // 表示範囲（自動・固定）と表示設定のボタン
+    // 表示形式（評価値・勝率）と表示範囲（自動・固定）の切替
     m_rangeSelector = new QWidget(toolbar);
     auto* rangeLayout = new QHBoxLayout(m_rangeSelector);
     rangeLayout->setContentsMargins(0, 0, 0, 0);
-    rangeLayout->setSpacing(8);
-    auto* rangeLabel = new QLabel(tr("表示範囲:"), m_rangeSelector);
+    rangeLayout->setSpacing(6);
+    m_displayMode = new QComboBox(m_rangeSelector);
+    m_displayMode->setObjectName(QStringLiteral("evalDisplayMode"));
+    m_displayMode->setAccessibleName(tr("グラフの表示形式"));
+    m_displayMode->setToolTip(tr("縦軸を評価値または先手勝率（%）で表示します。"));
+    m_displayMode->addItems({tr("評価値"), tr("勝率")});
+    m_displayMode->setCurrentIndex(m_settings.winRateMode ? 1 : 0);
+    connect(m_displayMode, &QComboBox::currentIndexChanged, this, &EvaluationChartWidget::onDisplayModeChanged);
     m_rangeMode = new QComboBox(m_rangeSelector);
     m_rangeMode->setObjectName(QStringLiteral("evalRangeMode"));
+    m_rangeMode->setAccessibleName(tr("表示範囲"));
+    m_rangeMode->setToolTip(tr("グラフの表示範囲（自動／手動固定）を切り替えます。"));
     m_rangeMode->addItems({tr("自動"), tr("手動固定")});
     m_rangeMode->setCurrentIndex(m_settings.automatic ? 0 : 1);
-    rangeLabel->setBuddy(m_rangeMode);
-    rangeLayout->addWidget(rangeLabel);
+    rangeLayout->addWidget(m_displayMode);
     rangeLayout->addWidget(m_rangeMode);
     connect(m_rangeMode, &QComboBox::currentIndexChanged, this, &EvaluationChartWidget::onRangeModeChanged);
     m_settingsButton = new QPushButton(tr("表示設定…"), toolbar);
@@ -202,14 +210,26 @@ void EvaluationChartWidget::setChartSettings(const EvaluationChartSettings& sett
 {
     const EvaluationChartSettings normalized = settings.normalized();
     const bool fontChanged = normalized.labelFontSize != m_settings.labelFontSize;
+    const bool modeChanged = normalized.winRateMode != m_settings.winRateMode;
     m_settings = normalized;
     AnalysisSettings::evalChart.set(m_settings);
+    if (m_displayMode) {
+        const QSignalBlocker blocker(m_displayMode);
+        m_displayMode->setCurrentIndex(m_settings.winRateMode ? 1 : 0);
+    }
     if (m_rangeMode) {
         const QSignalBlocker blocker(m_rangeMode);
         m_rangeMode->setCurrentIndex(m_settings.automatic ? 0 : 1);
     }
     if (fontChanged) applyFontSize();
-    updateAxes();
+    updateAxes(modeChanged);
+}
+
+void EvaluationChartWidget::onDisplayModeChanged(int index)
+{
+    EvaluationChartSettings settings = m_settings;
+    settings.winRateMode = index == 1;
+    setChartSettings(settings);
 }
 
 void EvaluationChartWidget::onRangeModeChanged(int index)
@@ -219,10 +239,10 @@ void EvaluationChartWidget::onRangeModeChanged(int index)
     setChartSettings(settings);
 }
 
-void EvaluationChartWidget::updateAxes()
+void EvaluationChartWidget::updateAxes(bool forceY)
 {
     const EvaluationChartAxes axes = EvaluationChartRange::compute(m_settings, m_maxCp, m_maxPly, m_plotSize);
-    const bool yChanged = axes.yLimit != m_axes.yLimit || axes.yInterval != m_axes.yInterval;
+    const bool yChanged = forceY || axes.yLimit != m_axes.yLimit || axes.yInterval != m_axes.yInterval;
     const bool xChanged = axes.xLimit != m_axes.xLimit || axes.xInterval != m_axes.xInterval;
     m_axes = axes;
     if (yChanged) applyYAxis();
@@ -231,7 +251,8 @@ void EvaluationChartWidget::updateAxes()
 
 void EvaluationChartWidget::applyYAxis()
 {
-    m_axY->setRange(-m_axes.yLimit, m_axes.yLimit);
+    m_axY->setLabelFormat(m_settings.winRateMode ? QStringLiteral("%i%%") : QStringLiteral("%i"));
+    m_axY->setRange(m_settings.winRateMode ? 0 : -m_axes.yLimit, m_axes.yLimit);
     m_axY->setTickInterval(m_axes.yInterval);
     rebuildSeries();
     updateReferenceLines();
@@ -289,10 +310,13 @@ void EvaluationChartWidget::onPlotAreaChanged()
 
 void EvaluationChartWidget::updateReferenceLines()
 {
-    // Qt Charts は同じ点を入れ直しても線を描き直すので、変わった線だけを入れ直す（0 の線は横軸が伸びたときだけ）
-    const QList<QPointF> zero{QPointF(0, 0), QPointF(xAxisLimit(), 0)};
+    // Qt Charts は同じ点を入れ直しても線を描き直すので、変わった線だけを入れ直す（基準線は横軸や表示形式が変わったときだけ）
+    const qreal centerY = m_settings.winRateMode ? 50.0 : 0.0;
+    const qreal minY = m_settings.winRateMode ? 0.0 : -yAxisLimit();
+    const qreal maxY = yAxisLimit();
+    const QList<QPointF> zero{QPointF(0, centerY), QPointF(xAxisLimit(), centerY)};
     if (m_zeroLine->points() != zero) m_zeroLine->replace(zero);
-    const QList<QPointF> cursor{QPointF(m_currentPly, -yAxisLimit()), QPointF(m_currentPly, yAxisLimit())};
+    const QList<QPointF> cursor{QPointF(m_currentPly, minY), QPointF(m_currentPly, maxY)};
     if (m_cursorLine->points() != cursor) m_cursorLine->replace(cursor);
     m_cursorLine->setVisible(m_currentPly <= xAxisLimit());
 }
@@ -402,6 +426,7 @@ void EvaluationChartWidget::onLabelsChanged()
 
 qreal EvaluationChartWidget::displayedValue(const Score& score) const
 {
+    if (m_settings.winRateMode) return EvaluationChartRange::winRatePercent(score);
     // 詰みは勝ち側の端に描く（mate 0 は手番側が既に詰んでいる）
     if (score.isMate()) return score.mateSign() > 0 ? yAxisLimit() : -yAxisLimit();
     return qBound(-yAxisLimit(), score.value, yAxisLimit());
@@ -413,9 +438,15 @@ QString EvaluationChartWidget::scoreText(const Score& score) const
         // 詰みの語は表と同じ（ScoreText）。グラフは先手から見た値なので、どちらの勝ちかを添えて手数は正にする
         const QString side = score.mateSign() > 0 ? tr("先手") : tr("後手");
         const QString mate = score.mateCountKnown ? ScoreText::mateIn(qAbs(score.value)) : ScoreText::mateUnknown();
-        return tr("%1勝ち・%2").arg(side, mate);
+        const QString text = tr("%1勝ち・%2").arg(side, mate);
+        if (m_settings.winRateMode) return tr("%1（%2%）").arg(text).arg(score.mateSign() > 0 ? 100 : 0);
+        return text;
     }
     const QString value = score.value > 0 ? QStringLiteral("+%1").arg(score.value) : QString::number(score.value);
+    if (m_settings.winRateMode) {
+        const double rate = EvaluationChartRange::winRatePercent(score);
+        return tr("%1%（%2）").arg(rate, 0, 'f', 1).arg(value);
+    }
     return qAbs(qint64(score.value)) > yAxisLimit() ? tr("%1（表示範囲外）").arg(value) : value;
 }
 
@@ -479,7 +510,9 @@ void EvaluationChartWidget::updatePresentation()
         const auto selected = scores(side).constFind(m_currentPly);
         if (selected != scores(side).cend()) values.append(tr("%1：%2").arg(seriesName(side), scoreText(*selected)));
         for (auto it = scores(side).cbegin(); it != scores(side).cend(); ++it) {
-            const bool edge = it->isMate() || qAbs(qint64(it->value)) > yAxisLimit();
+            const bool edge = m_settings.winRateMode
+                ? it->isMate()
+                : (it->isMate() || qAbs(qint64(it->value)) > yAxisLimit());
             const bool highlight = it.key() == m_currentPly || (m_hoverSide == side && m_hoverPly == it.key());
             if (edge || highlight || scores(side).size() <= 40)
                 overlay.markers.append({QPointF(it.key(), displayedValue(*it)),
@@ -492,6 +525,7 @@ void EvaluationChartWidget::updatePresentation()
         overlay.summary.prepend(m_evaluation->analysisLineName() + QStringLiteral("  |  "));
     overlay.currentPly = m_currentPly;
     overlay.xLimit = xAxisLimit();
+    overlay.centerY = m_settings.winRateMode ? 50.0 : 0.0;
     m_chartView->setOverlay(std::move(overlay));
 }
 
@@ -558,8 +592,9 @@ void EvaluationChartWidget::hoverAt(const QPoint& position)
     if (!samePoint) {
         const Score score = scores(sideFound).value(plyFound);
         m_tooltip->setFont(m_chartView->font());
-        m_tooltip->setText(tr("%1\n%2手目：%3\n先手視点の評価値")
-                           .arg(seriesName(sideFound)).arg(plyFound).arg(scoreText(score)));
+        const QString caption = m_settings.winRateMode ? tr("先手勝率（元の評価値）") : tr("先手視点の評価値");
+        m_tooltip->setText(tr("%1\n%2手目：%3\n%4")
+                           .arg(seriesName(sideFound)).arg(plyFound).arg(scoreText(score), caption));
         m_tooltip->adjustSize();
     }
     const int x = qBound(4, position.x() + 12, qMax(4, m_chartView->width() - m_tooltip->width() - 4));
