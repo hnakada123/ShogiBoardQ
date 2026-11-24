@@ -147,10 +147,12 @@
                         <tr><td><strong>Score</strong></td><td>Score from Black's point of view (+ favors Black, − favors White). A mate is shown as mate N</td></tr>
                         <tr><td><strong>Position</strong></td><td>The assessment based on the score (see Position Assessment Criteria below)</td></tr>
                         <tr><td><strong>Score change</strong></td><td>How much the score changed from the previous position (Black's point of view)</td></tr>
+                        <tr><td><strong>Quality</strong></td><td>Move classification by centipawn loss from the mover's perspective (<code>?!</code>: Inaccuracy 150–299, <code>?</code>: Mistake 300–499, <code>??</code>: Blunder 500+ or missed/allowed mate)</td></tr>
                         <tr><td><strong>Board</strong></td><td>Show plays the principal variation on a board</td></tr>
                         <tr><td><strong>PV</strong></td><td>The continuation the engine expects</td></tr>
                     </tbody>
                 </table>
+                <p class="guide-step-text">Above the table, a per-side summary shows Black and White's <strong>match rate</strong> (percentage of moves matching the engine's best move), <strong>ACPL</strong> (average centipawn loss per move), and counts of blunders, mistakes, and inaccuracies.</p>
                 <p class="guide-step-text">Select a row to move the board, the game record, and the evaluation graph to that position. A large score change marks a move that swung the game (here, move 45 ▲N*5f). The results stay until you start another analysis, load another record, or start a new game. Right-click a row to register the first PV move in the book, for one position or for all of them (<a href="joseki.html#joseki-engine">Joseki</a>).</p>
                 <div class="screenshot-item">
                     <img src="../../images/en/kifu-analysis/analysis-03-results.png" alt="Game analysis results">
@@ -189,7 +191,7 @@
                 </div>
                 <p class="guide-step-text">The Evaluation Graph tab plots the analyzed scores from Black's point of view. Up favors Black and down favors White; positions with a mate are marked at the top or bottom edge. Click the graph to move to the position at that move.</p>
                 <p class="guide-step-text">The |◀ ◀◀ ◀ ▶ ▶▶ ▶| buttons above the graph work like the buttons of the Game Record pane: go to the start, back 10 moves, back 1 move, forward 1 move, forward 10 moves, and to the last move. Like those buttons, they cannot be used while an analysis or a game is in progress.</p>
-                <p class="guide-step-text">Choose Automatic or Fixed for the range, and use Display settings… to change the ticks and font size. Save the graph image with File → Save Evaluation Graph Image to File…, or copy it with Edit → Copy Eval Graph Image.</p>
+                <p class="guide-step-text">Use the display mode selector at the top left or Display settings… to switch the vertical axis between Score and Win rate (%). In Win rate mode, Black's win probability is plotted from 0% to 100% with a 50% even line, and both the win rate and the raw score appear in the header and tooltips. Choose Automatic or Fixed for the range, and use Display settings… to change the ticks and font size. Save the graph image with File → Save Evaluation Graph Image to File…, or copy it with Edit → Copy Eval Graph Image.</p>
                 <div class="screenshot-item">
                     <img src="../../images/en/kifu-analysis/analysis-05-eval-graph.png" alt="Evaluation graph">
                     <p class="screenshot-caption">Evaluation graph: the selected move and its score appear at the top</p>

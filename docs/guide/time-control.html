@@ -272,6 +272,19 @@
                 <p class="guide-step-text">自分の手番で「対局」→「待った」を選ぶと、自分の手と相手の応手が取り消され、時計も取り消した自分の手を指し始めたときの状態に戻ります。取り消した手に使った時間と、相手の応手の後に考えていた時間は返され、考慮時間は「待った」を選んだ時点から数え直します。続けて選ぶと2手ずつ戻り、対局の開始局面まで戻れます。</p>
             </div>
 
+            <div class="guide-step" id="byoyomi-sound">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">秒読み音声</span>
+                </div>
+                <p class="guide-step-text">時間制限のある対局（通常対局・CSA通信対局・P2P対局）では、秒読みや残り時間のカウントダウン音声を鳴らせます。オン・オフは「設定」→「秒読み音声」で切り替えられます。</p>
+                <ul class="guide-step-text">
+                    <li><strong>秒読み中・切れ負け／加算の終盤</strong>：残り30・20・10秒で予告音、残り9〜6秒でカウント音、残り5〜1秒で切迫音、時間切れで時間切れ音を鳴らします。</li>
+                    <li><strong>秒読みがある対局の持ち時間消費中</strong>：残り30・20・10秒と、秒読みに入った瞬間に予告音を鳴らします。</li>
+                </ul>
+                <p class="guide-step-text">「設定」→「秒読み音声の設定…」では、音量の調整・各種音の試聴のほか、カスタム音声フォルダを指定できます。空欄のときは内蔵の対局時計音を使い、フォルダを指定するとフォルダ内の <code>1.wav</code>〜<code>10.wav</code>・<code>20.wav</code>・<code>30.wav</code>・<code>timeout.wav</code> を優先して再生します。</p>
+            </div>
+
         </div>
     </div>
 </section>

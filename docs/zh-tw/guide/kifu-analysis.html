@@ -147,10 +147,12 @@
                         <tr><td><strong>評價值</strong></td><td>先手視角的評價值（＋為先手有利，−為後手有利）。將死顯示為「mate 手數」</td></tr>
                         <tr><td><strong>形勢</strong></td><td>根據評價值判定的形勢（參見下方的「形勢判斷的標準」）</td></tr>
                         <tr><td><strong>評價值變化</strong></td><td>與前一個局面相比評價值的增減（先手視角）</td></tr>
+                        <tr><td><strong>判定</strong></td><td>依行棋方評價值損失所作的判定（<code>?!</code>：緩手 150〜299，<code>?</code>：疑問手 300〜499，<code>??</code>：惡手 500 以上或漏殺・被殺）</td></tr>
                         <tr><td><strong>棋盤</strong></td><td>按一下「顯示」在棋盤上檢視主要變化</td></tr>
                         <tr><td><strong>主要變化</strong></td><td>引擎預測的後續著法</td></tr>
                     </tbody>
                 </table>
+                <p class="guide-step-text">表格上方會彙總顯示先手與後手各自的<strong>一致率</strong>（與候選著法一致的比例）、<strong>平均損失（ACPL）</strong>（每手平均評價值損失）以及惡手、疑問手、緩手的數量。</p>
                 <p class="guide-step-text">選擇一列後，棋盤、棋譜欄與評價值圖表會移動到該局面。評價值變化較大的列就是形勢大幅變化的一手（本例中為第 45 手▲５六桂打）。結果會保留到開始下一次分析、讀取其他棋譜或開始新對局為止。在某一列上按右鍵，可以將主要變化的第一手逐個局面或批次註冊到定跡（<a href="joseki.html#joseki-engine">定跡</a>）。</p>
                 <div class="screenshot-item">
                     <img src="../../images/zh-tw/kifu-analysis/analysis-03-results.png" alt="棋譜分析的結果">
@@ -189,7 +191,7 @@
                 </div>
                 <p class="guide-step-text">「評價值圖表」分頁以先手視角的折線顯示分析得到的評價值變化。上方為先手有利，下方為後手有利，將死的局面以標記顯示在圖表的上端或下端。按一下圖表即可移動到該手的局面。</p>
                 <p class="guide-step-text">也可以用圖表上方的 |◀ ◀◀ ◀ ▶ ▶▶ ▶| 按鈕，像棋譜欄的按鈕一樣跳到起點、後退 10 手、後退一手、前進一手、前進 10 手、跳到最後一手。與棋譜欄的按鈕一樣，分析或對局進行中無法使用。</p>
-                <p class="guide-step-text">範圍可以選擇「自動」或「固定」，並可透過「顯示設定…」變更刻度與字型大小。圖表圖片可以透過「檔案」→「儲存評價值圖表圖片…」儲存，或透過「編輯」→「複製評價值圖表圖片」複製。</p>
+                <p class="guide-step-text">透過圖表左上角的切換選單或「顯示設定…」，可在「評價值」與「勝率（%）」之間切換縱軸。勝率模式以 0〜100%（均勢線 50%）繪製先手勝率，並在標題與提示中同時顯示勝率與原評價值。範圍可以選擇「自動」或「固定」，並可透過「顯示設定…」變更刻度與字型大小。圖表圖片可以透過「檔案」→「儲存評價值圖表圖片…」儲存，或透過「編輯」→「複製評價值圖表圖片」複製。</p>
                 <div class="screenshot-item">
                     <img src="../../images/zh-tw/kifu-analysis/analysis-05-eval-graph.png" alt="評價值圖表">
                     <p class="screenshot-caption">評價值圖表：上方顯示所選著法及其評價值</p>

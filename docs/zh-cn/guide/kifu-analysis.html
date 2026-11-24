@@ -147,10 +147,12 @@
                         <tr><td><strong>评价值</strong></td><td>先手视角的评价值（＋为先手有利，−为后手有利）。将死显示为“mate 手数”</td></tr>
                         <tr><td><strong>形势</strong></td><td>根据评价值判定的形势（参见下方的“形势判断的标准”）</td></tr>
                         <tr><td><strong>评价值变化</strong></td><td>与前一个局面相比评价值的增减（先手视角）</td></tr>
+                        <tr><td><strong>判定</strong></td><td>基于行棋方评价值损失的判定（<code>?!</code>：缓手 150〜299，<code>?</code>：疑问手 300〜499，<code>??</code>：恶手 500 以上或漏杀・被杀）</td></tr>
                         <tr><td><strong>棋盘</strong></td><td>点击“显示”在棋盘上查看主要变化</td></tr>
                         <tr><td><strong>主要变化</strong></td><td>引擎预测的后续着法</td></tr>
                     </tbody>
                 </table>
+                <p class="guide-step-text">表格上方会汇总显示先手与后手各自的<strong>一致率</strong>（与候选着法一致的比例）、<strong>平均损失（ACPL）</strong>（每手平均评价值损失）以及恶手、疑问手、缓手的数量。</p>
                 <p class="guide-step-text">选择一行后，棋盘、棋谱栏和评价值图表会移动到该局面。评价值变化较大的行就是形势大幅变化的一手（本例中为第 45 手▲５六桂打）。结果会保留到开始下一次分析、读取其他棋谱或开始新对局为止。右键单击某一行，可以将主要变化的第一手逐个局面或批量注册到定跡（<a href="joseki.html#joseki-engine">定跡</a>）。</p>
                 <div class="screenshot-item">
                     <img src="../../images/zh-cn/kifu-analysis/analysis-03-results.png" alt="棋谱分析的结果">
@@ -189,7 +191,7 @@
                 </div>
                 <p class="guide-step-text">“评价值图表”标签页以先手视角的折线显示分析得到的评价值变化。上方为先手有利，下方为后手有利，将死的局面以标记显示在图表的上端或下端。点击图表即可移动到该手的局面。</p>
                 <p class="guide-step-text">也可以用图表上方的 |◀ ◀◀ ◀ ▶ ▶▶ ▶| 按钮，像棋谱栏的按钮一样跳到起点、后退 10 手、后退一手、前进一手、前进 10 手、跳到最后一手。与棋谱栏的按钮一样，分析或对局进行中无法使用。</p>
-                <p class="guide-step-text">范围可以选择“自动”或“固定”，并可通过“显示设置…”更改刻度和字体大小。图表图片可以通过“文件”→“保存评价值图表图片…”保存，或通过“编辑”→“复制评价值图表图片”复制。</p>
+                <p class="guide-step-text">通过图表左上角的切换菜单或“显示设置…”，可在“评价值”与“胜率（%）”之间切换纵轴。胜率模式以 0〜100%（均势线 50%）绘制先手胜率，并在标题与提示中同时显示胜率和原评价值。范围可以选择“自动”或“固定”，并可通过“显示设置…”更改刻度和字体大小。图表图片可以通过“文件”→“保存评价值图表图片…”保存，或通过“编辑”→“复制评价值图表图片”复制。</p>
                 <div class="screenshot-item">
                     <img src="../../images/zh-cn/kifu-analysis/analysis-05-eval-graph.png" alt="评价值图表">
                     <p class="screenshot-caption">评价值图表：上方显示所选着法及其评价值</p>
