@@ -334,34 +334,133 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 
 15手〜最大301手の長手数詰将棋を現実的な時間で生成・厳密証明するための仕組み。GUIの「詰み局面から逆算・編集（長手数）」モードとCLIの `shogiboardq-cli grow-tsume` が共通して `TsumeRetrogradeGenerator` を使用する。
 
-### 処理フェーズとアルゴリズム
+### 処理フェーズと優先順位
 
-1. **種局面の初期化**: `seedSfens` が指定されている場合はそれを読み込み（`"SFEN moves <PV>"` の形式ならそのまま該当手数層のフロンティアへ投入）、空なら `TsumeRetrogradeOps::generateMateEndings()` で攻方持駒ゼロ・盤端/隅/中段寄りの多様な0手詰み上がり局面を生成し、`reverseFromMateEnding()` で1手詰候補を作る。
-2. **多層ビームサーチによる候補展開（`phase = "growing"`）**:
-   - 手数層ごとに最大 `beamWidth` 件のノードを保持し、1展開あたり最大 `branchFactor` 件の候補を作る。
-   - 候補生成は `generatePredecessors()`（玉移動・捨駒・打合・移動合・取り返し＋駒打ち・移動・成り戻し・開き王手・両王手の2手逆算。全候補を順方向シミュレーションで合法性保証）と `generateMutations()`（駒移動・追加・削除・駒種変更・成不成・持駒調整）を組み合わせる。
-   - 目標手数を超える詰みPVが得られた場合は、`sliceToTargetLength()` でちょうど目標手数になる接尾辞局面を切り出して候補に加える。
-   - ビームの優先順位は `TsumeRetrogradeOps::scoreNode()`（駒余りゼロ優先・最終手一意性・玉移動距離・捨駒・合駒・展開回数の抑制）と `structuralSignature()` による系統多様性で決める。
-3. **内蔵プレスクリーニングとエンジン問い合わせ**:
-   - 外部エンジンへ送る前に `localScreenCandidate()`（内蔵 Hayanagi `TsumeSearch`）で高速に枝刈りする。19手以下では目標手数までの詰み/不詰/PVを数msで抽出し、21手以上では15手以下の早詰と確定不詰を4msで弾くことで IPC 送信の無駄を防ぐ。
-   - 成長フェーズの評価は `MateOracle::ask()` と成長キャッシュ（`m_fastCache`、最大100,000件）で進め、探索済みの既出SFENはハッシュ集合（`m_visitedHashes`、最大400,000件）で重複展開を抑える。
-4. **軽量初手余詰チェックと標的型リペア（`phase = "checking_first"` / `"repairing"`）**:
-   - 61手以下の候補では内蔵 Hayanagi による数msの事前余詰検査（`quickLocalCookCheck()` / `quickLocalMainLineCookCheck()`）を行い、外部エンジンによる軽量初手余詰チェックと併用する。
-   - 初手に別詰（`cookMove`）が見つかった有望候補は即座に捨てずリペアキュー（`m_repairQueue`、最大256件）へ入れ、`TsumeRetrogradeOps::generateCookRepairs()` で `cookMove` を阻止しつつ `mainMove` を活かす修復候補を生成して再評価する。
-5. **類似作除外と厳密証明（`phase = "certifying"`）**:
-   - 目標手数に到達した候補は、`excludeSimilar` が有効なら `TsumeRetrogradeOps::diversityKeys()`（`scripts/tsume_diversity.py` と同基準）で採択済み・除外済みとの類似を検査し、類似作なら厳密証明を省いて棄却する。
-   - 通過した候補を `TsumeStrictCertifier` へ渡す。`TsumeStrictCertifier` は `CheckBase` → `VerifyBase` → `TrimProbe` / `VerifyTrimmed` の順で、目標手数一致・全主手順一意（既定は最終手も厳格一意）・駒余りなし（既定有効）・全1枚除去の確定判定を行う。判定不能（`Unknown`）が1つでもあれば全体を棄却する。
+`TsumeRetrogradeGenerator::driveNext()` は、目標件数に到達するまで次の優先順位で1ステップずつ進める。
 
-### 厳密証明のエンジン制御・キャッシュ分離・自動復旧
+1. **進行中の厳密証明ジョブ（`m_activeCertifier`、`phase = "certifying"`）**: 最も優先して完了させる。
+2. **厳密証明待ちキュー（`m_pendingCertify`）**: 未採択の候補を1件取り出し、確定済み厳密キャッシュ（`m_strictCache`）を注入して `TsumeStrictCertifier` を開始する。
+3. **進行中の軽量初手余詰チェック（`m_firstCheck`、`phase = "checking_first"`）**: 目標手数未満の有望候補の初手余詰を検査する。
+4. **バッチ展開（`expandNextBatch()`）**: 評価キュー（`m_evalQueue`）が空なら、リペアキューまたはフロンティアから次の候補バッチを生成する。
+5. **候補評価（`m_evalQueue`、`phase = "growing"` / `"repairing"`）**: 成長キャッシュ（`m_fastCache`）と内蔵プレスクリーニングを優先消費し、必要な候補だけを外部エンジンへ送る。
+
+初期種局面（`seedSfens`）は `"SFEN moves <PV>"` の形式なら `analyzeLine()` で検証して該当手数層のフロンティアへ直接投入し、0手詰み局面なら `reverseFromMateEnding()` で1手詰候補を展開、それ以外のSFENは評価キューへ入れる。種局面が空の場合は `TsumeRetrogradeOps::generateMateEndings()` で攻方持駒ゼロ・盤端/隅/中段寄りの多様な0手詰み上がり局面を自動生成する。
+
+### 候補生成演算（TsumeRetrogradeOps）
+
+純粋局面演算を [tsumeretrogradeops.cpp](../../src/analysis/tsumeretrogradeops.cpp) に分離している。全候補は `buildSfen()` で片玉・40駒保存則・二歩なし・行き所のない駒なし・開始時王手なしを満たす正規化SFENへ変換する。
+
+#### 1. 2手逆算（`generatePredecessors()`）
+
+攻方手番の局面から「玉方応手1手 → 攻方王手1手」を2段階に巻き戻し、2手前の攻方手番候補を作る。まず玉方応手を次の5類型で列挙し、各応手から均等枠（`perDefenseCap`）で攻方王手（駒打ち・盤上移動・成り戻し・駒取り戻し・開き王手・両王手）を逆算（`unwindAttackCheck()`）する。
+
+| タグ | 巻き戻す玉方応手 | 狙い |
+|---|---|---|
+| `retro_escape` | 玉の隣接1マス単純移動 | 玉の移動距離・追い詰め構造を伸ばす |
+| `retro_kingsac` | 玉による攻方駒取り（元の玉位置へ王手する駒を復活） | 焦点への捨駒を含む手筋を生む |
+| `retro_dropint` | 玉方の盤上生駒を合駒打ちとして除去 | 遠方王手への打合を逆算する |
+| `retro_moveint` | 玉方盤上駒を別マスへ戻し、王手経路を開く | 移動合を逆算する |
+| `retro_recap` | 玉方盤上駒を戻し、跡地へ王手する攻方駒を復活 | 玉方駒による捨駒の取り返しを逆算する |
+
+逆算したすべての候補は `verifyForwardRoundtrip()` で「攻方王手 → 玉方応手」を実際に順方向実行し、元の局面と完全一致する合法手であることを保証する。
+
+#### 2. 複合盤面変異（`generateMutations()`）
+
+1候補あたり **60%で1回、40%で2〜3回の連続編集（`mutate_multi`）** を適用し、単一編集では届かない別系統の局面へ跳ぶ。各編集ステップは次の確率分布で操作を選ぶ（移動・追加・変更時に行き所のない歩/香/桂は自動で成駒へ補正）。
+
+| 操作 | 試行確率 | 内容 |
+|---|---:|---|
+| 盤上駒の移動（`mutate_move`） | 38% | **玉を含む**盤上駒を縦横±2マスの空きマスへ移動 |
+| 盤上への駒追加（`mutate_add_atk` / `mutate_add_def`） | 22% | 攻方55%／玉方45%。攻方の飛・角・香は45%で盤全体、それ以外は玉周辺±3マスへ配置 |
+| 駒種・成不成の変更（`mutate_kind`） | 18% | 玉以外の盤上駒を別の駒種・成不成へ変更 |
+| 攻方持駒の増減（`mutate_hand_dec` / `mutate_hand_inc`） | 12% | 攻方持駒を1枚増減（所持していれば55%で減少） |
+| 盤上駒の削除（`mutate_remove`） | 10% | 玉以外の盤上駒を1枚除去して玉方持駒へ戻す |
+
+#### 3. 標的型余詰リペア（`generateCookRepairs()`）
+
+初手余詰（`cookMove`）が検出された有望局面に対し、主手順の初手（`mainMove`）が依然として合法王手のまま保たれる候補だけを抽出する。次の6戦略を順に試行する。
+
+1. **打駒マス閉塞・打駒削減（`repair_occupy_drop` / `repair_trim_hand`）**: `cookMove` が駒打ちかつ `cookTo != mainTo` なら、`cookTo` へ玉方駒（歩・桂・銀・金・香）を置いて塞ぐ。主手順で同じ駒を打たない場合は攻方持駒を1枚減らす。
+2. **余詰マスへの守り駒追加（`repair_guard_cook`）**: `cookTo` に利く玉方駒を空きマスへ1枚追加する（`mainTo` には利かない配置を `stable_partition` で優先）。
+3. **遠距離移動の経路遮断（`repair_block_line`）**: 移動余詰の途中の空きマスへ玉方駒（歩・銀・金）を置いて利きを遮る。
+4. **余詰駒の除去・不成化（`repair_remove_cook_piece` / `repair_demote_cook_piece`）**: 動いた攻方駒が主手順と別駒（`cookFrom != mainFrom`）なら、その駒の除去または不成への弱体化を試す。
+5. **逃げ道の開放（`repair_open_escape`）**: 玉の周囲8マスにある玉方壁駒（`mainTo` 以外）を1枚除去して余詰時の逃れ筋を作る。
+6. **汎用1枚除去（`repair_trim_one`）**: `TsumeCandidateJob::onePieceRemovedPositions()` で不要駒起因の余詰を落とす。
+
+#### 4. 接尾辞切り出し（`sliceToTargetLength()`）
+
+目標手数を超える詰みPV（`pv.size() > targetMoves`）が得られた場合、先頭から `pv.size() - targetMoves` 手を進めてちょうど目標手数の部分局面（`SuffixSlice`）を切り出し、正規化・合法性確認のうえ目標手数候補として扱う。
+
+### 多層ビームサーチ・評価関数・展開戦略
+
+#### 評価関数（`TsumeRetrogradeOps::scoreNode()`）
+
+長手数化と厳密条件（駒余りゼロ・最終手一意）を両立する系統を優先するため、次の各項でビームノードを採点する。
+
+| 項目 | 計算内容 | 設計意図 |
+|---|---|---|
+| 手数進捗 | `min(plies, targetMoves) * 14.0` | 目標手数に近い層を最優先 |
+| 駒余り | `surplusCount == 0` で `+35.0`（非厳密時 `+12.0`）、超過時は `-22.0 * 枚数`（非厳密時 `-6.0 * 枚数`） | 駒余りのない系統を強く優遇（さらに `requireNoSurplus` 時は3枚以上余る成長候補を棄却） |
+| 最終手一意 | `strictFinalMove` 時、`finalImmediateMates == 1` で `+25.0`、2以上で `-55.0` | 最終手複数解の系統を育てても厳密証明で棄却されるため早期に抑止 |
+| 初手一意 | `firstMoveUnique` で `+20.0` | 初手余詰のない健全な足場を優遇 |
+| 長手数構造特徴 | 玉訪問マス数 `min(n,25)*2.2` ＋ 玉移動距離 `min(d,60)*0.6` ＋ 捨駒 `min(s,20)*2.5` ＋ 合駒 `min(i,20)*2.0` | 玉の広がり・捨駒・合駒を含む伸びやすい構造を優遇 |
+| 盤上過密ペナルティ | `actualTotal > clamp(4 + plies/3, 5, 24)` の超過分 × `-1.4` | 手数に対して駒が多すぎる余詰爆発・探索低速化局面を抑制 |
+| 展開回数ペナルティ | `-12.0 * log1p(expansionCount)` | 行き詰まった枝への固執を防ぎ自動バックトラックを促す |
+
+#### フロンティア多様性と展開制御（`addToFrontier()` / `expandNextBatch()`）
+
+- **系統多様性の上限**: 各手数層は最大 `beamWidth` 件を保持し、`structuralSignature()`（玉の2×2ブロック領域・手数・先頭最大4手）が一致するノードは1層あたり最大2件までに制限する。
+- **リペアキュー優先枠**: `m_repairQueue`（最大256件、超過時は最短手数から破棄）が空でなければ約15%の確率で `plies * 10 - attempts * 15` が最大の候補を取り出し、最大2回まで標的型リペアを展開する（1回の分岐上限 `min(branchFactor, 16)`）。
+- **親ノードの分散選択**: 約75%は上位3層から `score - 45.0 * expansions + uniform(0, 28)` で選択し、複数ワーカーが同じ上位種に集中するのを乱数ジッターと展開ペナルティで防ぐ。残り約25%は全層から6件のランダム・トーナメント選択（`score - 40.0 * expansions`）を行い、袋小路から自動バックトラックする。選択後は対象ノードの `expansions` を増やして自身のスコアも再計算する。
+- **0手詰み局面の再注入抑止**: 停滞時（`m_batchesSinceProgress >= 25` または `roll >= 92`）の0手詰み再注入はシード未指定のボトムアップ探索時だけに限定し、親種ファイルを渡した長手数生成で0手からやり直す無駄を防ぐ。
+- **同手数シードの100%変異切替**: 選んだ親ノードが既に目標手数以上（`chosenLayer >= targetMoves`）のときは、2手逆算して接尾辞を切り出しても元手順へ戻りやすいため **`retroBudget = 0` として 100% 盤面変異に集中**する。目標未満の層では `branchFactor` の `2/3` を逆算、`1/3` を盤面変異に配分する。
+
+### 高速化のための多段枝刈りと探索制御
+
+外部エンジン（KomoringHeights）との IPC・長手数探索は1回あたりのコストが大きいため、次の4層で無駄な問い合わせと候補爆発を抑えている。
+
+#### 1. 内蔵 Hayanagi プレスクリーニングの2段階戦略（`localScreenCandidate()`）
+
+`driveNext()` の評価ループでは、UIイベントループを塞がないよう **最大48件または40msごとに制御を戻しながら** キャッシュ照会と内蔵 `shogi::TsumeSearch` による事前選別を実行する。
+
+| 目標手数帯 | 内蔵探索の深さと予算 | 判定ごとの扱い |
+|---|---|---|
+| 19手以下 | 目標手数まで探索。予算は 〜9手: `5ms`、〜15手: `5ms`、17手: `9ms`、19手: `15ms`（`stepTimeoutMs` 以下にクランプ） | `NoMate` は即棄却。`Mate` は高層由来の早詰（`plies < targetMoves - 2`）を弾いたうえで、埋まった置換表からほぼ0msで PV を復元し外部問い合わせなしで直接採用。`Limit` / `Timeout` は高層フロンティア保有時の15〜17手では泥沼回避のため即棄却し、それ以外は確率転送（`Limit`: 4% / 15%、`Timeout`: 10% / 20%）。 |
+| 21手以上 | 浅い深さ `min(15, max(3, targetMoves - 4))` を `4ms` で探索 | `NoMate` と高層由来の早詰 `Mate` を即棄却（ボトムアップ成長足場の `Mate` は PV 復元して採用）。15手すら4msで読み切れない過密な `Timeout` 局面は35%に間引き、早詰を否定できた `Limit` 候補だけを「真の長手数候補」として外部エンジンへ送る。 |
+
+#### 2. ローカル余詰枝刈り・軽量初手チェック・即詰問い合わせ省略
+
+- **主手順ローカル事前余詰検査（`quickLocalMainLineCookCheck()`）**: 61手以下の目標手数候補は、重い `TsumeStrictCertifier` へ送る前に主手順の各攻方手番（1, 3, ..., N−2手目）を内蔵 Hayanagi（各別王手 `2ms`）で検査し、明白な余詰を数ミリ秒で弾く。初手余詰ならリペアキューへ戻す。
+- **15手以下のローカル初手検査完結（`startFirstMoveCheck()`）**: 目標手数未満の成長ノードの初手余詰チェックでは、61手以下にまずローカル `quickLocalCookCheck()`（15手以下 `6ms`、それ以外 `4ms`）を掛ける。**15手以下の成長足場はローカル検査のみで完結させて外部エンジン問い合わせを温存**する。
+- **17手以上の応手反駁優先度と即詰省略（`stepFirstMoveCheck()`）**: 外部問い合わせが必要な別攻手の応手は、反駁しやすい順（`defensePriority`: 非玉の駒取り `100` → 玉の駒取り `150` → 玉移動 `200` → その他盤上移動 `300` → 合駒打ち `400+`）に並べて調べ、1つでも `NoMate` が出た時点でその別攻手を不詰確定として打ち切る。さらに `hasLocalImmediateMate()` で1手詰になる応手は反駁にならないため外部問い合わせから省く（問い合わせ上限 `clamp(24 + plies/2, 24, 80)` 回、1回予算 `clamp(stepTimeoutMs/2, 200, stepTimeoutMs)`）。初手余詰が見つかった候補は目標付近（`targetMoves - 2` 以上）または最大到達層ならリペアキューへ登録し、フロンティアにはペナルティ付き（`-18.0`）の足場として残す。
+- **検証器の1手詰問い合わせ省略**: `TsumeshogiVerifier::Options::skipImmediateMateQueries`（既定 `true`）により、厳密証明や通常の余詰検査でも応手後に1手詰が存在する局面は `Impl::hasImmediateMate()` で即座に1手と確定し、外部エンジンへの問い合わせを省略する。
+
+#### 3. 1段目限定の1枚除去リトライ（`allowTrimOnReject` / `fromRepair`）
+
+目標手数に到達した候補が次の理由でそのまま採択できない場合、余分な1枚を落とすだけで成立する例が多いため、`TsumeCandidateJob::onePieceRemovedPositions()` の先頭候補を `m_evalQueue` の先頭へ差し込んで優先評価する。
+
+- 目標手数到達時の駒余り・最終手複数解（`preflight_trim`、最大4件）
+- ローカル主手順余詰検出時（`precook_trim`、最大2件）
+- 厳密証明での余詰・駒余り棄却時（`cert_trim_repair`、最大2件。初手余詰ならリペアキューにも登録）
+
+これらが連鎖して候補が指数増殖しないよう、投入時に `fromRepair = true` および証明キューの `allowTrimOnReject = false` を設定し、**1段目限り**で打ち切る。
+
+#### 4. 類似作のステッピングストーン活用と既消化親種の即時パージ
+
+- **類似作のステッピングストーン活用（`submitEvalAnswer()`）**: 目標手数候補が採択済み・除外済みと類似（`isSimilarToAccepted()`、内部で `TsumeRetrogradeOps::diversityKeys()` を照合）している場合、厳密証明には回さない。ただし**駒余りなし・最終手一意**を満たす健全な局面であれば、スコア `-15.0` を付けて目標手数層のフロンティアへ残す。これにより同手数からの100%盤面変異で別系統へ跳ぶための探索足場（ステッピングストーン）として再利用できる。
+- **既消化親種のフロンティア即時パージ（`finishCertifier()` / `addExcludeLine()`）**: `excludeSimilar` が有効なとき、9手以上の問題が採択された時点または外部オーケストレータから `exclude <SFEN> moves <PV>` を受信した時点で、その手順を2手進めた直前親種（`N-2` 手局面）を `sliceToTargetLength()` で求め、フロンティアの `N-2` 層から即時除去する。同じ親種を再び2手逆算しても同一 `core` で類似除外されるため、無駄な再展開を防いで未消化の別系統親種へ探索資源を移す。
+
+### 厳密証明のエンジン制御・キャッシュ分離・置換表クリーン化・自動復旧
 
 - `startOracle()` は `TsumeMateEngine::requiredOptions()`（`PostSearchLevel=MinLength`、`GenerateAllLegalMoves=true`、`RootIsAndNodeIfChecked=false`、`NodesLimit=0`、`MultiPV=1`）をセッション設定として自動適用し、指定があれば `USI_Hash`（`engineHashMb`）と `Threads`（`engineThreads`）も上書きする。
-- 厳密証明（`strictMinLength = true`）の問い合わせは `MateOracle::askWithin()`（`go mate infinite` を送り自然終了のみ確定、期限超過時は stop を送らず打ち切り）を使用する。成長フェーズの `m_fastCache` と厳密証明用の `m_strictCache`（最大200,000件）は明確に分離し、不完全な成長応答が厳密証明キャッシュに混入しないようにしている。
+- 厳密証明（`strictMinLength = true`）の問い合わせは `MateOracle::askWithin()`（`go mate infinite` を送り自然終了のみ確定、期限超過時は stop を送らず打ち切り）を使用する。
+- **キャッシュ分離と置換表クリーン化（`m_hashDirty`）**: 成長フェーズのキャッシュ（`m_fastCache`、最大100,000件、超過時は前半半分を破棄）と厳密証明用の確定キャッシュ（`m_strictCache`、最大200,000件）は明確に分離する。さらに、成長フェーズで時間制限付きの `ask()` を実行すると `m_hashDirty = true` を立て、次に `TsumeStrictCertifier` を開始する直前に `sendUsiNewGame()` を送って時間切れ由来のエンジン置換表残骸をリセットしてから厳密証明に入る。
 - 期限切れやエンジン無応答が起きた場合は `restartOracleForRecovery()` でエンジンプロセスを自動再起動して探索を継続する（連続5回を超えた場合のみエラー終了）。
 
 ### チェックポイント保存と再開
 
-- `checkpointPath` を指定すると、`checkpointIntervalSec`（既定30秒）ごとおよび停止時に `QSaveFile` で原子的にチェックポイント JSON（`checkpoint_version = 1`）を保存する。
-- 保存内容には設定、乱数シードと消費回数（`rng.seed` / `rng.draws`）、累計経過時間と統計、各手数層のフロンティア、リペアキュー、評価キュー・証明待ちキュー、進行中の `TsumeStrictCertifier` 状態（`toJson()`）、確定済み厳密キャッシュ（`m_strictCache`）、既採択局面が含まれる。
+- `checkpointPath` を指定すると、`checkpointIntervalSec`（既定30秒）ごと・最大到達手数の更新時・厳密証明の開始/採択時・停止時に `QSaveFile` で原子的にチェックポイント JSON（`checkpoint_version = 1`）を保存する。
+- 保存内容には設定、乱数シードと消費回数（`rng.seed` / `rng.draws`）、累計経過時間と統計、各手数層のフロンティア、リペアキュー、評価キュー（最大256件、中断中の評価・初手検査対象を先頭へ戻す）・証明待ちキュー、進行中の `TsumeStrictCertifier` 状態（`toJson()`）、確定済み厳密キャッシュ（`m_strictCache`）、既採択局面が含まれる。
 - `resumeFromCheckpoint = true` で開始すると、これらを復元して中断箇所から再開する。
 
 ### CLI `grow-tsume` と動的制御
@@ -373,10 +472,10 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 | コマンド | 動作 |
 |---|---|
 | `stop`（または EOF） | 現在の状態をチェックポイントへ保存して安全に停止する |
-| `exclude <SFEN [moves PV...]>` | 実行中に既採択・除外局面および類似キーを追加する（`addExcludeLine()`） |
-| `seed <SFEN [moves PV...]>` | 実行中に新しい種局面をフロンティアへ注入する（`addSeedLine()`） |
+| `exclude <SFEN [moves PV...]>` | 実行中に既採択・除外局面と類似キーを追加し、9手以上なら直前親種（`N-2` 手局面）をフロンティアから即時除去する（`addExcludeLine()`） |
+| `seed <SFEN [moves PV...]>` | 実行中に新しい種局面（PV付きならフロンティアへ直接投入）を追加する（`addSeedLine()`） |
 
-並列オーケストレータ（`scripts/generate_long_tsume_collections.py`）はこの仕組みを用いて、常駐ワーカー間で採択結果と類似キーをリアルタイムに同期する。
+並列オーケストレータ（`scripts/generate_long_tsume_collections.py`）はこの仕組みを用いて、常駐ワーカー間で採択結果・類似キー・同手数シードをリアルタイムに同期する。
 
 ## ダイアログ (TsumeshogiGeneratorDialog)
 
