@@ -4,6 +4,7 @@
 /// @file tsumeshogiexportheaderbuilder.h
 /// @brief 詰将棋局面生成のファイル保存に付けるコメントヘッダの生成
 
+#include "tsumeretrogradegenerator.h"
 #include "tsumeshogigenerator.h"
 
 #include <QCoreApplication>
@@ -31,6 +32,13 @@ public:
     static QStringList build(const QString& appVersion,
                              const QDateTime& generatedAt,
                              const TsumeshogiGenerator::Settings& settings);
+
+    /**
+     * @brief 逆算・編集による長手数詰将棋生成向けのコメントヘッダ行を返す
+     */
+    static QStringList build(const QString& appVersion,
+                             const QDateTime& generatedAt,
+                             const TsumeRetrogradeGenerator::Settings& settings);
 };
 
 #endif // TSUMESHOGIEXPORTHEADERBUILDER_H

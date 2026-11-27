@@ -2,8 +2,10 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QClipboard>
+#include <QComboBox>
 #include <QFileDialog>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QPushButton>
@@ -207,6 +209,78 @@ private slots:
         QVERIFY(dialog.findChild<QLabel*>(QStringLiteral("generatorStatus"))->text().contains(QStringLiteral("登録")));
         QVERIFY(dialog.findChild<QTableWidget*>()->height() >= 120);
         QVERIFY(dialog.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsumeshogi-generator-large-font.png")));
+    }
+    void retrogradeModeToggleAndPersistence()
+    {
+        registerEngine();
+        QTemporaryDir temp;
+        QVERIFY(temp.isValid());
+        const QString seedPath = temp.filePath(QStringLiteral("seeds.txt"));
+        const QString cpPath = temp.filePath(QStringLiteral("cp.json"));
+        {
+            QFile f(seedPath);
+            QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
+            f.write("7nk/7nn/9/9/9/9/9/9/9 b N 1 moves N*2c\n");
+        }
+
+        TsumeshogiGeneratorDialog dialog;
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+
+        auto* mode = dialog.findChild<QComboBox*>(QStringLiteral("generatorMode"));
+        auto* retroFiles = dialog.findChild<QWidget*>(QStringLiteral("generatorRetroFiles"));
+        auto* requireNoSurplus = dialog.findChild<QCheckBox*>(QStringLiteral("generatorRequireNoSurplus"));
+        auto* excludeSimilar = dialog.findChild<QCheckBox*>(QStringLiteral("generatorExcludeSimilar"));
+        auto* retroAttack = dialog.findChild<QSpinBox*>(QStringLiteral("generatorRetroMaxAttack"));
+        auto* beam = dialog.findChild<QSpinBox*>(QStringLiteral("generatorBeamWidth"));
+        auto* seedEdit = dialog.findChild<QLineEdit*>(QStringLiteral("generatorSeedFile"));
+        auto* cpEdit = dialog.findChild<QLineEdit*>(QStringLiteral("generatorCheckpointFile"));
+        auto* resumeCheck = dialog.findChild<QCheckBox*>(QStringLiteral("generatorResumeCheckpoint"));
+        QVERIFY(mode && retroFiles && requireNoSurplus && excludeSimilar && retroAttack && beam && seedEdit && cpEdit && resumeCheck);
+
+        // 既定はランダム配置モードで、逆算専用欄は非表示
+        QCOMPARE(mode->currentIndex(), 0);
+        QVERIFY(!retroFiles->isVisible());
+
+        // 逆算・編集モードへ切り替えると専用欄が表示され、38枚上限や途中保存設定を編集できる
+        mode->setCurrentIndex(1);
+        QTRY_VERIFY(retroFiles->isVisible());
+        QVERIFY(requireNoSurplus->isChecked());
+        QVERIFY(excludeSimilar->isChecked());
+        retroAttack->setValue(24);
+        beam->setValue(64);
+        seedEdit->setText(seedPath);
+        cpEdit->setText(cpPath);
+        resumeCheck->setChecked(true);
+        QVERIFY(!seedEdit->isEnabled());
+        resumeCheck->setChecked(false);
+        QVERIFY(seedEdit->isEnabled());
+
+        // 逆算生成器の進捗・採択シグナル受信と停止ライフサイクル
+        auto* retroGen = dialog.findChild<TsumeRetrogradeGenerator*>();
+        QVERIFY(retroGen != nullptr);
+        TsumeRetrogradeGenerator::Progress prog;
+        prog.phase = QStringLiteral("growing");
+        prog.maxPliesReached = 15;
+        prog.frontierNodes = 12;
+        prog.generatedCandidates = 345;
+        prog.found = 1;
+        prog.elapsedMs = 42000;
+        QVERIFY(QMetaObject::invokeMethod(&dialog, "onRetroPositionFound",
+                                          Q_ARG(QString, sfen), Q_ARG(QStringList, pv),
+                                          Q_ARG(int, 1), Q_ARG(int, 30)));
+        QVERIFY(QMetaObject::invokeMethod(&dialog, "onRetroProgressUpdated",
+                                          Q_ARG(TsumeRetrogradeGenerator::Progress, prog)));
+        QCOMPARE(dialog.findChild<QTableWidget*>(QStringLiteral("generatorResults"))->rowCount(), 1);
+
+        // 閉じて再生成すると逆算モード設定が永続化されていること
+        dialog.close();
+        TsumeshogiGeneratorDialog restored;
+        QCOMPARE(restored.findChild<QComboBox*>(QStringLiteral("generatorMode"))->currentIndex(), 1);
+        QCOMPARE(restored.findChild<QSpinBox*>(QStringLiteral("generatorRetroMaxAttack"))->value(), 24);
+        QCOMPARE(restored.findChild<QSpinBox*>(QStringLiteral("generatorBeamWidth"))->value(), 64);
+        QCOMPARE(restored.findChild<QLineEdit*>(QStringLiteral("generatorSeedFile"))->text(), seedPath);
+        QCOMPARE(restored.findChild<QLineEdit*>(QStringLiteral("generatorCheckpointFile"))->text(), cpPath);
     }
 };
 

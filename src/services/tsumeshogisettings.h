@@ -74,8 +74,8 @@ inline const Setting<int> tsumeCollectionFontSize{"FontSize/tsumeCollection", 10
 /// ファイル保存で最後に使用したディレクトリ
 inline const Setting<QString> tsumeshogiGeneratorLastSaveDirectory{"TsumeshogiGenerator/lastSaveDirectory", QString()};
 
-/// ダイアログのウィンドウサイズ（デフォルト: 840x800）
-inline const Setting<QSize> tsumeshogiGeneratorDialogSize{"SizeRelated/tsumeshogiGeneratorDialogSize", QSize(840, 800)};
+/// ダイアログのウィンドウサイズ（デフォルト: 840x840）
+inline const Setting<QSize> tsumeshogiGeneratorDialogSize{"SizeRelated/tsumeshogiGeneratorDialogSize", QSize(840, 840)};
 
 /// ダイアログのフォントサイズ（デフォルト: 10）
 inline const Setting<int> tsumeshogiGeneratorFontSize{"FontSize/tsumeshogiGenerator", 10};
@@ -98,6 +98,14 @@ struct GeneratorLimits {
     static constexpr int kMinTimeoutSec = 1;
     static constexpr int kMaxTimeoutSec = 300;
     static constexpr int kMaxPositions = 10000;   ///< 下限の 0 は無制限（GUI だけ。CLI は終わるために 1 から）
+    static constexpr int kMaxRetroAttackPieces = 38;
+    static constexpr int kMaxRetroDefendPieces = 38;
+    static constexpr int kMinBeamWidth = 1;
+    static constexpr int kMaxBeamWidth = 2000;
+    static constexpr int kMinBranchFactor = 4;
+    static constexpr int kMaxBranchFactor = 200;
+    static constexpr int kMinVerifyBudgetSec = 5;
+    static constexpr int kMaxVerifyBudgetSec = 86400;
 
     /// 目標手数として使えるか（範囲内の奇数。詰将棋は攻方の手で終わる）
     static constexpr bool isTargetMoves(int moves)
@@ -148,6 +156,44 @@ inline const Setting<bool> tsumeshogiGeneratorHelpExpanded{"TsumeshogiGenerator/
 
 /// 主手順の最終手に複数の詰手があっても採択するか（デフォルト: true）
 inline const Setting<bool> tsumeshogiGeneratorAllowFinalMoveAlternatives{"TsumeshogiGenerator/allowFinalMoveAlternatives", true};
+
+/// 生成方式（0: ランダム配置、1: 詰み局面から逆算・編集）
+inline const BoundedSetting<int> tsumeshogiGeneratorMode{"TsumeshogiGenerator/mode", 0, 0, 1};
+
+/// 逆算・編集モード：攻め駒上限（デフォルト: 18）
+inline const BoundedSetting<int> tsumeshogiGeneratorRetroMaxAttackPieces{
+    "TsumeshogiGenerator/retroMaxAttackPieces", 18, GeneratorLimits::kMinAttackPieces, GeneratorLimits::kMaxRetroAttackPieces};
+
+/// 逆算・編集モード：守り駒上限（デフォルト: 12）
+inline const BoundedSetting<int> tsumeshogiGeneratorRetroMaxDefendPieces{
+    "TsumeshogiGenerator/retroMaxDefendPieces", 12, 0, GeneratorLimits::kMaxRetroDefendPieces};
+
+/// 逆算・編集モード：ビーム幅（デフォルト: 16）
+inline const BoundedSetting<int> tsumeshogiGeneratorBeamWidth{
+    "TsumeshogiGenerator/beamWidth", 16, GeneratorLimits::kMinBeamWidth, GeneratorLimits::kMaxBeamWidth};
+
+/// 逆算・編集モード：1展開あたりの分岐数（デフォルト: 32）
+inline const BoundedSetting<int> tsumeshogiGeneratorBranchFactor{
+    "TsumeshogiGenerator/branchFactor", 32, GeneratorLimits::kMinBranchFactor, GeneratorLimits::kMaxBranchFactor};
+
+/// 逆算・編集モード：厳密検証の総予算・秒（デフォルト: 300）
+inline const BoundedSetting<int> tsumeshogiGeneratorVerifyBudgetSec{
+    "TsumeshogiGenerator/verifyBudgetSec", 300, GeneratorLimits::kMinVerifyBudgetSec, GeneratorLimits::kMaxVerifyBudgetSec};
+
+/// 逆算・編集モード：駒余りを禁止するか（デフォルト: true）
+inline const Setting<bool> tsumeshogiGeneratorRequireNoSurplus{"TsumeshogiGenerator/requireNoSurplus", true};
+
+/// 逆算・編集モード：類似作を除外するか（デフォルト: true）
+inline const Setting<bool> tsumeshogiGeneratorExcludeSimilar{"TsumeshogiGenerator/excludeSimilar", true};
+
+/// 逆算・編集モード：種局面ファイルパス（任意）
+inline const Setting<QString> tsumeshogiGeneratorSeedFile{"TsumeshogiGenerator/seedFile", QString()};
+
+/// 逆算・編集モード：チェックポイント保存ファイルパス（任意）
+inline const Setting<QString> tsumeshogiGeneratorCheckpointFile{"TsumeshogiGenerator/checkpointFile", QString()};
+
+/// 逆算・編集モード：チェックポイントから再開するか（デフォルト: false）
+inline const Setting<bool> tsumeshogiGeneratorResumeCheckpoint{"TsumeshogiGenerator/resumeCheckpoint", false};
 
 } // namespace TsumeshogiSettings
 

@@ -10,12 +10,15 @@
 #include <QDialog>
 #include <QList>
 
+#include "tsumeretrogradegenerator.h"
 #include "tsumeshogigenerator.h"
 
 class EngineSelector;
 class QCheckBox;
 class QComboBox;
+class QFormLayout;
 class QLabel;
+class QLineEdit;
 class QProgressBar;
 class QPushButton;
 class QScrollArea;
@@ -23,12 +26,13 @@ class QSpinBox;
 class QTableWidget;
 class QToolButton;
 class QVBoxLayout;
+class QWidget;
 
 /**
  * @brief 詰将棋局面生成ダイアログ
  *
- * エンジン選択、生成パラメータ設定、プログレス表示、結果テーブルを
- * 1つのダイアログにまとめる。
+ * エンジン選択、生成方式（ランダム配置／詰み局面から逆算・編集）、
+ * 生成パラメータ設定、プログレス表示、結果テーブルを1つのダイアログにまとめる。
  */
 class TsumeshogiGeneratorDialog : public QDialog
 {
@@ -53,6 +57,16 @@ private slots:
     void onTrimmingProgress(int candidate, int total);
     void onVerificationProgress(int queries);
     void onVerificationStatsUpdated(int rejected, int inconclusive);
+    void onRetroPositionFound(const QString& sfen, const QStringList& pv, int removedPieces, int verifyQueries);
+    void onRetroProgressUpdated(const TsumeRetrogradeGenerator::Progress& progress);
+    void onRetroCheckpointSaved(const QString& path);
+    void onRetroFinished(bool stopped);
+    void onModeChanged(int index);
+    void onBrowseSeedFile();
+    void onClearSeedFile();
+    void onBrowseCheckpointFile();
+    void onClearCheckpointFile();
+    void onResumeCheckpointToggled(bool checked);
     void onSaveToFile();
     void onCopySelected();
     void onCopyAll();
@@ -66,6 +80,11 @@ private slots:
     void showEngineSettingsDialog(const EngineEntry& engine);
 
 private:
+    enum class GeneratorMode {
+        Random = 0,
+        Retrograde = 1
+    };
+
     /// 生成の進み
     enum class RunState {
         NotStarted,  ///< まだ開始していない
@@ -93,24 +112,46 @@ private:
     /// 表の行の高さ・見た目を今の文字に合わせる
     void fitToFont();
     void applyTableHeaderStyle();
+    void applyModeUi();
     void setRunState(RunState state);
     bool isRunning() const { return m_state == RunState::Running || m_state == RunState::Stopping; }
+    bool isRetrogradeModeSelected() const;
     void setStatusText(const QString& status);
     QString formatElapsedTime(qint64 ms) const;
     QString exportLine(const Result& result) const;
+    QString formatRetroPhase(const TsumeRetrogradeGenerator::Progress& progress) const;
 
     /// エンジンと生成設定（スクロールできる上段）
     struct SettingsPanel {
         QComboBox* engine = nullptr;
         QPushButton* engineSettings = nullptr;
         QScrollArea* scroll = nullptr;
+        QComboBox* mode = nullptr;
+        QFormLayout* leftForm = nullptr;
+        QFormLayout* rightForm = nullptr;
         QSpinBox* targetMoves = nullptr;
         QSpinBox* maxAttack = nullptr;
         QSpinBox* maxDefend = nullptr;
         QSpinBox* attackRange = nullptr;
+        QSpinBox* retroMaxAttack = nullptr;
+        QSpinBox* retroMaxDefend = nullptr;
+        QSpinBox* beamWidth = nullptr;
+        QSpinBox* branchFactor = nullptr;
+        QSpinBox* verifyBudget = nullptr;
+        QLabel* timeoutLabel = nullptr;
         QSpinBox* timeout = nullptr;
         QSpinBox* maxPositions = nullptr;
         QCheckBox* allowFinalAlternatives = nullptr; ///< 主手順の最終手の複数解を許容するか
+        QCheckBox* requireNoSurplus = nullptr;       ///< 逆算モード：駒余りを禁止するか
+        QCheckBox* excludeSimilar = nullptr;         ///< 逆算モード：類似作を除外するか
+        QWidget* retroFilesWidget = nullptr;         ///< 逆算モード：種局面・途中保存のファイル設定
+        QLineEdit* seedFile = nullptr;
+        QPushButton* browseSeed = nullptr;
+        QPushButton* clearSeed = nullptr;
+        QLineEdit* checkpointFile = nullptr;
+        QPushButton* browseCheckpoint = nullptr;
+        QPushButton* clearCheckpoint = nullptr;
+        QCheckBox* resumeCheckpoint = nullptr;
         QToolButton* help = nullptr;
         QLabel* helpText = nullptr;
         QPushButton* restoreDefaults = nullptr;
@@ -154,9 +195,12 @@ private:
 
     // ジェネレータ（parent ownership。ダイアログと同寿命で、開始のたびに再利用する）
     TsumeshogiGenerator* m_generator = nullptr;
+    TsumeRetrogradeGenerator* m_retroGenerator = nullptr;
 
     // 直近の生成で使った設定と開始日時（ファイル保存時のコメントヘッダに記録する）
+    GeneratorMode m_activeMode = GeneratorMode::Random;
     TsumeshogiGenerator::Settings m_lastRunSettings;
+    TsumeRetrogradeGenerator::Settings m_lastRunRetroSettings;
     QDateTime m_lastRunStartedAt;
     RunState m_state = RunState::NotStarted;
     QList<Result> m_results;   ///< 採択した局面（表は表示だけ）

@@ -73,6 +73,33 @@ private slots:
         QCOMPARE(lines.at(9), QStringLiteral("# 余詰検査: 最終手の複数解を許容しない"));
     }
 
+    void build_retrogradeHeaderRecordsSettings()
+    {
+        TsumeRetrogradeGenerator::Settings s;
+        s.engineName = QStringLiteral("KomoringHeights");
+        s.targetMoves = 101;
+        s.maxAttackPieces = 20;
+        s.maxDefendPieces = 14;
+        s.beamWidth = 16;
+        s.branchFactor = 32;
+        s.stepTimeoutMs = 3000;
+        s.verifyBudgetMs = 600000;
+        s.maxPositionsToFind = 5;
+        s.allowFinalMoveAlternatives = false;
+        s.requireNoSurplus = true;
+        const QStringList lines = TsumeshogiExportHeaderBuilder::build(
+            QStringLiteral("2026.11.27"), sampleDateTime(), s);
+        QCOMPARE(lines.size(), 10);
+        for (const QString& line : lines) {
+            QVERIFY2(line.startsWith(QStringLiteral("# ")), qPrintable(line));
+            QVERIFY2(!line.contains(QLatin1Char('\n')), qPrintable(line));
+        }
+        QCOMPARE(lines.at(0), QStringLiteral("# ShogiBoardQ 2026.11.27 詰将棋局面生成（逆算・編集）"));
+        QCOMPARE(lines.at(3), QStringLiteral("# 目標手数: 101 手詰"));
+        QCOMPARE(lines.at(6), QStringLiteral("# ビーム幅: 16 / 分岐数: 32"));
+        QCOMPARE(lines.at(9), QStringLiteral("# 厳密検査: 最終手の複数解を許容しない / 駒余りを禁止する"));
+    }
+
     /// 手順を付けると USI の position 構文に合わせて " moves " の後に並べる。手順が無ければ局面だけ
     void writerLineAppendsPvOnlyWhenRequested()
     {
