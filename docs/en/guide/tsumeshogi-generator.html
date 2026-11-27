@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tsume Shogi Generator - ShogiBoardQ</title>
-    <meta name="description" content="A guide to the tsume shogi generator in ShogiBoardQ: generate puzzles with the GUI dialog or the generate-tsume CLI, check them for alternative mates and unnecessary pieces, run parallel Python workers, and validate the collection.">
+    <meta name="description" content="A guide to the tsume shogi generator in ShogiBoardQ: generate puzzles with Random Placement or Retrograde &amp; Edit from Mate (Long Mates) in the GUI or CLI (generate-tsume / grow-tsume), verify uniqueness, zero surplus, and unnecessary pieces, resume checkpoints, run parallel Python workers, and audit collections.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html">
     <meta property="og:title" content="Tsume Shogi Generator - ShogiBoardQ">
-    <meta property="og:description" content="Generate tsume shogi from random positions, confirm the mates with a USI engine, and check alternative mates and unnecessary pieces, in the GUI or the CLI.">
+    <meta property="og:description" content="Automatically generate tsume shogi from short random positions to long mates up to 301 plies via retrograde editing and strict USI-engine verification, in the GUI or the CLI.">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/tsumeshogi-generator/tsumeshogi-generator-results.png">
     <meta property="og:locale" content="en_US">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Tsume Shogi Generator - ShogiBoardQ">
-    <meta name="twitter:description" content="Generate tsume shogi from random positions, confirm the mates with a USI engine, and check alternative mates and unnecessary pieces, in the GUI or the CLI.">
+    <meta name="twitter:description" content="Automatically generate tsume shogi from short random positions to long mates up to 301 plies via retrograde editing and strict USI-engine verification, in the GUI or the CLI.">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/tsumeshogi-generator/tsumeshogi-generator-results.png">
     <link rel="stylesheet" href="../../css/style.css">
     <link rel="stylesheet" href="../../css/tsumeshogi-generator.css">
@@ -62,11 +62,11 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>Tsume Shogi Generator</h1>
-        <p class="hero-subtitle">Generate tsume shogi from random positions verified by a USI engine</p>
+        <p class="hero-subtitle">Generate tsume shogi with a USI engine, from short random positions to long mates via retrograde editing</p>
         <div class="hero-badges">
-            <span class="badge">Automatic Generation</span>
-            <span class="badge">Alternative-Mate and Piece Checks</span>
-            <span class="badge">SFEN Output</span>
+            <span class="badge">Random / Retrograde &amp; Edit</span>
+            <span class="badge">Cook, Surplus &amp; Piece Checks</span>
+            <span class="badge">Checkpoint Save &amp; Resume</span>
             <span class="badge">CLI and Python</span>
         </div>
         <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
@@ -76,7 +76,7 @@
 <section id="overview" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">Overview</h2>
-        <p class="section-desc">Build random candidate positions, then check the mate and alternative mates before output</p>
+        <p class="section-desc">Generate puzzles with Random Placement for short mates or Retrograde &amp; Edit for long mates, verifying uniqueness and piece necessity before output</p>
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
@@ -86,9 +86,10 @@
                 <p class="guide-step-text">The tsume shogi generator automatically performs the following steps.</p>
                 <div class="guide-step-text">
                     <ul>
-                        <li>Generate random candidate tsume shogi positions.</li>
-                        <li>Screen candidates with the built-in mate search, then confirm a mate of the requested length with a USI engine (<code>go mate</code>).</li>
-                        <li>Check the main line for alternative mates and remove unnecessary pieces, keeping only positions that meet the conditions.</li>
+                        <li>Switch between two methods: Random Placement for short mates and Retrograde &amp; Edit from Mate (Long Mates) for longer puzzles up to 301 plies.</li>
+                        <li>In Random Placement, screen candidates with the built-in mate search; in Retrograde &amp; Edit, grow positions from mate endings or seed positions via retrograde moves, mutations, and cook repair, confirming mates of the target length with a USI engine (<code>go mate</code>).</li>
+                        <li>Check the main line for alternative mates, remove unnecessary pieces (all single-piece removals), and in Retrograde &amp; Edit mode optionally disallow surplus pieces and exclude similar problems.</li>
+                        <li>Save and resume Retrograde &amp; Edit runs using JSON checkpoints that preserve the search frontier and strict-verification cache.</li>
                         <li>List the results as SFEN for saving to a file or copying to the clipboard.</li>
                     </ul>
                 </div>
@@ -101,28 +102,29 @@
 <section id="generation" class="section">
     <div class="section-inner">
         <h2 class="section-title">Generation Settings</h2>
-        <p class="section-desc">Set the conditions in the generator dialog, then start generating</p>
+        <p class="section-desc">Choose the method and conditions in the generator dialog, then start generating</p>
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <h3 class="guide-step-title">Tsume Position Generator Dialog</h3>
                 </div>
-                <p class="guide-step-text">Choose Game → Tsume Position Generator… to open the dialog, check the engine and the generation settings, and click Start. The settings are used again next time.</p>
+                <p class="guide-step-text">Choose Game → Tsume Position Generator… to open the dialog, check the engine, method, and generation settings, and click Start. The settings are used again next time.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/en/tsumeshogi-generator/tsumeshogi-generator-settings.png" alt="Tsume Position Generator dialog" width="840" height="920" loading="lazy">
-                    <p class="screenshot-caption">Tsume Position Generator dialog with About engine settings and acceptance criteria expanded</p>
+                    <img src="../../images/en/tsumeshogi-generator/tsumeshogi-generator-settings.png" alt="Tsume Position Generator dialog" width="840" height="947" loading="lazy">
+                    <p class="screenshot-caption">Tsume Position Generator dialog in Random Placement mode with About engine settings and acceptance criteria expanded</p>
                 </div>
                 <table class="info-table">
                     <thead><tr><th scope="col">Setting</th><th scope="col">Description</th></tr></thead>
                     <tbody>
                         <tr><td>Engine</td><td>The USI engine used for mate search. Settings... changes the options of the selected engine.</td></tr>
-                        <tr><td>Target moves</td><td>The solution length of the puzzles (an odd number of plies). The default is a 3-move mate.</td></tr>
-                        <tr><td>Max attack pieces</td><td>The maximum number of attacking pieces on the board and in hand combined. The default is 4.</td></tr>
-                        <tr><td>Max defense pieces</td><td>The maximum number of defending pieces on the board, excluding the king. The default is 1.</td></tr>
-                        <tr><td>Max positions</td><td>Generation ends when this many positions have been accepted. The default is 10; 0 (Unlimited) keeps generating until you stop.</td></tr>
-                        <tr><td>Search time/pos</td><td>The time for the mate searches of a candidate and of each trimmed position, including the full alternative-mate check of each. The default is 5 seconds; positions whose checks do not finish in time are not accepted.</td></tr>
-                        <tr><td>Placement range</td><td>The range around the king in which attacking pieces are placed, in squares. The default is 3.</td></tr>
+                        <tr><td>Method</td><td>Choose Random Placement (for short mates) or Retrograde &amp; Edit from Mate (Long Mates). The default is Random Placement.</td></tr>
+                        <tr><td>Target moves</td><td>The solution length of the puzzles (an odd number from 1 to 301). The default is a 3-move mate. Retrograde &amp; Edit is recommended for 15+ plies.</td></tr>
+                        <tr><td>Max attack pieces</td><td>The maximum number of attacking pieces on the board and in hand combined: 1–10 (default 4) in Random Placement, or 1–38 (default 18) in Retrograde &amp; Edit.</td></tr>
+                        <tr><td>Max defense pieces</td><td>The maximum number of defending pieces on the board, excluding the king: 0–10 (default 1) in Random Placement, or 0–38 (default 12) in Retrograde &amp; Edit.</td></tr>
+                        <tr><td>Max positions</td><td>Generation ends when this many positions have been accepted (0–10000). The default is 10; 0 (Unlimited) keeps generating until you stop.</td></tr>
+                        <tr><td>Search time/pos</td><td>In Random Placement, the time for the mate searches of a candidate and of each trimmed position, including the full alternative-mate check of each (1–300 sec, default 5 sec). Positions whose checks do not finish in time are not accepted. In Retrograde &amp; Edit, this field becomes Search time/step.</td></tr>
+                        <tr><td>Placement range</td><td>In Random Placement, the range around the king in which attacking pieces are placed (1–8 squares). The default is 3.</td></tr>
                         <tr><td>Allow multiple mating moves on the final move</td><td>When on, positions are accepted even if the last move of the main line has several mating moves (except the first move of a 1-move mate). When off, the final move must be unique too. Alternative mates earlier in the main line, such as on the first move, are always excluded.</td></tr>
                         <tr><td>Restore defaults</td><td>Reset the generation settings to their defaults.</td></tr>
                     </tbody>
@@ -135,7 +137,7 @@
                     <span class="guide-step-number">3</span>
                     <h3 class="guide-step-title">How Random Positions Are Generated</h3>
                 </div>
-                <p class="guide-step-text">Positions are built automatically as follows.</p>
+                <p class="guide-step-text">In Random Placement mode, positions are built automatically as follows.</p>
                 <ol class="guide-step-text">
                     <li>Place White's king on a random square of the 9×9 board.</li>
                     <li>Place attacking pieces around the king, randomly assigning them to the board or the attacker's hand.</li>
@@ -144,6 +146,36 @@
                     <li>Confirm that the king is not in check in the starting position.</li>
                 </ol>
                 <p class="guide-step-text">Generated positions are first screened by the built-in mate search, which removes positions proven not to mate in the target length and positions with several mating first moves. Candidates the built-in search cannot decide are also sent to the USI engine, and only positions whose mate of the requested length the engine confirms proceed to the alternative-mate check. The Searched count includes positions removed by the built-in screening.</p>
+            </div>
+            <div class="guide-step" id="retrograde-generation">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <h3 class="guide-step-title">Retrograde &amp; Edit from Mate (Long Mates)</h3>
+                </div>
+                <p class="guide-step-text">For long mates of 15+ plies, or when you want to save and resume long runs across sessions, select Retrograde &amp; Edit from Mate (Long Mates) in Method.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/tsumeshogi-generator/tsumeshogi-generator-retrograde.png" alt="Retrograde &amp; Edit from Mate settings in the Tsume Position Generator dialog" width="840" height="947" loading="lazy">
+                    <p class="screenshot-caption">Retrograde &amp; Edit mode settings (example configured for a 15-move mate)</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">Mode-specific setting</th><th scope="col">Description</th></tr></thead>
+                    <tbody>
+                        <tr><td>Beam width</td><td>Maximum promising positions kept per ply layer (1–2000, default 16). Larger values maintain greater variety.</td></tr>
+                        <tr><td>Search time/step</td><td>Time limit per position during retrograde growth (1–300 sec, default 5 sec). Automatically extended up to 3× (capped at 60 sec) during strict proof and piece trimming.</td></tr>
+                        <tr><td>Branch factor</td><td>Number of candidate positions generated per expansion via retrograde moves and board mutations (4–200, default 32).</td></tr>
+                        <tr><td>Verify budget</td><td>Maximum total time budget per candidate for strict proof and all-single-piece-removal trimming (5–86400 sec, default 300 sec).</td></tr>
+                        <tr><td>Disallow surplus pieces</td><td>On by default. Accepts only positions where the attacker has no remaining hand pieces on every longest defense and final mating move.</td></tr>
+                        <tr><td>Exclude similar problems</td><td>On by default. Excludes translated, mirrored, and single-move-different middle-line variants.</td></tr>
+                        <tr><td>Seed file (optional)</td><td>An optional file containing starting positions (one <code>SFEN</code> or <code>SFEN moves …</code> per line; lines beginning with <code>#</code> are ignored). When empty, positions are grown automatically from 0-ply mate endings. Use Browse... and Clear to choose or clear the file.</td></tr>
+                        <tr><td>Checkpoint (optional) / Resume from checkpoint</td><td>Periodically writes the search frontier, accepted puzzles, and strict-verification cache atomically to a JSON file. After stopping or interrupting a run, check Resume from checkpoint and click Start to continue (Seed file is disabled while Resume from checkpoint is checked).</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">Retrograde &amp; Edit mode grows and certifies long mates through the following pipeline.</p>
+                <ol class="guide-step-text">
+                    <li>Expand candidates from 0-ply mate endings or seed positions using defender/attacker retrograde moves and board mutations, keeping promising positions in each ply layer via multi-layer beam search.</li>
+                    <li>When a candidate has an alternative mate, attempt targeted cook repair (adding or adjusting pieces to block the cook line).</li>
+                    <li>Once a candidate reaches the target length, prove the exact shortest mate with natural completion of <code>go mate infinite</code>, verify every main-line attacking move, check zero surplus when enabled, and verify all single-piece removals before accepting the position.</li>
+                </ol>
             </div>
         </div>
     </div>
@@ -156,10 +188,10 @@
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <h3 class="guide-step-title">Results List</h3>
                 </div>
-                <p class="guide-step-text">When a mate of the requested length is found, the position is added to the results after trimming unnecessary pieces and checking for alternative mates. The progress bar shows accepted positions against Max positions, and the lines below it show the numbers of searched and accepted positions, the elapsed time, and the positions excluded by verification (including inconclusive ones).</p>
+                <p class="guide-step-text">When a mate of the requested length is found, the position is added to the results after trimming unnecessary pieces and checking for alternative mates. The progress bar shows accepted positions against Max positions. In Random Placement mode, the lines below show searched and accepted positions, elapsed time, and excluded/inconclusive counts; in Retrograde &amp; Edit mode, they show generated candidates, maximum plies reached, accepted count, frontier size, repaired count, and the active phase (retrograde growth search, first-move check, cook repair, or strict verification &amp; trimming).</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/en/tsumeshogi-generator/tsumeshogi-generator-results.png" alt="Results list of the tsume position generator" width="840" height="920" loading="lazy">
                     <p class="screenshot-caption">Generation results: ten 3-move mates accepted with the default settings</p>
@@ -171,20 +203,20 @@
                         <tr><td>Include moves</td><td>When on, saved and copied SFENs are followed by <code>moves</code> and the mating line in USI notation.</td></tr>
                         <tr><td>Copy Selected</td><td>Copy the selected positions to the clipboard (Ctrl+C). Use Ctrl or Shift to select several.</td></tr>
                         <tr><td>Copy All</td><td>Copy all positions to the clipboard.</td></tr>
-                        <tr><td>Save to File</td><td>Save the positions to a text file. The file starts with comment lines beginning with “#” that record the ShogiBoardQ version, the generation date and time, and the generation settings. The <a href="kyokumenshu-viewer.html">SFEN Collection Viewer</a> and <a href="tsume-play.html">Tsume Shogi Play</a> skip these lines when loading.</td></tr>
+                        <tr><td>Save to File</td><td>Save the positions to a text file. The file starts with comment lines beginning with “#” that record the ShogiBoardQ version, the generation date and time, and the method and settings used (including beam width, branch factor, verification budget, and surplus policy in Retrograde &amp; Edit mode). The <a href="kyokumenshu-viewer.html">SFEN Collection Viewer</a> and <a href="tsume-play.html">Tsume Shogi Play</a> skip these lines when loading.</td></tr>
                     </tbody>
                 </table>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <h3 class="guide-step-title">Remove Unnecessary Pieces</h3>
                 </div>
-                <p class="guide-step-text">Trimming automatically removes decorative pieces from the random positions: pieces that do not affect the mating solution.</p>
+                <p class="guide-step-text">Trimming automatically removes decorative pieces from generated positions: pieces that do not affect the mating solution.</p>
                 <div class="guide-step-text">
                     <ul>
                         <li>Try removing the attacking and defending pieces on the board and the pieces in the attacker's hand, one at a time.</li>
-                        <li>Keep a removal if the position still mates in the target length with a unique main line.</li>
+                        <li>Keep a removal if the position still mates in the target length with a unique main line (and zero surplus when enabled in Retrograde &amp; Edit mode).</li>
                         <li>Move removed pieces to the defender's hand to keep all 40 pieces.</li>
                         <li>Check again after each removal to find pieces that have become unnecessary.</li>
                         <li>Do not output a puzzle if a check after a removal times out or is inconclusive, or if trimming is interrupted by stopping or an error.</li>
@@ -203,7 +235,7 @@
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-number">7</span>
                     <h3 class="guide-step-title">Principal Variation Window</h3>
                 </div>
                 <p class="guide-step-text">Click Show in the results list to open the principal variation window. It shows the mating line at the top and the position below, with the Attacker and the Defender as players. Click ▶ to advance one move, or ▶| to go to the mating position. See <a href="tsumi-search.html#pv-board">the principal variation board in Mate Search</a> for details.</p>
@@ -219,14 +251,14 @@
 <section id="cli-generation" class="section section--alt cli-guide">
     <div class="section-inner">
         <h2 class="section-title">Generate Tsume Shogi with the CLI</h2>
-        <p class="section-desc">Set up generate-tsume, run parallel Python workers, save solutions, and reverify results</p>
+        <p class="section-desc">Set up generate-tsume and grow-tsume, save/resume checkpoints, run parallel Python workers, and audit collections</p>
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
                     <h3 class="guide-step-title">Prepare the CLI and a mate-search engine</h3>
                 </div>
-                <p class="guide-step-text"><code>generate-tsume</code> uses the same generation pipeline as the GUI. It outputs JSON Lines after checking mate length, main-line uniqueness, and unnecessary pieces. Python can launch the CLI directly as a child process; no MCP server is needed.</p>
+                <p class="guide-step-text"><code>shogiboardq-cli</code> shares the GUI generation pipeline and provides two subcommands: <code>generate-tsume</code> for short random-placement puzzles and <code>grow-tsume</code> for long mates via retrograde search, mutation, and strict verification. Both emit JSON Lines after checking mate length, main-line uniqueness, and unnecessary pieces. Python can launch the CLI directly as a child process; no MCP server is needed.</p>
                 <p class="guide-step-text">The examples below use a Linux shell and Python 3. Run them from the repository root. See <a href="linux-build-and-release.html">Building on Linux</a> for prerequisites. On other platforms, adjust the CLI executable name and path for your environment.</p>
                 <div class="format-example">
                     <h4>Build the CLI and list registered engines</h4>
@@ -235,14 +267,14 @@ cmake --build build --target shogiboardq-cli --parallel 4
 ./build/shogiboardq-cli list-engines</code></pre>
                 </div>
                 <p class="guide-step-text">First <a href="game-play.html#engine-registration">register an engine</a> that supports <code>go mate</code>. Pass the exact <strong>registered name</strong> returned by <code>list-engines</code> to <code>--engine</code>, not an executable path. Replace the example name below with your actual name, including spaces.</p>
-                <p class="guide-step-text">For KomoringHeights, a starting configuration for parallel generation is <code>Threads=1</code>, <code>USI_Hash=256</code>, <code>PostSearchLevel=MinLength</code>, and <code>GenerateAllLegalMoves=true</code>. Configure these through Engine Settings and check which options your engine supports.</p>
+                <p class="guide-step-text">For KomoringHeights, a starting configuration for parallel generation is <code>Threads=1</code>, <code>USI_Hash=256</code> (or <code>64</code>–<code>128</code> with many workers or <code>grow-tsume</code>), <code>PostSearchLevel=MinLength</code>, and <code>GenerateAllLegalMoves=true</code>. Configure these through Engine Settings and check which options your engine supports.</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <h3 class="guide-step-title">Generate one batch and inspect the JSON Lines output</h3>
+                    <h3 class="guide-step-title">Generate one batch with generate-tsume and inspect JSON Lines</h3>
                 </div>
-                <p class="guide-step-text">Start with up to ten 3-ply puzzles to check your engine configuration and output. The JSON Lines event log is a different format from the puzzle collection text file.</p>
+                <p class="guide-step-text">Start with up to ten 3-ply puzzles using <code>generate-tsume</code> to check your engine configuration and output. The JSON Lines event log is a different format from the puzzle collection text file.</p>
                 <div class="format-example">
                     <h4>Generate up to ten 3-ply puzzles</h4>
 <pre><code>./build/shogiboardq-cli generate-tsume \
@@ -254,14 +286,14 @@ cmake --build build --target shogiboardq-cli --parallel 4
                 <table class="info-table">
                     <thead><tr><th scope="col">Option</th><th scope="col">Meaning and range</th></tr></thead>
                     <tbody>
-                        <tr><td><code>--target-moves</code></td><td>Mate length: an odd number from 1 to 19; default 3</td></tr>
-                        <tr><td><code>--max-positions</code></td><td>Limit per process: 1–100 positions; default 10</td></tr>
-                        <tr><td><code>--timeout-ms</code></td><td>Time budget for candidate searches, trimming, and verification: 500–60000 ms; default 5000</td></tr>
+                        <tr><td><code>--target-moves</code></td><td>Mate length: an odd number from 1 to 301; default 3</td></tr>
+                        <tr><td><code>--max-positions</code></td><td>Limit per process: 1–10000 positions; default 10</td></tr>
+                        <tr><td><code>--timeout-ms</code></td><td>Time budget for candidate searches, trimming, and verification: 1000–300000 ms; default 5000</td></tr>
                         <tr><td><code>--max-attack</code></td><td>Maximum attacking pieces on board and in hand combined: 1–10; default 4</td></tr>
                         <tr><td><code>--max-defend</code></td><td>Maximum defending pieces on the board, excluding the king: 0–10; default 1</td></tr>
                         <tr><td><code>--attack-range</code></td><td>Attacking-piece placement range around the king: 1–8 squares; default 3</td></tr>
-                        <tr><td><code>--stdin-control</code></td><td>Stop on a line containing stop or on end-of-file on stdin</td></tr>
-                        <tr><td><code>--no-final-alternatives</code></td><td>Require a unique final mating move; final-move alternatives are allowed by default</td></tr>
+                        <tr><td><code>--stdin-control</code></td><td>Stop on a line containing <code>stop</code> or on end-of-file on stdin</td></tr>
+                        <tr><td><code>--no-final-alternatives</code></td><td>Require a unique final mating move (canonical name <code>--no-allow-final-move-alternatives</code>); final-move alternatives are allowed by default</td></tr>
                         <tr><td><code>--no-remaining-to-hand</code></td><td>Do not give unused pieces to the defender; omit this for standard tsume shogi</td></tr>
                     </tbody>
                 </table>
@@ -272,13 +304,68 @@ cmake --build build --target shogiboardq-cli --parallel 4
                 </div>
                 <p class="guide-step-text">With <code>--stdin-control</code>, type <code>stop</code> and press Enter to stop. Closing stdin also stops generation, so Python must keep <code>stdin=PIPE</code> open until it sends a stop request. An environment that starts the process with closed stdin may cause it to stop immediately.</p>
             </div>
-            <div class="guide-step" id="cli-parallel">
+            <div class="guide-step" id="cli-retrograde">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">Generate and resume long mates with grow-tsume</h3>
+                </div>
+                <p class="guide-step-text">Use <code>grow-tsume</code> to construct 15–301 ply mates under strict criteria (every main-line attacking move including the final move unique, zero surplus attacker hand pieces, zero unnecessary pieces across all single-piece removals, and natural completion of <code>go mate infinite</code>). Every file-path option requires an <strong>absolute path</strong>.</p>
+                <div class="format-example">
+                    <h4>Generate 15-ply puzzles with checkpoint and output files</h4>
+<pre><code>./build/shogiboardq-cli grow-tsume \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
+  --target-moves 15 --max-positions 5 \
+  --beam-width 16 --branch-factor 32 \
+  --max-attack 18 --max-defend 12 \
+  --step-timeout-ms 5000 --verify-query-timeout-ms 15000 \
+  --verify-budget-seconds 300 --hash-mb 64 --threads 1 \
+  --checkpoint "$PWD/tsume-work/grow15.ckpt.json" \
+  --output "$PWD/tsume-work/grow15.txt" \
+  --stdin-control &gt; tsume-work/grow15.jsonl</code></pre>
+                </div>
+                <div class="format-example">
+                    <h4>Resume from an interrupted checkpoint</h4>
+<pre><code>./build/shogiboardq-cli grow-tsume \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
+  --checkpoint "$PWD/tsume-work/grow15.ckpt.json" --resume \
+  --output "$PWD/tsume-work/grow15.txt" \
+  --hash-mb 64 --threads 1 --stdin-control &gt;&gt; tsume-work/grow15.jsonl</code></pre>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">Option</th><th scope="col">Meaning and range</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>--target-moves</code></td><td>Target mate length: odd number from 1 to 301; default 101</td></tr>
+                        <tr><td><code>--max-positions</code></td><td>Maximum certified positions to emit: 1–1000; default 1</td></tr>
+                        <tr><td><code>--beam-width</code> / <code>--branch-factor</code></td><td>Beam nodes kept per ply layer (1–2000, default 12) and candidates per expansion (4–200, default 24)</td></tr>
+                        <tr><td><code>--max-attack</code> / <code>--max-defend</code></td><td>Attacking pieces limit (1–38, default 20) and defending board pieces excluding king (0–38, default 14). Total board pieces use <code>--max-total-board-pieces</code> (2–39, default 30)</td></tr>
+                        <tr><td><code>--step-timeout-ms</code></td><td>Engine query limit during growth: 100–600000 ms; default 5000</td></tr>
+                        <tr><td><code>--verify-query-timeout-ms</code> / <code>--verify-budget-seconds</code></td><td>Per-query limit (500–600000 ms, default 15000) and per-candidate total budget (5–86400 sec, default 1800) for strict certification and trimming</td></tr>
+                        <tr><td><code>--hash-mb</code> / <code>--threads</code></td><td>Override engine <code>USI_Hash</code> (0–65536 MiB) and <code>Threads</code> (0–256); 0 keeps registered values</td></tr>
+                        <tr><td><code>--seed-sfen</code> / <code>--seed-file</code></td><td>Optional starting SFEN or seed file (absolute path; accepts <code>SFEN</code> or <code>SFEN moves …</code>). When omitted, grows automatically from 0-ply mate endings</td></tr>
+                        <tr><td><code>--exclude-file</code> / <code>--no-exclude-similar</code></td><td>Existing puzzle file (absolute path) to skip duplicates and similar lines; pass <code>--no-exclude-similar</code> to disable similarity filtering</td></tr>
+                        <tr><td><code>--checkpoint</code> / <code>--resume</code> / <code>--checkpoint-interval-seconds</code></td><td>Checkpoint JSON path (absolute path), resume flag, and save interval (5–3600 sec, default 30)</td></tr>
+                        <tr><td><code>--output</code></td><td>Append certified puzzles as <code>SFEN moves …</code> to this file (absolute path)</td></tr>
+                        <tr><td><code>--allow-final-move-alternatives</code> / <code>--no-require-no-surplus</code> / <code>--no-strict-min-length</code></td><td>Relax strict defaults. By default, final moves must be unique, attacker surplus pieces are forbidden, and <code>go mate infinite</code> must complete naturally</td></tr>
+                        <tr><td><code>--stdin-control</code></td><td>Stop on <code>stop</code> or EOF; also accepts live <code>exclude &lt;SFEN moves …&gt;</code> and <code>seed &lt;SFEN&gt;</code> lines for multi-worker synchronization</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">To build multi-ply long-mate collections (such as 15–31 plies) across parallel workers, use the bundled <code>scripts/generate_long_tsume_collections.py</code> orchestrator. It provides a shared similarity filter across workers, real-time <code>exclude</code>/<code>seed</code> synchronization over stdin, automatic skipping of already-expanded parent seeds, per-puzzle JSONL checkpointing, and resumable runs.</p>
+                <div class="format-example">
+                    <h4>Parallel long-mate collection generation and resume (bundled script)</h4>
+<pre><code>python3 scripts/generate_long_tsume_collections.py \
+  --engine /path/to/KomoringHeights-by-gcc \
+  --work-dir tsume-work/long-run \
+  --publish-dir tsume-work/published \
+  --plies 15 17 19 --count 100 --workers 4 --hash-mb 64</code></pre>
+                </div>
+            </div>
+            <div class="guide-step" id="cli-parallel">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
                     <h3 class="guide-step-title">Run parallel workers from Python and save progress</h3>
                 </div>
-                <p class="guide-step-text">Save the code below as <code>generate_tsume_parallel.py</code> and run <code>python3 generate_tsume_parallel.py</code> from the repository root. It only uses the Python standard library. Start with <code>TARGET=10</code> and <code>WORKERS=1</code>, then increase concurrency if CPU and memory capacity allow.</p>
-                <p class="guide-step-text"><code>PLIES</code> is the mate length, <code>TARGET</code> is the combined collection target, and <code>WORKERS</code> is the number of concurrent processes. Adjust <code>TIMEOUT_MS</code>, piece limits, and placement range at the top. Targets above 100 use successive batches of at most 100 positions each.</p>
+                <p class="guide-step-text">This minimal script runs <code>generate-tsume</code> workers in parallel for short mates. Save the code below as <code>generate_tsume_parallel.py</code> and run <code>python3 generate_tsume_parallel.py</code> from the repository root. It only uses the Python standard library. Start with <code>TARGET=10</code> and <code>WORKERS=1</code>, then increase concurrency if CPU and memory capacity allow.</p>
+                <p class="guide-step-text"><code>PLIES</code> is the mate length, <code>TARGET</code> is the combined collection target, and <code>WORKERS</code> is the number of concurrent processes. Adjust <code>TIMEOUT_MS</code>, piece limits, and placement range at the top. Collection runs in bounded batches until the target is reached.</p>
                 <details class="guide-step-text">
                     <summary>Show Python code: collect 100 three-ply puzzles with four workers</summary>
                     <div class="format-example">
@@ -418,23 +505,23 @@ if __name__ == "__main__":
             </div>
             <div class="guide-step" id="cli-notes">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <h3 class="guide-step-title">Notes on running, stopping, and resuming</h3>
                 </div>
                 <div class="guide-step-text">
                     <ul>
-                        <li><strong>Total runtime:</strong> <code>--timeout-ms</code> is not a deadline for the entire command. Long mates or strict settings may yield few positions, so time to reach the target is not guaranteed. Start with a small target, inspect progress, and stop to adjust settings if needed. Inconclusive results are neither proof of no mate nor successful verification.</li>
-                        <li><strong>CPU and memory:</strong> Both the worker count and the engine thread count affect resource use. Sixteen processes with 256 MiB each require about 4 GiB for hash tables alone, plus other memory.</li>
+                        <li><strong>Total runtime:</strong> <code>--timeout-ms</code> and <code>--verify-budget-seconds</code> are not deadlines for the entire command. Long mates or strict settings may yield few positions, so time to reach the target is not guaranteed. Start with a small target, inspect progress, and stop to adjust settings if needed. Inconclusive results are neither proof of no mate nor successful verification.</li>
+                        <li><strong>CPU and memory:</strong> Both the worker count and the engine thread count and hash size affect resource use. Running multiple workers with KomoringHeights defaults (e.g., <code>USI_Hash=4096</code>, <code>Threads=4</code>) can quickly exhaust RAM; pass <code>--hash-mb 64 --threads 1</code> to <code>grow-tsume</code> or configure lower values in Engine Settings beforehand.</li>
                         <li><strong>Configuration:</strong> If CLI engines differ from those in the GUI, check that you are using the same user and settings. On Linux, when changing <code>XDG_CONFIG_HOME</code>, prepare engine registrations and options in <code>ShogiBoardQ/ShogiBoardQ.ini</code> under that directory. Use the same environment for <code>list-engines</code> and Python.</li>
-                        <li><strong>Resuming:</strong> Do not let multiple Python collectors write to the same <code>OUTPUT</code>. The example does not reverify existing lines. If mate length, engine, or alternative-mate policy changes, use a new output file or reverify existing entries. Settings are also recorded in the <code>started</code> event logs.</li>
-                        <li><strong>Alternative mates:</strong> By default, multiple final mating moves and alternative solutions in shorter side lines are allowed. To require a unique final move, set <code>ALLOW_FINAL_ALTERNATIVES=False</code> and also pass <code>--no-final-alternatives</code> when reverifying.</li>
-                        <li><strong>Output files:</strong> <code>tsume-batch.jsonl</code> is an event log. Python writes collected SFENs and solutions to <code>tsume-work/tsume_3ply_candidates.txt</code>. If a CLI process fails, inspect its JSON Lines and stderr logs.</li>
+                        <li><strong>Resuming:</strong> Do not let multiple processes write to the same <code>OUTPUT</code> or <code>--checkpoint</code> file at once. The <code>generate_tsume_parallel.py</code> example does not reverify existing lines; if mate length, engine, or alternative-mate policy changes, use a new output file or reverify existing entries. Settings are also recorded in the <code>started</code> event logs.</li>
+                        <li><strong>Alternative mates and surplus:</strong> <code>generate-tsume</code> allows multiple final mating moves by default (pass <code>--no-final-alternatives</code> to forbid them). In contrast, <code>grow-tsume</code> defaults to strict uniqueness on the final move, zero surplus pieces, and natural completion of <code>go mate infinite</code>. Keep verification flags consistent when reverifying.</li>
+                        <li><strong>Output files:</strong> <code>tsume-batch.jsonl</code> and <code>grow15.jsonl</code> are event logs. Use the puzzle text files written by <code>--output</code> or Python for collections. If a CLI process fails, inspect its JSON Lines and stderr logs.</li>
                     </ul>
                 </div>
             </div>
             <div class="guide-step" id="collection-validation">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <h3 class="guide-step-title">Save solution text and validate the collection</h3>
                 </div>
                 <p class="guide-step-text">Use UTF-8 and one puzzle per line in the form <code>SFEN moves USI-moves…</code>. Comments beginning with <code>#</code> can record the date, engine, mate length, piece limits, time budgets, and alternative-mate policy.</p>
@@ -442,7 +529,7 @@ if __name__ == "__main__":
                     <h4>A three-ply puzzle, saved as one line</h4>
 <pre><code>9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+</code></pre>
                 </div>
-                <p class="guide-step-text">Use <code>verify-tsume</code> to recheck main-line uniqueness. This example checks one position; for a collection, pass each SFEN in turn.</p>
+                <p class="guide-step-text">Use <code>verify-tsume</code> (supports odd lengths from 1 to 301) to recheck main-line uniqueness. This example checks one position; for a collection, pass each SFEN in turn.</p>
                 <div class="format-example">
                     <h4>Recheck main-line uniqueness</h4>
 <pre><code>./build/shogiboardq-cli verify-tsume \
@@ -477,14 +564,15 @@ python3 scripts/audit_tsume_collections.py tsume-work/tsume_3ply_candidates.txt 
                     <span class="guide-step-number">1</span>
                     <h3 class="guide-step-title">Check solution similarity as well as duplicate positions</h3>
                 </div>
-                <p class="guide-step-text">Different SFENs can still produce similar solving experiences through the same king chase, reflection, translation, or substitutions such as gold and promoted knight. Removing duplicate positions with the standard CLI and Python example does not guarantee variety in a collection.</p>
+                <p class="guide-step-text">Different SFENs can still produce similar solving experiences through the same king chase, reflection, translation, or substitutions such as gold and promoted knight. Removing duplicate positions with <code>generate-tsume</code> and the Python example does not guarantee variety in a collection.</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <h3 class="guide-step-title">Filter and replenish with collection-editing tools</h3>
                 </div>
-                <p class="guide-step-text"><code>scripts/refill_diverse_tsume.py</code> takes verified collections, shares a similarity index across workers, and generates replacements for missing entries. It uses dedicated samplers and auditors separately from the standard CLI. After replenishment, run an independent audit with <code>scripts/audit_tsume_collections.py</code>. Once all results are conclusive, <code>scripts/publish_diverse_tsume.py</code> orders puzzles to reduce overlap with the preceding ten solutions.</p>
+                <p class="guide-step-text">For 3–13 ply collections, <code>scripts/refill_diverse_tsume.py</code> takes verified collections, shares a similarity index across workers, and generates replacements for missing entries. After replenishment, run an independent audit with <code>scripts/audit_tsume_collections.py</code>, and once all results are conclusive, use <code>scripts/publish_diverse_tsume.py</code> to order puzzles to reduce overlap with the preceding ten solutions.</p>
+                <p class="guide-step-text">For 15–31 ply long-mate collections, <code>grow-tsume</code>’s built-in similarity filter and <code>scripts/generate_long_tsume_collections.py</code> (with a cross-worker similarity index and spread ordering) are used before running the same independent audit.</p>
                 <p class="guide-step-text">Similarity filtering is an editorial rule based on the main line, not a complete assessment of a puzzle’s value including variations and misleading alternatives. See the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">collection README (Japanese)</a> for input requirements, resuming, exclusions, and publication.</p>
             </div>
         </div>

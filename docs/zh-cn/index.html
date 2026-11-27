@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShogiBoardQ - 将棋对局、分析与诘棋软件</title>
-    <meta name="description" content="ShogiBoardQ 是一款免费的将棋（日本象棋）软件，支持与 USI 引擎对局、局面研究和棋谱分析，附带 6,000 道诘棋题目，并提供 40 种棋子和可自由搭配的棋盘外观。可在 Windows、macOS 和 Linux 上运行。">
+    <meta name="description" content="ShogiBoardQ 是一款免费的将棋（日本象棋）软件，支持与 USI 引擎对局、局面研究和棋谱分析，提供 15,000 道诘棋题目（3～31 手诘），并提供 40 种棋子和可自由搭配的棋盘外观。可在 Windows、macOS 和 Linux 上运行。">
     <meta name="google-site-verification" content="6uVKShyfeRaK8nx6ROgoIuBXb2qdMtwgX8NJfiBrwVM" />
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/">
     <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/">
@@ -16,7 +16,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/">
     <meta property="og:title" content="ShogiBoardQ - 将棋对局、分析与诘棋软件">
-    <meta property="og:description" content="ShogiBoardQ 是一款免费的将棋（日本象棋）软件，支持与 USI 引擎对局、局面研究和棋谱分析，附带 6,000 道诘棋题目，并提供 40 种棋子和可自由搭配的棋盘外观。可在 Windows、macOS 和 Linux 上运行。">
+    <meta property="og:description" content="ShogiBoardQ 是一款免费的将棋（日本象棋）软件，支持与 USI 引擎对局、局面研究和棋谱分析，提供 15,000 道诘棋题目（3～31 手诘），并提供 40 种棋子和可自由搭配的棋盘外观。可在 Windows、macOS 和 Linux 上运行。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/og-image.png?v=20261106">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -28,7 +28,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ShogiBoardQ - 将棋对局、分析与诘棋软件">
-    <meta name="twitter:description" content="与 USI 引擎对局、分析棋谱、挑战 6,000 道诘棋。适用于 Windows、macOS、Linux 的免费将棋软件。">
+    <meta name="twitter:description" content="与 USI 引擎对局、分析棋谱、挑战 15,000 道诘棋（3～31 手诘）。适用于 Windows、macOS、Linux 的免费将棋软件。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/og-image.png?v=20261106">
     <link rel="icon" type="image/png" href="../images/shogiboardq-icon.png">
     <link rel="stylesheet" href="../css/style.css?v=20261024">
@@ -39,7 +39,7 @@
     "@type": "SoftwareApplication",
     "name": "ShogiBoardQ",
     "url": "https://hnakada123.github.io/ShogiBoardQ/zh-cn/",
-    "description": "ShogiBoardQ 是一款免费的将棋（日本象棋）软件，支持与 USI 引擎对局、局面研究和棋谱分析，附带 6,000 道诘棋题目，并提供 40 种棋子和可自由搭配的棋盘外观。可在 Windows、macOS 和 Linux 上运行。",
+    "description": "ShogiBoardQ 是一款免费的将棋（日本象棋）软件，支持与 USI 引擎对局、局面研究和棋谱分析，提供 15,000 道诘棋题目（3～31 手诘），并提供 40 种棋子和可自由搭配的棋盘外观。可在 Windows、macOS 和 Linux 上运行。",
     "applicationCategory": "GameApplication",
     "operatingSystem": "Windows, macOS, Linux",
     "inLanguage": "zh-Hans",
@@ -116,7 +116,7 @@
 <div class="stats">
     <ul class="stats__grid">
         <li class="stats__item"><span class="stats__value">40</span><span class="stats__label">种棋子样式</span></li>
-        <li class="stats__item"><span class="stats__value">6,000</span><span class="stats__label">道附带的诘棋（3～13 手诘）</span></li>
+        <li class="stats__item"><span class="stats__value">15,000</span><span class="stats__label">道公开诘棋（3～31 手诘）</span></li>
         <li class="stats__item"><span class="stats__value">7</span><span class="stats__label">种可读取的棋谱格式</span></li>
         <li class="stats__item"><span class="stats__value">4</span><span class="stats__label">种界面语言</span></li>
     </ul>
@@ -191,13 +191,13 @@
         <article class="highlight">
             <div class="highlight__text">
                 <p class="highlight__kicker"><img src="../images/icons/tsume-play.svg" alt="">诘棋</p>
-                <h3>在棋盘上挑战<br>6,000 道诘棋</h3>
-                <p>发布包收录 3、5、7、9、11、13 手诘各 1,000 道。从题目列表中选题，由内置引擎 Hayanagi 担任守方，在棋盘上将死对方的玉。</p>
+                <h3>在棋盘上挑战<br>15,000 道诘棋</h3>
+                <p>公开 3～31 手诘各 1,000 道、共 15,000 道（3～13 手诘随发布包附带，15～31 手诘可下载获取）。从题目列表中选题，由内置引擎 Hayanagi 担任守方，在棋盘上将死对方的玉。</p>
                 <ul class="check-list">
                     <li>以棋盘卡片浏览题目，并按挑战进度筛选</li>
                     <li>在剩余手数内将死即为正解，成立的其他解法同样判为正确</li>
                     <li>通过挑战记录和正解手顺回放进行复盘</li>
-                    <li>还可以用诘棋搜索和诘棋局面生成器（GUI 与 CLI）自己出题</li>
+                    <li>还可以用诘棋搜索和诘棋局面生成器（随机布子与面向长手数的逆推/编辑，支持 GUI、CLI 与断点续传）自己出题</li>
                 </ul>
                 <p class="link-row">
                     <a href="guide/tsume-play.html">诘棋练习 &rarr;</a>
@@ -306,7 +306,7 @@
             <ul class="mini-grid">
                 <li><a href="guide/tsume-play.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/tsume-play.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>诘棋练习</h4><p>从题目列表中选题，在棋盘上解题，并通过挑战记录和正解手顺复盘。</p></div>
+                    <div class="mini-card__text"><h4>诘棋练习</h4><p>从 3～31 手诘的公开题集（15,000 道）或自制题集中选题，在棋盘上解题，并通过挑战记录和正解手顺复盘。</p></div>
                 </a></li>
                 <li><a href="guide/tsumi-search.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/mate-search.svg" alt=""></span>
@@ -314,7 +314,7 @@
                 </a></li>
                 <li><a href="guide/tsumeshogi-generator.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/tsume-generator.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>诘棋局面生成器</h4><p>在 GUI 或 CLI 中自动生成符合条件的诘棋，检查余诘后保存。</p></div>
+                    <div class="mini-card__text"><h4>诘棋局面生成器</h4><p>在 GUI 或 CLI 中自动生成诘棋（从短手数随机布子到最多 301 手的逆推/编辑），检查余诘、余子与多余棋子后保存。</p></div>
                 </a></li>
             </ul>
         </div>
@@ -438,7 +438,7 @@
                 <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-ubuntu.zip" class="btn btn--accent"><img src="../images/icons/download.svg" alt="">Ubuntu 版（ZIP）</a>
             </li>
         </ul>
-        <p class="dl-note">各安装包<wbr>均附带<wbr>诘棋题集（6,000 道）<wbr>和<wbr>将棋引擎 Hayanagi（含定式文件）。系统要求<wbr>和<wbr>更新内容<wbr>请参阅<wbr><a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest">发布说明</a>（日文）。</p>
+        <p class="dl-note">各安装包<wbr>均附带<wbr>诘棋题集（3～13 手诘，6,000 道）<wbr>和<wbr>将棋引擎 Hayanagi（含定式文件），15～31 手诘（9,000 道）可从使用指南下载。系统要求<wbr>和<wbr>更新内容<wbr>请参阅<wbr><a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest">发布说明</a>（日文）。</p>
 
         <div class="build-box" id="build">
             <h3><img src="../images/icons/code.svg" alt="">从源代码构建</h3>

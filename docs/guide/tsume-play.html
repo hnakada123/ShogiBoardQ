@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>詰将棋対局 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの詰将棋対局を紹介します。SFEN局面集から問題を選び、Hayanagiを玉方として盤上で解けます。問題一覧のページ表示、挑戦・正答履歴、正解手順の再生に対応しています。3〜13手詰の問題集（計6000題）もダウンロードできます。">
+    <meta name="description" content="ShogiBoardQの詰将棋対局を紹介します。SFEN局面集から問題を選び、Hayanagiを玉方として盤上で解けます。問題一覧のページ表示、挑戦・正答履歴、正解手順の再生に対応しています。3〜31手詰の問題集（各1000題、計15000題）もダウンロードできます。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsume-play.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -82,14 +82,14 @@
                 </div>
                 <p class="guide-step-text">メニューの「対局」→「詰将棋対局…」を選ぶと、「詰将棋の問題一覧」が開きます。「局面集を開く…」で、1行に1局面のSFENが書かれたテキストファイルを選択してください。</p>
                 <p class="guide-step-text"><a href="tsumeshogi-generator.html">詰将棋局面生成</a>で保存した局面集を利用できます。初期局面だけのファイルにも、参考手順付きのファイルにも対応しています。詰み手数には確認済みの解析結果を使い、ファイル名や参考手順の長さだけで決めることはありません。</p>
-                <p class="guide-step-text">読み込みと履歴取得の軽量化、解析結果の再利用は、すべての対応する局面集で有効です。公開している3〜13手詰・各1000題の問題集は、アプリに記録した検証済みの内容と一致すれば、初回も手数確認の探索を省略します。改名・移動しても利用でき、内容を編集すると通常の解析に戻ります。「このページを再判定」を押すと改めて探索します。</p>
+                <p class="guide-step-text">読み込みと履歴取得の軽量化、解析結果の再利用は、すべての対応する局面集で有効です。公開している3〜31手詰・各1000題（計15000題）の問題集は、アプリに記録した検証済みの内容と一致すれば、初回も手数確認の探索を省略します。改名・移動しても利用でき、内容を編集すると通常の解析に戻ります。「このページを再判定」を押すと改めて探索します。</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <h3 class="guide-step-title">問題集をダウンロードする</h3>
                 </div>
-                <p class="guide-step-text">3・5・7・9・11・13手詰の問題集（各1000題、計6000題）を公開しています。Linux版のZIP（ShogiBoardQ-linux.zip）には data/tsumeshogi フォルダに同梱しています。ほかの環境では、次のリンクを右クリックしてファイルを保存してください。</p>
+                <p class="guide-step-text">3〜31手詰（3・5・7・9・11・13・15・17・19・21・23・25・27・29・31手詰）の問題集（各1000題、計15000題）を公開しています。Linux版のZIP（ShogiBoardQ-linux.zip）には3〜13手詰を data/tsumeshogi フォルダに同梱しています。15〜31手詰やほかの環境では、次のリンクを右クリックしてファイルを保存してください。</p>
                 <table class="info-table">
                     <thead><tr><th scope="col">手数</th><th scope="col">問題数</th><th scope="col">ファイル</th></tr></thead>
                     <tbody>
@@ -99,9 +99,18 @@
                         <tr><td>9手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_9ply_1000_20261001.txt">tsume_9ply_1000_20261001.txt</a>（97 KB）</td></tr>
                         <tr><td>11手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_11ply_1000_20261001.txt">tsume_11ply_1000_20261001.txt</a>（108 KB）</td></tr>
                         <tr><td>13手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_13ply_1000_20261001.txt">tsume_13ply_1000_20261001.txt</a>（120 KB）</td></tr>
+                        <tr><td>15手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_15ply_1000_20261127.txt">tsume_15ply_1000_20261127.txt</a>（131 KB）</td></tr>
+                        <tr><td>17手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_17ply_1000_20261127.txt">tsume_17ply_1000_20261127.txt</a>（142 KB）</td></tr>
+                        <tr><td>19手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_19ply_1000_20261127.txt">tsume_19ply_1000_20261127.txt</a>（153 KB）</td></tr>
+                        <tr><td>21手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_21ply_1000_20261127.txt">tsume_21ply_1000_20261127.txt</a>（164 KB）</td></tr>
+                        <tr><td>23手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_23ply_1000_20261127.txt">tsume_23ply_1000_20261127.txt</a>（175 KB）</td></tr>
+                        <tr><td>25手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_25ply_1000_20261127.txt">tsume_25ply_1000_20261127.txt</a>（186 KB）</td></tr>
+                        <tr><td>27手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_27ply_1000_20261127.txt">tsume_27ply_1000_20261127.txt</a>（197 KB）</td></tr>
+                        <tr><td>29手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_29ply_1000_20261127.txt">tsume_29ply_1000_20261127.txt</a>（208 KB）</td></tr>
+                        <tr><td>31手詰</td><td>1000題</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_31ply_1000_20261127.txt">tsume_31ply_1000_20261127.txt</a>（219 KB）</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">いずれも2026年10月1日版（駒余りの検査を加えて問題を差し替えた新版）で、UTF-8のテキストファイルです。作り方と検証の詳細は<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">問題集の説明（README）</a>をご覧ください。</p>
+                <p class="guide-step-text">3〜13手詰は2026年10月1日版（駒余りの検査を加えて問題を差し替えた新版）、15〜31手詰は2026年11月27日版（逆算・編集による生成で、最終手を含む全主手順一意・駒余りなし・不要駒ゼロを厳密検証した新版）で、いずれもUTF-8のテキストファイルです。作り方と検証の詳細は<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">問題集の説明（README）</a>をご覧ください。</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
@@ -120,7 +129,7 @@
                     <span class="guide-step-number">4</span>
                     <h3 class="guide-step-title">判定エンジンと判定時間を選ぶ</h3>
                 </div>
-                <p class="guide-step-text">内蔵のHayanagiなら、追加のエンジン登録なしで利用できます。初期局面の詰み判定は31手までです。長手数の問題には、komori-n氏が開発・公開している詰将棋エンジン<a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>を別途用意し、「設定」→「エンジン設定…」で登録して、問題一覧の「判定エンジン」で選択してください。登録の操作は<a href="game-play.html#engine-registration">エンジン登録のガイド</a>で確認できます。</p>
+                <p class="guide-step-text">内蔵のHayanagiなら、追加のエンジン登録なしで利用できます。初期局面の詰み判定は31手までです。15〜31手詰を安定して高速に判定したい場合や、33手以上の長手数を解く場合は、komori-n氏が開発・公開している詰将棋エンジン<a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>を別途用意し、「設定」→「エンジン設定…」で登録して、問題一覧の「判定エンジン」で選択してください。登録の操作は<a href="game-play.html#engine-registration">エンジン登録のガイド</a>で確認できます。</p>
                 <p class="guide-step-text">KomoringHeightsを選んだ場合も、玉方として応手を指すのはHayanagiです。KomoringHeightsは詰みの判定に使います。101手などの長手数も対象にできますが、制限時間内に判定できることが必要です。</p>
                 <p class="guide-step-text">「判定時間」は1〜600秒で指定できます。時間切れなどで「判定不能」になった場合は、時間を増やして「このページを再判定」を押してください。不詰が確認された問題は対局を開始できません。</p>
             </div>

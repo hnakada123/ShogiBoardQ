@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tsume Shogi Play - ShogiBoardQ</title>
-    <meta name="description" content="Use ShogiBoardQ&#x27;s Tsume Shogi Play to choose puzzles from SFEN collections and solve them against Hayanagi as the defender. Includes paged problem lists, attempt and solve history, solution playback, and downloadable collections of 6,000 puzzles (mates in 3 to 13 plies).">
+    <meta name="description" content="Use ShogiBoardQ&#x27;s Tsume Shogi Play to choose puzzles from SFEN collections and solve them against Hayanagi as the defender. Includes paged problem lists, attempt and solve history, solution playback, and downloadable collections of 15,000 puzzles (mates in 3 to 31 plies).">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsume-play.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -83,14 +83,14 @@
                 </div>
                 <p class="guide-step-text">Choose Game → Tsume Shogi Play… to open Tsume Shogi Problems. Click Open collection… and select a text file containing one SFEN position per line.</p>
                 <p class="guide-step-text">You can use collections saved by the <a href="tsumeshogi-generator.html">Tsume Shogi Generator</a>. Files containing only starting positions and files with reference lines are both supported. The mate length comes from verified analysis results, rather than solely from the filename or the reference line's length. Each player's move counts as one ply.</p>
-                <p class="guide-step-text">Faster loading, batched progress retrieval, and analysis cache reuse apply to all supported collections. The published collections of 1,000 puzzles each, covering mates in 3 to 13 plies, also skip the initial mate-length search when their contents match the verified records bundled with the app. Renaming or moving a file preserves this benefit; editing its contents restores normal analysis. Recheck this page always runs a fresh search.</p>
+                <p class="guide-step-text">Faster loading, batched progress retrieval, and analysis cache reuse apply to all supported collections. The published collections of 1,000 puzzles each, covering mates in 3 to 31 plies (15,000 puzzles in total), also skip the initial mate-length search when their contents match the verified records bundled with the app. Renaming or moving a file preserves this benefit; editing its contents restores normal analysis. Recheck this page always runs a fresh search.</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <h3 class="guide-step-title">Download the collections</h3>
                 </div>
-                <p class="guide-step-text">Collections of mates in 3, 5, 7, 9, 11 and 13 plies (1,000 puzzles each, 6,000 in total) are published. The Linux ZIP (ShogiBoardQ-linux.zip) includes them in its data/tsumeshogi folder. On other systems, right-click a link below and save the file.</p>
+                <p class="guide-step-text">Collections of mates in 3 to 31 plies (3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, and 31 plies; 1,000 puzzles each, 15,000 in total) are published. The Linux ZIP (ShogiBoardQ-linux.zip) includes the 3-to-13-ply collections in its data/tsumeshogi folder. For the 15-to-31-ply collections or on other systems, right-click a link below and save the file.</p>
                 <table class="info-table">
                     <thead><tr><th scope="col">Mate length</th><th scope="col">Puzzles</th><th scope="col">File</th></tr></thead>
                     <tbody>
@@ -100,9 +100,18 @@
                         <tr><td>9 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_9ply_1000_20261001.txt">tsume_9ply_1000_20261001.txt</a> (97 KB)</td></tr>
                         <tr><td>11 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_11ply_1000_20261001.txt">tsume_11ply_1000_20261001.txt</a> (108 KB)</td></tr>
                         <tr><td>13 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_13ply_1000_20261001.txt">tsume_13ply_1000_20261001.txt</a> (120 KB)</td></tr>
+                        <tr><td>15 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_15ply_1000_20261127.txt">tsume_15ply_1000_20261127.txt</a> (131 KB)</td></tr>
+                        <tr><td>17 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_17ply_1000_20261127.txt">tsume_17ply_1000_20261127.txt</a> (142 KB)</td></tr>
+                        <tr><td>19 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_19ply_1000_20261127.txt">tsume_19ply_1000_20261127.txt</a> (153 KB)</td></tr>
+                        <tr><td>21 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_21ply_1000_20261127.txt">tsume_21ply_1000_20261127.txt</a> (164 KB)</td></tr>
+                        <tr><td>23 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_23ply_1000_20261127.txt">tsume_23ply_1000_20261127.txt</a> (175 KB)</td></tr>
+                        <tr><td>25 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_25ply_1000_20261127.txt">tsume_25ply_1000_20261127.txt</a> (186 KB)</td></tr>
+                        <tr><td>27 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_27ply_1000_20261127.txt">tsume_27ply_1000_20261127.txt</a> (197 KB)</td></tr>
+                        <tr><td>29 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_29ply_1000_20261127.txt">tsume_29ply_1000_20261127.txt</a> (208 KB)</td></tr>
+                        <tr><td>31 plies</td><td>1,000</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_31ply_1000_20261127.txt">tsume_31ply_1000_20261127.txt</a> (219 KB)</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">All six are the October 1, 2026 edition (puzzles replaced after an added check for surplus pieces in hand) and are UTF-8 text files. For how they were made and verified, see the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">collection README (Japanese)</a>.</p>
+                <p class="guide-step-text">The 3-to-13-ply sets are the October 1, 2026 edition (puzzles replaced after adding a check for surplus pieces in hand), and the 15-to-31-ply sets are the November 27, 2026 edition (generated via retrograde editing and strictly verified for full main-line uniqueness including the final move, zero surplus pieces, and zero unnecessary pieces); all are UTF-8 text files. For how they were made and verified, see the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">collection README (Japanese)</a>.</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
@@ -121,7 +130,7 @@
                     <span class="guide-step-number">4</span>
                     <h3 class="guide-step-title">Select a mate solver and search time</h3>
                 </div>
-                <p class="guide-step-text">The built-in Hayanagi works without registering an additional engine. It checks starting positions for mates up to 31 plies. For longer puzzles, obtain <a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>, a tsume shogi engine developed and published by komori-n. Register it under Settings → Engine Settings…, then choose it under Mate solver in the problem list. See <a href="game-play.html#engine-registration">Registering an Engine</a> for the setup steps.</p>
+                <p class="guide-step-text">The built-in Hayanagi works without registering an additional engine. It checks starting positions for mates up to 31 plies. For faster, more reliable evaluation on 15-to-31-ply collections—or for puzzles of 33 plies and longer—obtain <a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>, a tsume shogi engine developed and published by komori-n. Register it under Settings → Engine Settings…, then choose it under Mate solver in the problem list. See <a href="game-play.html#engine-registration">Registering an Engine</a> for the setup steps.</p>
                 <p class="guide-step-text">Hayanagi still plays the defending moves when KomoringHeights is selected; KomoringHeights determines whether mate is possible. Long puzzles, including mates in 101 plies, can be used if the engine can finish its search within the time limit.</p>
                 <p class="guide-step-text">Search time can be set from 1 to 600 seconds. If a result is Undetermined, for example after a timeout, increase the time and click Recheck this page. Problems verified to have no mate cannot be opened for play.</p>
             </div>

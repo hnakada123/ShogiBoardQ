@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>诘棋局面生成器 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ 诘棋局面生成器的指南：通过 GUI 对话框或 generate-tsume CLI 自动生成诘棋，检查余诘和多余棋子后保存，并介绍用 Python 并行运行以及重新验证题集的方法。">
+    <meta name="description" content="ShogiBoardQ 诘棋局面生成器的指南：通过 GUI 对话框或 CLI（generate-tsume / grow-tsume），以随机布子或从将死局面逆推/编辑（长手数）两种方式自动生成诘棋，检查余诘、余子和多余棋子，支持断点保存与续传、Python 并行运行及题集独立审核。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumeshogi-generator.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumeshogi-generator.html">
     <meta property="og:title" content="诘棋局面生成器 - ShogiBoardQ">
-    <meta property="og:description" content="从随机局面出发，用 USI 引擎确认诘杀，并检查余诘和多余棋子，在 GUI 或 CLI 中生成诘棋。">
+    <meta property="og:description" content="从短手数随机布子到最多 301 手的逆推/编辑长手数诘棋，用 USI 引擎严格验证余诘、余子与多余棋子，可在 GUI 或 CLI 中自动生成。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/tsumeshogi-generator/tsumeshogi-generator-results.png">
     <meta property="og:locale" content="zh_CN">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="诘棋局面生成器 - ShogiBoardQ">
-    <meta name="twitter:description" content="从随机局面出发，用 USI 引擎确认诘杀，并检查余诘和多余棋子，在 GUI 或 CLI 中生成诘棋。">
+    <meta name="twitter:description" content="从短手数随机布子到最多 301 手的逆推/编辑长手数诘棋，用 USI 引擎严格验证余诘、余子与多余棋子，可在 GUI 或 CLI 中自动生成。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/tsumeshogi-generator/tsumeshogi-generator-results.png">
     <link rel="stylesheet" href="../../css/style.css">
     <link rel="stylesheet" href="../../css/tsumeshogi-generator.css">
@@ -62,11 +62,11 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>诘棋局面生成器</h1>
-        <p class="hero-subtitle">从随机局面出发，用 USI 引擎确认诘杀，自动生成诘棋</p>
+        <p class="hero-subtitle">从短手数的随机布子到通过逆推/编辑培育的长手数诘棋，用 USI 引擎自动生成</p>
         <div class="hero-badges">
-            <span class="badge">自动生成</span>
-            <span class="badge">检查余诘与多余棋子</span>
-            <span class="badge">SFEN 输出</span>
+            <span class="badge">随机布子 / 逆推编辑</span>
+            <span class="badge">检查余诘、余子与多余棋子</span>
+            <span class="badge">断点保存与续传</span>
             <span class="badge">支持 CLI 与 Python</span>
         </div>
         <p class="screenshot-note">截图在 Linux 上以简体中文界面拍摄。</p>
@@ -76,7 +76,7 @@
 <section id="overview" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">概要</h2>
-        <p class="section-desc">随机制作诘棋候选局面，检查诘杀与余诘后输出</p>
+        <p class="section-desc">支持面向短手数的随机布子与面向长手数的逆推/编辑两种方式，检查诘杀、余诘和多余棋子后输出</p>
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
@@ -86,9 +86,10 @@
                 <p class="guide-step-text">诘棋局面生成器会自动完成以下处理。</p>
                 <div class="guide-step-text">
                     <ul>
-                        <li>随机生成诘棋候选局面</li>
-                        <li>用内置的诘棋搜索筛选候选，再用 USI 引擎（<code>go mate</code>）确认指定手数的诘杀</li>
-                        <li>检查主线的余诘和多余棋子，只输出满足条件的局面</li>
+                        <li>可在面向短手数的“随机布子”与面向 15 手以上长手数（最多 301 手）的“从将死局面逆推/编辑（长手数）”之间切换</li>
+                        <li>随机布子会先用内置诘棋搜索筛选候选；逆推/编辑会从将死形或种子局面通过逆推、盘面变异和余诘修复培育局面，再由 USI 引擎（<code>go mate</code>）确认指定手数的诘杀</li>
+                        <li>检查主线的余诘和多余棋子（全单子移除），在逆推/编辑模式下还可检查禁止余子和排除相似作品，只输出满足条件的局面</li>
+                        <li>逆推/编辑模式支持通过 JSON 检查点保存搜索前沿与严格验证缓存，随时中断并继续</li>
                         <li>以 SFEN 格式列出结果，可以保存到文件或复制到剪贴板</li>
                     </ul>
                 </div>
@@ -101,28 +102,29 @@
 <section id="generation" class="section">
     <div class="section-inner">
         <h2 class="section-title">生成设置</h2>
-        <p class="section-desc">在生成对话框中设置条件并开始生成</p>
+        <p class="section-desc">在生成对话框中选择生成方式并设置条件，然后开始生成</p>
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <h3 class="guide-step-title">诘棋局面生成器对话框</h3>
                 </div>
-                <p class="guide-step-text">选择“对局”→“诘棋局面生成器…”打开对话框，确认引擎和生成设置后点击“开始”。设置下次也会沿用。</p>
+                <p class="guide-step-text">选择“对局”→“诘棋局面生成器…”打开对话框，确认引擎、生成方式和生成设置后点击“开始”。设置下次也会沿用。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/zh-cn/tsumeshogi-generator/tsumeshogi-generator-settings.png" alt="诘棋局面生成器对话框" width="840" height="920" loading="lazy">
-                    <p class="screenshot-caption">诘棋局面生成器对话框：展开“关于引擎设置与接受条件”的状态</p>
+                    <img src="../../images/zh-cn/tsumeshogi-generator/tsumeshogi-generator-settings.png" alt="诘棋局面生成器对话框" width="840" height="898" loading="lazy">
+                    <p class="screenshot-caption">诘棋局面生成器对话框：“随机布子”下展开“关于引擎设置与接受条件”的状态</p>
                 </div>
                 <table class="info-table">
                     <thead><tr><th scope="col">项目</th><th scope="col">说明</th></tr></thead>
                     <tbody>
                         <tr><td>引擎</td><td>用于诘棋搜索的 USI 引擎。点击“设置...”可以更改所选引擎的选项。</td></tr>
-                        <tr><td>目标手数</td><td>生成的诘棋手数（奇数）。默认是 3 手诘。</td></tr>
-                        <tr><td>进攻棋子上限</td><td>进攻方棋盘上的棋子与持驹合计枚数的上限。默认是 4 枚。</td></tr>
-                        <tr><td>防守棋子上限</td><td>除玉以外，防守方棋盘上棋子枚数的上限。默认是 1 枚。</td></tr>
-                        <tr><td>局面数上限</td><td>接受的局面达到这个数量后结束。默认是 10 个局面；设为 0（不限）时会一直生成，直到停止。</td></tr>
-                        <tr><td>每局面搜索时间</td><td>候选局面及移除棋子后的诘棋搜索、以及各自完整的余诘检查所用的时间。默认是 5 秒，未能在时间内完成检查的局面不会被接受。</td></tr>
-                        <tr><td>放置范围</td><td>以玉为中心放置进攻棋子的范围（格数）。默认是 3 格。</td></tr>
+                        <tr><td>生成方式</td><td>选择“随机布子”（短手数）或“从将死局面逆推/编辑（长手数）”。默认是“随机布子”。</td></tr>
+                        <tr><td>目标手数</td><td>生成的诘棋手数（1～301 的奇数）。默认是 3 手诘。15 手以上的长手数建议使用逆推/编辑方式。</td></tr>
+                        <tr><td>进攻棋子上限</td><td>进攻方棋盘上的棋子与持驹合计枚数的上限。随机布子为 1～10 枚（默认 4 枚），逆推/编辑为 1～38 枚（默认 18 枚）。</td></tr>
+                        <tr><td>防守棋子上限</td><td>除玉以外，防守方棋盘上棋子枚数的上限。随机布子为 0～10 枚（默认 1 枚），逆推/编辑为 0～38 枚（默认 12 枚）。</td></tr>
+                        <tr><td>局面数上限</td><td>接受的局面达到这个数量后结束（0～10000 个局面）。默认是 10 个局面；设为 0（不限）时会一直生成，直到停止。</td></tr>
+                        <tr><td>每局面搜索时间</td><td>随机布子模式下，候选局面及移除棋子后的诘棋搜索、以及各自完整余诘检查所用的时间（1～300 秒，默认 5 秒）。未能在时间内完成检查的局面不会被接受。在逆推/编辑模式下会切换为“探索时间/步”。</td></tr>
+                        <tr><td>放置范围</td><td>随机布子模式下，以玉为中心放置进攻棋子的范围（1～8 格）。默认是 3 格。</td></tr>
                         <tr><td>允许最后一手有多种将死着法</td><td>开启时，即使主线最后一手有多种将死着法也会接受（1 手诘的第一手除外）。关闭时，只输出最后一手也唯一的局面。第一手等主线中途的余诘始终会被排除。</td></tr>
                         <tr><td>恢复默认值</td><td>将生成设置恢复为默认值。</td></tr>
                     </tbody>
@@ -135,7 +137,7 @@
                     <span class="guide-step-number">3</span>
                     <h3 class="guide-step-title">随机局面的生成方式</h3>
                 </div>
-                <p class="guide-step-text">局面按以下步骤自动制作。</p>
+                <p class="guide-step-text">在“随机布子”方式下，局面按以下步骤自动制作。</p>
                 <ol class="guide-step-text">
                     <li>将后手的玉放在 9×9 棋盘上的随机位置</li>
                     <li>在玉的周围放置进攻棋子（随机分配到棋盘上或持驹）</li>
@@ -144,6 +146,36 @@
                     <li>确认初始局面中玉没有被将军</li>
                 </ol>
                 <p class="guide-step-text">制作出的局面先由内置的诘棋搜索筛选，排除已知在目标手数内不能将死的局面，以及找到多个将死第一手的局面。内置搜索无法判定的候选也会发送给 USI 引擎，只有引擎确认了指定手数诘杀的局面才会进入余诘检查。“已搜索”的局面数也包括被内置搜索排除的局面。</p>
+            </div>
+            <div class="guide-step" id="retrograde-generation">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <h3 class="guide-step-title">从将死局面逆推/编辑（长手数）</h3>
+                </div>
+                <p class="guide-step-text">要生成 15 手以上的长手数诘棋，或需要断点保存与续传时，请在“生成方式”中选择“从将死局面逆推/编辑（长手数）”。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/tsumeshogi-generator/tsumeshogi-generator-retrograde.png" alt="从将死局面逆推/编辑（长手数）的设置界面" width="840" height="937" loading="lazy">
+                    <p class="screenshot-caption">逆推/编辑模式的设置界面（15 手诘示例）</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">专用项目</th><th scope="col">说明</th></tr></thead>
+                    <tbody>
+                        <tr><td>束宽</td><td>每个手数层保留的有望局面最大数量（1～2000，默认 16）。越大则多样性越高。</td></tr>
+                        <tr><td>探索时间/步</td><td>逆推成长阶段检查每个局面的时间上限（1～300 秒，默认 5 秒）。严格验证与修剪时会自动延长至最多 3 倍（上限 60 秒）。</td></tr>
+                        <tr><td>分支数</td><td>每次展开通过逆推和盘面变异生成的候选局面数量（4～200，默认 32）。</td></tr>
+                        <tr><td>验证预算</td><td>单个候选局面用于严格证明和全单子移除修剪的最大时间预算（5～86400 秒，默认 300 秒）。</td></tr>
+                        <tr><td>禁止余子</td><td>默认开启。仅采纳在所有最长应手和最终手中攻方持驹为 0 枚的局面。</td></tr>
+                        <tr><td>排除相似作品</td><td>默认开启。排除平移、左右镜像以及中间招法仅差 1 手的相似作品。</td></tr>
+                        <tr><td>种子局面文件（可选）</td><td>作为成长起点的 SFEN 文件（每行一题，支持 <code>SFEN</code> 或 <code>SFEN moves …</code>，以 <code>#</code> 开头的行会忽略）。留空时从 0 手将死局面自动生成。可用“浏览...”“清除”选择或清空。</td></tr>
+                        <tr><td>检查点（可选） / 从检查点继续</td><td>定期将搜索前沿、已采纳局面和严格验证缓存以原子写入方式保存到 JSON 文件。停止或中断后，勾选“从检查点继续”并点击“开始”即可续传（勾选时种子局面文件栏会禁用）。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">逆推/编辑方式按以下流程培育并证明长手数诘棋。</p>
+                <ol class="guide-step-text">
+                    <li>从 0 手将死局面或种子局面出发，通过玉方/攻方的逆推着法和盘面变异展开候选，以多层束搜索保留各手数层的有望局面</li>
+                    <li>若发现余诘，尝试通过针对性盘面修改（余诘修复）封堵余诘路线</li>
+                    <li>到达目标手数的候选必须通过 <code>go mate infinite</code> 自然结束确认最短手数、主线每步的余诘检查、余子检查（开启时）以及全单子移除的多余棋子修剪后才会被采纳</li>
+                </ol>
             </div>
         </div>
     </div>
@@ -156,10 +188,10 @@
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <h3 class="guide-step-title">结果列表</h3>
                 </div>
-                <p class="guide-step-text">找到指定手数的诘杀后，完成多余棋子修剪和余诘检查的局面会加入结果列表。进度条显示已接受的局面数与局面数上限，下方显示已搜索和已接受的局面数、已用时间，以及验证排除的局面数（其中未确定的数量）。</p>
+                <p class="guide-step-text">找到指定手数的诘杀后，完成多余棋子修剪和余诘检查的局面会加入结果列表。进度条显示已接受的局面数与局面数上限。随机布子模式下，下方显示已搜索和已接受的局面数、已用时间及验证排除数（其中未确定的数量）；逆推/编辑模式下，显示候选生成数、最大到达手数、采纳数、前沿数量、修复成功数以及当前阶段（逆推成长探索中 / 检查首手余诘中 / 修复余诘中 / 严格证明与多余棋子检查中）。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-cn/tsumeshogi-generator/tsumeshogi-generator-results.png" alt="诘棋局面生成器的结果列表" width="840" height="920" loading="lazy">
                     <p class="screenshot-caption">生成结果：以默认设置接受了 10 个 3 手诘局面</p>
@@ -171,20 +203,20 @@
                         <tr><td>附加着法</td><td>开启时，保存和复制的 SFEN 后面会加上 <code>moves</code> 和 USI 格式的诘杀手顺。</td></tr>
                         <tr><td>复制所选</td><td>将选择的局面复制到剪贴板（Ctrl+C）。按住 Ctrl 或 Shift 键可以多选。</td></tr>
                         <tr><td>复制全部</td><td>将所有局面复制到剪贴板。</td></tr>
-                        <tr><td>保存到文件</td><td>保存为文本文件。文件开头会以“#”开头的注释行记录 ShogiBoardQ 的版本、生成日期时间和生成设置。<a href="kyokumenshu-viewer.html">SFEN 局面集查看器</a>和<a href="tsume-play.html">诘棋练习</a>读取时会跳过注释行。</td></tr>
+                        <tr><td>保存到文件</td><td>保存为文本文件。文件开头会以“#”开头的注释行记录 ShogiBoardQ 的版本、生成日期时间、所选方式和生成设置（逆推/编辑模式还会记录束宽、分支数、验证预算、余子条件等）。<a href="kyokumenshu-viewer.html">SFEN 局面集查看器</a>和<a href="tsume-play.html">诘棋练习</a>读取时会跳过注释行。</td></tr>
                     </tbody>
                 </table>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <h3 class="guide-step-title">修剪多余棋子</h3>
                 </div>
-                <p class="guide-step-text">修剪多余棋子会自动移除随机局面中的“装饰棋子”（移除后不影响诘杀手顺的棋子）。</p>
+                <p class="guide-step-text">修剪多余棋子会自动移除生成局面中的“装饰棋子”（移除后不影响诘杀手顺的棋子）。</p>
                 <div class="guide-step-text">
                     <ul>
                         <li>逐枚尝试移除棋盘上进攻方与防守方的棋子，以及进攻方的持驹</li>
-                        <li>如果移除后仍保持目标手数的诘杀和主线的唯一性，就确定移除</li>
+                        <li>如果移除后仍保持目标手数的诘杀和主线的唯一性（在逆推/编辑模式开启禁止余子时也要求无余子），就确定移除</li>
                         <li>移除的棋子移到防守方的持驹中，保持棋子总数不变</li>
                         <li>每移除一枚就重新检查，把新变得多余的棋子也移除</li>
                         <li>移除后的检查超时或无法判定的题目，以及因停止或错误而中断修剪的题目不会输出</li>
@@ -203,7 +235,7 @@
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-number">7</span>
                     <h3 class="guide-step-title">主要变化显示窗口</h3>
                 </div>
                 <p class="guide-step-text">在结果列表中点击“显示”，即可打开主要变化显示窗口。上方显示诘杀手顺，下方显示局面，对局者为进攻方和防守方。点击“▶”逐手前进，点击“▶|”前进到诘杀的局面。操作详情请参阅<a href="tsumi-search.html#pv-board">诘棋搜索的主要变化显示</a>。</p>
@@ -219,14 +251,14 @@
 <section id="cli-generation" class="section section--alt cli-guide">
     <div class="section-inner">
         <h2 class="section-title">用 CLI 生成诘棋</h2>
-        <p class="section-desc">从准备 generate-tsume，到用 Python 并行运行、保存和重新验证</p>
+        <p class="section-desc">从准备 generate-tsume / grow-tsume，到断点续传、Python 并行运行、保存和重新验证</p>
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
                     <h3 class="guide-step-title">准备 CLI 和诘棋搜索引擎</h3>
                 </div>
-                <p class="guide-step-text"><code>generate-tsume</code> 使用与 GUI 相同的生成处理，以 JSON Lines 输出已检查指定手数诘杀、主线余诘和多余棋子的局面。可以从 Python 直接以子进程启动 CLI，无需启动 MCP 服务器。</p>
+                <p class="guide-step-text"><code>shogiboardq-cli</code> 使用与 GUI 相同的生成处理，提供用于短手数随机布子的 <code>generate-tsume</code>，以及用于长手数逆推/编辑和严格验证的 <code>grow-tsume</code> 两个子命令。两者都会以 JSON Lines 输出已检查指定手数诘杀、主线余诘和多余棋子的局面。可以从 Python 直接以子进程启动 CLI，无需启动 MCP 服务器。</p>
                 <p class="guide-step-text">以下是使用 Linux shell 和 Python 3 的示例，请在仓库根目录执行。从源码准备的方法请参阅<a href="linux-build-and-release.html">在 Linux 上构建</a>。在 Windows 等环境中，请根据环境更改 CLI 可执行文件的名称和路径。</p>
                 <div class="format-example">
                     <h4>构建 CLI 并确认已注册的引擎</h4>
@@ -235,14 +267,14 @@ cmake --build build --target shogiboardq-cli --parallel 4
 ./build/shogiboardq-cli list-engines</code></pre>
                 </div>
                 <p class="guide-step-text">请先<a href="game-play.html#engine-registration">注册引擎</a>，选择支持 <code>go mate</code> 的引擎。<code>--engine</code> 指定的不是可执行文件路径，而是 <code>list-engines</code> 返回的<strong>注册名称</strong>。下面的名称只是示例，请连同空格一起替换为实际的注册名称。</p>
-                <p class="guide-step-text">使用 KomoringHeights 时，可以在引擎设置中把 <code>Threads=1</code>、<code>USI_Hash=256</code>、<code>PostSearchLevel=MinLength</code>、<code>GenerateAllLegalMoves=true</code> 作为并行运行的初始设置。支持的选项名称和值请在所用引擎中确认。</p>
+                <p class="guide-step-text">使用 KomoringHeights 时，可以在引擎设置中把 <code>Threads=1</code>、<code>USI_Hash=256</code>（多进程并行或使用 <code>grow-tsume</code> 时建议 <code>64</code>～<code>128</code>）、<code>PostSearchLevel=MinLength</code>、<code>GenerateAllLegalMoves=true</code> 作为初始设置。支持的选项名称和值请在所用引擎中确认。</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <h3 class="guide-step-title">生成一批并确认 JSON Lines</h3>
+                    <h3 class="guide-step-title">用 generate-tsume 生成一批并确认 JSON Lines</h3>
                 </div>
-                <p class="guide-step-text">先生成最多 10 题 3 手诘，确认引擎设置和输出。标准输出的 JSON Lines 与带手顺的题集文本是不同的格式。</p>
+                <p class="guide-step-text">先用 <code>generate-tsume</code> 生成最多 10 题 3 手诘，确认引擎设置和输出。标准输出的 JSON Lines 与带手顺的题集文本是不同的格式。</p>
                 <div class="format-example">
                     <h4>生成最多 10 题 3 手诘</h4>
 <pre><code>./build/shogiboardq-cli generate-tsume \
@@ -254,14 +286,14 @@ cmake --build build --target shogiboardq-cli --parallel 4
                 <table class="info-table">
                     <thead><tr><th scope="col">选项</th><th scope="col">含义与取值范围</th></tr></thead>
                     <tbody>
-                        <tr><td><code>--target-moves</code></td><td>目标手数。1～19 的奇数，默认 3</td></tr>
-                        <tr><td><code>--max-positions</code></td><td>一次启动生成的上限。1～100，默认 10</td></tr>
-                        <tr><td><code>--timeout-ms</code></td><td>候选搜索、移除棋子和余诘检查所用的时间预算。500～60000 毫秒，默认 5000</td></tr>
+                        <tr><td><code>--target-moves</code></td><td>目标手数。1～301 的奇数，默认 3</td></tr>
+                        <tr><td><code>--max-positions</code></td><td>一次启动生成的上限。1～10000，默认 10</td></tr>
+                        <tr><td><code>--timeout-ms</code></td><td>候选搜索、移除棋子和余诘检查所用的时间预算。1000～300000 毫秒，默认 5000</td></tr>
                         <tr><td><code>--max-attack</code></td><td>进攻方棋盘上与持驹合计的上限。1～10，默认 4</td></tr>
                         <tr><td><code>--max-defend</code></td><td>玉以外防守方棋盘上棋子的上限。0～10，默认 1</td></tr>
                         <tr><td><code>--attack-range</code></td><td>以玉为中心放置进攻棋子的范围。1～8 格，默认 3</td></tr>
-                        <tr><td><code>--stdin-control</code></td><td>标准输入收到 stop 行或 EOF 时停止</td></tr>
-                        <tr><td><code>--no-final-alternatives</code></td><td>最后一手有多种解时也不接受。省略时允许最后一手有多种解</td></tr>
+                        <tr><td><code>--stdin-control</code></td><td>标准输入收到 <code>stop</code> 行或 EOF 时停止</td></tr>
+                        <tr><td><code>--no-final-alternatives</code></td><td>最后一手有多种解时也不接受（正式名 <code>--no-allow-final-move-alternatives</code>）。省略时允许最后一手有多种解</td></tr>
                         <tr><td><code>--no-remaining-to-hand</code></td><td>不把未使用的棋子加入防守方持驹。一般的诘棋请省略</td></tr>
                     </tbody>
                 </table>
@@ -272,13 +304,68 @@ cmake --build build --target shogiboardq-cli --parallel 4
                 </div>
                 <p class="guide-step-text">加上 <code>--stdin-control</code> 时，在终端输入 <code>stop</code> 并按 Enter 即可停止。关闭标准输入也会停止，因此 Python 中要一直保持 <code>stdin=PIPE</code> 打开。在一开始就关闭输入的运行环境中，生成可能会立即结束。</p>
             </div>
-            <div class="guide-step" id="cli-parallel">
+            <div class="guide-step" id="cli-retrograde">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">用 grow-tsume 生成和续传长手数诘棋</h3>
+                </div>
+                <p class="guide-step-text">要按严格标准（主线含最终手全程唯一、无余子、全单子移除无多余棋子、<code>go mate infinite</code> 自然结束）生成 15～301 手的长手数诘棋，请使用 <code>grow-tsume</code>。所有指定文件路径的选项都必须传入<strong>绝对路径</strong>。</p>
+                <div class="format-example">
+                    <h4>生成 15 手诘并保存检查点与结果文件</h4>
+<pre><code>./build/shogiboardq-cli grow-tsume \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
+  --target-moves 15 --max-positions 5 \
+  --beam-width 16 --branch-factor 32 \
+  --max-attack 18 --max-defend 12 \
+  --step-timeout-ms 5000 --verify-query-timeout-ms 15000 \
+  --verify-budget-seconds 300 --hash-mb 64 --threads 1 \
+  --checkpoint "$PWD/tsume-work/grow15.ckpt.json" \
+  --output "$PWD/tsume-work/grow15.txt" \
+  --stdin-control &gt; tsume-work/grow15.jsonl</code></pre>
+                </div>
+                <div class="format-example">
+                    <h4>从中断的检查点继续</h4>
+<pre><code>./build/shogiboardq-cli grow-tsume \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
+  --checkpoint "$PWD/tsume-work/grow15.ckpt.json" --resume \
+  --output "$PWD/tsume-work/grow15.txt" \
+  --hash-mb 64 --threads 1 --stdin-control &gt;&gt; tsume-work/grow15.jsonl</code></pre>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">选项</th><th scope="col">含义与取值范围</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>--target-moves</code></td><td>目标手数。1～301 的奇数，默认 101</td></tr>
+                        <tr><td><code>--max-positions</code></td><td>采纳局面数上限。1～1000，默认 1</td></tr>
+                        <tr><td><code>--beam-width</code> / <code>--branch-factor</code></td><td>各手数层的束宽（1～2000，默认 12）与每次展开的分支数（4～200，默认 24）</td></tr>
+                        <tr><td><code>--max-attack</code> / <code>--max-defend</code></td><td>攻方棋子上限（1～38，默认 20）与不含玉的防守方盘上棋子上限（0～38，默认 14）。盘面总棋子数用 <code>--max-total-board-pieces</code>（2～39，默认 30）</td></tr>
+                        <tr><td><code>--step-timeout-ms</code></td><td>成长探索阶段单次查询时间上限。100～600000 毫秒，默认 5000</td></tr>
+                        <tr><td><code>--verify-query-timeout-ms</code> / <code>--verify-budget-seconds</code></td><td>严格证明与修剪的单次查询上限（500～600000 毫秒，默认 15000）及单候选总预算（5～86400 秒，默认 1800）</td></tr>
+                        <tr><td><code>--hash-mb</code> / <code>--threads</code></td><td>覆盖引擎的 <code>USI_Hash</code>（0～65536 MiB）和 <code>Threads</code>（0～256）；设为 0 时沿用已注册设置</td></tr>
+                        <tr><td><code>--seed-sfen</code> / <code>--seed-file</code></td><td>作为成长起点的 SFEN 或种子文件（绝对路径，支持 <code>SFEN</code> / <code>SFEN moves …</code>）。省略时从 0 手将死局面自动生成</td></tr>
+                        <tr><td><code>--exclude-file</code> / <code>--no-exclude-similar</code></td><td>用于跳过重复和相似题目的已有题集文件（绝对路径）；<code>--no-exclude-similar</code> 可关闭相似排除</td></tr>
+                        <tr><td><code>--checkpoint</code> / <code>--resume</code> / <code>--checkpoint-interval-seconds</code></td><td>检查点 JSON 保存路径（绝对路径）、续传标志、自动保存间隔（5～3600 秒，默认 30）</td></tr>
+                        <tr><td><code>--output</code></td><td>将采纳的局面以 <code>SFEN moves …</code> 格式追加写入此文件（绝对路径）</td></tr>
+                        <tr><td><code>--allow-final-move-alternatives</code> / <code>--no-require-no-surplus</code> / <code>--no-strict-min-length</code></td><td>放宽严格默认条件的选项。默认要求最终手唯一、无余子且 <code>go mate infinite</code> 自然结束</td></tr>
+                        <tr><td><code>--stdin-control</code></td><td>收到 <code>stop</code> 行或 EOF 时停止；运行中还可接收 <code>exclude &lt;SFEN moves …&gt;</code> 与 <code>seed &lt;SFEN&gt;</code> 行以实现多进程实时同步</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">若要用多个工作进程批量收集 15～31 手等长手数题集，可以使用源码附带的 <code>scripts/generate_long_tsume_collections.py</code>。它支持跨进程共享相似作品过滤、通过标准输入实时同步 <code>exclude</code>/<code>seed</code>、自动排除已派生子题的父种子，以及每题即时 JSONL 保存与中断续传。</p>
+                <div class="format-example">
+                    <h4>并行生成与续传长手数题集（附带脚本）</h4>
+<pre><code>python3 scripts/generate_long_tsume_collections.py \
+  --engine /path/to/KomoringHeights-by-gcc \
+  --work-dir tsume-work/long-run \
+  --publish-dir tsume-work/published \
+  --plies 15 17 19 --count 100 --workers 4 --hash-mb 64</code></pre>
+                </div>
+            </div>
+            <div class="guide-step" id="cli-parallel">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
                     <h3 class="guide-step-title">从 Python 并行运行并保存中间结果</h3>
                 </div>
-                <p class="guide-step-text">将下面的代码保存为 <code>generate_tsume_parallel.py</code>，在仓库根目录执行 <code>python3 generate_tsume_parallel.py</code>。不需要额外的 Python 包。请先用 <code>TARGET=10</code>、<code>WORKERS=1</code> 确认，如果 CPU 和内存有余量再增加并行数。</p>
-                <p class="guide-step-text"><code>PLIES</code> 是手数，<code>TARGET</code> 是所有工作进程合计的收集目标，<code>WORKERS</code> 是同时启动的数量。<code>TIMEOUT_MS</code>、棋子数和放置范围也可以在开头更改。超过 100 题时，也会把每批的上限控制在 100 以内，反复收集不足的部分。</p>
+                <p class="guide-step-text">这是用 Python 并行运行短手数 <code>generate-tsume</code> 的最小示例。将下面的代码保存为 <code>generate_tsume_parallel.py</code>，在仓库根目录执行 <code>python3 generate_tsume_parallel.py</code>。不需要额外的 Python 包。请先用 <code>TARGET=10</code>、<code>WORKERS=1</code> 确认，如果 CPU 和内存有余量再增加并行数。</p>
+                <p class="guide-step-text"><code>PLIES</code> 是手数，<code>TARGET</code> 是所有工作进程合计的收集目标，<code>WORKERS</code> 是同时启动的数量。<code>TIMEOUT_MS</code>、棋子数和放置范围也可以在开头更改。脚本会分批收集，直到达到目标数量。</p>
                 <details class="guide-step-text">
                     <summary>显示 Python 代码（以 4 个并行收集 100 题 3 手诘）</summary>
                     <div class="format-example">
@@ -418,23 +505,23 @@ if __name__ == "__main__":
             </div>
             <div class="guide-step" id="cli-notes">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <h3 class="guide-step-title">运行、停止和继续时的注意事项</h3>
                 </div>
                 <div class="guide-step-text">
                     <ul>
-                        <li><strong>整体完成时间：</strong><code>--timeout-ms</code> 不是整个命令的时间限制。长手数或严格的设置下接受的题目较少，无法保证达到目标数量所需的时间。请先用少量确认进度，必要时停止并调整条件。未确定的结果既不算无诘，也不算验证成功。</li>
-                        <li><strong>CPU 与内存：</strong>并行数和引擎内的线程数都会影响负载。给 16 个进程各分配 256 MiB 的哈希表时，仅哈希表就约需 4 GiB，此外还需要其他内存。</li>
+                        <li><strong>整体完成时间：</strong><code>--timeout-ms</code> 和 <code>--verify-budget-seconds</code> 不是整个命令的时间限制。长手数或严格的设置下接受的题目较少，无法保证达到目标数量所需的时间。请先用少量确认进度，必要时停止并调整条件。未确定的结果既不算无诘，也不算验证成功。</li>
+                        <li><strong>CPU 与内存：</strong>并行数、引擎内线程数以及哈希表大小都会影响负载。若沿用 KomoringHeights 的默认值（例如 <code>USI_Hash=4096</code>、<code>Threads=4</code>）启动多进程，很容易内存不足；在 <code>grow-tsume</code> 中请显式指定 <code>--hash-mb 64 --threads 1</code>，或事先在引擎设置中调小。</li>
                         <li><strong>配置文件：</strong>看不到在 GUI 中注册的引擎时，请确认是否以同一用户、同一配置运行。在 Linux 上更改 <code>XDG_CONFIG_HOME</code> 时，请在其下的 <code>ShogiBoardQ/ShogiBoardQ.ini</code> 中准备引擎注册和选项，并用同样的环境变量运行 <code>list-engines</code> 和 Python。</li>
-                        <li><strong>继续使用的文件：</strong>不要让多个 Python 进程同时更新同一个 <code>OUTPUT</code>。示例代码不会重新验证已有的行，因此更改手数、引擎或余诘条件后，请使用新的输出位置，或重新验证已有的部分。设置也可以在 <code>started</code> 事件的日志中确认。</li>
-                        <li><strong>余诘条件：</strong>默认允许主线最后一手的多种解，以及更早将死的变化中的另一种诘法。若要求最后一手也唯一，请设置 <code>ALLOW_FINAL_ALTERNATIVES=False</code>，重新验证时也加上 <code>--no-final-alternatives</code>。</li>
-                        <li><strong>区分输出：</strong><code>tsume-batch.jsonl</code> 是事件日志。Python 生成的 <code>tsume-work/tsume_3ply_candidates.txt</code> 是局面和手顺的收集文件。CLI 出错时，请查看该工作进程的 JSON Lines 和标准错误日志。</li>
+                        <li><strong>继续使用的文件：</strong>不要让多个进程同时更新同一个 <code>OUTPUT</code> 或 <code>--checkpoint</code> 文件。上面的 <code>generate_tsume_parallel.py</code> 不会重新验证已有的行，因此更改手数、引擎或余诘条件后，请使用新的输出位置，或重新验证已有的部分。设置也可以在 <code>started</code> 事件的日志中确认。</li>
+                        <li><strong>余诘与余子条件：</strong><code>generate-tsume</code> 默认允许主线最后一手的多种解（要禁用请加 <code>--no-final-alternatives</code>）。而 <code>grow-tsume</code> 默认采用严格标准：最终手也唯一、禁止余子、<code>go mate infinite</code> 自然结束。重新验证时请保持条件一致。</li>
+                        <li><strong>区分输出：</strong><code>tsume-batch.jsonl</code> 和 <code>grow15.jsonl</code> 是事件日志。用于题集的是 <code>--output</code> 或 Python 写入的带手顺文本文件。CLI 出错时，请查看该工作进程的 JSON Lines 和标准错误日志。</li>
                     </ul>
                 </div>
             </div>
             <div class="guide-step" id="collection-validation">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <h3 class="guide-step-title">带手顺文本的格式与重新验证</h3>
                 </div>
                 <p class="guide-step-text">题集使用 UTF-8，每行保存为 <code>SFEN moves USI着法…</code>。在以 <code>#</code> 开头的注释中记录生成日期、引擎、手数、棋子数与搜索时间、余诘条件，便于日后确认。</p>
@@ -442,7 +529,7 @@ if __name__ == "__main__":
                     <h4>3 手诘的保存格式（每行一题）</h4>
 <pre><code>9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+</code></pre>
                 </div>
-                <p class="guide-step-text">要重新检查主线的余诘，请使用 <code>verify-tsume</code>。下面是一个局面的示例。重新检查多题时，请依次传入收集文件中的各个 SFEN。</p>
+                <p class="guide-step-text">要重新检查主线的余诘，请使用 <code>verify-tsume</code>（支持 1～301 手的奇数）。下面是一个局面的示例。重新检查多题时，请依次传入收集文件中的各个 SFEN。</p>
                 <div class="format-example">
                     <h4>重新检查局面的余诘</h4>
 <pre><code>./build/shogiboardq-cli verify-tsume \
@@ -477,14 +564,15 @@ python3 scripts/audit_tsume_collections.py tsume-work/tsume_3ply_candidates.txt 
                     <span class="guide-step-number">1</span>
                     <h3 class="guide-step-title">不仅检查局面重复，也检查手顺相似</h3>
                 </div>
-                <p class="guide-step-text">即使 SFEN 不同，也可能因相同的追杀方式、左右翻转、布局平移、金与成桂等替换而使解法相似。仅靠标准 CLI 和上面 Python 示例的局面去重，无法保证题集的多样性。</p>
+                <p class="guide-step-text">即使 SFEN 不同，也可能因相同的追杀方式、左右翻转、布局平移、金与成桂等替换而使解法相似。仅靠 <code>generate-tsume</code> 和上面 Python 示例的局面去重，无法保证题集的多样性。</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <h3 class="guide-step-title">用题集编辑工具筛选和补充</h3>
                 </div>
-                <p class="guide-step-text"><code>scripts/refill_diverse_tsume.py</code> 以已验证的题集为输入，在所有工作进程间共用相似判定并生成不足的部分。它使用与标准 CLI 不同的专用候选生成器和审核器。补充后用 <code>scripts/audit_tsume_collections.py</code> 进行独立审核，判定全部确定后，再用 <code>scripts/publish_diverse_tsume.py</code> 按减少与前 10 题手顺重叠的顺序排列。</p>
+                <p class="guide-step-text">3～13 手诘的补充可以使用 <code>scripts/refill_diverse_tsume.py</code>，它以已验证的题集为输入，在所有工作进程间共用相似判定并生成不足的部分；补充后用 <code>scripts/audit_tsume_collections.py</code> 进行独立审核，判定全部确定后，再用 <code>scripts/publish_diverse_tsume.py</code> 按减少与前 10 题手顺重叠的顺序排列。</p>
+                <p class="guide-step-text">15～31 手诘的长手数题集则可通过 <code>grow-tsume</code> 内置的相似排除和 <code>scripts/generate_long_tsume_collections.py</code>（跨进程共享相似判定与分散排序）收集，再同样执行独立审核。</p>
                 <p class="guide-step-text">相似判定是基于主线的编辑标准，并不能完整判定包含变化和迷惑手在内的作品价值。输入条件、继续、排除和保存的步骤请参阅<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">题集的 README（日文）</a>。</p>
             </div>
         </div>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShogiBoardQ - Shogi Software for Playing, Analysis, and Tsume Shogi</title>
-    <meta name="description" content="ShogiBoardQ is free shogi software for playing against USI engines, studying positions, analyzing game records, solving 6,000 bundled tsume shogi puzzles, and customizing the board with 40 piece styles. It runs on Windows, macOS, and Linux.">
+    <meta name="description" content="ShogiBoardQ is free shogi software for playing against USI engines, studying positions, analyzing game records, solving 15,000 tsume shogi puzzles (mate in 3–31), and customizing the board with 40 piece styles. It runs on Windows, macOS, and Linux.">
     <meta name="google-site-verification" content="6uVKShyfeRaK8nx6ROgoIuBXb2qdMtwgX8NJfiBrwVM" />
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/">
     <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/">
@@ -16,7 +16,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/">
     <meta property="og:title" content="ShogiBoardQ - Shogi Software for Playing, Analysis, and Tsume Shogi">
-    <meta property="og:description" content="ShogiBoardQ is free shogi software for playing against USI engines, studying positions, analyzing game records, solving 6,000 bundled tsume shogi puzzles, and customizing the board with 40 piece styles. It runs on Windows, macOS, and Linux.">
+    <meta property="og:description" content="ShogiBoardQ is free shogi software for playing against USI engines, studying positions, analyzing game records, solving 15,000 tsume shogi puzzles (mate in 3–31), and customizing the board with 40 piece styles. It runs on Windows, macOS, and Linux.">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/og-image.png?v=20261106">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -28,7 +28,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ShogiBoardQ - Shogi Software for Playing, Analysis, and Tsume Shogi">
-    <meta name="twitter:description" content="Play USI engines, analyze games, and solve 6,000 tsume puzzles. Free shogi software for Windows, macOS, and Linux.">
+    <meta name="twitter:description" content="Play USI engines, analyze games, and solve 15,000 tsume puzzles (mate in 3–31). Free shogi software for Windows, macOS, and Linux.">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/og-image.png?v=20261106">
     <link rel="icon" type="image/png" href="../images/shogiboardq-icon.png">
     <link rel="stylesheet" href="../css/style.css?v=20261024">
@@ -39,7 +39,7 @@
     "@type": "SoftwareApplication",
     "name": "ShogiBoardQ",
     "url": "https://hnakada123.github.io/ShogiBoardQ/en/",
-    "description": "ShogiBoardQ is free shogi software for playing against USI engines, studying positions, analyzing game records, solving 6,000 bundled tsume shogi puzzles, and customizing the board with 40 piece styles. It runs on Windows, macOS, and Linux.",
+    "description": "ShogiBoardQ is free shogi software for playing against USI engines, studying positions, analyzing game records, solving 15,000 tsume shogi puzzles (mate in 3–31), and customizing the board with 40 piece styles. It runs on Windows, macOS, and Linux.",
     "applicationCategory": "GameApplication",
     "operatingSystem": "Windows, macOS, Linux",
     "inLanguage": "en",
@@ -116,7 +116,7 @@
 <div class="stats">
     <ul class="stats__grid">
         <li class="stats__item"><span class="stats__value">40</span><span class="stats__label">piece styles</span></li>
-        <li class="stats__item"><span class="stats__value">6,000</span><span class="stats__label">bundled tsume puzzles (mate in 3–13)</span></li>
+        <li class="stats__item"><span class="stats__value">15,000</span><span class="stats__label">tsume puzzles (mate&nbsp;in&nbsp;3&#8288;–&#8288;31)</span></li>
         <li class="stats__item"><span class="stats__value">7</span><span class="stats__label">game record formats</span></li>
         <li class="stats__item"><span class="stats__value">4</span><span class="stats__label">interface languages</span></li>
     </ul>
@@ -191,13 +191,13 @@
         <article class="highlight">
             <div class="highlight__text">
                 <p class="highlight__kicker"><img src="../images/icons/tsume-play.svg" alt="">Tsume Shogi</p>
-                <h3>Solve 6,000 tsume shogi puzzles<br>on the board</h3>
-                <p>The release packages include 1,000 puzzles each of mate in 3, 5, 7, 9, 11, and 13. Pick one from the list and checkmate the king while the built-in Hayanagi engine defends.</p>
+                <h3>Solve 15,000 tsume shogi puzzles<br>on the board</h3>
+                <p>1,000 puzzles each for mates in 3 to 31 plies (15,000 in total: 3–13 plies bundled in release packages, 15–31 plies available for download). Pick one from the list and checkmate the king while the built-in Hayanagi engine defends.</p>
                 <ul class="check-list">
                     <li>Browse puzzles as board cards and filter them by progress</li>
                     <li>Mate within the remaining moves to solve it; valid alternative solutions count too</li>
                     <li>Review your attempt history and replay the solution</li>
-                    <li>Create puzzles with Mate Search and the Tsume Shogi Generator (GUI and CLI)</li>
+                    <li>Create puzzles with Mate Search and the Tsume Shogi Generator (random placement and retrograde editing for long mates, GUI/CLI, checkpoint save/resume)</li>
                 </ul>
                 <p class="link-row">
                     <a href="guide/tsume-play.html">Tsume Shogi Play &rarr;</a>
@@ -306,7 +306,7 @@
             <ul class="mini-grid">
                 <li><a href="guide/tsume-play.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/tsume-play.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>Tsume Shogi Play</h4><p>Choose a puzzle, solve it on the board, and review your history and the solution.</p></div>
+                    <div class="mini-card__text"><h4>Tsume Shogi Play</h4><p>Choose from 15,000 published puzzles (mate in 3–31) or your own collections, solve them on the board, and review your history and solutions.</p></div>
                 </a></li>
                 <li><a href="guide/tsumi-search.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/mate-search.svg" alt=""></span>
@@ -314,7 +314,7 @@
                 </a></li>
                 <li><a href="guide/tsumeshogi-generator.html" class="mini-card">
                     <span class="mini-card__icon"><img src="../images/icons/tsume-generator.svg" alt=""></span>
-                    <div class="mini-card__text"><h4>Tsume Shogi Generator</h4><p>Generate puzzles that match your conditions in the GUI or CLI, check them for alternative mates, and save them.</p></div>
+                    <div class="mini-card__text"><h4>Tsume Shogi Generator</h4><p>Generate puzzles in the GUI or CLI—from short random positions to long mates up to 301 plies via retrograde editing—with uniqueness, surplus, and piece checks.</p></div>
                 </a></li>
             </ul>
         </div>
@@ -438,7 +438,7 @@
                 <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-ubuntu.zip" class="btn btn--accent"><img src="../images/icons/download.svg" alt="">Ubuntu (ZIP)</a>
             </li>
         </ul>
-        <p class="dl-note">Every package includes the tsume shogi collections (6,000 puzzles) and the Hayanagi engine with its opening book. See the <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest">release notes</a> (in Japanese) for system requirements and changes.</p>
+        <p class="dl-note">Every package includes the 3–13-ply tsume shogi collections (6,000 puzzles) and the Hayanagi engine with its opening book (9,000 additional 15–31-ply puzzles are available from the User Guide). See the <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest">release notes</a> (in Japanese) for system requirements and changes.</p>
 
         <div class="build-box" id="build">
             <h3><img src="../images/icons/code.svg" alt="">Build from Source</h3>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>诘棋练习 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQ 诘棋练习指南：从 SFEN 题集选择题目，以 Hayanagi 为防守方在棋盘上解题。支持分页浏览题目、记录尝试与解答历史、回放解答，并可下载 3～13 手诘题集（共 6000 题）。">
+    <meta name="description" content="ShogiBoardQ 诘棋练习指南：从 SFEN 题集选择题目，以 Hayanagi 为防守方在棋盘上解题。支持分页浏览题目、记录尝试与解答历史、回放解答，并可下载 3～31 手诘题集（各 1000 题，共 15000 题）。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsume-play.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -83,14 +83,14 @@
                 </div>
                 <p class="guide-step-text">选择菜单“对局”→“练习诘棋…”，会打开“诘棋题集”。点击“打开题集…”，选择每行写有一个 SFEN 局面的文本文件。</p>
                 <p class="guide-step-text">可以使用<a href="tsumeshogi-generator.html">诘棋局面生成器</a>保存的题集。只含初始局面的文件和附有参考变化的文件都可以使用。诘棋手数采用已验证的分析结果，不会只根据文件名或参考变化的长度来决定。</p>
-                <p class="guide-step-text">所有支持的题集都可以更快地读取和获取历史记录，并重复利用分析结果。公开的 3～13 手诘、各 1000 题的题集，只要内容与应用中记录的已验证内容一致，首次打开时也会省略诘棋手数的确认搜索。改名或移动文件后仍然有效，编辑内容后会恢复为普通分析。点击“重新验证此页”会重新搜索。</p>
+                <p class="guide-step-text">所有支持的题集都可以更快地读取和获取历史记录，并重复利用分析结果。公开的 3～31 手诘、各 1000 题（共 15000 题）的题集，只要内容与应用中记录的已验证内容一致，首次打开时也会省略诘棋手数的确认搜索。改名或移动文件后仍然有效，编辑内容后会恢复为普通分析。点击“重新验证此页”会重新搜索。</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <h3 class="guide-step-title">下载题集</h3>
                 </div>
-                <p class="guide-step-text">我们公开了 3、5、7、9、11、13 手诘的题集（各 1000 题，共 6000 题）。Linux 版 ZIP（ShogiBoardQ-linux.zip）的 data/tsumeshogi 文件夹中已附带。在其他环境中，请右键点击下面的链接保存文件。</p>
+                <p class="guide-step-text">我们公开了 3～31 手诘（3、5、7、9、11、13、15、17、19、21、23、25、27、29、31 手诘）的题集（各 1000 题，共 15000 题）。Linux 版 ZIP（ShogiBoardQ-linux.zip）的 data/tsumeshogi 文件夹中已附带 3～13 手诘。对于 15～31 手诘或其他环境，请右键点击下面的链接保存文件。</p>
                 <table class="info-table">
                     <thead><tr><th scope="col">手数</th><th scope="col">题数</th><th scope="col">文件</th></tr></thead>
                     <tbody>
@@ -100,9 +100,18 @@
                         <tr><td>9 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_9ply_1000_20261001.txt">tsume_9ply_1000_20261001.txt</a>（97 KB）</td></tr>
                         <tr><td>11 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_11ply_1000_20261001.txt">tsume_11ply_1000_20261001.txt</a>（108 KB）</td></tr>
                         <tr><td>13 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_13ply_1000_20261001.txt">tsume_13ply_1000_20261001.txt</a>（120 KB）</td></tr>
+                        <tr><td>15 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_15ply_1000_20261127.txt">tsume_15ply_1000_20261127.txt</a>（131 KB）</td></tr>
+                        <tr><td>17 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_17ply_1000_20261127.txt">tsume_17ply_1000_20261127.txt</a>（142 KB）</td></tr>
+                        <tr><td>19 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_19ply_1000_20261127.txt">tsume_19ply_1000_20261127.txt</a>（153 KB）</td></tr>
+                        <tr><td>21 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_21ply_1000_20261127.txt">tsume_21ply_1000_20261127.txt</a>（164 KB）</td></tr>
+                        <tr><td>23 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_23ply_1000_20261127.txt">tsume_23ply_1000_20261127.txt</a>（175 KB）</td></tr>
+                        <tr><td>25 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_25ply_1000_20261127.txt">tsume_25ply_1000_20261127.txt</a>（186 KB）</td></tr>
+                        <tr><td>27 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_27ply_1000_20261127.txt">tsume_27ply_1000_20261127.txt</a>（197 KB）</td></tr>
+                        <tr><td>29 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_29ply_1000_20261127.txt">tsume_29ply_1000_20261127.txt</a>（208 KB）</td></tr>
+                        <tr><td>31 手诘</td><td>1000 题</td><td><a href="https://raw.githubusercontent.com/hnakada123/ShogiBoardQ/main/data/tsumeshogi/tsume_31ply_1000_20261127.txt">tsume_31ply_1000_20261127.txt</a>（219 KB）</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">均为 2026 年 10 月 1 日版（增加了持驹剩余检查并替换题目的新版），是 UTF-8 文本文件。制作和验证的详情请参阅<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">题集说明（README，日文）</a>。</p>
+                <p class="guide-step-text">3～13 手诘为 2026 年 10 月 1 日版（增加了持驹剩余检查并替换题目的新版），15～31 手诘为 2026 年 11 月 27 日版（通过逆推/编辑生成，并严格验证主线含最终手全程唯一、无余子、无多余棋子的新版），均为 UTF-8 文本文件。制作和验证的详情请参阅<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">题集说明（README，日文）</a>。</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
@@ -121,7 +130,7 @@
                     <span class="guide-step-number">4</span>
                     <h3 class="guide-step-title">选择诘棋引擎和搜索时间</h3>
                 </div>
-                <p class="guide-step-text">使用内置的 Hayanagi 无需额外注册引擎。初始局面的诘棋判定最多 31 手。对于长手数的题目，请另行准备 komori-n 开发并公开的诘棋引擎<a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>，在“设置”→“引擎设置…”中注册，然后在题集画面的“诘棋引擎”中选择。注册方法请参阅<a href="game-play.html#engine-registration">引擎注册指南</a>。</p>
+                <p class="guide-step-text">使用内置的 Hayanagi 无需额外注册引擎。初始局面的诘棋判定最多 31 手。若想在 15～31 手诘中获得更快速稳定的判定，或解 33 手以上的长手数题目，请另行准备 komori-n 开发并公开的诘棋引擎<a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>，在“设置”→“引擎设置…”中注册，然后在题集画面的“诘棋引擎”中选择。注册方法请参阅<a href="game-play.html#engine-registration">引擎注册指南</a>。</p>
                 <p class="guide-step-text">即使选择 KomoringHeights，作为防守方下应手的仍是 Hayanagi。KomoringHeights 用于判定是否能将死。也可以使用 101 手等长手数的题目，但需要在限定时间内完成判定。</p>
                 <p class="guide-step-text">“搜索时间”可设定为 1～600 秒。如果因超时等原因显示“未确定”，请增加时间后点击“重新验证此页”。已确认无诘的题目无法开始练习。</p>
             </div>

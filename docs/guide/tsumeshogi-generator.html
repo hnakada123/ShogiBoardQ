@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>詰将棋局面生成 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの詰将棋局面生成を紹介します。GUIのダイアログやgenerate-tsume CLIで詰将棋を自動生成し、余詰・不要駒を検査して保存する方法、Pythonによる並列実行、問題集の再検証までを解説。">
+    <meta name="description" content="ShogiBoardQの詰将棋局面生成を紹介します。ランダム配置と詰み局面からの逆算・編集（長手数向け）の2方式で詰将棋を自動生成し、余詰・駒余り・不要駒を検査して保存する方法、CLI（generate-tsume / grow-tsume）とPythonによる並列実行、問題集の再検証までを解説。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
     <meta property="og:title" content="詰将棋局面生成 - ShogiBoardQ">
-    <meta property="og:description" content="ランダムな局面からUSIエンジンで詰みを確かめ、余詰と不要駒を検査した詰将棋をGUIやCLIで生成できます。">
+    <meta property="og:description" content="短手数のランダム配置から、逆算・編集による長手数詰将棋（最大301手）までUSIエンジンで厳密検証し、GUIやCLIで自動生成できます。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi-generator/tsumeshogi-generator-results.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="詰将棋局面生成 - ShogiBoardQ">
-    <meta name="twitter:description" content="ランダムな局面からUSIエンジンで詰みを確かめ、余詰と不要駒を検査した詰将棋をGUIやCLIで生成できます。">
+    <meta name="twitter:description" content="短手数のランダム配置から、逆算・編集による長手数詰将棋（最大301手）までUSIエンジンで厳密検証し、GUIやCLIで自動生成できます。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi-generator/tsumeshogi-generator-results.png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/tsumeshogi-generator.css">
@@ -62,11 +62,11 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>詰将棋局面生成</h1>
-        <p class="hero-subtitle">ランダムな局面からUSIエンジンで詰みを確かめ、詰将棋を自動生成</p>
+        <p class="hero-subtitle">短手数のランダム配置から、逆算・編集による長手数詰将棋までUSIエンジンで自動生成</p>
         <div class="hero-badges">
-            <span class="badge">自動生成</span>
-            <span class="badge">余詰・不要駒の検査</span>
-            <span class="badge">SFEN出力</span>
+            <span class="badge">ランダム配置 / 逆算・編集</span>
+            <span class="badge">余詰・駒余り・不要駒の検査</span>
+            <span class="badge">途中保存・再開</span>
             <span class="badge">CLI・Python対応</span>
         </div>
     </div>
@@ -75,7 +75,7 @@
 <section id="overview" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">概要</h2>
-        <p class="section-desc">ランダムに詰将棋の候補局面を作り、詰みと余詰を検査して出力します</p>
+        <p class="section-desc">短手数向けのランダム配置と長手数向けの逆算・編集の2方式で、詰み・余詰・不要駒を検査して出力します</p>
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
@@ -85,9 +85,10 @@
                 <p class="guide-step-text">詰将棋局面生成は、次の処理を自動で行います。</p>
                 <div class="guide-step-text">
                     <ul>
-                        <li>ランダムに詰将棋の候補局面を生成</li>
-                        <li>内蔵の詰み探索で候補を選別し、USIエンジン（<code>go mate</code>）で指定手数の詰みを確認</li>
-                        <li>主手順の余詰と不要駒を検査し、条件を満たした局面だけを出力</li>
+                        <li>短手数向けの「ランダム配置」と、15手以上の長手数（最大301手）に対応する「詰み局面から逆算・編集（長手数向け）」の2方式を切り替え可能</li>
+                        <li>ランダム配置では内蔵の詰み探索で候補を選別し、逆算・編集では詰み形または種局面から逆算・盤面変異・余詰修復で局面を成長させ、USIエンジン（<code>go mate</code>）で指定手数の詰みを確認</li>
+                        <li>主手順の余詰、不要駒（全1枚除去）、および逆算・編集モードでの駒余り禁止・類似作除外を検査し、条件を満たした局面だけを出力</li>
+                        <li>逆算・編集モードでは探索状態と検証キャッシュのチェックポイント途中保存・再開に対応</li>
                         <li>結果をSFEN形式で一覧表示し、ファイル保存やクリップボードへのコピーが可能</li>
                     </ul>
                 </div>
@@ -100,28 +101,29 @@
 <section id="generation" class="section">
     <div class="section-inner">
         <h2 class="section-title">局面生成の設定</h2>
-        <p class="section-desc">生成ダイアログで条件を設定して、生成を開始します</p>
+        <p class="section-desc">生成ダイアログで方式と条件を設定して、生成を開始します</p>
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <h3 class="guide-step-title">詰将棋局面生成ダイアログ</h3>
                 </div>
-                <p class="guide-step-text">「対局」→「詰将棋局面生成…」でダイアログを開き、エンジンと生成設定を確認して「開始」をクリックします。設定は次回も使われます。</p>
+                <p class="guide-step-text">「対局」→「詰将棋局面生成…」でダイアログを開き、エンジン・生成方式・生成設定を確認して「開始」をクリックします。設定は次回も使われます。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../images/tsumeshogi-generator/tsumeshogi-generator-settings.png" alt="詰将棋局面生成ダイアログ" width="840" height="920" loading="lazy">
-                    <p class="screenshot-caption">詰将棋局面生成ダイアログ：「エンジン設定・採択条件について」を開いたところ</p>
+                    <img src="../images/tsumeshogi-generator/tsumeshogi-generator-settings.png" alt="詰将棋局面生成ダイアログ" width="840" height="917" loading="lazy">
+                    <p class="screenshot-caption">詰将棋局面生成ダイアログ：「ランダム配置」で「エンジン設定・採択条件について」を開いたところ</p>
                 </div>
                 <table class="info-table">
                     <thead><tr><th scope="col">項目</th><th scope="col">内容</th></tr></thead>
                     <tbody>
                         <tr><td>エンジン</td><td>詰み探索に使うUSIエンジンです。「設定...」で選んだエンジンのオプションを変更できます。</td></tr>
-                        <tr><td>目標手数</td><td>生成する詰将棋の手数（奇数）。既定値は3手詰です。</td></tr>
-                        <tr><td>攻め駒上限</td><td>攻方の盤上の駒と持駒の合計枚数の上限。既定値は4枚です。</td></tr>
-                        <tr><td>守り駒上限</td><td>玉を除く、玉方の盤上の駒の枚数の上限。既定値は1枚です。</td></tr>
-                        <tr><td>生成上限</td><td>採択した局面がこの件数に達すると終了します。既定値は10局面で、0（無制限）にすると停止するまで生成を続けます。</td></tr>
-                        <tr><td>探索時間/局面</td><td>候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間。既定値は5秒で、時間内に検査を終えられない局面は採択しません。</td></tr>
-                        <tr><td>配置範囲</td><td>玉を中心に攻め駒を置く範囲（マス数）。既定値は3マスです。</td></tr>
+                        <tr><td>生成方式</td><td>「ランダム配置」（短手数向け）または「詰み局面から逆算・編集（長手数向け）」を選びます。既定値は「ランダム配置」です。</td></tr>
+                        <tr><td>目標手数</td><td>生成する詰将棋の手数（1〜301の奇数）。既定値は3手詰です。15手以上の長手数は逆算・編集方式の利用をおすすめします。</td></tr>
+                        <tr><td>攻め駒上限</td><td>攻方の盤上の駒と持駒の合計枚数の上限。ランダム配置では1〜10枚（既定4枚）、逆算・編集では1〜38枚（既定18枚）です。</td></tr>
+                        <tr><td>守り駒上限</td><td>玉を除く、玉方の盤上の駒の枚数の上限。ランダム配置では0〜10枚（既定1枚）、逆算・編集では0〜38枚（既定12枚）です。</td></tr>
+                        <tr><td>生成上限</td><td>採択した局面がこの件数に達すると終了します（0〜10000局面）。既定値は10局面で、0（無制限）にすると停止するまで生成を続けます。</td></tr>
+                        <tr><td>探索時間/局面</td><td>ランダム配置で、候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間（1〜300秒、既定5秒）。時間内に検査を終えられない局面は採択しません。逆算・編集では「探索時間/手」に切り替わります。</td></tr>
+                        <tr><td>配置範囲</td><td>ランダム配置で、玉を中心に攻め駒を置く範囲（1〜8マス）。既定値は3マスです。</td></tr>
                         <tr><td>最終手の複数解を許容する</td><td>オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。初手など主手順の途中の余詰は常に除外します。</td></tr>
                         <tr><td>既定値に戻す</td><td>生成設定を既定値に戻します。</td></tr>
                     </tbody>
@@ -134,7 +136,7 @@
                     <span class="guide-step-number">3</span>
                     <h3 class="guide-step-title">ランダム局面生成のしくみ</h3>
                 </div>
-                <p class="guide-step-text">局面は次の手順で自動的に作られます。</p>
+                <p class="guide-step-text">「ランダム配置」方式では、局面は次の手順で自動的に作られます。</p>
                 <ol class="guide-step-text">
                     <li>後手の玉を9×9の盤面のランダムな位置に配置</li>
                     <li>攻め駒を玉の周辺に配置（盤上または持駒としてランダムに振り分け）</li>
@@ -143,6 +145,36 @@
                     <li>初期局面で王手がかかっていないことを確認</li>
                 </ol>
                 <p class="guide-step-text">作られた局面はまず内蔵の詰み探索で選別され、目標手数で詰まないと分かった局面や、詰む初手が複数見つかった局面を除外します。内蔵探索で判定できなかった候補もUSIエンジンに送り、エンジンが指定手数の詰みを確認した局面だけが余詰検査に進みます。「探索済み」の局面数には、内蔵探索で除外した局面も含まれます。</p>
+            </div>
+            <div class="guide-step" id="retrograde-generation">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <h3 class="guide-step-title">詰み局面から逆算・編集（長手数向け）</h3>
+                </div>
+                <p class="guide-step-text">15手以上の長手数詰将棋を作りたい場合や、長時間の探索を途中保存しながら進めたい場合は、「生成方式」で「詰み局面から逆算・編集（長手数向け）」を選びます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/tsumeshogi-generator/tsumeshogi-generator-retrograde.png" alt="詰み局面から逆算・編集（長手数向け）の設定画面" width="840" height="937" loading="lazy">
+                    <p class="screenshot-caption">逆算・編集モードの設定画面（15手詰の例）</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">専用項目</th><th scope="col">内容</th></tr></thead>
+                    <tbody>
+                        <tr><td>ビーム幅</td><td>各手数層に保持する有望局面の最大数（1〜2000、既定16）。大きいほど多様な局面を保ちやすくなります。</td></tr>
+                        <tr><td>探索時間/手</td><td>逆算・成長フェーズで1局面を調べる上限時間（1〜300秒、既定5秒）。厳密証明・不要駒検査では最大3倍（上限60秒）まで自動延長されます。</td></tr>
+                        <tr><td>分岐数</td><td>1回の展開で逆算手・盤面変異から作る候補局面数（4〜200、既定32）。</td></tr>
+                        <tr><td>検証予算</td><td>1候補の厳密証明と全1枚除去トリミングに使える最大時間（5〜86400秒、既定300秒）。</td></tr>
+                        <tr><td>駒余りを禁止する</td><td>既定オン。全最長応手および最終手で攻方持駒が0枚になる局面だけを採択します。</td></tr>
+                        <tr><td>類似作を除外する</td><td>既定オン。平行移動・左右反転・中間手順1手違いなどの類似作を除外します。</td></tr>
+                        <tr><td>種局面ファイル（任意）</td><td>成長の出発点とするSFENファイル（1行1題の <code>SFEN</code> または <code>SFEN moves …</code>、<code>#</code> 行はコメントとして無視）。空欄なら0手詰み局面から自動生成します。「参照...」「クリア」で指定・解除できます。</td></tr>
+                        <tr><td>チェックポイント（任意） / 途中保存から再開</td><td>探索フロンティア・採択済み局面・厳密検証キャッシュを定期的にJSONファイルへ原子的保存します。停止・中断後に「途中保存から再開」をオンにして「開始」を押すと途中から続行できます（再開オンの間は種局面ファイル欄は無効になります）。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">逆算・編集方式では、次の流れで長手数の詰将棋を育てて証明します。</p>
+                <ol class="guide-step-text">
+                    <li>0手詰み局面または種局面から、玉方・攻方の逆算手と盤面変異で候補局面を展開し、多層ビームサーチで各手数層の有望局面を保持</li>
+                    <li>候補に余詰が見つかった場合、余詰筋を塞ぐ盤面修正（標的型リペア）を試行して修復</li>
+                    <li>目標手数に達した候補は <code>go mate infinite</code> の自然終了で最短手数を確認し、主手順全手の余詰検査・駒余り検査・全1枚除去による不要駒トリミングをすべて通過した局面だけを採択</li>
+                </ol>
             </div>
         </div>
     </div>
@@ -155,10 +187,10 @@
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <h3 class="guide-step-title">結果一覧</h3>
                 </div>
-                <p class="guide-step-text">指定手数の詰みが見つかると、不要駒のトリミングと余詰検査を終えた局面が結果一覧に追加されます。進行状況のバーには採択数と生成上限、その下には探索した局面数・採択数・経過時間と、検査で除外した局面数（うち判定不能の数）が表示されます。</p>
+                <p class="guide-step-text">指定手数の詰みが見つかると、不要駒のトリミングと余詰検査を終えた局面が結果一覧に追加されます。進行状況のバーには採択数と生成上限が表示されます。ランダム配置では探索済み・採択数・経過時間・検査除外数（うち判定不能の数）を、逆算・編集モードでは候補生成数・最大到達手数・採択数・フロンティア数・修復成功数と現在のフェーズ（逆算・成長探索中／初手余詰検査中／余詰修復中／厳密証明・不要駒検査中）を表示します。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../images/tsumeshogi-generator/tsumeshogi-generator-results.png" alt="詰将棋局面生成の結果一覧" width="840" height="920" loading="lazy">
                     <p class="screenshot-caption">生成結果：既定の設定で3手詰を10局面採択</p>
@@ -170,20 +202,20 @@
                         <tr><td>手順も出力</td><td>オンにすると、保存・コピーするSFENの後ろに <code>moves</code> とUSI形式の詰み手順を付けます。</td></tr>
                         <tr><td>選択コピー</td><td>選択した局面をクリップボードにコピーします（Ctrl+C）。CtrlキーやShiftキーで複数選択できます。</td></tr>
                         <tr><td>全コピー</td><td>すべての局面をクリップボードにコピーします。</td></tr>
-                        <tr><td>ファイル保存</td><td>テキストファイルに保存します。先頭にShogiBoardQのバージョン・生成日時・生成設定を「#」で始まるコメント行として記録します。コメント行は<a href="kyokumenshu-viewer.html">局面集ビューア</a>や<a href="tsume-play.html">詰将棋対局</a>の読み込みでは読み飛ばされます。</td></tr>
+                        <tr><td>ファイル保存</td><td>テキストファイルに保存します。先頭にShogiBoardQのバージョン・生成日時・選択した方式と生成設定（逆算・編集モードではビーム幅・分岐数・検証予算・駒余り条件など）を「#」で始まるコメント行として記録します。コメント行は<a href="kyokumenshu-viewer.html">局面集ビューア</a>や<a href="tsume-play.html">詰将棋対局</a>の読み込みでは読み飛ばされます。</td></tr>
                     </tbody>
                 </table>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <h3 class="guide-step-title">不要駒トリミング</h3>
                 </div>
-                <p class="guide-step-text">不要駒トリミングは、ランダムに作った局面に含まれる「飾り駒」（取り除いても詰み手順に影響しない駒）を自動的に取り除く処理です。</p>
+                <p class="guide-step-text">不要駒トリミングは、生成した局面に含まれる「飾り駒」（取り除いても詰み手順に影響しない駒）を自動的に取り除く処理です。</p>
                 <div class="guide-step-text">
                     <ul>
                         <li>盤上の攻方・玉方の駒と、攻方の持駒を1枚ずつ試しに取り除く</li>
-                        <li>取り除いても目標手数の詰みと主手順の一意性が保たれる場合は、除去を確定</li>
+                        <li>取り除いても目標手数の詰みと主手順の一意性（逆算・編集モードで有効時は駒余りなしも含む）が保たれる場合は、除去を確定</li>
                         <li>取り除いた駒は玉方の持駒に移し、駒の総数を保つ</li>
                         <li>1枚除去するたびに検査し直し、新たに不要になった駒も取り除く</li>
                         <li>除去後の検査が時間切れ・判定不能になった問題や、停止・エラーでトリミングが中断された問題は出力しない</li>
@@ -202,7 +234,7 @@
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-number">7</span>
                     <h3 class="guide-step-title">読み筋表示ウィンドウ</h3>
                 </div>
                 <p class="guide-step-text">結果一覧の「表示」をクリックすると、読み筋表示ウィンドウが開きます。上に詰み手順、その下に局面が表示され、攻方・玉方として盤面に並びます。「▶」で1手ずつ進め、「▶|」で詰みの局面まで進めます。操作の詳細は<a href="tsumi-search.html#pv-board">詰み探索の読み筋表示</a>をご覧ください。</p>
@@ -218,14 +250,14 @@
 <section id="cli-generation" class="section section--alt cli-guide">
     <div class="section-inner">
         <h2 class="section-title">CLIで詰将棋を生成する方法</h2>
-        <p class="section-desc">generate-tsumeの準備から、Pythonによる並列実行・保存・再検証まで</p>
+        <p class="section-desc">generate-tsume・grow-tsumeの準備から、途中保存・再開、Pythonによる並列実行、保存・再検証まで</p>
         <div class="screenshot-gallery">
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
                     <h3 class="guide-step-title">CLIと詰み探索エンジンを準備する</h3>
                 </div>
-                <p class="guide-step-text"><code>generate-tsume</code> はGUIと共通の生成処理を使い、指定手数の詰み・主手順の余詰・不要駒を検査した局面をJSON Linesで出力します。PythonからCLIを子プロセスとして直接起動でき、MCPサーバーの起動は不要です。</p>
+                <p class="guide-step-text"><code>shogiboardq-cli</code> はGUIと共通の生成処理を使い、短手数ランダム配置の <code>generate-tsume</code> と、逆算・編集による長手数厳密生成の <code>grow-tsume</code> の2つのサブコマンドを提供します。どちらも指定手数の詰み・主手順の余詰・不要駒を検査した局面をJSON Linesで出力します。PythonからCLIを子プロセスとして直接起動でき、MCPサーバーの起動は不要です。</p>
                 <p class="guide-step-text">以下はLinuxのシェルとPython 3を使う例です。リポジトリのルートで実行してください。ソースからの準備は<a href="linux-build-and-release.html">Linuxでのビルド手順</a>を参照してください。WindowsなどではCLIの実行ファイル名・パスを環境に合わせて変更します。</p>
                 <div class="format-example">
                     <h4>CLIをビルドして登録済みエンジンを確認</h4>
@@ -234,14 +266,14 @@ cmake --build build --target shogiboardq-cli --parallel 4
 ./build/shogiboardq-cli list-engines</code></pre>
                 </div>
                 <p class="guide-step-text">先に<a href="game-play.html#engine-registration">エンジン登録</a>で、<code>go mate</code> に対応したエンジンを登録します。<code>--engine</code> には実行ファイルのパスではなく、<code>list-engines</code> が返す<strong>登録名</strong>を指定します。下の名前は例なので、空白も含めて実際の登録名に置き換えてください。</p>
-                <p class="guide-step-text">KomoringHeightsを使う場合は、並列実行の開始設定として <code>Threads=1</code>、<code>USI_Hash=256</code>、<code>PostSearchLevel=MinLength</code>、<code>GenerateAllLegalMoves=true</code> をエンジン設定で指定できます。対応するオプション名と値は利用するエンジンで確認してください。</p>
+                <p class="guide-step-text">KomoringHeightsを使う場合は、並列実行の開始設定として <code>Threads=1</code>、<code>USI_Hash=256</code>（多数並列や <code>grow-tsume</code> では <code>64</code>〜<code>128</code>）、<code>PostSearchLevel=MinLength</code>、<code>GenerateAllLegalMoves=true</code> をエンジン設定で指定できます。対応するオプション名と値は利用するエンジンで確認してください。</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <h3 class="guide-step-title">1バッチを生成してJSON Linesを確認する</h3>
+                    <h3 class="guide-step-title">generate-tsume で1バッチを生成してJSON Linesを確認する</h3>
                 </div>
-                <p class="guide-step-text">まず3手詰を最大10題生成して、エンジン設定と出力を確認します。標準出力のJSON Linesは、手順付き問題集のテキストとは別の形式です。</p>
+                <p class="guide-step-text">まず <code>generate-tsume</code> で3手詰を最大10題生成して、エンジン設定と出力を確認します。標準出力のJSON Linesは、手順付き問題集のテキストとは別の形式です。</p>
                 <div class="format-example">
                     <h4>3手詰を最大10題生成</h4>
 <pre><code>./build/shogiboardq-cli generate-tsume \
@@ -253,14 +285,14 @@ cmake --build build --target shogiboardq-cli --parallel 4
                 <table class="info-table">
                     <thead><tr><th scope="col">オプション</th><th scope="col">意味・指定範囲</th></tr></thead>
                     <tbody>
-                        <tr><td><code>--target-moves</code></td><td>目標手数。1～19の奇数。既定値は3</td></tr>
-                        <tr><td><code>--max-positions</code></td><td>1回の起動で生成する上限。1～100。既定値は10</td></tr>
-                        <tr><td><code>--timeout-ms</code></td><td>候補探索・駒除去・余詰検査に使う時間予算。500～60000ms。既定値は5000</td></tr>
+                        <tr><td><code>--target-moves</code></td><td>目標手数。1～301の奇数。既定値は3</td></tr>
+                        <tr><td><code>--max-positions</code></td><td>1回の起動で生成する上限。1～10000。既定値は10</td></tr>
+                        <tr><td><code>--timeout-ms</code></td><td>候補探索・駒除去・余詰検査に使う時間予算。1000～300000ms。既定値は5000</td></tr>
                         <tr><td><code>--max-attack</code></td><td>攻方の盤上・持駒の合計上限。1～10。既定値は4</td></tr>
                         <tr><td><code>--max-defend</code></td><td>玉以外の玉方盤上駒の上限。0～10。既定値は1</td></tr>
                         <tr><td><code>--attack-range</code></td><td>玉を中心とする攻め駒の配置範囲。1～8マス。既定値は3</td></tr>
-                        <tr><td><code>--stdin-control</code></td><td>標準入力の stop 行、またはEOFで停止</td></tr>
-                        <tr><td><code>--no-final-alternatives</code></td><td>最終手の複数解も不採択にする。省略時は最終手の複数解を許容</td></tr>
+                        <tr><td><code>--stdin-control</code></td><td>標準入力の <code>stop</code> 行、またはEOFで停止</td></tr>
+                        <tr><td><code>--no-final-alternatives</code></td><td>最終手の複数解も不採択にする（正式名 <code>--no-allow-final-move-alternatives</code>）。省略時は最終手の複数解を許容</td></tr>
                         <tr><td><code>--no-remaining-to-hand</code></td><td>未使用駒を玉方持駒へ回さない。通常の詰将棋では省略する</td></tr>
                     </tbody>
                 </table>
@@ -271,13 +303,68 @@ cmake --build build --target shogiboardq-cli --parallel 4
                 </div>
                 <p class="guide-step-text"><code>--stdin-control</code> を付けた場合は、端末で <code>stop</code> と入力してEnterを押すと停止します。標準入力を閉じても停止するため、Pythonでは <code>stdin=PIPE</code> を開いたまま保持します。入力を最初から閉じる実行環境では、生成がすぐに終了することがあります。</p>
             </div>
-            <div class="guide-step" id="cli-parallel">
+            <div class="guide-step" id="cli-retrograde">
                 <div class="guide-step-header">
                     <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">grow-tsume で長手数詰将棋を生成・再開する</h3>
+                </div>
+                <p class="guide-step-text">15手〜301手の長手数詰将棋を厳密基準（全主手順一意・最終手も一意・駒余りなし・全1枚除去の不要駒ゼロ・<code>go mate infinite</code> の自然終了）で生成する場合は <code>grow-tsume</code> を使います。ファイルパスを指定するオプションはすべて<strong>絶対パス</strong>で渡します。</p>
+                <div class="format-example">
+                    <h4>15手詰を生成し、チェックポイントと結果をファイルに保存</h4>
+<pre><code>./build/shogiboardq-cli grow-tsume \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
+  --target-moves 15 --max-positions 5 \
+  --beam-width 16 --branch-factor 32 \
+  --max-attack 18 --max-defend 12 \
+  --step-timeout-ms 5000 --verify-query-timeout-ms 15000 \
+  --verify-budget-seconds 300 --hash-mb 64 --threads 1 \
+  --checkpoint "$PWD/tsume-work/grow15.ckpt.json" \
+  --output "$PWD/tsume-work/grow15.txt" \
+  --stdin-control &gt; tsume-work/grow15.jsonl</code></pre>
+                </div>
+                <div class="format-example">
+                    <h4>中断したチェックポイントから再開</h4>
+<pre><code>./build/shogiboardq-cli grow-tsume \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
+  --checkpoint "$PWD/tsume-work/grow15.ckpt.json" --resume \
+  --output "$PWD/tsume-work/grow15.txt" \
+  --hash-mb 64 --threads 1 --stdin-control &gt;&gt; tsume-work/grow15.jsonl</code></pre>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">オプション</th><th scope="col">意味・指定範囲</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>--target-moves</code></td><td>目標手数。1～301の奇数。既定値は101</td></tr>
+                        <tr><td><code>--max-positions</code></td><td>採択する上限。1～1000。既定値は1</td></tr>
+                        <tr><td><code>--beam-width</code> / <code>--branch-factor</code></td><td>各手数層のビーム幅（1～2000、既定12）と1展開の分岐数（4～200、既定24）</td></tr>
+                        <tr><td><code>--max-attack</code> / <code>--max-defend</code></td><td>攻方駒上限（1～38、既定20）と玉以外の玉方盤上駒上限（0～38、既定14）。盤上総駒数は <code>--max-total-board-pieces</code>（2～39、既定30）</td></tr>
+                        <tr><td><code>--step-timeout-ms</code></td><td>成長探索の1問い合わせ上限。100～600000ms。既定値は5000</td></tr>
+                        <tr><td><code>--verify-query-timeout-ms</code> / <code>--verify-budget-seconds</code></td><td>厳密検証・不要駒検査の1問い合わせ上限（500～600000ms、既定15000）と1候補の総予算（5～86400秒、既定1800）</td></tr>
+                        <tr><td><code>--hash-mb</code> / <code>--threads</code></td><td>エンジンの <code>USI_Hash</code>（0～65536MiB）と <code>Threads</code>（0～256）を上書き。0は登録設定をそのまま使用</td></tr>
+                        <tr><td><code>--seed-sfen</code> / <code>--seed-file</code></td><td>成長の種とするSFENまたは種局面ファイル（絶対パス、<code>SFEN</code> / <code>SFEN moves …</code> 対応）。省略時は0手詰み局面から自動生成</td></tr>
+                        <tr><td><code>--exclude-file</code> / <code>--no-exclude-similar</code></td><td>重複・類似作を除外するための既存問題ファイル（絶対パス）。<code>--no-exclude-similar</code> で類似作除外を無効化</td></tr>
+                        <tr><td><code>--checkpoint</code> / <code>--resume</code> / <code>--checkpoint-interval-seconds</code></td><td>チェックポイントJSONの保存先（絶対パス）、再開フラグ、自動保存間隔（5～3600秒、既定30）</td></tr>
+                        <tr><td><code>--output</code></td><td>採択された局面を <code>SFEN moves …</code> 形式で追記保存するファイル（絶対パス）</td></tr>
+                        <tr><td><code>--allow-final-move-alternatives</code> / <code>--no-require-no-surplus</code> / <code>--no-strict-min-length</code></td><td>厳密基準を緩和するオプション。既定では最終手も一意・駒余り禁止・<code>go mate infinite</code> の自然終了を要求</td></tr>
+                        <tr><td><code>--stdin-control</code></td><td><code>stop</code> 行またはEOFで停止。実行中に <code>exclude &lt;SFEN moves …&gt;</code> や <code>seed &lt;SFEN&gt;</code> を送って他ワーカーの採択結果を動的同期可能</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">15〜31手詰などの問題集を複数ワーカーでまとめて収集する場合は、ソースに含まれる <code>scripts/generate_long_tsume_collections.py</code> を利用できます。全ワーカー共通の類似作フィルタ、標準入力経由のリアルタイム同期、使用済み親種の自動除外、1題ごとのJSONL即時保存・再開に対応しています。</p>
+                <div class="format-example">
+                    <h4>複数手数の長手数問題集を並列生成・再開（同梱スクリプト）</h4>
+<pre><code>python3 scripts/generate_long_tsume_collections.py \
+  --engine /path/to/KomoringHeights-by-gcc \
+  --work-dir tsume-work/long-run \
+  --publish-dir tsume-work/published \
+  --plies 15 17 19 --count 100 --workers 4 --hash-mb 64</code></pre>
+                </div>
+            </div>
+            <div class="guide-step" id="cli-parallel">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
                     <h3 class="guide-step-title">Pythonから並列実行し、途中結果を保存する</h3>
                 </div>
-                <p class="guide-step-text">以下を <code>generate_tsume_parallel.py</code> として保存し、リポジトリのルートで <code>python3 generate_tsume_parallel.py</code> を実行します。追加のPythonパッケージは不要です。最初は <code>TARGET=10</code>・<code>WORKERS=1</code> で確認し、CPU・メモリに余裕があれば並列数を増やしてください。</p>
-                <p class="guide-step-text"><code>PLIES</code> は手数、<code>TARGET</code> は全ワーカー合計の収集目標、<code>WORKERS</code> は同時起動数です。<code>TIMEOUT_MS</code>・駒数・配置範囲も冒頭で変更できます。100題を超える場合も、各バッチの上限を100以下にして不足分を繰り返し収集します。</p>
+                <p class="guide-step-text">短手数の <code>generate-tsume</code> をPythonから並列実行する最小例です。以下を <code>generate_tsume_parallel.py</code> として保存し、リポジトリのルートで <code>python3 generate_tsume_parallel.py</code> を実行します。追加のPythonパッケージは不要です。最初は <code>TARGET=10</code>・<code>WORKERS=1</code> で確認し、CPU・メモリに余裕があれば並列数を増やしてください。</p>
+                <p class="guide-step-text"><code>PLIES</code> は手数、<code>TARGET</code> は全ワーカー合計の収集目標、<code>WORKERS</code> は同時起動数です。<code>TIMEOUT_MS</code>・駒数・配置範囲も冒頭で変更できます。各バッチの件数を区切りながら、目標に達するまで繰り返し収集します。</p>
                 <details class="guide-step-text">
                     <summary>Pythonコードを表示（3手詰を4並列で100題収集）</summary>
                     <div class="format-example">
@@ -417,23 +504,23 @@ if __name__ == "__main__":
             </div>
             <div class="guide-step" id="cli-notes">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">5</span>
                     <h3 class="guide-step-title">実行・停止・再開時の注意点</h3>
                 </div>
                 <div class="guide-step-text">
                     <ul>
-                        <li><strong>全体の終了時間：</strong><code>--timeout-ms</code> はコマンド全体の制限時間ではありません。長手数や厳しい設定では採択が少なく、目標件数までの時間は保証されません。まず少数で進捗を確認し、必要なら停止して条件を調整します。判定不能は不詰や検証成功として数えません。</li>
-                        <li><strong>CPU・メモリ：</strong>並列数とエンジン内のスレッド数の両方が負荷に影響します。16プロセスに各256MiBのハッシュを割り当てると、ハッシュだけで約4GiBになり、ほかにもメモリが必要です。</li>
+                        <li><strong>全体の終了時間：</strong><code>--timeout-ms</code> や <code>--verify-budget-seconds</code> はコマンド全体の制限時間ではありません。長手数や厳しい設定では採択が少なく、目標件数までの時間は保証されません。まず少数で進捗を確認し、必要なら停止して条件を調整します。判定不能は不詰や検証成功として数えません。</li>
+                        <li><strong>CPU・メモリ：</strong>並列数とエンジン内のスレッド数・ハッシュ容量の両方が負荷に影響します。KomoringHeightsの既定値（例：<code>USI_Hash=4096</code>、<code>Threads=4</code>）のまま複数プロセスを起動するとメモリ不足になりやすいため、<code>grow-tsume</code> では <code>--hash-mb 64 --threads 1</code> のように明示指定するか、エンジン設定で事前に調整してください。</li>
                         <li><strong>設定ファイル：</strong>GUIで登録したエンジンが見えない場合は、同じユーザー・同じ設定で実行しているか確認します。Linuxで <code>XDG_CONFIG_HOME</code> を変える場合は、その下の <code>ShogiBoardQ/ShogiBoardQ.ini</code> にエンジン登録・オプションを準備し、同じ環境変数で <code>list-engines</code> とPythonを実行します。</li>
-                        <li><strong>再開するファイル：</strong>同じ <code>OUTPUT</code> を複数のPythonプロセスから同時に更新しないでください。例のコードは既存行を再検証しないため、手数・エンジン・余詰の条件を変えたら新しい出力先を使うか、既存分を再検証します。設定は <code>started</code> イベントのログでも確認できます。</li>
-                        <li><strong>余詰の条件：</strong>既定では主手順の最終手の複数解と、早く詰む変化での変化別詰を許容します。最終手も一意にする場合は <code>ALLOW_FINAL_ALTERNATIVES=False</code> にし、再検証にも <code>--no-final-alternatives</code> を付けます。</li>
-                        <li><strong>出力の区別：</strong><code>tsume-batch.jsonl</code> はイベントログです。Pythonが作る <code>tsume-work/tsume_3ply_candidates.txt</code> は局面・手順の収集ファイルです。CLIのエラー時はワーカーのJSON Linesと標準エラーログを確認します。</li>
+                        <li><strong>再開するファイル：</strong>同じ <code>OUTPUT</code> や <code>--checkpoint</code> ファイルを複数のプロセスから同時に更新しないでください。上の <code>generate_tsume_parallel.py</code> は既存行を再検証しないため、手数・エンジン・余詰の条件を変えたら新しい出力先を使うか、既存分を再検証します。設定は <code>started</code> イベントのログでも確認できます。</li>
+                        <li><strong>余詰・駒余りの条件：</strong><code>generate-tsume</code> は既定で最終手の複数解を許容します（一意にするには <code>--no-final-alternatives</code>）。一方、<code>grow-tsume</code> は既定で最終手も一意・駒余り禁止・<code>go mate infinite</code> 自然終了の厳密基準です。再検証でも同じ条件を揃えてください。</li>
+                        <li><strong>出力の区別：</strong><code>tsume-batch.jsonl</code> や <code>grow15.jsonl</code> はイベントログです。問題集として使うのは <code>--output</code> やPythonが出力する手順付きテキストファイルです。CLIのエラー時はワーカーのJSON Linesと標準エラーログを確認します。</li>
                     </ul>
                 </div>
             </div>
             <div class="guide-step" id="collection-validation">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">6</span>
                     <h3 class="guide-step-title">手順付きテキストの形式と再検証</h3>
                 </div>
                 <p class="guide-step-text">問題集はUTF-8で、1行を <code>SFEN moves USI指し手…</code> として保存します。<code>#</code> で始まるコメントに生成日、エンジン、手数、駒数・探索時間、余詰の条件を記録しておくと、後から確認できます。</p>
@@ -441,7 +528,7 @@ if __name__ == "__main__":
                     <h4>3手詰の保存形式（1行1題）</h4>
 <pre><code>9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+</code></pre>
                 </div>
-                <p class="guide-step-text">主手順の余詰を再検査するには <code>verify-tsume</code> を使います。次は1局面の例です。複数題を再検査する場合は、収集ファイルの各SFENを順に渡します。</p>
+                <p class="guide-step-text">主手順の余詰を再検査するには <code>verify-tsume</code> を使います（1〜301手の奇数に対応）。次は1局面の例です。複数題を再検査する場合は、収集ファイルの各SFENを順に渡します。</p>
                 <div class="format-example">
                     <h4>局面の余詰を再検査</h4>
 <pre><code>./build/shogiboardq-cli verify-tsume \
@@ -476,14 +563,15 @@ python3 scripts/audit_tsume_collections.py tsume-work/tsume_3ply_candidates.txt 
                     <span class="guide-step-number">1</span>
                     <h3 class="guide-step-title">局面の重複だけでなく、手順の類似も確認する</h3>
                 </div>
-                <p class="guide-step-text">SFENが異なっていても、同じ追い詰め、左右反転、配置の平行移動、金と成桂などの置換で解き方が似る場合があります。標準CLIと上のPython例による局面の重複排除だけでは、問題集としての多様性は保証されません。</p>
+                <p class="guide-step-text">SFENが異なっていても、同じ追い詰め、左右反転、配置の平行移動、金と成桂などの置換で解き方が似る場合があります。<code>generate-tsume</code> と上のPython例による局面の重複排除だけでは、問題集としての多様性は保証されません。</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
                     <h3 class="guide-step-title">問題集編集用のツールで選別・補充する</h3>
                 </div>
-                <p class="guide-step-text"><code>scripts/refill_diverse_tsume.py</code> は、検証済みの問題集を入力に、全ワーカー共通で手順の類似を判定して不足分を生成します。標準CLIとは別の専用候補生成器・監査器を使います。補充後に <code>scripts/audit_tsume_collections.py</code> で独立監査し、確定判定が揃ってから <code>scripts/publish_diverse_tsume.py</code> で直近10題との手順の重なりを減らす順序に並べます。</p>
+                <p class="guide-step-text">3〜13手詰の補充には <code>scripts/refill_diverse_tsume.py</code> が使えます。検証済みの問題集を入力に、全ワーカー共通で手順の類似を判定して不足分を生成し、<code>scripts/audit_tsume_collections.py</code> で独立監査した後、<code>scripts/publish_diverse_tsume.py</code> で直近10題との手順の重なりを減らす順序に並べます。</p>
+                <p class="guide-step-text">15〜31手詰の長手数問題集では、<code>grow-tsume</code> の内蔵類似作除外と <code>scripts/generate_long_tsume_collections.py</code>（全ワーカー共通の類似判定と出題順の分散配置）で収集し、同様に独立監査を行って収録しています。</p>
                 <p class="guide-step-text">類似判定は主手順を使った編集基準で、変化・紛れを含む作品の価値を完全に判定するものではありません。入力条件・再開・除外・保存の手順は<a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">問題集のREADME</a>を参照してください。</p>
             </div>
         </div>
