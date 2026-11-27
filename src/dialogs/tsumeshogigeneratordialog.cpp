@@ -952,16 +952,6 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     m_settingsUi.allowFinalAlternatives->setToolTip(
         tr("オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。"));
     options->addWidget(m_settingsUi.allowFinalAlternatives);
-    m_settingsUi.requireNoSurplus = new QCheckBox(tr("駒余りを禁止する"), this);
-    m_settingsUi.requireNoSurplus->setObjectName(QStringLiteral("generatorRequireNoSurplus"));
-    m_settingsUi.requireNoSurplus->setToolTip(
-        tr("オンにすると、全最長応手および最終手で攻方持駒が0枚になる局面だけを採択します。"));
-    options->addWidget(m_settingsUi.requireNoSurplus);
-    m_settingsUi.excludeSimilar = new QCheckBox(tr("類似作を除外する"), this);
-    m_settingsUi.excludeSimilar->setObjectName(QStringLiteral("generatorExcludeSimilar"));
-    m_settingsUi.excludeSimilar->setToolTip(
-        tr("オンにすると、平行移動・左右反転・中間手順1手違いの類似作を除外します。"));
-    options->addWidget(m_settingsUi.excludeSimilar);
     options->addStretch();
     m_settingsUi.restoreDefaults = new QPushButton(tr("既定値に戻す"), this);
     m_settingsUi.restoreDefaults->setObjectName(QStringLiteral("generatorRestoreDefaults"));
@@ -969,11 +959,29 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     options->addWidget(m_settingsUi.restoreDefaults);
     settingsLayout->addLayout(options);
 
-    // 逆算・編集モード専用のファイル設定（種局面・途中保存チェックポイント）
+    // 逆算・編集モード専用の追加条件・ファイル設定（駒余り禁止・類似作除外・種局面・途中保存チェックポイント）
     m_settingsUi.retroFilesWidget = new QWidget(this);
     m_settingsUi.retroFilesWidget->setObjectName(QStringLiteral("generatorRetroFiles"));
-    auto* filesForm = new QFormLayout(m_settingsUi.retroFilesWidget);
-    filesForm->setContentsMargins(0, 4, 0, 0);
+    auto* retroExtraLayout = new QVBoxLayout(m_settingsUi.retroFilesWidget);
+    retroExtraLayout->setContentsMargins(0, 2, 0, 0);
+    retroExtraLayout->setSpacing(6);
+
+    auto* retroOptions = new QHBoxLayout;
+    m_settingsUi.requireNoSurplus = new QCheckBox(tr("駒余りを禁止する"), this);
+    m_settingsUi.requireNoSurplus->setObjectName(QStringLiteral("generatorRequireNoSurplus"));
+    m_settingsUi.requireNoSurplus->setToolTip(
+        tr("オンにすると、全最長応手および最終手で攻方持駒が0枚になる局面だけを採択します。"));
+    retroOptions->addWidget(m_settingsUi.requireNoSurplus);
+    m_settingsUi.excludeSimilar = new QCheckBox(tr("類似作を除外する"), this);
+    m_settingsUi.excludeSimilar->setObjectName(QStringLiteral("generatorExcludeSimilar"));
+    m_settingsUi.excludeSimilar->setToolTip(
+        tr("オンにすると、平行移動・左右反転・中間手順1手違いの類似作を除外します。"));
+    retroOptions->addWidget(m_settingsUi.excludeSimilar);
+    retroOptions->addStretch();
+    retroExtraLayout->addLayout(retroOptions);
+
+    auto* filesForm = new QFormLayout;
+    filesForm->setContentsMargins(0, 0, 0, 0);
     filesForm->setVerticalSpacing(6);
     filesForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 
@@ -1005,6 +1013,7 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     cpRow->addWidget(m_settingsUi.clearCheckpoint);
     cpRow->addWidget(m_settingsUi.resumeCheckpoint);
     filesForm->addRow(tr("チェックポイント（任意）:"), cpRow);
+    retroExtraLayout->addLayout(filesForm);
     settingsLayout->addWidget(m_settingsUi.retroFilesWidget);
 
     mainLayout->addWidget(settingsGroup);

@@ -17495,7 +17495,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="647"/>
         <source>探索時間/手:</source>
-        <translation>搜尋時間/步:</translation>
+        <translation>搜尋時間/步：</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="649"/>
@@ -17520,7 +17520,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="847"/>
         <source>生成方式:</source>
-        <translation>產生方式:</translation>
+        <translation>產生方式：</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="850"/>
@@ -17604,7 +17604,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="910"/>
         <source>ビーム幅:</source>
-        <translation>束寬:</translation>
+        <translation>束寬：</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="912"/>
@@ -17673,7 +17673,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="938"/>
         <source>分岐数:</source>
-        <translation>分支數:</translation>
+        <translation>分支數：</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="945"/>
@@ -17683,7 +17683,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="946"/>
         <source>検証予算:</source>
-        <translation>驗證預算:</translation>
+        <translation>驗證預算：</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="954"/>
@@ -17725,7 +17725,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="990"/>
         <source>種局面ファイル（任意）:</source>
-        <translation>種子局面檔案（選填）:</translation>
+        <translation>種子局面檔案（選填）：</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="995"/>
@@ -17740,7 +17740,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1006"/>
         <source>チェックポイント（任意）:</source>
-        <translation>檢查點（選填）:</translation>
+        <translation>檢查點（選填）：</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1015"/>
@@ -17877,7 +17877,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="224"/>
         <source>種局面ファイルを開けませんでした: %1</source>
-        <translation>無法開啟種子局面檔案: %1</translation>
+        <translation>無法開啟種子局面檔案：%1</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="264"/>
@@ -17924,17 +17924,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="376"/>
         <source>候補生成: %1 局面 / 最大到達: %2 手 / 採択: %3 局面</source>
-        <translation>候選產生: %1 局面 / 最大到達: %2 手 / 採納: %3 局面</translation>
+        <translation>候選產生：%1 局面 / 最大到達：%2 手 / 採納：%3 局面</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="382"/>
         <source>検査で除外: %1 局面（うち判定不能: %2 / フロンティア: %3 / 修復成功: %4）</source>
-        <translation>檢驗排除: %1 局面（其中無法判定: %2 / 前緣: %3 / 修復成功: %4）</translation>
+        <translation>檢驗排除：%1 局面（其中無法判定：%2 / 前緣：%3 / 修復成功：%4）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="394"/>
         <source>最新の途中保存: %1</source>
-        <translation>最新檢查點儲存: %1</translation>
+        <translation>最新檢查點儲存：%1</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="408"/>
