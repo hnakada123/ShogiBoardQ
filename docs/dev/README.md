@@ -52,7 +52,7 @@
 
 - [tsume-play.md](tsume-play.md): 詰将棋対局
 - [tsumeshogi-generator.md](tsumeshogi-generator.md): 局面の自動生成
-- [tsumeshogi-collection-generation.md](tsumeshogi-collection-generation.md): 同梱の問題集6000題の作り方
+- [tsumeshogi-collection-generation.md](tsumeshogi-collection-generation.md): 問題集15,000題（3〜31手詰）の作り方と検証・再編の記録
 
 ## MCP サーバー
 

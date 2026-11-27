@@ -1,23 +1,28 @@
-# 詰将棋6000題の生成・検証・再編の記録
+# 詰将棋15,000題（3〜31手詰）の生成・検証・再編の記録
 
-3・5・7・9・11・13手詰を各1000題、合計6000題作成した際の試行錯誤と、PythonからCLIを直接並列実行する方法をまとめる。初回生成は2026年9月26日、不要駒と類似作の整理は9月27日に行った。
+3〜31手詰（3・5・7・9・11・13・15・17・19・21・23・25・27・29・31手詰）を各1000題、合計15,000題作成した際の試行錯誤と生成・検証・再編の手順をまとめる。
 
-**初回生成はPythonから `shogiboardq-cli generate-tsume` を直接起動した。ShogiBoardQのMCPサーバーは使用していない。** 後の再編では、リポジトリに追加した専用の候補生成・監査プログラムをPythonから起動した。この経路もMCPを介していない。
+- **3〜13手詰（6,000題）**: 2026年9月26日に初回生成（`20260926`版）、9月27日に不要駒と類似作を整理、10月1日に駒余り検査を追加して2,249題を差し替えた（`tsume_{3,5,7,9,11,13}ply_1000_20261001.txt`）。配布パッケージに同梱している。
+- **15〜31手詰（9,000題）**: 2026年11月27日に `shogiboardq-cli grow-tsume` と並列オーケストレータ `scripts/generate_long_tsume_collections.py` を用いて、詰み局面・種局面からの逆算・盤面編集・標的型余詰リペアと完全厳密証明により生成した（`tsume_{15,17,19,21,23,25,27,29,31}ply_1000_20261127.txt`）。リポジトリの `data/tsumeshogi/` および利用ガイドから取得でき、監査記録 `validation_long_20261127.json` をアプリ本体に同梱している。
 
-成果物は [data/tsumeshogi/](../../data/tsumeshogi/README.md) の `tsume_{3,5,7,9,11,13}ply_1000_20260926.txt`。UTF-8で、`#` 始まりのコメントを除き、1行に1題を `SFEN moves USI指し手…` の形式で保存している。ファイル名の日付は初回作成日であり、内容には翌日の再編を反映している。
+**いずれの段階もPythonからCLIや専用ツールを直接起動しており、ShogiBoardQのMCPサーバーは使用していない。**
+
+成果物は [data/tsumeshogi/](../../data/tsumeshogi/README.md) 配下の全15ファイル（`tsume_{3..13}ply_1000_20261001.txt` および `tsume_{15..31}ply_1000_20261127.txt`）。UTF-8で、`#` 始まりのコメントを除き、1行に1題を `SFEN moves USI指し手…` の形式で保存している。
 
 ## 1. 実行経路と再現できる範囲
 
 | 段階 | 使用した処理 | この資料での扱い |
 |---|---|---|
-| 初回の候補収集 | Python → 標準CLIの `generate-tsume` → 共通の生成器・USIエンジン | 下記に実行可能な並列収集例を掲載 |
-| 初回の長手数生成の調整 | 候補生成・事前選別を変更した `/tmp` の作業用CLI | 当時の工夫を記録。一時実行版そのものは配布物に含まれない |
-| 不要駒・類似作の整理と補充 | Python → `tsumeshogi_diversity_sampler` / `tsumeshogi_collection_auditor` | 現在のリポジトリ内のツールで実行できる |
-| 最終確認と保存 | 独立した再監査 → 類似判定・並べ替え → 問題集と検証記録 | 候補収集とは別の完了条件を設ける |
+| 3〜13手詰の初回候補収集（2026-09-26） | Python → 標準CLIの `generate-tsume` → 共通の生成器・USIエンジン | 第2・3節に当時の工夫と実行可能な並列収集例を掲載 |
+| 初回の長手数生成の調整（2026-09-26） | 候補生成・事前選別を変更した `/tmp` の作業用CLI | 当時の工夫を記録。一時実行版そのものは配布物に含まれない |
+| 不要駒・類似作の整理と補充（2026-09-27） | Python → `tsumeshogi_diversity_sampler` / `tsumeshogi_collection_auditor` | 第4〜7節。現在のリポジトリ内のツールで実行できる |
+| 駒余り検査と差し替え（2026-10-01） | `tsume_surplus.py` + `audit_tsume_collections.py` / `refill_diverse_tsume.py` / `publish_diverse_tsume.py`（`--require-no-surplus`） | 第8節。`validation_20261001.json`・`audit_20261001.jsonl.gz` に記録 |
+| 15〜31手詰の逆算生成と完全厳密証明（2026-11-27） | `scripts/generate_long_tsume_collections.py` → 標準CLIの `grow-tsume`（`TsumeRetrogradeGenerator` / `TsumeStrictCertifier`） | 第9節。`validation_long_20261127.json` に記録。現在のツールで再現可能 |
+| 最終確認と保存 | 独立した再監査または `TsumeStrictCertifier` 確定証明 → 類似判定・並べ替え → 問題集と検証記録 | 候補収集とは別の完了条件を設ける |
 
-標準GUIとCLIは同じ `TsumeshogiGenerator` を使う。候補生成、内蔵探索による事前選別、外部USIエンジンでの詰み探索、主手順の余詰検査、不要駒トリミングが共通である。実装の詳細は [生成機能の開発資料](tsumeshogi-generator.md)、標準CLIの操作方法は [利用ガイド](../guide/tsumeshogi-generator.html#cli-generation) を参照。
+標準GUIとCLIはランダム配置で `TsumeshogiGenerator` を、逆算・編集による長手数生成で `TsumeRetrogradeGenerator` を共用する。実装の詳細は [生成機能の開発資料](tsumeshogi-generator.md)、標準CLIの操作方法は [利用ガイド](../guide/tsumeshogi-generator.html#cli-generation) を参照。
 
-以下の比率・時間・並列数は作業中に比較・調整した値であり、6000題すべてを一つの固定設定で生成したという意味ではない。
+以下の比率・時間・並列数は作業中に比較・調整した値であり、全15,000題を一つの固定設定で生成したという意味ではない。
 
 ## 2. 初回生成で試したこと
 
@@ -100,11 +105,11 @@ cmake --build build --target shogiboardq-cli --parallel 4
 
 | オプション | 意味 |
 |---|---|
-| `--target-moves` | 目標手数。1～19の奇数 |
-| `--max-positions` | 1回の起動で生成する最大件数。1～100 |
-| `--timeout-ms` | 候補探索・トリミング・余詰検査に使う予算。500～60000ms。プロセス全体の実行時間ではない |
-| `--max-attack` | 攻方の盤上・持駒の合計上限。1～10 |
-| `--max-defend` | 玉以外の玉方盤上駒の上限。0～10 |
+| `--target-moves` | 目標手数。現行は1～301の奇数（`GeneratorLimits` でGUIと共通定義。初回生成当時の上限は19） |
+| `--max-positions` | 1回の起動で生成する最大件数。現行は1～10000（初回生成当時の上限は100） |
+| `--timeout-ms` | 候補探索・トリミング・余詰検査に使う予算。現行は1000～300000ms（プロセス全体の実行時間ではない） |
+| `--max-attack`（`--max-attack-pieces`） | 攻方の盤上・持駒の合計上限。1～10 |
+| `--max-defend`（`--max-defend-pieces`） | 玉以外の玉方盤上駒の上限。0～10 |
 | `--attack-range` | 玉を中心とする攻め駒の配置範囲。1～8マス |
 | `--stdin-control` | 標準入力の `stop\n` またはEOFで停止する |
 
@@ -309,9 +314,9 @@ if __name__ == "__main__":
 
 `run.json` には入力ファイル・監査プログラム・類似判定コードのハッシュを保存し、異なる条件で以前の作業を再開しないようにした。最終監査で外すSFENは `--exclude-sfens` から渡し、`exclusions.json` に蓄積する。再開時に元ファイルや古い合格ログから復活させず、不足分として補充する。
 
-## 6. 現在のツールによる補充・最終監査・保存
+## 6. 現在のツールによる補充・最終監査・保存（3〜13手詰）
 
-以下は現在のツールで再編する手順である。公開済み6000題はすでに類似判定を通っているため、そのまま入力すると補充が不要で直ちに収集を終える場合がある。
+以下は3〜13手詰を再編した際の手順である（例示のファイル名は現行の `20261001` 版。2026年9月27日当時の再編では `20260926` 版を入力した）。公開済み6000題はすでに類似判定・駒余り検査を通っているため、そのまま入力すると補充が不要で直ちに収集を終える場合がある。
 
 入力には検証済みの問題集を使う。標準CLIの例で新たに収集した候補を使う場合は、まず `audit_tsume_collections.py` で検査し、得られた `tsume_*ply_minimal.txt` を補充の入力にする。補充ツールは入力中の既存問題すべてをその場で再監査するわけではなく、公開前の独立監査も必要である。
 
@@ -320,9 +325,9 @@ cmake -B build -S . -DBUILD_TESTING=ON
 cmake --build build --target tsumeshogi_diversity_sampler tsumeshogi_collection_auditor --parallel 4
 
 # 以下の --engine は、CLIの登録名ではなく実行ファイルのパス。
-python3 scripts/refill_diverse_tsume.py data/tsumeshogi/tsume_*ply_1000_20260926.txt \
+python3 scripts/refill_diverse_tsume.py data/tsumeshogi/tsume_*ply_1000_20261001.txt \
   --engine /path/to/KomoringHeights-by-gcc \
-  --output-dir /tmp/tsume-diverse --workers 14 --seconds 3600
+  --output-dir /tmp/tsume-diverse --workers 14 --seconds 3600 --require-no-surplus
 ```
 
 `progress.json` の全手数の `missing` が0になるまで同じコマンドで再開する。`--seconds` による終了は完成を意味しない。入力ファイルは再開時の照合に使うため、最終保存まで書き換えない。
@@ -332,10 +337,10 @@ python3 scripts/refill_diverse_tsume.py data/tsumeshogi/tsume_*ply_1000_20260926
 ```bash
 python3 scripts/audit_tsume_collections.py /tmp/tsume-diverse/tsume_*ply_working.txt \
   --engine /path/to/KomoringHeights-by-gcc \
-  --output-dir /tmp/tsume-diverse-final --workers 8 --timeout-ms 30000
+  --output-dir /tmp/tsume-diverse-final --workers 8 --timeout-ms 60000 --require-no-surplus
 ```
 
-今回の最終監査では30,000msを使い、判定不能分を60,000msで再試行した。再試行は同じ入力・出力ディレクトリを使い、`--timeout-ms` を増やす。監査プログラムが変わった場合は新しい出力ディレクトリが必要になる。
+2026年9月27日の最終監査では30,000msを使い、判定不能分を60,000msで再試行した（10月1日の駒余り差し替え版では60,000msを使用）。再試行は同じ入力・出力ディレクトリを使い、`--timeout-ms` を増やす。監査プログラムが変わった場合は新しい出力ディレクトリが必要になる。
 
 判定不能や不合格のSFENを除外する場合は、1行1SFENのファイルを用意し、補充コマンドに `--exclude-sfens /tmp/excluded-sfens.txt` を追加する。不足を補充してから再監査する。監査で駒が除去された場合も、変更後の局面を対象に再監査し、公開する局面そのものの確定記録を得る。
 
@@ -344,21 +349,22 @@ python3 scripts/audit_tsume_collections.py /tmp/tsume-diverse/tsume_*ply_working
 1. 各手数で1000題あり、SFENが重複しない。
 2. 各SFENを新しい探索表で調べ、最短手数が目標と一致する。
 3. 保存する全手が合法で、攻方が連続王手し、終端が詰みである。
-4. 主手順の各攻手が一意である。最終手の複数解と、早く詰む変化での変化別詰は許容する。
+4. 主手順の各攻手が一意である。3〜13手詰では最終手の複数解と、早く詰む変化での変化別詰を許容する（15〜31手詰では第9節のとおり最終手の複数解も禁止する）。
 5. 全1枚除去を確認し、未確定がなく、監査で局面が変更されない。記録が `minimal`、`removed == 0`、`original == sfen` となる。
-6. 最終監査が返した手順でも類似判定後に各1000題残る。二歩・行き所のない駒・駒種ごとの総数も確認する。
+6. 2026年10月1日版以降は、最長抵抗の全応手と最終手の全ての詰め方で攻方の持駒が空になる（駒余りなし）。
+7. 最終監査が返した手順でも類似判定後に各1000題残る。二歩・行き所のない駒・駒種ごとの総数も確認する。
 
 ```bash
-python3 scripts/publish_diverse_tsume.py data/tsumeshogi/tsume_*ply_1000_20260926.txt \
+python3 scripts/publish_diverse_tsume.py data/tsumeshogi/tsume_*ply_1000_20261001.txt \
   --audit-logs /tmp/tsume-diverse-final/audit.jsonl \
-  --output-dir /tmp/tsume-diverse-publish
+  --output-dir /tmp/tsume-diverse-publish --date 20261001 --require-no-surplus --preserve-order
 ```
 
 保存ツールは各入力局面・手数について最新の監査記録を使う。後の判定不能を、以前の合格記録で上書きして採択しない。公開する各1000題に対応する独立監査のログを渡す。再試行や補充で余分な候補の記録も残った場合は、最終収録分に対応する記録を選び、古い不採択の記録だけを都合よく取り除かない。
 
-出力件数、局面、手順、並び順、検証記録とファイルのSHA-256を確認し、公開用ディレクトリの問題集と `validation_20260926.json` を `data/tsumeshogi/` へコピーする。再編で問題番号は変わる。解答履歴は正規化したSFENをキーにしているため、同じ局面の履歴は引き継がれる。
+出力件数、局面、手順、並び順、検証記録とファイルのSHA-256を確認し、公開用ディレクトリの問題集と `validation_<date>.json`（2026年9月27日版は `validation_20260926.json`、10月1日版は `validation_20261001.json`）を `data/tsumeshogi/` へコピーする。再編で問題番号が変わる場合もあるが（`--preserve-order` 指定時は残した局面の番号を維持）、解答履歴は正規化したSFENをキーにしているため、同じ局面の履歴は引き継がれる。
 
-## 7. 再編後の結果
+## 7. 再編後の結果（2026年9月27日）
 
 次の数値は [validation_20260926.json](../../data/tsumeshogi/validation_20260926.json) に記録した2026年9月27日の最終結果である。「変更前」は不要駒整理後・類似作整理前を指す。
 
@@ -374,4 +380,89 @@ python3 scripts/publish_diverse_tsume.py data/tsumeshogi/tsume_*ply_1000_2026092
 
 全6000題が最短手数・合法な詰め手順・全1枚除去の監査を通り、判定不能と除去可能な駒が残る問題は0題となった。最終手順にも類似判定を適用し、全手数で各1000題を維持した。不要駒整理時の25,468通りと、類似作の入れ替え後の27,832通りは別の問題集に対する集計である。
 
-再利用する際は、生成数だけでなく「検証済みで、不要駒と類似作を除いて残った件数」を進捗にする。ランダム配置で新しい系統を探し、種の変更と逆算で候補を広げ、採択後の独立監査で品質を確定する流れを一組として運用する。
+## 8. 2026年10月1日版：駒余り検査と差し替え（3〜13手詰）
+
+20260926版の保存手順を全件再生すると、手順中に取った駒を含めて攻方の持駒が余る問題が1,835題見つかった。そこで `TsumeshogiVerifier::Options::requireNoSurplus` を追加し、保存手順だけでなく**最長抵抗の全応手と、最終手の全ての詰め方で攻方の持駒が空になること**を要求した。別の主手順・最終手で駒が余る400題と再検証未確定の14題も含め、計2,249題を差し替えたのが現行の `tsume_{3..13}ply_1000_20261001.txt` である。
+
+- 残した局面の問題番号を維持し（`publish_diverse_tsume.py --preserve-order`）、除外した番号に差し替え局面を入れた。解答履歴は正規化SFENをキーにするため、残した局面の履歴は引き継がれる。
+- 20260926版のファイル本体はリポジトリから外したが、監査記録 `validation_20260926.json` はアプリ本体（`resources/tsumeshogi.qrc`）に残しており、旧版ファイルも引き続き検証済みとして開ける。
+- 新版の監査集計は [validation_20261001.json](../../data/tsumeshogi/validation_20261001.json)、全問題の独立監査と1枚除去理由は `data/tsumeshogi/audit_20261001.jsonl.gz` に保存している。
+
+| 手数 | 旧版保存手順で駒余り | 新版で差し替えた問題 | 詰め上がり検査局面数 | 最終の1枚除去検査数 |
+|---|---:|---:|---:|---:|
+| 3 | 202 | 361 | 3,772 | 3,504 |
+| 5 | 244 | 318 | 3,022 | 3,633 |
+| 7 | 288 | 329 | 2,574 | 4,148 |
+| 9 | 342 | 400 | 2,896 | 5,210 |
+| 11 | 354 | 406 | 3,946 | 5,593 |
+| 13 | 405 | 435 | 5,513 | 6,089 |
+| 合計 | 1,835 | 2,249 | 21,723 | 28,177 |
+
+手順の詳細は [data/tsumeshogi/README.md](../../data/tsumeshogi/README.md) を参照。
+
+## 9. 2026年11月27日版：15〜31手詰（各1000題・計9000題）の生成と厳密証明
+
+15手以上の長手数では、ランダム配置や近傍変異のみでは採択率が極端に低下するため、標準アプリ・CLI に追加した**逆算・盤面編集・標的型余詰リペア・多層ビームサーチ**（`shogiboardq-cli grow-tsume` / `TsumeRetrogradeGenerator`）と並列オーケストレータ [generate_long_tsume_collections.py](../../scripts/generate_long_tsume_collections.py) を用いて、15・17・19・21・23・25・27・29・31手詰の各1,000題・計9,000題を作成した。
+
+### 採択条件（完全厳密基準）
+
+3〜13手詰（最終手複数解を許容）よりさらに厳格な次の全条件を満たす局面だけを採択した。
+
+1. **最短手数の確定**: KomoringHeights（`PostSearchLevel=MinLength`, `GenerateAllLegalMoves=true`, `RootIsAndNodeIfChecked=false`, `NodesLimit=0`, `MultiPV=1`）へ `go mate infinite` を送り、期限内の自然終了だけで最短手数が目標手数に厳密一致することを確認する（stop後の途中応答は破棄）。
+2. **最終手を含む全主手順の完全一意**: 主手順のすべての攻方手番で余詰がないことに加え、**最終手の複数解も禁止**（`allow_final_move_alternatives=false`）。
+3. **駒余り完全禁止**: すべての最長抵抗応手および最終手で攻方の持駒が空になることを確認（`require_no_surplus=true`）。
+4. **不要駒ゼロ**: `TsumeStrictCertifier` が盤上の玉以外の駒と攻方持駒を1枚ずつ玉方持駒へ移した全候補を調べ、除去可能なら確定して先頭から再走査する。1つでも判定不能（`Unknown`）が残れば局面全体を棄却する。
+5. **類似作除外**: ワーカー内の `TsumeRetrogradeOps::diversityKeys()` とオーケストレータの共有 `tsume_diversity.DiversityIndex` の双方で、平行移動・左右反転・金相当置換・最終手違い・中間手順1手違いを除外する。
+
+### 並列オーケストレータの設計（`scripts/generate_long_tsume_collections.py`）
+
+- **手数昇順の段階的構築**: 既存の9・11・13手詰（20261001版）を初期種プールとし、15→17→…→31手詰の順に各1,000題を完成させてから次の手数へ進む。完成した手数の全1,000題（100%最終手一意・駒余りなし）をそのまま2手先・4手先の親種プールに供給する。
+- **手数帯別の探索予算（`tier_params`）**:
+
+| 手数帯 | `max_attack` | `max_defend` | `beam_width` | `branch_factor` | `step_timeout_ms` | `verify_query_timeout_ms` | `verify_budget_seconds` | 1ラウンド上限 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 15〜19手詰 | 14 | 10 | 600 | 64 | 400 | 6,000 | 60 | 180秒 |
+| 21〜25手詰 | 16 | 12 | 400 | 40 | 500 | 12,000 | 120 | 300秒 |
+| 27〜31手詰 | 18 | 14 | 300 | 32 | 900 | 18,000 | 210 | 420秒 |
+
+- **ワーカーの4役割分担**:
+  - `retro_parent`: 2手短い親種のうち、まだ子問題を生んでいないコア（`self_core_key` が未消化の親種）を優先的に割り当てて2手逆算する。
+  - `mutate`: すでに採択された同手数の完全厳密作を種にし、盤面変異・複合編集で別系統へ広げる（同手数の採択が進むにつれて割当台数を自動拡大）。
+  - `grand`: 4手短い種から2段逆算で別系統を探索する。
+  - `fresh`: 0手詰み局面から新規に構築して既存系統への偏りを防ぐ。
+- **常駐ワーカーへのリアルタイム同期**: 1ワーカーが新局面の厳密証明に成功すると、オーケストレータは即座に `collected_<N>ply.jsonl` へ追記するとともに、稼働中の他ワーカーの標準入力（`--stdin-control`）へ `exclude <SFEN> moves <PV>`（および `mutate` ワーカーには `seed <SFEN> moves <PV>`）を配信する。これにより再起動ロスとワーカー間の重複・類似作業を抑える。
+- **メモリ管理**: 作業用 `XDG_CONFIG_HOME` / `SHOGIBOARDQ_CONFIG_HOME` に専用 `ShogiBoardQ.ini` を生成し、各ワーカーを `Threads=1`、`USI_Hash=--hash-mb`（既定64 MiB）に固定して多並列時のメモリ超過を防ぐ。
+- **中断再開と自動公開**: `collected_<N>ply.jsonl` と `progress.json` によりいつでも中断・再開でき、各手数が目標題数（1,000題）に到達した時点で `tsume_diversity.spread()` により直近10題と手順座標が重なりにくい順に並べ替え、`tsume_<N>ply_1000_<date>.txt` と `validation_long_<date>.json` を原子的に書き出す。
+
+### 実行コマンド例と結果
+
+```bash
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target shogiboardq-cli --parallel 4
+
+python3 scripts/generate_long_tsume_collections.py \
+  --engine /path/to/KomoringHeights-by-gcc \
+  --work-dir /tmp/tsume-long-20261127 \
+  --publish-dir data/tsumeshogi \
+  --plies 15 17 19 21 23 25 27 29 31 \
+  --count 1000 --workers 14 --hash-mb 64 --date 20261127
+```
+
+全9手数（15〜31手詰）・計9,000題について、以下の結果が [validation_long_20261127.json](../../data/tsumeshogi/validation_long_20261127.json) に記録されている。
+
+| 手数 | 出力ファイル | 収録数 | 一意SFEN | 異なるUSI手順 | 駒余り | 不要駒残存 | 判定不能 |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 15 | `tsume_15ply_1000_20261127.txt` | 1,000 | 1,000 | 1,000 | 0 | 0 | 0 |
+| 17 | `tsume_17ply_1000_20261127.txt` | 1,000 | 1,000 | 1,000 | 0 | 0 | 0 |
+| 19 | `tsume_19ply_1000_20261127.txt` | 1,000 | 1,000 | 1,000 | 0 | 0 | 0 |
+| 21 | `tsume_21ply_1000_20261127.txt` | 1,000 | 1,000 | 1,000 | 0 | 0 | 0 |
+| 23 | `tsume_23ply_1000_20261127.txt` | 1,000 | 1,000 | 1,000 | 0 | 0 | 0 |
+| 25 | `tsume_25ply_1000_20261127.txt` | 1,000 | 1,000 | 1,000 | 0 | 0 | 0 |
+| 27 | `tsume_27ply_1000_20261127.txt` | 1,000 | 1,000 | 1,000 | 0 | 0 | 0 |
+| 29 | `tsume_29ply_1000_20261127.txt` | 1,000 | 1,000 | 1,000 | 0 | 0 | 0 |
+| 31 | `tsume_31ply_1000_20261127.txt` | 1,000 | 1,000 | 1,000 | 0 | 0 | 0 |
+| 合計 | 9ファイル | 9,000 | 9,000 | 9,000 | 0 | 0 | 0 |
+
+`validation_long_20261127.json` は `resources/tsumeshogi.qrc` 経由でアプリ本体に同梱されており、`TsumeCollection::verifiedMateLength()` でハッシュ・件数・条件の一致が確認されると、詰将棋対局画面で初回の手数探索を省略して即座に開ける。
+
+再利用する際は、生成数だけでなく「厳密検証済みで、不要駒・駒余り・類似作を除いて残った件数」を進捗にする。短手数はランダム配置＋近傍探索、長手数は逆算・盤面編集・標的型余詰リペア・多層ビームサーチを用い、いずれも全1枚除去の確定判定までを一組として運用する。

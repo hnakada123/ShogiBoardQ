@@ -2,9 +2,14 @@
 
 ## 概要
 
-ランダムに詰将棋の候補局面を生成し、内蔵の有限深さ探索で候補を絞り込んでから、USIエンジンで詰み探索を行い、指定手数で詰む局面を探索する機能。詰将棋の慣例に沿って、主手順（玉方の最長抵抗）の各攻手が一意と確認できた局面だけを採択し、不要駒を除去した後も同じ検査を行う。主手順の余詰や判定不能の局面は出力しない。玉方が早く詰む変化での別の詰め方（変化別詰）は許容し、最終手の複数解はオプションで許容する。
+USIエンジン（`go mate`）と内蔵探索（Hayanagi）を用いて、詰将棋の慣例に沿った局面を自動生成する機能。用途と手数に応じて次の2つの生成方式を備え、どちらもGUI（`TsumeshogiGeneratorDialog`）とCLI（`shogiboardq-cli`）から共通利用できる（目標手数は `TsumeshogiSettings::GeneratorLimits` で **1〜301の奇数** に統一）。
 
-3～13手詰を各1000題作成した際の試行錯誤、PythonからCLIを直接並列実行するコード、不要駒・類似作の整理と最終監査の手順は [詰将棋6000題の生成・検証・再編の記録](tsumeshogi-collection-generation.md) を参照。
+1. **ランダム配置モード（`TsumeshogiGenerator` / CLI `generate-tsume`）**: 短手数〜中手数向け。ランダムに候補局面を生成し、内蔵の有限深さ探索で事前選別してからUSIエンジンで詰み探索・主手順余詰検査・不要駒除去を行う。
+2. **逆算・編集モード（`TsumeRetrogradeGenerator` / CLI `grow-tsume`）**: 長手数向け（15〜301手）。0手詰み局面または既存の種局面から逆算・盤面変異・標的型余詰リペア・多層ビームサーチで手数を伸ばし、目標手数に到達した候補を `TsumeStrictCertifier` で厳密証明（最短手数確定・主手順一意・駒余り禁止・全1枚除去の確定判定）する。チェックポイント保存・再開にも対応する。
+
+どちらの方式でも主手順（玉方の最長抵抗）の各攻手が一意と確認できた局面だけを採択し、不要駒を除去した後も同じ検査を行う。主手順の余詰や判定不能の局面は出力しない。玉方が早く詰む変化での別の詰め方（変化別詰）は許容し、最終手の複数解はオプションで切替できる（ランダム配置の既定は許容、逆算・編集の既定は禁止）。
+
+3〜31手詰を各1000題（計15,000題）作成した際の試行錯誤、Pythonからの並列実行、不要駒・類似作・駒余りの整理および長手数オーケストレータの運用手順は [詰将棋15,000題の生成・検証・再編の記録](tsumeshogi-collection-generation.md) を参照。
 
 ## アーキテクチャ
 
@@ -12,28 +17,35 @@
 
 | クラス | ファイル | 責務 |
 |---|---|---|
-| `TsumeshogiGeneratorDialog` | `src/dialogs/tsumeshogigeneratordialog.h/.cpp` | UI（パラメータ設定・進捗表示・結果テーブル） |
-| `TsumeshogiGenerator` | `src/analysis/tsumeshogigenerator.h/.cpp` | 候補の待ち行列（バッチ生成）・問い合わせの中継・結果の集計（重複の除外・上限・進捗） |
-| `TsumeCandidateJob` | `src/analysis/tsumecandidatejob.{h,cpp}` | 候補1つを採択か棄却まで進める（手数の確認→唯一解の検査→駒の除去→除いた局面の検査）。Qt のイベントループを知らない引き出し型 |
-| `TsumeVerificationJob` | `src/analysis/tsumeverificationjob.{h,cpp}` | `TsumeshogiVerifier` の問い合わせを総予算と1回の上限（`kQueryMaxMs` = 1000ms）で区切って出す。CLI の余詰検査（`TsumeVerificationRunner`）と共通 |
-| `TsumeshogiVerifier` | `src/analysis/tsumeshogiverifier.{h,cpp}` | 合法手・全応手の列挙と唯一性の検査状態を管理 |
-| `MateOracle`・`MateQueryLoop` | `src/engine/mateoracle.{h,cpp}`・`src/engine/matequeryloop.{h,cpp}` | エンジンへの `go mate` の問い合わせ（`UsiEngineSession` を持ち、答えは `MateAnswer`）と、引き出し型の問い合わせ元（`MateQuerySource`）を最後まで回すループ |
-| `TsumeshogiCandidateScreener` | `src/analysis/tsumeshogicandidatescreener.{h,cpp}` | 内蔵探索（Hayanagi）による候補の事前選別とバッチ生成 |
+| `TsumeshogiGeneratorDialog` | `src/dialogs/tsumeshogigeneratordialog.h/.cpp` | UI（生成方式切替・パラメータ設定・進捗表示・結果テーブル・保存/コピー） |
+| `TsumeshogiGenerator` | `src/analysis/tsumeshogigenerator.h/.cpp` | ランダム配置モードの制御（候補の待ち行列・問い合わせ中継・重複除外・上限・進捗） |
+| `TsumeCandidateJob` | `src/analysis/tsumecandidatejob.{h,cpp}` | ランダム配置モードで候補1つを採択か棄却まで進める（手数確認→唯一解検査→駒除去→再検査）。Qt のイベントループを知らない引き出し型 |
+| `TsumeRetrogradeGenerator` | `src/analysis/tsumeretrogradegenerator.{h,cpp}` | 逆算・編集モードの制御（多層ビームサーチ・プレスクリーニング・初手余詰チェック・リペアキュー・類似作除外・厳密証明・自動再起動・チェックポイント保存/再開） |
+| `TsumeRetrogradeOps` | `src/analysis/tsumeretrogradeops.{h,cpp}` | 詰み上がり局面生成・2手逆算・盤面変異・標的型余詰リペア・接尾辞切り出し・長手数ヒューリスティック評価・類似作キー算出（純粋局面演算） |
+| `TsumeStrictCertifier` | `src/analysis/tsumestrictcertifier.{h,cpp}` | 逆算・編集モード用の厳密証明・不要駒トリミングジョブ（引き出し型 `MateQuerySource`、途中状態と確定キャッシュの JSON 保存/復元対応） |
+| `TsumeVerificationJob` | `src/analysis/tsumeverificationjob.{h,cpp}` | `TsumeshogiVerifier` の問い合わせを総予算と1回の上限で区切って出す。ランダム配置・逆算証明・CLI `verify-tsume` で共通 |
+| `TsumeshogiVerifier` | `src/analysis/tsumeshogiverifier.{h,cpp}` | 合法手・全応手の列挙、唯一性・駒余り（`requireNoSurplus`）の検査状態管理、確定キャッシュの注入/取り出し（`seedCache`/`exportCache`）、余詰詳細（`mainMove`/`cookMove`/`cookPly`）の記録 |
+| `MateOracle`・`MateQueryLoop` | `src/engine/mateoracle.{h,cpp}`・`src/engine/matequeryloop.{h,cpp}` | エンジンへの `go mate` の問い合わせ（`ask()` / `askWithin()`、`UsiEngineSession` を持ち答えは `MateAnswer`）と、引き出し型問い合わせ元（`MateQuerySource`）の駆動ループ |
+| `TsumeshogiCandidateScreener` | `src/analysis/tsumeshogicandidatescreener.{h,cpp}` | 内蔵探索（Hayanagi）によるランダム配置候補の事前選別とバッチ生成 |
 | `TsumeshogiPositionGenerator` | `src/analysis/tsumeshogipositiongenerator.h/.cpp` | ランダム局面生成（SFEN文字列出力） |
-| `TsumeshogiExportHeaderBuilder` | `src/analysis/tsumeshogiexportheaderbuilder.h/.cpp` | ファイル保存のコメントヘッダ（バージョン・生成日時・生成設定）の生成 |
+| `TsumeshogiExportHeaderBuilder` | `src/analysis/tsumeshogiexportheaderbuilder.h/.cpp` | ファイル保存のコメントヘッダ生成（ランダム配置・逆算編集の両方に対応） |
 
 ```
 TsumeshogiGeneratorDialog
   │
-  ├─ TsumeshogiGenerator          ← 候補の待ち行列・問い合わせの中継・結果の集計
+  ├─ [ランダム配置モード] TsumeshogiGenerator
   │    ├─ TsumeshogiCandidateScreener  ← 事前選別（ワーカースレッド。内部で TsumeshogiPositionGenerator を使用）
   │    │    └─ TsumeshogiPositionGenerator  ← ランダム局面生成
-  │    ├─ TsumeCandidateJob         ← 候補1つの処理（引き出し型）
-  │    │    └─ TsumeVerificationJob    ← 総予算つきの唯一解の検査
-  │    │         └─ TsumeshogiVerifier   ← 余詰検査（Hayanagiの合法手生成を利用）
-  │    └─ MateQueryLoop → MateOracle   ← 問い合わせを1つずつエンジンへ（MateOracle が UsiEngineSession を持ち、position・go mate を送り、期限を過ぎたら stop を送る）
+  │    ├─ TsumeCandidateJob            ← 候補1つの処理（引き出し型）
+  │    │    └─ TsumeVerificationJob → TsumeshogiVerifier
+  │    └─ MateQueryLoop → MateOracle   ← 問い合わせを1つずつエンジンへ
   │
-  signals: positionFound / progressUpdated / finished / errorOccurred
+  └─ [逆算・編集モード] TsumeRetrogradeGenerator
+       ├─ TsumeRetrogradeOps           ← 0手詰み生成・2手逆算・変異・標的型余詰リペア・評価・類似キー
+       ├─ 内蔵プレスクリーニング        ← Hayanagi TsumeSearch による短時間枝刈り・早詰除外
+       ├─ TsumeStrictCertifier         ← 厳密証明・全1枚除去（引き出し型、チェックポイント保存/復元対応）
+       │    └─ TsumeVerificationJob → TsumeshogiVerifier（最終手一意・駒余り禁止・キャッシュ共有）
+       └─ MateOracle                   ← 成長時は ask()、厳密証明時は askWithin()（自然終了のみ確定）＋タイムアウト自動再起動
 ```
 
 ## 処理フロー
@@ -193,8 +205,8 @@ TsumeshogiGeneratorDialog
 
 `timeoutMs` は候補探索・各除去探索に加え、それぞれの余詰検査全体にも適用する。
 検査中の1問い合わせは最大1秒（`TsumeVerificationJob::kQueryMaxMs`。総予算の残りが少なければその時間）とし、難しい1手に偏らないようにする。総予算は答えにかかった時間の合計で数える。
-検査局面数・応答キャッシュの上限はそれぞれ10,000。時間や資源の上限に達した場合は判定不能として採択しない。
-目標手数は従来どおり1～99の奇数。Hayanagiの有限深さ探索APIは使わないため、63手への暗黙の切り詰めは行わない。
+検査局面数・応答キャッシュの上限はランダム配置モードで各10,000（厳密証明 `TsumeStrictCertifier` では各200,000）。時間や資源の上限に達した場合は判定不能として採択しない。
+目標手数は `TsumeshogiSettings::GeneratorLimits` で1～301の奇数に統一している（GUI・CLI `generate-tsume` / `grow-tsume` / `verify-tsume` で共通）。Hayanagiの有限深さ探索APIに依存しないため、63手への暗黙の切り詰めは行わない。
 
 SFEN重複排除は唯一性検査と独立して行う。採択の結果（`TsumeCandidateJob::outcome()`）は、全ての1枚除去の判定を終えた局面と
 その局面の検査が返した手順からしか作られない。生成器の `publish()` はその後に `m_foundSfens` で二重出力を防ぐ。
@@ -297,9 +309,9 @@ TsumeCandidateJob::startTrimming(sfen, pv)
 
 ```bash
 cmake --build build --target tsumeshogi_collection_auditor --parallel 4
-python3 scripts/audit_tsume_collections.py data/tsumeshogi/tsume_*ply_1000_20260926.txt \
+python3 scripts/audit_tsume_collections.py data/tsumeshogi/tsume_*ply_1000_20261001.txt \
   --engine /path/to/KomoringHeights-by-gcc \
-  --output-dir /tmp/tsume-audit --workers 8 --timeout-ms 15000
+  --output-dir /tmp/tsume-audit --workers 8 --timeout-ms 60000 --require-no-surplus
 ```
 
 検証器はJSON Linesの要求を受け取り、目標手数・主手順の余詰・各1枚除去を調べる。除去したら再走査し、最後に新しい探索表による有限深さ探索と手順の合法性を確認する。`status=minimal` だけが採択可能で、`unknown` は成功に数えない。`checks` に最終局面の全除去候補と除去できない理由を残す。最終手の複数解は許容する。
@@ -318,38 +330,104 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 守方の持駒は除去対象外（守方の防御資源を減らすのは不正）。除いた駒は成駒なら生駒に戻して守方の持駒にする。
 持駒の出力順は SFEN の慣例どおり、先手の駒を書いてから後手の駒を書き、どちらも飛・角・金・銀・桂・香・歩の順。
 
+## 逆算・編集による長手数生成（TsumeRetrogradeGenerator）
+
+15手〜最大301手の長手数詰将棋を現実的な時間で生成・厳密証明するための仕組み。GUIの「詰み局面から逆算・編集（長手数）」モードとCLIの `shogiboardq-cli grow-tsume` が共通して `TsumeRetrogradeGenerator` を使用する。
+
+### 処理フェーズとアルゴリズム
+
+1. **種局面の初期化**: `seedSfens` が指定されている場合はそれを読み込み（`"SFEN moves <PV>"` の形式ならそのまま該当手数層のフロンティアへ投入）、空なら `TsumeRetrogradeOps::generateMateEndings()` で攻方持駒ゼロ・盤端/隅/中段寄りの多様な0手詰み上がり局面を生成し、`reverseFromMateEnding()` で1手詰候補を作る。
+2. **多層ビームサーチによる候補展開（`phase = "growing"`）**:
+   - 手数層ごとに最大 `beamWidth` 件のノードを保持し、1展開あたり最大 `branchFactor` 件の候補を作る。
+   - 候補生成は `generatePredecessors()`（玉移動・捨駒・打合・移動合・取り返し＋駒打ち・移動・成り戻し・開き王手・両王手の2手逆算。全候補を順方向シミュレーションで合法性保証）と `generateMutations()`（駒移動・追加・削除・駒種変更・成不成・持駒調整）を組み合わせる。
+   - 目標手数を超える詰みPVが得られた場合は、`sliceToTargetLength()` でちょうど目標手数になる接尾辞局面を切り出して候補に加える。
+   - ビームの優先順位は `TsumeRetrogradeOps::scoreNode()`（駒余りゼロ優先・最終手一意性・玉移動距離・捨駒・合駒・展開回数の抑制）と `structuralSignature()` による系統多様性で決める。
+3. **内蔵プレスクリーニングとエンジン問い合わせ**:
+   - 外部エンジンへ送る前に `localScreenCandidate()`（内蔵 Hayanagi `TsumeSearch`）で高速に枝刈りする。19手以下では目標手数までの詰み/不詰/PVを数msで抽出し、21手以上では15手以下の早詰と確定不詰を4msで弾くことで IPC 送信の無駄を防ぐ。
+   - 成長フェーズの評価は `MateOracle::ask()` と成長キャッシュ（`m_fastCache`、最大100,000件）で進め、探索済みの既出SFENはハッシュ集合（`m_visitedHashes`、最大400,000件）で重複展開を抑える。
+4. **軽量初手余詰チェックと標的型リペア（`phase = "checking_first"` / `"repairing"`）**:
+   - 61手以下の候補では内蔵 Hayanagi による数msの事前余詰検査（`quickLocalCookCheck()` / `quickLocalMainLineCookCheck()`）を行い、外部エンジンによる軽量初手余詰チェックと併用する。
+   - 初手に別詰（`cookMove`）が見つかった有望候補は即座に捨てずリペアキュー（`m_repairQueue`、最大256件）へ入れ、`TsumeRetrogradeOps::generateCookRepairs()` で `cookMove` を阻止しつつ `mainMove` を活かす修復候補を生成して再評価する。
+5. **類似作除外と厳密証明（`phase = "certifying"`）**:
+   - 目標手数に到達した候補は、`excludeSimilar` が有効なら `TsumeRetrogradeOps::diversityKeys()`（`scripts/tsume_diversity.py` と同基準）で採択済み・除外済みとの類似を検査し、類似作なら厳密証明を省いて棄却する。
+   - 通過した候補を `TsumeStrictCertifier` へ渡す。`TsumeStrictCertifier` は `CheckBase` → `VerifyBase` → `TrimProbe` / `VerifyTrimmed` の順で、目標手数一致・全主手順一意（既定は最終手も厳格一意）・駒余りなし（既定有効）・全1枚除去の確定判定を行う。判定不能（`Unknown`）が1つでもあれば全体を棄却する。
+
+### 厳密証明のエンジン制御・キャッシュ分離・自動復旧
+
+- `startOracle()` は `TsumeMateEngine::requiredOptions()`（`PostSearchLevel=MinLength`、`GenerateAllLegalMoves=true`、`RootIsAndNodeIfChecked=false`、`NodesLimit=0`、`MultiPV=1`）をセッション設定として自動適用し、指定があれば `USI_Hash`（`engineHashMb`）と `Threads`（`engineThreads`）も上書きする。
+- 厳密証明（`strictMinLength = true`）の問い合わせは `MateOracle::askWithin()`（`go mate infinite` を送り自然終了のみ確定、期限超過時は stop を送らず打ち切り）を使用する。成長フェーズの `m_fastCache` と厳密証明用の `m_strictCache`（最大200,000件）は明確に分離し、不完全な成長応答が厳密証明キャッシュに混入しないようにしている。
+- 期限切れやエンジン無応答が起きた場合は `restartOracleForRecovery()` でエンジンプロセスを自動再起動して探索を継続する（連続5回を超えた場合のみエラー終了）。
+
+### チェックポイント保存と再開
+
+- `checkpointPath` を指定すると、`checkpointIntervalSec`（既定30秒）ごとおよび停止時に `QSaveFile` で原子的にチェックポイント JSON（`checkpoint_version = 1`）を保存する。
+- 保存内容には設定、乱数シードと消費回数（`rng.seed` / `rng.draws`）、累計経過時間と統計、各手数層のフロンティア、リペアキュー、評価キュー・証明待ちキュー、進行中の `TsumeStrictCertifier` 状態（`toJson()`）、確定済み厳密キャッシュ（`m_strictCache`）、既採択局面が含まれる。
+- `resumeFromCheckpoint = true` で開始すると、これらを復元して中断箇所から再開する。
+
+### CLI `grow-tsume` と動的制御
+
+`shogiboardq-cli grow-tsume` は `TsumeRetrogradeGenerator` を直接駆動し、標準出力へ JSON Lines で `started`、`progress`、`position`、`checkpoint`、`finished`、`error` イベントを出力する（`--output-path` 指定時は採択ごとに `<SFEN> moves <PV>` をファイルへ追記）。
+
+`--stdin-control` を付けると、標準入力から1行ずつ次の制御コマンドを受け付ける（`CliStopWatcher::lineReceived`）。
+
+| コマンド | 動作 |
+|---|---|
+| `stop`（または EOF） | 現在の状態をチェックポイントへ保存して安全に停止する |
+| `exclude <SFEN [moves PV...]>` | 実行中に既採択・除外局面および類似キーを追加する（`addExcludeLine()`） |
+| `seed <SFEN [moves PV...]>` | 実行中に新しい種局面をフロンティアへ注入する（`addSeedLine()`） |
+
+並列オーケストレータ（`scripts/generate_long_tsume_collections.py`）はこの仕組みを用いて、常駐ワーカー間で採択結果と類似キーをリアルタイムに同期する。
+
 ## ダイアログ (TsumeshogiGeneratorDialog)
 
 ### UI構成
 
-エンジン設定と生成設定を上部にまとめ、目標手数・駒数と生成上限・探索時間・配置範囲を2列で表示する。「既定値に戻す」は生成設定内に置く。エンジンの最短手順設定と採択条件の説明は展開できる。文字拡大時や小さい画面では設定領域をスクロールし、結果一覧と開始・停止ボタンを操作できる状態に保つ。
+エンジン設定と生成設定を上部にまとめ、生成方式（`ランダム配置` / `詰み局面から逆算・編集（長手数）`）をコンボボックスで切り替える。目標手数・駒数上限などの左列と、生成上限・探索時間・配置範囲（または逆算用のビーム幅・分岐数・検証予算）の右列を2列で配置し、「既定値に戻す」は生成設定内に置く。逆算モード時は専用のオプション行（駒余り禁止・類似作除外）とファイル設定欄（種局面ファイル・チェックポイントファイル・途中保存から再開）を表示する。エンジンの最短手順設定と採択条件の説明は展開できる。文字拡大時や小さい画面では設定領域をスクロールし、結果一覧と開始・停止ボタンを操作できる状態に保つ。
 
-開始・停止と状態表示の下に、採択件数／生成上限の進捗バー、探索件数、経過時間、検査除外件数を表示する。無制限の場合は生成中のみ不定進捗表示とする。
+開始・停止と状態表示の下に、採択件数／生成上限の進捗バー、探索件数（逆算モードでは候補生成数・最大到達手数・採択数）、経過時間、検査除外件数（逆算モードでは判定不能・フロンティア数・修復成功数も併記）を表示する。無制限の場合は生成中のみ不定進捗表示とする。
 
 結果一覧は `# / SFEN / 盤面 / 手数` の4列で、メイン画面と共通の `TableStyles` / `TableButtonDelegate` を使用する。出力オプション・コピー・保存は一覧の下、文字サイズと閉じるボタンは最下部に置く。UI構築・設定と生成制御・結果操作は `tsumeshogigeneratordialog.cpp` にまとめている。
 
 ### 設定の永続化
 
 `TsumeshogiSettings`（`src/services/tsumeshogisettings.h` の宣言の表）を通じて以下の設定が保存・復元される:
-- ダイアログサイズ（既定: 840×800）
-- フォントサイズ
+- ダイアログサイズ（既定: 840×840）
+- フォントサイズ（既定: 10pt）
 - 選択エンジン（エンジンを選ぶ部品 `EngineSelector` が、`EngineSelectionSettings::saveSelection()` で名前を `TsumeshogiGenerator/engineName` に保存する。以前の版が保存した番号は、名前で見つからないときだけ読む）
-- 各生成パラメータ（目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間、生成上限）
+- 生成方式（`TsumeshogiGenerator/mode`、0: ランダム配置 / 1: 逆算・編集、既定: 0）
+- 共通・ランダム配置パラメータ（目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間、生成上限）
+- 逆算・編集モード用パラメータ（`retroMaxAttackPieces` 既定18、`retroMaxDefendPieces` 既定12、`beamWidth` 既定16、`branchFactor` 既定32、`verifyBudgetSec` 既定300、`requireNoSurplus` 既定true、`excludeSimilar` 既定true、`seedFile`、`checkpointFile`、`resumeCheckpoint` 既定false）
 - 最終手の複数解を許容するか（`TsumeshogiGenerator/allowFinalMoveAlternatives`、既定: 有効）
 - 手順出力オプション（ファイル保存・コピー時に `moves ...` を付加するか）
 - エンジン設定・採択条件の説明の展開状態
 
 ### 状態表示と手順出力
 
-- 状態ラベルは `searchPhaseStarted`（探索中）、`trimmingProgress`（トリミング中 候補 i/n）、`verificationProgress`（余詰検査中 問い合わせ回数）で更新し、終了時は生成完了・ユーザーによる停止・エラーを区別して表示する。検査で除外した局面数と判定不能の件数も表示する。
+- ランダム配置モードの状態ラベルは `searchPhaseStarted`（探索中）、`trimmingProgress`（トリミング中 候補 i/n）、`verificationProgress`（余詰検査中 問い合わせ回数）で更新する。逆算・編集モードは `formatRetroPhase()` により `growing`（逆算・成長探索中）、`checking_first`（初手余詰検査中）、`repairing`（余詰修復中）、`certifying`（厳密証明中／厳密証明・不要駒検査中）を表示し、チェックポイント保存時は最新の保存パスを状態ラベルのツールチップに表示する。終了時は生成完了・ユーザーによる停止・エラーを区別して表示する。
+- 逆算モード開始時、GUI の「探索時間/手」は `stepTimeoutMs = timeoutSec * 1000`、`verifyQueryTimeoutMs = qBound(5000, timeoutSec * 3000, 60000)` として `TsumeRetrogradeGenerator::Settings` に渡す。
 - 未登録時の開始、生成中の設定変更・既定値への復帰、結果がない状態での保存・コピー、未選択時の選択コピーは無効にする。再開始時には前回の結果と進捗をリセットする。
 - 盤面列のクリック、行のダブルクリック、Enterキーで盤面と手順を開く。選択コピーはCtrl+Cにも対応し、複数選択した結果を表示順に出力する。結果追加時の自動スクロールは最下部を閲覧している場合だけ行う。
 - 「手順も出力」を有効にすると、ファイル保存・コピーの各行が `<SFEN> moves <USI手順>` になる。無効時は SFEN のみで、SFEN集ダイアログ等の1行1SFEN形式と互換。
-- 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定（エンジン、目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間/局面、生成上限、余詰検査）を記録する（`TsumeshogiExportHeaderBuilder::build`）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。詰将棋問題一覧（`TsumeCollection::parse`）と局面集ビューア（`SfenCollectionDialog`）は同じ1行の規則 `PositionCollectionFile::parse`（`src/kifu/positioncollectionfile.h`）で読み、`#` 始まりの行を読み飛ばす。SFEN に添えた `moves <USI手順>` はどちらも参考手順として扱う（position コマンドの指し手だけを指した後の局面にする）。
+- 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定を記録する（`TsumeshogiExportHeaderBuilder::build` はランダム配置用と逆算・編集用の両オーバーロードを持つ）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunRetroSettings` と `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。詰将棋問題一覧（`TsumeCollection::parse`）と局面集ビューア（`SfenCollectionDialog`）は同じ1行の規則 `PositionCollectionFile::parse`（`src/kifu/positioncollectionfile.h`）で読み、`#` 始まりの行を読み飛ばす。SFEN に添えた `moves <USI手順>` はどちらも参考手順として扱う（position コマンドの指し手だけを指した後の局面にする）。
 - ファイル保存は `TsumeCollectionWriter::save()` が `QSaveFile` で書き込み完了を確認してから置き換える。閉じる・Escでも生成を停止して設定を保存する。
-- ジェネレータ（`TsumeshogiGenerator`）はダイアログの子として1つだけ生成し、開始のたびに再利用する。`start()` が状態を初期化し、エンジンとの接続（`MateOracle`。画面の思考情報は使わない）は開始ごとに生成・終了時に `deleteLater` で破棄する。
+- ジェネレータ（`TsumeshogiGenerator` と `TsumeRetrogradeGenerator`）はダイアログの子として1つずつ生成し、開始のたびに選択方式に応じて再利用する。エンジンとの接続（`MateOracle`）は開始ごとに生成・終了時に `deleteLater` で破棄する。
 
 ## 設定パラメータ一覧
+
+### TsumeshogiSettings::GeneratorLimits（GUI・CLI共通の範囲定義）
+
+| 定数 | 値 | 備考 |
+|---|---|---|
+| `kMinTargetMoves` / `kMaxTargetMoves` | 1 / 301 | 奇数のみ有効（`isTargetMoves` / `oddTargetMoves`） |
+| `kMinAttackPieces` / `kMaxAttackPieces` | 1 / 10 | ランダム配置モードの攻め駒上限 |
+| `kMaxDefendPieces` | 10（下限 0） | ランダム配置モードの守り駒上限 |
+| `kMinAttackRange` / `kMaxAttackRange` | 1 / 8 | ランダム配置モードの配置範囲 |
+| `kMinTimeoutSec` / `kMaxTimeoutSec` | 1 / 300 | 探索時間（秒） |
+| `kMaxPositions` | 10000 | 下限 0 は無制限（GUI のみ。CLI は 1 から） |
+| `kMaxRetroAttackPieces` / `kMaxRetroDefendPieces` | 38 / 38 | 逆算・編集モードの攻め駒・守り駒上限 |
+| `kMinBeamWidth` / `kMaxBeamWidth` | 1 / 2000 | 逆算・編集モードのビーム幅 |
+| `kMinBranchFactor` / `kMaxBranchFactor` | 4 / 200 | 逆算・編集モードの1展開あたり分岐数 |
+| `kMinVerifyBudgetSec` / `kMaxVerifyBudgetSec` | 5 / 86400 | 逆算・編集モードの1候補あたり厳密検証総予算（秒） |
 
 ### TsumeshogiGenerator::Settings
 
@@ -357,7 +435,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 |---|---|---|---|
 | `enginePath` | QString | — | エンジン実行ファイルパス |
 | `engineName` | QString | — | エンジン名 |
-| `targetMoves` | int | 3 | 目標手数（奇数: 1,3,5,...） |
+| `targetMoves` | int | 3 | 目標手数（奇数: 1..301） |
 | `timeoutMs` | int | 5000 | 各詰み探索・各余詰検査全体の時間(ms) |
 | `maxPositionsToFind` | int | 10 | 見つける局面数の上限（0=無制限） |
 | `allowFinalMoveAlternatives` | bool | true | 主手順の最終手の複数解を許容する（`TsumeshogiVerifier::Options` に渡す） |
@@ -371,6 +449,32 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 | `maxDefendPieces` | int | 1 | 守り駒上限（玉以外） |
 | `attackRange` | int | 3 | 玉中心の攻め駒配置範囲 |
 | `addRemainingToDefenderHand` | bool | true | 未使用駒を受方持駒に入れる |
+
+### TsumeRetrogradeGenerator::Settings
+
+| フィールド | 型 | デフォルト（CLI / 構造体） | 説明 |
+|---|---|---|---|
+| `enginePath` / `engineName` | QString | — | エンジン実行ファイルパス・登録名 |
+| `targetMoves` | int | 101 | 目標手数（奇数: 1..301） |
+| `maxPositionsToFind` | int | 1 | 発見上限（0=無制限、CLI は 1..1000） |
+| `beamWidth` | int | 12（GUI既定 16） | 各手数層に保持する最大ノード数 |
+| `branchFactor` | int | 24（GUI既定 32） | 1展開あたりに生成する逆算/編集候補数 |
+| `maxAttackPieces` | int | 20（GUI既定 18） | 攻め駒上限（盤上+持駒、玉除く） |
+| `maxDefendPieces` | int | 14（GUI既定 12） | 玉以外の玉方盤上駒上限 |
+| `maxTotalBoardPieces` | int | 30 | 盤上総駒数上限（玉含む、CLI は 2..39） |
+| `stepTimeoutMs` | int | 5000 | 成長フェーズの1問い合わせ上限(ms) |
+| `verifyQueryTimeoutMs` | int | 15000 | 厳密検証・トリミングの1問い合わせ上限(ms) |
+| `verifyBudgetMs` | qint64 | 1800000（GUI既定 300秒） | 1候補の厳密検証・トリミング総予算(ms) |
+| `engineHashMb` / `engineThreads` | int | 0 / 0 | `USI_Hash`(MiB) / `Threads` の上書き（0 は登録設定のまま） |
+| `addRemainingToDefenderHand` | bool | true | 未使用駒をすべて玉方持駒へ入れる |
+| `allowFinalMoveAlternatives` | bool | false | 最終手の複数解を許容するか（既定は禁止で完全一意） |
+| `requireNoSurplus` | bool | true | 駒余りを完全禁止するか |
+| `strictMinLength` | bool | true | 厳密検証で `go mate infinite` 自然終了のみ確定するか |
+| `excludeSimilar` | bool | true | 採択済み・除外済みと類似手順の候補を厳密証明前に除外するか |
+| `seedSfens` / `excludeLines` | QStringList | 空 | 初期種局面（空なら0手詰み局面を自動生成）・既出除外対象 |
+| `checkpointPath` / `resumeFromCheckpoint` | QString / bool | 空 / false | 途中保存ファイルパスと再開フラグ |
+| `checkpointIntervalSec` | int | 30 | チェックポイント自動保存間隔（秒） |
+| `rngSeed` | uint64_t | 0 | 乱数シード（0 は自動シード） |
 
 ## 応答・中断の扱いと回帰テスト
 
@@ -395,8 +499,10 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 変化別詰の許容は、初手 `7e7b` の後に 8b への合駒（あと3手）と、2通りの即詰がある変化 `9b9c` を持つ5手局面
 （`3+P5/k8/9/9/1G+R6/9/9/9/9 b Sr2b3g3s4n4l17p 1`）で合格を検査する。
 この方針検査では、深さ5で詰みが見つからない局面を不詰と答える代用エンジンを使い、実機照合は `komoringIntegration()` で行う。
-`tests/tst_tsumeshogi_export_header.cpp` はファイル保存のコメントヘッダ（各行が `# ` 始まりの1行であること、バージョン・生成日時・各設定の表記、生成上限0の「無制限」と最終手厳格時の表記）を検査し、
+`tests/tst_tsumeshogi_export_header.cpp` はファイル保存のコメントヘッダ（各行が `# ` 始まりの1行であること、バージョン・生成日時・ランダム配置および逆算編集の各設定表記、生成上限0の「無制限」と最終手厳格・駒余り禁止の表記）を検査し、
 `tests/tst_sfen_collection.cpp` は局面集ビューアがコメント行を読み飛ばすことを、`tests/tst_position_collection_file.cpp` は1行の規則（コメント・`startpos`・position コマンドの指し手と参考手順・読めない行）と最近使ったファイルの一覧を検査する。
+`tests/tst_tsumeshogi_retrograde.cpp` は逆算・編集生成の単体〜統合テストを行い、0手詰み局面の生成と逆算可能性、2手逆算の順方向ラウンドトリップ、標的型余詰リペア、目標手数への接尾辞切り出し、`TsumeStrictCertifier` による最終手一意・駒余り禁止・全1枚除去の厳密証明とチェックポイント復元、101手対応と確定キャッシュ注入、モックエンジン（`tests/mock_retro_engine.cpp`）を用いた E2E 生成・再開および CLI `grow-tsume` の出力・101手再開を検査する。
+GUI テスト `tests/gui/tst_tsumeshogi_generator_gui.cpp` は表示・保存・生成ライフサイクル・未登録/大フォント時のレイアウトに加え、`retrogradeModeToggleAndPersistence()` で逆算モード切替時のUI表示と全設定の保存・復元を検査する。
 
 通常の回帰テストには外部エンジンのインストールは不要。
 KomoringHeights 1.1.0 の実機照合は、次の任意テストで再現できる。
@@ -404,6 +510,8 @@ KomoringHeights 1.1.0 の実機照合は、次の任意テストで再現でき�
 ```bash
 SHOGIBOARDQ_TEST_KOMORING=/path/to/KomoringHeights-by-gcc \
   ./build/tests/tst_tsumeshogi_verification komoringIntegration
+SHOGIBOARDQ_TEST_KOMORING=/path/to/KomoringHeights-by-gcc \
+  ./build/tests/tst_tsumeshogi_retrograde komoringRetrogradeIntegration
 ```
 
 実機照合では `Threads=1`、`USI_Hash=128`、`PostSearchLevel=MinLength`、
@@ -415,11 +523,10 @@ SHOGIBOARDQ_TEST_KOMORING=/path/to/KomoringHeights-by-gcc \
 
 原因調査と元の再現データは [余詰調査報告](reports/tsumeshogi-yodzume-investigation.md) を参照。
 
-## 各1000題の初回生成で得た知見
+## 各1000題の生成・再編で得た知見
 
 [大量生成の作業記録](tsumeshogi-collection-generation.md) に基づき、
-生成器の開発・大量生成の運用に関係する内容をまとめる。対象は2026年9月26日に初回作成した3・5・7・9・11・13手詰、各1000題・計6000題である。
-初回作成後に不要駒と類似作の問題が見つかり、翌日に再検査・補充したため、以下の初回生成の条件だけで現在の問題集の品質を保証したものではない。
+生成器の開発・大量生成の運用に関係する内容をまとめる。以下は2026年9月26日に初回作成した3・5・7・9・11・13手詰（各1000題・計6000題）の知見であり、その後に不要駒・類似作の再編（9月27日）、駒余り検査と差し替え（10月1日）、さらに `grow-tsume` による15〜31手詰（各1000題・計9000題、11月27日）を追加している。初回生成の条件だけで現在の全15,000題の品質を保証したものではない。
 
 ### 標準実装と作業用の変更を区別する
 

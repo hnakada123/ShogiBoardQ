@@ -42,10 +42,9 @@
 参考手順が101手でも、最短が短ければ確認した短い手数を表示する。
 対局機能は唯一解を保証する検査ではなく、成立する別解も正解と認める。
 
-komori-n氏が開発する **[KomoringHeights](https://github.com/komori-n/KomoringHeights)** を登録して一覧の「判定エンジン」で選ぶと、31手・63手の
-内蔵探索上限を使わず、101手などの長手数も解析・対局の対象にできる。
+komori-n氏が開発する **[KomoringHeights](https://github.com/komori-n/KomoringHeights)** を登録して一覧の「判定エンジン」で選ぶと、内蔵探索上限（`TsumePositionAnalyzer::kBuiltInMaxPlies` = 31手）や63手の探索上限を使わず、101手などの長手数も解析・対局の対象にできる。
 エンジンが制限時間内に手数を確定できることが開始条件であり、あらゆる長編の完了を保証するものではない。
-KomoringHeights未登録時は内蔵Hayanagiを選べるが、初期判定は従来どおり31手まで。
+KomoringHeights未登録時は内蔵Hayanagiを選べるが、初期判定は従来どおり31手まで（`TsumePositionAnalyzer::kBuiltInMaxPlies`）。
 技巧・通常のやねうら王を詰将棋の判定用エンジンとしては選択しない。
 KomoringHeights自体は配布物に同梱せず、通常の「エンジン登録」で登録する。
 
@@ -174,7 +173,7 @@ Hayanagiで合法性・連続王手・最終詰みを検証する。確認済み
 
 ### 読み込みの軽量化と適用範囲
 
-問題集は引き続きテキスト形式で扱う。次の改善は、今回作成した6ファイル以外にも適用される。
+問題集は引き続きテキスト形式で扱う。次の改善は、同梱・公開した問題集以外にも適用される。
 
 - `TsumeCollection::parse()` が1行を `PositionCollectionFile::parse()` で読み、SFENの構文検査と同時に正規化した局面識別子を返す。
   一覧はその識別子を使い、履歴照会のために全局面のSFENを再解析しない。
@@ -183,11 +182,14 @@ Hayanagiで合法性・連続王手・最終詰みを検証する。確認済み
 - 確定した解析結果を局面とエンジンの識別子で再利用する。一般の問題集は最初の解析が必要で、
   再表示・対局開始などで得られたキャッシュを利用する。参考手順が付いているだけでは検証済みと扱わない。
 
-今回の3・5・7・9・11・13手詰各1000題には、初回の探索も省ける仕組みを追加した。
-`resources/tsumeshogi.qrc` に監査記録 `data/tsumeshogi/validation_20260926.json` と
-`validation_20261001.json`（駒余りを検査して差し替えた新版）を埋め込み、どちらかの記録で
-読込ファイル全体のSHA-256、件数、最短手数の確定件数、監査方式などが一致した場合だけ採用する。
-新しい版を公開したときは、その版の監査記録をqrcに追加し、`tst_tsume_play` の `verifiedCollections` に版を加える。
+公開している3〜31手詰・各1000題（計15,000題。配布パッケージ同梱は3〜13手詰の6000題、15〜31手詰の9000題はリポジトリの `data/tsumeshogi/` および利用ガイドから取得可能）には、初回の探索も省ける仕組みを設けている。
+`resources/tsumeshogi.qrc` に次の3つの監査記録を埋め込み、いずれかの記録で読込ファイル全体のSHA-256、件数、最短手数の確定件数、不要駒・判定不能0件、監査方式がすべて一致した場合だけ採用する（`TsumeCollection::verifiedMateLength()`）。
+
+- `data/tsumeshogi/validation_20260926.json`（3〜13手詰の旧版。ファイル本体はリポジトリ未収録だが旧版ファイルの読み込み互換用に監査記録を保持）
+- `data/tsumeshogi/validation_20261001.json`（3〜13手詰の駒余り検査・差し替え版。Hayanagi独立最短探索＋最終手複数解許容）
+- `data/tsumeshogi/validation_long_20261127.json`（15〜31手詰の9000題。KomoringHeights `MinLength` の `go mate infinite` 自然終了・最終手複数解禁止・駒余り禁止）
+
+新しい版を公開したときは、その版の監査記録を `resources/tsumeshogi.qrc` と `TsumeCollection` の `trustedCollectionReports()` に追加し、`tst_tsume_play` の `verifiedCollections` に版を加える。
 そのファイルの最短手数と手順は選択エンジンに依存しない事前検証結果としてメモリに登録し、
 手順の合法性を初回利用時にも確認する。対局中の応手と別解は、従来どおり実際の局面を解析して判定する。
 
@@ -207,7 +209,7 @@ SHA-256が変わるため通常の解析に戻る。ファイル名や外部のJ
 - `TsumePlayDialog`: 入力と画面の動作（`Mode`）、部品の有効・無効の表（`controlStates()`）、成りの確認（`PromoteDialog::ask()`）、挑戦履歴の表示。
 - `TsumeGameSession`: 対局状態、応手選択、保留・待った、挑戦・正答の記録（`TsumeProgressStore`）。
 - `TsumeSolutionReplay`: 検証済みの正解手順の取得と、対局状態から独立した手順再生。
-- `TsumeMateEngine`: ほかの詰み探索と同じ `MateOracle`（`UsiEngineSession` で USI の手順と設定を送る）の `askWithin()` で動かす詰み判定。`TsumePositionAnalyzer`: 判定方式選択とキャッシュ。
+- `TsumeMateEngine`（`src/analysis/tsumemateengine.{h,cpp}`）・`TsumeEvaluation`（`src/analysis/tsumeevaluation.h`）: ほかの詰み探索と同じ `MateOracle`（`UsiEngineSession` で USI の手順と設定を送る）の `askWithin()` で動かす詰み判定と結果表現。`TsumePositionAnalyzer`（`kBuiltInMaxPlies = 31`）: 判定方式選択とキャッシュ。
 - `TsumeProgressStore`: 設定ファイルとは独立したSQLite集計と解析キャッシュ。
 - `TsumeshogiSettings`（`src/services/tsumeshogisettings.h`）: UI設定を保存する。文字サイズは宣言の表の `Setting<int>`（`tsumePlayFontSize`・`tsumeCollectionFontSize`）、盤の大きさ・向きや最後に開いたファイルなど複数のキーをまとめる項目は構造体の宣言 `StructSetting`（`playPreferences` / `collectionPreferences`。読むのは `playPreferences()`、書くのは `playPreferences.set(...)`。保存していない項目は `PlayPreferences`・`CollectionPreferences` の既定値）。最後に開いたファイルは問題一覧だけが持ち、`lastCollectionFile()` が以前の版の `TsumePlay/file` も読む（解く画面の `lastFile`・`problemIndex` は消した）。
 
@@ -290,7 +292,7 @@ env SHOGI_REAL_KOMORING=/path/to/KomoringHeights build/tests/tst_tsume_play exte
 
 `tst_tsume_play` は5問、参考手順あり・なし、別解、不詰、手数超過、後手攻め、打ち歩詰め、
 形式不正、外部USI応答の検証、中止と再判定、永続履歴、キャッシュ分離を検証する。
-読み込みの軽量化については、正規化識別子、1003件の履歴一括取得、全6000題の同梱監査との照合と手順合法性、
+読み込みの軽量化については、正規化識別子、1003件の履歴一括取得、収録全15ファイル・15,000題（20261001版の3〜13手詰6000題および20261127版の15〜31手詰9000題）の同梱監査との照合と手順合法性、
 ファイル変更時の無効化、起動できないエンジンでも可能な検証済み結果の再利用、明示的な再判定を確認する。
 外部エンジンの異常・遅延応答は専用のテスト用実行ファイルで再現する。
 `tst_tsume_play_gui` は盤クリック・成り選択・駒打ち・応手後1秒の結果表示を確認する。
