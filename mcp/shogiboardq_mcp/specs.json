@@ -274,7 +274,7 @@
     "beam_width": {
      "default": 12,
      "description": "Maximum beam nodes kept per ply layer.",
-     "maximum": 200,
+     "maximum": 2000,
      "minimum": 1,
      "type": "integer"
     },
@@ -301,6 +301,23 @@
      "description": "Name of a USI engine registered in ShogiBoardQ, exactly as listed by list-engines.",
      "minLength": 1,
      "type": "string"
+    },
+    "exclude_file": {
+     "description": "Optional file of already-accepted '<SFEN> moves <PV>' lines to skip duplicates and similar lines (absolute path).",
+     "minLength": 1,
+     "type": "string"
+    },
+    "exclude_similar": {
+     "default": true,
+     "description": "Exclude positions whose solution line is similar to an already accepted or excluded problem.",
+     "type": "boolean"
+    },
+    "hash_mb": {
+     "default": 0,
+     "description": "Override engine USI_Hash in MiB (0 keeps the registered value).",
+     "maximum": 65536,
+     "minimum": 0,
+     "type": "integer"
     },
     "max_attack_pieces": {
      "default": 20,
@@ -353,7 +370,7 @@
      "type": "integer"
     },
     "seed_file": {
-     "description": "Optional seed file containing one SFEN per line (absolute path).",
+     "description": "Optional seed file containing one SFEN (or '<SFEN> moves <PV>') per line (absolute path).",
      "minLength": 1,
      "type": "string"
     },
@@ -384,6 +401,13 @@
      "description": "Target mate length in plies (odd, e.g. 101).",
      "maximum": 301,
      "minimum": 1,
+     "type": "integer"
+    },
+    "threads": {
+     "default": 0,
+     "description": "Override engine Threads (0 keeps the registered value).",
+     "maximum": 256,
+     "minimum": 0,
      "type": "integer"
     },
     "verify_budget_seconds": {

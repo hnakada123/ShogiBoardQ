@@ -201,6 +201,15 @@ public slots:
         m_generator->stop();
     }
 
+    void onControlLine(const QString& line)
+    {
+        if (line.startsWith(QLatin1String("exclude "))) {
+            m_generator->addExcludeLine(line.mid(8).trimmed());
+        } else if (line.startsWith(QLatin1String("seed "))) {
+            m_generator->addSeedLine(line.mid(5).trimmed());
+        }
+    }
+
     void onFinished(bool stopped)
     {
         if (!m_failed) {
@@ -384,9 +393,26 @@ int CliCommands::growTsume(const QJsonObject& params)
         for (const QString& rawLine : lines) {
             const QString line = rawLine.trimmed();
             if (line.isEmpty() || line.startsWith(QLatin1Char('#'))) continue;
-            // "SFEN moves ..." 形式の行も先頭4トークンのSFEN部分を取り込む
-            const QStringList parts = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-            if (parts.size() >= 4) seedSfens.append(parts.mid(0, 4).join(QLatin1Char(' ')));
+            // "SFEN" と "SFEN moves ..." の両方をそのまま渡す（PV付きシードは直接フロンティア投入される）
+            seedSfens.append(line);
+        }
+    }
+
+    QStringList excludeLines;
+    const QString excludeFilePath = params.value(QStringLiteral("exclude_file")).toString();
+    if (!excludeFilePath.isEmpty()) {
+        if (const auto failure = InputPath::check(excludeFilePath)) {
+            return CliOutput::failEvent(failure->kind, failure->message);
+        }
+        QFile file(excludeFilePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            return CliOutput::failEvent(ErrorKind::InvalidContent,
+                                        QStringLiteral("Cannot open exclude_file: %1").arg(file.errorString()));
+        }
+        const QStringList lines = QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+        for (const QString& rawLine : lines) {
+            const QString line = rawLine.trimmed();
+            if (!line.isEmpty() && !line.startsWith(QLatin1Char('#'))) excludeLines.append(line);
         }
     }
 
@@ -403,11 +429,15 @@ int CliCommands::growTsume(const QJsonObject& params)
     settings.stepTimeoutMs = params.value(QStringLiteral("step_timeout_ms")).toInt();
     settings.verifyQueryTimeoutMs = params.value(QStringLiteral("verify_query_timeout_ms")).toInt();
     settings.verifyBudgetMs = static_cast<qint64>(params.value(QStringLiteral("verify_budget_seconds")).toInt()) * 1000LL;
+    settings.engineHashMb = params.value(QStringLiteral("hash_mb")).toInt();
+    settings.engineThreads = params.value(QStringLiteral("threads")).toInt();
     settings.addRemainingToDefenderHand = params.value(QStringLiteral("add_remaining_to_defender_hand")).toBool();
     settings.allowFinalMoveAlternatives = params.value(QStringLiteral("allow_final_move_alternatives")).toBool();
     settings.requireNoSurplus = params.value(QStringLiteral("require_no_surplus")).toBool();
     settings.strictMinLength = params.value(QStringLiteral("strict_min_length")).toBool();
+    settings.excludeSimilar = params.value(QStringLiteral("exclude_similar")).toBool();
     settings.seedSfens = seedSfens;
+    settings.excludeLines = excludeLines;
     settings.checkpointPath = checkpointPath;
     settings.resumeFromCheckpoint = resume;
     settings.checkpointIntervalSec = params.value(QStringLiteral("checkpoint_interval_seconds")).toInt();
@@ -423,6 +453,7 @@ int CliCommands::growTsume(const QJsonObject& params)
     QObject::connect(&generator, &TsumeRetrogradeGenerator::errorOccurred, &reporter, &GrowReporter::onError);
     CliStopWatcher watcher(params.value(QStringLiteral("stdin_control")).toBool());
     QObject::connect(&watcher, &CliStopWatcher::stopRequested, &reporter, &GrowReporter::onStopRequested);
+    QObject::connect(&watcher, &CliStopWatcher::lineReceived, &reporter, &GrowReporter::onControlLine);
 
     QJsonObject started;
     started[QStringLiteral("engine")] = engine->name;

@@ -91,6 +91,10 @@ int countImmediateMates(const QString& sfen);
 /// ビームの多様性維持用の系統キー（玉位置・先頭手順の移動先と打ち駒種）。
 QString structuralSignature(const QString& sfen, const QStringList& pv);
 
+/// scripts/tsume_diversity.py と同じ基準の類似作判定キー一覧を返す
+/// （最終手を除く玉原点・左右反転正規化 prefix、絶対座標、9手以上の中間手順1手違い core）。
+QStringList diversityKeys(const QString& sfen, const QStringList& pv);
+
 /// 詰将棋開始局面としての妥当性（片玉・40駒以内・二歩なし・行き所のない駒なし・初期王手なし）を検査し、
 /// 正規化した攻方手番SFENを返す。不正な場合は空文字列。
 QString normalizeProblemSfen(const QString& sfen, bool addRemainingToDefenderHand = true);

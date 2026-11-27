@@ -1,6 +1,31 @@
 # 詰将棋問題集
 
-3・5・7・9・11・13手詰を各1000題収録しています。UTF-8のテキストで、`#` 始まりはコメント、各問題は `SFEN moves USI指し手…` の1行です。
+3〜31手詰（3・5・7・9・11・13・15・17・19・21・23・25・27・29・31手詰）を各1000題（合計15,000題）収録しています。UTF-8のテキストで、`#` 始まりはコメント、各問題は `SFEN moves USI指し手…` の1行です。
+
+## 2026年11月27日版：15〜31手詰（各1000題・計9000題）の追加
+
+`tsume_{15,17,19,21,23,25,27,29,31}ply_1000_20261127.txt` は、`shogiboardq-cli grow-tsume`（詰み局面からの逆算・盤面変異・標的型余詰修復・多層ビームサーチ）と並列オーケストレータ `scripts/generate_long_tsume_collections.py` を用いて生成・厳密証明した長手数詰将棋問題集です。
+
+### 採択条件（完全厳密基準）
+
+- **最短手数**: KomoringHeights（`PostSearchLevel=MinLength`, `GenerateAllLegalMoves=true`, `RootIsAndNodeIfChecked=false`, `NodesLimit=0`, `MultiPV=1`）による `go mate infinite` の自然終了で最短手数が目標手数に厳密一致することを確認。
+- **全主手順の完全一意（最終手も含む）**: 主手順のすべての攻方手番で余詰がないことに加え、**最終手の複数解も禁止**（`allow_final_move_alternatives=false`）。
+- **駒余り完全禁止**: すべての最長抵抗応手および最終手で攻方の持駒が空になることを確認（`require_no_surplus=true`）。
+- **不要駒ゼロ**: 盤上の玉以外の駒および攻方持駒を1枚ずつ玉方持駒へ移した全候補について、同じ条件の詰将棋が成立しないことを確定判定で確認（判定不能はすべて棄却）。
+- **類似作除外**: 全ワーカー共通の `scripts/tsume_diversity.py`（平行移動・左右反転・金相当置換・最終手違い・中間手順1手違い除外）を適用し、各手数 1,000題すべてが重複・類似作なし。
+
+ファイルハッシュと集計は `validation_long_20261127.json` に記録しており、アプリ本体にも同梱しているため、詰将棋対局画面で初回の手数探索を省略して即座に開けます。
+
+生成コマンドの例（エンジンのパスは環境に合わせて指定）:
+
+```bash
+python3 scripts/generate_long_tsume_collections.py \
+  --engine /path/to/KomoringHeights-by-gcc \
+  --work-dir /tmp/tsume-long-20261127 \
+  --publish-dir data/tsumeshogi \
+  --plies 15 17 19 21 23 25 27 29 31 \
+  --count 1000 --workers 14 --hash-mb 64 --date 20261127
+```
 
 ## 2026年10月1日版：駒余りの検査と差し替え
 

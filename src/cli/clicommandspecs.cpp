@@ -230,7 +230,7 @@ const QList<OperationSpec>& CliCommandSpecs::all()
               .withDefault(101),
           integer(QStringLiteral("max_positions"), QStringLiteral("Stop after this many certified positions."), 1, 1000)
               .withDefault(1),
-          integer(QStringLiteral("beam_width"), QStringLiteral("Maximum beam nodes kept per ply layer."), 1, 200)
+          integer(QStringLiteral("beam_width"), QStringLiteral("Maximum beam nodes kept per ply layer."), 1, 2000)
               .withDefault(12),
           integer(QStringLiteral("branch_factor"), QStringLiteral("Number of retrograde/mutation candidates per expansion."), 4, 200)
               .withDefault(24),
@@ -246,11 +246,17 @@ const QList<OperationSpec>& CliCommandSpecs::all()
               .withDefault(15000).value(QStringLiteral("ms")),
           integer(QStringLiteral("verify_budget_seconds"), QStringLiteral("Total strict verification and trimming budget per candidate in seconds."), 5, 86400)
               .withDefault(1800).value(QStringLiteral("seconds")),
+          integer(QStringLiteral("hash_mb"), QStringLiteral("Override engine USI_Hash in MiB (0 keeps the registered value)."), 0, 65536)
+              .withDefault(0).value(QStringLiteral("MiB")),
+          integer(QStringLiteral("threads"), QStringLiteral("Override engine Threads (0 keeps the registered value)."), 0, 256)
+              .withDefault(0),
           string(QStringLiteral("seed_sfen"),
                  QStringLiteral("Optional starting SFEN (a 0-ply mate ending or an attacker-to-move position)."))
               .atLeast(1).value(QStringLiteral("sfen")),
           path(QStringLiteral("seed_file"),
-               QStringLiteral("Optional seed file containing one SFEN per line (absolute path).")),
+               QStringLiteral("Optional seed file containing one SFEN (or '<SFEN> moves <PV>') per line (absolute path).")),
+          path(QStringLiteral("exclude_file"),
+               QStringLiteral("Optional file of already-accepted '<SFEN> moves <PV>' lines to skip duplicates and similar lines (absolute path).")),
           path(QStringLiteral("checkpoint_path"),
                QStringLiteral("Checkpoint JSON file for periodic saving and resume (absolute path)."))
               .alias(QStringLiteral("checkpoint")),
@@ -272,7 +278,9 @@ const QList<OperationSpec>& CliCommandSpecs::all()
           boolean(QStringLiteral("require_no_surplus"),
                   QStringLiteral("Require zero attacker hand pieces at every main-line mate ending."), true),
           boolean(QStringLiteral("strict_min_length"),
-                  QStringLiteral("Use go mate infinite and accept only naturally finished MinLength proofs during certification."), true)}},
+                  QStringLiteral("Use go mate infinite and accept only naturally finished MinLength proofs during certification."), true),
+          boolean(QStringLiteral("exclude_similar"),
+                  QStringLiteral("Exclude positions whose solution line is similar to an already accepted or excluded problem."), true)}},
         {QStringLiteral("verify-tsume"), QStringLiteral("Check a tsume problem for a unique solution"),
          {engine(), sfen(true),
           integer(QStringLiteral("target_moves"), QStringLiteral("Expected mate length in plies (odd)."),

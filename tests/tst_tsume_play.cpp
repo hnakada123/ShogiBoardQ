@@ -369,11 +369,14 @@ private slots:
     {
         QTest::addColumn<int>("plies");
         QTest::addColumn<QString>("version");
-        // リポジトリに収録している20261001版（駒余りを検査して差し替えた新版）を同梱の監査記録で認める。
+        // リポジトリに収録している20261001版（3〜13手詰）および20261127版（15〜31手詰）を同梱の監査記録で認める。
         // 20260926版の監査記録もアプリに同梱するが、問題集ファイルは追跡対象外のためここでは読まない。
-        const QString version = QStringLiteral("20261001");
+        const QString versionShort = QStringLiteral("20261001");
         for (int plies : {3, 5, 7, 9, 11, 13})
-            QTest::newRow(qPrintable(QStringLiteral("%1/%2").arg(version).arg(plies))) << plies << version;
+            QTest::newRow(qPrintable(QStringLiteral("%1/%2").arg(versionShort).arg(plies))) << plies << versionShort;
+        const QString versionLong = QStringLiteral("20261127");
+        for (int plies : {15, 17, 19, 21, 23, 25, 27, 29, 31})
+            QTest::newRow(qPrintable(QStringLiteral("%1/%2").arg(versionLong).arg(plies))) << plies << versionLong;
     }
     void verifiedCollections()
     {

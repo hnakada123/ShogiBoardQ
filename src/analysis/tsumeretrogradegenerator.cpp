@@ -64,7 +64,7 @@ bool hasLocalImmediateMate(const shogi::Position& position)
 }
 
 /// 63手以下のとき、内蔵 Hayanagi で超短時間に別初手余詰を検出する（検出できたらその初手USIを返す）
-QString quickLocalCookCheck(const QString& sfen, const QString& mainMove, int plies)
+QString quickLocalCookCheck(const QString& sfen, const QString& mainMove, int plies, int perMoveBudgetMs = 4)
 {
     if (plies > 61) return {};
     shogi::Position pos;
@@ -78,10 +78,162 @@ QString quickLocalCookCheck(const QString& sfen, const QString& mainMove, int pl
         shogi::Position child = pos;
         child.do_move(move);
         if (!child.has_legal_move()) return usi;
-        const auto res = search.solve(child, shogi::Color::Black, depth, 4, stop, 1);
+        const auto res = search.solve(child, shogi::Color::Black, depth, perMoveBudgetMs, stop, 1);
         if (res.status == shogi::TsumeStatus::Mate) return usi;
     }
     return {};
+}
+
+struct QuickMainLineCook {
+    int ply = -1;
+    QString mainMove;
+    QString cookMove;
+};
+
+/// 61手以下のとき、主手順の各攻方手番（1, 3, ..., N-2手目）について内蔵 Hayanagi で
+/// 明白な余詰を数ミリ秒で事前検出し、厳密証明の無駄撃ちを防ぐ。
+QuickMainLineCook quickLocalMainLineCookCheck(const QString& sfen, const QStringList& pv, int perMoveBudgetMs = 2)
+{
+    const int n = static_cast<int>(pv.size());
+    if (n < 3 || n > 61 || n % 2 == 0) return {};
+    shogi::Position pos;
+    if (!pos.set_sfen(sfen.toStdString(), true)) return {};
+    const std::atomic_bool stop{false};
+
+    for (int i = 0; i < n - 1; ++i) {
+        if (i % 2 == 0) {
+            const int remaining = n - i;
+            const QString& mainMove = pv.at(i);
+            shogi::TsumeSearch search;
+            const int depth = std::min(63, remaining);
+            for (const auto& move : pos.generate_checking_moves()) {
+                const QString usi = QString::fromStdString(pos.move_to_usi(move));
+                if (usi == mainMove) continue;
+                shogi::Position child = pos;
+                child.do_move(move);
+                if (!child.has_legal_move()) return {i, mainMove, usi};
+                const auto res = search.solve(child, shogi::Color::Black, depth, perMoveBudgetMs, stop, 1);
+                if (res.status == shogi::TsumeStatus::Mate) return {i, mainMove, usi};
+            }
+        }
+        if (!pos.apply_usi_move(pv.at(i).toStdString())) break;
+    }
+    return {};
+}
+
+enum class LocalScreenOutcome {
+    Reject,
+    Solved,
+    DeferToEngine,
+};
+
+/// 外部エンジン（KomoringHeights）へ IPC 送信する前に、内蔵 Hayanagi で超高速プレスクリーニングを行う。
+/// - 確定不詰（NoMate）や高層展開からの浅すぎる早詰・泥沼タイムアウトを数ミリ秒で棄却し、IPC の無駄撃ちを防ぐ。
+/// - 19手以下では目標手数までの詰み・PV を直接抽出し、本命候補だけを KomoringHeights の厳密証明へ回す。
+LocalScreenOutcome localScreenCandidate(const QString& sfen, int targetMoves, int minDesiredPlies,
+                                        int maxPliesReached, bool fromRepair, int stepTimeoutMs,
+                                        std::mt19937_64& rng, MateAnswer* solvedOut)
+{
+    shogi::Position pos;
+    if (!pos.set_sfen(sfen.toStdString(), true)) return LocalScreenOutcome::Reject;
+    if (pos.side_to_move() != shogi::Color::Black || pos.is_in_check(shogi::Color::White)) {
+        return LocalScreenOutcome::Reject;
+    }
+
+    // 親が高手数（例: 13手以上から15手狙い）の展開由来のときだけ、浅すぎる早詰ゴミを落とす
+    const bool hasHighFrontier = (maxPliesReached >= std::max(3, targetMoves - 2));
+    const bool dropShallow = (minDesiredPlies >= 9 && minDesiredPlies >= targetMoves - 2);
+    const std::atomic_bool stop{false};
+    shogi::TsumeSearch search;
+
+    if (targetMoves <= 19) {
+        const int baseBudget = (targetMoves <= 9) ? 5 : (targetMoves <= 15 ? 5 : (targetMoves <= 17 ? 9 : 15));
+        const int budgetMs = std::clamp(baseBudget, 2, std::max(2, stepTimeoutMs));
+        auto res = search.solve(pos, shogi::Color::Black, targetMoves, budgetMs, stop, 1);
+
+        if (res.status == shogi::TsumeStatus::NoMate) {
+            return LocalScreenOutcome::Reject;
+        }
+        if (res.status == shogi::TsumeStatus::Limit) {
+            // targetMoves 以内では確実に不詰。15〜17手は既に親種があるなら外部へ送らず即次候補へ
+            if (hasHighFrontier && targetMoves <= 17) return LocalScreenOutcome::Reject;
+            const int deferPct = (dropShallow ? 4 : 15);
+            std::uniform_int_distribution<int> pct(0, 99);
+            return pct(rng) < deferPct ? LocalScreenOutcome::DeferToEngine : LocalScreenOutcome::Reject;
+        }
+        if (res.status == shogi::TsumeStatus::Mate) {
+            const int plies = res.plies;
+            if (dropShallow && plies < targetMoves - 2) {
+                return LocalScreenOutcome::Reject;
+            }
+            // PV を抽出（置換表がすでに埋まっているのでほぼ0ms）
+            QStringList pv;
+            pv.reserve(plies);
+            shogi::Position cur = pos;
+            int rem = plies;
+            while (rem > 0) {
+                if (res.status != shogi::TsumeStatus::Mate || !res.move.is_valid()) break;
+                pv.append(QString::fromStdString(cur.move_to_usi(res.move)));
+                if (!cur.do_move(res.move)) break;
+                --rem;
+                if (rem > 0) {
+                    res = search.solve(cur, shogi::Color::Black, rem, std::max(10, budgetMs), stop, 1);
+                }
+            }
+            if (pv.size() == plies) {
+                if (solvedOut) *solvedOut = MateAnswer{MateAnswer::Kind::Mate, pv};
+                return LocalScreenOutcome::Solved;
+            }
+            return LocalScreenOutcome::Reject;
+        }
+        // Timeout：15〜17手で既に親種があるときは重い泥沼候補を外部エンジンに送らず即捨てる
+        if (hasHighFrontier && targetMoves <= 17) {
+            return LocalScreenOutcome::Reject;
+        }
+        if (!hasHighFrontier && fromRepair) return LocalScreenOutcome::DeferToEngine;
+        const int deferPct = (targetMoves <= 17) ? 10 : 20;
+        std::uniform_int_distribution<int> pct(0, 99);
+        return pct(rng) < deferPct ? LocalScreenOutcome::DeferToEngine : LocalScreenOutcome::Reject;
+    }
+
+    // 21手以上：15手以下の早詰と確定不詰を 4ms で弾き、真の深手数候補だけを外部エンジンへ送る
+    const int earlyDepth = std::min(15, std::max(3, targetMoves - 4));
+    const int budgetMs = std::clamp(4, 1, std::max(1, stepTimeoutMs));
+    auto res = search.solve(pos, shogi::Color::Black, earlyDepth, budgetMs, stop, 1);
+    if (res.status == shogi::TsumeStatus::NoMate) {
+        return LocalScreenOutcome::Reject;
+    }
+    if (res.status == shogi::TsumeStatus::Mate) {
+        if (dropShallow && res.plies < targetMoves - 2) {
+            return LocalScreenOutcome::Reject;
+        }
+        // ボトムアップ成長中の足場なら PV を抽出してそのまま使う
+        QStringList pv;
+        pv.reserve(res.plies);
+        shogi::Position cur = pos;
+        int rem = res.plies;
+        while (rem > 0) {
+            if (res.status != shogi::TsumeStatus::Mate || !res.move.is_valid()) break;
+            pv.append(QString::fromStdString(cur.move_to_usi(res.move)));
+            if (!cur.do_move(res.move)) break;
+            --rem;
+            if (rem > 0) {
+                res = search.solve(cur, shogi::Color::Black, rem, 10, stop, 1);
+            }
+        }
+        if (pv.size() == res.plies) {
+            if (solvedOut) *solvedOut = MateAnswer{MateAnswer::Kind::Mate, pv};
+            return LocalScreenOutcome::Solved;
+        }
+        return LocalScreenOutcome::Reject;
+    }
+    if (res.status == shogi::TsumeStatus::Timeout) {
+        // 15手すら 4ms で読み切れない過密泥沼局面は間引いて外部エンジンの詰まりを防ぐ
+        std::uniform_int_distribution<int> pct(0, 99);
+        return pct(rng) < 35 ? LocalScreenOutcome::DeferToEngine : LocalScreenOutcome::Reject;
+    }
+    // Limit（earlyDepth以内では確実に詰まない）＝真の長手数候補！外部エンジンで判定する
+    return LocalScreenOutcome::DeferToEngine;
 }
 } // namespace
 
@@ -91,7 +243,7 @@ TsumeRetrogradeGenerator::Settings TsumeRetrogradeGenerator::Settings::normalize
     Settings out = *this;
     out.targetMoves = Limits::oddTargetMoves(targetMoves);
     out.maxPositionsToFind = qBound(0, maxPositionsToFind, 10000);
-    out.beamWidth = qBound(1, beamWidth, 200);
+    out.beamWidth = qBound(1, beamWidth, 2000);
     out.branchFactor = qBound(4, branchFactor, 200);
     out.maxAttackPieces = qBound(1, maxAttackPieces, 38);
     out.maxDefendPieces = qBound(0, maxDefendPieces, 38);
@@ -99,6 +251,8 @@ TsumeRetrogradeGenerator::Settings TsumeRetrogradeGenerator::Settings::normalize
     out.stepTimeoutMs = qBound(100, stepTimeoutMs, 600000);
     out.verifyQueryTimeoutMs = qBound(500, verifyQueryTimeoutMs, 600000);
     out.verifyBudgetMs = qBound<qint64>(5000, verifyBudgetMs, 86400000LL);
+    out.engineHashMb = qBound(0, engineHashMb, 65536);
+    out.engineThreads = qBound(0, engineThreads, 256);
     out.checkpointIntervalSec = qBound(5, checkpointIntervalSec, 3600);
     return out;
 }
@@ -177,6 +331,7 @@ bool TsumeRetrogradeGenerator::start(const Settings& settings)
     m_stopping = false;
     m_engineReady = false;
     m_awaitingAnswer = false;
+    m_hashDirty = false;
     m_consecutiveRecoveries = 0;
     m_mode = ActiveMode::Idle;
     m_activeQuerySfen.clear();
@@ -191,6 +346,7 @@ bool TsumeRetrogradeGenerator::start(const Settings& settings)
     m_visitedOrder.clear();
     m_foundSfens.clear();
     m_certifiedQueuedOrDone.clear();
+    m_diversityKeys.clear();
     m_foundPositions.clear();
     m_fastCache.clear();
     m_strictCache.clear();
@@ -204,6 +360,11 @@ bool TsumeRetrogradeGenerator::start(const Settings& settings)
     m_repairSucceeded = 0;
     m_engineRestarts = 0;
     m_batchesSinceProgress = 0;
+
+    // 既出の除外対象（SFEN / SFEN moves PV）をシード初期化より先に登録する
+    for (const QString& raw : std::as_const(m_settings.excludeLines)) {
+        addExcludeLine(raw);
+    }
 
     if (m_settings.resumeFromCheckpoint) {
         if (m_settings.checkpointPath.isEmpty()) {
@@ -242,33 +403,99 @@ void TsumeRetrogradeGenerator::stop()
     finishRun(true);
 }
 
-void TsumeRetrogradeGenerator::initializeFreshSeeds()
+void TsumeRetrogradeGenerator::addExcludeLine(const QString& raw)
 {
-    const auto lim = opLimits();
-    if (!m_settings.seedSfens.isEmpty()) {
-        for (const QString& raw : std::as_const(m_settings.seedSfens)) {
-            const QString trimmed = raw.trimmed();
-            if (trimmed.isEmpty()) continue;
-            if (TsumeRetrogradeOps::isMateEnding(trimmed)) {
-                const auto reversed = TsumeRetrogradeOps::reverseFromMateEnding(trimmed, lim, 8, m_rng);
-                ++m_rngDraws;
-                for (const auto& cand : reversed) {
-                    if (markVisited(cand.sfen)) {
-                        m_evalQueue.push_back({cand.sfen, cand.tag, 1, false});
-                        ++m_generatedCandidates;
+    const QString line = raw.trimmed();
+    if (line.isEmpty() || line.startsWith(QLatin1Char('#'))) return;
+    const qsizetype movesIdx = line.indexOf(QLatin1String(" moves "));
+    const QString sfenPart = movesIdx >= 0 ? line.left(movesIdx).trimmed() : line;
+    const QString norm = TsumeRetrogradeOps::normalizeProblemSfen(sfenPart, m_settings.addRemainingToDefenderHand);
+    if (!norm.isEmpty()) {
+        m_foundSfens.insert(norm);
+        m_certifiedQueuedOrDone.insert(norm);
+    }
+    if (movesIdx >= 0 && m_settings.excludeSimilar) {
+        const QStringList pv = line.mid(movesIdx + 7).split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (!norm.isEmpty() && !pv.isEmpty()) {
+            registerDiversityKeys(norm, pv);
+            // 採択済みの直前親種（2手進めた N-2 手局面）がフロンティアに居れば即座に外す
+            if (pv.size() >= 9) {
+                const auto parentSlice = TsumeRetrogradeOps::sliceToTargetLength(
+                    norm, pv, static_cast<int>(pv.size()) - 2);
+                if (parentSlice) {
+                    auto it = m_frontier.find(static_cast<int>(pv.size()) - 2);
+                    if (it != m_frontier.end()) {
+                        auto& list = it->second;
+                        list.erase(std::remove_if(list.begin(), list.end(),
+                                                  [&](const BeamNode& n) { return n.sfen == parentSlice->sfen; }),
+                                   list.end());
+                        if (list.isEmpty()) m_frontier.erase(it);
                     }
-                }
-            } else {
-                const QString normalized = TsumeRetrogradeOps::normalizeProblemSfen(
-                    trimmed, m_settings.addRemainingToDefenderHand);
-                if (!normalized.isEmpty() && markVisited(normalized)) {
-                    m_evalQueue.push_back({normalized, QStringLiteral("seed"), 1, false});
-                    ++m_generatedCandidates;
                 }
             }
         }
     }
-    if (m_evalQueue.empty()) {
+}
+
+void TsumeRetrogradeGenerator::addSeedLine(const QString& raw)
+{
+    const QString trimmed = raw.trimmed();
+    if (trimmed.isEmpty() || trimmed.startsWith(QLatin1Char('#'))) return;
+    const auto lim = opLimits();
+    const qsizetype movesIdx = trimmed.indexOf(QLatin1String(" moves "));
+    if (movesIdx >= 0) {
+        const QString sfenPart = trimmed.left(movesIdx).trimmed();
+        const QStringList pv = trimmed.mid(movesIdx + 7).split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        const QString normalized = TsumeRetrogradeOps::normalizeProblemSfen(
+            sfenPart, m_settings.addRemainingToDefenderHand);
+        if (!normalized.isEmpty() && !pv.isEmpty()) {
+            const auto metrics = TsumeRetrogradeOps::analyzeLine(normalized, pv);
+            if (metrics && metrics->plies <= m_settings.targetMoves) {
+                markVisited(normalized);
+                BeamNode node;
+                node.sfen = normalized;
+                node.pv = pv;
+                node.plies = metrics->plies;
+                node.surplusCount = metrics->surplusCount;
+                node.firstMoveUnique = true;
+                node.signature = TsumeRetrogradeOps::structuralSignature(normalized, pv);
+                node.score = TsumeRetrogradeOps::scoreNode(
+                    *metrics, m_settings.targetMoves, 0, true, m_settings.requireNoSurplus,
+                    !m_settings.allowFinalMoveAlternatives);
+                addToFrontier(node);
+                if (metrics->plies > m_maxPliesReached) m_maxPliesReached = metrics->plies;
+                return;
+            }
+        }
+    }
+    if (TsumeRetrogradeOps::isMateEnding(trimmed)) {
+        const auto reversed = TsumeRetrogradeOps::reverseFromMateEnding(trimmed, lim, 8, m_rng);
+        ++m_rngDraws;
+        for (const auto& cand : reversed) {
+            if (markVisited(cand.sfen)) {
+                m_evalQueue.push_back({cand.sfen, cand.tag, 1, false});
+                ++m_generatedCandidates;
+            }
+        }
+    } else {
+        const QString sfenOnly = movesIdx >= 0 ? trimmed.left(movesIdx).trimmed() : trimmed;
+        const QString normalized = TsumeRetrogradeOps::normalizeProblemSfen(
+            sfenOnly, m_settings.addRemainingToDefenderHand);
+        if (!normalized.isEmpty() && markVisited(normalized)) {
+            m_evalQueue.push_back({normalized, QStringLiteral("seed"), 1, false});
+            ++m_generatedCandidates;
+        }
+    }
+}
+
+void TsumeRetrogradeGenerator::initializeFreshSeeds()
+{
+    if (!m_settings.seedSfens.isEmpty()) {
+        for (const QString& raw : std::as_const(m_settings.seedSfens)) {
+            addSeedLine(raw);
+        }
+    }
+    if (m_evalQueue.empty() && m_frontier.empty()) {
         enqueueEndingSeeds(std::max(6, m_settings.beamWidth));
     }
 }
@@ -309,7 +536,14 @@ void TsumeRetrogradeGenerator::startOracle()
     m_oracle = new MateOracle(this);
     m_oracle->session()->setInitializationTimeoutMs(kOracleInitTimeoutMs);
     // KomoringHeights 等の最短手数確認に必要なセッションオプションを自動適用
-    m_oracle->session()->handler()->setSessionOptions(TsumeMateEngine::requiredOptions());
+    auto sessionOptions = TsumeMateEngine::requiredOptions();
+    if (m_settings.engineHashMb > 0) {
+        sessionOptions.append({QStringLiteral("USI_Hash"), QString::number(m_settings.engineHashMb)});
+    }
+    if (m_settings.engineThreads > 0) {
+        sessionOptions.append({QStringLiteral("Threads"), QString::number(m_settings.engineThreads)});
+    }
+    m_oracle->session()->handler()->setSessionOptions(sessionOptions);
     connect(m_oracle, &MateOracle::ready, this, &TsumeRetrogradeGenerator::onEngineReady);
     connect(m_oracle, &MateOracle::answered, this, &TsumeRetrogradeGenerator::onOracleAnswered);
     connect(m_oracle, &MateOracle::timedOut, this, &TsumeRetrogradeGenerator::onOracleTimedOut);
@@ -378,15 +612,18 @@ void TsumeRetrogradeGenerator::driveNext()
     }
 
     // 2. 厳密証明待ち候補があれば開始
-    if (!m_pendingCertify.empty()) {
-        const QString sfen = m_pendingCertify.front();
+    while (!m_pendingCertify.empty()) {
+        const PendingCertifyItem item = m_pendingCertify.front();
         m_pendingCertify.pop_front();
-        m_activeCertifier = std::make_unique<TsumeStrictCertifier>(sfen, certifierSettings());
+        if (m_foundSfens.contains(item.sfen)) continue;
+        m_activeCertifier = std::make_unique<TsumeStrictCertifier>(item.sfen, certifierSettings());
+        m_activeCertifierAllowTrim = item.allowTrimOnReject;
         m_activeCertifier->seedVerifiedCache(m_strictCache);
         m_mode = ActiveMode::Certifying;
-        if (m_oracle && m_oracle->session() && m_oracle->session()->handler()) {
+        if (m_hashDirty && m_oracle && m_oracle->session() && m_oracle->session()->handler()) {
             // 成長フェーズの時間付き探索の置換表残骸を持ち越さないようリセットする
             m_oracle->session()->handler()->sendUsiNewGame();
+            m_hashDirty = false;
         }
         if (!m_settings.checkpointPath.isEmpty()) saveCheckpointNow();
         stepCertifier();
@@ -412,7 +649,10 @@ void TsumeRetrogradeGenerator::driveNext()
         }
     }
 
-    // 5. 評価キューから1局面取り出して問い合わせ（高速キャッシュにヒットすれば即消費）
+    // 5. 評価キューから候補を取り出して評価（キャッシュ／内蔵 Hayanagi プレスクリーニング優先）
+    QElapsedTimer sliceTimer;
+    sliceTimer.start();
+    int localProcessed = 0;
     while (!m_evalQueue.empty()) {
         m_activeEval = m_evalQueue.front();
         m_evalQueue.pop_front();
@@ -421,12 +661,46 @@ void TsumeRetrogradeGenerator::driveNext()
             m_mode = ActiveMode::EvalCandidate;
             submitEvalAnswer(cached->second);
             if (!m_running || m_awaitingAnswer) return;
-            if (m_activeCertifier || m_firstCheck) {
+            if (m_activeCertifier || !m_pendingCertify.empty() || m_firstCheck) {
+                scheduleStep();
+                return;
+            }
+            if (++localProcessed >= 48 || sliceTimer.elapsed() >= 40) {
                 scheduleStep();
                 return;
             }
             continue;
         }
+
+        MateAnswer localAnswer;
+        const LocalScreenOutcome screen = localScreenCandidate(
+            m_activeEval.sfen, m_settings.targetMoves, m_activeEval.minDesiredPlies,
+            m_maxPliesReached, m_activeEval.fromRepair, m_settings.stepTimeoutMs, m_rng, &localAnswer);
+        ++m_rngDraws;
+        if (screen == LocalScreenOutcome::Reject) {
+            if (++localProcessed >= 48 || sliceTimer.elapsed() >= 40) {
+                scheduleStep();
+                return;
+            }
+            continue;
+        }
+        if (screen == LocalScreenOutcome::Solved) {
+            pruneFastCacheIfNeeded();
+            m_fastCache.emplace(m_activeEval.sfen.toStdString(), localAnswer);
+            m_mode = ActiveMode::EvalCandidate;
+            submitEvalAnswer(localAnswer);
+            if (!m_running || m_awaitingAnswer) return;
+            if (m_activeCertifier || !m_pendingCertify.empty() || m_firstCheck) {
+                scheduleStep();
+                return;
+            }
+            if (++localProcessed >= 48 || sliceTimer.elapsed() >= 40) {
+                scheduleStep();
+                return;
+            }
+            continue;
+        }
+
         m_mode = ActiveMode::EvalCandidate;
         askEngine(m_activeEval.sfen, m_settings.stepTimeoutMs, false);
         return;
@@ -443,6 +717,7 @@ void TsumeRetrogradeGenerator::askEngine(const QString& sfen, int limitMs, bool 
     }
     m_activeQuerySfen = sfen;
     m_lastQueryWasStrict = strictInfinite;
+    if (!strictInfinite) m_hashDirty = true;
     m_awaitingAnswer = true;
     ++m_engineQueries;
     m_queryTimer.start();
@@ -560,8 +835,8 @@ void TsumeRetrogradeGenerator::expandNextBatch()
     const int roll = pct(m_rng);
     ++m_rngDraws;
 
-    // 1. 余詰リペアキューからの展開（キューがあれば約30%の確率）
-    if (!m_repairQueue.empty() && (roll < 30 || m_frontier.empty())) {
+    // 1. 余詰リペアキューからの展開（キューがあれば約15%の確率）
+    if (!m_repairQueue.empty() && (roll < 15 || m_frontier.empty())) {
         // 手数が最も長く試行回数が少ないリペア候補を優先
         auto bestIt = m_repairQueue.begin();
         for (auto it = m_repairQueue.begin(); it != m_repairQueue.end(); ++it) {
@@ -572,10 +847,11 @@ void TsumeRetrogradeGenerator::expandNextBatch()
         RepairItem item = *bestIt;
         m_repairQueue.erase(bestIt);
         ++item.attempts;
-        if (item.attempts < 3) m_repairQueue.push_back(item);
+        if (item.attempts < 2) m_repairQueue.push_back(item);
 
+        const int repairBranch = std::min(m_settings.branchFactor, 16);
         const auto repairs = TsumeRetrogradeOps::generateCookRepairs(
-            item.sfen, item.mainMove, item.cookMove, lim, m_settings.branchFactor, m_rng);
+            item.sfen, item.mainMove, item.cookMove, lim, repairBranch, m_rng);
         ++m_rngDraws;
         for (const auto& cand : repairs) {
             if (!markVisited(cand.sfen)) continue;
@@ -585,8 +861,9 @@ void TsumeRetrogradeGenerator::expandNextBatch()
         return;
     }
 
-    // 2. フロンティアが空、または停滞が続いたら新しい0手詰み局面を注入
-    if (m_frontier.empty() || roll >= 92 || m_batchesSinceProgress >= 25) {
+    // 2. フロンティアが空、またはシード未指定のボトムアップ探索で停滞したら新しい0手詰み局面を注入
+    if (m_frontier.empty()
+        || (m_settings.seedSfens.isEmpty() && (roll >= 92 || m_batchesSinceProgress >= 25))) {
         m_batchesSinceProgress = 0;
         enqueueEndingSeeds(std::max(4, m_settings.beamWidth / 2));
         if (!m_evalQueue.empty()) return;
@@ -601,9 +878,12 @@ void TsumeRetrogradeGenerator::expandNextBatch()
     if (focusTop) {
         double bestScore = -1e18;
         int inspectedLayers = 0;
+        std::uniform_real_distribution<double> jitter(0.0, 28.0);
         for (auto rit = m_frontier.rbegin(); rit != m_frontier.rend() && inspectedLayers < 3; ++rit, ++inspectedLayers) {
             for (BeamNode& node : rit->second) {
-                const double effective = node.score - static_cast<double>(node.expansions) * 14.0;
+                // 1つの親種・同じ上位種に複数ワーカーが集中しないよう、展開ペナルティ＋乱数ジッターで分散巡回する
+                const double effective = node.score - static_cast<double>(node.expansions) * 45.0 + jitter(m_rng);
+                ++m_rngDraws;
                 if (effective > bestScore) {
                     bestScore = effective;
                     chosen = &node;
@@ -624,7 +904,7 @@ void TsumeRetrogradeGenerator::expandNextBatch()
                 const auto [plies, idx] = allRefs[pick(m_rng)];
                 ++m_rngDraws;
                 BeamNode& cand = m_frontier[plies][idx];
-                const double effective = cand.score - static_cast<double>(cand.expansions) * 14.0;
+                const double effective = cand.score - static_cast<double>(cand.expansions) * 40.0;
                 if (effective > bestScore) {
                     bestScore = effective;
                     chosen = &cand;
@@ -643,16 +923,21 @@ void TsumeRetrogradeGenerator::expandNextBatch()
                                                       !m_settings.allowFinalMoveAlternatives);
     }
 
-    const int retroBudget = std::max(4, (m_settings.branchFactor * 3) / 4);
+    // 同手数シードの展開時は逆算して切り出しても元手順に戻るため 100% 盤面変異に集中し、短いシードは逆算を主軸にする
+    const int retroBudget = (chosenLayer >= m_settings.targetMoves)
+        ? 0
+        : std::max(4, (m_settings.branchFactor * 2) / 3);
     const int mutateBudget = std::max(2, m_settings.branchFactor - retroBudget);
 
     // 逆算候補（2手伸ばしを狙う）
-    const auto predecessors = TsumeRetrogradeOps::generatePredecessors(chosen->sfen, lim, retroBudget, m_rng);
-    ++m_rngDraws;
-    for (const auto& cand : predecessors) {
-        if (!markVisited(cand.sfen)) continue;
-        m_evalQueue.push_back({cand.sfen, cand.tag, chosenLayer + 2, false});
-        ++m_generatedCandidates;
+    if (retroBudget > 0) {
+        const auto predecessors = TsumeRetrogradeOps::generatePredecessors(chosen->sfen, lim, retroBudget, m_rng);
+        ++m_rngDraws;
+        for (const auto& cand : predecessors) {
+            if (!markVisited(cand.sfen)) continue;
+            m_evalQueue.push_back({cand.sfen, cand.tag, chosenLayer + 2, false});
+            ++m_generatedCandidates;
+        }
     }
 
     // 盤面編集候補（駒の移動・追加・変更で新しい手筋や延長を生む）
@@ -695,22 +980,67 @@ void TsumeRetrogradeGenerator::submitEvalAnswer(const MateAnswer& answer)
         const auto targetMetrics = TsumeRetrogradeOps::analyzeLine(targetSfen, targetPv);
         if (!targetMetrics) return;
 
-        // 駒余りや最終手複数解が既に判明している場合 → 厳密証明に掛ける前に1枚除去で不要駒落としを試みる
+        // 駒余りや最終手複数解の有無を先に判定
         const bool failsSurplus = m_settings.requireNoSurplus && targetMetrics->surplusCount > 0;
         const bool failsFinalAlt = !m_settings.allowFinalMoveAlternatives && targetMetrics->finalImmediateMates > 1;
+
+        // 既出・類似作は採択・厳密証明しないが、類似作で駒余りなし・最終手一意なら
+        // 次の1箇所変異で別系統へ飛ぶための探索足場（ステッピングストーン）としてフロンティアへ残す
+        if (m_foundSfens.contains(targetSfen) || m_certifiedQueuedOrDone.contains(targetSfen)) {
+            return;
+        }
+        if (isSimilarToAccepted(targetSfen, targetPv)) {
+            if (!failsSurplus && !failsFinalAlt) {
+                BeamNode stepping;
+                stepping.sfen = targetSfen;
+                stepping.pv = targetPv;
+                stepping.plies = targetMetrics->plies;
+                stepping.surplusCount = targetMetrics->surplusCount;
+                stepping.firstMoveUnique = true;
+                stepping.signature = TsumeRetrogradeOps::structuralSignature(targetSfen, targetPv);
+                stepping.score = TsumeRetrogradeOps::scoreNode(
+                    *targetMetrics, m_settings.targetMoves, 0, true, m_settings.requireNoSurplus,
+                    !m_settings.allowFinalMoveAlternatives) - 15.0;
+                addToFrontier(stepping);
+            }
+            return;
+        }
+
+        // 駒余りや最終手複数解が既に判明している場合 → 1段目のみ1枚除去で不要駒落としを試みる
         if (failsSurplus || failsFinalAlt) {
-            int added = 0;
-            for (const QString& trimmed : TsumeCandidateJob::onePieceRemovedPositions(targetSfen)) {
-                if (markVisited(trimmed)) {
-                    m_evalQueue.push_front({trimmed, QStringLiteral("preflight_trim"), m_settings.targetMoves, true});
-                    ++m_generatedCandidates;
-                    if (++added >= 6) break;
+            if (!m_activeEval.fromRepair) {
+                int added = 0;
+                for (const QString& trimmed : TsumeCandidateJob::onePieceRemovedPositions(targetSfen)) {
+                    if (markVisited(trimmed)) {
+                        m_evalQueue.push_front({trimmed, QStringLiteral("preflight_trim"), m_settings.targetMoves, true});
+                        ++m_generatedCandidates;
+                        if (++added >= 4) break;
+                    }
                 }
             }
             return;
         }
 
-        enqueueForCertification(targetSfen, targetPv);
+        // 61手以下なら、外部エンジンの厳密証明へ送る前に内蔵 Hayanagi で主手順上の明白な余詰を事前弾き
+        const QuickMainLineCook preCook = quickLocalMainLineCookCheck(targetSfen, targetPv, 2);
+        if (!preCook.cookMove.isEmpty()) {
+            if (preCook.ply == 0) {
+                addToRepairQueue(targetSfen, preCook.mainMove, preCook.cookMove, m_settings.targetMoves);
+            }
+            if (!m_activeEval.fromRepair) {
+                int added = 0;
+                for (const QString& trimmed : TsumeCandidateJob::onePieceRemovedPositions(targetSfen)) {
+                    if (markVisited(trimmed)) {
+                        m_evalQueue.push_front({trimmed, QStringLiteral("precook_trim"), m_settings.targetMoves, true});
+                        ++m_generatedCandidates;
+                        if (++added >= 2) break;
+                    }
+                }
+            }
+            return;
+        }
+
+        enqueueForCertification(targetSfen, targetPv, !m_activeEval.fromRepair);
         return;
     }
 
@@ -738,10 +1068,18 @@ void TsumeRetrogradeGenerator::startFirstMoveCheck(const QString& sfen, const QS
                                                    bool fromRepair)
 {
     // 63手以下ならまずローカル Hayanagi で瞬時に明白な初手余詰を検出
-    const QString quickCook = quickLocalCookCheck(sfen, pv.first(), metrics.plies);
+    const QString quickCook = quickLocalCookCheck(sfen, pv.first(), metrics.plies,
+                                                  metrics.plies <= 15 ? 6 : 4);
     if (!quickCook.isEmpty()) {
         m_firstCheck = FirstMoveCheckState{sfen, pv, metrics, fromRepair, {}, 0, {}, 0, false, 0, 0, {}};
         finishFirstMoveCheck(false, quickCook);
+        return;
+    }
+
+    // 15手以下の成長足場はローカル Hayanagi の初手余詰検査だけで十分（外部エンジン問い合わせを温存）
+    if (metrics.plies <= 15) {
+        m_firstCheck = FirstMoveCheckState{sfen, pv, metrics, fromRepair, {}, 0, {}, 0, false, 0, 0, {}};
+        finishFirstMoveCheck(true, QString());
         return;
     }
 
@@ -872,8 +1210,11 @@ void TsumeRetrogradeGenerator::finishFirstMoveCheck(bool unique, const QString& 
     m_firstCheck.reset();
 
     if (!cookMove.isEmpty()) {
-        // 余詰が見つかった → 標的型リペアキューに登録（高い手数なら修復する価値が大きい）
-        addToRepairQueue(st.sfen, st.mainPv.first(), cookMove, st.metrics.plies);
+        // 余詰が見つかった → 目標付近（target-2 以上）または最大到達層なら標的型リペアキューに登録
+        if (st.metrics.plies >= std::max(1, m_settings.targetMoves - 2)
+            || st.metrics.plies >= m_maxPliesReached) {
+            addToRepairQueue(st.sfen, st.mainPv.first(), cookMove, st.metrics.plies);
+        }
         // 盤面の足場として低めのスコアで残すことは許容する（特にまだビームが空いているとき）
         BeamNode node;
         node.sfen = st.sfen;
@@ -954,11 +1295,30 @@ void TsumeRetrogradeGenerator::addToRepairQueue(const QString& sfen, const QStri
     }
 }
 
-void TsumeRetrogradeGenerator::enqueueForCertification(const QString& sfen, const QStringList& /*pv*/)
+bool TsumeRetrogradeGenerator::isSimilarToAccepted(const QString& sfen, const QStringList& pv) const
+{
+    if (!m_settings.excludeSimilar || pv.isEmpty()) return false;
+    for (const QString& key : TsumeRetrogradeOps::diversityKeys(sfen, pv)) {
+        if (m_diversityKeys.contains(key)) return true;
+    }
+    return false;
+}
+
+void TsumeRetrogradeGenerator::registerDiversityKeys(const QString& sfen, const QStringList& pv)
+{
+    if (!m_settings.excludeSimilar || pv.isEmpty()) return;
+    for (const QString& key : TsumeRetrogradeOps::diversityKeys(sfen, pv)) {
+        m_diversityKeys.insert(key);
+    }
+}
+
+void TsumeRetrogradeGenerator::enqueueForCertification(const QString& sfen, const QStringList& pv,
+                                                       bool allowTrimOnReject)
 {
     if (m_foundSfens.contains(sfen) || m_certifiedQueuedOrDone.contains(sfen)) return;
+    if (isSimilarToAccepted(sfen, pv)) return;
     m_certifiedQueuedOrDone.insert(sfen);
-    m_pendingCertify.push_back(sfen);
+    m_pendingCertify.push_back(PendingCertifyItem{sfen, allowTrimOnReject});
 }
 
 // ============================================================
@@ -1002,10 +1362,28 @@ void TsumeRetrogradeGenerator::finishCertifier()
 
     if (cert->stage() == TsumeStrictCertifier::Stage::Certified && cert->outcome()) {
         const auto& out = *cert->outcome();
-        if (!m_foundSfens.contains(out.sfen)) {
+        if (!m_foundSfens.contains(out.sfen) && !isSimilarToAccepted(out.sfen, out.pv)) {
             m_foundSfens.insert(out.sfen);
+            registerDiversityKeys(out.sfen, out.pv);
             m_foundPositions.append(FoundPosition{out.sfen, out.pv, out.removedPieces, out.queries, out.spentMs});
             emit positionFound(out.sfen, out.pv, out.removedPieces, out.queries);
+
+            // 類似作除外が有効なとき、採択作の直前親種（2手進めた N-2 手局面）は
+            // 再び2手逆算しても同一 core で類似除外されるため、フロンティアから外して次の別系統種へ移る
+            if (m_settings.excludeSimilar && out.pv.size() >= 9) {
+                const auto parentSlice = TsumeRetrogradeOps::sliceToTargetLength(
+                    out.sfen, out.pv, static_cast<int>(out.pv.size()) - 2);
+                if (parentSlice) {
+                    auto it = m_frontier.find(static_cast<int>(out.pv.size()) - 2);
+                    if (it != m_frontier.end()) {
+                        auto& list = it->second;
+                        list.erase(std::remove_if(list.begin(), list.end(),
+                                                  [&](const BeamNode& n) { return n.sfen == parentSlice->sfen; }),
+                                   list.end());
+                        if (list.isEmpty()) m_frontier.erase(it);
+                    }
+                }
+            }
             if (!m_settings.checkpointPath.isEmpty()) saveCheckpointNow();
         }
     } else {
@@ -1019,15 +1397,16 @@ void TsumeRetrogradeGenerator::finishCertifier()
             addToRepairQueue(cert->candidateSfen(), cert->cookInfo()->mainMove,
                              cert->cookInfo()->cookMove, m_settings.targetMoves);
         }
-        // 余詰・駒余りで棄却された目標手数候補は、不要な1枚を落とすだけで成立することが多いので優先的に試す
-        if (cert->rejectionReason() == TsumeStrictCertifier::RejectionReason::Multiple
-            || cert->rejectionReason() == TsumeStrictCertifier::RejectionReason::Surplus) {
+        // 余詰・駒余りで棄却された目標手数候補は、1段目に限り不要な1枚を落として再試行する（再帰増殖は防止）
+        if (m_activeCertifierAllowTrim
+            && (cert->rejectionReason() == TsumeStrictCertifier::RejectionReason::Multiple
+                || cert->rejectionReason() == TsumeStrictCertifier::RejectionReason::Surplus)) {
             int added = 0;
             for (const QString& trimmed : TsumeCandidateJob::onePieceRemovedPositions(cert->candidateSfen())) {
                 if (markVisited(trimmed)) {
                     m_evalQueue.push_front({trimmed, QStringLiteral("cert_trim_repair"), m_settings.targetMoves, true});
                     ++m_generatedCandidates;
-                    if (++added >= 4) break;
+                    if (++added >= 2) break;
                 }
             }
         }
@@ -1151,7 +1530,7 @@ QJsonObject TsumeRetrogradeGenerator::buildCheckpointJson() const
     root[QStringLiteral("repair_queue")] = repairArr;
 
     QJsonArray pendingArr;
-    for (const QString& sfen : m_pendingCertify) pendingArr.append(sfen);
+    for (const PendingCertifyItem& item : m_pendingCertify) pendingArr.append(item.sfen);
     root[QStringLiteral("pending_certify")] = pendingArr;
 
     QJsonArray evalArr;
@@ -1322,7 +1701,7 @@ bool TsumeRetrogradeGenerator::loadCheckpointFile(const QString& path, QString* 
 
     for (const auto& item : root.value(QStringLiteral("pending_certify")).toArray()) {
         const QString sfen = item.toString();
-        if (!sfen.isEmpty()) m_pendingCertify.push_back(sfen);
+        if (!sfen.isEmpty()) m_pendingCertify.push_back(PendingCertifyItem{sfen, false});
     }
 
     for (const auto& item : root.value(QStringLiteral("eval_queue")).toArray()) {
@@ -1355,6 +1734,7 @@ bool TsumeRetrogradeGenerator::loadCheckpointFile(const QString& path, QString* 
         fp.verifyMs = static_cast<qint64>(o.value(QStringLiteral("verify_ms")).toDouble());
         if (!fp.sfen.isEmpty()) {
             m_foundSfens.insert(fp.sfen);
+            registerDiversityKeys(fp.sfen, fp.pv);
             m_foundPositions.append(fp);
         }
     }

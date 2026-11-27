@@ -26,6 +26,7 @@ public:
 
 signals:
     void stopRequested();
+    void lineReceived(const QString& line);
 
 private slots:
     void onStdinReadable();

@@ -113,7 +113,11 @@ void CliStopWatcher::onSignalReadable()
 
 void CliStopWatcher::onStdinLine(const QString& line)
 {
-    if (line.compare(QStringLiteral("stop"), Qt::CaseInsensitive) == 0) requestStop();
+    if (line.compare(QStringLiteral("stop"), Qt::CaseInsensitive) == 0) {
+        requestStop();
+    } else if (!line.isEmpty()) {
+        emit lineReceived(line);
+    }
 }
 
 void CliStopWatcher::onStdinClosed()

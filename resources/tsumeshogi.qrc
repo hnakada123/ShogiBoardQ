@@ -2,5 +2,6 @@
     <qresource prefix="/tsumeshogi">
         <file alias="validated-collections-20260926.json">../data/tsumeshogi/validation_20260926.json</file>
         <file alias="validated-collections-20261001.json">../data/tsumeshogi/validation_20261001.json</file>
+        <file alias="validated-collections-20261127.json">../data/tsumeshogi/validation_long_20261127.json</file>
     </qresource>
 </RCC>

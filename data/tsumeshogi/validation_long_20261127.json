@@ -1,0 +1,174 @@
+{
+  "generated_at": "2026-11-27T12:51:16+00:00",
+  "engine": "KomoringHeights (MinLength, go mate infinite natural completion)",
+  "allow_final_move_alternatives": false,
+  "require_no_surplus": true,
+  "method": "all_single_piece_removals_to_defender_hand",
+  "generation_method": "grow-tsume retrograde construction + strict verification + all single-piece removals",
+  "diversity_filter_enabled": true,
+  "files": [
+    {
+      "file": "tsume_15ply_1000_20261127.txt",
+      "sha256": "bf4c25fbf98df5188c6b6960f87643e9cfcc0b1d23fbf529c6fdbe2555d616d8",
+      "target_plies": 15,
+      "positions": 1000,
+      "unique_positions": 1000,
+      "legal_mate_lines": 1000,
+      "shortest_mate_exact_target": 1000,
+      "positions_with_removable_piece": 0,
+      "inconclusive_positions": 0,
+      "saved_lines_with_surplus": 0,
+      "diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
+    },
+    {
+      "file": "tsume_17ply_1000_20261127.txt",
+      "sha256": "8b9d2eee85faae338c970b8b0fe798390999ab66e9437f6d838b4b19b9823421",
+      "target_plies": 17,
+      "positions": 1000,
+      "unique_positions": 1000,
+      "legal_mate_lines": 1000,
+      "shortest_mate_exact_target": 1000,
+      "positions_with_removable_piece": 0,
+      "inconclusive_positions": 0,
+      "saved_lines_with_surplus": 0,
+      "diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
+    },
+    {
+      "file": "tsume_19ply_1000_20261127.txt",
+      "sha256": "27c1c5fb1cc5f83eed2a6a3344b5ac5d7a4c0461f0de4ffe8adab26f9d77f1e9",
+      "target_plies": 19,
+      "positions": 1000,
+      "unique_positions": 1000,
+      "legal_mate_lines": 1000,
+      "shortest_mate_exact_target": 1000,
+      "positions_with_removable_piece": 0,
+      "inconclusive_positions": 0,
+      "saved_lines_with_surplus": 0,
+      "diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
+    },
+    {
+      "file": "tsume_21ply_1000_20261127.txt",
+      "sha256": "e36766af24189f96d3d91e064a5b23d4dc30cb4e11715390b9b76826468f72d2",
+      "target_plies": 21,
+      "positions": 1000,
+      "unique_positions": 1000,
+      "legal_mate_lines": 1000,
+      "shortest_mate_exact_target": 1000,
+      "positions_with_removable_piece": 0,
+      "inconclusive_positions": 0,
+      "saved_lines_with_surplus": 0,
+      "diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
+    },
+    {
+      "file": "tsume_23ply_1000_20261127.txt",
+      "sha256": "a85ea1b8cf6bafa4f164ffcf8814c31dadeddbda78f45c95fc1f53c72153ac91",
+      "target_plies": 23,
+      "positions": 1000,
+      "unique_positions": 1000,
+      "legal_mate_lines": 1000,
+      "shortest_mate_exact_target": 1000,
+      "positions_with_removable_piece": 0,
+      "inconclusive_positions": 0,
+      "saved_lines_with_surplus": 0,
+      "diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
+    },
+    {
+      "file": "tsume_25ply_1000_20261127.txt",
+      "sha256": "f9581f7ed85d35c9a31831734abdb46511dbbe5569b1e3f255697a9523cdf81e",
+      "target_plies": 25,
+      "positions": 1000,
+      "unique_positions": 1000,
+      "legal_mate_lines": 1000,
+      "shortest_mate_exact_target": 1000,
+      "positions_with_removable_piece": 0,
+      "inconclusive_positions": 0,
+      "saved_lines_with_surplus": 0,
+      "diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
+    },
+    {
+      "file": "tsume_27ply_1000_20261127.txt",
+      "sha256": "23c0e11b0cd723ba3db1de13c05a83f1034fc3f14ec0d3ba3aceb5e205aad805",
+      "target_plies": 27,
+      "positions": 1000,
+      "unique_positions": 1000,
+      "legal_mate_lines": 1000,
+      "shortest_mate_exact_target": 1000,
+      "positions_with_removable_piece": 0,
+      "inconclusive_positions": 0,
+      "saved_lines_with_surplus": 0,
+      "diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
+    },
+    {
+      "file": "tsume_29ply_1000_20261127.txt",
+      "sha256": "7970dee1bbd4610063143ae3c4d81f1c2bef82c04fca5e900a8c5f5c9d85992f",
+      "target_plies": 29,
+      "positions": 1000,
+      "unique_positions": 1000,
+      "legal_mate_lines": 1000,
+      "shortest_mate_exact_target": 1000,
+      "positions_with_removable_piece": 0,
+      "inconclusive_positions": 0,
+      "saved_lines_with_surplus": 0,
+      "diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
+    },
+    {
+      "file": "tsume_31ply_1000_20261127.txt",
+      "sha256": "5a6e4b288a8fbed0910a58f4049c2c35238e1be6fa508806c1a7021156c55d4b",
+      "target_plies": 31,
+      "positions": 1000,
+      "unique_positions": 1000,
+      "legal_mate_lines": 1000,
+      "shortest_mate_exact_target": 1000,
+      "positions_with_removable_piece": 0,
+      "inconclusive_positions": 0,
+      "saved_lines_with_surplus": 0,
+      "diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
+    }
+  ],
+  "total_positions": 9000
+}

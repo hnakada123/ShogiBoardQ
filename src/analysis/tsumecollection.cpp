@@ -10,13 +10,15 @@
 #include <QJsonObject>
 
 // Q_INIT_RESOURCE は名前空間の外で宣言し、静的ライブラリからもリソースをリンクする。
-// 公開した版ごとの監査記録（20260926版と、駒余りを検査して差し替えた20261001版）を同梱する。
+// 公開した版ごとの監査記録（20260926版・20261001版・15〜31手詰の20261127版）を同梱する。
 static const QList<QJsonObject>& trustedCollectionReports()
 {
     static const QList<QJsonObject> reports = []() {
         Q_INIT_RESOURCE(tsumeshogi);
         QList<QJsonObject> loaded;
-        for (const auto* name : {"validated-collections-20260926.json", "validated-collections-20261001.json"}) {
+        for (const auto* name : {"validated-collections-20260926.json",
+                                 "validated-collections-20261001.json",
+                                 "validated-collections-20261127.json"}) {
             QFile file(QStringLiteral(":/tsumeshogi/") + QLatin1String(name));
             if (file.open(QIODevice::ReadOnly)) loaded.append(QJsonDocument::fromJson(file.readAll()).object());
         }
@@ -55,10 +57,18 @@ int TsumeCollection::verifiedMateLength(const QByteArray& contents, const Result
     // 隣接するJSONやファイル名を根拠にしない。同梱した監査記録だけを信頼する。
     const QString hash = QString::fromLatin1(QCryptographicHash::hash(contents, QCryptographicHash::Sha256).toHex());
     for (const auto& report : trustedCollectionReports()) {
-        if (report.value(QStringLiteral("method")).toString() != QStringLiteral("all_single_piece_removals_to_defender_hand")
-            || report.value(QStringLiteral("independent_shortest_search")).toString()
-               != QStringLiteral("Hayanagi TsumeSearch with a fresh table per SFEN")
-            || !report.value(QStringLiteral("allow_final_move_alternatives")).toBool()) continue;
+        if (report.value(QStringLiteral("method")).toString()
+            != QStringLiteral("all_single_piece_removals_to_defender_hand")) continue;
+        const bool isHayanagiReport =
+            report.value(QStringLiteral("independent_shortest_search")).toString()
+                == QStringLiteral("Hayanagi TsumeSearch with a fresh table per SFEN")
+            && report.value(QStringLiteral("allow_final_move_alternatives")).toBool();
+        const bool isStrictMinLengthReport =
+            report.value(QStringLiteral("engine")).toString()
+                == QStringLiteral("KomoringHeights (MinLength, go mate infinite natural completion)")
+            && !report.value(QStringLiteral("allow_final_move_alternatives")).toBool()
+            && report.value(QStringLiteral("require_no_surplus")).toBool();
+        if (!isHayanagiReport && !isStrictMinLengthReport) continue;
         const int plies = verifiedMateLengthIn(report, hash, parsed);
         if (plies > 0) return plies;
     }

@@ -55,11 +55,15 @@ public:
         int stepTimeoutMs = 5000;                 ///< 成長フェーズの1問い合わせ上限(ms)
         int verifyQueryTimeoutMs = 15000;         ///< 厳密検証・トリミングの1問い合わせ上限(ms)
         qint64 verifyBudgetMs = 1800000;          ///< 1候補の厳密検証・トリミング総予算(ms)
+        int engineHashMb = 0;                     ///< USI_Hash の上書き(MiB、0 は登録設定のまま)
+        int engineThreads = 0;                    ///< Threads の上書き(0 は登録設定のまま)
         bool addRemainingToDefenderHand = true;   ///< 未使用駒をすべて玉方持駒へ入れる
         bool allowFinalMoveAlternatives = false;  ///< 既定 false: 最終手余詰も禁止（完全一意）
         bool requireNoSurplus = true;             ///< 既定 true: 駒余りを完全禁止
         bool strictMinLength = true;              ///< 既定 true: 厳密検証では go mate infinite 自然終了のみ確定
-        QStringList seedSfens;                    ///< 初期種局面（空なら0手詰み局面を自動生成）
+        bool excludeSimilar = true;               ///< 既定 true: 採択済み・除外済みと類似手順の候補を厳密証明前に除外
+        QStringList seedSfens;                    ///< 初期種局面（"SFEN" または "SFEN moves ..."。空なら0手詰み局面を自動生成）
+        QStringList excludeLines;                 ///< 既出の除外対象（"SFEN" または "SFEN moves ..."）
         QString checkpointPath;                   ///< 途中保存ファイルパス（空なら保存しない）
         bool resumeFromCheckpoint = false;        ///< checkpointPath から再開するか
         int checkpointIntervalSec = 30;           ///< 定期保存間隔（秒）
@@ -105,6 +109,11 @@ public:
     /// 安全に停止する（チェックポイント指定時は最新状態を保存してから finished を出す）
     void stop();
     bool isRunning() const { return m_running; }
+
+    /// 実行中に外部（並列オーケストレータ等）から除外対象（"SFEN" または "SFEN moves ..."）を追加する
+    void addExcludeLine(const QString& line);
+    /// 実行中に外部から新しい種局面（"SFEN moves ..." 等）を追加する
+    void addSeedLine(const QString& line);
 
     /// 現在の進捗スナップショット
     Progress progress() const;
@@ -196,7 +205,14 @@ private:
     void finishFirstMoveCheck(bool unique, const QString& cookMove);
     void addToFrontier(const BeamNode& node);
     void addToRepairQueue(const QString& sfen, const QString& mainMove, const QString& cookMove, int plies);
-    void enqueueForCertification(const QString& sfen, const QStringList& pv);
+    struct PendingCertifyItem {
+        QString sfen;
+        bool allowTrimOnReject = true;
+    };
+
+    void enqueueForCertification(const QString& sfen, const QStringList& pv, bool allowTrimOnReject = true);
+    bool isSimilarToAccepted(const QString& sfen, const QStringList& pv) const;
+    void registerDiversityKeys(const QString& sfen, const QStringList& pv);
     void stepCertifier();
     void submitCertifierAnswer(const MateAnswer& answer, qint64 elapsedMs);
     void finishCertifier();
@@ -216,6 +232,7 @@ private:
     bool m_engineReady = false;
     bool m_awaitingAnswer = false;
     bool m_lastQueryWasStrict = false;
+    bool m_hashDirty = false;
     int m_consecutiveRecoveries = 0;
     QString m_activeQuerySfen;
     ActiveMode m_mode = ActiveMode::Idle;
@@ -236,7 +253,8 @@ private:
     std::map<int, QList<BeamNode>> m_frontier;
     std::deque<RepairItem> m_repairQueue;
     std::deque<EvalItem> m_evalQueue;
-    std::deque<QString> m_pendingCertify;
+    std::deque<PendingCertifyItem> m_pendingCertify;
+    bool m_activeCertifierAllowTrim = true;
     std::optional<FirstMoveCheckState> m_firstCheck;
     std::unique_ptr<TsumeStrictCertifier> m_activeCertifier;
     EvalItem m_activeEval;
@@ -245,6 +263,7 @@ private:
     std::deque<std::uint64_t> m_visitedOrder;
     QSet<QString> m_foundSfens;
     QSet<QString> m_certifiedQueuedOrDone;
+    QSet<QString> m_diversityKeys;
     QList<FoundPosition> m_foundPositions;
 
     // 成長フェーズ用キャッシュと厳密証明フェーズ用キャッシュは分離する

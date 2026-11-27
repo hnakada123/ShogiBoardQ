@@ -943,91 +943,102 @@ QList<Candidate> generateMutations(const QString& sfen, const Limits& limits,
     const int maxTries = maxCandidates * 12;
     for (int attempt = 0; attempt < maxTries && out.size() < maxCandidates; ++attempt) {
         State mutated = base;
-        std::vector<int> nonKings;
-        std::vector<int> occupied;
-        for (int sq = 0; sq < kBoardSquares; ++sq) {
-            if (mutated.board[static_cast<std::size_t>(sq)] == 0) continue;
-            occupied.push_back(sq);
-            if (sq != kingSq) nonKings.push_back(sq);
-        }
+        int curKingSq = kingSq;
+        const int edits = randChance(rng, 60) ? 1 : randInt(rng, 2, 3);
+        QString lastTag;
+        bool anyEdit = false;
 
-        const int op = randInt(rng, 0, 99);
-        QString tag;
-        if (op < 35 && !occupied.empty()) {
-            // 盤上の駒を近傍（±2マス）または盤上空きマスへ移動
-            const int from = occupied[static_cast<std::size_t>(
-                randInt(rng, 0, static_cast<int>(occupied.size()) - 1))];
-            const int r = shogi::square_row(from) + randInt(rng, -2, 2);
-            const int c = shogi::square_col(from) + randInt(rng, -2, 2);
-            if (!shogi::is_on_board(r, c)) continue;
-            const int to = shogi::make_square(r, c);
-            if (mutated.board[static_cast<std::size_t>(to)] != 0) continue;
-            int piece = mutated.board[static_cast<std::size_t>(from)];
-            const PieceType pt = shogi::piece_type(piece);
-            const Color color = shogi::piece_color(piece);
-            if (shogi::must_promote(pt, color, r)) {
-                if (shogi::can_promote(pt)) piece = shogi::encode_piece(color, shogi::promote(pt));
-                else continue;
+        for (int e = 0; e < edits; ++e) {
+            std::vector<int> nonKings;
+            std::vector<int> occupied;
+            for (int sq = 0; sq < kBoardSquares; ++sq) {
+                if (mutated.board[static_cast<std::size_t>(sq)] == 0) continue;
+                occupied.push_back(sq);
+                if (sq != curKingSq) nonKings.push_back(sq);
             }
-            mutated.board[static_cast<std::size_t>(to)] = piece;
-            mutated.board[static_cast<std::size_t>(from)] = 0;
-            tag = QStringLiteral("mutate_move");
-        } else if (op < 60) {
-            // 盤上に新しい攻め駒または守り駒を追加（玉周辺±3マス、遠方飛び駒なら盤全体）
-            const bool isAttack = randChance(rng, 55);
-            const Color color = isAttack ? Color::Black : Color::White;
-            PieceType pt = randomUsefulPiece(rng);
-            int r = 0;
-            int c = 0;
-            if (isAttack && isSlider(pt) && randChance(rng, 45)) {
-                r = randInt(rng, 0, 8);
-                c = randInt(rng, 0, 8);
-            } else {
-                r = shogi::square_row(kingSq) + randInt(rng, -3, 3);
-                c = shogi::square_col(kingSq) + randInt(rng, -3, 3);
+
+            const int op = randInt(rng, 0, 99);
+            if (op < 38 && !occupied.empty()) {
+                // 盤上の駒（玉含む）を近傍（±2マス）の空きマスへ移動
+                const int from = occupied[static_cast<std::size_t>(
+                    randInt(rng, 0, static_cast<int>(occupied.size()) - 1))];
+                const int r = shogi::square_row(from) + randInt(rng, -2, 2);
+                const int c = shogi::square_col(from) + randInt(rng, -2, 2);
+                if (!shogi::is_on_board(r, c)) continue;
+                const int to = shogi::make_square(r, c);
+                if (mutated.board[static_cast<std::size_t>(to)] != 0) continue;
+                int piece = mutated.board[static_cast<std::size_t>(from)];
+                const PieceType pt = shogi::piece_type(piece);
+                const Color color = shogi::piece_color(piece);
+                if (shogi::must_promote(pt, color, r)) {
+                    if (shogi::can_promote(pt)) piece = shogi::encode_piece(color, shogi::promote(pt));
+                    else continue;
+                }
+                mutated.board[static_cast<std::size_t>(to)] = piece;
+                mutated.board[static_cast<std::size_t>(from)] = 0;
+                if (from == curKingSq) curKingSq = to;
+                lastTag = QStringLiteral("mutate_move");
+                anyEdit = true;
+            } else if (op < 60) {
+                // 盤上に新しい攻め駒または守り駒を追加（玉周辺±3マス、遠方飛び駒なら盤全体）
+                const bool isAttack = randChance(rng, 55);
+                const Color color = isAttack ? Color::Black : Color::White;
+                PieceType pt = randomUsefulPiece(rng);
+                int r = 0;
+                int c = 0;
+                if (isAttack && isSlider(pt) && randChance(rng, 45)) {
+                    r = randInt(rng, 0, 8);
+                    c = randInt(rng, 0, 8);
+                } else {
+                    r = shogi::square_row(curKingSq) + randInt(rng, -3, 3);
+                    c = shogi::square_col(curKingSq) + randInt(rng, -3, 3);
+                }
+                if (!shogi::is_on_board(r, c)) continue;
+                const int to = shogi::make_square(r, c);
+                if (mutated.board[static_cast<std::size_t>(to)] != 0) continue;
+                if (shogi::can_promote(pt) && (shogi::must_promote(pt, color, r) || randChance(rng, 25))) {
+                    pt = shogi::promote(pt);
+                }
+                if (shogi::must_promote(pt, color, r)) continue;
+                mutated.board[static_cast<std::size_t>(to)] = shogi::encode_piece(color, pt);
+                lastTag = isAttack ? QStringLiteral("mutate_add_atk") : QStringLiteral("mutate_add_def");
+                anyEdit = true;
+            } else if (op < 78 && !nonKings.empty()) {
+                // 駒種・成不成の変更
+                const int sq = nonKings[static_cast<std::size_t>(
+                    randInt(rng, 0, static_cast<int>(nonKings.size()) - 1))];
+                const Color color = shogi::piece_color(mutated.board[static_cast<std::size_t>(sq)]);
+                const int r = shogi::square_row(sq);
+                PieceType pt = randomUsefulPiece(rng);
+                if (shogi::can_promote(pt) && (shogi::must_promote(pt, color, r) || randChance(rng, 30))) {
+                    pt = shogi::promote(pt);
+                }
+                if (shogi::must_promote(pt, color, r)) continue;
+                mutated.board[static_cast<std::size_t>(sq)] = shogi::encode_piece(color, pt);
+                lastTag = QStringLiteral("mutate_kind");
+                anyEdit = true;
+            } else if (op < 90) {
+                // 攻方持駒を1枚増減
+                const int kind = randInt(rng, 1, 7);
+                if (mutated.attackHand[static_cast<std::size_t>(kind)] > 0 && randChance(rng, 55)) {
+                    --mutated.attackHand[static_cast<std::size_t>(kind)];
+                    lastTag = QStringLiteral("mutate_hand_dec");
+                } else {
+                    ++mutated.attackHand[static_cast<std::size_t>(kind)];
+                    lastTag = QStringLiteral("mutate_hand_inc");
+                }
+                anyEdit = true;
+            } else if (!nonKings.empty()) {
+                // 盤上駒を1枚削除（玉方持駒へ戻す）
+                const int sq = nonKings[static_cast<std::size_t>(
+                    randInt(rng, 0, static_cast<int>(nonKings.size()) - 1))];
+                mutated.board[static_cast<std::size_t>(sq)] = 0;
+                lastTag = QStringLiteral("mutate_remove");
+                anyEdit = true;
             }
-            if (!shogi::is_on_board(r, c)) continue;
-            const int to = shogi::make_square(r, c);
-            if (mutated.board[static_cast<std::size_t>(to)] != 0) continue;
-            if (shogi::can_promote(pt) && (shogi::must_promote(pt, color, r) || randChance(rng, 25))) {
-                pt = shogi::promote(pt);
-            }
-            if (shogi::must_promote(pt, color, r)) continue;
-            mutated.board[static_cast<std::size_t>(to)] = shogi::encode_piece(color, pt);
-            tag = isAttack ? QStringLiteral("mutate_add_atk") : QStringLiteral("mutate_add_def");
-        } else if (op < 78 && !nonKings.empty()) {
-            // 駒種・成不成の変更
-            const int sq = nonKings[static_cast<std::size_t>(
-                randInt(rng, 0, static_cast<int>(nonKings.size()) - 1))];
-            const Color color = shogi::piece_color(mutated.board[static_cast<std::size_t>(sq)]);
-            const int r = shogi::square_row(sq);
-            PieceType pt = randomUsefulPiece(rng);
-            if (shogi::can_promote(pt) && (shogi::must_promote(pt, color, r) || randChance(rng, 30))) {
-                pt = shogi::promote(pt);
-            }
-            if (shogi::must_promote(pt, color, r)) continue;
-            mutated.board[static_cast<std::size_t>(sq)] = shogi::encode_piece(color, pt);
-            tag = QStringLiteral("mutate_kind");
-        } else if (op < 90) {
-            // 攻方持駒を1枚増減
-            const int kind = randInt(rng, 1, 7);
-            if (mutated.attackHand[static_cast<std::size_t>(kind)] > 0 && randChance(rng, 55)) {
-                --mutated.attackHand[static_cast<std::size_t>(kind)];
-                tag = QStringLiteral("mutate_hand_dec");
-            } else {
-                ++mutated.attackHand[static_cast<std::size_t>(kind)];
-                tag = QStringLiteral("mutate_hand_inc");
-            }
-        } else if (!nonKings.empty()) {
-            // 盤上駒を1枚削除（玉方持駒へ戻す）
-            const int sq = nonKings[static_cast<std::size_t>(
-                randInt(rng, 0, static_cast<int>(nonKings.size()) - 1))];
-            mutated.board[static_cast<std::size_t>(sq)] = 0;
-            tag = QStringLiteral("mutate_remove");
-        } else {
-            continue;
         }
-        tryAdd(mutated, tag);
+        if (!anyEdit) continue;
+        tryAdd(mutated, edits >= 2 ? QStringLiteral("mutate_multi") : lastTag);
     }
 
     return out;
@@ -1350,6 +1361,77 @@ QString structuralSignature(const QString& sfen, const QStringList& pv)
         sig += pv.at(i);
     }
     return sig;
+}
+
+QStringList diversityKeys(const QString& sfen, const QStringList& pv)
+{
+    QStringList keys;
+    const int n = static_cast<int>(pv.size());
+    if (n < 1 || n % 2 == 0) return keys;
+    shogi::Position pos;
+    if (!pos.set_sfen(sfen.toStdString(), true)) return keys;
+    const int initKing = pos.find_king(Color::White);
+    if (initKing < 0) return keys;
+
+    auto moveTokens = [](const QStringList& moves, int originFile, int originRank, int sign) -> QStringList {
+        QStringList out;
+        out.reserve(moves.size());
+        for (const QString& m : moves) {
+            if (m.size() < 4) return {};
+            if (m[1] == QLatin1Char('*')) {
+                const int df = sign * ((m[2].unicode() - '0') - originFile);
+                const int dr = (m[3].unicode() - 'a') - originRank;
+                out.append(QStringLiteral("D%1:%2,%3").arg(m[0]).arg(df).arg(dr));
+            } else {
+                const int ff = sign * ((m[0].unicode() - '0') - originFile);
+                const int fr = (m[1].unicode() - 'a') - originRank;
+                const int tf = sign * ((m[2].unicode() - '0') - originFile);
+                const int tr = (m[3].unicode() - 'a') - originRank;
+                const bool pro = m.endsWith(QLatin1Char('+'));
+                out.append(QStringLiteral("M%1,%2>%3,%4%5").arg(ff).arg(fr).arg(tf).arg(tr).arg(pro ? 1 : 0));
+            }
+        }
+        return out;
+    };
+
+    auto canonicalJoined = [&](const QStringList& moves, int originFile, int originRank) -> QString {
+        const QString a = moveTokens(moves, originFile, originRank, 1).join(QLatin1Char(';'));
+        const QString b = moveTokens(moves, originFile, originRank, -1).join(QLatin1Char(';'));
+        return a < b ? a : b;
+    };
+
+    const int kf = 9 - shogi::square_col(initKing);
+    const int kr = shogi::square_row(initKing);
+    const QStringList prefixMoves = pv.mid(0, n - 1);
+    keys.append(QStringLiteral("%1|P|").arg(n) + canonicalJoined(prefixMoves, kf, kr));
+    keys.append(QStringLiteral("%1|A|").arg(n) + canonicalJoined(prefixMoves, 5, 0));
+
+    if (n >= 9) {
+        shogi::Position after2 = pos;
+        if (after2.apply_usi_move(pv.at(0).toStdString()) && after2.apply_usi_move(pv.at(1).toStdString())) {
+            const int k2 = after2.find_king(Color::White);
+            if (k2 >= 0) {
+                const int k2f = 9 - shogi::square_col(k2);
+                const int k2r = shogi::square_row(k2);
+                const QStringList coreMoves = pv.mid(2, n - 3);
+                const QStringList t1 = moveTokens(coreMoves, k2f, k2r, 1);
+                const QStringList t2 = moveTokens(coreMoves, k2f, k2r, -1);
+                const int cLen = static_cast<int>(t1.size());
+                if (cLen == t2.size()) {
+                    for (int i = 0; i < cLen; ++i) {
+                        QStringList m1 = t1;
+                        QStringList m2 = t2;
+                        m1[i] = QStringLiteral("*");
+                        m2[i] = QStringLiteral("*");
+                        const QString s1 = m1.join(QLatin1Char(';'));
+                        const QString s2 = m2.join(QLatin1Char(';'));
+                        keys.append(QStringLiteral("%1|C%2|").arg(n).arg(i) + (s1 < s2 ? s1 : s2));
+                    }
+                }
+            }
+        }
+    }
+    return keys;
 }
 
 } // namespace TsumeRetrogradeOps
