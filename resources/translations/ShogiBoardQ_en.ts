@@ -19513,6 +19513,64 @@ This cannot be undone. Reset history?</translation>
     </message>
 </context>
 <context>
+    <name>TsumeRetrogradeGenerator</name>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="210"/>
+        <source>再開するにはチェックポイントファイルを指定してください。</source>
+        <translation>Please specify a checkpoint file to resume.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="336"/>
+        <source>エンジンが連続して応答しないため生成を中止しました。</source>
+        <translation>Generation was aborted because the engine repeatedly failed to respond.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="410"/>
+        <source>候補局面を生成できませんでした。駒数上限などの設定を確認してください。</source>
+        <translation>Failed to generate candidate positions. Please check piece limits and settings.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="467"/>
+        <source>選択されたエンジンは詰み探索（go mate）に対応していません。</source>
+        <translation>The selected engine does not support mate search (go mate).</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="539"/>
+        <source>エンジンでエラーが発生しました。</source>
+        <translation>An engine error occurred.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1223"/>
+        <source>チェックポイント保存先ディレクトリを作成できませんでした。</source>
+        <translation>Failed to create the checkpoint directory.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1245"/>
+        <source>チェックポイントファイルを開けません: %1</source>
+        <translation>Cannot open checkpoint file: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1251"/>
+        <source>チェックポイントファイルの JSON が不正です: %1</source>
+        <translation>Invalid JSON in checkpoint file: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1257"/>
+        <source>未対応のチェックポイントバージョンです。</source>
+        <translation>Unsupported checkpoint version.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1264"/>
+        <source>チェックポイントの目標手数 (%1) が指定 (%2) と一致しません。</source>
+        <translation>Checkpoint target moves (%1) do not match requested target moves (%2).</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1273"/>
+        <source>チェックポイントの厳密検証条件（最終手許容・駒余り禁止）が指定と一致しません。</source>
+        <translation>Checkpoint verification options (final move alternatives / no surplus) do not match the requested settings.</translation>
+    </message>
+</context>
+<context>
     <name>TsumeshogiGenerator</name>
     <message>
         <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="205"/>

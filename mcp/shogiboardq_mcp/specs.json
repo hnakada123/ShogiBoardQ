@@ -241,7 +241,7 @@
     "target_moves": {
      "default": 3,
      "description": "Mate length in plies (odd).",
-     "maximum": 99,
+     "maximum": 301,
      "minimum": 1,
      "type": "integer"
     },
@@ -250,6 +250,154 @@
      "description": "Engine time per candidate, per trimming step and per verification.",
      "maximum": 300000,
      "minimum": 1000,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "engine"
+   ],
+   "type": "object"
+  },
+  "grow-tsume": {
+   "additionalProperties": false,
+   "properties": {
+    "add_remaining_to_defender_hand": {
+     "default": true,
+     "description": "Give the pieces not on the board to the defender's hand.",
+     "type": "boolean"
+    },
+    "allow_final_move_alternatives": {
+     "default": false,
+     "description": "Allow alternatives on the final mating move (default false for strict uniqueness).",
+     "type": "boolean"
+    },
+    "beam_width": {
+     "default": 12,
+     "description": "Maximum beam nodes kept per ply layer.",
+     "maximum": 200,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "branch_factor": {
+     "default": 24,
+     "description": "Number of retrograde/mutation candidates per expansion.",
+     "maximum": 200,
+     "minimum": 4,
+     "type": "integer"
+    },
+    "checkpoint_interval_seconds": {
+     "default": 30,
+     "description": "Interval between automatic checkpoint saves in seconds.",
+     "maximum": 3600,
+     "minimum": 5,
+     "type": "integer"
+    },
+    "checkpoint_path": {
+     "description": "Checkpoint JSON file for periodic saving and resume (absolute path).",
+     "minLength": 1,
+     "type": "string"
+    },
+    "engine": {
+     "description": "Name of a USI engine registered in ShogiBoardQ, exactly as listed by list-engines.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "max_attack_pieces": {
+     "default": 20,
+     "description": "Maximum attacking pieces on board and in hand.",
+     "maximum": 38,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "max_defend_pieces": {
+     "default": 14,
+     "description": "Maximum defending pieces on board other than the king.",
+     "maximum": 38,
+     "minimum": 0,
+     "type": "integer"
+    },
+    "max_positions": {
+     "default": 1,
+     "description": "Stop after this many certified positions.",
+     "maximum": 1000,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "max_total_board_pieces": {
+     "default": 30,
+     "description": "Maximum total pieces on the board including the king.",
+     "maximum": 39,
+     "minimum": 2,
+     "type": "integer"
+    },
+    "output_path": {
+     "description": "Append certified positions as '<SFEN> moves <PV>' to this file (absolute path).",
+     "minLength": 1,
+     "type": "string"
+    },
+    "require_no_surplus": {
+     "default": true,
+     "description": "Require zero attacker hand pieces at every main-line mate ending.",
+     "type": "boolean"
+    },
+    "resume": {
+     "default": false,
+     "description": "Resume search and verification from an existing checkpoint_path.",
+     "type": "boolean"
+    },
+    "rng_seed": {
+     "default": 0,
+     "description": "Random seed (0 uses a time-based seed).",
+     "maximum": 2147483647,
+     "minimum": 0,
+     "type": "integer"
+    },
+    "seed_file": {
+     "description": "Optional seed file containing one SFEN per line (absolute path).",
+     "minLength": 1,
+     "type": "string"
+    },
+    "seed_sfen": {
+     "description": "Optional starting SFEN (a 0-ply mate ending or an attacker-to-move position).",
+     "minLength": 1,
+     "type": "string"
+    },
+    "stdin_control": {
+     "default": false,
+     "description": "Stop when a line 'stop' arrives on stdin or stdin is closed.",
+     "type": "boolean"
+    },
+    "step_timeout_ms": {
+     "default": 5000,
+     "description": "Engine time per growth candidate query in milliseconds.",
+     "maximum": 600000,
+     "minimum": 100,
+     "type": "integer"
+    },
+    "strict_min_length": {
+     "default": true,
+     "description": "Use go mate infinite and accept only naturally finished MinLength proofs during certification.",
+     "type": "boolean"
+    },
+    "target_moves": {
+     "default": 101,
+     "description": "Target mate length in plies (odd, e.g. 101).",
+     "maximum": 301,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "verify_budget_seconds": {
+     "default": 1800,
+     "description": "Total strict verification and trimming budget per candidate in seconds.",
+     "maximum": 86400,
+     "minimum": 5,
+     "type": "integer"
+    },
+    "verify_query_timeout_ms": {
+     "default": 15000,
+     "description": "Engine time per strict verification/trimming query in milliseconds.",
+     "maximum": 600000,
+     "minimum": 500,
      "type": "integer"
     }
    },
@@ -407,7 +555,7 @@
     },
     "target_moves": {
      "description": "Expected mate length in plies (odd).",
-     "maximum": 99,
+     "maximum": 301,
      "minimum": 1,
      "type": "integer"
     },

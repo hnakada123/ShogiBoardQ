@@ -221,6 +221,58 @@ const QList<OperationSpec>& CliCommandSpecs::all()
                   QStringLiteral("Give the pieces not on the board to the defender's hand."), true)
               .aliasFlag(QStringLiteral("no-remaining-to-hand"), false),
           allowFinalAlternatives(QStringLiteral("Accept positions whose final mating move has alternatives."))}},
+        {QStringLiteral("grow-tsume"),
+         QStringLiteral("Grow long tsume problems from mate positions via retrograde search, mutation and strict verification (JSON Lines)"),
+         {engine(), stdinControl(),
+          integer(QStringLiteral("target_moves"), QStringLiteral("Target mate length in plies (odd, e.g. 101)."),
+                  TsumeshogiSettings::GeneratorLimits::kMinTargetMoves,
+                  TsumeshogiSettings::GeneratorLimits::kMaxTargetMoves)
+              .withDefault(101),
+          integer(QStringLiteral("max_positions"), QStringLiteral("Stop after this many certified positions."), 1, 1000)
+              .withDefault(1),
+          integer(QStringLiteral("beam_width"), QStringLiteral("Maximum beam nodes kept per ply layer."), 1, 200)
+              .withDefault(12),
+          integer(QStringLiteral("branch_factor"), QStringLiteral("Number of retrograde/mutation candidates per expansion."), 4, 200)
+              .withDefault(24),
+          integer(QStringLiteral("max_attack_pieces"), QStringLiteral("Maximum attacking pieces on board and in hand."), 1, 38)
+              .withDefault(20).alias(QStringLiteral("max-attack")),
+          integer(QStringLiteral("max_defend_pieces"), QStringLiteral("Maximum defending pieces on board other than the king."), 0, 38)
+              .withDefault(14).alias(QStringLiteral("max-defend")),
+          integer(QStringLiteral("max_total_board_pieces"), QStringLiteral("Maximum total pieces on the board including the king."), 2, 39)
+              .withDefault(30),
+          integer(QStringLiteral("step_timeout_ms"), QStringLiteral("Engine time per growth candidate query in milliseconds."), 100, 600000)
+              .withDefault(5000).value(QStringLiteral("ms")),
+          integer(QStringLiteral("verify_query_timeout_ms"), QStringLiteral("Engine time per strict verification/trimming query in milliseconds."), 500, 600000)
+              .withDefault(15000).value(QStringLiteral("ms")),
+          integer(QStringLiteral("verify_budget_seconds"), QStringLiteral("Total strict verification and trimming budget per candidate in seconds."), 5, 86400)
+              .withDefault(1800).value(QStringLiteral("seconds")),
+          string(QStringLiteral("seed_sfen"),
+                 QStringLiteral("Optional starting SFEN (a 0-ply mate ending or an attacker-to-move position)."))
+              .atLeast(1).value(QStringLiteral("sfen")),
+          path(QStringLiteral("seed_file"),
+               QStringLiteral("Optional seed file containing one SFEN per line (absolute path).")),
+          path(QStringLiteral("checkpoint_path"),
+               QStringLiteral("Checkpoint JSON file for periodic saving and resume (absolute path)."))
+              .alias(QStringLiteral("checkpoint")),
+          boolean(QStringLiteral("resume"),
+                  QStringLiteral("Resume search and verification from an existing checkpoint_path.")),
+          integer(QStringLiteral("checkpoint_interval_seconds"),
+                  QStringLiteral("Interval between automatic checkpoint saves in seconds."), 5, 3600)
+              .withDefault(30).value(QStringLiteral("seconds")),
+          path(QStringLiteral("output_path"),
+               QStringLiteral("Append certified positions as '<SFEN> moves <PV>' to this file (absolute path)."))
+              .alias(QStringLiteral("output")),
+          integer(QStringLiteral("rng_seed"), QStringLiteral("Random seed (0 uses a time-based seed)."), 0, 2147483647)
+              .withDefault(0),
+          boolean(QStringLiteral("add_remaining_to_defender_hand"),
+                  QStringLiteral("Give the pieces not on the board to the defender's hand."), true)
+              .aliasFlag(QStringLiteral("no-remaining-to-hand"), false),
+          boolean(QStringLiteral("allow_final_move_alternatives"),
+                  QStringLiteral("Allow alternatives on the final mating move (default false for strict uniqueness)."), false),
+          boolean(QStringLiteral("require_no_surplus"),
+                  QStringLiteral("Require zero attacker hand pieces at every main-line mate ending."), true),
+          boolean(QStringLiteral("strict_min_length"),
+                  QStringLiteral("Use go mate infinite and accept only naturally finished MinLength proofs during certification."), true)}},
         {QStringLiteral("verify-tsume"), QStringLiteral("Check a tsume problem for a unique solution"),
          {engine(), sfen(true),
           integer(QStringLiteral("target_moves"), QStringLiteral("Expected mate length in plies (odd)."),

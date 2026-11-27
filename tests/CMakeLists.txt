@@ -1346,6 +1346,16 @@ add_shogi_test(tst_param_specs tst_param_specs.cpp ${SRC}/cli/clicommandspecs.cp
 target_link_libraries(tst_param_specs PRIVATE shogiboardq_static)
 target_include_directories(tst_param_specs PRIVATE ${SRC}/cli)
 
+# 詰み局面からの逆算・盤面編集・余詰リペア・厳密証明・チェックポイント再開・CLI grow-tsume
+add_executable(mock_retro_engine mock_retro_engine.cpp)
+target_link_libraries(mock_retro_engine PRIVATE hayanagi_tsume)
+
+add_shogi_test(tst_tsumeshogi_retrograde tst_tsumeshogi_retrograde.cpp ${SRC}/cli/clicommandspecs.cpp)
+target_link_libraries(tst_tsumeshogi_retrograde PRIVATE shogiboardq_static hayanagi_tsume)
+target_include_directories(tst_tsumeshogi_retrograde PRIVATE ${SRC}/cli)
+target_compile_definitions(tst_tsumeshogi_retrograde PRIVATE SHOGIBOARDQ_CLI_PATH="$<TARGET_FILE:shogiboardq-cli>")
+add_dependencies(tst_tsumeshogi_retrograde shogiboardq-cli mock_retro_engine)
+
 # 実体の配線とプロセスを使う回帰テスト
 foreach(test_name IN ITEMS tst_wiring_contracts tst_wiring_analysistab)
     target_sources(${test_name} PRIVATE ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)

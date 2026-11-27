@@ -17336,6 +17336,64 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
 </context>
 <context>
+    <name>TsumeRetrogradeGenerator</name>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="210"/>
+        <source>再開するにはチェックポイントファイルを指定してください。</source>
+        <translation>请指定检查点文件以恢复运行。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="336"/>
+        <source>エンジンが連続して応答しないため生成を中止しました。</source>
+        <translation>由于引擎连续无响应，已中止生成。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="410"/>
+        <source>候補局面を生成できませんでした。駒数上限などの設定を確認してください。</source>
+        <translation>无法生成候选局面。请检查棋子上限等设置。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="467"/>
+        <source>選択されたエンジンは詰み探索（go mate）に対応していません。</source>
+        <translation>所选引擎不支持将杀搜索（go mate）。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="539"/>
+        <source>エンジンでエラーが発生しました。</source>
+        <translation>引擎发生错误。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1223"/>
+        <source>チェックポイント保存先ディレクトリを作成できませんでした。</source>
+        <translation>无法创建检查点保存目录。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1245"/>
+        <source>チェックポイントファイルを開けません: %1</source>
+        <translation>无法打开检查点文件: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1251"/>
+        <source>チェックポイントファイルの JSON が不正です: %1</source>
+        <translation>检查点文件的 JSON 格式无效: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1257"/>
+        <source>未対応のチェックポイントバージョンです。</source>
+        <translation>不支持的检查点版本。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1264"/>
+        <source>チェックポイントの目標手数 (%1) が指定 (%2) と一致しません。</source>
+        <translation>检查点的目标步数 (%1) 与指定的步数 (%2) 不一致。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1273"/>
+        <source>チェックポイントの厳密検証条件（最終手許容・駒余り禁止）が指定と一致しません。</source>
+        <translation>检查点的严格验证条件（最终步允许别解/禁止余子）与指定设置不一致。</translation>
+    </message>
+</context>
+<context>
     <name>TsumeshogiGenerator</name>
     <message>
         <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="205"/>

@@ -6,9 +6,11 @@
 #include <algorithm>
 
 TsumeVerificationJob::TsumeVerificationJob(const QString& sfen, int targetMoves,
-                                           const TsumeshogiVerifier::Options& options, int budgetMs)
+                                           const TsumeshogiVerifier::Options& options, qint64 budgetMs,
+                                           int queryMaxMs)
     : m_sfen(sfen)
     , m_budgetMs(budgetMs)
+    , m_queryMaxMs(std::max(1, queryMaxMs))
 {
     m_verifier.start(sfen, targetMoves, options);
 }
@@ -24,7 +26,7 @@ std::optional<MateQuery> TsumeVerificationJob::nextQuery()
         return std::nullopt;
     }
     ++m_queries;
-    return MateQuery{sfen, static_cast<int>(std::min<qint64>(remaining, kQueryMaxMs))};
+    return MateQuery{sfen, static_cast<int>(std::min<qint64>(remaining, m_queryMaxMs))};
 }
 
 void TsumeVerificationJob::submit(const MateAnswer& answer, qint64 elapsedMs)

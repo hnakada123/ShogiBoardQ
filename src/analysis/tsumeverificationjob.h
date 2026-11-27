@@ -17,11 +17,11 @@
 class TsumeVerificationJob : public MateQuerySource
 {
 public:
-    /// 1回の問い合わせの上限
+    /// 1回の問い合わせの既定上限
     static constexpr int kQueryMaxMs = 1000;
 
     TsumeVerificationJob(const QString& sfen, int targetMoves, const TsumeshogiVerifier::Options& options,
-                         int budgetMs);
+                         qint64 budgetMs, int queryMaxMs = kQueryMaxMs);
 
     std::optional<MateQuery> nextQuery() override;
     void submit(const MateAnswer& answer, qint64 elapsedMs) override;
@@ -30,13 +30,17 @@ public:
     /// 打ち切る（結果は Unknown）
     void abort() { m_verifier.abort(); }
     const TsumeshogiVerifier::Result& result() const { return m_verifier.result(); }
+    TsumeshogiVerifier& verifier() { return m_verifier; }
+    const TsumeshogiVerifier& verifier() const { return m_verifier; }
     QString sfen() const { return m_sfen; }
     int queries() const { return m_queries; }
+    qint64 spentMs() const { return m_spentMs; }
 
 private:
     TsumeshogiVerifier m_verifier;
     QString m_sfen;
-    int m_budgetMs = 0;
+    qint64 m_budgetMs = 0;
+    int m_queryMaxMs = kQueryMaxMs;
     qint64 m_spentMs = 0;
     int m_queries = 0;
 };

@@ -18,7 +18,9 @@ struct TsumeshogiVerifier::Impl {
     /// 攻手に対する玉方の応手後の局面
     struct Child {
         Node node;
-        int len = 0;        ///< エンジンが証明した応手後の詰み手数（奇数）
+        int len = 0;                 ///< エンジンが証明した応手後の詰み手数（奇数）
+        std::size_t originalOrder = 0; ///< 合法手生成時の並び順（主手順選択の再現性維持用）
+        int refutationPriority = 0;  ///< 反駁（不詰）を早く見つけるための優先度（小さいほど先）
     };
     /// 全応手が詰む攻手
     struct Winner {
@@ -31,10 +33,6 @@ struct TsumeshogiVerifier::Impl {
         std::size_t moveIndex = 0;
         std::vector<Winner> winners;
         bool unresolved = false;
-    };
-    struct CachedReply {
-        Reply reply = Reply::Unknown;
-        int len = 0;
     };
 
     Result result;
@@ -51,7 +49,38 @@ struct TsumeshogiVerifier::Impl {
     QStringList movePath;
     std::optional<shogi::Position> request;
     // 完全なSFENをキーにする。ハッシュ衝突や異なる持駒の結果を流用しない。
-    std::map<std::string, CachedReply> cache;
+    std::map<std::string, CacheEntry> cache;
+
+    /// 玉方の応手が不詰（反駁）になりやすい順の優先度（小さいほど先に調べる）
+    static int defenseRefutationPriority(const shogi::Position& beforeDefense, const shogi::Move& defense)
+    {
+        if (defense.drop) {
+            // 合駒打ちは最後に調べる（歩・香・桂などの安い駒から）
+            return 400 + static_cast<int>(defense.piece);
+        }
+        const bool isCapture = !shogi::is_empty(beforeDefense.piece_at(defense.to));
+        const bool isKingMove = defense.piece == shogi::PieceType::King;
+        if (isCapture && !isKingMove) return 100; // 玉以外の駒で王手駒を取る手（最有力反駁）
+        if (isCapture && isKingMove) return 150;  // 玉で王手駒を取る手
+        if (isKingMove) return 200;               // 玉の空きマスへの移動
+        return 300;                               // 盤上駒の移動合
+    }
+
+    /// 攻方手番の局面で1手詰が存在するか（打ち歩詰めは generate_checking_moves が除外する）
+    static bool hasImmediateMate(const shogi::Position& position)
+    {
+        shogi::Position probe = position;
+        std::vector<shogi::Move> checks;
+        probe.generate_checking_moves(checks);
+        for (const auto& move : checks) {
+            shogi::MoveUndo undo;
+            probe.make_move(move, undo);
+            const bool mated = !probe.has_legal_move();
+            probe.unmake_move(move, undo);
+            if (mated) return true;
+        }
+        return false;
+    }
 
     void finishMove(bool mate, bool unresolved)
     {
@@ -59,14 +88,19 @@ struct TsumeshogiVerifier::Impl {
         if (mate) {
             // 成・不成の違いも別の攻手として数える
             frame->winners.push_back({movePath.last(), std::move(defenses)});
-            if (frame->winners.size() > 1) result.status = Status::Multiple;
+            if (frame->winners.size() > 1) {
+                result.status = Status::Multiple;
+                result.mainMove = frame->winners.front().usi;
+                result.cookMove = frame->winners.back().usi;
+                result.cookPly = static_cast<int>(frame->node.path.size());
+            }
         }
         defenses.clear();
         ++frame->moveIndex;
         moveActive = false;
     }
 
-    void consume(const CachedReply& reply)
+    void consume(const CacheEntry& reply)
     {
         if (reply.reply == Reply::NoMate) {
             // 玉方に1つでも逃れがあれば、この攻手は手数に関係なく不詰。
@@ -163,6 +197,9 @@ struct TsumeshogiVerifier::Impl {
         }
         // 最長抵抗の応手だけを主手順として検査する（同手数なら全部）。
         // 早く詰む変化での攻方の別の詰め方（変化別詰）は検査しない。
+        // 反駁優先オーダリングで並び替えていても、元の合法手生成順に戻して再現性を保つ。
+        std::sort(winner.children.begin(), winner.children.end(),
+                  [](const Child& a, const Child& b) { return a.originalOrder < b.originalOrder; });
         std::vector<Node> mainLines;
         for (auto& child : winner.children) {
             if (child.len != longest) continue;
@@ -205,6 +242,27 @@ void TsumeshogiVerifier::start(const QString& sfen, int targetMoves, const Optio
     state.result.status = Status::Running;
 }
 
+void TsumeshogiVerifier::seedCache(const std::map<std::string, CacheEntry>& entries)
+{
+    auto& state = *m_impl;
+    const std::size_t limit = state.options.maxCacheEntries > 0
+        ? static_cast<std::size_t>(state.options.maxCacheEntries) : 0;
+    for (const auto& [key, value] : entries) {
+        if (value.reply == Reply::Unknown) continue;
+        if (limit > 0 && state.cache.size() >= limit) break;
+        state.cache.emplace(key, value);
+    }
+}
+
+std::map<std::string, TsumeshogiVerifier::CacheEntry> TsumeshogiVerifier::exportCache() const
+{
+    std::map<std::string, CacheEntry> exported;
+    for (const auto& [key, value] : m_impl->cache) {
+        if (value.reply != Reply::Unknown) exported.emplace(key, value);
+    }
+    return exported;
+}
+
 QString TsumeshogiVerifier::nextPosition()
 {
     auto& state = *m_impl;
@@ -219,7 +277,7 @@ QString TsumeshogiVerifier::nextPosition()
                 break;
             }
             // 資源上限は「判定不能」で終了する。唯一性の証明には使わない。
-            if (++state.visited > 10000) {
+            if (++state.visited > state.options.maxVisitedNodes) {
                 state.result.status = Status::Unknown;
                 break;
             }
@@ -241,13 +299,21 @@ QString TsumeshogiVerifier::nextPosition()
             state.movePath.append(QString::fromStdString(position.move_to_usi(move)));
             position.do_move(move);
             state.defenses.clear();
-            for (const auto& defense : position.generate_legal_moves()) {
+            const auto legalDefenses = position.generate_legal_moves();
+            state.defenses.reserve(legalDefenses.size());
+            for (std::size_t order = 0; order < legalDefenses.size(); ++order) {
+                const auto& defense = legalDefenses[order];
                 auto child = position;
                 auto path = state.movePath;
                 path.append(QString::fromStdString(position.move_to_usi(defense)));
                 child.do_move(defense);
-                state.defenses.push_back({{std::move(child), std::move(path), 0}, 0});
+                const int priority = Impl::defenseRefutationPriority(position, defense);
+                state.defenses.push_back({{std::move(child), std::move(path), 0}, 0, order, priority});
             }
+            std::stable_sort(state.defenses.begin(), state.defenses.end(),
+                             [](const Impl::Child& a, const Impl::Child& b) {
+                                 return a.refutationPriority < b.refutationPriority;
+                             });
             state.defenseIndex = 0;
             state.moveUnresolved = false;
             state.moveActive = true;
@@ -257,11 +323,18 @@ QString TsumeshogiVerifier::nextPosition()
             continue;
         }
         const auto& child = state.defenses[state.defenseIndex].node.position;
+        if (state.options.skipImmediateMateQueries && Impl::hasImmediateMate(child)) {
+            // 1手詰が存在する応手は最短手数1が数学的に確定するため、外部問い合わせを省略できる。
+            // 最長抵抗が1になった場合は finishUniqueFrame が最終手の唯一性・駒余りを改めて検査する。
+            state.consume({Reply::Mate, 1});
+            continue;
+        }
         const auto found = state.cache.find(child.to_sfen());
         if (found != state.cache.end()) {
             state.consume(found->second);
         } else {
-            if (state.cache.size() >= 10000) {
+            if (state.options.maxCacheEntries > 0
+                && state.cache.size() >= static_cast<std::size_t>(state.options.maxCacheEntries)) {
                 state.result.status = Status::Unknown;
                 break;
             }
@@ -276,7 +349,7 @@ void TsumeshogiVerifier::submit(Reply reply, const QStringList& pv)
     auto& state = *m_impl;
     if (state.result.status != Status::Running || !state.request) return;
     if (reply == Reply::Mate && !state.validPv(pv)) reply = Reply::Unknown;
-    const Impl::CachedReply cached{reply, reply == Reply::Mate ? static_cast<int>(pv.size()) : 0};
+    const CacheEntry cached{reply, reply == Reply::Mate ? static_cast<int>(pv.size()) : 0};
     state.cache.emplace(state.request->to_sfen(), cached);
     state.request.reset();
     state.consume(cached);

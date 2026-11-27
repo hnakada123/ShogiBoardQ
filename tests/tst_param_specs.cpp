@@ -259,11 +259,11 @@ private slots:
         compare("attack_range", TsumeshogiSettings::tsumeshogiGeneratorAttackRange, 1);
 
         using Limits = TsumeshogiSettings::GeneratorLimits;
-        QVERIFY(Limits::isTargetMoves(1) && Limits::isTargetMoves(99));
-        QVERIFY(!Limits::isTargetMoves(0) && !Limits::isTargetMoves(2) && !Limits::isTargetMoves(101));
+        QVERIFY(Limits::isTargetMoves(1) && Limits::isTargetMoves(101) && Limits::isTargetMoves(Limits::kMaxTargetMoves));
+        QVERIFY(!Limits::isTargetMoves(0) && !Limits::isTargetMoves(2) && !Limits::isTargetMoves(Limits::kMaxTargetMoves + 2));
         QCOMPARE(Limits::oddTargetMoves(4), 3);
         QCOMPARE(Limits::oddTargetMoves(0), 1);
-        QCOMPARE(Limits::oddTargetMoves(120), 99);
+        QCOMPARE(Limits::oddTargetMoves(Limits::kMaxTargetMoves + 20), Limits::kMaxTargetMoves);
 
         // 生成器は渡された条件を同じ範囲に収める（GUI・CLI のどちらから来ても）
         TsumeshogiGenerator::Settings settings;

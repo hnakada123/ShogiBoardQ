@@ -17759,6 +17759,64 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
 </context>
 <context>
+    <name>TsumeRetrogradeGenerator</name>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="210"/>
+        <source>再開するにはチェックポイントファイルを指定してください。</source>
+        <translation>再開するにはチェックポイントファイルを指定してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="336"/>
+        <source>エンジンが連続して応答しないため生成を中止しました。</source>
+        <translation>エンジンが連続して応答しないため生成を中止しました。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="410"/>
+        <source>候補局面を生成できませんでした。駒数上限などの設定を確認してください。</source>
+        <translation>候補局面を生成できませんでした。駒数上限などの設定を確認してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="467"/>
+        <source>選択されたエンジンは詰み探索（go mate）に対応していません。</source>
+        <translation>選択されたエンジンは詰み探索（go mate）に対応していません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="539"/>
+        <source>エンジンでエラーが発生しました。</source>
+        <translation>エンジンでエラーが発生しました。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1223"/>
+        <source>チェックポイント保存先ディレクトリを作成できませんでした。</source>
+        <translation>チェックポイント保存先ディレクトリを作成できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1245"/>
+        <source>チェックポイントファイルを開けません: %1</source>
+        <translation>チェックポイントファイルを開けません: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1251"/>
+        <source>チェックポイントファイルの JSON が不正です: %1</source>
+        <translation>チェックポイントファイルの JSON が不正です: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1257"/>
+        <source>未対応のチェックポイントバージョンです。</source>
+        <translation>未対応のチェックポイントバージョンです。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1264"/>
+        <source>チェックポイントの目標手数 (%1) が指定 (%2) と一致しません。</source>
+        <translation>チェックポイントの目標手数 (%1) が指定 (%2) と一致しません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1273"/>
+        <source>チェックポイントの厳密検証条件（最終手許容・駒余り禁止）が指定と一致しません。</source>
+        <translation>チェックポイントの厳密検証条件（最終手許容・駒余り禁止）が指定と一致しません。</translation>
+    </message>
+</context>
+<context>
     <name>TsumeshogiGenerator</name>
     <message>
         <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="205"/>

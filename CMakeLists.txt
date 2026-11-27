@@ -477,6 +477,10 @@ set(SRC_ANALYSIS
     src/analysis/tsumepositionanalyzer.h
     src/analysis/tsumeprogressstore.cpp
     src/analysis/tsumeprogressstore.h
+    src/analysis/tsumeretrogradegenerator.cpp
+    src/analysis/tsumeretrogradegenerator.h
+    src/analysis/tsumeretrogradeops.cpp
+    src/analysis/tsumeretrogradeops.h
     src/analysis/tsumeshogicandidatescreener.cpp
     src/analysis/tsumeshogicandidatescreener.h
     src/analysis/tsumeshogiexportheaderbuilder.cpp
@@ -487,6 +491,8 @@ set(SRC_ANALYSIS
     src/analysis/tsumeshogipositiongenerator.h
     src/analysis/tsumeshogiverifier.cpp
     src/analysis/tsumeshogiverifier.h
+    src/analysis/tsumestrictcertifier.cpp
+    src/analysis/tsumestrictcertifier.h
     src/analysis/tsumeverificationjob.cpp
     src/analysis/tsumeverificationjob.h
     src/analysis/tsumesolutionreplay.cpp

@@ -42,6 +42,7 @@ const Command kCommands[] = {
     {"analyze-kifu", &CliCommands::analyzeKifu, Output::Events},
     {"mate", &CliCommands::mate, Output::Events},
     {"generate-tsume", &CliCommands::generateTsume, Output::Events},
+    {"grow-tsume", &CliCommands::growTsume, Output::Events},
     {"verify-tsume", &CliCommands::verifyTsume, Output::Json},
     {"verify-match", &CliCommands::verifyMatch, Output::Json},
 };

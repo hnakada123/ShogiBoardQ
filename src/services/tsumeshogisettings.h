@@ -89,7 +89,7 @@ inline const Setting<int> tsumeshogiGeneratorFontSize{"FontSize/tsumeshogiGenera
  */
 struct GeneratorLimits {
     static constexpr int kMinTargetMoves = 1;
-    static constexpr int kMaxTargetMoves = 99;
+    static constexpr int kMaxTargetMoves = 301;
     static constexpr int kMinAttackPieces = 1;
     static constexpr int kMaxAttackPieces = 10;
     static constexpr int kMaxDefendPieces = 10;   ///< 下限は 0
