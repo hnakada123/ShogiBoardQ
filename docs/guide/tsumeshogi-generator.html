@@ -153,7 +153,7 @@
                 </div>
                 <p class="guide-step-text">15手以上の長手数詰将棋を作りたい場合や、長時間の探索を途中保存しながら進めたい場合は、「生成方式」で「詰み局面から逆算・編集（長手数向け）」を選びます。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../images/tsumeshogi-generator/tsumeshogi-generator-retrograde.png" alt="詰み局面から逆算・編集（長手数向け）の設定画面" width="840" height="937" loading="lazy">
+                    <img src="../images/tsumeshogi-generator/tsumeshogi-generator-retrograde.png" alt="詰み局面から逆算・編集（長手数向け）の設定画面" width="840" height="975" loading="lazy">
                     <p class="screenshot-caption">逆算・編集モードの設定画面（15手詰の例）</p>
                 </div>
                 <table class="info-table">
@@ -166,7 +166,8 @@
                         <tr><td>駒余りを禁止する</td><td>既定オン。全最長応手および最終手で攻方持駒が0枚になる局面だけを採択します。</td></tr>
                         <tr><td>類似作を除外する</td><td>既定オン。平行移動・左右反転・中間手順1手違いなどの類似作を除外します。</td></tr>
                         <tr><td>種局面ファイル（任意）</td><td>成長の出発点とするSFENファイル（1行1題の <code>SFEN</code> または <code>SFEN moves …</code>、<code>#</code> 行はコメントとして無視）。空欄なら0手詰み局面から自動生成します。「参照...」「クリア」で指定・解除できます。</td></tr>
-                        <tr><td>チェックポイント（任意） / 途中保存から再開</td><td>探索フロンティア・採択済み局面・厳密検証キャッシュを定期的にJSONファイルへ原子的保存します。停止・中断後に「途中保存から再開」をオンにして「開始」を押すと途中から続行できます（再開オンの間は種局面ファイル欄は無効になります）。</td></tr>
+                        <tr><td>除外ファイル（任意）</td><td>既存の詰将棋問題集などを指定すると、収録済みの局面や類似手順を除外して新作だけを生成します（1行1題の <code>SFEN</code> または <code>SFEN moves …</code>、<code>#</code> 行は無視）。チェックポイント再開時にも追加適用できます。</td></tr>
+                        <tr><td>チェックポイント（任意） / 途中保存から再開</td><td>探索フロンティア・採択済み局面・厳密検証キャッシュを定期的にJSONファイルへ原子的保存します。停止・中断後に「途中保存から再開」をオンにして「開始」を押すと、採択済み局面を結果一覧へ復元したうえで途中から続行できます（再開オンの間は種局面ファイル欄は無効になります）。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">逆算・編集方式では、次の流れで長手数の詰将棋を育てて証明します。</p>

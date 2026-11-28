@@ -154,7 +154,7 @@
                 </div>
                 <p class="guide-step-text">要產生 15 手以上的長手數詰棋，或需要中斷點儲存與續傳時，請在「產生方式」中選擇「從將死局面逆推／編輯（長手數）」。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/zh-tw/tsumeshogi-generator/tsumeshogi-generator-retrograde.png" alt="從將死局面逆推／編輯（長手數）的設定畫面" width="840" height="937" loading="lazy">
+                    <img src="../../images/zh-tw/tsumeshogi-generator/tsumeshogi-generator-retrograde.png" alt="從將死局面逆推／編輯（長手數）的設定畫面" width="840" height="975" loading="lazy">
                     <p class="screenshot-caption">逆推／編輯模式的設定畫面（15 手詰範例）</p>
                 </div>
                 <table class="info-table">
@@ -167,7 +167,8 @@
                         <tr><td>禁止餘子</td><td>預設開啟。僅採納在所有最長應手和最終手中攻方持駒為 0 枚的局面。</td></tr>
                         <tr><td>排除相似作品</td><td>預設開啟。排除平移、左右鏡像以及中間著法僅差 1 手的相似作品。</td></tr>
                         <tr><td>種子局面檔案（選填）</td><td>作為成長起點的 SFEN 檔案（每列一題，支援 <code>SFEN</code> 或 <code>SFEN moves …</code>，以 <code>#</code> 開頭的列會略過）。留空時從 0 手將死局面自動產生。可用「瀏覽...」「清除」選擇或清空。</td></tr>
-                        <tr><td>檢查點（選填） / 從檢查點繼續</td><td>定期將搜尋前緣、已採納局面和嚴格驗證快取以原子寫入方式儲存到 JSON 檔案。停止或中斷後，勾選「從檢查點繼續」並按一下「開始」即可續傳（勾選時種子局面檔案欄會停用）。</td></tr>
+                        <tr><td>排除檔案（選填）</td><td>指定現有的詰棋題集後，將在產生新題時排除已收錄的局面與相似手順（每列一題，支援 <code>SFEN</code> 或 <code>SFEN moves …</code>，以 <code>#</code> 開頭的列會略過）。從檢查點繼續時同樣生效。</td></tr>
+                        <tr><td>檢查點（選填） / 從檢查點繼續</td><td>定期將搜尋前緣、已採納局面和嚴格驗證快取以原子寫入方式儲存到 JSON 檔案。停止或中斷後，勾選「從檢查點繼續」並按一下「開始」，會將已採納局面還原至結果清單並從中斷點續傳（勾選時種子局面檔案欄會停用）。</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">逆推／編輯方式依以下流程培育並證明長手數詰棋。</p>

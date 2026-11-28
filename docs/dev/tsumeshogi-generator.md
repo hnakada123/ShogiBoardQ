@@ -481,7 +481,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 
 ### UI構成
 
-エンジン設定と生成設定を上部にまとめ、生成方式（`ランダム配置` / `詰み局面から逆算・編集（長手数）`）をコンボボックスで切り替える。目標手数・駒数上限などの左列と、生成上限・探索時間・配置範囲（または逆算用のビーム幅・分岐数・検証予算）の右列を2列で配置し、「既定値に戻す」は生成設定内に置く。逆算モード時は専用のオプション行（駒余り禁止・類似作除外）とファイル設定欄（種局面ファイル・チェックポイントファイル・途中保存から再開）を表示する。エンジンの最短手順設定と採択条件の説明は展開できる。文字拡大時や小さい画面では設定領域をスクロールし、結果一覧と開始・停止ボタンを操作できる状態に保つ。
+エンジン設定と生成設定を上部にまとめ、生成方式（`ランダム配置` / `詰み局面から逆算・編集（長手数）`）をコンボボックスで切り替える。目標手数・駒数上限などの左列と、生成上限・探索時間・配置範囲（または逆算用のビーム幅・分岐数・検証予算）の右列を2列で配置し、「既定値に戻す」は生成設定内に置く。逆算モード時は専用のオプション行（駒余り禁止・類似作除外）とファイル設定欄（種局面ファイル・除外ファイル・チェックポイントファイル・途中保存から再開）を表示する。エンジンの最短手順設定と採択条件の説明は展開できる。文字拡大時や小さい画面では設定領域をスクロールし、結果一覧と開始・停止ボタンを操作できる状態に保つ。
 
 開始・停止と状態表示の下に、採択件数／生成上限の進捗バー、探索件数（逆算モードでは候補生成数・最大到達手数・採択数）、経過時間、検査除外件数（逆算モードでは判定不能・フロンティア数・修復成功数も併記）を表示する。無制限の場合は生成中のみ不定進捗表示とする。
 
@@ -495,7 +495,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 - 選択エンジン（エンジンを選ぶ部品 `EngineSelector` が、`EngineSelectionSettings::saveSelection()` で名前を `TsumeshogiGenerator/engineName` に保存する。以前の版が保存した番号は、名前で見つからないときだけ読む）
 - 生成方式（`TsumeshogiGenerator/mode`、0: ランダム配置 / 1: 逆算・編集、既定: 0）
 - 共通・ランダム配置パラメータ（目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間、生成上限）
-- 逆算・編集モード用パラメータ（`retroMaxAttackPieces` 既定18、`retroMaxDefendPieces` 既定12、`beamWidth` 既定16、`branchFactor` 既定32、`verifyBudgetSec` 既定300、`requireNoSurplus` 既定true、`excludeSimilar` 既定true、`seedFile`、`checkpointFile`、`resumeCheckpoint` 既定false）
+- 逆算・編集モード用パラメータ（`retroMaxAttackPieces` 既定18、`retroMaxDefendPieces` 既定12、`beamWidth` 既定16、`branchFactor` 既定32、`verifyBudgetSec` 既定300、`requireNoSurplus` 既定true、`excludeSimilar` 既定true、`seedFile`、`excludeFile`、`checkpointFile`、`resumeCheckpoint` 既定false）
 - 最終手の複数解を許容するか（`TsumeshogiGenerator/allowFinalMoveAlternatives`、既定: 有効）
 - 手順出力オプション（ファイル保存・コピー時に `moves ...` を付加するか）
 - エンジン設定・採択条件の説明の展開状態
@@ -503,7 +503,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 ### 状態表示と手順出力
 
 - ランダム配置モードの状態ラベルは `searchPhaseStarted`（探索中）、`trimmingProgress`（トリミング中 候補 i/n）、`verificationProgress`（余詰検査中 問い合わせ回数）で更新する。逆算・編集モードは `formatRetroPhase()` により `growing`（逆算・成長探索中）、`checking_first`（初手余詰検査中）、`repairing`（余詰修復中）、`certifying`（厳密証明中／厳密証明・不要駒検査中）を表示し、チェックポイント保存時は最新の保存パスを状態ラベルのツールチップに表示する。終了時は生成完了・ユーザーによる停止・エラーを区別して表示する。
-- 逆算モード開始時、GUI の「探索時間/手」は `stepTimeoutMs = timeoutSec * 1000`、`verifyQueryTimeoutMs = qBound(5000, timeoutSec * 3000, 60000)` として `TsumeRetrogradeGenerator::Settings` に渡す。
+- 逆算モード開始時、GUI の「探索時間/手」は `stepTimeoutMs = timeoutSec * 1000`、`verifyQueryTimeoutMs = qBound(5000, timeoutSec * 3000, 60000)` として `TsumeRetrogradeGenerator::Settings` に渡す。「途中保存から再開」で開始したときは、チェックポイントに保存済みの採択局面（`TsumeRetrogradeGenerator::foundPositions()`）を結果一覧と進捗バーへ即座に復元したうえで残りの生成を続行する。除外ファイルが指定されている場合は通常開始・再開のどちらでも読み込み、既出局面・類似手順・既消化親種を除外する。
 - 未登録時の開始、生成中の設定変更・既定値への復帰、結果がない状態での保存・コピー、未選択時の選択コピーは無効にする。再開始時には前回の結果と進捗をリセットする。
 - 盤面列のクリック、行のダブルクリック、Enterキーで盤面と手順を開く。選択コピーはCtrl+Cにも対応し、複数選択した結果を表示順に出力する。結果追加時の自動スクロールは最下部を閲覧している場合だけ行う。
 - 「手順も出力」を有効にすると、ファイル保存・コピーの各行が `<SFEN> moves <USI手順>` になる。無効時は SFEN のみで、SFEN集ダイアログ等の1行1SFEN形式と互換。
@@ -601,7 +601,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 `tests/tst_tsumeshogi_export_header.cpp` はファイル保存のコメントヘッダ（各行が `# ` 始まりの1行であること、バージョン・生成日時・ランダム配置および逆算編集の各設定表記、生成上限0の「無制限」と最終手厳格・駒余り禁止の表記）を検査し、
 `tests/tst_sfen_collection.cpp` は局面集ビューアがコメント行を読み飛ばすことを、`tests/tst_position_collection_file.cpp` は1行の規則（コメント・`startpos`・position コマンドの指し手と参考手順・読めない行）と最近使ったファイルの一覧を検査する。
 `tests/tst_tsumeshogi_retrograde.cpp` は逆算・編集生成の単体〜統合テストを行い、0手詰み局面の生成と逆算可能性、2手逆算の順方向ラウンドトリップ、標的型余詰リペア、目標手数への接尾辞切り出し、`TsumeStrictCertifier` による最終手一意・駒余り禁止・全1枚除去の厳密証明とチェックポイント復元、101手対応と確定キャッシュ注入、モックエンジン（`tests/mock_retro_engine.cpp`）を用いた E2E 生成・再開および CLI `grow-tsume` の出力・101手再開を検査する。
-GUI テスト `tests/gui/tst_tsumeshogi_generator_gui.cpp` は表示・保存・生成ライフサイクル・未登録/大フォント時のレイアウトに加え、`retrogradeModeToggleAndPersistence()` で逆算モード切替時のUI表示と全設定の保存・復元を検査する。
+GUI テスト `tests/gui/tst_tsumeshogi_generator_gui.cpp` は表示・保存・生成ライフサイクル・未登録/大フォント時のレイアウトに加え、`retrogradeModeToggleAndPersistence()` で逆算モード切替時のUI表示と全設定（除外ファイル含む）の保存・復元を、`retrogradeEndToEndResumeAndExclude()` でモックエンジンを用いた実GUI操作による5手詰生成・チェックポイント保存・既採択局面の表復元を伴う再開・除外ファイルによる既出回避を検査する。
 
 通常の回帰テストには外部エンジンのインストールは不要。
 KomoringHeights 1.1.0 の実機照合は、次の任意テストで再現できる。

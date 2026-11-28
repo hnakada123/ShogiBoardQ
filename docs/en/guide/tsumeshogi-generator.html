@@ -154,7 +154,7 @@
                 </div>
                 <p class="guide-step-text">For long mates of 15+ plies, or when you want to save and resume long runs across sessions, select Retrograde &amp; Edit from Mate (Long Mates) in Method.</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/en/tsumeshogi-generator/tsumeshogi-generator-retrograde.png" alt="Retrograde &amp; Edit from Mate settings in the Tsume Position Generator dialog" width="840" height="947" loading="lazy">
+                    <img src="../../images/en/tsumeshogi-generator/tsumeshogi-generator-retrograde.png" alt="Retrograde &amp; Edit from Mate settings in the Tsume Position Generator dialog" width="840" height="973" loading="lazy">
                     <p class="screenshot-caption">Retrograde &amp; Edit mode settings (example configured for a 15-move mate)</p>
                 </div>
                 <table class="info-table">
@@ -167,7 +167,8 @@
                         <tr><td>Disallow surplus pieces</td><td>On by default. Accepts only positions where the attacker has no remaining hand pieces on every longest defense and final mating move.</td></tr>
                         <tr><td>Exclude similar problems</td><td>On by default. Excludes translated, mirrored, and single-move-different middle-line variants.</td></tr>
                         <tr><td>Seed file (optional)</td><td>An optional file containing starting positions (one <code>SFEN</code> or <code>SFEN moves …</code> per line; lines beginning with <code>#</code> are ignored). When empty, positions are grown automatically from 0-ply mate endings. Use Browse... and Clear to choose or clear the file.</td></tr>
-                        <tr><td>Checkpoint (optional) / Resume from checkpoint</td><td>Periodically writes the search frontier, accepted puzzles, and strict-verification cache atomically to a JSON file. After stopping or interrupting a run, check Resume from checkpoint and click Start to continue (Seed file is disabled while Resume from checkpoint is checked).</td></tr>
+                        <tr><td>Exclude file (optional)</td><td>Specify an existing puzzle collection to skip already-included positions and similar lines while generating new puzzles (one <code>SFEN</code> or <code>SFEN moves …</code> per line; <code>#</code> lines ignored). Also applies when resuming from a checkpoint.</td></tr>
+                        <tr><td>Checkpoint (optional) / Resume from checkpoint</td><td>Periodically writes the search frontier, accepted puzzles, and strict-verification cache atomically to a JSON file. After stopping or interrupting a run, check Resume from checkpoint and click Start to restore already-accepted puzzles into the results list and continue (Seed file is disabled while Resume from checkpoint is checked).</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">Retrograde &amp; Edit mode grows and certifies long mates through the following pipeline.</p>
