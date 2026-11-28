@@ -17,11 +17,20 @@ USIエンジン（`go mate`）と内蔵探索（Hayanagi）を用いて、詰将
 
 | クラス | ファイル | 責務 |
 |---|---|---|
-| `TsumeshogiGeneratorDialog` | `src/dialogs/tsumeshogigeneratordialog.h/.cpp` | UI（生成方式切替・パラメータ設定・進捗表示・結果テーブル・保存/コピー） |
+| `TsumeshogiGeneratorDialog` | `src/dialogs/tsumeshogigeneratordialog.h/.cpp` | UI（生成の開始・停止、進捗表示、結果テーブル、保存/コピー） |
+| `TsumeshogiGeneratorSettingsPanel` | `src/dialogs/tsumeshogigeneratorsettingspanel.h/.cpp` | ダイアログ上段の欄（エンジンの選択・生成方式ごとの欄の出し分け・設定の保存と復元・逆算用ファイルの欄）。欄の値を生成器の `Settings` にして返す |
 | `TsumeshogiGenerator` | `src/analysis/tsumeshogigenerator.h/.cpp` | ランダム配置モードの制御（候補の待ち行列・問い合わせ中継・重複除外・上限・進捗） |
 | `TsumeCandidateJob` | `src/analysis/tsumecandidatejob.{h,cpp}` | ランダム配置モードで候補1つを採択か棄却まで進める（手数確認→唯一解検査→駒除去→再検査）。Qt のイベントループを知らない引き出し型 |
-| `TsumeRetrogradeGenerator` | `src/analysis/tsumeretrogradegenerator.{h,cpp}` | 逆算・編集モードの制御（多層ビームサーチ・プレスクリーニング・初手余詰チェック・リペアキュー・類似作除外・厳密証明・自動再起動・チェックポイント保存/再開） |
-| `TsumeRetrogradeOps` | `src/analysis/tsumeretrogradeops.{h,cpp}` | 詰み上がり局面生成・2手逆算・盤面変異・標的型余詰リペア・接尾辞切り出し・長手数ヒューリスティック評価・類似作キー算出（純粋局面演算） |
+| `TsumeRetrogradeGenerator` | `src/analysis/tsumeretrogradegenerator.{h,cpp}` | 逆算・編集モードの進行（エンジンへの問い合わせと、答えで何をするかの順番: 候補の評価 → 初手余詰チェック → 厳密証明。開始と終了・進捗・チェックポイントの保存の契機） |
+| `TsumeRetrogradeBeam` | `src/analysis/tsumeretrogradebeam.{h,cpp}` | 探索の状態（手数層ごとのビーム・評価待ち・リペアキュー・証明待ち・既出と類似作の記録・統計・乱数）と、候補の供給（種局面・0手詰みからの逆算・ビームの展開・1枚除去）、チェックポイントへの書き出しと読み戻し。エンジンを使わない |
+| `TsumeMateQueryLink` | `src/analysis/tsumematequerylink.{h,cpp}` | 詰将棋エンジンとの接続（`MateOracle` の起動・`ask()` / `askWithin()`・期限切れ後の自動再起動・置換表のリセット） |
+| `TsumeLocalScreen` | `src/analysis/tsumelocalscreen.{h,cpp}` | 内蔵 Hayanagi による事前ふるい分け（候補のプレスクリーニング・初手と主手順の明白な余詰の検出） |
+| `TsumeFirstMoveCheck` | `src/analysis/tsumefirstmovecheck.{h,cpp}` | 成長中の候補の軽量初手余詰チェック（引き出し型: `nextQuery()` / `submit()` / `verdict()`） |
+| `TsumeRetrogradeCheckpoint` | `src/analysis/tsumeretrogradecheckpoint.{h,cpp}` | チェックポイントファイルの形式（版・生成条件の記録と再開時の照合）と原子的な保存 |
+| `TsumeRetrogradeOps` | `src/analysis/tsumeretrogradeops.{h,cpp}` | 逆算による候補局面の生成（詰み上がり局面生成・1手逆算・2手逆算・接尾辞切り出し・開始局面の正規化。純粋局面演算） |
+| `TsumePositionEdits` | `src/analysis/tsumepositionedits.{h,cpp}` | いまある局面を変える候補の生成（複合盤面変異・標的型余詰リペア。純粋局面演算） |
+| `TsumeLineMetrics` | `src/analysis/tsumelinemetrics.{h,cpp}` | 局面と詰み手順の評価（手順の特徴 `Metrics`・長手数ヒューリスティック評価・系統キー・類似作キー算出） |
+| `TsumeEditBoard`・`TsumeEditRandom` | `src/analysis/tsumeeditboard.{h,cpp}`・`src/analysis/tsumeedittypes.h`・`src/analysis/tsumeeditrandom.h` | 候補局面を組み立てる盤（片玉の盤と攻方持駒）と盤面の規則・利きの計算（`buildSfen()` など）、候補の選び方に使う乱数の補助。盤は Hayanagi の型を使うので局面演算の実装からだけ include し、使う側に見せる値（駒数の上限 `Limits`・作った候補 `Candidate`）は `tsumeedittypes.h` に置く |
 | `TsumeStrictCertifier` | `src/analysis/tsumestrictcertifier.{h,cpp}` | 逆算・編集モード用の厳密証明・不要駒トリミングジョブ（引き出し型 `MateQuerySource`、途中状態と確定キャッシュの JSON 保存/復元対応） |
 | `TsumeVerificationJob` | `src/analysis/tsumeverificationjob.{h,cpp}` | `TsumeshogiVerifier` の問い合わせを総予算と1回の上限で区切って出す。ランダム配置・逆算証明・CLI `verify-tsume` で共通 |
 | `TsumeshogiVerifier` | `src/analysis/tsumeshogiverifier.{h,cpp}` | 合法手・全応手の列挙、唯一性・駒余り（`requireNoSurplus`）の検査状態管理、確定キャッシュの注入/取り出し（`seedCache`/`exportCache`）、余詰詳細（`mainMove`/`cookMove`/`cookPly`）の記録 |
@@ -41,11 +50,17 @@ TsumeshogiGeneratorDialog
   │    └─ MateQueryLoop → MateOracle   ← 問い合わせを1つずつエンジンへ
   │
   └─ [逆算・編集モード] TsumeRetrogradeGenerator
-       ├─ TsumeRetrogradeOps           ← 0手詰み生成・2手逆算・変異・標的型余詰リペア・評価・類似キー
-       ├─ 内蔵プレスクリーニング        ← Hayanagi TsumeSearch による短時間枝刈り・早詰除外
+       ├─ TsumeRetrogradeBeam          ← 探索の状態（ビーム・待ち行列・既出の記録・統計）と候補の供給・途中保存
+       │    ├─ TsumeRetrogradeOps      ← 0手詰み生成・1手/2手逆算・接尾辞切り出し
+       │    ├─ TsumePositionEdits      ← 盤面変異・標的型余詰リペア
+       │    └─ TsumeLineMetrics        ← 手順の評価・系統キー・類似キー
+       │         （Ops・Edits は TsumeEditBoard の盤と規則で局面を組み立てる）
+       ├─ TsumeLocalScreen             ← Hayanagi TsumeSearch による短時間枝刈り・早詰除外・明白な余詰の検出
+       ├─ TsumeFirstMoveCheck          ← 軽量初手余詰チェック（引き出し型）
        ├─ TsumeStrictCertifier         ← 厳密証明・全1枚除去（引き出し型、チェックポイント保存/復元対応）
        │    └─ TsumeVerificationJob → TsumeshogiVerifier（最終手一意・駒余り禁止・キャッシュ共有）
-       └─ MateOracle                   ← 成長時は ask()、厳密証明時は askWithin()（自然終了のみ確定）＋タイムアウト自動再起動
+       ├─ TsumeRetrogradeCheckpoint    ← チェックポイントファイルの形式と保存・読み込み
+       └─ TsumeMateQueryLink → MateOracle ← 成長時は ask()、厳密証明時は askWithin()（自然終了のみ確定）＋タイムアウト自動再起動
 ```
 
 ## 処理フロー
@@ -339,16 +354,18 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 `TsumeRetrogradeGenerator::driveNext()` は、目標件数に到達するまで次の優先順位で1ステップずつ進める。
 
 1. **進行中の厳密証明ジョブ（`m_activeCertifier`、`phase = "certifying"`）**: 最も優先して完了させる。
-2. **厳密証明待ちキュー（`m_pendingCertify`）**: 未採択の候補を1件取り出し、確定済み厳密キャッシュ（`m_strictCache`）を注入して `TsumeStrictCertifier` を開始する。
+2. **厳密証明待ちキュー（`TsumeRetrogradeBeam::takePendingCertify()`）**: 未採択の候補を1件取り出し、確定済み厳密キャッシュ（`m_strictCache`）を注入して `TsumeStrictCertifier` を開始する（`beginCertification()`）。
 3. **進行中の軽量初手余詰チェック（`m_firstCheck`、`phase = "checking_first"`）**: 目標手数未満の有望候補の初手余詰を検査する。
-4. **バッチ展開（`expandNextBatch()`）**: 評価キュー（`m_evalQueue`）が空なら、リペアキューまたはフロンティアから次の候補バッチを生成する。
-5. **候補評価（`m_evalQueue`、`phase = "growing"` / `"repairing"`）**: 成長キャッシュ（`m_fastCache`）と内蔵プレスクリーニングを優先消費し、必要な候補だけを外部エンジンへ送る。
+4. **バッチ展開（`TsumeRetrogradeBeam::expandNextBatch()`）**: 評価待ちが空なら、リペアキューまたはフロンティアから次の候補バッチを生成する。
+5. **候補評価（`evaluateQueuedCandidates()`、`phase = "growing"` / `"repairing"`）**: 成長キャッシュ（`m_fastCache`）と内蔵プレスクリーニングを優先消費し、必要な候補だけを外部エンジンへ送る。
 
-初期種局面（`seedSfens`）は `"SFEN moves <PV>"` の形式なら `analyzeLine()` で検証して該当手数層のフロンティアへ直接投入し、0手詰み局面なら `reverseFromMateEnding()` で1手詰候補を展開、それ以外のSFENは評価キューへ入れる。種局面が空の場合は `TsumeRetrogradeOps::generateMateEndings()` で攻方持駒ゼロ・盤端/隅/中段寄りの多様な0手詰み上がり局面を自動生成する。
+ビーム・評価待ち・リペアキュー・証明待ち・既出の記録・統計・乱数は `TsumeRetrogradeBeam` が持ち、生成器は進行中の処理（`m_activeCertifier`・`m_firstCheck`・評価中の候補 `m_activeEval`）と2つのキャッシュだけを持つ。
 
-### 候補生成演算（TsumeRetrogradeOps）
+初期種局面（`seedSfens`。`TsumeRetrogradeBeam::addSeedLine()`）は `"SFEN moves <PV>"` の形式なら `TsumeLineMetrics::analyzeLine()` で検証して該当手数層のフロンティアへ直接投入し、0手詰み局面なら `reverseFromMateEnding()` で1手詰候補を展開、それ以外のSFENは評価キューへ入れる。種局面が空の場合は `TsumeRetrogradeOps::generateMateEndings()` で攻方持駒ゼロ・盤端/隅/中段寄りの多様な0手詰み上がり局面を自動生成する。
 
-純粋局面演算を [tsumeretrogradeops.cpp](../../src/analysis/tsumeretrogradeops.cpp) に分離している。全候補は `buildSfen()` で片玉・40駒保存則・二歩なし・行き所のない駒なし・開始時王手なしを満たす正規化SFENへ変換する。
+### 候補生成演算（TsumeRetrogradeOps・TsumePositionEdits）
+
+純粋局面演算を、手を戻して作る逆算（[tsumeretrogradeops.cpp](../../src/analysis/tsumeretrogradeops.cpp)）と、いまある局面を変える盤面変異・余詰リペア（[tsumepositionedits.cpp](../../src/analysis/tsumepositionedits.cpp)）に分離している。どちらも盤の値と規則は [tsumeeditboard.cpp](../../src/analysis/tsumeeditboard.cpp)（`TsumeEditBoard`）を使い、全候補は `TsumeEditBoard::buildSfen()` で片玉・40駒保存則・二歩なし・行き所のない駒なし・開始時王手なしを満たす正規化SFENへ変換する。
 
 #### 1. 2手逆算（`generatePredecessors()`）
 
@@ -364,7 +381,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 
 逆算したすべての候補は `verifyForwardRoundtrip()` で「攻方王手 → 玉方応手」を実際に順方向実行し、元の局面と完全一致する合法手であることを保証する。
 
-#### 2. 複合盤面変異（`generateMutations()`）
+#### 2. 複合盤面変異（`TsumePositionEdits::generateMutations()`）
 
 1候補あたり **60%で1回、40%で2〜3回の連続編集（`mutate_multi`）** を適用し、単一編集では届かない別系統の局面へ跳ぶ。各編集ステップは次の確率分布で操作を選ぶ（移動・追加・変更時に行き所のない歩/香/桂は自動で成駒へ補正）。
 
@@ -376,7 +393,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 | 攻方持駒の増減（`mutate_hand_dec` / `mutate_hand_inc`） | 12% | 攻方持駒を1枚増減（所持していれば55%で減少） |
 | 盤上駒の削除（`mutate_remove`） | 10% | 玉以外の盤上駒を1枚除去して玉方持駒へ戻す |
 
-#### 3. 標的型余詰リペア（`generateCookRepairs()`）
+#### 3. 標的型余詰リペア（`TsumePositionEdits::generateCookRepairs()`）
 
 初手余詰（`cookMove`）が検出された有望局面に対し、主手順の初手（`mainMove`）が依然として合法王手のまま保たれる候補だけを抽出する。次の6戦略を順に試行する。
 
@@ -393,7 +410,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 
 ### 多層ビームサーチ・評価関数・展開戦略
 
-#### 評価関数（`TsumeRetrogradeOps::scoreNode()`）
+#### 評価関数（`TsumeLineMetrics::scoreNode()`）
 
 長手数化と厳密条件（駒余りゼロ・最終手一意）を両立する系統を優先するため、次の各項でビームノードを採点する。
 
@@ -407,19 +424,19 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 | 盤上過密ペナルティ | `actualTotal > clamp(4 + plies/3, 5, 24)` の超過分 × `-1.4` | 手数に対して駒が多すぎる余詰爆発・探索低速化局面を抑制 |
 | 展開回数ペナルティ | `-12.0 * log1p(expansionCount)` | 行き詰まった枝への固執を防ぎ自動バックトラックを促す |
 
-#### フロンティア多様性と展開制御（`addToFrontier()` / `expandNextBatch()`）
+#### フロンティア多様性と展開制御（`TsumeRetrogradeBeam::addToFrontier()` / `expandNextBatch()`）
 
-- **系統多様性の上限**: 各手数層は最大 `beamWidth` 件を保持し、`structuralSignature()`（玉の2×2ブロック領域・手数・先頭最大4手）が一致するノードは1層あたり最大2件までに制限する。
-- **リペアキュー優先枠**: `m_repairQueue`（最大256件、超過時は最短手数から破棄）が空でなければ約15%の確率で `plies * 10 - attempts * 15` が最大の候補を取り出し、最大2回まで標的型リペアを展開する（1回の分岐上限 `min(branchFactor, 16)`）。
+- **系統多様性の上限**: 各手数層は最大 `beamWidth` 件を保持し、`TsumeLineMetrics::structuralSignature()`（玉の2×2ブロック領域・手数・先頭最大4手）が一致するノードは1層あたり最大2件までに制限する。
+- **リペアキュー優先枠**: リペアキュー（`TsumeRetrogradeBeam` の `m_repairQueue`。最大256件、超過時は最短手数から破棄）が空でなければ約15%の確率で `plies * 10 - attempts * 15` が最大の候補を取り出し、最大2回まで標的型リペアを展開する（1回の分岐上限 `min(branchFactor, 16)`）。
 - **親ノードの分散選択**: 約75%は上位3層から `score - 45.0 * expansions + uniform(0, 28)` で選択し、複数ワーカーが同じ上位種に集中するのを乱数ジッターと展開ペナルティで防ぐ。残り約25%は全層から6件のランダム・トーナメント選択（`score - 40.0 * expansions`）を行い、袋小路から自動バックトラックする。選択後は対象ノードの `expansions` を増やして自身のスコアも再計算する。
-- **0手詰み局面の再注入抑止**: 停滞時（`m_batchesSinceProgress >= 25` または `roll >= 92`）の0手詰み再注入はシード未指定のボトムアップ探索時だけに限定し、親種ファイルを渡した長手数生成で0手からやり直す無駄を防ぐ。
+- **0手詰み局面の再注入抑止**: 停滞時（`stats().batchesSinceProgress >= 25` または `roll >= 92`）の0手詰み再注入はシード未指定のボトムアップ探索時だけに限定し、親種ファイルを渡した長手数生成で0手からやり直す無駄を防ぐ。
 - **同手数シードの100%変異切替**: 選んだ親ノードが既に目標手数以上（`chosenLayer >= targetMoves`）のときは、2手逆算して接尾辞を切り出しても元手順へ戻りやすいため **`retroBudget = 0` として 100% 盤面変異に集中**する。目標未満の層では `branchFactor` の `2/3` を逆算、`1/3` を盤面変異に配分する。
 
 ### 高速化のための多段枝刈りと探索制御
 
 外部エンジン（KomoringHeights）との IPC・長手数探索は1回あたりのコストが大きいため、次の4層で無駄な問い合わせと候補爆発を抑えている。
 
-#### 1. 内蔵 Hayanagi プレスクリーニングの2段階戦略（`localScreenCandidate()`）
+#### 1. 内蔵 Hayanagi プレスクリーニングの2段階戦略（`TsumeLocalScreen::screenCandidate()`）
 
 `driveNext()` の評価ループでは、UIイベントループを塞がないよう **最大48件または40msごとに制御を戻しながら** キャッシュ照会と内蔵 `shogi::TsumeSearch` による事前選別を実行する。
 
@@ -430,14 +447,14 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 
 #### 2. ローカル余詰枝刈り・軽量初手チェック・即詰問い合わせ省略
 
-- **主手順ローカル事前余詰検査（`quickLocalMainLineCookCheck()`）**: 61手以下の目標手数候補は、重い `TsumeStrictCertifier` へ送る前に主手順の各攻方手番（1, 3, ..., N−2手目）を内蔵 Hayanagi（各別王手 `2ms`）で検査し、明白な余詰を数ミリ秒で弾く。初手余詰ならリペアキューへ戻す。
-- **15手以下のローカル初手検査完結（`startFirstMoveCheck()`）**: 目標手数未満の成長ノードの初手余詰チェックでは、61手以下にまずローカル `quickLocalCookCheck()`（15手以下 `6ms`、それ以外 `4ms`）を掛ける。**15手以下の成長足場はローカル検査のみで完結させて外部エンジン問い合わせを温存**する。
-- **17手以上の応手反駁優先度と即詰省略（`stepFirstMoveCheck()`）**: 外部問い合わせが必要な別攻手の応手は、反駁しやすい順（`defensePriority`: 非玉の駒取り `100` → 玉の駒取り `150` → 玉移動 `200` → その他盤上移動 `300` → 合駒打ち `400+`）に並べて調べ、1つでも `NoMate` が出た時点でその別攻手を不詰確定として打ち切る。さらに `hasLocalImmediateMate()` で1手詰になる応手は反駁にならないため外部問い合わせから省く（問い合わせ上限 `clamp(24 + plies/2, 24, 80)` 回、1回予算 `clamp(stepTimeoutMs/2, 200, stepTimeoutMs)`）。初手余詰が見つかった候補は目標付近（`targetMoves - 2` 以上）または最大到達層ならリペアキューへ登録し、フロンティアにはペナルティ付き（`-18.0`）の足場として残す。
+- **主手順ローカル事前余詰検査（`TsumeLocalScreen::quickMainLineCookCheck()`）**: 61手以下の目標手数候補は、重い `TsumeStrictCertifier` へ送る前に主手順の各攻方手番（1, 3, ..., N−2手目）を内蔵 Hayanagi（各別王手 `2ms`）で検査し、明白な余詰を数ミリ秒で弾く。初手余詰ならリペアキューへ戻す。
+- **15手以下のローカル初手検査完結（`TsumeFirstMoveCheck::begin()`）**: 目標手数未満の成長ノードの初手余詰チェックでは、61手以下にまずローカル `TsumeLocalScreen::quickCookCheck()`（15手以下 `6ms`、それ以外 `4ms`）を掛ける。**15手以下の成長足場はローカル検査のみで完結させて外部エンジン問い合わせを温存**する。
+- **17手以上の応手反駁優先度と即詰省略（`TsumeFirstMoveCheck::nextQuery()`）**: 外部問い合わせが必要な別攻手の応手は、反駁しやすい順（`defensePriority`: 非玉の駒取り `100` → 玉の駒取り `150` → 玉移動 `200` → その他盤上移動 `300` → 合駒打ち `400+`）に並べて調べ、1つでも `NoMate` が出た時点でその別攻手を不詰確定として打ち切る。さらに `TsumeLocalScreen::hasImmediateMate()` で1手詰になる応手は反駁にならないため外部問い合わせから省く（問い合わせ上限 `clamp(24 + plies/2, 24, 80)` 回、1回予算 `clamp(stepTimeoutMs/2, 200, stepTimeoutMs)`）。初手余詰が見つかった候補は目標付近（`targetMoves - 2` 以上）または最大到達層ならリペアキューへ登録し、フロンティアにはペナルティ付き（`-18.0`）の足場として残す。
 - **検証器の1手詰問い合わせ省略**: `TsumeshogiVerifier::Options::skipImmediateMateQueries`（既定 `true`）により、厳密証明や通常の余詰検査でも応手後に1手詰が存在する局面は `Impl::hasImmediateMate()` で即座に1手と確定し、外部エンジンへの問い合わせを省略する。
 
 #### 3. 1段目限定の1枚除去リトライ（`allowTrimOnReject` / `fromRepair`）
 
-目標手数に到達した候補が次の理由でそのまま採択できない場合、余分な1枚を落とすだけで成立する例が多いため、`TsumeCandidateJob::onePieceRemovedPositions()` の先頭候補を `m_evalQueue` の先頭へ差し込んで優先評価する。
+目標手数に到達した候補が次の理由でそのまま採択できない場合、余分な1枚を落とすだけで成立する例が多いため、`TsumeCandidateJob::onePieceRemovedPositions()` の先頭候補を評価待ちの先頭へ差し込んで優先評価する（`TsumeRetrogradeBeam::enqueueTrims()`）。
 
 - 目標手数到達時の駒余り・最終手複数解（`preflight_trim`、最大4件）
 - ローカル主手順余詰検出時（`precook_trim`、最大2件）
@@ -447,15 +464,15 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 
 #### 4. 類似作のステッピングストーン活用と既消化親種の即時パージ
 
-- **類似作のステッピングストーン活用（`submitEvalAnswer()`）**: 目標手数候補が採択済み・除外済みと類似（`isSimilarToAccepted()`、内部で `TsumeRetrogradeOps::diversityKeys()` を照合）している場合、厳密証明には回さない。ただし**駒余りなし・最終手一意**を満たす健全な局面であれば、スコア `-15.0` を付けて目標手数層のフロンティアへ残す。これにより同手数からの100%盤面変異で別系統へ跳ぶための探索足場（ステッピングストーン）として再利用できる。
-- **既消化親種のフロンティア即時パージ（`finishCertifier()` / `addExcludeLine()`）**: `excludeSimilar` が有効なとき、9手以上の問題が採択された時点または外部オーケストレータから `exclude <SFEN> moves <PV>` を受信した時点で、その手順を2手進めた直前親種（`N-2` 手局面）を `sliceToTargetLength()` で求め、フロンティアの `N-2` 層から即時除去する。同じ親種を再び2手逆算しても同一 `core` で類似除外されるため、無駄な再展開を防いで未消化の別系統親種へ探索資源を移す。
+- **類似作のステッピングストーン活用（`submitTargetCandidate()`）**: 目標手数候補が採択済み・除外済みと類似（`TsumeRetrogradeBeam::isSimilarToAccepted()`、内部で `TsumeLineMetrics::diversityKeys()` を照合）している場合、厳密証明には回さない。ただし**駒余りなし・最終手一意**を満たす健全な局面であれば、スコア `-15.0` を付けて目標手数層のフロンティアへ残す。これにより同手数からの100%盤面変異で別系統へ跳ぶための探索足場（ステッピングストーン）として再利用できる。
+- **既消化親種のフロンティア即時パージ（`finishCertifier()` / `addExcludeLine()`）**: `excludeSimilar` が有効なとき、9手以上の問題が採択された時点または外部オーケストレータから `exclude <SFEN> moves <PV>` を受信した時点で、その手順を2手進めた直前親種（`N-2` 手局面）を `sliceToTargetLength()` で求め、フロンティアの `N-2` 層から即時除去する（`TsumeRetrogradeBeam::removeParentOf()`）。同じ親種を再び2手逆算しても同一 `core` で類似除外されるため、無駄な再展開を防いで未消化の別系統親種へ探索資源を移す。
 
 ### 厳密証明のエンジン制御・キャッシュ分離・置換表クリーン化・自動復旧
 
-- `startOracle()` は `TsumeMateEngine::requiredOptions()`（`PostSearchLevel=MinLength`、`GenerateAllLegalMoves=true`、`RootIsAndNodeIfChecked=false`、`NodesLimit=0`、`MultiPV=1`）をセッション設定として自動適用し、指定があれば `USI_Hash`（`engineHashMb`）と `Threads`（`engineThreads`）も上書きする。
+- `TsumeMateQueryLink::start()` は `TsumeMateEngine::requiredOptions()`（`PostSearchLevel=MinLength`、`GenerateAllLegalMoves=true`、`RootIsAndNodeIfChecked=false`、`NodesLimit=0`、`MultiPV=1`）をセッション設定として自動適用し、指定があれば `USI_Hash`（`engineHashMb`）と `Threads`（`engineThreads`）も上書きする。
 - 厳密証明（`strictMinLength = true`）の問い合わせは `MateOracle::askWithin()`（`go mate infinite` を送り自然終了のみ確定、期限超過時は stop を送らず打ち切り）を使用する。
-- **キャッシュ分離と置換表クリーン化（`m_hashDirty`）**: 成長フェーズのキャッシュ（`m_fastCache`、最大100,000件、超過時は前半半分を破棄）と厳密証明用の確定キャッシュ（`m_strictCache`、最大200,000件）は明確に分離する。さらに、成長フェーズで時間制限付きの `ask()` を実行すると `m_hashDirty = true` を立て、次に `TsumeStrictCertifier` を開始する直前に `sendUsiNewGame()` を送って時間切れ由来のエンジン置換表残骸をリセットしてから厳密証明に入る。
-- 期限切れやエンジン無応答が起きた場合は `restartOracleForRecovery()` でエンジンプロセスを自動再起動して探索を継続する（連続5回を超えた場合のみエラー終了）。
+- **キャッシュ分離と置換表クリーン化（`TsumeMateQueryLink::resetHashIfDirty()`）**: 成長フェーズのキャッシュ（`m_fastCache`、最大100,000件、超過時は前半半分を破棄）と厳密証明用の確定キャッシュ（`m_strictCache`、最大200,000件）は明確に分離する。さらに、成長フェーズで時間制限付きの `ask()` を実行すると窓口が置換表の汚れを覚え（`m_hashDirty`）、次に `TsumeStrictCertifier` を開始する直前に `sendUsiNewGame()` を送って時間切れ由来のエンジン置換表残骸をリセットしてから厳密証明に入る。
+- 期限切れやエンジン無応答が起きた場合は `TsumeMateQueryLink::restartForRecovery()` でエンジンプロセスを自動再起動して探索を継続する（連続5回を超えた場合のみエラー終了）。
 
 ### チェックポイント保存と再開
 
@@ -485,7 +502,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 
 開始・停止と状態表示の下に、採択件数／生成上限の進捗バー、探索件数（逆算モードでは候補生成数・最大到達手数・採択数）、経過時間、検査除外件数（逆算モードでは判定不能・フロンティア数・修復成功数も併記）を表示する。無制限の場合は生成中のみ不定進捗表示とする。
 
-結果一覧は `# / SFEN / 盤面 / 手数` の4列で、メイン画面と共通の `TableStyles` / `TableButtonDelegate` を使用する。出力オプション・コピー・保存は一覧の下、文字サイズと閉じるボタンは最下部に置く。UI構築・設定と生成制御・結果操作は `tsumeshogigeneratordialog.cpp` にまとめている。
+結果一覧は `# / SFEN / 盤面 / 手数` の4列で、メイン画面と共通の `TableStyles` / `TableButtonDelegate` を使用する。出力オプション・コピー・保存は一覧の下、文字サイズと閉じるボタンは最下部に置く。生成の制御・進捗・結果操作は `tsumeshogigeneratordialog.cpp`、上段の設定欄（欄の組み立て・生成方式ごとの出し分け・設定の保存と復元・逆算用ファイルの欄・生成器の `Settings` への変換）は `tsumeshogigeneratorsettingspanel.cpp`（`TsumeshogiGeneratorSettingsPanel`）に分けている。設定欄は高さが変わると `contentHeightChanged` を出し、ダイアログが `fitSettingsArea()` で広げる。
 
 ### 設定の永続化
 
@@ -503,13 +520,13 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 ### 状態表示と手順出力
 
 - ランダム配置モードの状態ラベルは `searchPhaseStarted`（探索中）、`trimmingProgress`（トリミング中 候補 i/n）、`verificationProgress`（余詰検査中 問い合わせ回数）で更新する。逆算・編集モードは `formatRetroPhase()` により `growing`（逆算・成長探索中）、`checking_first`（初手余詰検査中）、`repairing`（余詰修復中）、`certifying`（厳密証明中／厳密証明・不要駒検査中）を表示し、チェックポイント保存時は最新の保存パスを状態ラベルのツールチップに表示する。終了時は生成完了・ユーザーによる停止・エラーを区別して表示する。
-- 逆算モード開始時、GUI の「探索時間/手」は `stepTimeoutMs = timeoutSec * 1000`、`verifyQueryTimeoutMs = qBound(5000, timeoutSec * 3000, 60000)` として `TsumeRetrogradeGenerator::Settings` に渡す。「途中保存から再開」で開始したときは、チェックポイントに保存済みの採択局面（`TsumeRetrogradeGenerator::foundPositions()`）を結果一覧と進捗バーへ即座に復元したうえで残りの生成を続行する。除外ファイルが指定されている場合は通常開始・再開のどちらでも読み込み、既出局面・類似手順・既消化親種を除外する。
+- 逆算モード開始時、GUI の「探索時間/手」は `stepTimeoutMs = timeoutSec * 1000`、`verifyQueryTimeoutMs = qBound(5000, timeoutSec * 3000, 60000)` として `TsumeRetrogradeGenerator::Settings` に渡す（`TsumeshogiGeneratorSettingsPanel::retrogradeSettings()`。種局面・除外のファイルは `TsumeRetrogradeGenerator::readInputLines()` で読む。CLI の `grow-tsume` も同じ関数を使う）。「途中保存から再開」で開始したときは、チェックポイントに保存済みの採択局面（`TsumeRetrogradeGenerator::foundPositions()`）を結果一覧と進捗バーへ即座に復元したうえで残りの生成を続行する。除外ファイルが指定されている場合は通常開始・再開のどちらでも読み込み、既出局面・類似手順・既消化親種を除外する。
 - 未登録時の開始、生成中の設定変更・既定値への復帰、結果がない状態での保存・コピー、未選択時の選択コピーは無効にする。再開始時には前回の結果と進捗をリセットする。
 - 盤面列のクリック、行のダブルクリック、Enterキーで盤面と手順を開く。選択コピーはCtrl+Cにも対応し、複数選択した結果を表示順に出力する。結果追加時の自動スクロールは最下部を閲覧している場合だけ行う。
 - 「手順も出力」を有効にすると、ファイル保存・コピーの各行が `<SFEN> moves <USI手順>` になる。無効時は SFEN のみで、SFEN集ダイアログ等の1行1SFEN形式と互換。
 - 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定を記録する（`TsumeshogiExportHeaderBuilder::build` はランダム配置用と逆算・編集用の両オーバーロードを持つ）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunRetroSettings` と `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。詰将棋問題一覧（`TsumeCollection::parse`）と局面集ビューア（`SfenCollectionDialog`）は同じ1行の規則 `PositionCollectionFile::parse`（`src/kifu/positioncollectionfile.h`）で読み、`#` 始まりの行を読み飛ばす。SFEN に添えた `moves <USI手順>` はどちらも参考手順として扱う（position コマンドの指し手だけを指した後の局面にする）。
 - ファイル保存は `TsumeCollectionWriter::save()` が `QSaveFile` で書き込み完了を確認してから置き換える。閉じる・Escでも生成を停止して設定を保存する。
-- ジェネレータ（`TsumeshogiGenerator` と `TsumeRetrogradeGenerator`）はダイアログの子として1つずつ生成し、開始のたびに選択方式に応じて再利用する。エンジンとの接続（`MateOracle`）は開始ごとに生成・終了時に `deleteLater` で破棄する。
+- ジェネレータ（`TsumeshogiGenerator` と `TsumeRetrogradeGenerator`）はダイアログの子として1つずつ生成し、開始のたびに選択方式に応じて再利用する。エンジンとの接続（`MateOracle`。逆算・編集モードでは `TsumeMateQueryLink` が持つ）は開始ごとに生成・終了時に `deleteLater` で破棄する。
 
 ## 設定パラメータ一覧
 

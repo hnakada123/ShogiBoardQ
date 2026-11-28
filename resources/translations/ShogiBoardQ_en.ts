@@ -18931,12 +18931,12 @@ This cannot be undone. Reset history?</translation>
 <context>
     <name>TsumeGameSession</name>
     <message>
-        <location filename="../../src/analysis/tsumegamesession.cpp" line="177"/>
+        <location filename="../../src/analysis/tsumegamesession.cpp" line="219"/>
         <source>すべての応手を時間内に確認できませんでした。時間を増やして再判定できます。</source>
         <translation>Not all defenses could be checked within the time limit. Increase the time and retry.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumegamesession.cpp" line="234"/>
+        <location filename="../../src/analysis/tsumegamesession.cpp" line="278"/>
         <source>内蔵判定の制限時間に達しました。判定時間を増やすか、問題一覧でKomoringHeightsを選択して再判定できます。</source>
         <translation>The built-in solver reached the time limit. Increase the time limit, or select KomoringHeights in the problem list and retry.</translation>
     </message>
@@ -19329,61 +19329,64 @@ This cannot be undone. Reset history?</translation>
     </message>
 </context>
 <context>
-    <name>TsumeRetrogradeGenerator</name>
+    <name>TsumeRetrogradeCheckpoint</name>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="366"/>
-        <source>再開するにはチェックポイントファイルを指定してください。</source>
-        <translation>Please specify a checkpoint file to resume.</translation>
-    </message>
-    <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="570"/>
-        <source>エンジンが連続して応答しないため生成を中止しました。</source>
-        <translation>Generation was aborted because the engine repeatedly failed to respond.</translation>
-    </message>
-    <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="647"/>
-        <source>候補局面を生成できませんでした。駒数上限などの設定を確認してください。</source>
-        <translation>Failed to generate candidate positions. Please check piece limits and settings.</translation>
-    </message>
-    <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="742"/>
-        <source>選択されたエンジンは詰み探索（go mate）に対応していません。</source>
-        <translation>The selected engine does not support mate search (go mate).</translation>
-    </message>
-    <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="814"/>
-        <source>エンジンでエラーが発生しました。</source>
-        <translation>An engine error occurred.</translation>
-    </message>
-    <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1602"/>
+        <location filename="../../src/analysis/tsumeretrogradecheckpoint.cpp" line="41"/>
         <source>チェックポイント保存先ディレクトリを作成できませんでした。</source>
         <translation>Failed to create the checkpoint directory.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1624"/>
+        <location filename="../../src/analysis/tsumeretrogradecheckpoint.cpp" line="64"/>
         <source>チェックポイントファイルを開けません: %1</source>
         <translation>Cannot open checkpoint file: %1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1630"/>
+        <location filename="../../src/analysis/tsumeretrogradecheckpoint.cpp" line="70"/>
         <source>チェックポイントファイルの JSON が不正です: %1</source>
         <translation>Invalid JSON in checkpoint file: %1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1636"/>
+        <location filename="../../src/analysis/tsumeretrogradecheckpoint.cpp" line="76"/>
         <source>未対応のチェックポイントバージョンです。</source>
         <translation>Unsupported checkpoint version.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1643"/>
+        <location filename="../../src/analysis/tsumeretrogradecheckpoint.cpp" line="83"/>
         <source>チェックポイントの目標手数 (%1) が指定 (%2) と一致しません。</source>
         <translation>Checkpoint target moves (%1) do not match requested target moves (%2).</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="1652"/>
+        <location filename="../../src/analysis/tsumeretrogradecheckpoint.cpp" line="92"/>
         <source>チェックポイントの厳密検証条件（最終手許容・駒余り禁止）が指定と一致しません。</source>
         <translation>Checkpoint verification options (final move alternatives / no surplus) do not match the requested settings.</translation>
+    </message>
+</context>
+<context>
+    <name>TsumeRetrogradeGenerator</name>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="136"/>
+        <source>再開するにはチェックポイントファイルを指定してください。</source>
+        <translation>Please specify a checkpoint file to resume.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="209"/>
+        <source>エンジンが連続して応答しないため生成を中止しました。</source>
+        <translation>Generation was aborted because the engine repeatedly failed to respond.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="262"/>
+        <source>候補局面を生成できませんでした。駒数上限などの設定を確認してください。</source>
+        <translation>Failed to generate candidate positions. Please check piece limits and settings.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="381"/>
+        <source>選択されたエンジンは詰み探索（go mate）に対応していません。</source>
+        <translation>The selected engine does not support mate search (go mate).</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="421"/>
+        <source>エンジンでエラーが発生しました。</source>
+        <translation>An engine error occurred.</translation>
     </message>
 </context>
 <context>
@@ -19635,320 +19638,60 @@ This cannot be undone. Reset history?</translation>
         <translation>Tsume Position Generator</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="857"/>
-        <source>エンジン設定</source>
-        <translation>Engine Settings</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="860"/>
-        <source>エンジン:</source>
-        <translation>Engine:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="868"/>
-        <source>設定...</source>
-        <translation>Settings...</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="884"/>
-        <source>※ エンジンは最短手順を返す設定で使用してください（KomoringHeights の場合: PostSearchLevel = MinLength）</source>
-        <translation>Note: configure the engine to return the shortest mate sequence (for KomoringHeights: PostSearchLevel = MinLength).</translation>
-    </message>
-    <message>
         <source>全変化・最終手の余詰を検査します。成・不成を含め、別の詰め方がある局面や判定不能の局面は出力しません。</source>
         <translation type="vanished">All variations and final moves are checked for alternative mates, including promotion choices. Positions with alternatives or inconclusive results are excluded.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="886"/>
-        <source>主手順の攻手が一意な局面だけを出力します（成・不成も区別）。玉方が早く詰む変化での別の詰め方は許容し、判定不能の局面は出力しません。</source>
-        <translation>Only positions whose main line has a unique attacking move at every step are output (promotion and non-promotion count as different moves). Alternative mates in variations where the king is mated sooner are allowed; inconclusive positions are excluded.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1001"/>
-        <source>最終手の複数解を許容する</source>
-        <translation>Allow multiple mating moves on the final move</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1004"/>
-        <source>オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。</source>
-        <translation>When enabled, positions are accepted even if the final move of the main line has several mating moves (except the first move of a mate-in-1). When disabled, the final move must also be unique.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="894"/>
-        <source>生成設定</source>
-        <translation>Generation Settings</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="217"/>
-        <source>途中保存から再開するにはチェックポイントファイルを指定してください。</source>
-        <translation>Please specify a checkpoint file to resume from.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="227"/>
-        <source>種局面ファイルを開けませんでした: %1</source>
-        <translation>Failed to open seed position file: %1</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="243"/>
-        <source>除外ファイルを開けませんでした: %1</source>
-        <translation>Could not open exclude file: %1</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="406"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="297"/>
         <source>候補生成: %1 局面 / 最大到達: %2 手 / 採択: %3 局面</source>
         <translation>Candidates: %1 / Max plies: %2 / Accepted: %3</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="412"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="303"/>
         <source>検査で除外: %1 局面（うち判定不能: %2 / フロンティア: %3 / 修復成功: %4）</source>
         <translation>Rejected: %1 (inconclusive: %2 / frontier: %3 / repaired: %4)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="424"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="315"/>
         <source>最新の途中保存: %1</source>
         <translation>Latest checkpoint: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="438"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="329"/>
         <source>厳密証明・不要駒検査中（候補 %1/%2、問い合わせ %3 回）</source>
         <translation>Strict verification &amp; trimming (candidate %1/%2, %3 queries)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="443"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="334"/>
         <source>厳密証明中（問い合わせ %1 回）</source>
         <translation>Strict verification (%1 queries)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="446"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="337"/>
         <source>余詰修復中（キュー %1 件）</source>
         <translation>Repairing cooks (%1 queued)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="449"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="340"/>
         <source>初手余詰検査中（最大到達 %1 手）</source>
         <translation>Checking first-move uniqueness (max %1 plies)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="451"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="342"/>
         <source>逆算・成長探索中（最大到達 %1 手 / フロンティア %2）</source>
         <translation>Retrograde growth search (max %1 plies / frontier %2)</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="470"/>
-        <source>種局面ファイルを選択</source>
-        <translation>Select Seed Position File</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="472"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="490"/>
-        <source>テキストファイル (*.txt *.sfen);;すべてのファイル (*)</source>
-        <translation>Text Files (*.txt *.sfen);;All Files (*)</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="488"/>
-        <source>除外ファイルを選択</source>
-        <translation>Select exclude file</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="506"/>
-        <source>再開するチェックポイントファイルを選択</source>
-        <translation>Select Checkpoint File to Resume</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="507"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="509"/>
-        <source>JSON ファイル (*.json);;すべてのファイル (*)</source>
-        <translation>JSON Files (*.json);;All Files (*)</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="508"/>
-        <source>チェックポイントの保存先を選択</source>
-        <translation>Select Checkpoint Save Location</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="695"/>
-        <source>探索時間/手:</source>
-        <translation>Search time/step:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="697"/>
-        <source>逆算・成長フェーズで1局面を調べる上限時間です（厳密検証では最大3倍まで自動延長）。</source>
-        <translation>Time limit per position during retrograde growth (automatically extended up to 3x during strict verification).</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="871"/>
-        <source>最短手順を返す詰将棋エンジンを使用してください。</source>
-        <translation>Use a mate-solving engine configured to return the shortest solution.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="877"/>
-        <source>エンジン設定・採択条件について</source>
-        <translation>About engine settings and acceptance criteria</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="888"/>
-        <source>「詰み局面から逆算・編集」方式では詰み形または種局面から逆算・変異・余詰修復で長手数局面を育て、全1枚除去の厳密証明と途中保存・再開に対応します。</source>
-        <translation>In Retrograde / Edit mode, long-mate positions are grown from mate endings or seed positions via retrograde moves, mutations, and cook repair, with strict all-single-piece-removal verification and checkpoint save/resume.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="899"/>
-        <source>生成方式:</source>
-        <translation>Method:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="902"/>
-        <source>ランダム配置</source>
-        <translation>Random Placement</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="903"/>
-        <source>詰み局面から逆算・編集（長手数向け）</source>
-        <translation>Retrograde &amp; Edit from Mate (Long Mates)</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="905"/>
-        <source>短手数向けは「ランダム配置」、15手以上の長手数詰将棋や途中保存・再開には「詰み局面から逆算・編集」を選んでください。</source>
-        <translation>Choose Random Placement for short mates, or Retrograde &amp; Edit for long mates (15+ plies) and checkpoint save/resume.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="928"/>
-        <source> 手詰</source>
-        <translation>-move mate</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="929"/>
-        <source>目標手数:</source>
-        <translation>Target moves:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="931"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="937"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="943"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="950"/>
-        <source> 枚</source>
-        <translation> pieces</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="931"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="937"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="943"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="950"/>
-        <source> 枚</source>
-        <comment>1 のとき</comment>
-        <translation> piece</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="934"/>
-        <source>攻方の盤上の駒と持駒の合計枚数の上限です。</source>
-        <translation>Maximum total number of attacking pieces on the board and in hand.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="935"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="948"/>
-        <source>攻め駒上限:</source>
-        <translation>Max attack pieces:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="940"/>
-        <source>玉を除く、玉方の盤上の駒の枚数の上限です。</source>
-        <translation>Maximum number of defending pieces on the board, excluding the king.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="941"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="955"/>
-        <source>守り駒上限:</source>
-        <translation>Max defense pieces:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="947"/>
-        <source>逆算・編集モードでの攻方駒（盤上＋持駒）の上限です。</source>
-        <translation>Maximum attacking pieces (board + hand) in Retrograde &amp; Edit mode.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="954"/>
-        <source>逆算・編集モードでの玉方盤上駒（玉除く）の上限です。</source>
-        <translation>Maximum defending board pieces (excluding king) in Retrograde &amp; Edit mode.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="961"/>
-        <source>各手数層に保持する有望局面の最大数です。大きいほど多様性が増します。</source>
-        <translation>Maximum promising positions kept per ply layer. Larger values increase diversity.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="962"/>
-        <source>ビーム幅:</source>
-        <translation>Beam width:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="964"/>
-        <source> 局面</source>
-        <translation> positions</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="964"/>
-        <source> 局面</source>
-        <comment>1 のとき</comment>
-        <translation> position</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="969"/>
-        <source>採択した局面がこの件数に達すると終了します。0 は停止するまで生成を続けます。</source>
-        <translation>Finish when this many positions are accepted. Set to 0 to continue until stopped.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="980"/>
-        <source> マス（玉中心）</source>
-        <translation> squares (from king)</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="980"/>
-        <source> マス（玉中心）</source>
-        <comment>1 のとき</comment>
-        <translation> square (from king)</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="983"/>
-        <source>配置範囲:</source>
-        <translation>Placement range:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="976"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="996"/>
-        <source> 秒</source>
-        <translation> sec</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="698"/>
-        <source>候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。</source>
-        <translation>Time allowed for each mate search and for each complete alternative-mate check, including after removing a piece. Positions that exceed the verification time are excluded.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="695"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="972"/>
-        <source>探索時間/局面:</source>
-        <translation>Search time/pos:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="968"/>
-        <source>無制限</source>
-        <translation>Unlimited</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="970"/>
-        <source>生成上限:</source>
-        <translation>Max positions:</translation>
     </message>
     <message>
         <source>余詰検査:</source>
         <translation type="vanished">Alternative check:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1091"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="592"/>
         <source>開始</source>
         <translation>Start</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1095"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="596"/>
         <source>停止</source>
         <translation>Stop</translation>
     </message>
@@ -19961,181 +19704,77 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">Elapsed: 00:00:00</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1127"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="628"/>
         <source>結果一覧</source>
         <translation>Results</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1134"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="635"/>
         <source>#</source>
         <translation>#</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1134"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="635"/>
         <source>SFEN</source>
         <translation>SFEN</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1134"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="635"/>
         <source>手数</source>
         <translation>Moves</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1134"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="635"/>
         <source>盤面</source>
         <translation>Board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1007"/>
-        <source>既定値に戻す</source>
-        <translation>Restore defaults</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="989"/>
-        <source>1回の展開で逆算・盤面変異から作る候補局面数です。</source>
-        <translation>Number of candidate positions generated per expansion via retrograde moves and mutations.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="990"/>
-        <source>分岐数:</source>
-        <translation>Branch factor:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="997"/>
-        <source>1候補の厳密証明と全1枚除去トリミングに使える最大時間です。</source>
-        <translation>Maximum time budget per candidate for strict proof and all-single-piece-removal trimming.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="998"/>
-        <source>検証予算:</source>
-        <translation>Verify budget:</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1021"/>
-        <source>駒余りを禁止する</source>
-        <translation>Disallow surplus pieces</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1024"/>
-        <source>オンにすると、全最長応手および最終手で攻方持駒が0枚になる局面だけを採択します。</source>
-        <translation>When enabled, only positions where the attacker has no remaining hand pieces on all longest defenses and final moves are accepted.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1026"/>
-        <source>類似作を除外する</source>
-        <translation>Exclude similar problems</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1029"/>
-        <source>オンにすると、平行移動・左右反転・中間手順1手違いの類似作を除外します。</source>
-        <translation>When enabled, excludes translated, mirrored, and single-move-different middle-line variants.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1009"/>
-        <source>生成設定を既定値に戻します。</source>
-        <translation>Restore the default generation settings.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1042"/>
-        <source>未指定（0手詰み局面から自動生成）</source>
-        <translation>None (auto-generate from 0-ply mate endings)</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1043"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1058"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1071"/>
-        <source>参照...</source>
-        <translation>Browse...</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1045"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1060"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1073"/>
-        <source>クリア</source>
-        <translation>Clear</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1050"/>
-        <source>種局面ファイル（任意）:</source>
-        <translation>Seed file (optional):</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1055"/>
-        <source>未指定（既出の除外ファイルを使わない）</source>
-        <translation>Not set (no exclude file)</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1057"/>
-        <source>既存の詰将棋問題集などを指定すると、収録済みの局面や類似手順を除外して新作を生成します。</source>
-        <translation>Specify an existing tsume collection to skip already-included positions and similar lines while generating new puzzles.</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1065"/>
-        <source>除外ファイル（任意）:</source>
-        <translation>Exclude file (optional):</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1070"/>
-        <source>未指定（途中保存しない）</source>
-        <translation>None (do not save checkpoints)</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1075"/>
-        <source>途中保存から再開</source>
-        <translation>Resume from checkpoint</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1081"/>
-        <source>チェックポイント（任意）:</source>
-        <translation>Checkpoint (optional):</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1093"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="594"/>
         <source>現在の結果をクリアして、新しく生成を開始します。</source>
         <translation>Clear the current results and start a new generation run.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1097"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="598"/>
         <source>生成を停止します。採択済みの局面は保存・コピーできます。</source>
         <translation>Stop generation. Accepted positions can still be saved or copied.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1110"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="611"/>
         <source>生成上限に対する採択局面数</source>
         <translation>Accepted positions out of the generation limit</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1133"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="634"/>
         <source>生成した詰将棋局面</source>
         <translation>Generated tsume-shogi positions</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1158"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="659"/>
         <source>手順も出力</source>
         <translation>Include moves</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1160"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="661"/>
         <source>ファイル保存・コピー時に、SFEN の後ろに USI 形式の詰み手順（moves ...）を付加します</source>
         <translation>When saving or copying, append the mate sequence in USI format (moves ...) after the SFEN</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1165"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="666"/>
         <source>選択した局面をコピー（Ctrl+C）。Ctrl・Shift キーで複数選択できます。</source>
         <translation>Copy selected positions (Ctrl+C). Use Ctrl or Shift to select multiple rows.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1170"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="671"/>
         <source>ファイル保存</source>
         <translation>Save to File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1163"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="664"/>
         <source>選択コピー</source>
         <translation>Copy Selected</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1167"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="668"/>
         <source>全コピー</source>
         <translation>Copy All</translation>
     </message>
@@ -20148,34 +19787,31 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1187"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="688"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="77"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="70"/>
         <source>設定メニューで詰将棋エンジンを登録してください。</source>
         <translation>Register a mate-solving engine in the Settings menu.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="208"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="216"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="226"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="242"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="392"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="548"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="159"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="199"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="283"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="368"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="208"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="159"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="284"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="296"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="325"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="182"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="216"/>
         <source>エンジンを起動中</source>
         <translation>Starting engine</translation>
     </message>
@@ -20184,120 +19820,487 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">Searched: %1 positions / Found: %2 positions</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="360"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="251"/>
         <source>表示</source>
         <translation>Show</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="361"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="252"/>
         <source>盤面と詰み手順を表示します。行のダブルクリック、または Enter キーでも開けます。</source>
         <translation>Show the board and solution. You can also double-click a row or press Enter.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="375"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="266"/>
         <source>探索済み: %1 局面 / 採択: %2 局面</source>
         <translation>Searched: %1 positions / Accepted: %2 positions</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="376"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="410"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="267"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="301"/>
         <source>経過時間: %1</source>
         <translation>Elapsed: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="384"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="275"/>
         <source>停止しました（%1 局面を採択）</source>
         <translation>Stopped (%1 positions accepted)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="385"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="276"/>
         <source>生成完了（%1 局面を採択）</source>
         <translation>Generation complete (%1 positions accepted)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="391"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="282"/>
         <source>エラー: %1</source>
         <translation>Error: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="533"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="353"/>
         <source>SFENをファイルに保存</source>
         <translation>Save SFEN to File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="535"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="355"/>
         <source>テキストファイル (*.txt);;すべてのファイル (*)</source>
         <translation>Text Files (*.txt);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="548"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="368"/>
         <source>ファイルを保存できませんでした: %1</source>
         <translation>Could not save file: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="598"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="409"/>
         <source>攻方</source>
         <translation>Attacker</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="598"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="409"/>
         <source>玉方</source>
         <translation>Defender</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="612"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="423"/>
         <source>条件に合う局面を探索しています。
 採択した局面から順に表示します。</source>
         <translation>Searching for positions that meet the criteria.
 Accepted positions will appear here as they are found.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="613"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="1150"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="424"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="651"/>
         <source>生成した局面がここに表示されます。
 設定を確認して「開始」を押してください。</source>
         <translation>Generated positions will appear here.
 Check the settings and press Start.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="626"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="437"/>
         <source>%v / %m 局面</source>
         <translation>%v / %m positions</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="626"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="437"/>
         <source>%1 局面（無制限）</source>
         <translation>%1 positions (unlimited)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="77"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="70"/>
         <source>待機中</source>
         <translation>Idle</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="739"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="492"/>
         <source>探索中</source>
         <translation>Searching</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="744"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="497"/>
         <source>トリミング中（候補 %1/%2）</source>
         <translation>Trimming (candidate %1/%2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="749"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="502"/>
         <source>余詰検査中（問い合わせ %1 回）</source>
         <translation>Checking alternative mates (%1 queries)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="754"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="507"/>
         <source>検査で除外: %1 局面（うち判定不能: %2 局面）</source>
         <translation>Excluded by verification: %1 positions (%2 inconclusive)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="760"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="513"/>
         <source>状態: %1</source>
         <translation>Status: %1</translation>
+    </message>
+</context>
+<context>
+    <name>TsumeshogiGeneratorSettingsPanel</name>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="68"/>
+        <source>エンジン設定</source>
+        <translation>Engine Settings</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="71"/>
+        <source>エンジン:</source>
+        <translation>Engine:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="79"/>
+        <source>設定...</source>
+        <translation>Settings...</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="82"/>
+        <source>最短手順を返す詰将棋エンジンを使用してください。</source>
+        <translation>Use a mate-solving engine configured to return the shortest solution.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="88"/>
+        <source>エンジン設定・採択条件について</source>
+        <translation>About engine settings and acceptance criteria</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="95"/>
+        <source>※ エンジンは最短手順を返す設定で使用してください（KomoringHeights の場合: PostSearchLevel = MinLength）</source>
+        <translation>Note: configure the engine to return the shortest mate sequence (for KomoringHeights: PostSearchLevel = MinLength).</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="97"/>
+        <source>主手順の攻手が一意な局面だけを出力します（成・不成も区別）。玉方が早く詰む変化での別の詰め方は許容し、判定不能の局面は出力しません。</source>
+        <translation>Only positions whose main line has a unique attacking move at every step are output (promotion and non-promotion count as different moves). Alternative mates in variations where the king is mated sooner are allowed; inconclusive positions are excluded.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="99"/>
+        <source>「詰み局面から逆算・編集」方式では詰み形または種局面から逆算・変異・余詰修復で長手数局面を育て、全1枚除去の厳密証明と途中保存・再開に対応します。</source>
+        <translation>In Retrograde / Edit mode, long-mate positions are grown from mate endings or seed positions via retrograde moves, mutations, and cook repair, with strict all-single-piece-removal verification and checkpoint save/resume.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="108"/>
+        <source>生成設定</source>
+        <translation>Generation Settings</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="113"/>
+        <source>生成方式:</source>
+        <translation>Method:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="116"/>
+        <source>ランダム配置</source>
+        <translation>Random Placement</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="117"/>
+        <source>詰み局面から逆算・編集（長手数向け）</source>
+        <translation>Retrograde &amp; Edit from Mate (Long Mates)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="119"/>
+        <source>短手数向けは「ランダム配置」、15手以上の長手数詰将棋や途中保存・再開には「詰み局面から逆算・編集」を選んでください。</source>
+        <translation>Choose Random Placement for short mates, or Retrograde &amp; Edit for long mates (15+ plies) and checkpoint save/resume.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="140"/>
+        <source>最終手の複数解を許容する</source>
+        <translation>Allow multiple mating moves on the final move</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="143"/>
+        <source>オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。</source>
+        <translation>When enabled, positions are accepted even if the final move of the main line has several mating moves (except the first move of a mate-in-1). When disabled, the final move must also be unique.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="146"/>
+        <source>既定値に戻す</source>
+        <translation>Restore defaults</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="148"/>
+        <source>生成設定を既定値に戻します。</source>
+        <translation>Restore the default generation settings.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="164"/>
+        <source> 手詰</source>
+        <translation>-move mate</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="165"/>
+        <source>目標手数:</source>
+        <translation>Target moves:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="167"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="173"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="179"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="186"/>
+        <source> 枚</source>
+        <comment>1 のとき</comment>
+        <translation> piece</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="167"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="173"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="179"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="186"/>
+        <source> 枚</source>
+        <translation> pieces</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="170"/>
+        <source>攻方の盤上の駒と持駒の合計枚数の上限です。</source>
+        <translation>Maximum total number of attacking pieces on the board and in hand.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="171"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="184"/>
+        <source>攻め駒上限:</source>
+        <translation>Max attack pieces:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="176"/>
+        <source>玉を除く、玉方の盤上の駒の枚数の上限です。</source>
+        <translation>Maximum number of defending pieces on the board, excluding the king.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="177"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="191"/>
+        <source>守り駒上限:</source>
+        <translation>Max defense pieces:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="183"/>
+        <source>逆算・編集モードでの攻方駒（盤上＋持駒）の上限です。</source>
+        <translation>Maximum attacking pieces (board + hand) in Retrograde &amp; Edit mode.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="190"/>
+        <source>逆算・編集モードでの玉方盤上駒（玉除く）の上限です。</source>
+        <translation>Maximum defending board pieces (excluding king) in Retrograde &amp; Edit mode.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="197"/>
+        <source>各手数層に保持する有望局面の最大数です。大きいほど多様性が増します。</source>
+        <translation>Maximum promising positions kept per ply layer. Larger values increase diversity.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="198"/>
+        <source>ビーム幅:</source>
+        <translation>Beam width:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="200"/>
+        <source> 局面</source>
+        <comment>1 のとき</comment>
+        <translation> position</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="200"/>
+        <source> 局面</source>
+        <translation> positions</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="204"/>
+        <source>無制限</source>
+        <translation>Unlimited</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="205"/>
+        <source>採択した局面がこの件数に達すると終了します。0 は停止するまで生成を続けます。</source>
+        <translation>Finish when this many positions are accepted. Set to 0 to continue until stopped.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="206"/>
+        <source>生成上限:</source>
+        <translation>Max positions:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="208"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="533"/>
+        <source>探索時間/局面:</source>
+        <translation>Search time/pos:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="212"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="232"/>
+        <source> 秒</source>
+        <translation> sec</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="216"/>
+        <source> マス（玉中心）</source>
+        <comment>1 のとき</comment>
+        <translation> square (from king)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="216"/>
+        <source> マス（玉中心）</source>
+        <translation> squares (from king)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="219"/>
+        <source>配置範囲:</source>
+        <translation>Placement range:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="225"/>
+        <source>1回の展開で逆算・盤面変異から作る候補局面数です。</source>
+        <translation>Number of candidate positions generated per expansion via retrograde moves and mutations.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="226"/>
+        <source>分岐数:</source>
+        <translation>Branch factor:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="233"/>
+        <source>1候補の厳密証明と全1枚除去トリミングに使える最大時間です。</source>
+        <translation>Maximum time budget per candidate for strict proof and all-single-piece-removal trimming.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="234"/>
+        <source>検証予算:</source>
+        <translation>Verify budget:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="247"/>
+        <source>駒余りを禁止する</source>
+        <translation>Disallow surplus pieces</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="250"/>
+        <source>オンにすると、全最長応手および最終手で攻方持駒が0枚になる局面だけを採択します。</source>
+        <translation>When enabled, only positions where the attacker has no remaining hand pieces on all longest defenses and final moves are accepted.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="252"/>
+        <source>類似作を除外する</source>
+        <translation>Exclude similar problems</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="255"/>
+        <source>オンにすると、平行移動・左右反転・中間手順1手違いの類似作を除外します。</source>
+        <translation>When enabled, excludes translated, mirrored, and single-move-different middle-line variants.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="268"/>
+        <source>未指定（0手詰み局面から自動生成）</source>
+        <translation>None (auto-generate from 0-ply mate endings)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="269"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="284"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="297"/>
+        <source>参照...</source>
+        <translation>Browse...</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="271"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="286"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="299"/>
+        <source>クリア</source>
+        <translation>Clear</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="276"/>
+        <source>種局面ファイル（任意）:</source>
+        <translation>Seed file (optional):</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="281"/>
+        <source>未指定（既出の除外ファイルを使わない）</source>
+        <translation>Not set (no exclude file)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="283"/>
+        <source>既存の詰将棋問題集などを指定すると、収録済みの局面や類似手順を除外して新作を生成します。</source>
+        <translation>Specify an existing tsume collection to skip already-included positions and similar lines while generating new puzzles.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="291"/>
+        <source>除外ファイル（任意）:</source>
+        <translation>Exclude file (optional):</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="296"/>
+        <source>未指定（途中保存しない）</source>
+        <translation>None (do not save checkpoints)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="301"/>
+        <source>途中保存から再開</source>
+        <translation>Resume from checkpoint</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="307"/>
+        <source>チェックポイント（任意）:</source>
+        <translation>Checkpoint (optional):</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="423"/>
+        <source>途中保存から再開するにはチェックポイントファイルを指定してください。</source>
+        <translation>Please specify a checkpoint file to resume from.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="434"/>
+        <source>種局面ファイルを開けませんでした: %1</source>
+        <translation>Failed to open seed position file: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="446"/>
+        <source>除外ファイルを開けませんでした: %1</source>
+        <translation>Could not open exclude file: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="533"/>
+        <source>探索時間/手:</source>
+        <translation>Search time/step:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="535"/>
+        <source>逆算・成長フェーズで1局面を調べる上限時間です（厳密検証では最大3倍まで自動延長）。</source>
+        <translation>Time limit per position during retrograde growth (automatically extended up to 3x during strict verification).</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="536"/>
+        <source>候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。</source>
+        <translation>Time allowed for each mate search and for each complete alternative-mate check, including after removing a piece. Positions that exceed the verification time are excluded.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="579"/>
+        <source>種局面ファイルを選択</source>
+        <translation>Select Seed Position File</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="581"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="599"/>
+        <source>テキストファイル (*.txt *.sfen);;すべてのファイル (*)</source>
+        <translation>Text Files (*.txt *.sfen);;All Files (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="597"/>
+        <source>除外ファイルを選択</source>
+        <translation>Select exclude file</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="615"/>
+        <source>再開するチェックポイントファイルを選択</source>
+        <translation>Select Checkpoint File to Resume</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="616"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="618"/>
+        <source>JSON ファイル (*.json);;すべてのファイル (*)</source>
+        <translation>JSON Files (*.json);;All Files (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratorsettingspanel.cpp" line="617"/>
+        <source>チェックポイントの保存先を選択</source>
+        <translation>Select Checkpoint Save Location</translation>
     </message>
 </context>
 <context>

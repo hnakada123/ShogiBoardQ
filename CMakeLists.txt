@@ -477,6 +477,24 @@ set(SRC_ANALYSIS
     src/analysis/tsumepositionanalyzer.h
     src/analysis/tsumeprogressstore.cpp
     src/analysis/tsumeprogressstore.h
+    src/analysis/tsumeeditboard.cpp
+    src/analysis/tsumeeditboard.h
+    src/analysis/tsumeeditrandom.h
+    src/analysis/tsumeedittypes.h
+    src/analysis/tsumelinemetrics.cpp
+    src/analysis/tsumelinemetrics.h
+    src/analysis/tsumepositionedits.cpp
+    src/analysis/tsumepositionedits.h
+    src/analysis/tsumefirstmovecheck.cpp
+    src/analysis/tsumefirstmovecheck.h
+    src/analysis/tsumelocalscreen.cpp
+    src/analysis/tsumelocalscreen.h
+    src/analysis/tsumematequerylink.cpp
+    src/analysis/tsumematequerylink.h
+    src/analysis/tsumeretrogradebeam.cpp
+    src/analysis/tsumeretrogradebeam.h
+    src/analysis/tsumeretrogradecheckpoint.cpp
+    src/analysis/tsumeretrogradecheckpoint.h
     src/analysis/tsumeretrogradegenerator.cpp
     src/analysis/tsumeretrogradegenerator.h
     src/analysis/tsumeretrogradeops.cpp
@@ -878,6 +896,8 @@ set(SRC_DIALOGS
     src/dialogs/tsumeplaydialog.h
     src/dialogs/tsumeshogigeneratordialog.cpp
     src/dialogs/tsumeshogigeneratordialog.h
+    src/dialogs/tsumeshogigeneratorsettingspanel.cpp
+    src/dialogs/tsumeshogigeneratorsettingspanel.h
     src/dialogs/tsumeshogisearchdialog.cpp
     src/dialogs/tsumeshogisearchdialog.h
     src/dialogs/versiondialog.cpp
@@ -933,6 +953,7 @@ set(SRC_SERVICES
     src/services/josekisettings.cpp
     src/services/josekisettings.h
     src/services/networksettings.h
+    src/services/byoyomisoundcue.h
     src/services/piecesoundtone.h
     src/services/setting.h
     src/services/settingscommon.cpp

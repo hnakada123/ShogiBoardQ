@@ -7,7 +7,7 @@
 #include <QDialog>
 #include <QString>
 
-#include "byoyomisoundplayer.h"
+#include "byoyomisoundcue.h"
 
 class QLabel;
 class QLineEdit;
@@ -16,7 +16,8 @@ class QSlider;
 /**
  * @brief 秒読み音声の音量・カスタム音声フォルダを調整するモーダルダイアログ
  *
- * 変更は即座にシグナルで通知し、試聴ボタンで音を確認できる。
+ * 変更は即座にシグナルで通知し、試聴ボタンで音を確認できる（値を知らせるだけで、プレイヤーには
+ * DialogLauncher が結ぶ）。
  * キャンセルで閉じた場合は開いたときの値に戻す。
  */
 class ByoyomiSoundSettingsDialog : public QDialog
@@ -34,7 +35,7 @@ signals:
     void voiceDirectoryChanged(const QString& directory);
 
     /// 試聴ボタンが押された
-    void previewRequested(ByoyomiSoundPlayer::Cue cue);
+    void previewRequested(ByoyomiSoundCue cue);
 
 public slots:
     void reject() override;

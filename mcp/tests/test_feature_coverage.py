@@ -448,8 +448,11 @@ async def test_analysis_results_gui_and_batch_job(coverage_env, tmp_path):
         assert state["ui_state"] == "idle"
         await ui.call("show_dock", widget="AnalysisResultsDock")
         assert "解析完了" in (await ui.read("analysisStatusLabel"))["text"]
-        assert (await ui.read("analysisResultsTable"))["row_count"] == 3
-        await ui.call("click_table_cell", widget="analysisResultsTable", row=0, column=6)
+        table = await ui.read("analysisResultsTable")
+        assert table["row_count"] == 3
+        # 列は見出しから引く（列が増えても「盤面」のボタンを押す）
+        board_column = table["rows"][0].index("盤面")
+        await ui.call("click_table_cell", widget="analysisResultsTable", row=0, column=board_column)
         windows = (await ui.call("list_dialogs"))["windows"]
         pv = next(w for w in windows if w["class"] == "PvBoardDialog")
         await ui.close(pv["selector"])

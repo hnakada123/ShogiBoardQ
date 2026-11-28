@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QString>
 
+#include "byoyomisoundcue.h"
 #include "piecesoundprocessor.h"
 #include "shogitypes.h"
 
@@ -30,14 +31,8 @@ class ByoyomiSoundPlayer : public QObject
     Q_OBJECT
 
 public:
-    /// 鳴らす音の種類
-    enum class Cue {
-        None,     ///< 鳴らさない
-        Notice,   ///< 予告音（残り 30・20・10 秒、または秒読み突入時）
-        Tick,     ///< カウント音（残り 9〜6 秒）
-        Urgent,   ///< 切迫カウント音（残り 5〜1 秒）
-        Timeout,  ///< 時間切れ音
-    };
+    /// 鳴らす音の種類（値の定義は services の byoyomisoundcue.h。設定ダイアログと共通）
+    using Cue = ByoyomiSoundCue;
 
     /// 重複再生を防ぐための前回通知状態
     struct TickState {
@@ -84,7 +79,7 @@ public slots:
     void setVoiceDirectory(const QString& directory);
 
     /// 有効/無効にかかわらず指定の音を再生する（設定ダイアログの試聴用）
-    void preview(Cue cue);
+    void preview(ByoyomiSoundCue cue);
 
 private slots:
     void onTimeUpdated();

@@ -6,6 +6,7 @@
 #include "clicommandspecs.h"
 #include "tsumecandidatejob.h"
 #include "tsumecollection.h"
+#include "tsumepositionedits.h"
 #include "tsumeretrogradegenerator.h"
 #include "tsumeretrogradeops.h"
 #include "tsumeshogisettings.h"
@@ -169,7 +170,7 @@ private slots:
         std::mt19937_64 rng(777);
 
         // kCook5 は S*3b と S*4b の両方で詰む余詰局面
-        const auto repairs = TsumeRetrogradeOps::generateCookRepairs(
+        const auto repairs = TsumePositionEdits::generateCookRepairs(
             kCook5, QStringLiteral("S*3b"), QStringLiteral("S*4b"), limits, 20, rng);
         QVERIFY2(!repairs.isEmpty(), "Expected cook repair candidates");
 

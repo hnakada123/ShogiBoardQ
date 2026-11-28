@@ -3703,18 +3703,19 @@ private slots:
         QTest::qWait(50);
         QCOMPARE(table->columnWidth(0), 200);
         QVERIFY(status->text().contains(QStringLiteral("解析完了")));
-        QVERIFY(table->model()->index(0, 7).data(Qt::ToolTipRole).toString().contains(pv));
+        // 列は番号で決め打ちせず、モデルの列の enum で指す（列が増えても「盤面」「読み筋」を指す）
+        QVERIFY(table->model()->index(0, KifuAnalysisListModel::PvColumn).data(Qt::ToolTipRole).toString().contains(pv));
         QVERIFY(container->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/analysis-layout.png")));
         QSignalSpy boardRequests(&presenter, &AnalysisResultsPanel::boardRequested);
-        table->setCurrentIndex(model.index(0, 6));
+        table->setCurrentIndex(model.index(0, KifuAnalysisListModel::BoardColumn));
         table->setFocus();
         QTest::keyClick(table, Qt::Key_Return);
         QCOMPARE(boardRequests.size(), 1);
         container->resize(520, 400);
         QTest::qWait(50);
         QVERIFY(table->horizontalScrollBar()->maximum() > 0);
-        table->scrollTo(model.index(0, 7));
-        QVERIFY(table->visualRect(model.index(0, 7)).intersects(table->viewport()->rect()));
+        table->scrollTo(model.index(0, KifuAnalysisListModel::PvColumn));
+        QVERIFY(table->visualRect(model.index(0, KifuAnalysisListModel::PvColumn)).intersects(table->viewport()->rect()));
         QVERIFY(container->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/analysis-narrow.png")));
         auto* increase = container->findChild<QPushButton*>("analysisFontIncrease");
         QVERIFY(increase);
@@ -3769,7 +3770,7 @@ private slots:
         QCOMPARE(progress->maximum(), 2);
         QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 7000);
         QCOMPARE(table->model()->rowCount(), 2);
-        QCOMPARE(table->model()->index(0, 5).data().toString(), QStringLiteral("-"));
+        QCOMPARE(table->model()->index(0, KifuAnalysisListModel::DifferenceColumn).data().toString(), QStringLiteral("-"));
         table->setCurrentIndex(table->model()->index(0, 0));
         QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 2);
         table->setCurrentIndex(table->model()->index(1, 0));
@@ -3804,7 +3805,7 @@ private slots:
         bool hasScore = false;
         for (int row = 0; row < 15; ++row) {
             bool ok = false;
-            table->model()->index(row, 3).data().toString().toInt(&ok);
+            table->model()->index(row, KifuAnalysisListModel::EvaluationColumn).data().toString().toInt(&ok);
             hasScore = hasScore || ok;
         }
         QVERIFY(hasScore);
@@ -3820,9 +3821,9 @@ private slots:
         QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/analysis-record.png")));
         table->setCurrentIndex(table->model()->index(7, 0));
         QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 7);
-        table->scrollTo(table->model()->index(7, 6));
+        table->scrollTo(table->model()->index(7, KifuAnalysisListModel::BoardColumn));
         QTest::mouseClick(table->viewport(), Qt::LeftButton, Qt::NoModifier,
-                         table->visualRect(table->model()->index(7, 6)).center());
+                         table->visualRect(table->model()->index(7, KifuAnalysisListModel::BoardColumn)).center());
         QDialog* pv = nullptr;
         for (auto* widget : QApplication::topLevelWidgets()) {
             if (QString::fromLatin1(widget->metaObject()->className()) == "PvBoardDialog")

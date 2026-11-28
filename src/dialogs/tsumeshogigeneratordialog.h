@@ -13,26 +13,21 @@
 #include "tsumeretrogradegenerator.h"
 #include "tsumeshogigenerator.h"
 
-class EngineSelector;
 class QCheckBox;
-class QComboBox;
-class QFormLayout;
 class QLabel;
-class QLineEdit;
 class QProgressBar;
 class QPushButton;
 class QScrollArea;
-class QSpinBox;
 class QTableWidget;
 class QToolButton;
 class QVBoxLayout;
-class QWidget;
+class TsumeshogiGeneratorSettingsPanel;
 
 /**
  * @brief 詰将棋局面生成ダイアログ
  *
- * エンジン選択、生成方式（ランダム配置／詰み局面から逆算・編集）、
- * 生成パラメータ設定、プログレス表示、結果テーブルを1つのダイアログにまとめる。
+ * 生成の開始と停止、進み具合の表示、結果の表と書き出しを受け持つ。エンジンの選択と生成設定の欄
+ * （生成方式ごとの欄・設定の保存・生成器の設定への変換）は TsumeshogiGeneratorSettingsPanel。
  */
 class TsumeshogiGeneratorDialog : public QDialog
 {
@@ -61,25 +56,15 @@ private slots:
     void onRetroProgressUpdated(const TsumeRetrogradeGenerator::Progress& progress);
     void onRetroCheckpointSaved(const QString& path);
     void onRetroFinished(bool stopped);
-    void onModeChanged(int index);
-    void onBrowseSeedFile();
-    void onClearSeedFile();
-    void onBrowseExcludeFile();
-    void onClearExcludeFile();
-    void onBrowseCheckpointFile();
-    void onClearCheckpointFile();
-    void onResumeCheckpointToggled(bool checked);
+    void onSettingsHeightChanged();
     void onSaveToFile();
     void onCopySelected();
     void onCopyAll();
-    void onRestoreDefaults();
     void onResultTableClicked(const QModelIndex& index);
     void onResultTableActivated(const QModelIndex& index);
     void updateResultActions();
     void updateProgressBar();
-    void toggleHelp(bool visible);
     void fitSettingsArea();
-    void showEngineSettingsDialog(const EngineEntry& engine);
 
 private:
     enum class GeneratorMode {
@@ -103,64 +88,25 @@ private:
     };
 
     void setupUi();
-    void buildFormSection(QVBoxLayout* mainLayout);
     void buildProgressSection(QVBoxLayout* mainLayout);
     void buildResultsSection(QVBoxLayout* mainLayout);
     void connectDialogSignals();
-    /// 入力欄と設定の対応を作る
-    void bindSettings();
     void loadSettings();
     void saveSettings();
     /// 表の行の高さ・見た目を今の文字に合わせる
     void fitToFont();
     void applyTableHeaderStyle();
-    void applyModeUi();
+    /// 結果を空にして、生成中の表示にする（生成器を始める直前に呼ぶ）
+    void beginRun(GeneratorMode mode);
+    void startRandom(const EngineEntry& engine);
+    void startRetrograde(const EngineEntry& engine);
     void setRunState(RunState state);
     bool isRunning() const { return m_state == RunState::Running || m_state == RunState::Stopping; }
-    bool isRetrogradeModeSelected() const;
     void setStatusText(const QString& status);
     QString formatElapsedTime(qint64 ms) const;
     QString exportLine(const Result& result) const;
     QString formatRetroPhase(const TsumeRetrogradeGenerator::Progress& progress) const;
 
-    /// エンジンと生成設定（スクロールできる上段）
-    struct SettingsPanel {
-        QComboBox* engine = nullptr;
-        QPushButton* engineSettings = nullptr;
-        QScrollArea* scroll = nullptr;
-        QComboBox* mode = nullptr;
-        QFormLayout* leftForm = nullptr;
-        QFormLayout* rightForm = nullptr;
-        QSpinBox* targetMoves = nullptr;
-        QSpinBox* maxAttack = nullptr;
-        QSpinBox* maxDefend = nullptr;
-        QSpinBox* attackRange = nullptr;
-        QSpinBox* retroMaxAttack = nullptr;
-        QSpinBox* retroMaxDefend = nullptr;
-        QSpinBox* beamWidth = nullptr;
-        QSpinBox* branchFactor = nullptr;
-        QSpinBox* verifyBudget = nullptr;
-        QLabel* timeoutLabel = nullptr;
-        QSpinBox* timeout = nullptr;
-        QSpinBox* maxPositions = nullptr;
-        QCheckBox* allowFinalAlternatives = nullptr; ///< 主手順の最終手の複数解を許容するか
-        QCheckBox* requireNoSurplus = nullptr;       ///< 逆算モード：駒余りを禁止するか
-        QCheckBox* excludeSimilar = nullptr;         ///< 逆算モード：類似作を除外するか
-        QWidget* retroFilesWidget = nullptr;         ///< 逆算モード：種局面・途中保存のファイル設定
-        QLineEdit* seedFile = nullptr;
-        QPushButton* browseSeed = nullptr;
-        QPushButton* clearSeed = nullptr;
-        QLineEdit* excludeFile = nullptr;
-        QPushButton* browseExclude = nullptr;
-        QPushButton* clearExclude = nullptr;
-        QLineEdit* checkpointFile = nullptr;
-        QPushButton* browseCheckpoint = nullptr;
-        QPushButton* clearCheckpoint = nullptr;
-        QCheckBox* resumeCheckpoint = nullptr;
-        QToolButton* help = nullptr;
-        QLabel* helpText = nullptr;
-        QPushButton* restoreDefaults = nullptr;
-    };
     /// 開始・停止と進み具合
     struct ProgressPanel {
         QPushButton* start = nullptr;
@@ -187,16 +133,14 @@ private:
         QPushButton* close = nullptr;
     };
 
-    SettingsPanel m_settingsUi;
+    /// エンジンと生成設定の欄（スクロールできる上段。QObject parent 所有）
+    QScrollArea* m_settingsScroll = nullptr;
+    TsumeshogiGeneratorSettingsPanel* m_settingsPanel = nullptr;
     ProgressPanel m_progressUi;
     ResultsPanel m_resultsUi;
     FooterPanel m_footerUi;
 
-    // エンジンリスト
-    /// エンジンの選択（コンボ・設定ボタン。QObject parent 所有）
-    EngineSelector* m_engineSelector = nullptr;
-    SettingsFormBinding m_conditionsForm;  ///< 生成の条件の欄と設定（「既定値に戻す」の対象）
-    SettingsFormBinding m_displayForm;     ///< 表示の欄（読み筋を含める・説明を開く）と設定
+    SettingsFormBinding m_displayForm;     ///< 表示の欄（読み筋を含める）と設定
 
     // ジェネレータ（parent ownership。ダイアログと同寿命で、開始のたびに再利用する）
     TsumeshogiGenerator* m_generator = nullptr;

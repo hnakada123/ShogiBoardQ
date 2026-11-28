@@ -412,7 +412,7 @@ python3 scripts/publish_diverse_tsume.py data/tsumeshogi/tsume_*ply_1000_2026100
 2. **最終手を含む全主手順の完全一意**: 主手順のすべての攻方手番で余詰がないことに加え、**最終手の複数解も禁止**（`allow_final_move_alternatives=false`）。
 3. **駒余り完全禁止**: すべての最長抵抗応手および最終手で攻方の持駒が空になることを確認（`require_no_surplus=true`）。
 4. **不要駒ゼロ**: `TsumeStrictCertifier` が盤上の玉以外の駒と攻方持駒を1枚ずつ玉方持駒へ移した全候補を調べ、除去可能なら確定して先頭から再走査する。1つでも判定不能（`Unknown`）が残れば局面全体を棄却する。
-5. **類似作除外**: ワーカー内の `TsumeRetrogradeOps::diversityKeys()` とオーケストレータの共有 `tsume_diversity.DiversityIndex` の双方で、平行移動・左右反転・金相当置換・最終手違い・中間手順1手違いを除外する。
+5. **類似作除外**: ワーカー内の `TsumeLineMetrics::diversityKeys()` とオーケストレータの共有 `tsume_diversity.DiversityIndex` の双方で、平行移動・左右反転・金相当置換・最終手違い・中間手順1手違いを除外する。
 
 ### 並列オーケストレータの設計（`scripts/generate_long_tsume_collections.py`）
 

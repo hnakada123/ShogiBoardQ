@@ -1,5 +1,5 @@
 /// @file clicommands_tsume.cpp
-/// @brief shogiboardq-cli の詰将棋コマンド（generate-tsume / verify-tsume）
+/// @brief shogiboardq-cli の詰将棋コマンド（generate-tsume / grow-tsume / verify-tsume）
 
 #include "clicommands.h"
 
@@ -22,6 +22,9 @@
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QTextStream>
+
+#include <algorithm>
+#include <optional>
 
 namespace {
 
@@ -282,6 +285,104 @@ private:
     int m_exitCode = 0;
 };
 
+/// grow-tsume の途中保存と出力先の指定を確かめる。問題があれば、失敗を出力して終了コードを返す
+std::optional<int> checkGrowPaths(const QString& checkpointPath, bool resume, const QString& outputPath)
+{
+    if (resume && checkpointPath.isEmpty()) {
+        return CliOutput::failEvent(ErrorKind::InvalidArgument,
+                                    QStringLiteral("--resume requires --checkpoint-path"));
+    }
+    if (!checkpointPath.isEmpty()) {
+        if (resume) {
+            if (const auto failure = InputPath::check(checkpointPath)) {
+                return CliOutput::failEvent(failure->kind, failure->message);
+            }
+        }
+        if (const auto failure = OutputPath::check(checkpointPath, true, QString())) {
+            return CliOutput::failEvent(failure->kind, failure->message);
+        }
+    }
+    if (!outputPath.isEmpty()) {
+        if (const auto failure = OutputPath::check(outputPath, true, QString())) {
+            return CliOutput::failEvent(failure->kind, failure->message);
+        }
+    }
+    return std::nullopt;
+}
+
+/// 種局面・除外のファイル（引数 paramName）の行を lines に足す。指定が無ければ何もしない。
+/// 読めなければ、失敗を出力して終了コードを返す
+std::optional<int> appendInputLines(const QString& path, const QString& paramName, QStringList& lines)
+{
+    if (path.isEmpty()) return std::nullopt;
+    if (const auto failure = InputPath::check(path)) {
+        return CliOutput::failEvent(failure->kind, failure->message);
+    }
+    QString fileError;
+    // "SFEN" と "SFEN moves ..." の両方をそのまま渡す（PV付きシードは直接フロンティア投入される）
+    const auto read = TsumeRetrogradeGenerator::readInputLines(path, &fileError);
+    if (!read) {
+        return CliOutput::failEvent(ErrorKind::InvalidContent,
+                                    QStringLiteral("Cannot open %1: %2").arg(paramName, fileError));
+    }
+    lines.append(*read);
+    return std::nullopt;
+}
+
+/// grow-tsume の引数（範囲と既定値は CliCommandSpecs の表）を生成器の設定にする。
+/// 種局面・除外・途中保存は呼び出し側が入れる
+TsumeRetrogradeGenerator::Settings growSettings(const QJsonObject& params, const EngineEntry& engine)
+{
+    TsumeRetrogradeGenerator::Settings settings;
+    settings.enginePath = engine.path;
+    settings.engineName = engine.name;
+    settings.targetMoves = params.value(QStringLiteral("target_moves")).toInt();
+    settings.maxPositionsToFind = params.value(QStringLiteral("max_positions")).toInt();
+    settings.beamWidth = params.value(QStringLiteral("beam_width")).toInt();
+    settings.branchFactor = params.value(QStringLiteral("branch_factor")).toInt();
+    settings.maxAttackPieces = params.value(QStringLiteral("max_attack_pieces")).toInt();
+    settings.maxDefendPieces = params.value(QStringLiteral("max_defend_pieces")).toInt();
+    settings.maxTotalBoardPieces = params.value(QStringLiteral("max_total_board_pieces")).toInt();
+    settings.stepTimeoutMs = params.value(QStringLiteral("step_timeout_ms")).toInt();
+    settings.verifyQueryTimeoutMs = params.value(QStringLiteral("verify_query_timeout_ms")).toInt();
+    settings.verifyBudgetMs = static_cast<qint64>(params.value(QStringLiteral("verify_budget_seconds")).toInt()) * 1000LL;
+    settings.engineHashMb = params.value(QStringLiteral("hash_mb")).toInt();
+    settings.engineThreads = params.value(QStringLiteral("threads")).toInt();
+    settings.addRemainingToDefenderHand = params.value(QStringLiteral("add_remaining_to_defender_hand")).toBool();
+    settings.allowFinalMoveAlternatives = params.value(QStringLiteral("allow_final_move_alternatives")).toBool();
+    settings.requireNoSurplus = params.value(QStringLiteral("require_no_surplus")).toBool();
+    settings.strictMinLength = params.value(QStringLiteral("strict_min_length")).toBool();
+    settings.excludeSimilar = params.value(QStringLiteral("exclude_similar")).toBool();
+    settings.checkpointIntervalSec = params.value(QStringLiteral("checkpoint_interval_seconds")).toInt();
+    settings.rngSeed = static_cast<std::uint64_t>(std::max(0, params.value(QStringLiteral("rng_seed")).toInt()));
+    return settings;
+}
+
+/// grow-tsume の started イベントの中身
+QJsonObject growStartedEvent(const TsumeRetrogradeGenerator::Settings& settings, const QJsonObject& params,
+                             const QString& outputPath)
+{
+    QJsonObject started;
+    started[QStringLiteral("engine")] = settings.engineName;
+    started[QStringLiteral("target_moves")] = settings.targetMoves;
+    started[QStringLiteral("max_positions")] = settings.maxPositionsToFind;
+    started[QStringLiteral("beam_width")] = settings.beamWidth;
+    started[QStringLiteral("branch_factor")] = settings.branchFactor;
+    started[QStringLiteral("max_attack_pieces")] = settings.maxAttackPieces;
+    started[QStringLiteral("max_defend_pieces")] = settings.maxDefendPieces;
+    started[QStringLiteral("max_total_board_pieces")] = settings.maxTotalBoardPieces;
+    started[QStringLiteral("step_timeout_ms")] = settings.stepTimeoutMs;
+    started[QStringLiteral("verify_query_timeout_ms")] = settings.verifyQueryTimeoutMs;
+    started[QStringLiteral("verify_budget_seconds")] = params.value(QStringLiteral("verify_budget_seconds")).toInt();
+    started[QStringLiteral("allow_final_move_alternatives")] = settings.allowFinalMoveAlternatives;
+    started[QStringLiteral("require_no_surplus")] = settings.requireNoSurplus;
+    started[QStringLiteral("strict_min_length")] = settings.strictMinLength;
+    started[QStringLiteral("resume")] = settings.resumeFromCheckpoint;
+    if (!settings.checkpointPath.isEmpty()) started[QStringLiteral("checkpoint_path")] = settings.checkpointPath;
+    if (!outputPath.isEmpty()) started[QStringLiteral("output_path")] = outputPath;
+    return started;
+}
+
 } // namespace
 
 int CliCommands::generateTsume(const QJsonObject& params)
@@ -353,95 +454,27 @@ int CliCommands::growTsume(const QJsonObject& params)
 
     const QString checkpointPath = params.value(QStringLiteral("checkpoint_path")).toString();
     const bool resume = params.value(QStringLiteral("resume")).toBool();
-    if (resume && checkpointPath.isEmpty()) {
-        return CliOutput::failEvent(ErrorKind::InvalidArgument,
-                                    QStringLiteral("--resume requires --checkpoint-path"));
-    }
-    if (!checkpointPath.isEmpty()) {
-        if (resume) {
-            if (const auto failure = InputPath::check(checkpointPath)) {
-                return CliOutput::failEvent(failure->kind, failure->message);
-            }
-        }
-        if (const auto failure = OutputPath::check(checkpointPath, true, QString())) {
-            return CliOutput::failEvent(failure->kind, failure->message);
-        }
-    }
-
     const QString outputPath = params.value(QStringLiteral("output_path")).toString();
-    if (!outputPath.isEmpty()) {
-        if (const auto failure = OutputPath::check(outputPath, true, QString())) {
-            return CliOutput::failEvent(failure->kind, failure->message);
-        }
-    }
+    if (const auto failed = checkGrowPaths(checkpointPath, resume, outputPath)) return *failed;
 
     QStringList seedSfens;
     const QString seedSfen = params.value(QStringLiteral("seed_sfen")).toString().trimmed();
     if (!seedSfen.isEmpty()) seedSfens.append(seedSfen);
-
-    const QString seedFilePath = params.value(QStringLiteral("seed_file")).toString();
-    if (!seedFilePath.isEmpty()) {
-        if (const auto failure = InputPath::check(seedFilePath)) {
-            return CliOutput::failEvent(failure->kind, failure->message);
-        }
-        QFile file(seedFilePath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            return CliOutput::failEvent(ErrorKind::InvalidContent,
-                                        QStringLiteral("Cannot open seed_file: %1").arg(file.errorString()));
-        }
-        const QStringList lines = QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
-        for (const QString& rawLine : lines) {
-            const QString line = rawLine.trimmed();
-            if (line.isEmpty() || line.startsWith(QLatin1Char('#'))) continue;
-            // "SFEN" と "SFEN moves ..." の両方をそのまま渡す（PV付きシードは直接フロンティア投入される）
-            seedSfens.append(line);
-        }
+    if (const auto failed = appendInputLines(params.value(QStringLiteral("seed_file")).toString(),
+                                             QStringLiteral("seed_file"), seedSfens)) {
+        return *failed;
     }
-
     QStringList excludeLines;
-    const QString excludeFilePath = params.value(QStringLiteral("exclude_file")).toString();
-    if (!excludeFilePath.isEmpty()) {
-        if (const auto failure = InputPath::check(excludeFilePath)) {
-            return CliOutput::failEvent(failure->kind, failure->message);
-        }
-        QFile file(excludeFilePath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            return CliOutput::failEvent(ErrorKind::InvalidContent,
-                                        QStringLiteral("Cannot open exclude_file: %1").arg(file.errorString()));
-        }
-        const QStringList lines = QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
-        for (const QString& rawLine : lines) {
-            const QString line = rawLine.trimmed();
-            if (!line.isEmpty() && !line.startsWith(QLatin1Char('#'))) excludeLines.append(line);
-        }
+    if (const auto failed = appendInputLines(params.value(QStringLiteral("exclude_file")).toString(),
+                                             QStringLiteral("exclude_file"), excludeLines)) {
+        return *failed;
     }
 
-    TsumeRetrogradeGenerator::Settings settings;
-    settings.enginePath = engine->path;
-    settings.engineName = engine->name;
-    settings.targetMoves = targetMoves;
-    settings.maxPositionsToFind = params.value(QStringLiteral("max_positions")).toInt();
-    settings.beamWidth = params.value(QStringLiteral("beam_width")).toInt();
-    settings.branchFactor = params.value(QStringLiteral("branch_factor")).toInt();
-    settings.maxAttackPieces = params.value(QStringLiteral("max_attack_pieces")).toInt();
-    settings.maxDefendPieces = params.value(QStringLiteral("max_defend_pieces")).toInt();
-    settings.maxTotalBoardPieces = params.value(QStringLiteral("max_total_board_pieces")).toInt();
-    settings.stepTimeoutMs = params.value(QStringLiteral("step_timeout_ms")).toInt();
-    settings.verifyQueryTimeoutMs = params.value(QStringLiteral("verify_query_timeout_ms")).toInt();
-    settings.verifyBudgetMs = static_cast<qint64>(params.value(QStringLiteral("verify_budget_seconds")).toInt()) * 1000LL;
-    settings.engineHashMb = params.value(QStringLiteral("hash_mb")).toInt();
-    settings.engineThreads = params.value(QStringLiteral("threads")).toInt();
-    settings.addRemainingToDefenderHand = params.value(QStringLiteral("add_remaining_to_defender_hand")).toBool();
-    settings.allowFinalMoveAlternatives = params.value(QStringLiteral("allow_final_move_alternatives")).toBool();
-    settings.requireNoSurplus = params.value(QStringLiteral("require_no_surplus")).toBool();
-    settings.strictMinLength = params.value(QStringLiteral("strict_min_length")).toBool();
-    settings.excludeSimilar = params.value(QStringLiteral("exclude_similar")).toBool();
+    TsumeRetrogradeGenerator::Settings settings = growSettings(params, *engine);
     settings.seedSfens = seedSfens;
     settings.excludeLines = excludeLines;
     settings.checkpointPath = checkpointPath;
     settings.resumeFromCheckpoint = resume;
-    settings.checkpointIntervalSec = params.value(QStringLiteral("checkpoint_interval_seconds")).toInt();
-    settings.rngSeed = static_cast<std::uint64_t>(std::max(0, params.value(QStringLiteral("rng_seed")).toInt()));
 
     TsumeRetrogradeGenerator generator;
     QEventLoop loop;
@@ -455,25 +488,7 @@ int CliCommands::growTsume(const QJsonObject& params)
     QObject::connect(&watcher, &CliStopWatcher::stopRequested, &reporter, &GrowReporter::onStopRequested);
     QObject::connect(&watcher, &CliStopWatcher::lineReceived, &reporter, &GrowReporter::onControlLine);
 
-    QJsonObject started;
-    started[QStringLiteral("engine")] = engine->name;
-    started[QStringLiteral("target_moves")] = targetMoves;
-    started[QStringLiteral("max_positions")] = settings.maxPositionsToFind;
-    started[QStringLiteral("beam_width")] = settings.beamWidth;
-    started[QStringLiteral("branch_factor")] = settings.branchFactor;
-    started[QStringLiteral("max_attack_pieces")] = settings.maxAttackPieces;
-    started[QStringLiteral("max_defend_pieces")] = settings.maxDefendPieces;
-    started[QStringLiteral("max_total_board_pieces")] = settings.maxTotalBoardPieces;
-    started[QStringLiteral("step_timeout_ms")] = settings.stepTimeoutMs;
-    started[QStringLiteral("verify_query_timeout_ms")] = settings.verifyQueryTimeoutMs;
-    started[QStringLiteral("verify_budget_seconds")] = params.value(QStringLiteral("verify_budget_seconds")).toInt();
-    started[QStringLiteral("allow_final_move_alternatives")] = settings.allowFinalMoveAlternatives;
-    started[QStringLiteral("require_no_surplus")] = settings.requireNoSurplus;
-    started[QStringLiteral("strict_min_length")] = settings.strictMinLength;
-    started[QStringLiteral("resume")] = settings.resumeFromCheckpoint;
-    if (!checkpointPath.isEmpty()) started[QStringLiteral("checkpoint_path")] = checkpointPath;
-    if (!outputPath.isEmpty()) started[QStringLiteral("output_path")] = outputPath;
-    CliOutput::printEvent(QStringLiteral("started"), started);
+    CliOutput::printEvent(QStringLiteral("started"), growStartedEvent(settings, params, outputPath));
 
     if (!generator.start(settings)) {
         return reporter.exitCode() != 0 ? reporter.exitCode() : 1;

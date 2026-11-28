@@ -5,31 +5,34 @@
 /// @brief 詰み局面からの逆算・盤面編集・余詰リペア・多層ビームサーチによる長手数詰将棋自動生成器
 
 #include "mateoracle.h"
-#include "tsumeretrogradeops.h"
+#include "tsumefirstmovecheck.h"
+#include "tsumeretrogradebeam.h"
 #include "tsumeshogiverifier.h"
 #include "tsumestrictcertifier.h"
 
 #include <QElapsedTimer>
 #include <QJsonObject>
 #include <QObject>
-#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
 
 #include <cstdint>
-#include <deque>
 #include <map>
 #include <memory>
 #include <optional>
-#include <random>
 #include <string>
-#include <unordered_set>
+
+class TsumeMateQueryLink;
 
 /**
  * @brief 詰み局面（0手）または種局面から逆算・駒追加移動・余詰リペアで長手数詰将棋を育成・厳密証明する生成器
  *
- * GUI・CLI から共通利用できる QObject として設計されている。
+ * GUI・CLI から共通利用できる QObject として設計されている。エンジンへの問い合わせと、その答えで
+ * 何をするか（候補の評価 → 初手余詰の検査 → 厳密証明）の順番を受け持つ。エンジンを使わない部分は別の部品:
+ * 探索の状態と候補の供給は TsumeRetrogradeBeam、エンジンの起動・問い合わせ・再起動は TsumeMateQueryLink、
+ * 内蔵探索による事前ふるい分けは TsumeLocalScreen、初手余詰の軽い検査は TsumeFirstMoveCheck、
+ * 厳密証明は TsumeStrictCertifier、途中保存ファイルの形式は TsumeRetrogradeCheckpoint。
  * - 多層ビームサーチ（手数層ごとに有望・多様な局面を保持）
  * - 案B 長手数ヒューリスティック（駒余りゼロ優先・玉移動距離・捨駒・合駒・展開回数制御）
  * - 初手余詰検出と標的型リペアキュー
@@ -92,13 +95,8 @@ public:
         qint64 elapsedMs = 0;
     };
 
-    struct FoundPosition {
-        QString sfen;
-        QStringList pv;
-        int removedPieces = 0;
-        int verifyQueries = 0;
-        qint64 verifyMs = 0;
-    };
+    /// 採択した局面
+    using FoundPosition = TsumeRetrogradeBeam::FoundPosition;
 
     explicit TsumeRetrogradeGenerator(QObject* parent = nullptr);
     ~TsumeRetrogradeGenerator() override;
@@ -118,9 +116,11 @@ public:
     /// 現在の進捗スナップショット
     Progress progress() const;
     /// これまでに採択した局面一覧（チェックポイントから復元した分も含む）
-    const QList<FoundPosition>& foundPositions() const { return m_foundPositions; }
+    const QList<FoundPosition>& foundPositions() const { return m_beam.foundPositions(); }
     /// 現在のチェックポイント JSON（テスト・永続化用）
     QJsonObject buildCheckpointJson() const;
+    /// 種局面・除外のファイルを読み、空行と # で始まる行を除いた行を返す。開けなければ nullopt（理由は errorString）
+    static std::optional<QStringList> readInputLines(const QString& path, QString* errorString = nullptr);
     /// チェックポイントファイルへ原子的に保存する
     bool saveCheckpointNow(QString* errorMessage = nullptr);
 
@@ -133,7 +133,9 @@ signals:
 
 private slots:
     void onEngineReady();
-    void onOracleAnswered(const MateAnswer& answer);
+    void onQuerySent();
+    void onOracleAnswered(const MateAnswer& answer, qint64 elapsedMs);
+    void onEngineUnsupported();
     void onOracleTimedOut();
     void onOracleError(const QString& message);
     void onStepTimer();
@@ -141,48 +143,6 @@ private slots:
     void onCheckpointTimer();
 
 private:
-    struct BeamNode {
-        QString sfen;
-        QStringList pv;
-        int plies = 0;
-        int surplusCount = 0;
-        double score = 0.0;
-        int expansions = 0;
-        bool firstMoveUnique = false;
-        QString signature;
-    };
-
-    struct RepairItem {
-        QString sfen;
-        QString mainMove;
-        QString cookMove;
-        int plies = 0;
-        int attempts = 0;
-    };
-
-    struct EvalItem {
-        QString sfen;
-        QString tag;
-        int minDesiredPlies = 1;
-        bool fromRepair = false;
-    };
-
-    /// 成長中の軽量初手余詰チェック状態
-    struct FirstMoveCheckState {
-        QString sfen;
-        QStringList mainPv;
-        TsumeRetrogradeOps::Metrics metrics;
-        bool fromRepair = false;
-        QStringList altMoves;
-        int altMoveIndex = 0;
-        QStringList defenses;
-        int defenseIndex = 0;
-        bool altUnresolved = false;
-        int queriesUsed = 0;
-        int maxQueries = 48;
-        QString activeQuerySfen;
-    };
-
     enum class ActiveMode {
         Idle,
         EvalCandidate,
@@ -192,29 +152,18 @@ private:
 
     bool loadCheckpointFile(const QString& path, QString* errorMessage);
     void initializeFreshSeeds();
-    void enqueueEndingSeeds(int count);
-    void startOracle();
-    void restartOracleForRecovery();
-    void teardownOracle();
+    void restartEngineForRecovery();
     void scheduleStep();
     void driveNext();
-    void expandNextBatch();
+    void beginCertification(const TsumeRetrogradeBeam::PendingCertifyItem& item);
+    void evaluateQueuedCandidates();
     void submitEvalAnswer(const MateAnswer& answer);
+    void submitTargetCandidate(const MateAnswer& answer, int plies);
     void startFirstMoveCheck(const QString& sfen, const QStringList& pv,
-                             const TsumeRetrogradeOps::Metrics& metrics, bool fromRepair);
+                             const TsumeLineMetrics::Metrics& metrics, bool fromRepair);
     void stepFirstMoveCheck();
     void submitFirstMoveCheckAnswer(const MateAnswer& answer);
-    void finishFirstMoveCheck(bool unique, const QString& cookMove);
-    void addToFrontier(const BeamNode& node);
-    void addToRepairQueue(const QString& sfen, const QString& mainMove, const QString& cookMove, int plies);
-    struct PendingCertifyItem {
-        QString sfen;
-        bool allowTrimOnReject = true;
-    };
-
-    void enqueueForCertification(const QString& sfen, const QStringList& pv, bool allowTrimOnReject = true);
-    bool isSimilarToAccepted(const QString& sfen, const QStringList& pv) const;
-    void registerDiversityKeys(const QString& sfen, const QStringList& pv);
+    void finishFirstMoveCheck();
     void stepCertifier();
     void submitCertifierAnswer(const MateAnswer& answer, qint64 elapsedMs);
     void finishCertifier();
@@ -223,64 +172,36 @@ private:
     void finishRun(bool stopped);
     void failRun(const QString& message);
     void pruneFastCacheIfNeeded();
-    bool markVisited(const QString& sfen);
-    static std::uint64_t hashSfen(const QString& sfen);
-    TsumeRetrogradeOps::Limits opLimits() const;
+    /// 成長フェーズで分かった答え（無ければ nullptr）
+    const MateAnswer* cachedAnswer(const QString& sfen) const;
+    /// 再開前を含む経過時間
+    qint64 elapsedMs() const;
+    TsumeRetrogradeBeam::Config beamConfig() const;
     TsumeStrictCertifier::Settings certifierSettings() const;
 
     Settings m_settings;
     bool m_running = false;
     bool m_stopping = false;
-    bool m_engineReady = false;
-    bool m_awaitingAnswer = false;
-    bool m_lastQueryWasStrict = false;
-    bool m_hashDirty = false;
-    int m_consecutiveRecoveries = 0;
-    QString m_activeQuerySfen;
     ActiveMode m_mode = ActiveMode::Idle;
 
-    MateOracle* m_oracle = nullptr;
+    /// エンジンへの問い合わせの窓口（QObject parent 所有）
+    TsumeMateQueryLink* m_engine = nullptr;
     QTimer m_stepTimer;
     QTimer m_progressTimer;
     QTimer m_checkpointTimer;
     QElapsedTimer m_sessionTimer;
-    QElapsedTimer m_queryTimer;
-    qint64 m_accumulatedElapsedMs = 0;
 
-    std::mt19937_64 m_rng;
-    std::uint64_t m_rngSeedUsed = 0;
-    qint64 m_rngDraws = 0;
-
-    // 探索状態
-    std::map<int, QList<BeamNode>> m_frontier;
-    std::deque<RepairItem> m_repairQueue;
-    std::deque<EvalItem> m_evalQueue;
-    std::deque<PendingCertifyItem> m_pendingCertify;
+    /// 探索の状態（ビーム・待ち行列・既出の記録・統計・乱数）
+    TsumeRetrogradeBeam m_beam;
+    // 進行中の処理（どれも無ければ、評価待ちの候補を評価する）
     bool m_activeCertifierAllowTrim = true;
-    std::optional<FirstMoveCheckState> m_firstCheck;
+    std::optional<TsumeFirstMoveCheck> m_firstCheck;
     std::unique_ptr<TsumeStrictCertifier> m_activeCertifier;
-    EvalItem m_activeEval;
-
-    std::unordered_set<std::uint64_t> m_visitedHashes;
-    std::deque<std::uint64_t> m_visitedOrder;
-    QSet<QString> m_foundSfens;
-    QSet<QString> m_certifiedQueuedOrDone;
-    QSet<QString> m_diversityKeys;
-    QList<FoundPosition> m_foundPositions;
+    TsumeRetrogradeBeam::EvalItem m_activeEval;
 
     // 成長フェーズ用キャッシュと厳密証明フェーズ用キャッシュは分離する
     std::map<std::string, MateAnswer> m_fastCache;
     std::map<std::string, TsumeshogiVerifier::CacheEntry> m_strictCache;
-
-    // 統計
-    int m_maxPliesReached = 0;
-    qint64 m_generatedCandidates = 0;
-    qint64 m_engineQueries = 0;
-    int m_certifiedRejected = 0;
-    int m_certifiedInconclusive = 0;
-    int m_repairSucceeded = 0;
-    int m_engineRestarts = 0;
-    int m_batchesSinceProgress = 0;
 };
 
 Q_DECLARE_METATYPE(TsumeRetrogradeGenerator::Progress)

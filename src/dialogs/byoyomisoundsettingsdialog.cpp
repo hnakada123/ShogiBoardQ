@@ -146,22 +146,22 @@ void ByoyomiSoundSettingsDialog::onVoiceDirEdited()
 
 void ByoyomiSoundSettingsDialog::previewNotice()
 {
-    emit previewRequested(ByoyomiSoundPlayer::Cue::Notice);
+    emit previewRequested(ByoyomiSoundCue::Notice);
 }
 
 void ByoyomiSoundSettingsDialog::previewTick()
 {
-    emit previewRequested(ByoyomiSoundPlayer::Cue::Tick);
+    emit previewRequested(ByoyomiSoundCue::Tick);
 }
 
 void ByoyomiSoundSettingsDialog::previewUrgent()
 {
-    emit previewRequested(ByoyomiSoundPlayer::Cue::Urgent);
+    emit previewRequested(ByoyomiSoundCue::Urgent);
 }
 
 void ByoyomiSoundSettingsDialog::previewTimeout()
 {
-    emit previewRequested(ByoyomiSoundPlayer::Cue::Timeout);
+    emit previewRequested(ByoyomiSoundCue::Timeout);
 }
 
 void ByoyomiSoundSettingsDialog::restoreDefaults()

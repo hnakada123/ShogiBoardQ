@@ -1,5 +1,5 @@
 /// @file tsumeshogigeneratordialog.cpp
-/// @brief 詰将棋局面生成ダイアログの設定・生成制御
+/// @brief 詰将棋局面生成ダイアログ（生成の開始と停止・進み具合・結果）
 
 #include "tsumeshogigeneratordialog.h"
 #include "appsettings.h"
@@ -7,7 +7,7 @@
 #include "fontsizehelper.h"
 #include "tsumeshogisettings.h"
 #include "dialogutils.h"
-#include "engineselector.h"
+#include "tsumeshogigeneratorsettingspanel.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -61,19 +61,12 @@ TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     auto* fontScale = DialogFontScale::install(this, TsumeshogiSettings::tsumeshogiGeneratorFontSize, fontOptions);
     connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &TsumeshogiGeneratorDialog::fitToFont);
     fitToFont();
-    // エンジンの一覧と前回選んだエンジン
-    EngineSelector::Options engineOptions;
-    engineOptions.keys = EngineSelectionSettings::tsumeshogiGeneratorSelection();
-    m_engineSelector = new EngineSelector({m_settingsUi.engine, m_settingsUi.engineSettings, nullptr}, engineOptions, this);
-    connect(m_engineSelector, &EngineSelector::settingsRequested,
-            this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
-    bindSettings();
+    m_displayForm.add(m_resultsUi.includePv, TsumeshogiSettings::tsumeshogiGeneratorIncludePv);
     loadSettings();
-    applyModeUi();
 
     // 初期状態
     setRunState(RunState::NotStarted);
-    setStatusText(!m_engineSelector->hasEngines()
+    setStatusText(!m_settingsPanel->hasEngines()
         ? tr("設定メニューで詰将棋エンジンを登録してください。") : tr("待機中"));
 }
 
@@ -96,7 +89,7 @@ void TsumeshogiGeneratorDialog::showEvent(QShowEvent* event)
 {
     QDialog::showEvent(event);
     // 説明や逆算設定を開いたまま閉じた場合も、次に開いたとき設定欄を隠さない（配置が決まってから調整する）
-    if (m_settingsUi.help->isChecked() || isRetrogradeModeSelected()) {
+    if (m_settingsPanel->isExpanded()) {
         QTimer::singleShot(0, this, &TsumeshogiGeneratorDialog::fitSettingsArea);
     }
 }
@@ -109,20 +102,13 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
     connect(m_resultsUi.copySelected, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopySelected);
     connect(m_resultsUi.copyAll, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopyAll);
     connect(m_footerUi.close, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::close);
-    connect(m_settingsUi.restoreDefaults, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onRestoreDefaults);
     connect(m_resultsUi.table, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
     connect(m_resultsUi.table, &QTableWidget::activated, this, &TsumeshogiGeneratorDialog::onResultTableActivated);
     connect(m_resultsUi.table, &QTableWidget::itemSelectionChanged, this, &TsumeshogiGeneratorDialog::updateResultActions);
-    connect(m_settingsUi.maxPositions, &QSpinBox::valueChanged, this, &TsumeshogiGeneratorDialog::updateProgressBar);
-    connect(m_settingsUi.help, &QToolButton::toggled, this, &TsumeshogiGeneratorDialog::toggleHelp);
-    connect(m_settingsUi.mode, &QComboBox::currentIndexChanged, this, &TsumeshogiGeneratorDialog::onModeChanged);
-    connect(m_settingsUi.browseSeed, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onBrowseSeedFile);
-    connect(m_settingsUi.clearSeed, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onClearSeedFile);
-    connect(m_settingsUi.browseExclude, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onBrowseExcludeFile);
-    connect(m_settingsUi.clearExclude, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onClearExcludeFile);
-    connect(m_settingsUi.browseCheckpoint, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onBrowseCheckpointFile);
-    connect(m_settingsUi.clearCheckpoint, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onClearCheckpointFile);
-    connect(m_settingsUi.resumeCheckpoint, &QCheckBox::toggled, this, &TsumeshogiGeneratorDialog::onResumeCheckpointToggled);
+    connect(m_settingsPanel, &TsumeshogiGeneratorSettingsPanel::maxPositionsChanged,
+            this, &TsumeshogiGeneratorDialog::updateProgressBar);
+    connect(m_settingsPanel, &TsumeshogiGeneratorSettingsPanel::contentHeightChanged,
+            this, &TsumeshogiGeneratorDialog::onSettingsHeightChanged);
 
     connect(m_generator, &TsumeshogiGenerator::positionFound,
             this, &TsumeshogiGeneratorDialog::onPositionFound);
@@ -153,177 +139,82 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
             this, &TsumeshogiGeneratorDialog::onGeneratorError);
 }
 
-void TsumeshogiGeneratorDialog::bindSettings()
-{
-    // 生成の条件（「既定値に戻す」の対象）と、表示の設定
-    m_conditionsForm.add(m_settingsUi.mode, TsumeshogiSettings::tsumeshogiGeneratorMode);
-    m_conditionsForm.add(m_settingsUi.targetMoves, TsumeshogiSettings::tsumeshogiGeneratorTargetMoves);
-    m_conditionsForm.add(m_settingsUi.maxAttack, TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces);
-    m_conditionsForm.add(m_settingsUi.maxDefend, TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces);
-    m_conditionsForm.add(m_settingsUi.attackRange, TsumeshogiSettings::tsumeshogiGeneratorAttackRange);
-    m_conditionsForm.add(m_settingsUi.retroMaxAttack, TsumeshogiSettings::tsumeshogiGeneratorRetroMaxAttackPieces);
-    m_conditionsForm.add(m_settingsUi.retroMaxDefend, TsumeshogiSettings::tsumeshogiGeneratorRetroMaxDefendPieces);
-    m_conditionsForm.add(m_settingsUi.beamWidth, TsumeshogiSettings::tsumeshogiGeneratorBeamWidth);
-    m_conditionsForm.add(m_settingsUi.branchFactor, TsumeshogiSettings::tsumeshogiGeneratorBranchFactor);
-    m_conditionsForm.add(m_settingsUi.verifyBudget, TsumeshogiSettings::tsumeshogiGeneratorVerifyBudgetSec);
-    m_conditionsForm.add(m_settingsUi.timeout, TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec);
-    m_conditionsForm.add(m_settingsUi.maxPositions, TsumeshogiSettings::tsumeshogiGeneratorMaxPositions);
-    m_conditionsForm.add(m_settingsUi.allowFinalAlternatives,
-                         TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives);
-    m_conditionsForm.add(m_settingsUi.requireNoSurplus, TsumeshogiSettings::tsumeshogiGeneratorRequireNoSurplus);
-    m_conditionsForm.add(m_settingsUi.excludeSimilar, TsumeshogiSettings::tsumeshogiGeneratorExcludeSimilar);
-    m_conditionsForm.add(m_settingsUi.seedFile, TsumeshogiSettings::tsumeshogiGeneratorSeedFile);
-    m_conditionsForm.add(m_settingsUi.excludeFile, TsumeshogiSettings::tsumeshogiGeneratorExcludeFile);
-    m_conditionsForm.add(m_settingsUi.checkpointFile, TsumeshogiSettings::tsumeshogiGeneratorCheckpointFile);
-    m_conditionsForm.add(m_settingsUi.resumeCheckpoint, TsumeshogiSettings::tsumeshogiGeneratorResumeCheckpoint);
-    m_displayForm.add(m_resultsUi.includePv, TsumeshogiSettings::tsumeshogiGeneratorIncludePv);
-    m_displayForm.add(m_settingsUi.help, TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded);
-}
-
 void TsumeshogiGeneratorDialog::loadSettings()
 {
-    // 以前の版が保存した偶数の目標手数は、設定の側で奇数に直してから読む
-    TsumeshogiSettings::upgradeLegacyGeneratorTargetMoves();
-    m_conditionsForm.load();
+    m_settingsPanel->loadSettings();
     m_displayForm.load();
 }
 
 void TsumeshogiGeneratorDialog::saveSettings()
 {
-    m_engineSelector->saveSelection();
-    m_conditionsForm.save();
+    m_settingsPanel->saveSettings();
     m_displayForm.save();
-}
-
-bool TsumeshogiGeneratorDialog::isRetrogradeModeSelected() const
-{
-    return m_settingsUi.mode && m_settingsUi.mode->currentIndex() == static_cast<int>(GeneratorMode::Retrograde);
 }
 
 void TsumeshogiGeneratorDialog::onStartClicked()
 {
     if (isRunning()) return;
-    const std::optional<EngineEntry> engine = m_engineSelector->selected();
+    const std::optional<EngineEntry> engine = m_settingsPanel->selectedEngine();
     if (!engine) {
         DialogUtils::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
         return;
     }
-
-    if (isRetrogradeModeSelected()) {
-        const QString checkpointPath = m_settingsUi.checkpointFile->text().trimmed();
-        const bool resume = m_settingsUi.resumeCheckpoint->isChecked();
-        if (resume && checkpointPath.isEmpty()) {
-            DialogUtils::warning(this, tr("エラー"),
-                                 tr("途中保存から再開するにはチェックポイントファイルを指定してください。"));
-            return;
-        }
-
-        QStringList seedLines;
-        const QString seedPath = m_settingsUi.seedFile->text().trimmed();
-        if (!resume && !seedPath.isEmpty()) {
-            QFile seedFile(seedPath);
-            if (!seedFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                DialogUtils::warning(this, tr("エラー"),
-                                     tr("種局面ファイルを開けませんでした: %1").arg(seedFile.errorString()));
-                return;
-            }
-            const QStringList rawLines = QString::fromUtf8(seedFile.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
-            for (const QString& raw : rawLines) {
-                const QString line = raw.trimmed();
-                if (!line.isEmpty() && !line.startsWith(QLatin1Char('#'))) seedLines.append(line);
-            }
-        }
-
-        QStringList excludeLines;
-        const QString excludePath = m_settingsUi.excludeFile->text().trimmed();
-        if (!excludePath.isEmpty()) {
-            QFile excludeFile(excludePath);
-            if (!excludeFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                DialogUtils::warning(this, tr("エラー"),
-                                     tr("除外ファイルを開けませんでした: %1").arg(excludeFile.errorString()));
-                return;
-            }
-            const QStringList rawLines = QString::fromUtf8(excludeFile.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
-            for (const QString& raw : rawLines) {
-                const QString line = raw.trimmed();
-                if (!line.isEmpty() && !line.startsWith(QLatin1Char('#'))) excludeLines.append(line);
-            }
-        }
-
-        TsumeRetrogradeGenerator::Settings settings;
-        settings.enginePath = engine->path;
-        settings.engineName = engine->name;
-        settings.targetMoves = m_settingsUi.targetMoves->value();
-        settings.maxPositionsToFind = m_settingsUi.maxPositions->value();
-        settings.maxAttackPieces = m_settingsUi.retroMaxAttack->value();
-        settings.maxDefendPieces = m_settingsUi.retroMaxDefend->value();
-        settings.beamWidth = m_settingsUi.beamWidth->value();
-        settings.branchFactor = m_settingsUi.branchFactor->value();
-        settings.stepTimeoutMs = m_settingsUi.timeout->value() * 1000;
-        settings.verifyQueryTimeoutMs = qBound(5000, m_settingsUi.timeout->value() * 3000, 60000);
-        settings.verifyBudgetMs = static_cast<qint64>(m_settingsUi.verifyBudget->value()) * 1000LL;
-        settings.allowFinalMoveAlternatives = m_settingsUi.allowFinalAlternatives->isChecked();
-        settings.requireNoSurplus = m_settingsUi.requireNoSurplus->isChecked();
-        settings.excludeSimilar = m_settingsUi.excludeSimilar->isChecked();
-        settings.strictMinLength = true;
-        settings.seedSfens = seedLines;
-        settings.excludeLines = excludeLines;
-        settings.checkpointPath = checkpointPath;
-        settings.resumeFromCheckpoint = resume;
-
-        m_results.clear();
-        m_resultsUi.table->setRowCount(0);
-
-        m_activeMode = GeneratorMode::Retrograde;
-        m_lastRunRetroSettings = settings;
-        m_lastRunStartedAt = QDateTime::currentDateTime();
-
-        setRunState(RunState::Running);
-        onProgressUpdated(0, 0, 0);
-        onVerificationStatsUpdated(0, 0);
-        setStatusText(tr("エンジンを起動中"));
-        if (!m_retroGenerator->start(settings)) {
-            if (isRunning()) setRunState(RunState::Failed);
-            return;
-        }
-        // チェックポイントから再開した場合、既に採択済みの局面を結果一覧と進捗表示へ復元する
-        const auto& restored = m_retroGenerator->foundPositions();
-        if (!restored.isEmpty()) {
-            for (const auto& fp : restored) {
-                onPositionFound(fp.sfen, fp.pv);
-            }
-            onRetroProgressUpdated(m_retroGenerator->progress());
-            setStatusText(tr("エンジンを起動中"));
-        }
-        return;
+    if (m_settingsPanel->mode() == TsumeshogiGeneratorSettingsPanel::Mode::Retrograde) {
+        startRetrograde(*engine);
+    } else {
+        startRandom(*engine);
     }
+}
 
-    // ランダム配置モードの設定を構築
-    TsumeshogiGenerator::Settings settings;
-    settings.enginePath = engine->path;
-    settings.engineName = engine->name;
-    settings.targetMoves = m_settingsUi.targetMoves->value();
-    settings.timeoutMs = m_settingsUi.timeout->value() * 1000;
-    settings.maxPositionsToFind = m_settingsUi.maxPositions->value();
-    settings.allowFinalMoveAlternatives = m_settingsUi.allowFinalAlternatives->isChecked();
-    settings.posGenSettings.maxAttackPieces = m_settingsUi.maxAttack->value();
-    settings.posGenSettings.maxDefendPieces = m_settingsUi.maxDefend->value();
-    settings.posGenSettings.attackRange = m_settingsUi.attackRange->value();
-
+void TsumeshogiGeneratorDialog::beginRun(GeneratorMode mode)
+{
     // 結果をクリア
     m_results.clear();
     m_resultsUi.table->setRowCount(0);
 
-    // ファイル保存時のコメントヘッダ用に、この実行の設定と開始日時を控える
-    m_activeMode = GeneratorMode::Random;
-    m_lastRunSettings = settings;
+    // ファイル保存時のコメントヘッダ用に、この実行の方式と開始日時を控える（設定は呼び出し側が控える）
+    m_activeMode = mode;
     m_lastRunStartedAt = QDateTime::currentDateTime();
 
     setRunState(RunState::Running);
     onProgressUpdated(0, 0, 0);
     onVerificationStatsUpdated(0, 0);
     setStatusText(tr("エンジンを起動中"));
+}
+
+void TsumeshogiGeneratorDialog::startRandom(const EngineEntry& engine)
+{
+    const TsumeshogiGenerator::Settings settings = m_settingsPanel->randomSettings(engine);
+    m_lastRunSettings = settings;
+    beginRun(GeneratorMode::Random);
     m_generator->start(settings);
+}
+
+void TsumeshogiGeneratorDialog::startRetrograde(const EngineEntry& engine)
+{
+    QString settingsError;
+    const std::optional<TsumeRetrogradeGenerator::Settings> settings =
+        m_settingsPanel->retrogradeSettings(engine, &settingsError);
+    if (!settings) {
+        DialogUtils::warning(this, tr("エラー"), settingsError);
+        return;
+    }
+
+    m_lastRunRetroSettings = *settings;
+    beginRun(GeneratorMode::Retrograde);
+    if (!m_retroGenerator->start(*settings)) {
+        if (isRunning()) setRunState(RunState::Failed);
+        return;
+    }
+    // チェックポイントから再開した場合、既に採択済みの局面を結果一覧と進捗表示へ復元する
+    const auto& restored = m_retroGenerator->foundPositions();
+    if (!restored.isEmpty()) {
+        for (const auto& fp : restored) {
+            onPositionFound(fp.sfen, fp.pv);
+        }
+        onRetroProgressUpdated(m_retroGenerator->progress());
+        setStatusText(tr("エンジンを起動中"));
+    }
 }
 
 void TsumeshogiGeneratorDialog::onStopClicked()
@@ -453,77 +344,6 @@ QString TsumeshogiGeneratorDialog::formatRetroPhase(const TsumeRetrogradeGenerat
         .arg(progress.frontierNodes);
 }
 
-void TsumeshogiGeneratorDialog::onModeChanged(int index)
-{
-    Q_UNUSED(index)
-    applyModeUi();
-    if (isVisible()) fitSettingsArea();
-}
-
-void TsumeshogiGeneratorDialog::onBrowseSeedFile()
-{
-    const QString initialDir = m_settingsUi.seedFile->text().trimmed().isEmpty()
-        ? TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory()
-        : QFileInfo(m_settingsUi.seedFile->text().trimmed()).absolutePath();
-    const QString path = QFileDialog::getOpenFileName(
-        this,
-        tr("種局面ファイルを選択"),
-        initialDir,
-        tr("テキストファイル (*.txt *.sfen);;すべてのファイル (*)"));
-    if (!path.isEmpty()) m_settingsUi.seedFile->setText(path);
-}
-
-void TsumeshogiGeneratorDialog::onClearSeedFile()
-{
-    m_settingsUi.seedFile->clear();
-}
-
-void TsumeshogiGeneratorDialog::onBrowseExcludeFile()
-{
-    const QString initialDir = m_settingsUi.excludeFile->text().trimmed().isEmpty()
-        ? TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory()
-        : QFileInfo(m_settingsUi.excludeFile->text().trimmed()).absolutePath();
-    const QString path = QFileDialog::getOpenFileName(
-        this,
-        tr("除外ファイルを選択"),
-        initialDir,
-        tr("テキストファイル (*.txt *.sfen);;すべてのファイル (*)"));
-    if (!path.isEmpty()) m_settingsUi.excludeFile->setText(path);
-}
-
-void TsumeshogiGeneratorDialog::onClearExcludeFile()
-{
-    m_settingsUi.excludeFile->clear();
-}
-
-void TsumeshogiGeneratorDialog::onBrowseCheckpointFile()
-{
-    const QString initialDir = m_settingsUi.checkpointFile->text().trimmed().isEmpty()
-        ? TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory()
-        : QFileInfo(m_settingsUi.checkpointFile->text().trimmed()).absolutePath();
-    const bool resume = m_settingsUi.resumeCheckpoint->isChecked();
-    const QString path = resume
-        ? QFileDialog::getOpenFileName(this, tr("再開するチェックポイントファイルを選択"), initialDir,
-                                       tr("JSON ファイル (*.json);;すべてのファイル (*)"))
-        : QFileDialog::getSaveFileName(this, tr("チェックポイントの保存先を選択"), initialDir,
-                                       tr("JSON ファイル (*.json);;すべてのファイル (*)"));
-    if (!path.isEmpty()) m_settingsUi.checkpointFile->setText(path);
-}
-
-void TsumeshogiGeneratorDialog::onClearCheckpointFile()
-{
-    m_settingsUi.checkpointFile->clear();
-    m_settingsUi.resumeCheckpoint->setChecked(false);
-}
-
-void TsumeshogiGeneratorDialog::onResumeCheckpointToggled(bool checked)
-{
-    const bool seedEditable = !isRunning() && !checked;
-    m_settingsUi.seedFile->setEnabled(seedEditable);
-    m_settingsUi.browseSeed->setEnabled(seedEditable);
-    m_settingsUi.clearSeed->setEnabled(seedEditable);
-}
-
 void TsumeshogiGeneratorDialog::onSaveToFile()
 {
     if (m_results.isEmpty()) return;
@@ -573,15 +393,6 @@ void TsumeshogiGeneratorDialog::onCopyAll()
     QApplication::clipboard()->setText(lines.join('\n'));
 }
 
-void TsumeshogiGeneratorDialog::onRestoreDefaults()
-{
-    if (isRunning()) return;
-    // 既定値は設定の宣言の表のもの
-    m_conditionsForm.reset();
-    applyModeUi();
-    if (isVisible()) fitSettingsArea();
-}
-
 void TsumeshogiGeneratorDialog::onResultTableClicked(const QModelIndex& index)
 {
     if (!index.isValid() || index.column() != 2) return;
@@ -619,17 +430,15 @@ void TsumeshogiGeneratorDialog::updateProgressBar()
         ? m_lastRunRetroSettings.maxPositionsToFind
         : m_lastRunSettings.maxPositionsToFind;
     const int limit = m_state != RunState::NotStarted ? lastLimit
-                                                      : m_settingsUi.maxPositions->value();
+                                                      : m_settingsPanel->maxPositions();
     const int found = static_cast<int>(m_results.size());
     m_progressUi.bar->setRange(0, limit > 0 ? limit : (isRunning() ? 0 : qMax(1, found)));
     m_progressUi.bar->setValue(found);
     m_progressUi.bar->setFormat(limit > 0 ? tr("%v / %m 局面") : tr("%1 局面（無制限）").arg(found));
 }
 
-void TsumeshogiGeneratorDialog::toggleHelp(bool visible)
+void TsumeshogiGeneratorDialog::onSettingsHeightChanged()
 {
-    m_settingsUi.helpText->setVisible(visible);
-    m_settingsUi.help->setArrowType(visible ? Qt::DownArrow : Qt::RightArrow);
     if (isVisible()) fitSettingsArea();
 }
 
@@ -638,17 +447,11 @@ void TsumeshogiGeneratorDialog::fitSettingsArea()
     // 説明や逆算設定を開くと設定欄が高くなる。結果一覧の高さを譲ってもらい、それでも足りなければ
     // 画面に収まる範囲でダイアログを高くして、設定をスクロールせずに見られるようにする。
     // 閉じたときは設定欄を縮めて結果一覧へ高さを戻す。
-    for (QWidget* w = m_settingsUi.helpText->parentWidget(); w && w != m_settingsUi.scroll; w = w->parentWidget()) {
-        if (QLayout* l = w->layout()) l->invalidate();
-        w->updateGeometry();
-    }
-    if (QWidget* content = m_settingsUi.scroll->widget()) {
-        if (QLayout* l = content->layout()) l->invalidate();
-        content->updateGeometry();
-    }
-    m_settingsUi.scroll->updateGeometry();
+    m_settingsPanel->refreshLayout();
+    m_settingsScroll->viewport()->updateGeometry();
+    m_settingsScroll->updateGeometry();
     layout()->activate();
-    const int missing = m_settingsUi.scroll->widget()->sizeHint().height() - m_settingsUi.scroll->viewport()->height();
+    const int missing = m_settingsPanel->sizeHint().height() - m_settingsScroll->viewport()->height();
     if (missing <= 0) return;
     int newHeight = height() + missing;
     if (const QScreen* s = screen()) {
@@ -656,11 +459,6 @@ void TsumeshogiGeneratorDialog::fitSettingsArea()
         newHeight = qMin(newHeight, qMax(height(), s->availableGeometry().height() - frame));
     }
     resize(width(), newHeight);
-}
-
-void TsumeshogiGeneratorDialog::showEngineSettingsDialog(const EngineEntry& engine)
-{
-    ChangeEngineSettingsDialog::showFor(engine, this);
 }
 
 void TsumeshogiGeneratorDialog::fitToFont()
@@ -678,58 +476,13 @@ void TsumeshogiGeneratorDialog::applyTableHeaderStyle()
     m_resultsUi.table->setStyleSheet(TableStyles::thinking(font().pointSize()));
 }
 
-void TsumeshogiGeneratorDialog::applyModeUi()
-{
-    const bool retro = isRetrogradeModeSelected();
-    m_settingsUi.leftForm->setRowVisible(m_settingsUi.maxAttack, !retro);
-    m_settingsUi.leftForm->setRowVisible(m_settingsUi.maxDefend, !retro);
-    m_settingsUi.rightForm->setRowVisible(m_settingsUi.attackRange, !retro);
-    m_settingsUi.leftForm->setRowVisible(m_settingsUi.retroMaxAttack, retro);
-    m_settingsUi.leftForm->setRowVisible(m_settingsUi.retroMaxDefend, retro);
-    m_settingsUi.leftForm->setRowVisible(m_settingsUi.beamWidth, retro);
-    m_settingsUi.rightForm->setRowVisible(m_settingsUi.branchFactor, retro);
-    m_settingsUi.rightForm->setRowVisible(m_settingsUi.verifyBudget, retro);
-    m_settingsUi.requireNoSurplus->setVisible(retro);
-    m_settingsUi.excludeSimilar->setVisible(retro);
-    m_settingsUi.retroFilesWidget->setVisible(retro);
-    m_settingsUi.timeoutLabel->setText(retro ? tr("探索時間/手:") : tr("探索時間/局面:"));
-    m_settingsUi.timeout->setToolTip(retro
-        ? tr("逆算・成長フェーズで1局面を調べる上限時間です（厳密検証では最大3倍まで自動延長）。")
-        : tr("候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。"));
-    onResumeCheckpointToggled(m_settingsUi.resumeCheckpoint->isChecked());
-}
-
 void TsumeshogiGeneratorDialog::setRunState(RunState state)
 {
     m_state = state;
     const bool running = isRunning();
-    m_progressUi.start->setEnabled(!running && m_engineSelector->hasEngines());
+    m_progressUi.start->setEnabled(!running && m_settingsPanel->hasEngines());
     m_progressUi.stop->setEnabled(running);
-    m_engineSelector->setEnabled(!running);
-    m_settingsUi.mode->setEnabled(!running);
-    m_settingsUi.targetMoves->setEnabled(!running);
-    m_settingsUi.maxAttack->setEnabled(!running);
-    m_settingsUi.maxDefend->setEnabled(!running);
-    m_settingsUi.attackRange->setEnabled(!running);
-    m_settingsUi.retroMaxAttack->setEnabled(!running);
-    m_settingsUi.retroMaxDefend->setEnabled(!running);
-    m_settingsUi.beamWidth->setEnabled(!running);
-    m_settingsUi.branchFactor->setEnabled(!running);
-    m_settingsUi.verifyBudget->setEnabled(!running);
-    m_settingsUi.timeout->setEnabled(!running);
-    m_settingsUi.maxPositions->setEnabled(!running);
-    m_settingsUi.allowFinalAlternatives->setEnabled(!running);
-    m_settingsUi.requireNoSurplus->setEnabled(!running);
-    m_settingsUi.excludeSimilar->setEnabled(!running);
-    m_settingsUi.excludeFile->setEnabled(!running);
-    m_settingsUi.browseExclude->setEnabled(!running);
-    m_settingsUi.clearExclude->setEnabled(!running);
-    m_settingsUi.checkpointFile->setEnabled(!running);
-    m_settingsUi.browseCheckpoint->setEnabled(!running);
-    m_settingsUi.clearCheckpoint->setEnabled(!running);
-    m_settingsUi.resumeCheckpoint->setEnabled(!running);
-    onResumeCheckpointToggled(m_settingsUi.resumeCheckpoint->isChecked());
-    m_settingsUi.restoreDefaults->setEnabled(!running);
+    m_settingsPanel->setRunning(running);
     updateResultActions();
     updateProgressBar();
 }
@@ -782,22 +535,6 @@ QString TsumeshogiGeneratorDialog::formatElapsedTime(qint64 ms) const
 // ============================================================
 
 namespace {
-/// 偶数の直接入力は確定させず、前の値に戻す。
-class OddSpinBox : public QSpinBox
-{
-public:
-    using QSpinBox::QSpinBox;
-
-protected:
-    QValidator::State validate(QString& input, int& pos) const override
-    {
-        const QValidator::State state = QSpinBox::validate(input, pos);
-        if (state != QValidator::Acceptable) return state;
-        return TsumeshogiSettings::GeneratorLimits::isTargetMoves(valueFromText(input)) ? QValidator::Acceptable
-                                                                                        : QValidator::Intermediate;
-    }
-};
-
 /// 内容の高さを希望サイズにする。QScrollArea::sizeHint は内容の大きさを最初に一度だけ記録するため、
 /// 説明の開閉で設定欄の高さが変わらず、スクロールしないと設定が見えなくなる。
 /// 内容の部品の大きさが変わったとき（文字の大きさ・エンジンの一覧）も、ダイアログのレイアウトが
@@ -831,18 +568,15 @@ void TsumeshogiGeneratorDialog::setupUi()
     mainLayout->setSpacing(8);
 
     // 文字を拡大した場合や小さい画面でも、設定をスクロールして操作できる。
-    m_settingsUi.scroll = new FittingScrollArea(this);
-    m_settingsUi.scroll->setObjectName(QStringLiteral("generatorSettingsScroll"));
-    m_settingsUi.scroll->setWidgetResizable(true);
-    m_settingsUi.scroll->setFrameShape(QFrame::NoFrame);
-    m_settingsUi.scroll->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-    auto* form = new QWidget(m_settingsUi.scroll);
-    auto* formLayout = new QVBoxLayout(form);
-    formLayout->setContentsMargins(0, 0, 0, 0);
-    buildFormSection(formLayout);
-    m_settingsUi.scroll->setWidget(form);
-    m_settingsUi.scroll->setMinimumHeight(180);
-    mainLayout->addWidget(m_settingsUi.scroll);
+    m_settingsScroll = new FittingScrollArea(this);
+    m_settingsScroll->setObjectName(QStringLiteral("generatorSettingsScroll"));
+    m_settingsScroll->setWidgetResizable(true);
+    m_settingsScroll->setFrameShape(QFrame::NoFrame);
+    m_settingsScroll->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+    m_settingsPanel = new TsumeshogiGeneratorSettingsPanel(m_settingsScroll);
+    m_settingsScroll->setWidget(m_settingsPanel);
+    m_settingsScroll->setMinimumHeight(180);
+    mainLayout->addWidget(m_settingsScroll);
     buildProgressSection(mainLayout);
     buildResultsSection(mainLayout);
     connectDialogSignals();
@@ -850,239 +584,6 @@ void TsumeshogiGeneratorDialog::setupUi()
     // 設定入力中の Enter で不用意に生成を開始しない。
     const auto buttons = findChildren<QPushButton*>();
     for (auto* button : buttons) button->setAutoDefault(false);
-}
-
-void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
-{
-    auto* engineGroup = new QGroupBox(tr("エンジン設定"), this);
-    auto* engineLayout = new QVBoxLayout(engineGroup);
-    auto* engineRow = new QHBoxLayout;
-    auto* engineLabel = new QLabel(tr("エンジン:"), this);
-    engineRow->addWidget(engineLabel);
-    m_settingsUi.engine = new QComboBox(this);
-    m_settingsUi.engine->setObjectName(QStringLiteral("generatorEngine"));
-    m_settingsUi.engine->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-    m_settingsUi.engine->setMinimumContentsLength(20);
-    engineLabel->setBuddy(m_settingsUi.engine);
-    engineRow->addWidget(m_settingsUi.engine, 1);
-    m_settingsUi.engineSettings = new QPushButton(tr("設定..."), this);
-    engineRow->addWidget(m_settingsUi.engineSettings);
-    engineLayout->addLayout(engineRow);
-    auto* engineNote = new QLabel(tr("最短手順を返す詰将棋エンジンを使用してください。"), this);
-    engineNote->setWordWrap(true);
-    auto* hintRow = new QHBoxLayout;
-    hintRow->addWidget(engineNote, 1);
-    m_settingsUi.help = new QToolButton(this);
-    m_settingsUi.help->setObjectName(QStringLiteral("generatorHelp"));
-    m_settingsUi.help->setText(tr("エンジン設定・採択条件について"));
-    m_settingsUi.help->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    m_settingsUi.help->setCheckable(true);
-    m_settingsUi.help->setArrowType(Qt::RightArrow);
-    hintRow->addWidget(m_settingsUi.help);
-    engineLayout->addLayout(hintRow);
-    m_settingsUi.helpText = new QLabel(
-        tr("※ エンジンは最短手順を返す設定で使用してください（KomoringHeights の場合: PostSearchLevel = MinLength）")
-        + QStringLiteral("\n")
-        + tr("主手順の攻手が一意な局面だけを出力します（成・不成も区別）。玉方が早く詰む変化での別の詰め方は許容し、判定不能の局面は出力しません。")
-        + QStringLiteral("\n")
-        + tr("「詰み局面から逆算・編集」方式では詰み形または種局面から逆算・変異・余詰修復で長手数局面を育て、全1枚除去の厳密証明と途中保存・再開に対応します。"), this);
-    m_settingsUi.helpText->setWordWrap(true);
-    m_settingsUi.helpText->hide();
-    engineLayout->addWidget(m_settingsUi.helpText);
-    mainLayout->addWidget(engineGroup);
-
-    auto* settingsGroup = new QGroupBox(tr("生成設定"), this);
-    auto* settingsLayout = new QVBoxLayout(settingsGroup);
-    settingsLayout->setSpacing(4);
-
-    auto* modeRow = new QHBoxLayout;
-    auto* modeLabel = new QLabel(tr("生成方式:"), this);
-    m_settingsUi.mode = new QComboBox(this);
-    m_settingsUi.mode->setObjectName(QStringLiteral("generatorMode"));
-    m_settingsUi.mode->addItem(tr("ランダム配置"));
-    m_settingsUi.mode->addItem(tr("詰み局面から逆算・編集（長手数向け）"));
-    m_settingsUi.mode->setToolTip(
-        tr("短手数向けは「ランダム配置」、15手以上の長手数詰将棋や途中保存・再開には「詰み局面から逆算・編集」を選んでください。"));
-    modeLabel->setBuddy(m_settingsUi.mode);
-    modeRow->addWidget(modeLabel);
-    modeRow->addWidget(m_settingsUi.mode, 1);
-    settingsLayout->addLayout(modeRow);
-
-    auto* columns = new QHBoxLayout;
-    columns->setSpacing(24);
-    m_settingsUi.leftForm = new QFormLayout;
-    m_settingsUi.rightForm = new QFormLayout;
-    m_settingsUi.leftForm->setVerticalSpacing(6);
-    m_settingsUi.rightForm->setVerticalSpacing(6);
-    m_settingsUi.leftForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    m_settingsUi.rightForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    columns->addLayout(m_settingsUi.leftForm, 1);
-    columns->addLayout(m_settingsUi.rightForm, 1);
-    settingsLayout->addLayout(columns);
-
-    m_settingsUi.targetMoves = new OddSpinBox(this);
-    m_settingsUi.targetMoves->setObjectName(QStringLiteral("generatorTargetMoves"));
-    m_settingsUi.targetMoves->setRange(TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.minimum(),
-                                       TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.maximum());
-    m_settingsUi.targetMoves->setSingleStep(2);
-    m_settingsUi.targetMoves->setSuffix(tr(" 手詰"));
-    m_settingsUi.leftForm->addRow(tr("目標手数:"), m_settingsUi.targetMoves);
-
-    m_settingsUi.maxAttack = new CountSpinBox(tr(" 枚", "1 のとき"), tr(" 枚"), this);
-    m_settingsUi.maxAttack->setRange(TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces.minimum(),
-                                     TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces.maximum());
-    m_settingsUi.maxAttack->setToolTip(tr("攻方の盤上の駒と持駒の合計枚数の上限です。"));
-    m_settingsUi.leftForm->addRow(tr("攻め駒上限:"), m_settingsUi.maxAttack);
-
-    m_settingsUi.maxDefend = new CountSpinBox(tr(" 枚", "1 のとき"), tr(" 枚"), this);
-    m_settingsUi.maxDefend->setRange(TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces.minimum(),
-                                     TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces.maximum());
-    m_settingsUi.maxDefend->setToolTip(tr("玉を除く、玉方の盤上の駒の枚数の上限です。"));
-    m_settingsUi.leftForm->addRow(tr("守り駒上限:"), m_settingsUi.maxDefend);
-
-    m_settingsUi.retroMaxAttack = new CountSpinBox(tr(" 枚", "1 のとき"), tr(" 枚"), this);
-    m_settingsUi.retroMaxAttack->setObjectName(QStringLiteral("generatorRetroMaxAttack"));
-    m_settingsUi.retroMaxAttack->setRange(TsumeshogiSettings::tsumeshogiGeneratorRetroMaxAttackPieces.minimum(),
-                                          TsumeshogiSettings::tsumeshogiGeneratorRetroMaxAttackPieces.maximum());
-    m_settingsUi.retroMaxAttack->setToolTip(tr("逆算・編集モードでの攻方駒（盤上＋持駒）の上限です。"));
-    m_settingsUi.leftForm->addRow(tr("攻め駒上限:"), m_settingsUi.retroMaxAttack);
-
-    m_settingsUi.retroMaxDefend = new CountSpinBox(tr(" 枚", "1 のとき"), tr(" 枚"), this);
-    m_settingsUi.retroMaxDefend->setObjectName(QStringLiteral("generatorRetroMaxDefend"));
-    m_settingsUi.retroMaxDefend->setRange(TsumeshogiSettings::tsumeshogiGeneratorRetroMaxDefendPieces.minimum(),
-                                          TsumeshogiSettings::tsumeshogiGeneratorRetroMaxDefendPieces.maximum());
-    m_settingsUi.retroMaxDefend->setToolTip(tr("逆算・編集モードでの玉方盤上駒（玉除く）の上限です。"));
-    m_settingsUi.leftForm->addRow(tr("守り駒上限:"), m_settingsUi.retroMaxDefend);
-
-    m_settingsUi.beamWidth = new QSpinBox(this);
-    m_settingsUi.beamWidth->setObjectName(QStringLiteral("generatorBeamWidth"));
-    m_settingsUi.beamWidth->setRange(TsumeshogiSettings::tsumeshogiGeneratorBeamWidth.minimum(),
-                                     TsumeshogiSettings::tsumeshogiGeneratorBeamWidth.maximum());
-    m_settingsUi.beamWidth->setToolTip(tr("各手数層に保持する有望局面の最大数です。大きいほど多様性が増します。"));
-    m_settingsUi.leftForm->addRow(tr("ビーム幅:"), m_settingsUi.beamWidth);
-
-    m_settingsUi.maxPositions = new CountSpinBox(tr(" 局面", "1 のとき"), tr(" 局面"), this);
-    m_settingsUi.maxPositions->setObjectName(QStringLiteral("generatorMaxPositions"));
-    m_settingsUi.maxPositions->setRange(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.minimum(),
-                                        TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.maximum());
-    m_settingsUi.maxPositions->setSpecialValueText(tr("無制限"));
-    m_settingsUi.maxPositions->setToolTip(tr("採択した局面がこの件数に達すると終了します。0 は停止するまで生成を続けます。"));
-    m_settingsUi.rightForm->addRow(tr("生成上限:"), m_settingsUi.maxPositions);
-
-    m_settingsUi.timeoutLabel = new QLabel(tr("探索時間/局面:"), this);
-    m_settingsUi.timeout = new QSpinBox(this);
-    m_settingsUi.timeout->setRange(TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.minimum(),
-                                   TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.maximum());
-    m_settingsUi.timeout->setSuffix(tr(" 秒"));
-    m_settingsUi.timeoutLabel->setBuddy(m_settingsUi.timeout);
-    m_settingsUi.rightForm->addRow(m_settingsUi.timeoutLabel, m_settingsUi.timeout);
-
-    m_settingsUi.attackRange = new CountSpinBox(tr(" マス（玉中心）", "1 のとき"), tr(" マス（玉中心）"), this);
-    m_settingsUi.attackRange->setRange(TsumeshogiSettings::tsumeshogiGeneratorAttackRange.minimum(),
-                                       TsumeshogiSettings::tsumeshogiGeneratorAttackRange.maximum());
-    m_settingsUi.rightForm->addRow(tr("配置範囲:"), m_settingsUi.attackRange);
-
-    m_settingsUi.branchFactor = new QSpinBox(this);
-    m_settingsUi.branchFactor->setObjectName(QStringLiteral("generatorBranchFactor"));
-    m_settingsUi.branchFactor->setRange(TsumeshogiSettings::tsumeshogiGeneratorBranchFactor.minimum(),
-                                        TsumeshogiSettings::tsumeshogiGeneratorBranchFactor.maximum());
-    m_settingsUi.branchFactor->setToolTip(tr("1回の展開で逆算・盤面変異から作る候補局面数です。"));
-    m_settingsUi.rightForm->addRow(tr("分岐数:"), m_settingsUi.branchFactor);
-
-    m_settingsUi.verifyBudget = new QSpinBox(this);
-    m_settingsUi.verifyBudget->setObjectName(QStringLiteral("generatorVerifyBudget"));
-    m_settingsUi.verifyBudget->setRange(TsumeshogiSettings::tsumeshogiGeneratorVerifyBudgetSec.minimum(),
-                                        TsumeshogiSettings::tsumeshogiGeneratorVerifyBudgetSec.maximum());
-    m_settingsUi.verifyBudget->setSuffix(tr(" 秒"));
-    m_settingsUi.verifyBudget->setToolTip(tr("1候補の厳密証明と全1枚除去トリミングに使える最大時間です。"));
-    m_settingsUi.rightForm->addRow(tr("検証予算:"), m_settingsUi.verifyBudget);
-
-    auto* options = new QHBoxLayout;
-    m_settingsUi.allowFinalAlternatives = new QCheckBox(tr("最終手の複数解を許容する"), this);
-    m_settingsUi.allowFinalAlternatives->setObjectName(QStringLiteral("generatorAllowFinalAlternatives"));
-    m_settingsUi.allowFinalAlternatives->setToolTip(
-        tr("オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。"));
-    options->addWidget(m_settingsUi.allowFinalAlternatives);
-    options->addStretch();
-    m_settingsUi.restoreDefaults = new QPushButton(tr("既定値に戻す"), this);
-    m_settingsUi.restoreDefaults->setObjectName(QStringLiteral("generatorRestoreDefaults"));
-    m_settingsUi.restoreDefaults->setToolTip(tr("生成設定を既定値に戻します。"));
-    options->addWidget(m_settingsUi.restoreDefaults);
-    settingsLayout->addLayout(options);
-
-    // 逆算・編集モード専用の追加条件・ファイル設定（駒余り禁止・類似作除外・種局面・途中保存チェックポイント）
-    m_settingsUi.retroFilesWidget = new QWidget(this);
-    m_settingsUi.retroFilesWidget->setObjectName(QStringLiteral("generatorRetroFiles"));
-    auto* retroExtraLayout = new QVBoxLayout(m_settingsUi.retroFilesWidget);
-    retroExtraLayout->setContentsMargins(0, 2, 0, 0);
-    retroExtraLayout->setSpacing(6);
-
-    auto* retroOptions = new QHBoxLayout;
-    m_settingsUi.requireNoSurplus = new QCheckBox(tr("駒余りを禁止する"), this);
-    m_settingsUi.requireNoSurplus->setObjectName(QStringLiteral("generatorRequireNoSurplus"));
-    m_settingsUi.requireNoSurplus->setToolTip(
-        tr("オンにすると、全最長応手および最終手で攻方持駒が0枚になる局面だけを採択します。"));
-    retroOptions->addWidget(m_settingsUi.requireNoSurplus);
-    m_settingsUi.excludeSimilar = new QCheckBox(tr("類似作を除外する"), this);
-    m_settingsUi.excludeSimilar->setObjectName(QStringLiteral("generatorExcludeSimilar"));
-    m_settingsUi.excludeSimilar->setToolTip(
-        tr("オンにすると、平行移動・左右反転・中間手順1手違いの類似作を除外します。"));
-    retroOptions->addWidget(m_settingsUi.excludeSimilar);
-    retroOptions->addStretch();
-    retroExtraLayout->addLayout(retroOptions);
-
-    auto* filesForm = new QFormLayout;
-    filesForm->setContentsMargins(0, 0, 0, 0);
-    filesForm->setVerticalSpacing(6);
-    filesForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-
-    auto* seedRow = new QHBoxLayout;
-    m_settingsUi.seedFile = new QLineEdit(this);
-    m_settingsUi.seedFile->setObjectName(QStringLiteral("generatorSeedFile"));
-    m_settingsUi.seedFile->setPlaceholderText(tr("未指定（0手詰み局面から自動生成）"));
-    m_settingsUi.browseSeed = new QPushButton(tr("参照..."), this);
-    m_settingsUi.browseSeed->setObjectName(QStringLiteral("generatorBrowseSeed"));
-    m_settingsUi.clearSeed = new QPushButton(tr("クリア"), this);
-    m_settingsUi.clearSeed->setObjectName(QStringLiteral("generatorClearSeed"));
-    seedRow->addWidget(m_settingsUi.seedFile, 1);
-    seedRow->addWidget(m_settingsUi.browseSeed);
-    seedRow->addWidget(m_settingsUi.clearSeed);
-    filesForm->addRow(tr("種局面ファイル（任意）:"), seedRow);
-
-    auto* excludeRow = new QHBoxLayout;
-    m_settingsUi.excludeFile = new QLineEdit(this);
-    m_settingsUi.excludeFile->setObjectName(QStringLiteral("generatorExcludeFile"));
-    m_settingsUi.excludeFile->setPlaceholderText(tr("未指定（既出の除外ファイルを使わない）"));
-    m_settingsUi.excludeFile->setToolTip(
-        tr("既存の詰将棋問題集などを指定すると、収録済みの局面や類似手順を除外して新作を生成します。"));
-    m_settingsUi.browseExclude = new QPushButton(tr("参照..."), this);
-    m_settingsUi.browseExclude->setObjectName(QStringLiteral("generatorBrowseExclude"));
-    m_settingsUi.clearExclude = new QPushButton(tr("クリア"), this);
-    m_settingsUi.clearExclude->setObjectName(QStringLiteral("generatorClearExclude"));
-    excludeRow->addWidget(m_settingsUi.excludeFile, 1);
-    excludeRow->addWidget(m_settingsUi.browseExclude);
-    excludeRow->addWidget(m_settingsUi.clearExclude);
-    filesForm->addRow(tr("除外ファイル（任意）:"), excludeRow);
-
-    auto* cpRow = new QHBoxLayout;
-    m_settingsUi.checkpointFile = new QLineEdit(this);
-    m_settingsUi.checkpointFile->setObjectName(QStringLiteral("generatorCheckpointFile"));
-    m_settingsUi.checkpointFile->setPlaceholderText(tr("未指定（途中保存しない）"));
-    m_settingsUi.browseCheckpoint = new QPushButton(tr("参照..."), this);
-    m_settingsUi.browseCheckpoint->setObjectName(QStringLiteral("generatorBrowseCheckpoint"));
-    m_settingsUi.clearCheckpoint = new QPushButton(tr("クリア"), this);
-    m_settingsUi.clearCheckpoint->setObjectName(QStringLiteral("generatorClearCheckpoint"));
-    m_settingsUi.resumeCheckpoint = new QCheckBox(tr("途中保存から再開"), this);
-    m_settingsUi.resumeCheckpoint->setObjectName(QStringLiteral("generatorResumeCheckpoint"));
-    cpRow->addWidget(m_settingsUi.checkpointFile, 1);
-    cpRow->addWidget(m_settingsUi.browseCheckpoint);
-    cpRow->addWidget(m_settingsUi.clearCheckpoint);
-    cpRow->addWidget(m_settingsUi.resumeCheckpoint);
-    filesForm->addRow(tr("チェックポイント（任意）:"), cpRow);
-    retroExtraLayout->addLayout(filesForm);
-    settingsLayout->addWidget(m_settingsUi.retroFilesWidget);
-
-    mainLayout->addWidget(settingsGroup);
 }
 
 void TsumeshogiGeneratorDialog::buildProgressSection(QVBoxLayout* mainLayout)
