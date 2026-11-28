@@ -651,14 +651,26 @@ private slots:
     }
     void externalUnknownAndTerminalStates()
     {
+        // 判定器が返した手順の上の手は応手を問い合わせないので、手順にない別解（金打ちと飛車打ちの
+        // どちらでも5手で詰む問題）で応手の判定を起こす。
+        const auto& problem = problems[1];
+        TsumePositionAnalyzer analyzer;
+        analyzer.configure(QStringLiteral(MOCK_MATE_EXECUTABLE), nullptr);
+        QSignalSpy lines(&analyzer, &TsumePositionAnalyzer::finished);
+        analyzer.evaluate(problem.sfen, 10000, true);
+        QTRY_COMPARE_WITH_TIMEOUT(lines.size(), 1, 15000);
+        const QString known = qvariant_cast<TsumeEvaluation>(lines.first()[0]).pv.value(0);
+        QVERIFY(known == QStringLiteral("G*9g") || known == QStringLiteral("R*9g"));
+        const QString alternative = known == QStringLiteral("G*9g") ? QStringLiteral("R*9g") : QStringLiteral("G*9g");
+
         TsumeGameSession session;
         session.configureEngine(QStringLiteral(MOCK_MATE_EXECUTABLE));
         QSignalSpy spy(&session, &TsumeGameSession::finished);
-        QVERIFY(session.start(problems.first().sfen));
-        QTRY_COMPARE(session.state(), TsumeGameSession::State::Ready);
+        QVERIFY(session.start(problem.sfen));
+        QTRY_COMPARE_WITH_TIMEOUT(session.state(), TsumeGameSession::State::Ready, 15000);
         // 次の問い合わせは別プロセスなので、途中だけ時間切れを再現できる。
         qputenv("SHOGI_TEST_MATE_MODE", "timeout");
-        QVERIFY(session.play(QStringLiteral("3c5c+")));
+        QVERIFY(session.play(alternative));
         QTRY_COMPARE(session.state(), TsumeGameSession::State::Paused);
         QCOMPARE(qvariant_cast<TsumeGameSession::Outcome>(spy.last()[0]), TsumeGameSession::Outcome::Inconclusive);
         QVERIFY(session.sfen().contains(QStringLiteral(" w "))); // 未確認の応手を指さない
@@ -816,7 +828,12 @@ private slots:
         QTemporaryDir data;
         TsumeProgressStore store(data.path(), data.path());
         QVERIFY(store.open());
-        store.setVerifiedCollection(contents, parsed);
+        // 手順が分かっていると応手を探索しない（verifiedLineRepliesWithoutSearch）ので、
+        // 検証済みの問題集としては登録せず、手数だけを判定済みにして内蔵探索に応手を決めさせる。
+        const QString engineKey = TsumePositionAnalyzer().engineKey();
+        for (int problemIndex : {0, 1, 13}) {
+            store.cache(parsed.positionIds[problemIndex], engineKey, {TsumeEvaluation::Status::Mate, 31, {}, {}});
+        }
 
         // 合駒の多い 31 手詰（第1問・第14問）で内蔵 Hayanagi の並列応手探索が
         // 非決定的にタイムアウトせず毎回応手を返せることを確認する。
@@ -851,6 +868,115 @@ private slots:
         QCOMPARE(qvariant_cast<TsumeGameSession::Outcome>(outcomes.first()[0]),
                  TsumeGameSession::Outcome::Inconclusive);
         QVERIFY(timeoutSession.detail().contains(QStringLiteral("KomoringHeights")));
+    }
+    /// 31手詰の第35問は、正解の初手（３五と）の後の応手を内蔵探索が判定時間内に決められず、対局を進められなかった。
+    /// 検証済みの正解手順の上を指している間は、探索せずに手順の応手を指す。
+    void verifiedLineRepliesWithoutSearch()
+    {
+        QFile file(QFINDTESTDATA("../data/tsumeshogi/tsume_31ply_1000_20261127.txt"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto contents = file.readAll();
+        const auto parsed = TsumeCollection::parse(QString::fromUtf8(contents));
+        QTemporaryDir data;
+        TsumeProgressStore store(data.path(), data.path());
+        QVERIFY(store.open());
+        store.setVerifiedCollection(contents, parsed);
+        const auto& problem = parsed.problems[34];
+        const QStringList& line = problem.referenceMoves;
+        QCOMPARE(line.size(), 31);
+        QCOMPARE(line[0], QStringLiteral("2f3e"));
+
+        using State = TsumeGameSession::State;
+        TsumeGameSession session;
+        session.configureEngine({}, &store);
+        // 探索に進めば必ず時間切れになる判定時間
+        session.setTimeLimit(100);
+        QSignalSpy positions(&session, &TsumeGameSession::positionChanged);
+        QSignalSpy outcomes(&session, &TsumeGameSession::finished);
+        QVERIFY(session.start(problem.sfen));
+        QTRY_COMPARE(session.state(), State::Ready);
+        QCOMPARE(session.remainingPlies(), 31);
+
+        // 応手は着手の処理から戻った後に届く（盤が攻め方の手を示してから玉方の手を示す）
+        QVERIFY(session.play(line[0]));
+        QCOMPARE(session.state(), State::Thinking);
+        QCOMPARE(positions.last()[1].toString(), line[0]);
+        QTRY_COMPARE(session.state(), State::Ready);
+        QCOMPARE(positions.last()[1].toString(), line[1]);
+        QCOMPARE(session.remainingPlies(), 29);
+        QVERIFY(outcomes.isEmpty());
+
+        // 一手戻しても手順の上にいる。最後まで手順どおりに指して詰ませる
+        session.undo();
+        QCOMPARE(session.sfen(), problem.sfen);
+        QCOMPARE(session.remainingPlies(), 31);
+        for (qsizetype ply = 0; ply < line.size(); ply += 2) {
+            QVERIFY(session.play(line[ply]));
+            QTRY_VERIFY(session.state() != State::Thinking);
+            if (ply + 1 == line.size()) break;
+            QCOMPARE(session.state(), State::Ready);
+            QCOMPARE(positions.last()[1].toString(), line[ply + 1]);
+            QCOMPARE(session.remainingPlies(), static_cast<int>(line.size() - ply - 2));
+        }
+        QCOMPARE(session.state(), State::Solved);
+        QCOMPARE(outcomes.size(), 1);
+        QCOMPARE(qvariant_cast<TsumeGameSession::Outcome>(outcomes.first()[0]), TsumeGameSession::Outcome::Solved);
+        QCOMPARE(store.progress(parsed.positionIds[34]).solves, 1);
+    }
+    /// 手順が分かっていても、手順を外れた手は探索で判定する。外れた後は手順の応手を使わない。
+    void knownLineDeviationIsSearched()
+    {
+        QTemporaryDir data;
+        TsumeProgressStore store(data.path(), data.path());
+        QVERIFY(store.open());
+        const QString engineKey = TsumePositionAnalyzer().engineKey();
+        for (const auto& problem : std::as_const(problems)) {
+            store.cache(TsumeCollection::positionId(problem.sfen), engineKey,
+                        {TsumeEvaluation::Status::Mate, 5, problem.referenceMoves, {}});
+        }
+        using State = TsumeGameSession::State;
+        TsumeGameSession session;
+        session.configureEngine({}, &store);
+        QSignalSpy positions(&session, &TsumeGameSession::positionChanged);
+        QSignalSpy outcomes(&session, &TsumeGameSession::finished);
+
+        // 逃れる手: 手順の初手は R*1g。R*1i には 1h1i で逃れる
+        QVERIFY(session.start(problems[2].sfen));
+        QTRY_COMPARE(session.state(), State::Ready);
+        QVERIFY(session.play(QStringLiteral("R*1i")));
+        QTRY_COMPARE(session.state(), State::Failed);
+        QCOMPARE(qvariant_cast<TsumeGameSession::Outcome>(outcomes.last()[0]), TsumeGameSession::Outcome::NoMate);
+        QCOMPARE(positions.last()[1].toString(), QStringLiteral("1h1i"));
+        // 戻せば手順の上に戻り、手順の手には手順の応手を指す
+        session.undo();
+        QCOMPARE(session.sfen(), problems[2].sfen);
+        QVERIFY(session.play(QStringLiteral("R*1g")));
+        QTRY_COMPARE(session.state(), State::Ready);
+        QCOMPARE(positions.last()[1].toString(), QStringLiteral("1h2i"));
+        QCOMPARE(session.remainingPlies(), 3);
+
+        // 手順の途中で外れる: S*3b 4a4b の後、手順の R*4a ではなく R*5b（4b5b と取られ、残りの手数では詰まない）
+        QVERIFY(session.start(problems[3].sfen));
+        QTRY_COMPARE(session.state(), State::Ready);
+        QVERIFY(session.play(QStringLiteral("S*3b")));
+        QTRY_COMPARE(session.state(), State::Ready);
+        QCOMPARE(positions.last()[1].toString(), QStringLiteral("4a4b"));
+        const QString afterReply = session.sfen();
+        outcomes.clear();
+        QVERIFY(session.play(QStringLiteral("R*5b")));
+        QTRY_COMPARE(session.state(), State::Failed);
+        QCOMPARE(outcomes.size(), 1);
+        QCOMPARE(qvariant_cast<TsumeGameSession::Outcome>(outcomes.first()[0]), TsumeGameSession::Outcome::TooLong);
+        QCOMPARE(positions.last()[1].toString(), QStringLiteral("4b5b"));
+        session.undo();
+        QCOMPARE(session.sfen(), afterReply);
+        QCOMPARE(session.remainingPlies(), 3);
+        QVERIFY(session.play(QStringLiteral("R*4a")));
+        QTRY_COMPARE(session.state(), State::Ready);
+        QCOMPARE(positions.last()[1].toString(), QStringLiteral("4b5b"));
+        QCOMPARE(session.remainingPlies(), 1);
+        QVERIFY(session.play(QStringLiteral("4d5c+")));
+        QTRY_COMPARE(session.state(), State::Solved);
     }
 };
 QTEST_GUILESS_MAIN(TestTsumePlay)

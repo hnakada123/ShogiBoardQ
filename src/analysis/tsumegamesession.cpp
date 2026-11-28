@@ -12,12 +12,15 @@ TsumeGameSession::TsumeGameSession(QObject* parent) : QObject(parent)
     connect(m_analyzer, &TsumePositionAnalyzer::finished, this, &TsumeGameSession::evaluationFinished);
     m_defenseTimer.setSingleShot(true);
     connect(&m_defenseTimer, &QTimer::timeout, this, &TsumeGameSession::evaluateNextDefense);
+    m_knownReplyTimer.setSingleShot(true);
+    connect(&m_knownReplyTimer, &QTimer::timeout, this, &TsumeGameSession::playKnownReply);
 }
 TsumeGameSession::~TsumeGameSession() { stopWorker(); }
 
 void TsumeGameSession::stopWorker()
 {
     m_defenseTimer.stop();
+    m_knownReplyTimer.stop();
     m_analyzer->cancel();
     if (!m_watcher) return;
     // ワーカーは値だけを持つので、止めるよう知らせたら終わるのを待たない（結果は捨てる）
@@ -68,6 +71,8 @@ bool TsumeGameSession::start(const QString& sfenText)
     m_solvedRecorded = false;
     m_initializing = true;
     m_history.clear();
+    m_knownLine.clear();
+    m_moves.clear();
     m_remaining = 0;
     m_detail.clear();
     emit positionChanged(sfen(), {});
@@ -84,6 +89,7 @@ void TsumeGameSession::apply(const shogi::Move& move)
 {
     const QString usi = QString::fromStdString(m_position.move_to_usi(move));
     m_position.do_move(move);
+    m_moves.append(usi);
     emit positionChanged(sfen(), usi);
 }
 
@@ -94,7 +100,7 @@ bool TsumeGameSession::play(const QString& text)
         if (m_position.move_to_usi(move) != text.toStdString()) continue;
         // 詰将棋では攻め方は必ず王手。打ち歩詰め等は合法手生成で除外済み。
         if (!m_position.gives_check(move)) break;
-        m_history.push_back({m_position, m_remaining});
+        m_history.push_back({m_position, m_remaining, m_moves.size()});
         --m_remaining;
         setState(State::Thinking);
         apply(move);
@@ -114,6 +120,42 @@ void TsumeGameSession::search()
         m_analyzer->evaluate(sfen(), m_timeLimit);
         return;
     }
+    if (knownReply()) {
+        // 応手が分かっている間は探索しない。盤は着手の処理の後で直前の手を示すので、応手は play() から戻った後に指す
+        m_knownReplyTimer.start(0);
+        return;
+    }
+    searchDefense();
+}
+
+std::optional<shogi::Move> TsumeGameSession::knownReply() const
+{
+    // 玉方の手番で、ここまでに指した手がすべて手順と同じで、手順に続きがあるときだけ
+    const qsizetype played = m_moves.size();
+    if (m_position.side_to_move() == m_attacker || played >= m_knownLine.size()
+        || !std::equal(m_moves.cbegin(), m_moves.cend(), m_knownLine.cbegin())) return std::nullopt;
+    const std::string reply = m_knownLine.at(played).toStdString();
+    for (const auto& move : m_position.generate_legal_moves()) {
+        if (m_position.move_to_usi(move) == reply) return move;
+    }
+    return std::nullopt;
+}
+
+void TsumeGameSession::playKnownReply()
+{
+    if (m_state != State::Thinking || m_initializing) return;
+    const auto reply = knownReply();
+    if (!reply) {
+        searchDefense();
+        return;
+    }
+    apply(*reply);
+    m_remaining = static_cast<int>(m_knownLine.size() - m_moves.size());
+    setState(State::Ready);
+}
+
+void TsumeGameSession::searchDefense()
+{
     if (!m_enginePath.isEmpty()) {
         beginDefenseEvaluation();
         return;
@@ -192,6 +234,8 @@ void TsumeGameSession::evaluationFinished(const TsumeEvaluation& result)
     if (m_initializing) {
         if (result.status == Status::Mate) {
             m_remaining = result.plies;
+            // 詰みまでの手順が付いていれば覚える（同梱の検証済みの正解手順か、判定器が返した最短の手順）
+            if (result.plies > 0 && result.pv.size() == result.plies) m_knownLine = result.pv;
             m_initializing = false;
             setState(State::Ready);
         } else if (result.status == Status::NoMate) {
@@ -266,6 +310,7 @@ void TsumeGameSession::undo()
     stopWorker();
     m_position = m_history.back().position;
     m_remaining = m_history.back().remaining;
+    m_moves.resize(m_history.back().moves);
     m_history.pop_back();
     m_initializing = false;
     emit positionChanged(sfen(), {});
