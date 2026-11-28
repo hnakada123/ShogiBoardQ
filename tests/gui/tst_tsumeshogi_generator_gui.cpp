@@ -309,7 +309,31 @@ private slots:
         QVERIFY(temp.isValid());
         const QString cpPath = temp.filePath(QStringLiteral("gui_retro_cp.json"));
         const QString excludePath = temp.filePath(QStringLiteral("gui_exclude.txt"));
+        const QString seedPath = temp.filePath(QStringLiteral("gui_seeds.txt"));
         savePath = temp.filePath(QStringLiteral("gui_retro_out.txt"));
+
+        // 乱数に頼らない: 同じ条件（完全厳密・この模擬エンジン）で採択されると分かっている5手詰を、
+        // 種局面ファイルに並べる。種局面は並べた順に評価・厳密証明されるので、採択される局面が
+        // 乱数の種によらず決まり、どの段階も数秒で終わる。
+        // 以前は0手の詰み局面から乱数だけで育てていたので、種によっては1局面を見つけるのに数十秒かかり、
+        // 60秒の待ちを超えて落ちることがあった（乱数の種は時刻から決まるので、実行のたびに変わる）。
+        // 局面を複数並べるのは、高い負荷で内蔵探索の事前ふるい分けが時間切れになり、種局面が
+        // 捨てられることがあるため（その場合は次の種局面が採択される）。
+        const QStringList seedPositions{
+            QStringLiteral("5R3/3sk4/3p5/6L2/9/2+B6/9/9/9 b rb4g3s4n3l17p 1"),
+            QStringLiteral("9/9/9/9/9/9/3r5/4+B3+R/1Sk1+l4 b b4g3s4n3l18p 1"),
+            QStringLiteral("9/9/9/9/9/9/3n1+PS2/4l2+N1/5k1S1 b Rr2b4g2s2n3l17p 1"),
+            QStringLiteral("9/9/9/9/9/5l3/5+P3/7G1/4+p1kB1 b RLrb3g4s4n2l16p 1"),
+            QStringLiteral("9/9/9/9/9/9/7R1/7Rg/8k b 2b3g4s4n4l18p 1"),
+            QStringLiteral("1s7/k1+B6/9/B8/9/9/9/9/9 b 2r4g3s4n4l18p 1"),
+            QStringLiteral("9/9/9/9/9/9/6+n2/4+S2kB/4G+Br2 b r3g3s3n4l18p 1"),
+            QStringLiteral("9/9/9/9/9/9/6+R2/7sB/5+B+n1k b r4g3s3n4l18p 1"),
+        };
+        {
+            QFile seeds(seedPath);
+            QVERIFY(seeds.open(QIODevice::WriteOnly | QIODevice::Text));
+            seeds.write(seedPositions.join(QLatin1Char('\n')).toUtf8() + '\n');
+        }
 
         TsumeshogiGeneratorDialog dialog;
         dialog.show();
@@ -324,6 +348,7 @@ private slots:
         auto* branch = dialog.findChild<QSpinBox*>(QStringLiteral("generatorBranchFactor"));
         auto* budget = dialog.findChild<QSpinBox*>(QStringLiteral("generatorVerifyBudget"));
         auto* allowFinal = dialog.findChild<QCheckBox*>(QStringLiteral("generatorAllowFinalAlternatives"));
+        auto* seedEdit = dialog.findChild<QLineEdit*>(QStringLiteral("generatorSeedFile"));
         auto* excludeEdit = dialog.findChild<QLineEdit*>(QStringLiteral("generatorExcludeFile"));
         auto* cpEdit = dialog.findChild<QLineEdit*>(QStringLiteral("generatorCheckpointFile"));
         auto* resumeCheck = dialog.findChild<QCheckBox*>(QStringLiteral("generatorResumeCheckpoint"));
@@ -333,10 +358,11 @@ private slots:
         auto* status = dialog.findChild<QLabel*>(QStringLiteral("generatorStatus"));
         auto* retroGen = dialog.findChild<TsumeRetrogradeGenerator*>();
         QVERIFY(mode && target && limit && retroAttack && retroDefend && beam && branch && budget
-                && allowFinal && excludeEdit && cpEdit && resumeCheck && includePv && table
+                && allowFinal && seedEdit && excludeEdit && cpEdit && resumeCheck && includePv && table
                 && progress && status && retroGen);
 
         // 1. GUI から逆算・編集モードで 5手詰（完全厳密）を1問生成しチェックポイント保存
+        //    （種局面ファイルの先頭の局面が、厳密証明を通って採択される）
         mode->setCurrentIndex(1);
         target->setValue(5);
         limit->setValue(1);
@@ -346,6 +372,7 @@ private slots:
         branch->setValue(16);
         budget->setValue(60);
         allowFinal->setChecked(false);
+        seedEdit->setText(seedPath);
         cpEdit->setText(cpPath);
         resumeCheck->setChecked(false);
 
@@ -376,6 +403,7 @@ private slots:
         QVERIFY(!firstLine.isEmpty());
 
         // 2. 途中保存から再開して上限2問にする → 1問目が結果一覧へ復元され、さらに2問目が採択される
+        //    （再開では種局面ファイルを読まない。評価待ちに残っていた種局面は途中保存から戻る）
         limit->setValue(2);
         resumeCheck->setChecked(true);
         QTest::mouseClick(button(dialog, "generatorStart"), Qt::LeftButton);
@@ -388,6 +416,7 @@ private slots:
         QVERIFY(secondSfen != firstSfen);
 
         // 3. 除外ファイルに1問目を指定して新規開始すると、1問目以外の別局面が採択される
+        //    （同じ種局面ファイルから始めても、除外した先頭の局面は飛ばされる）
         {
             QFile ex(excludePath);
             QVERIFY(ex.open(QIODevice::WriteOnly | QIODevice::Text));
