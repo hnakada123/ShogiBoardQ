@@ -153,7 +153,7 @@ std::optional<shogi::TsumeResult> TsumeDefenseSearch::proofVerdict() const
     case Status::Cancelled:
         return std::nullopt;
     }
-    result.move = m_proofResult->reply;
+    result.move = m_proofResult->move;
     result.nodes = m_proofResult->nodes;
     return result;
 }

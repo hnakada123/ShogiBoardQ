@@ -481,6 +481,8 @@ set(SRC_ANALYSIS
     src/analysis/tsumeprogressstore.h
     src/analysis/tsumeproofnumbersearch.cpp
     src/analysis/tsumeproofnumbersearch.h
+    src/analysis/tsumesolutionsearch.cpp
+    src/analysis/tsumesolutionsearch.h
     src/analysis/tsumeeditboard.cpp
     src/analysis/tsumeeditboard.h
     src/analysis/tsumeeditrandom.h

@@ -1,4 +1,5 @@
 #include "tsumesolutionreplay.h"
+#include "position.h"
 #include "tsumecollection.h"
 #include "tsumepositionanalyzer.h"
 #include <algorithm>

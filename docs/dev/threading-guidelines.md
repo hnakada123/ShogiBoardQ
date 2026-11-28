@@ -83,7 +83,7 @@ void loadInWorker(KifuDocument* document);  // 禁止
 ワーカーとの接続を切り、終わったら自分で消えるようにする（ワーカーは値だけを持つので待たなくてよい）。
 
 ```cpp
-// 止める（詰将棋の TsumeDefenseSearch・TsumePositionAnalyzer）
+// 止める（詰将棋の TsumeDefenseSearch・TsumeSolutionSearch）
 m_stop->store(true);
 disconnect(m_watcher, nullptr, this, nullptr);
 connect(m_watcher, &QFutureWatcherBase::finished, m_watcher, &QObject::deleteLater);

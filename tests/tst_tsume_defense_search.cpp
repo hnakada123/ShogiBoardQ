@@ -108,10 +108,6 @@ private slots:
             const auto& problem = m_long.problems[index];
             shogi::Position position = positionOf(problem.sfen);
             const shogi::Color attacker = position.side_to_move();
-            // 開始局面（攻め方の手番）も、問題の手数以内に詰む
-            const auto start = prove(position, attacker, 31);
-            QCOMPARE(start.status, Proof::Status::Mate);
-            QCOMPARE(start.plies, 31);
             for (qsizetype ply = 0; ply + 1 < problem.referenceMoves.size(); ply += 2) {
                 QVERIFY(position.apply_usi_move(problem.referenceMoves[ply].toStdString()));
                 const int remaining = static_cast<int>(problem.referenceMoves.size() - ply - 1);
@@ -119,11 +115,11 @@ private slots:
                 const auto result = prove(position, attacker, remaining);
                 QVERIFY2(result.status == Proof::Status::Mate, where.constData());
                 QVERIFY2(result.plies == remaining && result.exact, where.constData());
-                QVERIFY2(usiOf(position, result.reply) == problem.referenceMoves[ply + 1], where.constData());
+                QVERIFY2(usiOf(position, result.move) == problem.referenceMoves[ply + 1], where.constData());
                 if (remaining >= 4) {
                     const auto shorter = prove(position, attacker, remaining - 2);
                     QVERIFY2(shorter.status == Proof::Status::TooLong, where.constData());
-                    QVERIFY2(isLegal(position, shorter.reply), where.constData());
+                    QVERIFY2(isLegal(position, shorter.move), where.constData());
                 }
                 QVERIFY(position.apply_usi_move(problem.referenceMoves[ply + 1].toStdString()));
             }
@@ -148,9 +144,9 @@ private slots:
                 const QByteArray where = QStringLiteral("problem %1 move %2").arg(index + 1).arg(usi).toUtf8();
                 QVERIFY2(result.status == Proof::Status::NoMate, where.constData());
                 // 詰みを防ぐ応手は合法で、その後の局面（攻め方の手番）も詰まない
-                QVERIFY2(isLegal(afterMove, result.reply), where.constData());
+                QVERIFY2(isLegal(afterMove, result.move), where.constData());
                 shogi::Position afterReply = afterMove;
-                afterReply.do_move(result.reply);
+                afterReply.do_move(result.move);
                 QVERIFY2(prove(afterReply, attacker).status == Proof::Status::NoMate, where.constData());
             }
             QVERIFY(wrongMoves > 0);
@@ -189,7 +185,7 @@ private slots:
                         // いちばん長く粘る応手: その後の局面は、ちょうど1手少ない手数で詰む
                         if (iterative.plies == 0) continue;
                         shogi::Position afterReply = afterMove;
-                        afterReply.do_move(proof.reply);
+                        afterReply.do_move(proof.move);
                         shogi::TsumeSearch replySearch;
                         const auto reply = replySearch.solve(afterReply, attacker, iterative.plies - 1, kAmpleMs, stop);
                         QVERIFY2(reply.status == shogi::TsumeStatus::Mate && reply.plies == iterative.plies - 1,
@@ -216,23 +212,24 @@ private slots:
         QTest::addColumn<int>("maxPlies");
         QTest::addColumn<Proof::Status>("status");
         QTest::addColumn<int>("plies");
+        QTest::addColumn<QString>("move");
         const int unlimited = Proof::kNoPlyLimit;
         // 王手は続けられるが詰まない（同じ局面に戻るだけ）。反復深化の探索は「詰まない」と言い切れない
         const QString perpetual = QStringLiteral("4k4/9/9/9/9/9/9/9/4R4 b - 1");
-        QTest::newRow("perpetual check") << perpetual << unlimited << Proof::Status::NoMate << 0;
-        QTest::newRow("perpetual check within 9") << perpetual << 9 << Proof::Status::NoMate << 0;
+        QTest::newRow("perpetual check") << perpetual << unlimited << Proof::Status::NoMate << 0 << QString();
+        QTest::newRow("perpetual check within 9") << perpetual << 9 << Proof::Status::NoMate << 0 << QString();
         // １二歩と打てば玉は動けないが、打ち歩詰めは指せない
         QTest::newRow("pawn drop mate") << QStringLiteral("7nk/7p1/7G1/9/9/9/9/9/9 b P 1") << unlimited
-                                         << Proof::Status::NoMate << 0;
+                                         << Proof::Status::NoMate << 0 << QString();
         // 同じ形で香なら１二香で詰み
         const QString lance = QStringLiteral("7nk/7p1/7G1/9/9/9/9/9/9 b L 1");
-        QTest::newRow("lance drop mate") << lance << unlimited << Proof::Status::Mate << 1;
-        QTest::newRow("lance drop mate within 1") << lance << 1 << Proof::Status::Mate << 1;
+        QTest::newRow("lance drop mate") << lance << unlimited << Proof::Status::Mate << 1 << QStringLiteral("L*1b");
+        QTest::newRow("lance drop mate within 1") << lance << 1 << Proof::Status::Mate << 1 << QStringLiteral("L*1b");
         // 手数が残っていなければ、1手詰でも詰ませられない
-        QTest::newRow("lance drop mate within 0") << lance << 0 << Proof::Status::TooLong << 0;
+        QTest::newRow("lance drop mate within 0") << lance << 0 << Proof::Status::TooLong << 0 << QString();
         // 王手をかけられる駒が無い
         QTest::newRow("no check") << QStringLiteral("4k4/9/9/9/9/9/9/9/G8 b - 1") << unlimited
-                                   << Proof::Status::NoMate << 0;
+                                   << Proof::Status::NoMate << 0 << QString();
     }
     void rules()
     {
@@ -240,12 +237,14 @@ private slots:
         QFETCH(int, maxPlies);
         QFETCH(Proof::Status, status);
         QFETCH(int, plies);
+        QFETCH(QString, move);
         const shogi::Position position = positionOf(sfen);
         const auto result = prove(position, position.side_to_move(), maxPlies);
         QCOMPARE(result.status, status);
         QCOMPARE(result.plies, plies);
-        // 攻め方の手番の局面には、玉方の応手は無い
-        QVERIFY(!result.reply.is_valid());
+        // 攻め方の手番の局面: 詰みなら詰ませる手を返す。詰まないときに返す手（玉方の応手）は無い
+        QCOMPARE(result.exact, status == Proof::Status::Mate);
+        QCOMPARE(usiOf(position, result.move), move);
     }
 
     /// 玉方の手番で手数が残っていないとき: 詰んでいれば詰み、応手があれば手数内に詰まない
@@ -257,13 +256,13 @@ private slots:
         QCOMPARE(result.status, Proof::Status::Mate);
         QCOMPARE(result.plies, 0);
         QVERIFY(result.exact);
-        QVERIFY(!result.reply.is_valid());
+        QVERIFY(!result.move.is_valid());
 
         shogi::Position escaping = positionOf(QStringLiteral("7nk/7p1/7G1/9/9/9/9/9/9 b L 1"));
         QVERIFY(escaping.apply_usi_move("2c1b"));    // 金で王手。同玉と取れる
         result = prove(escaping, shogi::Color::Black, 0);
         QCOMPARE(result.status, Proof::Status::TooLong);
-        QVERIFY(isLegal(escaping, result.reply));
+        QVERIFY(isLegal(escaping, result.move));
     }
 
     void stopAndTimeLimit()

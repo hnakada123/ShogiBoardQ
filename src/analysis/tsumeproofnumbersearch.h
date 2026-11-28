@@ -23,7 +23,10 @@
  * solve() は次の順に調べる:
  * 1. 手数を限らずに調べる（判定時間の一部）。何手かけても詰まないこと（NoMate）は、こちらが早く分かる
  * 2. 指定の手数以内に詰むかを調べる。詰む（Mate）か、その手数では詰まない（TooLong）
- * 3. 詰みで、調べた局面が玉方の手番なら、いちばん長く粘る応手と最短の手数を確かめる（Result::exact）
+ * 3. 詰みなら、最短の手数と最初の手を確かめる（Result::exact）。攻め方の手番の局面は、2手短い手数では
+ *    詰まないことを確かめる。玉方の手番の局面は、いちばん長く粘る応手を確かめる
+ *
+ * solveLine() は、続けて詰みまでの手順（最短の攻め手と、いちばん長く粘る応手）をたどる。
  *
  * 結論の根拠:
  * - 詰みは、玉方の全部の応手に攻め方の詰む手があること。証明した手順の長さ（手数の上限）を一緒に覚える
@@ -49,8 +52,13 @@ public:
     struct Result {
         Status status = Status::Unknown;
         int plies = 0;              ///< Mate: 証明した手順の長さ（この手数以内に詰む）
-        bool exact = false;         ///< Mate: plies が最短の手数（玉方が最も長く粘ったとき）で、reply がその応手だと確かめた
-        shogi::Move reply{};        ///< 調べた局面が玉方の手番のとき: Mate は長く粘る応手、NoMate・TooLong は詰みを防ぐ応手
+        /// Mate: plies が最短の手数（攻め方が最も短く詰ませ、玉方が最も長く粘ったとき）で、move がその手だと確かめた
+        bool exact = false;
+        /// Mate: 攻め方の手番の局面は詰ませる手、玉方の手番の局面は長く粘る応手。
+        /// NoMate・TooLong: 玉方の手番の局面は詰みを防ぐ応手（攻め方の手番の局面は無効な手）
+        shogi::Move move{};
+        /// solveLine() の Mate で exact のとき: 詰みまでの手順（plies 手）。たどりきれなければ空
+        std::vector<shogi::Move> line;
         std::uint64_t nodes = 0;    ///< 調べた局面の数
     };
 
@@ -62,6 +70,11 @@ public:
     /// stop か alsoStop（省略可）が true になったら Cancelled で戻る。
     Result solve(const shogi::Position& position, shogi::Color attacker, int maxPlies, int timeLimitMs,
                  const std::atomic_bool& stop, const std::atomic_bool* alsoStop = nullptr);
+
+    /// solve() と同じに調べ、最短の手数を確かめられた詰みには、詰みまでの手順 Result::line も求める
+    /// （攻め方は最短で詰ませる手、玉方はいちばん長く粘る応手。判定時間は solve() と合わせた全体の時間）
+    Result solveLine(const shogi::Position& position, shogi::Color attacker, int maxPlies, int timeLimitMs,
+                     const std::atomic_bool& stop, const std::atomic_bool* alsoStop = nullptr);
 
 private:
     static constexpr std::uint32_t kInfinite = 1000000000U;   ///< 証明数・反証数の無限大
@@ -199,8 +212,24 @@ private:
         std::size_t m_used = 0;
     };
 
+    /// 最短の手数を確かめた結果
+    enum class Settled {
+        Exact,       ///< 確かめた
+        Unverified,  ///< 確かめられなかった（時間切れなど）
+        Cancelled,   ///< 止められた
+    };
+
+    Result search(const shogi::Position& position, shogi::Color attacker, int maxPlies, int timeLimitMs,
+                  const std::atomic_bool& stop, const std::atomic_bool* alsoStop, bool wantLine);
     Result run(int maxPlies, std::chrono::steady_clock::time_point deadline);
-    void refine(Result& result, std::chrono::steady_clock::time_point deadline);
+    /// 詰みを証明した今の局面の、最短の手数 plies と最初の手 move を確かめる（確かめられなくても、証明した分に直す）
+    Settled settle(int& plies, shogi::Move& move, std::chrono::steady_clock::time_point deadline);
+    Settled settleAttack(int& plies, shogi::Move& move, std::chrono::steady_clock::time_point deadline);
+    Settled settleDefense(int& plies, shogi::Move& move, std::chrono::steady_clock::time_point deadline);
+    /// 攻め方の手番の今の局面で、後の局面が plies - 1 手以内に詰むと証明してある王手（いちばん短いもの）
+    bool findMatingMove(int plies, shogi::Move& move);
+    /// 最短の手数を確かめた詰みの手順をたどって result.line に入れる（今の局面を手順の先へ進める）
+    void followLine(Result& result, std::chrono::steady_clock::time_point deadline);
     Visit visit(Numbers limit, int depth);
     Tally tally(const std::vector<Child>& children, bool attack) const;
     /// 表から引いた子の今の値（結論・手順の途中の局面への戻り・手順に頼る不詰の覚え・見積もりの順）

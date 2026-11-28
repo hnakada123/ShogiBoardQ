@@ -1,51 +1,20 @@
 #include "tsumepositionanalyzer.h"
-#include "tsumethreadbudget.h"
 #include "tsumecollection.h"
 #include "tsumemateengine.h"
 #include "tsumeprogressstore.h"
+#include "tsumesolutionsearch.h"
 #include <QCryptographicHash>
 #include <QFile>
 #include <QFileInfo>
-#include <QElapsedTimer>
-#include <QtConcurrentRun>
 
 #include "version.h"  // Hayanagi の HAYANAGI_VERSION
-
-namespace {
-TsumeEvaluation evaluateInternal(shogi::Position position, int milliseconds, bool requireLine,
-                                const std::atomic_bool& stop)
-{
-    QElapsedTimer elapsed;
-    elapsed.start();
-    const TsumeThreadBudget budget;
-    shogi::TsumeSearch solver;
-    const auto attacker = position.side_to_move();
-    auto search = solver.solve(position, attacker, TsumePositionAnalyzer::kBuiltInMaxPlies, milliseconds, stop, budget.threads());
-    if (search.status == shogi::TsumeStatus::NoMate) return {TsumeEvaluation::Status::NoMate, 0, {}, {}};
-    if (search.status != shogi::TsumeStatus::Mate) return {};
-    TsumeEvaluation result{TsumeEvaluation::Status::Mate, search.plies, {}, {}};
-    if (!requireLine) return result;
-    // 内蔵コアは最善手1手を返すため、攻方の最短手・玉方の最長応手を順に取得する。
-    // 各局面で同じ時間を使い直さず、手順全体で制限時間と中止フラグを共有する。
-    for (int remaining = result.plies; remaining > 0; --remaining) {
-        if (stop.load() || search.status != shogi::TsumeStatus::Mate
-            || search.plies != remaining || !search.move.is_valid()) return {};
-        result.pv.append(QString::fromStdString(position.move_to_usi(search.move)));
-        position.do_move(search.move);
-        if (remaining > 1) {
-            const qint64 timeLeft = milliseconds - elapsed.elapsed();
-            if (timeLeft <= 0) return {};
-            search = solver.solve(position, attacker, remaining - 1, static_cast<int>(timeLeft), stop, budget.threads());
-        }
-    }
-    return result;
-}
-}
 
 TsumePositionAnalyzer::TsumePositionAnalyzer(QObject* parent) : QObject(parent)
 {
     m_engine = new TsumeMateEngine(this);
     connect(m_engine, &TsumeMateEngine::finished, this, &TsumePositionAnalyzer::engineFinished);
+    m_search = new TsumeSolutionSearch(this);
+    connect(m_search, &TsumeSolutionSearch::finished, this, &TsumePositionAnalyzer::internalFinished);
     m_cacheTimer.setSingleShot(true);
     connect(&m_cacheTimer, &QTimer::timeout, this, &TsumePositionAnalyzer::deliverCached);
     configure({}, nullptr);
@@ -60,9 +29,10 @@ void TsumePositionAnalyzer::configure(const QString& enginePath, TsumeProgressSt
     m_store = store;
     m_engine->setExecutable(enginePath);
     // 内蔵判定の結果は Hayanagi の版と手数上限ごとに保存する。サブモジュールを更新すると版が変わり、
-    // 以前の判定結果は使わない。ShogiBoardQ 側の判定方式を変えたときは末尾の版（v2）を上げる。
+    // 以前の判定結果は使わない。ShogiBoardQ 側の判定方式を変えたときは末尾の版（v3）を上げる
+    // （v3: 反復深化の探索と証明数探索を同時に動かす）。
     if (enginePath.isEmpty()) {
-        m_engineKey = QStringLiteral("hayanagi-%1-depth%2-v2")
+        m_engineKey = QStringLiteral("hayanagi-%1-depth%2-v3")
                           .arg(QLatin1String(HAYANAGI_VERSION))
                           .arg(kBuiltInMaxPlies);
     } else {
@@ -79,12 +49,7 @@ void TsumePositionAnalyzer::cancel()
     m_active = false;
     m_cacheTimer.stop();
     m_engine->cancel();
-    if (!m_watcher) return;
-    // ワーカーは値だけを持つので、止めるよう知らせたら終わるのを待たない（結果は捨てる）
-    m_stop->store(true);
-    disconnect(m_watcher, nullptr, this, nullptr);
-    connect(m_watcher, &QFutureWatcherBase::finished, m_watcher, &QObject::deleteLater);
-    m_watcher = nullptr;
+    m_search->cancel();
 }
 
 void TsumePositionAnalyzer::evaluate(const QString& sfen, int milliseconds, bool requireLine)
@@ -109,22 +74,13 @@ void TsumePositionAnalyzer::evaluate(const QString& sfen, int milliseconds, bool
         m_cacheTimer.start(0);
         return;
     }
-    m_stop = makeCancelFlag();
-    m_watcher = new QFutureWatcher<TsumeEvaluation>(this);
-    connect(m_watcher, &QFutureWatcher<TsumeEvaluation>::finished, this, &TsumePositionAnalyzer::internalFinished);
-    const auto stop = m_stop;
-    m_watcher->setFuture(QtConcurrent::run([position, milliseconds, requireLine, stop]() {
-        return evaluateInternal(position, milliseconds, requireLine, *stop);
-    }));
+    m_search->start(position, kBuiltInMaxPlies, milliseconds, requireLine);
 }
 
-void TsumePositionAnalyzer::internalFinished()
+void TsumePositionAnalyzer::internalFinished(const TsumeEvaluation& evaluation)
 {
-    QFutureWatcher<TsumeEvaluation>* watcher = m_watcher;
-    if (!watcher || sender() != watcher) return;
-    m_watcher = nullptr;
-    auto result = watcher->result();
-    watcher->deleteLater();
+    if (!m_active) return;
+    TsumeEvaluation result = evaluation;
     if (result.status == TsumeEvaluation::Status::Unknown)
         result.detail = tr("内蔵判定の時間または%1手の上限に達しました。KomoringHeightsで再判定できます。").arg(kBuiltInMaxPlies);
     complete(result);

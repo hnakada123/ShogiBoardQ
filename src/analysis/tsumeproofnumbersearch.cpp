@@ -54,6 +54,21 @@ TsumeProofNumberSearch::Result TsumeProofNumberSearch::solve(const shogi::Positi
                                                              int maxPlies, int timeLimitMs, const std::atomic_bool& stop,
                                                              const std::atomic_bool* alsoStop)
 {
+    return search(position, attacker, maxPlies, timeLimitMs, stop, alsoStop, false);
+}
+
+TsumeProofNumberSearch::Result TsumeProofNumberSearch::solveLine(const shogi::Position& position, shogi::Color attacker,
+                                                                 int maxPlies, int timeLimitMs,
+                                                                 const std::atomic_bool& stop,
+                                                                 const std::atomic_bool* alsoStop)
+{
+    return search(position, attacker, maxPlies, timeLimitMs, stop, alsoStop, true);
+}
+
+TsumeProofNumberSearch::Result TsumeProofNumberSearch::search(const shogi::Position& position, shogi::Color attacker,
+                                                              int maxPlies, int timeLimitMs, const std::atomic_bool& stop,
+                                                              const std::atomic_bool* alsoStop, bool wantLine)
+{
     using Clock = std::chrono::steady_clock;
     m_position = position;
     m_attacker = attacker;
@@ -93,8 +108,14 @@ TsumeProofNumberSearch::Result TsumeProofNumberSearch::solve(const shogi::Positi
             result = Result{};
         }
     }
-    // 3) いちばん長く粘る応手と、最短の手数を確かめる
-    if (result.status == Status::Mate) refine(result, deadline);
+    if (result.status == Status::Mate) {
+        // 3) 最短の手数と、最初の手を確かめる
+        const Settled settled = settle(result.plies, result.move, deadline);
+        if (settled == Settled::Cancelled) result.status = Status::Cancelled;
+        result.exact = settled == Settled::Exact;
+        // 4) 詰みまでの手順をたどる
+        if (wantLine && result.exact) followLine(result, deadline);
+    }
     result.nodes = m_nodes;
     return result;
 }
@@ -121,30 +142,54 @@ TsumeProofNumberSearch::Result TsumeProofNumberSearch::run(int maxPlies, std::ch
     } else if (root.numbers.dn == 0 && root.disproof.dependencies.none()) {
         // 根より上に手順は無いので、根の不詰は手順に頼らない（頼っていたら結論にしない）
         result.status = root.disproof.limited ? Status::TooLong : Status::NoMate;
-        result.reply = m_rootReply;
-        if (!result.reply.is_valid() && m_position.side_to_move() != m_attacker) {
+        result.move = m_rootReply;
+        if (!result.move.is_valid() && m_position.side_to_move() != m_attacker) {
             // 手数が残っていない玉方の手番: どの応手でも詰みを防げる
             std::vector<shogi::Move> replies;
             m_position.generate_legal_moves(replies);
-            if (!replies.empty()) result.reply = replies.front();
+            if (!replies.empty()) result.move = replies.front();
         }
     } else if (root.numbers.pn == 0 && root.length < kAssumedLength) {
         result.status = Status::Mate;
         result.plies = root.length;
-        result.reply = m_rootReply;
+        result.move = m_rootReply;
     }
     return result;
 }
 
-void TsumeProofNumberSearch::refine(Result& result, std::chrono::steady_clock::time_point deadline)
+TsumeProofNumberSearch::Settled TsumeProofNumberSearch::settle(int& plies, shogi::Move& move,
+                                                               std::chrono::steady_clock::time_point deadline)
 {
-    // 玉方の手番の局面だけ（攻め方の手番の局面の手数は、証明した手順の長さのまま）
-    if (m_position.side_to_move() == m_attacker) return;
+    return m_position.side_to_move() == m_attacker ? settleAttack(plies, move, deadline)
+                                                   : settleDefense(plies, move, deadline);
+}
+
+TsumeProofNumberSearch::Settled TsumeProofNumberSearch::settleAttack(int& plies, shogi::Move& move,
+                                                                     std::chrono::steady_clock::time_point deadline)
+{
+    // 2手短い手数では詰まないことを確かめる。詰んだら、その手数からやり直す（手数は減るだけなので終わる）
+    Settled settled = Settled::Exact;
+    while (plies > 1) {
+        const Result shorter = run(plies - 2, deadline);
+        if (shorter.status == Status::TooLong || shorter.status == Status::NoMate) break;
+        if (shorter.status != Status::Mate) {
+            settled = shorter.status == Status::Cancelled ? Settled::Cancelled : Settled::Unverified;
+            break;
+        }
+        plies = shorter.plies;
+    }
+    if (!findMatingMove(plies, move) && settled == Settled::Exact) settled = Settled::Unverified;
+    return settled;
+}
+
+TsumeProofNumberSearch::Settled TsumeProofNumberSearch::settleDefense(int& plies, shogi::Move& move,
+                                                                      std::chrono::steady_clock::time_point deadline)
+{
     std::vector<shogi::Move> replies;
     m_position.generate_legal_moves(replies);
     if (replies.empty()) {
-        result.exact = true;    // もう詰んでいる
-        return;
+        plies = 0;      // もう詰んでいる
+        return Settled::Exact;
     }
     // 応手ごとの、証明した手順の長さ（どの応手の後も詰みを証明してある）
     std::vector<int> lengths;
@@ -153,7 +198,7 @@ void TsumeProofNumberSearch::refine(Result& result, std::chrono::steady_clock::t
         m_position.make_move(reply, undo);
         const Verdict* verdict = m_verdicts.find(keyOf(m_position));
         m_position.unmake_move(reply, undo);
-        if (!verdict || verdict->mate >= kAssumedLength) return;
+        if (!verdict || verdict->mate >= kAssumedLength) return Settled::Unverified;
         lengths.push_back(verdict->mate);
     }
     // 手順がいちばん長い応手を選び、その後の局面がそれより短くは詰まないことを確かめる。
@@ -161,24 +206,61 @@ void TsumeProofNumberSearch::refine(Result& result, std::chrono::steady_clock::t
     while (true) {
         const std::size_t longest = static_cast<std::size_t>(
             std::max_element(lengths.begin(), lengths.end()) - lengths.begin());
-        result.reply = replies[longest];
-        result.plies = 1 + lengths[longest];
-        if (lengths[longest] <= 1) {
-            result.exact = true;    // どの応手にも次の1手で詰む
-            return;
-        }
+        move = replies[longest];
+        plies = 1 + lengths[longest];
+        if (lengths[longest] <= 1) return Settled::Exact;   // どの応手にも次の1手で詰む
         shogi::MoveUndo undo;
         m_position.make_move(replies[longest], undo);
         const Result shorter = run(lengths[longest] - 2, deadline);
         m_position.unmake_move(replies[longest], undo);
-        if (shorter.status == Status::TooLong || shorter.status == Status::NoMate) {
-            result.exact = true;
-            return;
-        }
-        if (shorter.status == Status::Cancelled) result.status = Status::Cancelled;
-        if (shorter.status != Status::Mate) return;     // 確かめられなかった（時間切れなど）
+        if (shorter.status == Status::TooLong || shorter.status == Status::NoMate) return Settled::Exact;
+        if (shorter.status == Status::Cancelled) return Settled::Cancelled;
+        if (shorter.status != Status::Mate) return Settled::Unverified;     // 時間切れなど
         lengths[longest] = shorter.plies;
     }
+}
+
+bool TsumeProofNumberSearch::findMatingMove(int plies, shogi::Move& move)
+{
+    std::vector<shogi::Move> checks;
+    m_position.generate_checking_moves(checks);
+    int shortest = plies;   // 後の局面の手数は plies - 1 以下
+    bool found = false;
+    for (const shogi::Move& check : checks) {
+        shogi::MoveUndo undo;
+        m_position.make_move(check, undo);
+        const Verdict* verdict = m_verdicts.find(keyOf(m_position));
+        m_position.unmake_move(check, undo);
+        if (!verdict || static_cast<int>(verdict->mate) >= shortest) continue;
+        shortest = verdict->mate;
+        move = check;
+        found = true;
+    }
+    return found;
+}
+
+void TsumeProofNumberSearch::followLine(Result& result, std::chrono::steady_clock::time_point deadline)
+{
+    // 攻め方の手番の局面は、最短の手数を確かめてあるので、証明してある手を指すだけ。
+    // 玉方の手番の局面は、いちばん長く粘る応手を確かめる（残りの手数ちょうどのはず）
+    std::vector<shogi::Move> line;
+    int plies = result.plies;
+    shogi::Move move = result.move;
+    while (true) {
+        if (!move.is_valid()) return;
+        line.push_back(move);
+        m_position.do_move(move);
+        if (--plies <= 0) break;
+        if (m_position.side_to_move() == m_attacker) {
+            if (!findMatingMove(plies, move)) return;
+            continue;
+        }
+        int length = plies;
+        const Settled settled = settleDefense(length, move, deadline);
+        if (settled == Settled::Cancelled) result.status = Status::Cancelled;
+        if (settled != Settled::Exact || length != plies) return;
+    }
+    result.line = std::move(line);
 }
 
 void TsumeProofNumberSearch::checkLimits()

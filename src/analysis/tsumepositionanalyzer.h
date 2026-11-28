@@ -2,21 +2,20 @@
 #define TSUMEPOSITIONANALYZER_H
 
 #include "tsumeevaluation.h"
-#include "threadtypes.h"
-#include "tsume.h"
-#include <QFutureWatcher>
 #include <QObject>
 #include <QTimer>
-#include <memory>
 
 class TsumeMateEngine;
 class TsumeProgressStore;
+class TsumeSolutionSearch;
 
+/// 詰将棋の局面の判定（最短の詰み手数と手順）。判定の方式（内蔵の探索・登録した詰将棋エンジン）を選び、
+/// 確定した結果をキャッシュから読み書きする
 class TsumePositionAnalyzer : public QObject
 {
     Q_OBJECT
 public:
-    /// 内蔵の Hayanagi で初期局面を判定する手数の上限
+    /// 内蔵の探索で初期局面を判定する手数の上限
     static constexpr int kBuiltInMaxPlies = 31;
 
     explicit TsumePositionAnalyzer(QObject* parent = nullptr);
@@ -30,11 +29,13 @@ signals:
     void finished(const TsumeEvaluation& result);
 private slots:
     void engineFinished(const TsumeEvaluation& result);
-    void internalFinished();
+    void internalFinished(const TsumeEvaluation& evaluation);
     void deliverCached();
 private:
     void complete(const TsumeEvaluation& result);
     TsumeMateEngine* m_engine = nullptr;
+    /// 内蔵の判定（反復深化の探索と証明数探索）
+    TsumeSolutionSearch* m_search = nullptr;
     TsumeProgressStore* m_store = nullptr;
     QString m_enginePath;
     QString m_engineKey;
@@ -43,9 +44,6 @@ private:
     bool m_active = false;
     TsumeEvaluation m_cached;
     QTimer m_cacheTimer;
-    /// 内蔵の判定のワーカー（親は this。止めた判定は終わるのを待たずに捨て、終わったら自分で消える）
-    QFutureWatcher<TsumeEvaluation>* m_watcher = nullptr;
-    CancelFlag m_stop;
 };
 
 #endif

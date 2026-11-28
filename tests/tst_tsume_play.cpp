@@ -41,8 +41,8 @@ private slots:
         // 内蔵判定のキャッシュは Hayanagi の版ごとに分け、サブモジュール更新後に古い判定を使わない
         TsumePositionAnalyzer analyzer;
         QCOMPARE(analyzer.engineKey(),
-                 QStringLiteral("hayanagi-%1-depth31-v2").arg(QLatin1String(HAYANAGI_VERSION)));
-        QVERIFY(analyzer.engineKey() != QStringLiteral("hayanagi-1.4.0-depth31-v2"));
+                 QStringLiteral("hayanagi-%1-depth31-v3").arg(QLatin1String(HAYANAGI_VERSION)));
+        QVERIFY(analyzer.engineKey() != QStringLiteral("hayanagi-1.4.0-depth31-v3"));
     }
 
     void cleanup()

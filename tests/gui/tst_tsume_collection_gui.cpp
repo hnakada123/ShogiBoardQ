@@ -15,6 +15,8 @@
 #include <QTimer>
 #include <QToolButton>
 #include <QTranslator>
+#include <algorithm>
+#include "tsumecollection.h"
 #include "tsumecollectiondialog.h"
 #include "tsumeprogressstore.h"
 #include "tsumeplaydialog.h"
@@ -514,6 +516,35 @@ private slots:
         QVERIFY(window.loadFile(renamed));
         for (auto* card : cards(window))
             QVERIFY(card->findChild<QLabel*>(QStringLiteral("cardLength"))->text().contains(QStringLiteral("未検証")));
+    }
+    /// 検証済みの記録に無い長手数の問題集（同梱の31手詰の先頭10問を局面だけにしたもの）も、内蔵の判定で手数が決まる。
+    /// 以前は反復深化の探索だけで、長手数の問題の多くが判定時間（5秒）に収まらず「判定不能」になった
+    void longCollectionWithoutRecordIsJudged()
+    {
+        QFile bundled(QStringLiteral(REPO "/data/tsumeshogi/tsume_31ply_1000_20261127.txt"));
+        QVERIFY(bundled.open(QIODevice::ReadOnly));
+        const auto longProblems = TsumeCollection::parse(QString::fromUtf8(bundled.readAll())).problems;
+        QVERIFY(longProblems.size() >= 10);
+        QFile file(files.filePath(QStringLiteral("long-positions.txt")));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        for (int i = 0; i < 10; ++i) file.write(longProblems[i].sfen.toUtf8() + '\n');
+        file.close();
+
+        TsumeCollectionDialog window;
+        window.show();
+        QVERIFY(window.loadFile(file.fileName()));
+        QCOMPARE(cards(window).size(), 10);
+        // 局面だけなので、参考手順も検証済みの手数も無い
+        QVERIFY(cards(window).last()->findChild<QLabel*>(QStringLiteral("cardLength"))->text()
+                != QStringLiteral("31手詰"));
+        const auto allJudged = [&]() {
+            const auto shown = cards(window);
+            return shown.size() == 10 && std::all_of(shown.begin(), shown.end(), [](QPushButton* card) {
+                return card->findChild<QLabel*>(QStringLiteral("cardLength"))->text() == QStringLiteral("31手詰");
+            });
+        };
+        QTRY_VERIFY_WITH_TIMEOUT(allJudged(), 60000);
+        for (auto* card : cards(window)) QVERIFY(card->isEnabled());
     }
     void emptyFilterAndNonMate()
     {
