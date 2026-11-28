@@ -54,6 +54,7 @@ TsumeRetrogradeGenerator::TsumeRetrogradeGenerator(QObject* parent)
     connect(m_engine, &TsumeMateQueryLink::answered, this, &TsumeRetrogradeGenerator::onOracleAnswered);
     connect(m_engine, &TsumeMateQueryLink::unsupported, this, &TsumeRetrogradeGenerator::onEngineUnsupported);
     connect(m_engine, &TsumeMateQueryLink::timedOut, this, &TsumeRetrogradeGenerator::onOracleTimedOut);
+    connect(m_engine, &TsumeMateQueryLink::unresponsive, this, &TsumeRetrogradeGenerator::onEngineUnresponsive);
     connect(m_engine, &TsumeMateQueryLink::errorOccurred, this, &TsumeRetrogradeGenerator::onOracleError);
     m_stepTimer.setSingleShot(true);
     connect(&m_stepTimer, &QTimer::timeout, this, &TsumeRetrogradeGenerator::onStepTimer);
@@ -207,9 +208,13 @@ void TsumeRetrogradeGenerator::onEngineReady()
 void TsumeRetrogradeGenerator::restartEngineForRecovery()
 {
     ++m_beam.stats().engineRestarts;
-    if (!m_engine->restartForRecovery(m_beam.stats().engineRestarts)) {
-        failRun(tr("エンジンが連続して応答しないため生成を中止しました。"));
-    }
+    m_engine->restartForRecovery(m_beam.stats().engineRestarts);
+}
+
+void TsumeRetrogradeGenerator::onEngineUnresponsive()
+{
+    if (!m_running) return;
+    failRun(tr("エンジンが連続して応答しないため生成を中止しました。"));
 }
 
 void TsumeRetrogradeGenerator::scheduleStep()

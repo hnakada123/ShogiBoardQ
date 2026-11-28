@@ -14,8 +14,12 @@
  * @brief 詰将棋エンジン1台との接続と、1件ずつの詰みの問い合わせ
  *
  * MateOracle を作り直しながら使う: 起動（最短手数の確認に要るオプションを付ける）、問い合わせ、
- * 期限までに答えないエンジンの再起動（続けて応答しないときはあきらめる）。
+ * 期限までに答えないエンジンの再起動。
  * 答えで何をするか・答えを覚えておくかは使う側（TsumeRetrogradeGenerator）が決める。
+ *
+ * 期限切れは、厳密証明の探索（go mate infinite）が期限までに終わらなかっただけのこともあり、それだけでは
+ * エンジンの異常と言えない。答えが1つも返らないまま期限切れが続いたら、起動し直した後に1手詰の局面を
+ * 問い合わせて生きているかを確かめ、それにも答えなければ unresponsive を知らせる（答えれば数え直して続ける）。
  */
 class TsumeMateQueryLink : public QObject
 {
@@ -43,8 +47,8 @@ public:
     void start(const Options& options);
     /// エンジンを止める（以後の応答は知らせない）
     void shutdown();
-    /// 期限までに答えなかったエンジンを起動し直す。続けて応答しない回数が上限を超えたら、起動せず false
-    bool restartForRecovery(int restartCount);
+    /// 期限までに答えなかったエンジンを起動し直す（完了は ready。応答しないと分かったら unresponsive）
+    void restartForRecovery(int restartCount);
 
     bool isReady() const { return m_ready; }
     bool isAwaitingAnswer() const { return m_awaitingAnswer; }
@@ -69,8 +73,10 @@ signals:
     /// 答え（go mate に対応していないエンジンの答えは unsupported で知らせる）
     void answered(const MateAnswer& answer, qint64 elapsedMs);
     void unsupported();
-    /// 期限までに答えなかった（エンジンが固まっている）
+    /// 期限までに答えなかった（厳密証明の探索が終わらなかった、またはエンジンが固まっている）
     void timedOut();
+    /// 起動し直しても、1手詰の問い合わせにも答えない（エンジンが応答しない）
+    void unresponsive();
     void errorOccurred(const QString& message);
 
 private slots:
@@ -79,8 +85,11 @@ private slots:
     void onOracleTimedOut();
 
 private:
-    /// MateOracle を作り直して起動する（最初の起動と、応答しないときの再起動で共通）
-    void launch();
+    /// MateOracle を作り直して起動する（最初の起動と、応答しないときの再起動で共通）。
+    /// probeFirst なら、起動の後に生きているかを確かめてから ready を知らせる
+    void launch(bool probeFirst);
+    /// 1手詰の局面を問い合わせて、エンジンが生きているかを確かめる
+    void sendProbe();
 
     Options m_options;
     MateOracle* m_oracle = nullptr;   ///< 起動のたびに作り直す（QObject parent 所有）
@@ -88,7 +97,9 @@ private:
     bool m_awaitingAnswer = false;
     bool m_lastQueryWasStrict = false;
     bool m_hashDirty = false;
-    int m_consecutiveRecoveries = 0;
+    int m_unansweredTimeouts = 0;   ///< 答えが返らないまま続いた期限切れの数（答えが返ったら 0）
+    bool m_probeOnReady = false;    ///< 起動が済んだら、生きているかを確かめる
+    bool m_probing = false;         ///< 生きているかを確かめる問い合わせの答えを待っている
     QString m_lastQuerySfen;
     QElapsedTimer m_queryTimer;
 };

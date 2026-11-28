@@ -23,7 +23,7 @@ USIエンジン（`go mate`）と内蔵探索（Hayanagi）を用いて、詰将
 | `TsumeCandidateJob` | `src/analysis/tsumecandidatejob.{h,cpp}` | ランダム配置モードで候補1つを採択か棄却まで進める（手数確認→唯一解検査→駒除去→再検査）。Qt のイベントループを知らない引き出し型 |
 | `TsumeRetrogradeGenerator` | `src/analysis/tsumeretrogradegenerator.{h,cpp}` | 逆算・編集モードの進行（エンジンへの問い合わせと、答えで何をするかの順番: 候補の評価 → 初手余詰チェック → 厳密証明。開始と終了・進捗・チェックポイントの保存の契機） |
 | `TsumeRetrogradeBeam` | `src/analysis/tsumeretrogradebeam.{h,cpp}` | 探索の状態（手数層ごとのビーム・評価待ち・リペアキュー・証明待ち・既出と類似作の記録・統計・乱数）と、候補の供給（種局面・0手詰みからの逆算・ビームの展開・1枚除去）、チェックポイントへの書き出しと読み戻し。エンジンを使わない |
-| `TsumeMateQueryLink` | `src/analysis/tsumematequerylink.{h,cpp}` | 詰将棋エンジンとの接続（`MateOracle` の起動・`ask()` / `askWithin()`・期限切れ後の自動再起動・置換表のリセット） |
+| `TsumeMateQueryLink` | `src/analysis/tsumematequerylink.{h,cpp}` | 詰将棋エンジンとの接続（`MateOracle` の起動・`ask()` / `askWithin()`・期限切れ後の自動再起動・応答しないエンジンの見分け・置換表のリセット） |
 | `TsumeLocalScreen` | `src/analysis/tsumelocalscreen.{h,cpp}` | 内蔵 Hayanagi による事前ふるい分け（候補のプレスクリーニング・初手と主手順の明白な余詰の検出） |
 | `TsumeFirstMoveCheck` | `src/analysis/tsumefirstmovecheck.{h,cpp}` | 成長中の候補の軽量初手余詰チェック（引き出し型: `nextQuery()` / `submit()` / `verdict()`） |
 | `TsumeRetrogradeCheckpoint` | `src/analysis/tsumeretrogradecheckpoint.{h,cpp}` | チェックポイントファイルの形式（版・生成条件の記録と再開時の照合）と原子的な保存 |
@@ -472,7 +472,8 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 - `TsumeMateQueryLink::start()` は `TsumeMateEngine::requiredOptions()`（`PostSearchLevel=MinLength`、`GenerateAllLegalMoves=true`、`RootIsAndNodeIfChecked=false`、`NodesLimit=0`、`MultiPV=1`）をセッション設定として自動適用し、指定があれば `USI_Hash`（`engineHashMb`）と `Threads`（`engineThreads`）も上書きする。
 - 厳密証明（`strictMinLength = true`）の問い合わせは `MateOracle::askWithin()`（`go mate infinite` を送り自然終了のみ確定、期限超過時は stop を送らず打ち切り）を使用する。
 - **キャッシュ分離と置換表クリーン化（`TsumeMateQueryLink::resetHashIfDirty()`）**: 成長フェーズのキャッシュ（`m_fastCache`、最大100,000件、超過時は前半半分を破棄）と厳密証明用の確定キャッシュ（`m_strictCache`、最大200,000件）は明確に分離する。さらに、成長フェーズで時間制限付きの `ask()` を実行すると窓口が置換表の汚れを覚え（`m_hashDirty`）、次に `TsumeStrictCertifier` を開始する直前に `sendUsiNewGame()` を送って時間切れ由来のエンジン置換表残骸をリセットしてから厳密証明に入る。
-- 期限切れやエンジン無応答が起きた場合は `TsumeMateQueryLink::restartForRecovery()` でエンジンプロセスを自動再起動して探索を継続する（連続5回を超えた場合のみエラー終了）。
+- 期限切れやエンジン無応答が起きた場合は `TsumeMateQueryLink::restartForRecovery()` でエンジンプロセスを自動再起動して探索を継続する。
+- **応答しないエンジンの見分け**: 期限切れは、厳密証明の `go mate infinite` が期限までに終わらなかっただけのこともあり（1つの候補の検査の中でも続けて起こる）、回数だけではエンジンの異常と言えない。答えが1つも返らないまま期限切れが5回続いたら（`kProbeAfterTimeouts`）、再起動の後に1手詰の局面（`kProbeSfen`）を制限時間つきで問い合わせて生きているかを確かめる。答えが返れば（中身は問わない）数え直して続け、stop にも答えなければ（約10秒）`unresponsive` を知らせ、生成器が「エンジンが連続して応答しないため生成を中止しました。」で終了する。確かめている間は `ready` を知らせないので、生成器は再起動の途中と同じく待つ。2026-11-28 までは再起動のたびに連続回数を 0 に戻していたので、詰みの問い合わせに答えないエンジンでも再起動を繰り返し続けた。
 
 ### チェックポイント保存と再開
 

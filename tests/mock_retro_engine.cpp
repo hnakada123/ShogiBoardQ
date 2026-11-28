@@ -75,6 +75,10 @@ int main()
 {
     const char* depthEnv = std::getenv("SHOGI_MOCK_RETRO_DEPTH");
     const int maxPlies = depthEnv ? std::max(1, std::atoi(depthEnv)) : 7;
+    // 応答しないエンジンの再現: "all" は go mate に答えない、"infinite" は go mate infinite にだけ答えない
+    // （期限までに終わらない厳密証明の探索。制限時間つきの問い合わせには答える）
+    const char* hangEnv = std::getenv("SHOGI_MOCK_RETRO_HANG");
+    const std::string hangMode = hangEnv ? hangEnv : "";
 
     shogi::Position position;
     position.set_startpos();
@@ -114,6 +118,8 @@ int main()
                     std::cout << "checkmate notimplemented" << std::endl;
                     continue;
                 }
+                const bool infinite = tokens.size() < 3 || tokens[2] == "infinite";
+                if (hangMode == "all" || (hangMode == "infinite" && infinite)) continue;
                 int timeLimitMs = 200;
                 if (tokens.size() >= 3 && tokens[2] != "infinite") {
                     timeLimitMs = std::max(10, std::min(500, std::stoi(tokens[2])));

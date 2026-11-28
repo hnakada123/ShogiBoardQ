@@ -17610,27 +17610,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeRetrogradeGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="136"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="139"/>
         <source>再開するにはチェックポイントファイルを指定してください。</source>
         <translation>再開するにはチェックポイントファイルを指定してください。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="209"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="217"/>
         <source>エンジンが連続して応答しないため生成を中止しました。</source>
         <translation>エンジンが連続して応答しないため生成を中止しました。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="262"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="269"/>
         <source>候補局面を生成できませんでした。駒数上限などの設定を確認してください。</source>
         <translation>候補局面を生成できませんでした。駒数上限などの設定を確認してください。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="381"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="388"/>
         <source>選択されたエンジンは詰み探索（go mate）に対応していません。</source>
         <translation>選択されたエンジンは詰み探索（go mate）に対応していません。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="421"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="428"/>
         <source>エンジンでエラーが発生しました。</source>
         <translation>エンジンでエラーが発生しました。</translation>
     </message>

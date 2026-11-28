@@ -93,7 +93,32 @@ class TestTsumeshogiRetrograde : public QObject
 {
     Q_OBJECT
 
+    /// 5手詰を育てる設定（育成は内蔵探索で進むので、エンジンへ送るのは厳密証明の問い合わせだけになる）
+    static TsumeRetrogradeGenerator::Settings shortGrowSettings()
+    {
+        TsumeRetrogradeGenerator::Settings s;
+        s.enginePath = mockRetroEnginePath();
+        s.engineName = QStringLiteral("MockRetro");
+        s.targetMoves = 5;
+        s.maxPositionsToFind = 1;
+        s.beamWidth = 8;
+        s.branchFactor = 16;
+        s.maxAttackPieces = 8;
+        s.maxDefendPieces = 5;
+        s.stepTimeoutMs = 300;
+        s.verifyQueryTimeoutMs = 500;
+        s.verifyBudgetMs = 60000;
+        s.rngSeed = 42;
+        return s;
+    }
+
 private slots:
+    void cleanup()
+    {
+        // 模擬エンジンの応答しない動作は、使った試験だけにとどめる
+        qunsetenv("SHOGI_MOCK_RETRO_HANG");
+    }
+
     void mateEndingsAreValidAndReversible()
     {
         TsumeRetrogradeOps::Limits limits;
@@ -453,6 +478,54 @@ private slots:
         QCOMPARE(resumed.foundPositions().size(), 2);
         QCOMPARE(resumed.foundPositions().at(0).sfen, foundSfen);
         QVERIFY(resumed.foundPositions().at(1).sfen != foundSfen);
+    }
+
+    /// 詰みの問い合わせに答えないエンジンでは、再起動を繰り返し続けずに、応答しないと知らせて止まる。
+    /// 以前は、再起動のたびに連続回数を 0 に戻していたので、止まらなかった。
+    void unresponsiveEngineStopsTheRun()
+    {
+        QVERIFY2(QFile::exists(mockRetroEnginePath()), qPrintable(mockRetroEnginePath()));
+        qputenv("SHOGI_MOCK_RETRO_HANG", "all");
+
+        TsumeRetrogradeGenerator gen;
+        QSignalSpy foundSpy(&gen, &TsumeRetrogradeGenerator::positionFound);
+        QSignalSpy finishedSpy(&gen, &TsumeRetrogradeGenerator::finished);
+        QSignalSpy errorSpy(&gen, &TsumeRetrogradeGenerator::errorOccurred);
+        QVERIFY(gen.start(shortGrowSettings()));
+        // 期限切れ5回（0.5秒ずつ）の後、1手詰の問い合わせにも答えないことを約10秒で確かめて止まる
+        QTRY_VERIFY_WITH_TIMEOUT(finishedSpy.size() == 1, 60000);
+        QCOMPARE(finishedSpy.at(0).at(0).toBool(), false);
+        QCOMPARE(errorSpy.size(), 1);
+        QVERIFY2(errorSpy.at(0).at(0).toString().contains(QStringLiteral("応答しない")),
+                 qPrintable(errorSpy.at(0).at(0).toString()));
+        QCOMPARE(foundSpy.size(), 0);
+        QVERIFY(!gen.isRunning());
+        QCOMPARE(gen.progress().engineRestarts, 5);
+    }
+
+    /// 厳密証明の探索が期限までに終わらないだけ（制限時間つきの問い合わせには答える）なら、
+    /// 期限切れが何回続いても、エンジンが生きていることを確かめて続ける。
+    void strictTimeoutsDoNotStopAResponsiveEngine()
+    {
+        QVERIFY2(QFile::exists(mockRetroEnginePath()), qPrintable(mockRetroEnginePath()));
+        qputenv("SHOGI_MOCK_RETRO_HANG", "infinite");
+
+        TsumeRetrogradeGenerator gen;
+        QSignalSpy foundSpy(&gen, &TsumeRetrogradeGenerator::positionFound);
+        QSignalSpy finishedSpy(&gen, &TsumeRetrogradeGenerator::finished);
+        QSignalSpy errorSpy(&gen, &TsumeRetrogradeGenerator::errorOccurred);
+        QVERIFY(gen.start(shortGrowSettings()));
+        // 確かめる回数（5回）を超えても止まらない
+        QTRY_VERIFY_WITH_TIMEOUT(gen.progress().engineRestarts >= 8, 60000);
+        QVERIFY(gen.isRunning());
+        QCOMPARE(errorSpy.size(), 0);
+        QCOMPARE(finishedSpy.size(), 0);
+        QCOMPARE(foundSpy.size(), 0);   // 厳密証明が終わらないので採択はない
+
+        gen.stop();
+        QTRY_VERIFY_WITH_TIMEOUT(finishedSpy.size() == 1, 10000);
+        QCOMPARE(finishedSpy.at(0).at(0).toBool(), true);
+        QCOMPARE(errorSpy.size(), 0);
     }
 
     void cliGrowTsume5OutputAnd101Resume()

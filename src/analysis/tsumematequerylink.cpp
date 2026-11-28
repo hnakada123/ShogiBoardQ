@@ -13,7 +13,13 @@
 
 namespace {
 constexpr int kOracleInitTimeoutMs = 30000;
-constexpr int kMaxConsecutiveRecoveries = 5;
+/// 答えのない期限切れがこの回数続いたら、再起動の後にエンジンが生きているかを確かめる
+constexpr int kProbeAfterTimeouts = 5;
+/// 生きているかを確かめる問い合わせの制限時間。答えが無ければ MateOracle が余裕の後に stop を送り、
+/// それにも答えなければ応答しないとみなす（合わせて約10秒）
+constexpr int kProbeLimitMs = 2000;
+/// 生きているかを確かめる局面（1手詰。どの詰将棋エンジンでもすぐに答えが出る）
+constexpr char kProbeSfen[] = "8k/6G2/7G1/9/9/9/9/9/9 b R 1";
 } // namespace
 
 TsumeMateQueryLink::TsumeMateQueryLink(QObject* parent)
@@ -30,14 +36,15 @@ void TsumeMateQueryLink::start(const Options& options)
 {
     m_options = options;
     m_hashDirty = false;
-    m_consecutiveRecoveries = 0;
+    m_unansweredTimeouts = 0;
     m_lastQuerySfen.clear();
-    launch();
+    launch(false);
 }
 
-void TsumeMateQueryLink::launch()
+void TsumeMateQueryLink::launch(bool probeFirst)
 {
     shutdown();
+    m_probeOnReady = probeFirst;
     m_ready = false;
     m_awaitingAnswer = false;
     m_oracle = new MateOracle(this);
@@ -67,22 +74,36 @@ void TsumeMateQueryLink::shutdown()
     m_oracle = nullptr;
     m_ready = false;
     m_awaitingAnswer = false;
+    m_probing = false;
+    m_probeOnReady = false;
 }
 
-bool TsumeMateQueryLink::restartForRecovery(int restartCount)
+void TsumeMateQueryLink::restartForRecovery(int restartCount)
 {
-    ++m_consecutiveRecoveries;
-    if (m_consecutiveRecoveries > kMaxConsecutiveRecoveries) return false;
+    // 期限切れは、厳密証明の探索が期限までに終わらなかっただけのこともある（エンジンは正常）。
+    // 答えが1つも返らないまま続いたときだけ、起動し直した後に生きているかを確かめる
+    ++m_unansweredTimeouts;
     qCInfo(lcAnalysis).noquote() << "Restarting mate engine after timeout (count=" << restartCount << ")";
-    launch();
-    return true;
+    launch(m_unansweredTimeouts >= kProbeAfterTimeouts);
 }
 
 void TsumeMateQueryLink::onOracleReady()
 {
+    if (m_probeOnReady) {
+        m_probeOnReady = false;
+        sendProbe();
+        return;
+    }
     m_ready = true;
-    m_consecutiveRecoveries = 0;
     emit ready();
+}
+
+void TsumeMateQueryLink::sendProbe()
+{
+    // 使う側にはまだ ready を知らせない（確かめ終わるまで問い合わせを受け付けない）
+    const std::optional<UsiPosition> pos = UsiPosition::parse(QString::fromLatin1(kProbeSfen));
+    m_probing = pos && m_oracle && m_oracle->ask(*pos, kProbeLimitMs);
+    if (!m_probing) emit unresponsive();
 }
 
 TsumeMateQueryLink::AskResult TsumeMateQueryLink::ask(const QString& sfen, int limitMs, bool strictInfinite)
@@ -116,9 +137,25 @@ void TsumeMateQueryLink::resetHashIfDirty()
 
 void TsumeMateQueryLink::onOracleAnswered(const MateAnswer& answer)
 {
+    if (m_probing) {
+        m_probing = false;
+        if (answer.kind == MateAnswer::Kind::Unsupported) {
+            emit unsupported();
+            return;
+        }
+        // 答えが返った（中身は問わない）: エンジンは生きている。数え直して問い合わせを受け付ける。
+        // 確かめに使った探索の結果は、後の厳密な問い合わせに持ち越さない
+        m_unansweredTimeouts = 0;
+        m_hashDirty = true;
+        resetHashIfDirty();
+        m_ready = true;
+        emit ready();
+        return;
+    }
+
     if (!m_awaitingAnswer) return;
     m_awaitingAnswer = false;
-    m_consecutiveRecoveries = 0;
+    m_unansweredTimeouts = 0;
     const qint64 elapsedMs = m_queryTimer.elapsed();
 
     if (answer.kind == MateAnswer::Kind::Unsupported) {
@@ -130,6 +167,12 @@ void TsumeMateQueryLink::onOracleAnswered(const MateAnswer& answer)
 
 void TsumeMateQueryLink::onOracleTimedOut()
 {
+    if (m_probing) {
+        // 1手詰の問い合わせにも stop にも答えない
+        m_probing = false;
+        emit unresponsive();
+        return;
+    }
     m_awaitingAnswer = false;
     emit timedOut();
 }

@@ -219,6 +219,7 @@
 | 2026-11-15 | 切り離したドックを下段・上端へもドラッグで入れられるようにし、ドラッグの間の扱いを改めたのに合わせて §10.5 の「ドックのドラッグと主画面の大きさ」を更新（ドラッグの間はウィンドウの大きさを変えず、盤の領域を縮めてよいことにしてドロップ先を出す。つかんだときにウィンドウを広げるのはやめた: Wayland でドロップ先がカーソルとずれる。Wayland では、ドラッグの間、OS のドラッグ＆ドロップの知らせをメインウィンドウだけに受けさせる（分岐ツリー・評価値グラフの上でもドッキングできる）。高さは、配置に足りないときだけ必要な高さにする。`updateWindowWidth()` は `updateWindowSize()` に、`kMaxWidthCorrections` は `kMaxSizeCorrections` に改名） |
 | 2026-11-28 | 詰み局面からの逆算・盤面編集による長手数詰将棋生成（`TsumeRetrogradeGenerator`・`TsumeRetrogradeOps`・`TsumeStrictCertifier`・CLI `grow-tsume`・GUI の逆算モード／除外ファイル／チェックポイント再開復元）と 15〜31手詰問題集（各1000題・計9000題、`validation_long_20261127.json`）を追加したのに合わせて §1.4・§7.5・§9.11・付録を更新（`GeneratorLimits::kMaxTargetMoves` は 301 手に拡張） |
 | 2026-11-28 | 長手数詰将棋の逆算生成の部品を責務ごとに分けたのに合わせて §1.4・§9.11・付録を更新（1ファイル1000行の上限 `tst_structural_kpi` を超えていた3ファイルの切り出し。`TsumeRetrogradeGenerator` は問い合わせの答えで何をするかの順番だけを持ち、探索の状態と候補の供給・途中保存は `TsumeRetrogradeBeam`、エンジンとの接続は `TsumeMateQueryLink`、内蔵探索の事前ふるい分けは `TsumeLocalScreen`、軽量初手余詰チェックは `TsumeFirstMoveCheck`、チェックポイントファイルの形式は `TsumeRetrogradeCheckpoint`。`TsumeRetrogradeOps` は逆算だけにし、盤面変異と余詰リペアは `TsumePositionEdits`、手順の評価と類似キーは `TsumeLineMetrics`、盤の値と規則は `TsumeEditBoard`。生成ダイアログの上段の欄は `TsumeshogiGeneratorSettingsPanel`。秒読み音声の合図の種類は services の `ByoyomiSoundCue` にし、設定ダイアログが ui の `ByoyomiSoundPlayer` を include しないようにした） |
+| 2026-11-28 | 詰将棋の逆算生成が、詰みの問い合わせに答えないエンジンで再起動を繰り返し続けたのを直したのに合わせて §9.11 を更新（`TsumeMateQueryLink` は、答えのない期限切れが5回続いたら再起動の後に1手詰の局面で生きているかを確かめ、それにも答えなければ `unresponsive` を知らせて生成を中止する。厳密証明の探索が期限までに終わらないだけの期限切れでは中止しない） |
 
 <!-- chapter-0-end -->
 
@@ -5609,7 +5610,7 @@ analysis層の機能は、エンジンの使い方が2つに分かれている�
 | `MateSearchRunner`（CLI の詰み探索） | `ask()` を1回。答えの種類は `kindName()` で `mate`・`nomate`・`unknown`・`notimplemented` にする |
 | `TsumeVerificationRunner`（CLI の余詰検査） | `TsumeVerificationJob` を `MateQueryLoop` で回す |
 | `TsumeshogiGenerator`（詰将棋の生成・ランダム配置） | 候補ごとに `TsumeCandidateJob` を `MateQueryLoop` で回す。生成器は候補の待ち行列・問い合わせの中継・結果の集計（重複の除外・上限・進捗）だけを行う。条件の範囲・既定値・目標手数の奇数の規則は services の `TsumeshogiSettings::GeneratorLimits`（手数 1〜301 の奇数など）と設定の宣言（`BoundedSetting`）だけで決め、生成ダイアログの欄・CLI の `generate-tsume` の引数・`Settings::normalized()`（`start()` が渡された条件を収める）が使う |
-| `TsumeRetrogradeGenerator`（詰将棋の生成・逆算/編集） | エンジンとの接続は `TsumeMateQueryLink`（`MateOracle` を起動し直しながら使う。期限までに答えなければ再起動）。成長フェーズは内蔵 Hayanagi プレスクリーニング（`TsumeLocalScreen`）と `ask()`・成長キャッシュ（`m_fastCache`）で進め、目標手数到達後の厳密証明（`TsumeStrictCertifier`）は `sendUsiNewGame()` で置換表をリセットしたうえで `askWithin()`（自然終了のみ確定）と厳密キャッシュ（`m_strictCache`）を使う。GUI の逆算・編集モードと CLI の `grow-tsume` が共用し、チェックポイントの原子的保存・再開や除外ファイルに対応する |
+| `TsumeRetrogradeGenerator`（詰将棋の生成・逆算/編集） | エンジンとの接続は `TsumeMateQueryLink`（`MateOracle` を起動し直しながら使う。期限までに答えなければ再起動し、答えのない期限切れが5回続いたら1手詰の局面で生きているかを確かめて、答えなければ生成を中止する）。成長フェーズは内蔵 Hayanagi プレスクリーニング（`TsumeLocalScreen`）と `ask()`・成長キャッシュ（`m_fastCache`）で進め、目標手数到達後の厳密証明（`TsumeStrictCertifier`）は `sendUsiNewGame()` で置換表をリセットしたうえで `askWithin()`（自然終了のみ確定）と厳密キャッシュ（`m_strictCache`）を使う。GUI の逆算・編集モードと CLI の `grow-tsume` が共用し、チェックポイントの原子的保存・再開や除外ファイルに対応する |
 | `TsumeMateEngine`（詰将棋の判定） | `askWithin()`（`go mate infinite` を期限まで待ち、stop は送らない） |
 
 `TsumeCandidateJob`（手数の確認 → 唯一解の検査 → 駒の除去 → 除いた局面の検査 → 採択／棄却）、`TsumeStrictCertifier`（長手数向けの厳密証明・最終手一意・駒余り禁止・全1枚除去・JSON チェックポイント保存/復元）、`TsumeVerificationJob`（総予算と1回の上限つきの唯一解の検査）は引き出し型の問い合わせ元 `MateQuerySource`（`nextQuery()`・`submit(answer, elapsedMs)`・`isDone()`）で、Qt のイベントループもエンジンも知らない。テスト（`tests/tst_tsumeshogi_verification.cpp`・`tests/tst_tsumeshogi_retrograde.cpp`）は代用エンジンの答えで直接進める。アルゴリズムと採択条件の詳細は [詰将棋局面自動生成機能](tsumeshogi-generator.md) を参照。
@@ -9723,7 +9724,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | TsumeFirstMoveCheck | C | analysis | 成長中の候補局面の軽量初手余詰チェック（引き出し型: `nextQuery()`・`submit()`・`verdict()`） | 第9章 |
 | TsumeLineMetrics | NS | analysis | 局面と詰み手順の評価（手順の特徴 `Metrics`・長手数ヒューリスティック評価 `scoreNode()`・系統キー・類似作キー算出） | 第9章 |
 | TsumeLocalScreen | NS | analysis | 内蔵 Hayanagi による候補局面の事前ふるい分けと、初手・主手順の明白な余詰の検出 | 第9章 |
-| TsumeMateQueryLink | C | analysis | 逆算生成が詰将棋エンジンへ問い合わせる窓口（`MateOracle` の起動・問い合わせ・期限切れ後の再起動） | 第9章 |
+| TsumeMateQueryLink | C | analysis | 逆算生成が詰将棋エンジンへ問い合わせる窓口（`MateOracle` の起動・問い合わせ・期限切れ後の再起動・応答しないエンジンの見分け） | 第9章 |
 | TsumePositionEdits | NS | analysis | いまある局面を変える候補の生成（複合盤面変異・標的型余詰リペア。純粋局面演算） | 第9章 |
 | TsumePositionPreview | C | views | 詰将棋問題一覧の小さな盤（盤と同じ配置 `BoardGeometry`・木肌・筋と段の文字） | 第11章 |
 | TsumeRetrogradeBeam | C | analysis | 逆算生成の探索の状態（手数層ごとのビーム・評価待ち・リペアキュー・証明待ち・既出と類似作の記録・統計）と、候補の供給・チェックポイントへの読み書き | 第9章 |

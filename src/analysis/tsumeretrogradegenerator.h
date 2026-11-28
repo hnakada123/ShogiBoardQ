@@ -136,6 +136,7 @@ private slots:
     void onQuerySent();
     void onOracleAnswered(const MateAnswer& answer, qint64 elapsedMs);
     void onEngineUnsupported();
+    void onEngineUnresponsive();
     void onOracleTimedOut();
     void onOracleError(const QString& message);
     void onStepTimer();

@@ -19364,27 +19364,27 @@ This cannot be undone. Reset history?</translation>
 <context>
     <name>TsumeRetrogradeGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="136"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="139"/>
         <source>再開するにはチェックポイントファイルを指定してください。</source>
         <translation>Please specify a checkpoint file to resume.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="209"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="217"/>
         <source>エンジンが連続して応答しないため生成を中止しました。</source>
         <translation>Generation was aborted because the engine repeatedly failed to respond.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="262"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="269"/>
         <source>候補局面を生成できませんでした。駒数上限などの設定を確認してください。</source>
         <translation>Failed to generate candidate positions. Please check piece limits and settings.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="381"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="388"/>
         <source>選択されたエンジンは詰み探索（go mate）に対応していません。</source>
         <translation>The selected engine does not support mate search (go mate).</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="421"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="428"/>
         <source>エンジンでエラーが発生しました。</source>
         <translation>An engine error occurred.</translation>
     </message>

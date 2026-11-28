@@ -17187,27 +17187,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeRetrogradeGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="136"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="139"/>
         <source>再開するにはチェックポイントファイルを指定してください。</source>
         <translation>請指定檢查點檔案以繼續執行。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="209"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="217"/>
         <source>エンジンが連続して応答しないため生成を中止しました。</source>
         <translation>由於引擎連續無回應，已中止生成。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="262"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="269"/>
         <source>候補局面を生成できませんでした。駒数上限などの設定を確認してください。</source>
         <translation>無法生成候選局面。請檢查棋子上限等設定。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="381"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="388"/>
         <source>選択されたエンジンは詰み探索（go mate）に対応していません。</source>
         <translation>所選引擎不支援詰將棋搜尋（go mate）。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="421"/>
+        <location filename="../../src/analysis/tsumeretrogradegenerator.cpp" line="428"/>
         <source>エンジンでエラーが発生しました。</source>
         <translation>引擎發生錯誤。</translation>
     </message>
