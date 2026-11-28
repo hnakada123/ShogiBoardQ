@@ -221,6 +221,7 @@
 | 2026-11-28 | 長手数詰将棋の逆算生成の部品を責務ごとに分けたのに合わせて §1.4・§9.11・付録を更新（1ファイル1000行の上限 `tst_structural_kpi` を超えていた3ファイルの切り出し。`TsumeRetrogradeGenerator` は問い合わせの答えで何をするかの順番だけを持ち、探索の状態と候補の供給・途中保存は `TsumeRetrogradeBeam`、エンジンとの接続は `TsumeMateQueryLink`、内蔵探索の事前ふるい分けは `TsumeLocalScreen`、軽量初手余詰チェックは `TsumeFirstMoveCheck`、チェックポイントファイルの形式は `TsumeRetrogradeCheckpoint`。`TsumeRetrogradeOps` は逆算だけにし、盤面変異と余詰リペアは `TsumePositionEdits`、手順の評価と類似キーは `TsumeLineMetrics`、盤の値と規則は `TsumeEditBoard`。生成ダイアログの上段の欄は `TsumeshogiGeneratorSettingsPanel`。秒読み音声の合図の種類は services の `ByoyomiSoundCue` にし、設定ダイアログが ui の `ByoyomiSoundPlayer` を include しないようにした） |
 | 2026-11-28 | 詰将棋の逆算生成が、詰みの問い合わせに答えないエンジンで再起動を繰り返し続けたのを直したのに合わせて §9.11 を更新（`TsumeMateQueryLink` は、答えのない期限切れが5回続いたら再起動の後に1手詰の局面で生きているかを確かめ、それにも答えなければ `unresponsive` を知らせて生成を中止する。厳密証明の探索が期限までに終わらないだけの期限切れでは中止しない） |
 | 2026-11-28 | 長手数の詰将棋対局で、正解手順を外れた誤った手を内蔵の判定が判定時間内に決められなかったのを直したのに合わせて §1.4 を更新（内蔵の判定を `TsumeGameSession` から `TsumeDefenseSearch` に分け、Hayanagi の手数つきの探索と、何手かけても詰まないことを確かめる証明数探索 `TsumeProofNumberSearch`（df-pn）を同時に動かす。設計と実測は `docs/dev/tsume-play.md` の「内蔵の判定: 手数つきの探索と証明数探索」） |
+| 2026-11-28 | 詰将棋対局の証明数探索が、詰みの手数といちばん長く粘る応手も確かめるようにしたのに合わせて §1.4 を更新（`TsumeProofNumberSearch::solve` に手数の上限を足し、「手数内に詰む・手数内に詰まない・何手かけても詰まない」を判定する。`TsumeDefenseSearch` は証明数探索の詰みの結論も使うので、手順の分かっていない長手数の問題と、手順を外れた別解・残りの手数より長い詰みも判定できる） |
 
 <!-- chapter-0-end -->
 
@@ -561,8 +562,8 @@ src/
 │   ├── tsumecollectionwriter.cpp/.h #  詰将棋局面の一覧の書き出し
 │   ├── tsumeprogressstore.cpp/.h   #   詰将棋問題集の解答状況の保存
 │   ├── tsumegamesession.cpp/.h     #   詰将棋対局（応手は Hayanagi。挑戦・正答の記録も付ける）
-│   ├── tsumedefensesearch.cpp/.h   #   詰将棋対局の内蔵の判定（手数つきの探索と証明数探索を同時に動かし、応手と手数を求める）
-│   └── tsumeproofnumbersearch.cpp/.h #  証明数探索（df-pn）。王手の連続で詰むか・詰まないかを調べる（手数は求めない）
+│   ├── tsumedefensesearch.cpp/.h   #   詰将棋対局の内蔵の判定（反復深化の探索と証明数探索を同時に動かし、応手と手数を求める）
+│   └── tsumeproofnumbersearch.cpp/.h #  証明数探索（df-pn）。指定の手数以内に詰むか・詰まないかと、いちばん長く粘る応手を調べる
 │
 ├── network/                        # CSA通信対局
 │   ├── csaclient.cpp/.h            #   CSAプロトコルクライアント（接続・ログイン・対局中の行の処理と送信）

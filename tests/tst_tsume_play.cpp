@@ -831,12 +831,12 @@ private slots:
         // 手順が分かっていると応手を探索しない（verifiedLineRepliesWithoutSearch）ので、
         // 検証済みの問題集としては登録せず、手数だけを判定済みにして内蔵探索に応手を決めさせる。
         const QString engineKey = TsumePositionAnalyzer().engineKey();
-        for (int problemIndex : {0, 1, 13}) {
+        for (int problemIndex : {0, 13, 275}) {
             store.cache(parsed.positionIds[problemIndex], engineKey, {TsumeEvaluation::Status::Mate, 31, {}, {}});
         }
 
-        // 合駒の多い 31 手詰（第1問・第14問）で内蔵 Hayanagi の並列応手探索が
-        // 非決定的にタイムアウトせず毎回応手を返せることを確認する。
+        // 合駒の多い 31 手詰（第1問・第14問）で、内蔵の判定（反復深化の探索と証明数探索のどちらの結論が
+        // 先に出ても）が毎回同じ応手と手数を返すことを確認する。
         for (int problemIndex : {0, 13}) {
             const auto& problem = parsed.problems[problemIndex];
             for (int trial = 0; trial < 3; ++trial) {
@@ -854,15 +854,16 @@ private slots:
             }
         }
 
-        // 内蔵 Hayanagi の応手探索が制限時間に達したときは補足文を添えて Inconclusive を返す。
+        // 内蔵の判定が制限時間に達したときは補足文を添えて Inconclusive を返す。
+        // 第276問で ３二-２二 と指した後は、詰まないことの確認に10秒以上かかる
         TsumeGameSession timeoutSession;
         timeoutSession.configureEngine({}, &store);
         timeoutSession.setTimeLimit(100);
         QSignalSpy outcomes(&timeoutSession, &TsumeGameSession::finished);
-        const auto& heavy = parsed.problems[1];
+        const auto& heavy = parsed.problems[275];
         QVERIFY(timeoutSession.start(heavy.sfen));
         QTRY_COMPARE(timeoutSession.state(), TsumeGameSession::State::Ready);
-        QVERIFY(timeoutSession.play(heavy.referenceMoves[0]));
+        QVERIFY(timeoutSession.play(QStringLiteral("3b2b")));
         QTRY_COMPARE_WITH_TIMEOUT(timeoutSession.state(), TsumeGameSession::State::Paused, 5000);
         QCOMPARE(outcomes.size(), 1);
         QCOMPARE(qvariant_cast<TsumeGameSession::Outcome>(outcomes.first()[0]),

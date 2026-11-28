@@ -63,11 +63,12 @@ void TsumeDefenseSearch::start(const shogi::Position& position, shogi::Color att
         return solver.solve(position, attacker, remainingPlies, timeLimitMs, *stop, budget.threads());
     }));
 
-    // 証明数探索の期限は、手数つきの探索と同じ時刻にする（止めた前の探索が戻るのを待って遅く始まっても延ばさない）
+    // 証明数探索の期限は、反復深化の探索と同じ時刻にする（止めた前の探索が戻るのを待って遅く始まっても延ばさない）
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeLimitMs);
     m_proofWatcher = new QFutureWatcher<TsumeProofNumberSearch::Result>(this);
     connect(m_proofWatcher, &QFutureWatcherBase::finished, this, &TsumeDefenseSearch::proofSearchFinished);
-    m_proofWatcher->setFuture(QtConcurrent::run(&m_proofPool, [position, attacker, timeLimitMs, deadline, stop]() {
+    const int maxPlies = std::max(remainingPlies, 0);
+    m_proofWatcher->setFuture(QtConcurrent::run(&m_proofPool, [position, attacker, maxPlies, timeLimitMs, deadline, stop]() {
         int limit = 0;      // 0 は時間で打ち切らない
         if (timeLimitMs > 0) {
             const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -76,7 +77,7 @@ void TsumeDefenseSearch::start(const shogi::Position& position, shogi::Color att
             limit = static_cast<int>(std::min<std::chrono::milliseconds::rep>(left, timeLimitMs));
         }
         TsumeProofNumberSearch search;
-        return search.solve(position, attacker, limit, *stop);
+        return search.solve(position, attacker, maxPlies, limit, *stop);
     }));
 }
 
@@ -93,7 +94,7 @@ void TsumeDefenseSearch::exactSearchFinished()
         finish(result);
         return;
     }
-    // 結論が出なかった（時間切れ）。証明数探索の結果で決める
+    // 結論が出なかった（時間切れ）。証明数探索の結論で決める
     m_exactResult = result;
     decide();
 }
@@ -115,28 +116,44 @@ void TsumeDefenseSearch::graceExpired()
 
 void TsumeDefenseSearch::decide()
 {
-    const bool disproven = m_proofResult && m_proofResult->status == TsumeProofNumberSearch::Status::NoMate;
+    const std::optional<shogi::TsumeResult> verdict = proofVerdict();
     if (m_exactResult) {
-        // 手数つきの探索は時間切れ。証明数探索も同じ時刻に止まるので、まだなら終わるのを待つ
-        if (disproven) finish(disproof());
+        // 反復深化の探索は時間切れ。証明数探索も同じ時刻に止まるので、まだなら終わるのを待つ
+        if (verdict) finish(*verdict);
         else if (m_proofResult) finish(*m_exactResult);
         return;
     }
-    // 手数つきの探索は動いている。「詰まない」と分かっていなければ、その結論を待つ
-    if (!disproven) return;
+    // 反復深化の探索は動いている。証明数探索の結論が出ていなければ、その結論を待つ
+    if (!verdict) return;
     const qint64 wait = kExactSearchGraceMs - m_elapsed.elapsed();
     if (wait > 0) {
         m_graceTimer.start(static_cast<int>(wait));
         return;
     }
-    finish(disproof());
+    finish(*verdict);
 }
 
-shogi::TsumeResult TsumeDefenseSearch::disproof() const
+std::optional<shogi::TsumeResult> TsumeDefenseSearch::proofVerdict() const
 {
+    if (!m_proofResult) return std::nullopt;
+    using Status = TsumeProofNumberSearch::Status;
     shogi::TsumeResult result;
-    result.status = shogi::TsumeStatus::NoMate;
-    result.move = m_proofResult->refutation;
+    switch (m_proofResult->status) {
+    case Status::Mate:
+        result.status = shogi::TsumeStatus::Mate;
+        result.plies = m_proofResult->plies;
+        break;
+    case Status::TooLong:
+        result.status = shogi::TsumeStatus::Limit;
+        break;
+    case Status::NoMate:
+        result.status = shogi::TsumeStatus::NoMate;
+        break;
+    case Status::Unknown:
+    case Status::Cancelled:
+        return std::nullopt;
+    }
+    result.move = m_proofResult->reply;
     result.nodes = m_proofResult->nodes;
     return result;
 }
