@@ -118,6 +118,8 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
     connect(m_settingsUi.mode, &QComboBox::currentIndexChanged, this, &TsumeshogiGeneratorDialog::onModeChanged);
     connect(m_settingsUi.browseSeed, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onBrowseSeedFile);
     connect(m_settingsUi.clearSeed, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onClearSeedFile);
+    connect(m_settingsUi.browseExclude, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onBrowseExcludeFile);
+    connect(m_settingsUi.clearExclude, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onClearExcludeFile);
     connect(m_settingsUi.browseCheckpoint, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onBrowseCheckpointFile);
     connect(m_settingsUi.clearCheckpoint, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onClearCheckpointFile);
     connect(m_settingsUi.resumeCheckpoint, &QCheckBox::toggled, this, &TsumeshogiGeneratorDialog::onResumeCheckpointToggled);
@@ -171,6 +173,7 @@ void TsumeshogiGeneratorDialog::bindSettings()
     m_conditionsForm.add(m_settingsUi.requireNoSurplus, TsumeshogiSettings::tsumeshogiGeneratorRequireNoSurplus);
     m_conditionsForm.add(m_settingsUi.excludeSimilar, TsumeshogiSettings::tsumeshogiGeneratorExcludeSimilar);
     m_conditionsForm.add(m_settingsUi.seedFile, TsumeshogiSettings::tsumeshogiGeneratorSeedFile);
+    m_conditionsForm.add(m_settingsUi.excludeFile, TsumeshogiSettings::tsumeshogiGeneratorExcludeFile);
     m_conditionsForm.add(m_settingsUi.checkpointFile, TsumeshogiSettings::tsumeshogiGeneratorCheckpointFile);
     m_conditionsForm.add(m_settingsUi.resumeCheckpoint, TsumeshogiSettings::tsumeshogiGeneratorResumeCheckpoint);
     m_displayForm.add(m_resultsUi.includePv, TsumeshogiSettings::tsumeshogiGeneratorIncludePv);
@@ -231,6 +234,22 @@ void TsumeshogiGeneratorDialog::onStartClicked()
             }
         }
 
+        QStringList excludeLines;
+        const QString excludePath = m_settingsUi.excludeFile->text().trimmed();
+        if (!excludePath.isEmpty()) {
+            QFile excludeFile(excludePath);
+            if (!excludeFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                DialogUtils::warning(this, tr("エラー"),
+                                     tr("除外ファイルを開けませんでした: %1").arg(excludeFile.errorString()));
+                return;
+            }
+            const QStringList rawLines = QString::fromUtf8(excludeFile.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+            for (const QString& raw : rawLines) {
+                const QString line = raw.trimmed();
+                if (!line.isEmpty() && !line.startsWith(QLatin1Char('#'))) excludeLines.append(line);
+            }
+        }
+
         TsumeRetrogradeGenerator::Settings settings;
         settings.enginePath = engine->path;
         settings.engineName = engine->name;
@@ -248,6 +267,7 @@ void TsumeshogiGeneratorDialog::onStartClicked()
         settings.excludeSimilar = m_settingsUi.excludeSimilar->isChecked();
         settings.strictMinLength = true;
         settings.seedSfens = seedLines;
+        settings.excludeLines = excludeLines;
         settings.checkpointPath = checkpointPath;
         settings.resumeFromCheckpoint = resume;
 
@@ -262,8 +282,18 @@ void TsumeshogiGeneratorDialog::onStartClicked()
         onProgressUpdated(0, 0, 0);
         onVerificationStatsUpdated(0, 0);
         setStatusText(tr("エンジンを起動中"));
-        if (!m_retroGenerator->start(settings) && isRunning()) {
-            setRunState(RunState::Failed);
+        if (!m_retroGenerator->start(settings)) {
+            if (isRunning()) setRunState(RunState::Failed);
+            return;
+        }
+        // チェックポイントから再開した場合、既に採択済みの局面を結果一覧と進捗表示へ復元する
+        const auto& restored = m_retroGenerator->foundPositions();
+        if (!restored.isEmpty()) {
+            for (const auto& fp : restored) {
+                onPositionFound(fp.sfen, fp.pv);
+            }
+            onRetroProgressUpdated(m_retroGenerator->progress());
+            setStatusText(tr("エンジンを起動中"));
         }
         return;
     }
@@ -446,6 +476,24 @@ void TsumeshogiGeneratorDialog::onBrowseSeedFile()
 void TsumeshogiGeneratorDialog::onClearSeedFile()
 {
     m_settingsUi.seedFile->clear();
+}
+
+void TsumeshogiGeneratorDialog::onBrowseExcludeFile()
+{
+    const QString initialDir = m_settingsUi.excludeFile->text().trimmed().isEmpty()
+        ? TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory()
+        : QFileInfo(m_settingsUi.excludeFile->text().trimmed()).absolutePath();
+    const QString path = QFileDialog::getOpenFileName(
+        this,
+        tr("除外ファイルを選択"),
+        initialDir,
+        tr("テキストファイル (*.txt *.sfen);;すべてのファイル (*)"));
+    if (!path.isEmpty()) m_settingsUi.excludeFile->setText(path);
+}
+
+void TsumeshogiGeneratorDialog::onClearExcludeFile()
+{
+    m_settingsUi.excludeFile->clear();
 }
 
 void TsumeshogiGeneratorDialog::onBrowseCheckpointFile()
@@ -673,6 +721,9 @@ void TsumeshogiGeneratorDialog::setRunState(RunState state)
     m_settingsUi.allowFinalAlternatives->setEnabled(!running);
     m_settingsUi.requireNoSurplus->setEnabled(!running);
     m_settingsUi.excludeSimilar->setEnabled(!running);
+    m_settingsUi.excludeFile->setEnabled(!running);
+    m_settingsUi.browseExclude->setEnabled(!running);
+    m_settingsUi.clearExclude->setEnabled(!running);
     m_settingsUi.checkpointFile->setEnabled(!running);
     m_settingsUi.browseCheckpoint->setEnabled(!running);
     m_settingsUi.clearCheckpoint->setEnabled(!running);
@@ -997,6 +1048,21 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     seedRow->addWidget(m_settingsUi.browseSeed);
     seedRow->addWidget(m_settingsUi.clearSeed);
     filesForm->addRow(tr("種局面ファイル（任意）:"), seedRow);
+
+    auto* excludeRow = new QHBoxLayout;
+    m_settingsUi.excludeFile = new QLineEdit(this);
+    m_settingsUi.excludeFile->setObjectName(QStringLiteral("generatorExcludeFile"));
+    m_settingsUi.excludeFile->setPlaceholderText(tr("未指定（既出の除外ファイルを使わない）"));
+    m_settingsUi.excludeFile->setToolTip(
+        tr("既存の詰将棋問題集などを指定すると、収録済みの局面や類似手順を除外して新作を生成します。"));
+    m_settingsUi.browseExclude = new QPushButton(tr("参照..."), this);
+    m_settingsUi.browseExclude->setObjectName(QStringLiteral("generatorBrowseExclude"));
+    m_settingsUi.clearExclude = new QPushButton(tr("クリア"), this);
+    m_settingsUi.clearExclude->setObjectName(QStringLiteral("generatorClearExclude"));
+    excludeRow->addWidget(m_settingsUi.excludeFile, 1);
+    excludeRow->addWidget(m_settingsUi.browseExclude);
+    excludeRow->addWidget(m_settingsUi.clearExclude);
+    filesForm->addRow(tr("除外ファイル（任意）:"), excludeRow);
 
     auto* cpRow = new QHBoxLayout;
     m_settingsUi.checkpointFile = new QLineEdit(this);

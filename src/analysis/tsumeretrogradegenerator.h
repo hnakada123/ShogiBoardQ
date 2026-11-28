@@ -117,6 +117,8 @@ public:
 
     /// 現在の進捗スナップショット
     Progress progress() const;
+    /// これまでに採択した局面一覧（チェックポイントから復元した分も含む）
+    const QList<FoundPosition>& foundPositions() const { return m_foundPositions; }
     /// 現在のチェックポイント JSON（テスト・永続化用）
     QJsonObject buildCheckpointJson() const;
     /// チェックポイントファイルへ原子的に保存する

@@ -216,11 +216,17 @@ private slots:
         QTemporaryDir temp;
         QVERIFY(temp.isValid());
         const QString seedPath = temp.filePath(QStringLiteral("seeds.txt"));
+        const QString excludePath = temp.filePath(QStringLiteral("exclude.txt"));
         const QString cpPath = temp.filePath(QStringLiteral("cp.json"));
         {
             QFile f(seedPath);
             QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
             f.write("7nk/7nn/9/9/9/9/9/9/9 b N 1 moves N*2c\n");
+        }
+        {
+            QFile f(excludePath);
+            QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
+            f.write("9/9/6R1+R/5k3/9/7+S1/9/9/9 b 2b4g3s4n4l18p 1 moves 3c5c+ 4d4e 1c4c P*4d 4c4d\n");
         }
 
         TsumeshogiGeneratorDialog dialog;
@@ -234,15 +240,17 @@ private slots:
         auto* retroAttack = dialog.findChild<QSpinBox*>(QStringLiteral("generatorRetroMaxAttack"));
         auto* beam = dialog.findChild<QSpinBox*>(QStringLiteral("generatorBeamWidth"));
         auto* seedEdit = dialog.findChild<QLineEdit*>(QStringLiteral("generatorSeedFile"));
+        auto* excludeEdit = dialog.findChild<QLineEdit*>(QStringLiteral("generatorExcludeFile"));
         auto* cpEdit = dialog.findChild<QLineEdit*>(QStringLiteral("generatorCheckpointFile"));
         auto* resumeCheck = dialog.findChild<QCheckBox*>(QStringLiteral("generatorResumeCheckpoint"));
-        QVERIFY(mode && retroFiles && requireNoSurplus && excludeSimilar && retroAttack && beam && seedEdit && cpEdit && resumeCheck);
+        QVERIFY(mode && retroFiles && requireNoSurplus && excludeSimilar && retroAttack && beam
+                && seedEdit && excludeEdit && cpEdit && resumeCheck);
 
         // 既定はランダム配置モードで、逆算専用欄は非表示
         QCOMPARE(mode->currentIndex(), 0);
         QVERIFY(!retroFiles->isVisible());
 
-        // 逆算・編集モードへ切り替えると専用欄が表示され、38枚上限や途中保存設定を編集できる
+        // 逆算・編集モードへ切り替えると専用欄が表示され、38枚上限・除外ファイル・途中保存設定を編集できる
         mode->setCurrentIndex(1);
         QTRY_VERIFY(retroFiles->isVisible());
         QVERIFY(requireNoSurplus->isChecked());
@@ -250,9 +258,11 @@ private slots:
         retroAttack->setValue(24);
         beam->setValue(64);
         seedEdit->setText(seedPath);
+        excludeEdit->setText(excludePath);
         cpEdit->setText(cpPath);
         resumeCheck->setChecked(true);
         QVERIFY(!seedEdit->isEnabled());
+        QVERIFY(excludeEdit->isEnabled());
         resumeCheck->setChecked(false);
         QVERIFY(seedEdit->isEnabled());
 
@@ -280,7 +290,116 @@ private slots:
         QCOMPARE(restored.findChild<QSpinBox*>(QStringLiteral("generatorRetroMaxAttack"))->value(), 24);
         QCOMPARE(restored.findChild<QSpinBox*>(QStringLiteral("generatorBeamWidth"))->value(), 64);
         QCOMPARE(restored.findChild<QLineEdit*>(QStringLiteral("generatorSeedFile"))->text(), seedPath);
+        QCOMPARE(restored.findChild<QLineEdit*>(QStringLiteral("generatorExcludeFile"))->text(), excludePath);
         QCOMPARE(restored.findChild<QLineEdit*>(QStringLiteral("generatorCheckpointFile"))->text(), cpPath);
+    }
+    void retrogradeEndToEndResumeAndExclude()
+    {
+        const QString mockEngine = QStringLiteral(APP_BUILD "/tests/mock_retro_engine");
+        QVERIFY2(QFile::exists(mockEngine), qPrintable(mockEngine));
+        {
+            auto& settings = SettingsCommon::openSettings();
+            settings.beginWriteArray("Engines"); settings.setArrayIndex(0);
+            settings.setValue("name", "MockRetro");
+            settings.setValue("path", mockEngine);
+            settings.endArray();
+        }
+
+        QTemporaryDir temp;
+        QVERIFY(temp.isValid());
+        const QString cpPath = temp.filePath(QStringLiteral("gui_retro_cp.json"));
+        const QString excludePath = temp.filePath(QStringLiteral("gui_exclude.txt"));
+        savePath = temp.filePath(QStringLiteral("gui_retro_out.txt"));
+
+        TsumeshogiGeneratorDialog dialog;
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+
+        auto* mode = dialog.findChild<QComboBox*>(QStringLiteral("generatorMode"));
+        auto* target = dialog.findChild<QSpinBox*>(QStringLiteral("generatorTargetMoves"));
+        auto* limit = dialog.findChild<QSpinBox*>(QStringLiteral("generatorMaxPositions"));
+        auto* retroAttack = dialog.findChild<QSpinBox*>(QStringLiteral("generatorRetroMaxAttack"));
+        auto* retroDefend = dialog.findChild<QSpinBox*>(QStringLiteral("generatorRetroMaxDefend"));
+        auto* beam = dialog.findChild<QSpinBox*>(QStringLiteral("generatorBeamWidth"));
+        auto* branch = dialog.findChild<QSpinBox*>(QStringLiteral("generatorBranchFactor"));
+        auto* budget = dialog.findChild<QSpinBox*>(QStringLiteral("generatorVerifyBudget"));
+        auto* allowFinal = dialog.findChild<QCheckBox*>(QStringLiteral("generatorAllowFinalAlternatives"));
+        auto* excludeEdit = dialog.findChild<QLineEdit*>(QStringLiteral("generatorExcludeFile"));
+        auto* cpEdit = dialog.findChild<QLineEdit*>(QStringLiteral("generatorCheckpointFile"));
+        auto* resumeCheck = dialog.findChild<QCheckBox*>(QStringLiteral("generatorResumeCheckpoint"));
+        auto* includePv = dialog.findChild<QCheckBox*>(QStringLiteral("generatorIncludePv"));
+        auto* table = dialog.findChild<QTableWidget*>(QStringLiteral("generatorResults"));
+        auto* progress = dialog.findChild<QProgressBar*>(QStringLiteral("generatorProgress"));
+        auto* status = dialog.findChild<QLabel*>(QStringLiteral("generatorStatus"));
+        auto* retroGen = dialog.findChild<TsumeRetrogradeGenerator*>();
+        QVERIFY(mode && target && limit && retroAttack && retroDefend && beam && branch && budget
+                && allowFinal && excludeEdit && cpEdit && resumeCheck && includePv && table
+                && progress && status && retroGen);
+
+        // 1. GUI から逆算・編集モードで 5手詰（完全厳密）を1問生成しチェックポイント保存
+        mode->setCurrentIndex(1);
+        target->setValue(5);
+        limit->setValue(1);
+        retroAttack->setValue(8);
+        retroDefend->setValue(5);
+        beam->setValue(8);
+        branch->setValue(16);
+        budget->setValue(60);
+        allowFinal->setChecked(false);
+        cpEdit->setText(cpPath);
+        resumeCheck->setChecked(false);
+
+        QTest::mouseClick(button(dialog, "generatorStart"), Qt::LeftButton);
+        QTRY_VERIFY_WITH_TIMEOUT(!retroGen->isRunning() && table->rowCount() == 1, 60000);
+        QCOMPARE(progress->value(), 1);
+        QCOMPARE(progress->maximum(), 1);
+        QVERIFY(status->text().contains(QStringLiteral("生成完了")));
+        QVERIFY(QFile::exists(cpPath));
+        const QString firstSfen = table->item(0, 1)->text();
+        QCOMPARE(table->item(0, 3)->text(), QStringLiteral("5"));
+
+        // 逆算モードのコメントヘッダ付き保存を確認
+        includePv->setChecked(true);
+        QTimer::singleShot(0, this, &TestTsumeshogiGeneratorGui::chooseSaveFile);
+        QTest::mouseClick(button(dialog, "generatorSave"), Qt::LeftButton);
+        QString firstLine;
+        {
+            QFile out(savePath);
+            QVERIFY(out.open(QIODevice::ReadOnly | QIODevice::Text));
+            const QString text = QString::fromUtf8(out.readAll());
+            QVERIFY(text.contains(QStringLiteral("逆算・編集")));
+            QVERIFY(text.contains(firstSfen + QStringLiteral(" moves ")));
+            for (const QString& line : text.split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
+                if (!line.startsWith(QLatin1Char('#'))) firstLine = line;
+            }
+        }
+        QVERIFY(!firstLine.isEmpty());
+
+        // 2. 途中保存から再開して上限2問にする → 1問目が結果一覧へ復元され、さらに2問目が採択される
+        limit->setValue(2);
+        resumeCheck->setChecked(true);
+        QTest::mouseClick(button(dialog, "generatorStart"), Qt::LeftButton);
+        QCOMPARE(table->rowCount(), 1);
+        QCOMPARE(table->item(0, 1)->text(), firstSfen);
+        QTRY_VERIFY_WITH_TIMEOUT(!retroGen->isRunning() && table->rowCount() == 2, 60000);
+        QCOMPARE(progress->value(), 2);
+        QCOMPARE(progress->maximum(), 2);
+        const QString secondSfen = table->item(1, 1)->text();
+        QVERIFY(secondSfen != firstSfen);
+
+        // 3. 除外ファイルに1問目を指定して新規開始すると、1問目以外の別局面が採択される
+        {
+            QFile ex(excludePath);
+            QVERIFY(ex.open(QIODevice::WriteOnly | QIODevice::Text));
+            ex.write(firstLine.toUtf8() + '\n');
+        }
+        resumeCheck->setChecked(false);
+        cpEdit->clear();
+        excludeEdit->setText(excludePath);
+        limit->setValue(1);
+        QTest::mouseClick(button(dialog, "generatorStart"), Qt::LeftButton);
+        QTRY_VERIFY_WITH_TIMEOUT(!retroGen->isRunning() && table->rowCount() == 1, 60000);
+        QVERIFY(table->item(0, 1)->text() != firstSfen);
     }
 };
 

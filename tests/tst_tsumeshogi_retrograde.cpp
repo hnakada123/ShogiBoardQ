@@ -449,6 +449,9 @@ private slots:
         QCOMPARE(resumedError.size(), 0);
         QCOMPARE(resumedFound.size(), 1);
         QCOMPARE(resumed.progress().found, 2);
+        QCOMPARE(resumed.foundPositions().size(), 2);
+        QCOMPARE(resumed.foundPositions().at(0).sfen, foundSfen);
+        QVERIFY(resumed.foundPositions().at(1).sfen != foundSfen);
     }
 
     void cliGrowTsume5OutputAnd101Resume()

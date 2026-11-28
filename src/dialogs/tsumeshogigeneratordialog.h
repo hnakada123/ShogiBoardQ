@@ -64,6 +64,8 @@ private slots:
     void onModeChanged(int index);
     void onBrowseSeedFile();
     void onClearSeedFile();
+    void onBrowseExcludeFile();
+    void onClearExcludeFile();
     void onBrowseCheckpointFile();
     void onClearCheckpointFile();
     void onResumeCheckpointToggled(bool checked);
@@ -148,6 +150,9 @@ private:
         QLineEdit* seedFile = nullptr;
         QPushButton* browseSeed = nullptr;
         QPushButton* clearSeed = nullptr;
+        QLineEdit* excludeFile = nullptr;
+        QPushButton* browseExclude = nullptr;
+        QPushButton* clearExclude = nullptr;
         QLineEdit* checkpointFile = nullptr;
         QPushButton* browseCheckpoint = nullptr;
         QPushButton* clearCheckpoint = nullptr;

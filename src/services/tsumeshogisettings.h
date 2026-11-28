@@ -189,6 +189,9 @@ inline const Setting<bool> tsumeshogiGeneratorExcludeSimilar{"TsumeshogiGenerato
 /// 逆算・編集モード：種局面ファイルパス（任意）
 inline const Setting<QString> tsumeshogiGeneratorSeedFile{"TsumeshogiGenerator/seedFile", QString()};
 
+/// 逆算・編集モード：既出・類似作を除外するファイルパス（任意）
+inline const Setting<QString> tsumeshogiGeneratorExcludeFile{"TsumeshogiGenerator/excludeFile", QString()};
+
 /// 逆算・編集モード：チェックポイント保存ファイルパス（任意）
 inline const Setting<QString> tsumeshogiGeneratorCheckpointFile{"TsumeshogiGenerator/checkpointFile", QString()};
 

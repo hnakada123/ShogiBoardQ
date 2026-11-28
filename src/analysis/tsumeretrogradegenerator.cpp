@@ -361,11 +361,6 @@ bool TsumeRetrogradeGenerator::start(const Settings& settings)
     m_engineRestarts = 0;
     m_batchesSinceProgress = 0;
 
-    // 既出の除外対象（SFEN / SFEN moves PV）をシード初期化より先に登録する
-    for (const QString& raw : std::as_const(m_settings.excludeLines)) {
-        addExcludeLine(raw);
-    }
-
     if (m_settings.resumeFromCheckpoint) {
         if (m_settings.checkpointPath.isEmpty()) {
             emit errorOccurred(tr("再開するにはチェックポイントファイルを指定してください。"));
@@ -383,6 +378,11 @@ bool TsumeRetrogradeGenerator::start(const Settings& settings)
         m_rng.seed(m_rngSeedUsed);
         m_rngDraws = 0;
         initializeFreshSeeds();
+    }
+
+    // 既出の除外対象（SFEN / SFEN moves PV）を登録する（種局面・再開フロンティア構築後に適用し、既消化親種も外す）
+    for (const QString& raw : std::as_const(m_settings.excludeLines)) {
+        addExcludeLine(raw);
     }
 
     m_running = true;
