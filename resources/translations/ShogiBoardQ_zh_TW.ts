@@ -858,6 +858,7 @@
     </message>
     <message>
         <location filename="../../src/dialogs/boardappearancedialog.cpp" line="331"/>
+        <location filename="../../src/dialogs/boardappearancedialog.cpp" line="331"/>
         <location filename="../../src/style/boardcolors.h" line="92"/>
         <source>将棋盤</source>
         <translation>棋盤</translation>
@@ -876,6 +877,7 @@
         <translation>背景</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/boardappearancedialog.cpp" line="335"/>
         <location filename="../../src/dialogs/boardappearancedialog.cpp" line="335"/>
         <location filename="../../src/style/boardcolors.h" line="94"/>
         <source>駒台</source>
@@ -16825,6 +16827,11 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <location filename="../../src/analysis/tsumegamesession.cpp" line="177"/>
         <source>すべての応手を時間内に確認できませんでした。時間を増やして再判定できます。</source>
         <translation>未能在時限內檢查所有防守著法。請增加時間後重試。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumegamesession.cpp" line="234"/>
+        <source>内蔵判定の制限時間に達しました。判定時間を増やすか、問題一覧でKomoringHeightsを選択して再判定できます。</source>
+        <translation>內建引擎已達到時間限制。請增加判定時間，或在題目清單中選擇 KomoringHeights 後重試。</translation>
     </message>
 </context>
 <context>

@@ -894,6 +894,7 @@ Analyzed moves: %1</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardappearancedialog.cpp" line="331"/>
+        <location filename="../../src/dialogs/boardappearancedialog.cpp" line="331"/>
         <location filename="../../src/style/boardcolors.h" line="92"/>
         <source>将棋盤</source>
         <translation>Board</translation>
@@ -912,6 +913,7 @@ Analyzed moves: %1</translation>
         <translation>Background</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/boardappearancedialog.cpp" line="335"/>
         <location filename="../../src/dialogs/boardappearancedialog.cpp" line="335"/>
         <location filename="../../src/style/boardcolors.h" line="94"/>
         <source>駒台</source>
@@ -18932,6 +18934,11 @@ This cannot be undone. Reset history?</translation>
         <location filename="../../src/analysis/tsumegamesession.cpp" line="177"/>
         <source>すべての応手を時間内に確認できませんでした。時間を増やして再判定できます。</source>
         <translation>Not all defenses could be checked within the time limit. Increase the time and retry.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/tsumegamesession.cpp" line="234"/>
+        <source>内蔵判定の制限時間に達しました。判定時間を増やすか、問題一覧でKomoringHeightsを選択して再判定できます。</source>
+        <translation>The built-in solver reached the time limit. Increase the time limit, or select KomoringHeights in the problem list and retry.</translation>
     </message>
 </context>
 <context>

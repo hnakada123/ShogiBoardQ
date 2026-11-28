@@ -230,6 +230,9 @@ void TsumeGameSession::searchFinished()
     watcher->deleteLater();
     using Status = shogi::TsumeStatus;
     if (result.status == Status::Timeout || result.status == Status::Cancelled) {
+        if (result.status == Status::Timeout) {
+            m_detail = tr("内蔵判定の制限時間に達しました。判定時間を増やすか、問題一覧でKomoringHeightsを選択して再判定できます。");
+        }
         setState(State::Paused);
         emit finished(Outcome::Inconclusive, m_remaining);
         return;

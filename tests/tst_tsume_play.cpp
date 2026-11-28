@@ -806,6 +806,52 @@ private slots:
         QTRY_COMPARE(session.state(), TsumeGameSession::State::Ready);
         QCOMPARE(session.sfen(), problems[1].sfen);
     }
+    void deepBuiltInDefenseIsStableAndTimeoutExplains()
+    {
+        QFile file(QFINDTESTDATA("../data/tsumeshogi/tsume_31ply_1000_20261127.txt"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto contents = file.readAll();
+        const auto parsed = TsumeCollection::parse(QString::fromUtf8(contents));
+        QCOMPARE(TsumeCollection::verifiedMateLength(contents, parsed), 31);
+        QTemporaryDir data;
+        TsumeProgressStore store(data.path(), data.path());
+        QVERIFY(store.open());
+        store.setVerifiedCollection(contents, parsed);
+
+        // 合駒の多い 31 手詰（第1問・第14問）で内蔵 Hayanagi の並列応手探索が
+        // 非決定的にタイムアウトせず毎回応手を返せることを確認する。
+        for (int problemIndex : {0, 13}) {
+            const auto& problem = parsed.problems[problemIndex];
+            for (int trial = 0; trial < 3; ++trial) {
+                TsumeGameSession session;
+                session.configureEngine({}, &store);
+                session.setTimeLimit(5000);
+                QSignalSpy positions(&session, &TsumeGameSession::positionChanged);
+                QVERIFY(session.start(problem.sfen));
+                QTRY_COMPARE(session.state(), TsumeGameSession::State::Ready);
+                QCOMPARE(session.remainingPlies(), 31);
+                QVERIFY(session.play(problem.referenceMoves[0]));
+                QTRY_COMPARE_WITH_TIMEOUT(session.state(), TsumeGameSession::State::Ready, 6000);
+                QCOMPARE(session.remainingPlies(), 29);
+                QCOMPARE(positions.last()[1].toString(), problem.referenceMoves[1]);
+            }
+        }
+
+        // 内蔵 Hayanagi の応手探索が制限時間に達したときは補足文を添えて Inconclusive を返す。
+        TsumeGameSession timeoutSession;
+        timeoutSession.configureEngine({}, &store);
+        timeoutSession.setTimeLimit(100);
+        QSignalSpy outcomes(&timeoutSession, &TsumeGameSession::finished);
+        const auto& heavy = parsed.problems[1];
+        QVERIFY(timeoutSession.start(heavy.sfen));
+        QTRY_COMPARE(timeoutSession.state(), TsumeGameSession::State::Ready);
+        QVERIFY(timeoutSession.play(heavy.referenceMoves[0]));
+        QTRY_COMPARE_WITH_TIMEOUT(timeoutSession.state(), TsumeGameSession::State::Paused, 5000);
+        QCOMPARE(outcomes.size(), 1);
+        QCOMPARE(qvariant_cast<TsumeGameSession::Outcome>(outcomes.first()[0]),
+                 TsumeGameSession::Outcome::Inconclusive);
+        QVERIFY(timeoutSession.detail().contains(QStringLiteral("KomoringHeights")));
+    }
 };
 QTEST_GUILESS_MAIN(TestTsumePlay)
 #include "tst_tsume_play.moc"
