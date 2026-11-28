@@ -1,15 +1,16 @@
 #include "tsumegamesession.h"
-#include "tsumethreadbudget.h"
+#include "tsumedefensesearch.h"
 #include "tsumepositionanalyzer.h"
 #include "tsumecollection.h"
 #include "tsumeprogressstore.h"
-#include <QtConcurrentRun>
 #include <algorithm>
 
 TsumeGameSession::TsumeGameSession(QObject* parent) : QObject(parent)
 {
     m_analyzer = new TsumePositionAnalyzer(this);
     connect(m_analyzer, &TsumePositionAnalyzer::finished, this, &TsumeGameSession::evaluationFinished);
+    m_defenseSearch = new TsumeDefenseSearch(this);
+    connect(m_defenseSearch, &TsumeDefenseSearch::finished, this, &TsumeGameSession::searchFinished);
     m_defenseTimer.setSingleShot(true);
     connect(&m_defenseTimer, &QTimer::timeout, this, &TsumeGameSession::evaluateNextDefense);
     m_knownReplyTimer.setSingleShot(true);
@@ -22,12 +23,7 @@ void TsumeGameSession::stopWorker()
     m_defenseTimer.stop();
     m_knownReplyTimer.stop();
     m_analyzer->cancel();
-    if (!m_watcher) return;
-    // ワーカーは値だけを持つので、止めるよう知らせたら終わるのを待たない（結果は捨てる）
-    m_stop->store(true);
-    disconnect(m_watcher, nullptr, this, nullptr);
-    connect(m_watcher, &QFutureWatcherBase::finished, m_watcher, &QObject::deleteLater);
-    m_watcher = nullptr;
+    m_defenseSearch->cancel();
 }
 
 void TsumeGameSession::configureEngine(const QString& path, TsumeProgressStore* store)
@@ -160,20 +156,7 @@ void TsumeGameSession::searchDefense()
         beginDefenseEvaluation();
         return;
     }
-    m_stop = makeCancelFlag();
-    m_watcher = new QFutureWatcher<shogi::TsumeResult>(this);
-    connect(m_watcher, &QFutureWatcher<shogi::TsumeResult>::finished,
-            this, &TsumeGameSession::searchFinished);
-    const auto position = m_position;
-    const auto attacker = m_attacker;
-    const auto stop = m_stop;
-    const int depth = m_remaining;
-    const int millis = m_timeLimit;
-    m_watcher->setFuture(QtConcurrent::run([position, attacker, depth, millis, stop]() {
-        const TsumeThreadBudget budget;
-        shogi::TsumeSearch solver;
-        return solver.solve(position, attacker, depth, millis, *stop, budget.threads());
-    }));
+    m_defenseSearch->start(m_position, m_attacker, m_remaining, m_timeLimit);
 }
 
 void TsumeGameSession::beginDefenseEvaluation()
@@ -265,13 +248,9 @@ void TsumeGameSession::evaluationFinished(const TsumeEvaluation& result)
     m_defenseTimer.start(0);
 }
 
-void TsumeGameSession::searchFinished()
+void TsumeGameSession::searchFinished(const shogi::TsumeResult& result)
 {
-    QFutureWatcher<shogi::TsumeResult>* watcher = m_watcher;
-    if (!watcher || sender() != watcher) return;
-    m_watcher = nullptr;
-    const auto result = watcher->result();
-    watcher->deleteLater();
+    if (m_state != State::Thinking || m_initializing) return;
     using Status = shogi::TsumeStatus;
     if (result.status == Status::Timeout || result.status == Status::Cancelled) {
         if (result.status == Status::Timeout) {

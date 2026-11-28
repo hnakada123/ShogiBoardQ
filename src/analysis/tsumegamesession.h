@@ -2,20 +2,19 @@
 #define TSUMEGAMESESSION_H
 
 #include <QObject>
-#include <QFutureWatcher>
 #include <QStringList>
 #include <memory>
 #include <optional>
-#include "threadtypes.h"
 #include "tsume.h"
 #include "tsumeevaluation.h"
 #include <QElapsedTimer>
 #include <QTimer>
 
+class TsumeDefenseSearch;
 class TsumePositionAnalyzer;
 class TsumeProgressStore;
 
-/// Hayanagiで応手を生成し、内蔵探索または外部の詰み判定器で対局を進める。
+/// Hayanagiで応手を生成し、内蔵探索（TsumeDefenseSearch）または外部の詰み判定器で対局を進める。
 /// 開始局面の判定で最善の手順（同梱の検証済みの問題集の正解手順・判定器が返した手順）が分かっていれば、
 /// その手順の上を指している間は探索せずに手順の応手を指す（長手数の問題は、正解の手でも1手ごとの探索が
 /// 判定時間に収まらない）。手順を外れた手だけを探索で判定する。
@@ -54,7 +53,7 @@ signals:
     void moveRejected();
 
 private slots:
-    void searchFinished();
+    void searchFinished(const shogi::TsumeResult& result);
     void evaluationFinished(const TsumeEvaluation& result);
     void evaluateNextDefense();
     void playKnownReply();
@@ -96,9 +95,8 @@ private:
     /// 分かっている手順の応手を、着手の処理（play）から戻った後に指すためのタイマー
     QTimer m_knownReplyTimer;
     std::vector<Snapshot> m_history;
-    /// 内蔵の詰み探索のワーカー（親は this。止めた探索は終わるのを待たずに捨て、終わったら自分で消える）
-    QFutureWatcher<shogi::TsumeResult>* m_watcher = nullptr;
-    CancelFlag m_stop;
+    /// 内蔵の判定（攻め方が指した後の局面の、応手と詰みまでの手数）
+    TsumeDefenseSearch* m_defenseSearch = nullptr;
 };
 
 #endif

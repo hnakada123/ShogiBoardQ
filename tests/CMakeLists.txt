@@ -1037,6 +1037,13 @@ target_link_libraries(tst_tsume_play PRIVATE shogiboardq_static hayanagi_tsume Q
 target_compile_definitions(tst_tsume_play PRIVATE HAYANAGI_EXECUTABLE="$<TARGET_FILE:hayanagi>" MOCK_MATE_EXECUTABLE="$<TARGET_FILE:mock_tsume_engine>")
 add_dependencies(tst_tsume_play hayanagi mock_tsume_engine)
 
+# 詰将棋対局の内蔵の判定（証明数探索と、手数つきの探索との組み合わせ）
+add_shogi_test(tst_tsume_defense_search
+    tst_tsume_defense_search.cpp
+    ${CMAKE_SOURCE_DIR}/resources/tsumeshogi.qrc
+)
+target_link_libraries(tst_tsume_defense_search PRIVATE shogiboardq_static hayanagi_tsume Qt6::Sql)
+
 # 生成時の唯一解検査と、通常・停止・エラー経路の採択条件
 # MateOracle はスタブの接続でつなぐ。ソースの隣の本物のヘッダーを拾わないよう、写しを作ってから組み込む
 configure_file(${SRC}/engine/mateoracle.cpp ${CMAKE_CURRENT_BINARY_DIR}/tsumeshogi_stubbed/mateoracle.cpp COPYONLY)

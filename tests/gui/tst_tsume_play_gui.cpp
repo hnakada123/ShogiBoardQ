@@ -470,6 +470,52 @@ private slots:
         window.close();
         dialog = nullptr;
     }
+    /// 31手詰の第35問で正解以外の初手（４三金-３三）を指すと、以前は判定時間の後に「判定が完了していません」になった。
+    /// 玉方が詰みを防ぐ応手を指し、不正解の知らせが出る。一手戻して正解の手を指せば対局を続けられる。
+    void longProblemWrongMoveIsRefuted()
+    {
+        QFile file(QStringLiteral(REPO "/data/tsumeshogi/tsume_31ply_1000_20261127.txt"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QByteArray contents = file.readAll();
+        const auto parsed = TsumeCollection::parse(QString::fromUtf8(contents));
+        QTemporaryDir data;
+        TsumeProgressStore store(data.path(), data.path());
+        QVERIFY(store.open());
+        store.setVerifiedCollection(contents, parsed);
+        const auto& problem = parsed.problems[34];
+
+        TsumePlayDialog window;
+        dialog = &window;
+        window.show();
+        auto* session = window.findChild<TsumeGameSession*>();
+        connect(session, &TsumeGameSession::positionChanged, this, &TestTsumePlayGui::recordReply);
+        window.setProblem(problem, 35, {}, &store, 31);
+        QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+        QElapsedTimer timer;
+        timer.start();
+        clickMove(QStringLiteral("4c3c"));
+        QTRY_COMPARE_WITH_TIMEOUT(session->state(), TsumeGameSession::State::Failed, 20000);
+        // 判定時間（この問題では31秒）を待たずに応手を指す
+        QVERIFY2(timer.elapsed() < 4000, qPrintable(QString::number(timer.elapsed())));
+        auto* board = window.findChild<ShogiView*>()->board();
+        QCOMPARE(board->position().boardSfen(), session->sfen().section(QLatin1Char(' '), 0, 0));
+        QVERIFY(session->sfen() != problem.sfen);
+        QTRY_VERIFY(lastNotice.contains(QStringLiteral("詰みを防がれ")));
+        window.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-long-refutation.png"));
+
+        // 一手戻して正解の ３五と を指すと、玉方が手順の応手を指して続けられる
+        session->undo();
+        QCOMPARE(session->sfen(), problem.sfen);
+        lastNotice.clear();
+        clickMove(problem.referenceMoves[0]);
+        QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
+        QCOMPARE(session->remainingPlies(), 29);
+        QVERIFY(lastNotice.isEmpty());
+        window.close();
+        dialog = nullptr;
+    }
     void pendingNoticeCancelled_data()
     {
         QTest::addColumn<QString>("action");

@@ -471,12 +471,16 @@ set(SRC_ANALYSIS
     src/analysis/tsumecollectionsession.h
     src/analysis/tsumecollectionwriter.cpp
     src/analysis/tsumecollectionwriter.h
+    src/analysis/tsumedefensesearch.cpp
+    src/analysis/tsumedefensesearch.h
     src/analysis/tsumegamesession.cpp
     src/analysis/tsumegamesession.h
     src/analysis/tsumepositionanalyzer.cpp
     src/analysis/tsumepositionanalyzer.h
     src/analysis/tsumeprogressstore.cpp
     src/analysis/tsumeprogressstore.h
+    src/analysis/tsumeproofnumbersearch.cpp
+    src/analysis/tsumeproofnumbersearch.h
     src/analysis/tsumeeditboard.cpp
     src/analysis/tsumeeditboard.h
     src/analysis/tsumeeditrandom.h
