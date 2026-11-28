@@ -84,7 +84,7 @@
                 <tr><td>詰将棋対局で内蔵利用</td><td>問題の詰み判定や玉方の応手に使います。ShogiBoardQ本体に組み込まれているため、エンジン登録は不要です。</td></tr>
             </tbody>
         </table>
-        <p class="guide-step-text">ソースコードと詳しい仕様は<a href="https://github.com/hnakada123/Hayanagi">HayanagiのGitHubリポジトリ</a>で公開しています。このページはサブモジュールのHayanagi 1.5.1に基づく説明です。</p>
+        <p class="guide-step-text">ソースコードと詳しい仕様は<a href="https://github.com/hnakada123/Hayanagi">HayanagiのGitHubリポジトリ</a>で公開しています。このページはサブモジュールのHayanagi 1.5.2に基づく説明です。</p>
         <div class="features-grid">
             <div class="feature-card">
                 <h3>対局と棋力調整</h3>
@@ -117,10 +117,10 @@
         </div>
         <div class="guide-step">
             <div class="guide-step-header"><span class="guide-step-number">2</span><h3 class="guide-step-title">エンジン登録で登録する</h3></div>
-            <p class="guide-step-text">「設定」→「エンジン設定…」で「エンジン登録」を開き、「追加」でHayanagiの実行ファイルを選択します。一覧に「Hayanagi 1.5.1」と表示されたら登録完了です。</p>
+            <p class="guide-step-text">「設定」→「エンジン設定…」で「エンジン登録」を開き、「追加」でHayanagiの実行ファイルを選択します。一覧に「Hayanagi 1.5.2」と表示されたら登録完了です。</p>
             <div class="screenshot-item screenshot-item--compact">
                 <img src="../images/hayanagi/hayanagi-01-registration.png" alt="エンジン登録にHayanagiを登録した画面">
-                <p class="screenshot-caption">エンジン登録：一覧に「Hayanagi 1.5.1」が表示される</p>
+                <p class="screenshot-caption">エンジン登録：一覧に「Hayanagi 1.5.2」が表示される</p>
             </div>
             <p class="guide-step-text">「設定」（またはダブルクリック）でエンジンの設定を開き、スレッド数や棋力などを変更できます。画面付きの操作説明は<a href="game-play.html#engine-registration">エンジン登録のガイド</a>をご覧ください。</p>
         </div>
@@ -193,7 +193,7 @@ cmake --build build --config Release</code></pre></div>
             <div class="build-steps"><pre><code>cmake -S Hayanagi -B build-hayanagi -DCMAKE_BUILD_TYPE=Release
 cmake --build build-hayanagi --config Release
 ./build-hayanagi/hayanagi --version</code></pre></div>
-            <p class="guide-step-text">最後のコマンドはLinux・macOSの例で、<code>Hayanagi 1.5.1</code>と表示されます。Windowsでは生成先にある<code>hayanagi.exe</code>を実行します。USIコマンド、探索の仕組み、テスト、変更履歴の詳細は<a href="https://github.com/hnakada123/Hayanagi#readme">HayanagiのREADME</a>を参照してください。</p>
+            <p class="guide-step-text">最後のコマンドはLinux・macOSの例で、<code>Hayanagi 1.5.2</code>と表示されます。Windowsでは生成先にある<code>hayanagi.exe</code>を実行します。USIコマンド、探索の仕組み、テスト、変更履歴の詳細は<a href="https://github.com/hnakada123/Hayanagi#readme">HayanagiのREADME</a>を参照してください。</p>
         </div>
     </div>
 </section>

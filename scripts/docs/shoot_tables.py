@@ -17,7 +17,7 @@ Images are written to <output dir>/<lang dir>/<path>, laid out like docs/images 
 under en/, zh-cn/ and zh-tw/), so docs/images can be given directly. The app is started with launch.sh, so
 SBQ_WORK and SBQ_SOCKET_DIR are honoured. Engines: YaneuraOu at $SBQ_YANEURAOU (default
 ~/shogi/YaneuraOu/YaneuraOu-by-gcc) registered as "YaneuraOu NNUE 9.10git 64ZEN2", and the bundled Hayanagi
-($SBQ_HAYANAGI, default build/Hayanagi/hayanagi) registered as "Hayanagi 1.5.1", as in the screenshots.
+($SBQ_HAYANAGI, default build/Hayanagi/hayanagi) registered as "Hayanagi 1.5.2", as in the screenshots.
 """
 import json
 import os
@@ -38,7 +38,7 @@ NAME = "tbl" + KIF.replace("-", "")
 WORK = os.environ.get("SBQ_WORK", f"/tmp/sbq-shots-{os.getuid()}")
 SOCKDIR = os.environ.get("SBQ_SOCKET_DIR", f"/tmp/sbq-{os.getuid()}")
 YANEURAOU = "YaneuraOu NNUE 9.10git 64ZEN2"
-HAYANAGI = "Hayanagi 1.5.1"
+HAYANAGI = "Hayanagi 1.5.2"
 YANEURAOU_PATH = os.environ.get("SBQ_YANEURAOU", os.path.expanduser("~/shogi/YaneuraOu/YaneuraOu-by-gcc"))
 HAYANAGI_PATH = os.environ.get("SBQ_HAYANAGI", os.path.join(REPO, "build", "Hayanagi", "hayanagi"))
 ENGINES_INI = ("[Engines]\n"

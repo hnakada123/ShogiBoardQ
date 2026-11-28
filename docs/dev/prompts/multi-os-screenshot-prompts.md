@@ -87,7 +87,7 @@ Windows・macOS の PC で、次の順に行う。2台の作業は別々の日�
 
    [Engines]
    1\author=hnakada123
-   1\name=Hayanagi 1.5.1
+   1\name=Hayanagi 1.5.2
    1\path=<hayanagi の実行ファイルの絶対パス>
    size=1
    ```
