@@ -172,7 +172,7 @@
             </tbody>
         </table>
         <p class="guide-step-text">标准 USI <code>go mate</code> 的搜索上限为 63 手，ShogiBoardQ 诘棋练习中进行的<strong>内置初始局面判定最多 31 手</strong>。超时和达到搜索上限会与“证明不诘”区分处理。</p>
-        <p class="guide-step-text">由于是深度优先搜索，长手数的诘棋（大约 15 手以上）可能需要较长时间。长手数的题目可以在<a href="tsume-play.html#problems">题目列表的“诘棋引擎”</a>中选择另行注册的 KomoringHeights（已注册时，首次打开会选择 KomoringHeights）。此时守方的应着仍由 Hayanagi 走，并根据 KomoringHeights 的将死手数选择应着。</p>
+        <p class="guide-step-text">Hayanagi 的诘棋搜索是深度优先搜索，长手数的诘棋（大约 15 手以上）可能需要较长时间。在诘棋练习的内置判定中，ShogiBoardQ 会同时运行证明数搜索（df-pn），因此 31 手以内的题目即使手数较长也能判定。33 手以上的题目，或内置判定耗时较长的题目，可以在<a href="tsume-play.html#problems">题目列表的“诘棋引擎”</a>中选择另行注册的 KomoringHeights（已注册时，首次打开会选择 KomoringHeights）。此时守方的应着仍由 Hayanagi 走，并根据 KomoringHeights 的将死手数选择应着。</p>
     </div>
 </section>
 

@@ -171,7 +171,7 @@
             </tbody>
         </table>
         <p class="guide-step-text">標準USIの<code>go mate</code>の探索上限は63手、ShogiBoardQの詰将棋対局で行う<strong>内蔵の初期局面判定は31手まで</strong>です。時間切れや探索上限への到達は、不詰の証明とは区別して扱います。</p>
-        <p class="guide-step-text">深さ優先の探索なので、長手数の詰将棋（おおむね15手以上）は解くのに時間がかかる場合があります。長手数の問題には、<a href="tsume-play.html#problems">問題一覧の「判定エンジン」</a>で別途登録したKomoringHeightsを選べます（登録してあれば、初めて開いたときはKomoringHeightsが選ばれます）。その場合も玉方の応手はHayanagiが指し、どの応手を選ぶかはKomoringHeightsの詰み手数で決めます。</p>
+        <p class="guide-step-text">Hayanagiの詰み探索は深さ優先なので、長手数の詰将棋（おおむね15手以上）は解くのに時間がかかる場合があります。詰将棋対局の内蔵の判定では、ShogiBoardQが証明数探索（df-pn）も同時に動かすので、31手までの問題は長手数でも判定できます。33手以上の問題や、内蔵の判定では時間のかかる問題には、<a href="tsume-play.html#problems">問題一覧の「判定エンジン」</a>で別途登録したKomoringHeightsを選べます（登録してあれば、初めて開いたときはKomoringHeightsが選ばれます）。その場合も玉方の応手はHayanagiが指し、どの応手を選ぶかはKomoringHeightsの詰み手数で決めます。</p>
     </div>
 </section>
 

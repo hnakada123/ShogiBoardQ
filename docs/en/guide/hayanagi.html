@@ -172,7 +172,7 @@
             </tbody>
         </table>
         <p class="guide-step-text">Standard USI <code>go mate</code> searches up to 63 plies; the <strong>built-in check of the starting position in Tsume Shogi Play goes up to 31 plies</strong>. Timeouts and reaching the search limit are distinguished from proving that there is no mate.</p>
-        <p class="guide-step-text">Because the search is depth-first, long problems (roughly 15 plies or more) can take time. For long problems, choose a separately registered KomoringHeights for <a href="tsume-play.html#problems">Mate solver in the problem list</a> (when it is registered, it is selected the first time you open the list). Hayanagi still plays the defender's replies, choosing among them by KomoringHeights' mate lengths.</p>
+        <p class="guide-step-text">Because Hayanagi's mate search is depth-first, long problems (roughly 15 plies or more) can take time. For the built-in check in Tsume Shogi Play, ShogiBoardQ also runs a proof-number search (df-pn) alongside it, so problems up to 31 plies can be evaluated even when they are long. For problems of 33 plies and longer, or ones the built-in check is slow on, choose a separately registered KomoringHeights for <a href="tsume-play.html#problems">Mate solver in the problem list</a> (when it is registered, it is selected the first time you open the list). Hayanagi still plays the defender's replies, choosing among them by KomoringHeights' mate lengths.</p>
     </div>
 </section>
 
