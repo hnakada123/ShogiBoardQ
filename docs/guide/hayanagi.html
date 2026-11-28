@@ -167,7 +167,7 @@
             <tbody>
                 <tr><td><a href="tsumi-search.html">詰み探索</a></td><td>登録したHayanagiに標準USIの<code>go mate</code>で探索を依頼します。詰みが見つかると、玉方の最長抵抗を含む全手順を返します。</td></tr>
                 <tr><td><a href="tsume-play.html">詰将棋対局</a></td><td>内蔵Hayanagiで問題を判定し、ユーザーの王手に対して玉方の応手を指します。詰みを逃した場合は逃れの手を示します。</td></tr>
-                <tr><td><a href="tsumeshogi-generator.html">詰将棋局面生成</a></td><td>内蔵Hayanagiで候補局面を事前に選別します。詰みを確認するUSIエンジンとして、登録したHayanagiを選ぶこともできます。</td></tr>
+                <tr><td><a href="tsumeshogi-generator.html">詰将棋局面生成</a></td><td>内蔵Hayanagiでランダム配置の事前選別や、逆算・編集モードでの高速プレスクリーニング・ローカル余詰枝刈りを行います。詰みを確認するUSIエンジンとして、登録したHayanagiを選ぶこともできます。</td></tr>
             </tbody>
         </table>
         <p class="guide-step-text">標準USIの<code>go mate</code>の探索上限は63手、ShogiBoardQの詰将棋対局で行う<strong>内蔵の初期局面判定は31手まで</strong>です。時間切れや探索上限への到達は、不詰の証明とは区別して扱います。</p>

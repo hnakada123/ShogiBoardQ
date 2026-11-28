@@ -270,12 +270,12 @@ copy build\libsodium.dll deploy\
 copy build\*.qm deploy\
 copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
 copy build\Hayanagi\book\hayanagi_book.db deploy\Hayanagi\book\
-copy data\tsumeshogi\tsume_*ply_*.txt deploy\data\tsumeshogi\
+foreach ($ply in 3,5,7,9,11,13) { copy "data\tsumeshogi\tsume_${ply}ply_*.txt" deploy\data\tsumeshogi\ }
 copy LICENSE deploy\
 ```
 
 詰将棋問題集は 3・5・7・9・11・13 手詰を1ファイルずつ、合計6ファイル収録する
-（`data/tsumeshogi/` に同じ手数の旧版が残っていないこと。スクリプトは複数あると停止する）。
+（`data/tsumeshogi/` に同じ手数の旧版が残っていないこと。スクリプトは複数あると停止する。15〜31手詰の9ファイルは配布 ZIP には同梱せず、リポジトリおよび利用ガイドから別途提供する）。
 README（ルート・`Hayanagi/`・`data/tsumeshogi/`）は収録しない。
 Hayanagi の定跡 `hayanagi_book.db` は、ビルドで `build/Hayanagi/book/` にコピーされたものを `Hayanagi/book/` に置く。
 Hayanagi は作業ディレクトリの `book/` から定跡を読み、ShogiBoardQ はエンジンのあるディレクトリを

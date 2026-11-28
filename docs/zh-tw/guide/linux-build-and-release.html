@@ -327,7 +327,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
         └── README.md</code></pre>
 <ul>
 <li>題集原樣複製。其雜湊值與應用程式內建的稽核紀錄一致，因此讀取時可以沿用已驗證的手數和手順。</li>
-<li><code>data/tsumeshogi/</code> 中每種手數只放 1 個題集檔案（儲存庫只追蹤目前的 20261001 版）。同一手數有多個檔案時，指令碼會報錯並停止。</li>
+<li><code>data/tsumeshogi/</code> 中每種手數只放 1 個題集檔案（儲存庫追蹤 3～13 手詰的 20261001 版與 15～31 手詰的 20261127 版；發行 ZIP 僅附帶 3～13 手詰的 6 個檔案，15～31 手詰由儲存庫與使用指南另行提供）。同一手數有多個檔案時，指令碼會報錯並停止。</li>
 <li>Hayanagi 經 <code>strip</code> 後放入。定跡檔案 <code>hayanagi_book.db</code> 由建置複製到 <code>build/Hayanagi/book/</code>，放入 <code>Hayanagi/book/</code>；Hayanagi 從執行檔旁邊的 <code>book/</code> 讀取定跡。ZIP 中 AppImage 之外不放 <code>docs/</code>、<code>validation_*.json</code> 和 <code>licenses/</code>，授權文件位於 AppImage 內。</li>
 </ul>
 <p>使用者依以下方式啟動。在練習詰棋的「開啟題集…」中選擇 <code>data/tsumeshogi/</code> 中的題集；登錄一般對局用的引擎時選擇 <code>Hayanagi/hayanagi</code>。</p>

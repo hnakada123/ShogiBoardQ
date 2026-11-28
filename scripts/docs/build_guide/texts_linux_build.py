@@ -406,7 +406,7 @@ T["ja"] = {
         ("ul", [
             "問題集は内容を変更せずにコピーする。アプリに内蔵した監査記録とハッシュが一致するため、読み込み時に"
             "検証済みの手数と手順を再利用できる。",
-            "`data/tsumeshogi/` には各手数の問題集を1ファイルだけ置く（git で追跡しているのは現行の20261001版）。"
+            "`data/tsumeshogi/` には各手数の問題集を1ファイルだけ置く（git で追跡しているのは 3〜13手詰が現行の20261001版、15〜31手詰が20261127版。ZIP へ同梱するのは 3〜13手詰の6ファイルのみで、15〜31手詰はリポジトリおよび利用ガイドから別途提供する）。"
             "同じ手数のファイルが複数あると、スクリプトはエラーで止まる。",
             "Hayanagi は `strip` してから配置する。定跡 `hayanagi_book.db` はビルドで `build/Hayanagi/book/` に"
             "コピーされたものを `Hayanagi/book/` に置く。Hayanagi は実行ファイルの横の `book/` から定跡を読む。"
@@ -739,8 +739,9 @@ T["en"] = {
         ("ul", [
             "The puzzle collections are copied unchanged. Their hashes match the audit records built into the application, "
             "so verified move counts and solutions are reused when a collection is opened.",
-            "Keep exactly one collection per move count in `data/tsumeshogi/` (the repository tracks only the current 20261001 "
-            "files). The script stops with an error if two files exist for the same move count.",
+            "Keep exactly one collection per move count in `data/tsumeshogi/` (the repository tracks the current 20261001 "
+            "files for 3–13 plies and 20261127 files for 15–31 plies; release ZIPs bundle only the six 3–13-ply files, while "
+            "the nine 15–31-ply files are offered separately via the repository and User Guide). The script stops with an error if two files exist for the same move count.",
             "Hayanagi is stripped before it is added. Its opening book `hayanagi_book.db`, which the build copies to "
             "`build/Hayanagi/book/`, goes to `Hayanagi/book/`; Hayanagi reads the book from `book/` next to its executable. "
             "The ZIP has no `docs/`, `validation_*.json`, or `licenses/` outside the "
@@ -1050,7 +1051,7 @@ T["zh-cn"] = {
         ("code", zip_tree({"puzzles": "6 个文件（各 1,000 题）", "book": "Hayanagi 的定式"})),
         ("ul", [
             "题集按原样复制。其哈希值与应用程序内置的审核记录一致，因此读取时可以复用已验证的手数和手顺。",
-            "`data/tsumeshogi/` 中每种手数只放 1 个题集文件（仓库只跟踪当前的 20261001 版）。"
+            "`data/tsumeshogi/` 中每种手数只放 1 个题集文件（仓库跟踪 3～13 手诘的 20261001 版和 15～31 手诘的 20261127 版；发布 ZIP 仅附带 3～13 手诘的 6 个文件，15～31 手诘通过仓库和使用指南另行提供）。"
             "同一手数有多个文件时，脚本会报错并停止。",
             "Hayanagi 经 `strip` 后放入。定式文件 `hayanagi_book.db` 由构建复制到 `build/Hayanagi/book/`，"
             "放入 `Hayanagi/book/`；Hayanagi 从可执行文件旁边的 `book/` 读取定式。ZIP 中 AppImage 之外不放 `docs/`、`validation_*.json` 和 `licenses/`，"
@@ -1350,7 +1351,7 @@ T["zh-tw"] = {
         ("code", zip_tree({"puzzles": "6 個檔案（各 1,000 題）", "book": "Hayanagi 的定跡"})),
         ("ul", [
             "題集原樣複製。其雜湊值與應用程式內建的稽核紀錄一致，因此讀取時可以沿用已驗證的手數和手順。",
-            "`data/tsumeshogi/` 中每種手數只放 1 個題集檔案（儲存庫只追蹤目前的 20261001 版）。"
+            "`data/tsumeshogi/` 中每種手數只放 1 個題集檔案（儲存庫追蹤 3～13 手詰的 20261001 版與 15～31 手詰的 20261127 版；發行 ZIP 僅附帶 3～13 手詰的 6 個檔案，15～31 手詰由儲存庫與使用指南另行提供）。"
             "同一手數有多個檔案時，指令碼會報錯並停止。",
             "Hayanagi 經 `strip` 後放入。定跡檔案 `hayanagi_book.db` 由建置複製到 `build/Hayanagi/book/`，"
             "放入 `Hayanagi/book/`；Hayanagi 從執行檔旁邊的 `book/` 讀取定跡。ZIP 中 AppImage 之外不放 `docs/`、`validation_*.json` 和 `licenses/`，"

@@ -327,7 +327,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
         └── README.md</code></pre>
 <ul>
 <li>The puzzle collections are copied unchanged. Their hashes match the audit records built into the application, so verified move counts and solutions are reused when a collection is opened.</li>
-<li>Keep exactly one collection per move count in <code>data/tsumeshogi/</code> (the repository tracks only the current 20261001 files). The script stops with an error if two files exist for the same move count.</li>
+<li>Keep exactly one collection per move count in <code>data/tsumeshogi/</code> (the repository tracks the current 20261001 files for 3–13 plies and 20261127 files for 15–31 plies; release ZIPs bundle only the six 3–13-ply files, while the nine 15–31-ply files are offered separately via the repository and User Guide). The script stops with an error if two files exist for the same move count.</li>
 <li>Hayanagi is stripped before it is added. Its opening book <code>hayanagi_book.db</code>, which the build copies to <code>build/Hayanagi/book/</code>, goes to <code>Hayanagi/book/</code>; Hayanagi reads the book from <code>book/</code> next to its executable. The ZIP has no <code>docs/</code>, <code>validation_*.json</code>, or <code>licenses/</code> outside the AppImage; the license notices are inside the AppImage.</li>
 </ul>
 <p>Users start the application as follows. In tsume play, they choose a collection in <code>data/tsumeshogi/</code> with “Open collection…”; to register the engine for regular games, they choose <code>Hayanagi/hayanagi</code>.</p>

@@ -293,9 +293,9 @@ copy build\libsodium.dll deploy\
 copy build\*.qm deploy\
 copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
 copy build\Hayanagi\book\hayanagi_book.db deploy\Hayanagi\book\
-copy data\tsumeshogi\tsume_*ply_*.txt deploy\data\tsumeshogi\
+foreach ($ply in 3,5,7,9,11,13) { copy "data\tsumeshogi\tsume_${ply}ply_*.txt" deploy\data\tsumeshogi\ }
 copy LICENSE deploy\</code></pre>
-<p>詰將棋題集收錄 3、5、7、9、11、13 手詰各 1 個檔案，共 6 個檔案（<code>data/tsumeshogi/</code> 中不能殘留相同手數的舊版本；有多個時指令碼會停止）。不收錄 README（根目錄、<code>Hayanagi/</code>、<code>data/tsumeshogi/</code>）。Hayanagi 的定跡檔案 <code>hayanagi_book.db</code> 使用建置時複製到 <code>build/Hayanagi/book/</code> 的檔案，放入 <code>Hayanagi/book/</code>。Hayanagi 從工作目錄的 <code>book/</code> 讀取定跡，而 ShogiBoardQ 以引擎所在的目錄作為工作目錄啟動引擎，因此解壓縮 ZIP 後即可直接使用定跡。請不要整個複製原始碼樹或建置資料夾，並在發行前確認 ZIP 中不包含 <code>Hayanagi/source/</code> 與 <code>licenses/</code>。一般建置產生的 <code>build/licenses/</code> 也不複製到 Windows 的 ZIP 中。</p>
+<p>詰將棋題集收錄 3、5、7、9、11、13 手詰各 1 個檔案，共 6 個檔案（<code>data/tsumeshogi/</code> 中不能殘留相同手數的舊版本；有多個時指令碼會停止；15～31 手詰的 9 個檔案不隨發行 ZIP 附帶，由儲存庫與使用指南另行提供）。不收錄 README（根目錄、<code>Hayanagi/</code>、<code>data/tsumeshogi/</code>）。Hayanagi 的定跡檔案 <code>hayanagi_book.db</code> 使用建置時複製到 <code>build/Hayanagi/book/</code> 的檔案，放入 <code>Hayanagi/book/</code>。Hayanagi 從工作目錄的 <code>book/</code> 讀取定跡，而 ShogiBoardQ 以引擎所在的目錄作為工作目錄啟動引擎，因此解壓縮 ZIP 後即可直接使用定跡。請不要整個複製原始碼樹或建置資料夾，並在發行前確認 ZIP 中不包含 <code>Hayanagi/source/</code> 與 <code>licenses/</code>。一般建置產生的 <code>build/licenses/</code> 也不複製到 Windows 的 ZIP 中。</p>
 </section>
 <section id="package-windeployqt" class="level3">
 <h3>4.2 以 windeployqt 部署 Qt DLL</h3>

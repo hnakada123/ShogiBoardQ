@@ -293,9 +293,9 @@ copy build\libsodium.dll deploy\
 copy build\*.qm deploy\
 copy build\Hayanagi\hayanagi.exe deploy\Hayanagi\
 copy build\Hayanagi\book\hayanagi_book.db deploy\Hayanagi\book\
-copy data\tsumeshogi\tsume_*ply_*.txt deploy\data\tsumeshogi\
+foreach ($ply in 3,5,7,9,11,13) { copy "data\tsumeshogi\tsume_${ply}ply_*.txt" deploy\data\tsumeshogi\ }
 copy LICENSE deploy\</code></pre>
-<p>诘棋题集收录 3、5、7、9、11、13 手诘各 1 个文件，共 6 个文件（<code>data/tsumeshogi/</code> 中不能残留相同手数的旧版本；有多个时脚本会停止）。不收录 README（根目录、<code>Hayanagi/</code>、<code>data/tsumeshogi/</code>）。Hayanagi 的定式文件 <code>hayanagi_book.db</code> 使用构建时复制到 <code>build/Hayanagi/book/</code> 的文件，放入 <code>Hayanagi/book/</code>。Hayanagi 从工作目录的 <code>book/</code> 读取定式，而 ShogiBoardQ 以引擎所在的目录作为工作目录启动引擎，因此解压 ZIP 后即可直接使用定式。请不要整个复制源代码树或构建文件夹，并在发布前确认 ZIP 中不包含 <code>Hayanagi/source/</code> 和 <code>licenses/</code>。普通构建生成的 <code>build/licenses/</code> 也不复制到 Windows 的 ZIP 中。</p>
+<p>诘棋题集收录 3、5、7、9、11、13 手诘各 1 个文件，共 6 个文件（<code>data/tsumeshogi/</code> 中不能残留相同手数的旧版本；有多个时脚本会停止；15～31 手诘的 9 个文件不随发布 ZIP 附带，由仓库和使用指南另行提供）。不收录 README（根目录、<code>Hayanagi/</code>、<code>data/tsumeshogi/</code>）。Hayanagi 的定式文件 <code>hayanagi_book.db</code> 使用构建时复制到 <code>build/Hayanagi/book/</code> 的文件，放入 <code>Hayanagi/book/</code>。Hayanagi 从工作目录的 <code>book/</code> 读取定式，而 ShogiBoardQ 以引擎所在的目录作为工作目录启动引擎，因此解压 ZIP 后即可直接使用定式。请不要整个复制源代码树或构建文件夹，并在发布前确认 ZIP 中不包含 <code>Hayanagi/source/</code> 和 <code>licenses/</code>。普通构建生成的 <code>build/licenses/</code> 也不复制到 Windows 的 ZIP 中。</p>
 </section>
 <section id="package-windeployqt" class="level3">
 <h3>4.2 用 windeployqt 部署 Qt DLL</h3>
